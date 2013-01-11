@@ -1,0 +1,12 @@
+*.tar.bz2
+*.tar.gz
+*.7z
+*.pyc
+*.zip
+*.exe
+.idea
+.DS_Store
+_bin
+_obj
+*.depend
+*.gcode
