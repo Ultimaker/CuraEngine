@@ -7,6 +7,8 @@
 
 CC=g++
 CFLAGS=-I. -c -Wall
+# also include debug symbols
+CFLAGS+=-ggdb
 LDFLAGS=
 SOURCES=main.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)

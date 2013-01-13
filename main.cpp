@@ -47,30 +47,30 @@ void processFile(const char* input_filename,const char* output_filename)
     double t = getTime();
     std::fprintf(stderr,"Loading %s from disk...",input_filename);
     SimpleModel* m = loadModel(input_filename, matrix);
-    fprintf(stderr, "\nLoaded from disk in %5.3fs\n", getTime() - t); t = getTime();
+    fprintf(stderr, "\nLoaded from disk in %5.3fs\n", timeElapsed(t));
     if (!m)
     {
         fprintf(stderr, "Failed to load model: %s\n", input_filename);
         return;
     }
-    std::fprintf(stderr,"Analyzing model...");
+    std::fprintf(stderr,"Analyzing and optimizing model...\n");
     OptimizedModel* om = new OptimizedModel(m, Point3(102500, 102500, 0));
-    fprintf(stderr, "#Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
-    fprintf(stderr, "#Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
+    fprintf(stderr, "  #Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
+    fprintf(stderr, "  #Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
     delete m;
-    fprintf(stderr, "Optimize model: %f\n", getTime() - t); t = getTime();
+    fprintf(stderr, "Optimize model %5.3fs \n", timeElapsed(t));
     om->saveDebugSTL("output.stl");
     
     std::fprintf(stderr,"Slicing model...\n");
     Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness);
     delete om;
-    fprintf(stderr, "Sliced model in %5.3fs\n", getTime() - t); t = getTime();
+    fprintf(stderr, "Sliced model in %5.3fs\n", timeElapsed(t));
     //slicer.dumpSegments("output.html");
     
     std::fprintf(stderr,"Generating layer parts...\n");
     LayerParts layerParts(slicer);
     delete slicer;
-    fprintf(stderr, "Generated layer parts in %5.3fs\n", getTime() - t); t = getTime();
+    fprintf(stderr, "Generated layer parts in %5.3fs\n", timeElapsed(t));
     if(layerparts_flag) layerParts.dumpLayerparts("output.html");
     
     GCodeExport gcode(output_filename);
@@ -85,7 +85,7 @@ void processFile(const char* input_filename,const char* output_filename)
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         InsetLayer inset(&layerParts.layers[layerNr], config.extrusionWidth, config.insetCount);
-        if (verbose_flag) fprintf(stderr, "\rProcessing layer %d of %d...",layerNr,totalLayers);
+        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rProcessing layer %d of %d...",layerNr+1,totalLayers);
         gcode.addComment("LAYER:%d", layerNr);
         for(unsigned int partNr=0; partNr<inset.parts.size(); partNr++)
         {

@@ -12,4 +12,9 @@ static inline double getTime()
 #endif
 }
 
+static inline double timeElapsed(double &t) {
+	double t_passed = getTime() - t;
+	t = getTime();
+	return t_passed;
+}
 #endif//GETTIME_H
