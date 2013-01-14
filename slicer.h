@@ -215,10 +215,10 @@ public:
         for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
         {
             percDone = 100*layerNr/layers.size();
-            if((getTime()-t)>2.0) fprintf(stderr, "\rProcessing layers (%d percent)",percDone);
+            if((getTime()-t)>2.0) fprintf(stderr, "\rProcessing layers... (%d percent)",percDone);
             layers[layerNr].makePolygons(om);
         }
-        fprintf(stderr, "\rProcessed all layers in %5.1fs\n",timeElapsed(t));
+        fprintf(stderr, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
     }
         
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z)
