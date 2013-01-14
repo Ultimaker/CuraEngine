@@ -85,6 +85,18 @@ public:
         }
         addMove(Point3(polygon[0].X, polygon[0].Y, z), (Point(polygon[0]) - Point(polygon[polygon.size()-1])).vSizeMM() * extrusionPerMM);
     }
+    
+    void addStartCode()
+    {
+        fprintf(f, "G21           ;metric values\n");
+        fprintf(f, "G90           ;absolute positioning\n");
+        fprintf(f, "M109 S210     ;Heatup to 210C\n");
+        fprintf(f, "G28           ;Home\n");
+        fprintf(f, "G1 Z15.0 F300 ;move the platform down 15mm\n");
+        fprintf(f, "G92 E0        ;zero the extruded length\n");
+        fprintf(f, "G1 F200 E3    ;extrude 3mm of feed stock\n");
+        fprintf(f, "G92 E0        ;zero the extruded length again\n");
+    }
 };
 
 #endif//GCODEEXPORT_H
