@@ -110,8 +110,9 @@ void processFile(const char* input_filename,const char* output_filename)
     
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating gcode %d of %d...",layerNr+1,totalLayers);
         InsetLayer* inset = &insetList[layerNr];
+        if (verbose_flag && (getTime()-t)>2.0) 
+            fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
         gcode.addComment("LAYER:%d", layerNr);
         for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
         {
@@ -130,7 +131,9 @@ void processFile(const char* input_filename,const char* output_filename)
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
-    fprintf(stderr, "Generated gcode in %5.3fs\n", timeElapsed(t));
+    fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
+    gcode.tellFileSize();
+    fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
 }
 
 int main (int argc, char **argv)

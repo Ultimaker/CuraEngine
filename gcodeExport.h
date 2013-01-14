@@ -97,6 +97,24 @@ public:
         fprintf(f, "G1 F200 E3    ;extrude 3mm of feed stock\n");
         fprintf(f, "G92 E0        ;zero the extruded length again\n");
     }
+
+    int getFileSize(){
+        return ftell(f);
+    }
+    void tellFileSize() {
+        int fsize = ftell(f);
+        char fmagnitude = ' ';
+        if(fsize > 1024*1024) {
+            fmagnitude = 'M';
+            fsize /= 1024*1024;
+            fprintf(stderr, "Wrote %d MB.\n",fsize);
+        }
+        if(fsize > 1024) {
+            fmagnitude = 'k';
+            fsize /= 1024;
+            fprintf(stderr, "Wrote %d kilobytes.\n",fsize);
+        }
+    }
 };
 
 #endif//GCODEEXPORT_H
