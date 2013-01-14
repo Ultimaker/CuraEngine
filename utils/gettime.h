@@ -1,6 +1,12 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
+#ifdef WIN32
+#include <windows.h>
+#else
+#include <sys/time.h>
+#endif
+
 static inline double getTime()
 {
 #ifdef WIN32

@@ -2,11 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#ifdef WIN32
-#include <windows.h>
-#else
-#include <sys/time.h>
-#endif
 #include <getopt.h>
 
 #include "clipper/clipper.hpp"
@@ -159,11 +154,10 @@ int main (int argc, char **argv)
             {"layerparts",  no_argument, &layerparts_flag, 'l'},
             {0, 0, 0, 0}
         };
-       /* getopt_long stores the option index here. */
-       int option_index = 0;
- 
-       c = getopt_long (argc, argv, "i:o:hvl",
-                        long_options, &option_index);
+        /* getopt_long stores the option index here. */
+        int option_index = 0;
+
+        c = getopt_long (argc, argv, "i:o:hvl", long_options, &option_index);
  
         /* Detect the end of the options. */
         if (c == -1)
