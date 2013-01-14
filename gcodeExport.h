@@ -85,6 +85,23 @@ public:
         }
         addMove(Point3(polygon[0].X, polygon[0].Y, z), (Point(polygon[0]) - Point(polygon[polygon.size()-1])).vSizeMM() * extrusionPerMM);
     }
+    int getFileSize(){
+        return ftell(f);
+    }
+    void tellFileSize() {
+        int fsize = ftell(f);
+        char fmagnitude = ' ';
+        if(fsize > 1024*1024) {
+            fmagnitude = 'M';
+            fsize /= 1024*1024;
+            fprintf(stderr, "Wrote %d MB.\n",fsize);
+        }
+        if(fsize > 1024) {
+            fmagnitude = 'k';
+            fsize /= 1024;
+            fprintf(stderr, "Wrote %d kilobytes.\n",fsize);
+        }
+    }
 };
 
 #endif//GCODEEXPORT_H

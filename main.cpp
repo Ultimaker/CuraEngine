@@ -85,7 +85,8 @@ void processFile(const char* input_filename,const char* output_filename)
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         InsetLayer inset(&layerParts.layers[layerNr], config.extrusionWidth, config.insetCount);
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rProcessing layer %d of %d...",layerNr+1,totalLayers);
+        if (verbose_flag && (getTime()-t)>2.0) 
+            fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
         gcode.addComment("LAYER:%d", layerNr);
         for(unsigned int partNr=0; partNr<inset.parts.size(); partNr++)
         {
@@ -104,6 +105,9 @@ void processFile(const char* input_filename,const char* output_filename)
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
+    fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
+    gcode.tellFileSize();
+    fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
 }
 
 int main (int argc, char **argv)
@@ -114,8 +118,8 @@ int main (int argc, char **argv)
    static int help_flag = false;
 
     fprintf(stderr,"Cura_SteamEngine version %s\n",VERSION);
-
-   while (1)
+    
+    while (1)
      {
        static struct option long_options[] =
          {
@@ -190,4 +194,5 @@ int main (int argc, char **argv)
          printf ("%s ", argv[optind++]);
        putchar ('\n');
      }
+     return 0;
 }
