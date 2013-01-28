@@ -83,6 +83,7 @@ void processFile(const char* input_filename,const char* output_filename)
         if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating insets %d of %d...",layerNr+1,totalLayers);
     }
     fprintf(stderr, "Generated inset in %5.3fs\n", timeElapsed(t));
+
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         ClipperLib::Clipper bottomClipper;
@@ -126,6 +127,8 @@ void processFile(const char* input_filename,const char* output_filename)
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
+    gcode.addEndCode();
+    
     fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
     fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));

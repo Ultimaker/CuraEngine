@@ -97,6 +97,17 @@ public:
         fprintf(f, "G1 F200 E3    ;extrude 3mm of feed stock\n");
         fprintf(f, "G92 E0        ;zero the extruded length again\n");
     }
+    void addEndCode()
+    {
+        fprintf(f, "M104 S0                     ;extruder heater off\n");
+        fprintf(f, "M140 S0                     ;heated bed heater off (if you have it)\n");
+        fprintf(f, "G91                            ;relative positioning\n");
+        fprintf(f, "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n");
+        fprintf(f, "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n");
+        fprintf(f, "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n");
+        fprintf(f, "M84                         ;steppers off\n");
+        fprintf(f, "G90                         ;absolute positioning\n");
+    }
 
     int getFileSize(){
         return ftell(f);
