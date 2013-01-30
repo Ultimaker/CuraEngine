@@ -48,9 +48,12 @@ public:
         va_end(args);
     }
     
-    void addMove(Point3 p, float extrusion)
+    void addMove(Point3 p, double extrusion)
     {
         int speed;
+        extrusionAmount += extrusion;
+        if ((p - currentPosition).testLength(200))
+            return;
         if (extrusion != 0)
         {
             fprintf(f, "G1");
@@ -68,7 +71,6 @@ public:
         fprintf(f, " X%0.2f Y%0.2f", float(p.x)/1000, float(p.y)/1000);
         if (p.z != currentPosition.z)
             fprintf(f, " Z%0.2f", float(p.z)/1000);
-        extrusionAmount += extrusion;
         if (extrusion != 0)
             fprintf(f, " E%0.4lf", extrusionAmount);
         fprintf(f, "\n");

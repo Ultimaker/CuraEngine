@@ -24,6 +24,8 @@ public:
     int filamentDiameter;
     int extrusionWidth;
     int insetCount;
+    int downSkinCount;
+    int upSkinCount;
 };
 
 static int verbose_flag;
@@ -37,6 +39,8 @@ void processFile(const char* input_filename,const char* output_filename)
     config.layerThickness = 100;
     config.extrusionWidth = 400;
     config.insetCount = 2;
+    config.downSkinCount = 6;
+    config.upSkinCount = 6;
     FMatrix3x3 matrix;
     
     double t = getTime();
@@ -86,21 +90,40 @@ void processFile(const char* input_filename,const char* output_filename)
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        ClipperLib::Clipper bottomClipper;
-        bool first = true;
-        for(int bottomLayer = layerNr - 6; bottomLayer < (int)layerNr; bottomLayer++)
-        {
-            if (bottomLayer < 0)
-                continue;
-            InsetLayer* inset = &insetList[bottomLayer];
+        InsetLayer* inset = &insetList[layerNr];
 
-            for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
+        for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
+        {
+            ClipperLib::Clipper downskinClipper;
+            ClipperLib::Clipper upskinClipper;
+            downskinClipper.AddPolygons(inset->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptSubject);
+            upskinClipper.AddPolygons(inset->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptSubject);
+            if (int(layerNr - config.downSkinCount) >= 0)
             {
-                bottomClipper.AddPolygons(inset->parts[partNr].inset[config.insetCount - 1], first ? ClipperLib::ptSubject : ClipperLib::ptClip);
+                InsetLayer* inset2 = &insetList[layerNr - config.downSkinCount];
+                for(unsigned int partNr=0; partNr<inset2->parts.size(); partNr++)
+                {
+                    downskinClipper.AddPolygons(inset2->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptClip);
+                }
             }
-            first = false;
+            if (layerNr + config.upSkinCount < totalLayers)
+            {
+                InsetLayer* inset2 = &insetList[layerNr + config.upSkinCount];
+                for(unsigned int partNr=0; partNr<inset2->parts.size(); partNr++)
+                {
+                    upskinClipper.AddPolygons(inset2->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptClip);
+                }
+            }
+            ClipperLib::Polygons downSkin;
+            ClipperLib::Polygons upSkin;
+            downskinClipper.Execute(ClipperLib::ctDifference, downSkin);
+            upskinClipper.Execute(ClipperLib::ctDifference, upSkin);
+            
+            ClipperLib::Clipper skinClipper;
+            skinClipper.AddPolygons(downSkin, ClipperLib::ptSubject);
+            skinClipper.AddPolygons(upSkin, ClipperLib::ptClip);
+            skinClipper.Execute(ClipperLib::ctUnion, inset->parts[partNr].skin);
         }
-        //bottomClipper.Execute(ClipperLib::ctIntersection, insetList[layerNr].downSkin);
     }
     fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
     
@@ -123,6 +146,17 @@ void processFile(const char* input_filename,const char* output_filename)
                 {
                     gcode.addPolygon(inset->parts[partNr].inset[insetNr][polygonNr], config.initialLayerThickness + layerNr * config.layerThickness);
                 }
+            }
+            
+            gcode.addComment("TYPE:FILL");
+            ClipperLib::Polygons skin = inset->parts[partNr].skin;
+            while(1)
+            {
+                ClipperLib::OffsetPolygons(skin, skin, -config.extrusionWidth, ClipperLib::jtSquare, 2, false);
+                if (skin.size() < 1)
+                    break;
+                for(unsigned int polygonNr=0; polygonNr<skin.size(); polygonNr++)
+                    gcode.addPolygon(skin[polygonNr], config.initialLayerThickness + layerNr * config.layerThickness);
             }
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);

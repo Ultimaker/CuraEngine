@@ -5,6 +5,7 @@ class InsetPart
 {
 public:
     std::vector<ClipperLib::Polygons> inset;
+    ClipperLib::Polygons skin;
     
     InsetPart(LayerPart* part, int offset, int insetCount)
     {
