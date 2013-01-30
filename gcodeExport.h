@@ -115,17 +115,17 @@ public:
         return ftell(f);
     }
     void tellFileSize() {
-        int fsize = ftell(f);
+        float fsize = (float) ftell(f);
         char fmagnitude = ' ';
         if(fsize > 1024*1024) {
             fmagnitude = 'M';
-            fsize /= 1024*1024;
-            fprintf(stderr, "Wrote %d MB.\n",fsize);
+            fsize /= 1024.0*1024.0;
+            fprintf(stderr, "Wrote %5.1f MB.\n",fsize);
         }
         if(fsize > 1024) {
             fmagnitude = 'k';
-            fsize /= 1024;
-            fprintf(stderr, "Wrote %d kilobytes.\n",fsize);
+            fsize /= 1024.0;
+            fprintf(stderr, "Wrote %5.1f kilobytes.\n",fsize);
         }
     }
 };

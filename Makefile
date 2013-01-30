@@ -35,7 +35,7 @@ $(EXECUTABLE): $(OBJECTS)
 gcode: $(EXECUTABLE) httpServer
 	./$(EXECUTABLE) --html
 	rm -f html/gCodeViewer/output.gcode 2>/dev/null
-	ln output.gcode html/gCodeViewer/
+	ln -f output.gcode html/gCodeViewer/
 	$(OPEN_HTML) "http://localhost:8000/gCodeViewer/index.html?analyzeFile=output.gcode"
 
 ## layers: make 'layers' will output layer SVGs and loads it up in your browser.
