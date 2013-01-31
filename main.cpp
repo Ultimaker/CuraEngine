@@ -13,6 +13,8 @@
 #include "slicer.h"
 #include "layerPart.h"
 #include "inset.h"
+#include "skin.h"
+#include "pathOptimizer.h"
 #include "gcodeExport.h"
 
 #define VERSION "0.1"
@@ -88,75 +90,68 @@ void processFile(const char* input_filename,const char* output_filename)
     }
     fprintf(stderr, "Generated inset in %5.3fs\n", timeElapsed(t));
 
+    std::vector<SkinLayer> skinList;
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        InsetLayer* inset = &insetList[layerNr];
-
-        for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
-        {
-            ClipperLib::Clipper downskinClipper;
-            ClipperLib::Clipper upskinClipper;
-            downskinClipper.AddPolygons(inset->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptSubject);
-            upskinClipper.AddPolygons(inset->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptSubject);
-            if (int(layerNr - config.downSkinCount) >= 0)
-            {
-                InsetLayer* inset2 = &insetList[layerNr - config.downSkinCount];
-                for(unsigned int partNr=0; partNr<inset2->parts.size(); partNr++)
-                {
-                    downskinClipper.AddPolygons(inset2->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptClip);
-                }
-            }
-            if (layerNr + config.upSkinCount < totalLayers)
-            {
-                InsetLayer* inset2 = &insetList[layerNr + config.upSkinCount];
-                for(unsigned int partNr=0; partNr<inset2->parts.size(); partNr++)
-                {
-                    upskinClipper.AddPolygons(inset2->parts[partNr].inset[config.insetCount - 1], ClipperLib::ptClip);
-                }
-            }
-            ClipperLib::Polygons downSkin;
-            ClipperLib::Polygons upSkin;
-            downskinClipper.Execute(ClipperLib::ctDifference, downSkin);
-            upskinClipper.Execute(ClipperLib::ctDifference, upSkin);
-            
-            ClipperLib::Clipper skinClipper;
-            skinClipper.AddPolygons(downSkin, ClipperLib::ptSubject);
-            skinClipper.AddPolygons(upSkin, ClipperLib::ptClip);
-            skinClipper.Execute(ClipperLib::ctUnion, inset->parts[partNr].skin);
-        }
+        skinList.push_back(SkinLayer(layerNr, insetList, config.downSkinCount, config.upSkinCount));
+        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
     }
     fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
     
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         InsetLayer* inset = &insetList[layerNr];
+        SkinLayer* skin = &skinList[layerNr];
         if (verbose_flag && (getTime()-t)>2.0) 
             fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
-        gcode.addComment("LAYER:%d", layerNr);
+        
+        PathOptimizer partOrderOptimizer(ClipperLib::IntPoint(0,0));
         for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
         {
-            //for(unsigned int insetNr=0; insetNr<inset.parts[partNr].inset.size(); insetNr++)
+            partOrderOptimizer.addPolygon(inset->parts[partNr].inset[0][0]);
+        }
+        partOrderOptimizer.optimize();
+        
+        gcode.addComment("LAYER:%d", layerNr);
+        for(unsigned int partCounter=0; partCounter<inset->parts.size(); partCounter++)
+        {
+            unsigned int partNr = partOrderOptimizer.polyOrder[partCounter];
+            
             for(int insetNr=inset->parts[partNr].inset.size()-1; insetNr>-1; insetNr--)
             {
                 if (insetNr == 0)
                     gcode.addComment("TYPE:WALL-OUTER");
                 else
                     gcode.addComment("TYPE:WALL-INNER");
+                PathOptimizer insetOrderOptimizer(ClipperLib::IntPoint(0,0));
+                insetOrderOptimizer.addPolygons(inset->parts[partNr].inset[insetNr]);
+                insetOrderOptimizer.optimize();
                 for(unsigned int polygonNr=0; polygonNr<inset->parts[partNr].inset[insetNr].size(); polygonNr++)
                 {
-                    gcode.addPolygon(inset->parts[partNr].inset[insetNr][polygonNr], config.initialLayerThickness + layerNr * config.layerThickness);
+                    int nr = insetOrderOptimizer.polyOrder[polygonNr];
+                    gcode.addPolygon(inset->parts[partNr].inset[insetNr][nr], insetOrderOptimizer.polyStart[nr], config.initialLayerThickness + layerNr * config.layerThickness);
                 }
             }
             
             gcode.addComment("TYPE:FILL");
-            ClipperLib::Polygons skin = inset->parts[partNr].skin;
+            ClipperLib::Polygons skinPoly = skin->parts[partNr].skin;
+            ClipperLib::Polygons fillPolygons;
             while(1)
             {
-                ClipperLib::OffsetPolygons(skin, skin, -config.extrusionWidth, ClipperLib::jtSquare, 2, false);
-                if (skin.size() < 1)
+                ClipperLib::OffsetPolygons(skinPoly, skinPoly, -config.extrusionWidth, ClipperLib::jtSquare, 2, false);
+                if (skinPoly.size() < 1)
                     break;
-                for(unsigned int polygonNr=0; polygonNr<skin.size(); polygonNr++)
-                    gcode.addPolygon(skin[polygonNr], config.initialLayerThickness + layerNr * config.layerThickness);
+                for(unsigned int polygonNr=0; polygonNr<skinPoly.size(); polygonNr++)
+                    fillPolygons.push_back(skinPoly[polygonNr]);
+            }
+            
+            PathOptimizer fillOrderOptimizer(ClipperLib::IntPoint(-100 * 1000,-100 * 1000));
+            fillOrderOptimizer.addPolygons(fillPolygons);
+            fillOrderOptimizer.optimize();
+            for(unsigned int polygonNr=0; polygonNr<fillPolygons.size(); polygonNr++)
+            {
+                int nr = fillOrderOptimizer.polyOrder[polygonNr];
+                gcode.addPolygon(fillPolygons[nr], fillOrderOptimizer.polyStart[nr], config.initialLayerThickness + layerNr * config.layerThickness);
             }
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);

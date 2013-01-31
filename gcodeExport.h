@@ -78,14 +78,17 @@ public:
         currentPosition = p;
     }
     
-    void addPolygon(ClipperLib::Polygon& polygon, int z)
+    void addPolygon(ClipperLib::Polygon& polygon, int startIdx, int z)
     {
-        addMove(Point3(polygon[0].X, polygon[0].Y, z), 0.0f);
+        ClipperLib::IntPoint p0 = polygon[startIdx];
+        addMove(Point3(p0.X, p0.Y, z), 0.0f);
         for(unsigned int i=1; i<polygon.size(); i++)
         {
-            addMove(Point3(polygon[i].X, polygon[i].Y, z), (Point(polygon[i]) - Point(polygon[i-1])).vSizeMM() * extrusionPerMM);
+            ClipperLib::IntPoint p1 = polygon[(startIdx + i) % polygon.size()];
+            addMove(Point3(p1.X, p1.Y, z), (Point(p1) - Point(p0)).vSizeMM() * extrusionPerMM);
+            p0 = p1;
         }
-        addMove(Point3(polygon[0].X, polygon[0].Y, z), (Point(polygon[0]) - Point(polygon[polygon.size()-1])).vSizeMM() * extrusionPerMM);
+        addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, z), (Point(polygon[startIdx]) - Point(p0)).vSizeMM() * extrusionPerMM);
     }
     
     void addStartCode()
