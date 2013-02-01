@@ -6,8 +6,11 @@ class GCodeExport
     FILE* f;
     double extrusionAmount;
     double extrusionPerMM;
+    double retractionAmount;
     Point3 currentPosition;
-    int moveSpeed, extrudeSpeed, currentSpeed;
+    int moveSpeed, extrudeSpeed, currentSpeed, retractionSpeed;
+    int zPos;
+    bool isRetracted;
 public:
     GCodeExport(const char* filename)
     : currentPosition(0,0,0)
@@ -15,10 +18,13 @@ public:
         f = fopen(filename, "w");
         extrusionAmount = 0;
         extrusionPerMM = 0;
+        retractionAmount = 4.5;
         
         moveSpeed = 150;
         extrudeSpeed = 50;
         currentSpeed = 0;
+        retractionSpeed = 45;
+        isRetracted = false;
     }
     
     ~GCodeExport()
@@ -38,6 +44,11 @@ public:
         this->extrudeSpeed = extrudeSpeed;
     }
     
+    void setZ(int z)
+    {
+        this->zPos = z;
+    }
+    
     void addComment(const char* comment, ...)
     {
         va_list args;
@@ -51,6 +62,11 @@ public:
     void addMove(Point3 p, double extrusion)
     {
         int speed;
+        if (extrusion != 0 && isRetracted)
+        {
+            fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
+            isRetracted = false;
+        }
         extrusionAmount += extrusion;
         if ((p - currentPosition).testLength(200))
             return;
@@ -78,17 +94,24 @@ public:
         currentPosition = p;
     }
     
-    void addPolygon(ClipperLib::Polygon& polygon, int startIdx, int z)
+    void addPolygon(ClipperLib::Polygon& polygon, int startIdx)
     {
         ClipperLib::IntPoint p0 = polygon[startIdx];
-        addMove(Point3(p0.X, p0.Y, z), 0.0f);
+        addMove(Point3(p0.X, p0.Y, zPos), 0.0f);
         for(unsigned int i=1; i<polygon.size(); i++)
         {
             ClipperLib::IntPoint p1 = polygon[(startIdx + i) % polygon.size()];
-            addMove(Point3(p1.X, p1.Y, z), (Point(p1) - Point(p0)).vSizeMM() * extrusionPerMM);
+            addMove(Point3(p1.X, p1.Y, zPos), (Point(p1) - Point(p0)).vSizeMM() * extrusionPerMM);
             p0 = p1;
         }
-        addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, z), (Point(polygon[startIdx]) - Point(p0)).vSizeMM() * extrusionPerMM);
+        addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), (Point(polygon[startIdx]) - Point(p0)).vSizeMM() * extrusionPerMM);
+    }
+    
+    void addRetraction()
+    {
+        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+        currentSpeed = retractionSpeed;
+        isRetracted = true;
     }
     
     void addStartCode()

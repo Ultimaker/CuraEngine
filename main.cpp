@@ -108,11 +108,14 @@ void processFile(const char* input_filename,const char* output_filename)
         PathOptimizer partOrderOptimizer(ClipperLib::IntPoint(0,0));
         for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
         {
-            partOrderOptimizer.addPolygon(inset->parts[partNr].inset[0][0]);
+            //TODO: The PathOptimizer currently gives back indexes in the same order you put them in, but if the following condition is false, then the order is messed up.
+            if (inset->parts[partNr].inset.size() > 0 && inset->parts[partNr].inset[0].size())
+                partOrderOptimizer.addPolygon(inset->parts[partNr].inset[0][0]);
         }
         partOrderOptimizer.optimize();
         
         gcode.addComment("LAYER:%d", layerNr);
+        gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
         for(unsigned int partCounter=0; partCounter<inset->parts.size(); partCounter++)
         {
             unsigned int partNr = partOrderOptimizer.polyOrder[partCounter];
@@ -129,7 +132,7 @@ void processFile(const char* input_filename,const char* output_filename)
                 for(unsigned int polygonNr=0; polygonNr<inset->parts[partNr].inset[insetNr].size(); polygonNr++)
                 {
                     int nr = insetOrderOptimizer.polyOrder[polygonNr];
-                    gcode.addPolygon(inset->parts[partNr].inset[insetNr][nr], insetOrderOptimizer.polyStart[nr], config.initialLayerThickness + layerNr * config.layerThickness);
+                    gcode.addPolygon(inset->parts[partNr].inset[insetNr][nr], insetOrderOptimizer.polyStart[nr]);
                 }
             }
             
@@ -151,8 +154,11 @@ void processFile(const char* input_filename,const char* output_filename)
             for(unsigned int polygonNr=0; polygonNr<fillPolygons.size(); polygonNr++)
             {
                 int nr = fillOrderOptimizer.polyOrder[polygonNr];
-                gcode.addPolygon(fillPolygons[nr], fillOrderOptimizer.polyStart[nr], config.initialLayerThickness + layerNr * config.layerThickness);
+                gcode.addPolygon(fillPolygons[nr], fillOrderOptimizer.polyStart[nr]);
             }
+            
+            if (partCounter < inset->parts.size() - 1)
+                gcode.addRetraction();
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
