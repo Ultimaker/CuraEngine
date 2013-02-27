@@ -5,9 +5,12 @@
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
 Integer points are used to avoid floating point rounding errors, and because ClipperLib uses them.
 */
+#define INLINE static inline
 
 #include "clipper/clipper.hpp"
+using ClipperLib::Polygons;
 
+#include <limits.h>
 #include <stdint.h>
 #include <math.h>
 
@@ -57,6 +60,7 @@ public:
     }
 };
 
+/*
 class Point
 {
 public:
@@ -80,37 +84,122 @@ public:
         if (x > y) return x;
         return y;
     }
-    
-    bool shorterThen(int32_t len)
-    {
-        if (x > len || x < -len)
-            return false;
-        if (y > len || y < -len)
-            return false;
-        return vSize2() <= len*len;
-    }
-    
-    int32_t vSize2()
-    {
-        return x*x+y*y;
-    }
+};*/
+typedef ClipperLib::IntPoint Point;
 
-    int32_t vSize()
+INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
+INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
+INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
+
+//Point& operator += (const Point& p) { x += p.x; y += p.y; return *this; }
+//Point& operator -= (const Point& p) { x -= p.x; y -= p.y; return *this; }
+
+INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
+INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
+
+INLINE int64_t vSize2(const Point& p0)
+{
+    return p0.X*p0.X+p0.Y*p0.Y;
+}
+
+INLINE bool shorterThen(const Point& p0, int32_t len)
+{
+    if (p0.X > len || p0.X < -len)
+        return false;
+    if (p0.Y > len || p0.Y < -len)
+        return false;
+    return vSize2(p0) <= len*len;
+}
+
+INLINE int32_t vSize(const Point& p0)
+{
+    return sqrt(vSize2(p0));
+}
+
+INLINE float vSizeMM(const Point& p0)
+{
+    float fx = float(p0.X) / 1000;
+    float fy = float(p0.Y) / 1000;
+    return sqrtf(fx*fx+fy*fy);
+}
+
+class PointMatrix
+{
+public:
+    double matrix[4];
+    
+    PointMatrix(double rotation)
     {
-        return sqrt(vSize2());
+        rotation = rotation / 180 * M_PI;
+        matrix[0] = cos(rotation);
+        matrix[1] = -sin(rotation);
+        matrix[2] = sin(rotation);
+        matrix[3] = cos(rotation);
     }
     
-    float vSizeMM()
+    Point apply(const Point p) const
     {
-        float fx = float(x) / 1000;
-        float fy = float(y) / 1000;
-        return sqrtf(fx*fx+fy*fy);
+        return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
     }
     
-    ClipperLib::IntPoint IntPoint()
+    void apply(Polygons& polys) const
     {
-        return ClipperLib::IntPoint(x, y);
+        for(unsigned int i=0; i<polys.size(); i++)
+        {
+            for(unsigned int j=0; j<polys[i].size(); j++)
+            {
+                polys[i][j] = apply(polys[i][j]);
+            }
+        }
     }
 };
+
+INLINE Point polymin(ClipperLib::Polygon poly)
+{
+    Point ret(LLONG_MAX, LLONG_MAX);
+    for(unsigned int i=0; i<poly.size(); i++)
+    {
+        if (ret.X > poly[i].X) ret.X = poly[i].X;
+        if (ret.Y > poly[i].Y) ret.Y = poly[i].Y;
+    }
+    return ret;
+}
+INLINE Point polymin(Polygons polys)
+{
+    Point ret(LLONG_MAX, LLONG_MAX);
+    for(unsigned int i=0; i<polys.size(); i++)
+    {
+        for(unsigned int j=0; j<polys[i].size(); j++)
+        {
+            if (ret.X > polys[i][j].X) ret.X = polys[i][j].X;
+            if (ret.Y > polys[i][j].Y) ret.Y = polys[i][j].Y;
+        }
+    }
+    return ret;
+}
+
+INLINE Point polymax(ClipperLib::Polygon poly)
+{
+    Point ret(LLONG_MIN, LLONG_MIN);
+    for(unsigned int i=0; i<poly.size(); i++)
+    {
+        if (ret.X < poly[i].X) ret.X = poly[i].X;
+        if (ret.Y < poly[i].Y) ret.Y = poly[i].Y;
+    }
+    return ret;
+}
+INLINE Point polymax(Polygons polys)
+{
+    Point ret(LLONG_MIN, LLONG_MIN);
+    for(unsigned int i=0; i<polys.size(); i++)
+    {
+        for(unsigned int j=0; j<polys[i].size(); j++)
+        {
+            if (ret.X < polys[i][j].X) ret.X = polys[i][j].X;
+            if (ret.Y < polys[i][j].Y) ret.Y = polys[i][j].Y;
+        }
+    }
+    return ret;
+}
 
 #endif//INT_POINT_H

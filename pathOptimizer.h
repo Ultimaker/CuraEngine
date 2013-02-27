@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-float distanceSquared(const ClipperLib::IntPoint& p0, const ClipperLib::IntPoint& p1)
+float distanceSquared(const Point& p0, const Point& p1)
 {
     float dx = p0.X - p1.X;
     float dy = p0.Y - p1.Y;
@@ -13,7 +13,7 @@ float distanceSquared(const ClipperLib::IntPoint& p0, const ClipperLib::IntPoint
 class PathOptimizer
 {
 public:
-    ClipperLib::IntPoint startPoint;
+    Point startPoint;
     std::vector<ClipperLib::Polygon*> polygons;
     std::vector<int> polyStart;
     std::vector<int> polyOrder;
@@ -55,14 +55,14 @@ public:
             picked.push_back(false);
         }
 
-        ClipperLib::IntPoint p0 = startPoint;
+        Point p0 = startPoint;
         for(unsigned int n=0; n<polygons.size(); n++)
         {
             int best = -1;
             float bestDist = 0xFFFFFFFFFFFFFFFFLL;
             for(unsigned int i=0;i<polygons.size(); i++)
             {
-                if (picked[i])
+                if (picked[i] || (*polygons[i]).size() < 1)
                     continue;
                 float dist = distanceSquared((*polygons[i])[polyStart[i]], p0);
                 if (dist < bestDist)
@@ -71,13 +71,16 @@ public:
                     bestDist = dist;
                 }
             }
-            p0 = (*polygons[best])[polyStart[best]];
-            picked[best] = true;
-            polyOrder.push_back(best);
+            if (best > -1)
+            {
+                p0 = (*polygons[best])[polyStart[best]];
+                picked[best] = true;
+                polyOrder.push_back(best);
+            }
         }
         
         p0 = startPoint;
-        for(unsigned int n=0; n<polygons.size(); n++)
+        for(unsigned int n=0; n<polyOrder.size(); n++)
         {
             int nr = polyOrder[n];
             int best = -1;
@@ -92,7 +95,12 @@ public:
                 }
             }
             polyStart[nr] = best;
-            p0 = (*polygons[nr])[best];
+            if ((*polygons[nr]).size() <= 2)
+            {
+                p0 = (*polygons[nr])[(best + 1) % 2];
+            }else{
+                p0 = (*polygons[nr])[best];
+            }
         }
     }
 };

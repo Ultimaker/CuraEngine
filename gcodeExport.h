@@ -49,6 +49,11 @@ public:
         this->zPos = z;
     }
     
+    Point getPositionXY()
+    {
+        return Point(currentPosition.x, currentPosition.y);
+    }
+    
     void addComment(const char* comment, ...)
     {
         va_list args;
@@ -96,15 +101,16 @@ public:
     
     void addPolygon(ClipperLib::Polygon& polygon, int startIdx)
     {
-        ClipperLib::IntPoint p0 = polygon[startIdx];
+        Point p0 = polygon[startIdx];
         addMove(Point3(p0.X, p0.Y, zPos), 0.0f);
         for(unsigned int i=1; i<polygon.size(); i++)
         {
-            ClipperLib::IntPoint p1 = polygon[(startIdx + i) % polygon.size()];
-            addMove(Point3(p1.X, p1.Y, zPos), (Point(p1) - Point(p0)).vSizeMM() * extrusionPerMM);
+            Point p1 = polygon[(startIdx + i) % polygon.size()];
+            addMove(Point3(p1.X, p1.Y, zPos), vSizeMM(Point(p1) - Point(p0)) * extrusionPerMM);
             p0 = p1;
         }
-        addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), (Point(polygon[startIdx]) - Point(p0)).vSizeMM() * extrusionPerMM);
+        if (polygon.size() > 2)
+            addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), vSizeMM(Point(polygon[startIdx]) - Point(p0)) * extrusionPerMM);
     }
     
     void addRetraction()

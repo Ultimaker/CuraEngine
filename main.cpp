@@ -4,9 +4,8 @@
 #include <stdarg.h>
 #include <getopt.h>
 
-#include "clipper/clipper.hpp"
-
 #include "utils/gettime.h"
+#include "sliceDataStorage.h"
 
 #include "modelFile/modelFile.h"
 #include "optimizedModel.h"
@@ -14,6 +13,7 @@
 #include "layerPart.h"
 #include "inset.h"
 #include "skin.h"
+#include "infill.h"
 #include "pathOptimizer.h"
 #include "gcodeExport.h"
 
@@ -69,95 +69,89 @@ void processFile(const char* input_filename,const char* output_filename)
     //slicer.dumpSegments("output.html");
     
     fprintf(stderr,"Generating layer parts...\n");
-    LayerParts layerParts(slicer);
+    SliceDataStorage storage;
+    storage.modelSize = slicer->modelSize;
+    createLayerParts(storage, slicer);
     delete slicer;
     fprintf(stderr, "Generated layer parts in %5.3fs\n", timeElapsed(t));
-    if(layerparts_flag) layerParts.dumpLayerparts("output.html");
+    if(layerparts_flag) dumpLayerparts(storage, "output.html");
     
     GCodeExport gcode(output_filename);
-    const unsigned int totalLayers = layerParts.layers.size();
+    const unsigned int totalLayers = storage.layers.size();
     gcode.addComment("Generated with Cura_SteamEngine %s",VERSION);
     gcode.addComment("total_layers=%d",totalLayers);
     gcode.addStartCode();
 
     gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
 
-    std::vector<InsetLayer> insetList;
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        insetList.push_back(InsetLayer(&layerParts.layers[layerNr], config.extrusionWidth, config.insetCount));
+        generateInsets(&storage.layers[layerNr], config.extrusionWidth, config.insetCount);
         if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating insets %d of %d...",layerNr+1,totalLayers);
     }
     fprintf(stderr, "Generated inset in %5.3fs\n", timeElapsed(t));
 
-    std::vector<SkinLayer> skinList;
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        skinList.push_back(SkinLayer(layerNr, insetList, config.downSkinCount, config.upSkinCount));
+        generateSkins(layerNr, storage, config.downSkinCount, config.upSkinCount);
+        generateSparse(layerNr, storage, config.downSkinCount, config.upSkinCount);
         if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
     }
     fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
-    
+
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        InsetLayer* inset = &insetList[layerNr];
-        SkinLayer* skin = &skinList[layerNr];
+        SliceLayer* layer = &storage.layers[layerNr];
         if (verbose_flag && (getTime()-t)>2.0) 
             fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
         
-        PathOptimizer partOrderOptimizer(ClipperLib::IntPoint(0,0));
-        for(unsigned int partNr=0; partNr<inset->parts.size(); partNr++)
+        PathOptimizer partOrderOptimizer(gcode.getPositionXY());
+        for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
-            //TODO: The PathOptimizer currently gives back indexes in the same order you put them in, but if the following condition is false, then the order is messed up.
-            if (inset->parts[partNr].inset.size() > 0 && inset->parts[partNr].inset[0].size())
-                partOrderOptimizer.addPolygon(inset->parts[partNr].inset[0][0]);
+            partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
         }
         partOrderOptimizer.optimize();
         
         gcode.addComment("LAYER:%d", layerNr);
         gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
-        for(unsigned int partCounter=0; partCounter<inset->parts.size(); partCounter++)
+        for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
         {
-            unsigned int partNr = partOrderOptimizer.polyOrder[partCounter];
+            SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
             
-            for(int insetNr=inset->parts[partNr].inset.size()-1; insetNr>-1; insetNr--)
+            for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
             {
                 if (insetNr == 0)
                     gcode.addComment("TYPE:WALL-OUTER");
                 else
                     gcode.addComment("TYPE:WALL-INNER");
-                PathOptimizer insetOrderOptimizer(ClipperLib::IntPoint(0,0));
-                insetOrderOptimizer.addPolygons(inset->parts[partNr].inset[insetNr]);
+                PathOptimizer insetOrderOptimizer(gcode.getPositionXY());
+                insetOrderOptimizer.addPolygons(part->insets[insetNr]);
                 insetOrderOptimizer.optimize();
-                for(unsigned int polygonNr=0; polygonNr<inset->parts[partNr].inset[insetNr].size(); polygonNr++)
+                for(unsigned int polygonNr=0; polygonNr<insetOrderOptimizer.polyOrder.size(); polygonNr++)
                 {
                     int nr = insetOrderOptimizer.polyOrder[polygonNr];
-                    gcode.addPolygon(inset->parts[partNr].inset[insetNr][nr], insetOrderOptimizer.polyStart[nr]);
+                    gcode.addPolygon(part->insets[insetNr][nr], insetOrderOptimizer.polyStart[nr]);
                 }
             }
             
             gcode.addComment("TYPE:FILL");
-            ClipperLib::Polygons skinPoly = skin->parts[partNr].skin;
-            ClipperLib::Polygons fillPolygons;
-            while(1)
-            {
-                ClipperLib::OffsetPolygons(skinPoly, skinPoly, -config.extrusionWidth, ClipperLib::jtSquare, 2, false);
-                if (skinPoly.size() < 1)
-                    break;
-                for(unsigned int polygonNr=0; polygonNr<skinPoly.size(); polygonNr++)
-                    fillPolygons.push_back(skinPoly[polygonNr]);
-            }
+            Polygons fillPolygons;
+            //generateConcentricInfill(part->skinOutline, fillPolygons, config.extrusionWidth);
+            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, 45 + layerNr * 90);
+            int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
+            generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
+            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth * 10, 45 + layerNr * 90);
             
-            PathOptimizer fillOrderOptimizer(ClipperLib::IntPoint(-100 * 1000,-100 * 1000));
+            PathOptimizer fillOrderOptimizer(Point(-100 * 1000,-100 * 1000));
             fillOrderOptimizer.addPolygons(fillPolygons);
             fillOrderOptimizer.optimize();
-            for(unsigned int polygonNr=0; polygonNr<fillPolygons.size(); polygonNr++)
+            for(unsigned int polygonNr=0; polygonNr<fillOrderOptimizer.polyOrder.size(); polygonNr++)
             {
                 int nr = fillOrderOptimizer.polyOrder[polygonNr];
                 gcode.addPolygon(fillPolygons[nr], fillOrderOptimizer.polyStart[nr]);
             }
             
-            if (partCounter < inset->parts.size() - 1)
+            if (partCounter < layer->parts.size() - 1)
                 gcode.addRetraction();
         }
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
@@ -166,6 +160,7 @@ void processFile(const char* input_filename,const char* output_filename)
     
     fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
+
     fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
 }
 

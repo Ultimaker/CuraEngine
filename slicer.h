@@ -1,6 +1,11 @@
 #ifndef SLICER_H
 #define SLICER_H
 
+/*
+    The Slicer creates layers of polygons from an optimized 3D model.
+    The result of the Slicer is a list of polygons without any order or structure.
+*/
+
 class SlicerPolygon
 {
 public:
@@ -51,7 +56,7 @@ public:
                     {
                         Point p1 = segmentList[faceToSegmentIndex[face->touching[i]]].start;
                         Point diff = p0 - p1;
-                        if (diff.shorterThen(30))
+                        if (shorterThen(diff, 30))
                         {
                             if (faceToSegmentIndex[face->touching[i]] == (int)startSegment)
                                 canClose = true;
@@ -84,9 +89,9 @@ public:
                 if (i == j) continue;
                 
                 Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[0];
-                if (diff.shorterThen(snapDistance))
+                if (shorterThen(diff, snapDistance))
                 {
-                    int score = diff.vSize() - polygonList[j].points.size() * 10;
+                    int score = vSize(diff) - polygonList[j].points.size() * 10;
                     if (score < bestScore) {
                         best = j;
                         bestScore = score;
@@ -99,7 +104,7 @@ public:
                 for(unsigned int n=0; n<polygonList[best].points.size(); n++)
                     polygonList[i].points.push_back(polygonList[best].points[n]);
 
-                if ((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]).shorterThen(snapDistance))
+                if (shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
                 {
                     polygonList[i].points.pop_back();
                     polygonList[i].closed = true;
@@ -114,7 +119,7 @@ public:
         snapDistance = 1000;
         for(unsigned int i=0;i<polygonList.size();i++)
         {
-            if ((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]).shorterThen(snapDistance))
+            if (shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
             {
                 polygonList[i].points.pop_back();
                 polygonList[i].closed = true;
@@ -128,7 +133,7 @@ public:
             
             for(unsigned int n=1; n<polygonList[i].points.size(); n++)
             {
-                length += (polygonList[i].points[n] - polygonList[i].points[n-1]).vSize();
+                length += vSize(polygonList[i].points[n] - polygonList[i].points[n-1]);
                 if (length > snapDistance)
                     break;
             }
@@ -143,8 +148,8 @@ public:
         for(unsigned int i=0;i<polygonList.size();i++)
         {
             if (polygonList[i].closed) continue;
-            printf("S: %i %i\n", polygonList[i].points[0].x, polygonList[i].points[0].y);
-            printf("E: %i %i\n", polygonList[i].points[polygonList[i].points.size()-1].x, polygonList[i].points[polygonList[i].points.size()-1].y);
+            printf("S: %f %f\n", float(polygonList[i].points[0].X), float(polygonList[i].points[0].Y));
+            printf("E: %f %f\n", float(polygonList[i].points[polygonList[i].points.size()-1].X), float(polygonList[i].points[polygonList[i].points.size()-1].Y));
             q = 1;
         }
         //if (q) exit(1);
@@ -224,10 +229,10 @@ public:
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z)
     {
         SlicerSegment seg;
-        seg.start.x = p0.x + (p1.x - p0.x) * (z - p0.z) / (p1.z - p0.z);
-        seg.start.y = p0.y + (p1.y - p0.y) * (z - p0.z) / (p1.z - p0.z);
-        seg.end.x = p0.x + (p2.x - p0.x) * (z - p0.z) / (p2.z - p0.z);
-        seg.end.y = p0.y + (p2.y - p0.y) * (z - p0.z) / (p2.z - p0.z);
+        seg.start.X = p0.x + (p1.x - p0.x) * (z - p0.z) / (p1.z - p0.z);
+        seg.start.Y = p0.y + (p1.y - p0.y) * (z - p0.z) / (p1.z - p0.z);
+        seg.end.X = p0.x + (p2.x - p0.x) * (z - p0.z) / (p2.z - p0.z);
+        seg.end.Y = p0.y + (p2.y - p0.y) * (z - p0.z) / (p2.z - p0.z);
         return seg;
     }
     
@@ -250,7 +255,7 @@ public:
                         fprintf(f, "M");
                     else
                         fprintf(f, "L");
-                    fprintf(f, "%f,%f ", float(p->points[n].x)/1000, float(p->points[n].y)/1000);
+                    fprintf(f, "%f,%f ", float(p->points[n].X)/1000, float(p->points[n].Y)/1000);
                 }
                 fprintf(f, "Z\n");
             }
@@ -263,7 +268,7 @@ public:
                 fprintf(f, "<polyline points=\"");
                 for(unsigned int n=0; n<p->points.size(); n++)
                 {
-                    fprintf(f, "%f,%f ", float(p->points[n].x)/1000, float(p->points[n].y)/1000);
+                    fprintf(f, "%f,%f ", float(p->points[n].X)/1000, float(p->points[n].Y)/1000);
                 }
                 fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
             }
