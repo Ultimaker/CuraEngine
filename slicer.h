@@ -126,6 +126,17 @@ public:
             }
         }
 
+        int q=0;
+        for(unsigned int i=0;i<polygonList.size();i++)
+        {
+            if (polygonList[i].closed) continue;
+            if (!q) printf("***\n");
+            printf("S: %f %f\n", float(polygonList[i].points[0].X), float(polygonList[i].points[0].Y));
+            printf("E: %f %f\n", float(polygonList[i].points[polygonList[i].points.size()-1].X), float(polygonList[i].points[polygonList[i].points.size()-1].Y));
+            q = 1;
+        }
+        //if (q) exit(1);
+
         //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
         for(unsigned int i=0;i<polygonList.size();i++)
         {
@@ -143,16 +154,6 @@ public:
                 i--;
             }
         }
-        
-        int q=0;
-        for(unsigned int i=0;i<polygonList.size();i++)
-        {
-            if (polygonList[i].closed) continue;
-            printf("S: %f %f\n", float(polygonList[i].points[0].X), float(polygonList[i].points[0].Y));
-            printf("E: %f %f\n", float(polygonList[i].points[polygonList[i].points.size()-1].X), float(polygonList[i].points[polygonList[i].points.size()-1].Y));
-            q = 1;
-        }
-        //if (q) exit(1);
     }
 };
 
@@ -229,10 +230,10 @@ public:
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z)
     {
         SlicerSegment seg;
-        seg.start.X = p0.x + (p1.x - p0.x) * (z - p0.z) / (p1.z - p0.z);
-        seg.start.Y = p0.y + (p1.y - p0.y) * (z - p0.z) / (p1.z - p0.z);
-        seg.end.X = p0.x + (p2.x - p0.x) * (z - p0.z) / (p2.z - p0.z);
-        seg.end.Y = p0.y + (p2.y - p0.y) * (z - p0.z) / (p2.z - p0.z);
+        seg.start.X = p0.x + int64_t(p1.x - p0.x) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
+        seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
+        seg.end.X = p0.x + int64_t(p2.x - p0.x) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
+        seg.end.Y = p0.y + int64_t(p2.y - p0.y) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
         return seg;
     }
     

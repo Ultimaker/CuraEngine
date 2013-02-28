@@ -19,12 +19,15 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[],
 
 int compare_int64_t(const void* a, const void* b)
 {
-    return (*(int64_t*)a) - (*(int64_t*)b);
+    int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
+    if (n < 0) return -1;
+    if (n > 0) return 1;
+    return 0;
 }
 
-void generateLineInfill(Polygons outline, Polygons& result, int lineSpacing, double rotation)
+void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, int lineSpacing, double rotation)
 {
-    ClipperLib::OffsetPolygons(outline, outline, -0.4 * 0.85, ClipperLib::jtSquare, 2, false);
+    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * 0.85, ClipperLib::jtSquare, 2, false);
     PointMatrix matrix(rotation);
     PointMatrix unmatrix(-rotation);
     

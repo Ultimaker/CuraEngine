@@ -66,7 +66,7 @@ void processFile(const char* input_filename,const char* output_filename)
     Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness);
     delete om;
     fprintf(stderr, "Sliced model in %5.3fs\n", timeElapsed(t));
-    //slicer.dumpSegments("output.html");
+    //slicer->dumpSegments("output.html");
     
     fprintf(stderr,"Generating layer parts...\n");
     SliceDataStorage storage;
@@ -137,12 +137,12 @@ void processFile(const char* input_filename,const char* output_filename)
             gcode.addComment("TYPE:FILL");
             Polygons fillPolygons;
             //generateConcentricInfill(part->skinOutline, fillPolygons, config.extrusionWidth);
-            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, 45 + layerNr * 90);
+            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 45 + layerNr * 90);
             int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
             generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth * 10, 45 + layerNr * 90);
+            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth * 10, 45 + layerNr * 90);
             
-            PathOptimizer fillOrderOptimizer(Point(-100 * 1000,-100 * 1000));
+            PathOptimizer fillOrderOptimizer(gcode.getPositionXY());
             fillOrderOptimizer.addPolygons(fillPolygons);
             fillOrderOptimizer.optimize();
             for(unsigned int polygonNr=0; polygonNr<fillOrderOptimizer.polyOrder.size(); polygonNr++)
