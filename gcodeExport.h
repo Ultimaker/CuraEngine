@@ -142,6 +142,13 @@ public:
         fprintf(f, "M84                         ;steppers off\n");
         fprintf(f, "G90                         ;absolute positioning\n");
     }
+    void addFanCommand(int speed)
+    {
+        if (speed > 0)
+            fprintf(f, "M106 S%d\n", speed);
+        else
+            fprintf(f, "M107\n");
+    }
 
     int getFileSize(){
         return ftell(f);

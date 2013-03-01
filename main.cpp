@@ -28,6 +28,12 @@ public:
     int insetCount;
     int downSkinCount;
     int upSkinCount;
+    
+    unsigned int initialSpeedupLayers;
+    int initialLayerSpeed;
+    int printSpeed;
+    int moveSpeed;
+    unsigned int fanOnLayerNr;
 };
 
 static int verbose_flag;
@@ -43,6 +49,11 @@ void processFile(const char* input_filename,const char* output_filename)
     config.insetCount = 2;
     config.downSkinCount = 6;
     config.upSkinCount = 6;
+    config.initialSpeedupLayers = 4;
+    config.initialLayerSpeed = 20;
+    config.printSpeed = 50;
+    config.moveSpeed = 200;
+    config.fanOnLayerNr = 2;
     FMatrix3x3 matrix;
     
     double t = getTime();
@@ -76,14 +87,7 @@ void processFile(const char* input_filename,const char* output_filename)
     fprintf(stderr, "Generated layer parts in %5.3fs\n", timeElapsed(t));
     if(layerparts_flag) dumpLayerparts(storage, "output.html");
     
-    GCodeExport gcode(output_filename);
     const unsigned int totalLayers = storage.layers.size();
-    gcode.addComment("Generated with Cura_SteamEngine %s",VERSION);
-    gcode.addComment("total_layers=%d",totalLayers);
-    gcode.addStartCode();
-
-    gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
-
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateInsets(&storage.layers[layerNr], config.extrusionWidth, config.insetCount);
@@ -99,8 +103,26 @@ void processFile(const char* input_filename,const char* output_filename)
     }
     fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
 
+    GCodeExport gcode(output_filename);
+    gcode.addComment("Generated with Cura_SteamEngine %s",VERSION);
+    gcode.addComment("total_layers=%d",totalLayers);
+    gcode.addStartCode();
+
+    gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
+        gcode.addComment("LAYER:%d", layerNr);
+        if (layerNr < config.initialSpeedupLayers)
+        {
+            int n = config.initialSpeedupLayers;
+            gcode.setSpeeds((config.initialLayerSpeed * (n - layerNr) + config.moveSpeed * (layerNr)) / n, (config.initialLayerSpeed * (n - layerNr) + config.printSpeed * (layerNr)) / n);
+        }else{
+            gcode.setSpeeds(config.moveSpeed, config.printSpeed);
+        }
+        if (layerNr == config.fanOnLayerNr)
+            gcode.addFanCommand(255);
+        gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
+        
         SliceLayer* layer = &storage.layers[layerNr];
         if (verbose_flag && (getTime()-t)>2.0) 
             fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
@@ -112,8 +134,6 @@ void processFile(const char* input_filename,const char* output_filename)
         }
         partOrderOptimizer.optimize();
         
-        gcode.addComment("LAYER:%d", layerNr);
-        gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
         for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];

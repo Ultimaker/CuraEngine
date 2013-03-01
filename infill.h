@@ -27,7 +27,7 @@ int compare_int64_t(const void* a, const void* b)
 
 void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, int lineSpacing, double rotation)
 {
-    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * 0.85, ClipperLib::jtSquare, 2, false);
+    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * 0.5, ClipperLib::jtSquare, 2, false);
     PointMatrix matrix(rotation);
     PointMatrix unmatrix(-rotation);
     
