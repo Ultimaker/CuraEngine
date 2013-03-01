@@ -27,7 +27,7 @@ int compare_int64_t(const void* a, const void* b)
 
 void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, int lineSpacing, double rotation)
 {
-    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * 0.5, ClipperLib::jtSquare, 2, false);
+    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * (0.5 - 0.15), ClipperLib::jtSquare, 2, false);
     PointMatrix matrix(rotation);
     PointMatrix unmatrix(-rotation);
     
@@ -51,7 +51,7 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
             if (idx0 > idx1) { int tmp = idx0; idx0 = idx1; idx1 = tmp; }
             for(int idx = idx0; idx<=idx1; idx++)
             {
-                int x = (idx * lineSpacing) + pMin.X;
+                int x = (idx * lineSpacing) + pMin.X + lineSpacing / 2;
                 if (x < xMin) continue;
                 if (x >= xMax) continue;
                 int y = p0.Y + (p1.Y - p0.Y) * (x - p0.X) / (p1.X - p0.X);
@@ -62,7 +62,7 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
     }
     
     int idx = 0;
-    for(int64_t x = pMin.X; x < pMax.X; x += lineSpacing)
+    for(int64_t x = pMin.X + lineSpacing / 2; x < pMax.X; x += lineSpacing)
     {
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)

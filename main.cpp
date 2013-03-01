@@ -28,6 +28,7 @@ public:
     int insetCount;
     int downSkinCount;
     int upSkinCount;
+    int sparseInfillLineDistance;
     
     unsigned int initialSpeedupLayers;
     int initialLayerSpeed;
@@ -54,6 +55,7 @@ void processFile(const char* input_filename,const char* output_filename)
     config.printSpeed = 50;
     config.moveSpeed = 200;
     config.fanOnLayerNr = 2;
+    config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     FMatrix3x3 matrix;
     
     double t = getTime();
@@ -158,10 +160,10 @@ void processFile(const char* input_filename,const char* output_filename)
             Polygons fillPolygons;
             //generateConcentricInfill(part->skinOutline, fillPolygons, config.extrusionWidth);
             generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 45 + layerNr * 90);
-            int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
-            generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth * 10, 45 + layerNr * 90);
-            
+            //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
+            //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
+            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 45 + layerNr * 90);
+
             PathOptimizer fillOrderOptimizer(gcode.getPositionXY());
             fillOrderOptimizer.addPolygons(fillPolygons);
             fillOrderOptimizer.optimize();
