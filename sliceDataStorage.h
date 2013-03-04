@@ -35,6 +35,7 @@ class SliceDataStorage
 {
 public:
     Point3 modelSize;
+    Polygons skirt;
     vector<SliceLayer> layers;
 };
 

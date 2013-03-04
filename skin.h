@@ -1,7 +1,7 @@
 #ifndef SKIN_H
 #define SKIN_H
 
-void generateSkins(int layerNr, SliceDataStorage& storage, int downSkinCount, int upSkinCount)
+void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -13,6 +13,19 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int downSkinCount, in
         ClipperLib::Clipper upskinClipper;
         downskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
         upskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
+        
+        if (part->insets.size() > 1)
+        {
+            ClipperLib::Clipper thinWallClipper;
+            Polygons temp;
+            ClipperLib::OffsetPolygons(part->insets[1], temp, extrusionWidth, ClipperLib::jtSquare, 2, false);
+            thinWallClipper.AddPolygons(part->insets[0], ClipperLib::ptSubject);
+            thinWallClipper.AddPolygons(temp, ClipperLib::ptClip);
+            thinWallClipper.Execute(ClipperLib::ctDifference, temp);
+            downskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
+            upskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
+        }
+        
         if (int(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];

@@ -16,6 +16,11 @@ public:
     : currentPosition(0,0,0)
     {
         f = fopen(filename, "w");
+        if (!f)
+        {
+            fprintf(stderr, "Failed to open %s for writing.", filename);
+            exit(1);
+        }
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
@@ -111,6 +116,19 @@ public:
         }
         if (polygon.size() > 2)
             addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), vSizeMM(Point(polygon[startIdx]) - Point(p0)) * extrusionPerMM);
+    }
+    
+    void addPolygonsByOptimizer(Polygons& polygons)
+    {
+        PathOptimizer orderOptimizer(getPositionXY());
+        for(unsigned int i=0;i<polygons.size();i++)
+            orderOptimizer.addPolygon(polygons[i]);
+        orderOptimizer.optimize();
+        for(unsigned int i=0;i<polygons.size();i++)
+        {
+            int nr = orderOptimizer.polyOrder[i];
+            addPolygon(polygons[nr], orderOptimizer.polyStart[nr]);
+        }
     }
     
     void addRetraction()
