@@ -11,6 +11,8 @@ class GCodeExport
     int moveSpeed, extrudeSpeed, currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
+    Polygons* combBoundary;
+    
 public:
     GCodeExport(const char* filename)
     : currentPosition(0,0,0)
@@ -30,6 +32,7 @@ public:
         currentSpeed = 0;
         retractionSpeed = 45;
         isRetracted = false;
+        combBoundary = NULL;
     }
     
     ~GCodeExport()
@@ -54,6 +57,11 @@ public:
         this->zPos = z;
     }
     
+    void setCombBoundary(Polygons* polygons)
+    {
+        combBoundary = polygons;
+    }
+    
     Point getPositionXY()
     {
         return Point(currentPosition.x, currentPosition.y);
@@ -72,6 +80,13 @@ public:
     void addMove(Point3 p, double extrusion)
     {
         int speed;
+        if (extrusion == 0 && !isRetracted && combBoundary != NULL)
+        {
+            if (needsComb(Point(currentPosition.x, currentPosition.y), Point(p.x, p.y), *combBoundary))
+            {
+                addRetraction();
+            }
+        }
         if (extrusion != 0 && isRetracted)
         {
             fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
@@ -146,7 +161,7 @@ public:
         fprintf(f, "G28           ;Home\n");
         fprintf(f, "G1 Z15.0 F300 ;move the platform down 15mm\n");
         fprintf(f, "G92 E0        ;zero the extruded length\n");
-        fprintf(f, "G1 F200 E3    ;extrude 3mm of feed stock\n");
+        fprintf(f, "G1 F200 E5    ;extrude 5mm of feed stock\n");
         fprintf(f, "G92 E0        ;zero the extruded length again\n");
     }
     void addEndCode()

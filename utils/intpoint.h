@@ -133,8 +133,19 @@ public:
         rotation = rotation / 180 * M_PI;
         matrix[0] = cos(rotation);
         matrix[1] = -sin(rotation);
-        matrix[2] = sin(rotation);
-        matrix[3] = cos(rotation);
+        matrix[2] = -matrix[1];
+        matrix[3] = matrix[0];
+    }
+    
+    PointMatrix(const Point p)
+    {
+        matrix[0] = p.X;
+        matrix[1] = p.Y;
+        double f = sqrt((matrix[0] * matrix[0]) + (matrix[1] * matrix[1]));
+        matrix[0] /= f;
+        matrix[1] /= f;
+        matrix[2] = -matrix[1];
+        matrix[3] = matrix[0];
     }
     
     Point apply(const Point p) const
