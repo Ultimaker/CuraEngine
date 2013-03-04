@@ -116,11 +116,11 @@ INLINE int32_t vSize(const Point& p0)
     return sqrt(vSize2(p0));
 }
 
-INLINE float vSizeMM(const Point& p0)
+INLINE double vSizeMM(const Point& p0)
 {
-    float fx = float(p0.X) / 1000;
-    float fy = float(p0.Y) / 1000;
-    return sqrtf(fx*fx+fy*fy);
+    double fx = double(p0.X) / 1000.0;
+    double fy = double(p0.Y) / 1000.0;
+    return sqrt(fx*fx+fy*fy);
 }
 
 class PointMatrix

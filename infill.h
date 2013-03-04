@@ -11,9 +11,7 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[],
             break;
         step = (step + 1) % offsetsSize;
         for(unsigned int polygonNr=0; polygonNr<outline.size(); polygonNr++)
-        {
             result.push_back(outline[polygonNr]);
-        }
     }
 }
 
@@ -67,7 +65,7 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)
         {
-            if (cutList[idx][i+1] - cutList[idx][i] < 100) continue;
+            if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 2) continue;
             ClipperLib::Polygon p;
             p.push_back(unmatrix.apply(Point(x, cutList[idx][i])));
             p.push_back(unmatrix.apply(Point(x, cutList[idx][i+1])));

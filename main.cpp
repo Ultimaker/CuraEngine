@@ -44,7 +44,6 @@ public:
 };
 
 static int verbose_flag;
-static int layerparts_flag;
 
 void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
 {
@@ -77,7 +76,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     createLayerParts(storage, slicer);
     delete slicer;
     fprintf(stderr, "Generated layer parts in %5.3fs\n", timeElapsed(t));
-    if(layerparts_flag) dumpLayerparts(storage, "output.html");
+    //dumpLayerparts(storage, "output.html");
     
     const unsigned int totalLayers = storage.layers.size();
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -174,6 +173,7 @@ int main (int argc, char **argv)
     const char* output_file = "output.gcode";
     int help_flag = false;
     Config config;
+
     config.filamentDiameter = 2890;
     config.initialLayerThickness = 300;
     config.layerThickness = 100;
@@ -197,17 +197,14 @@ int main (int argc, char **argv)
     {
         /* These options set a flag. */
         {"verbose", no_argument,       &verbose_flag, 1},
-        {"help", no_argument,       &help_flag, 1},
-        /* These options don't set a flag.
-        We distinguish them by their indices. */
-        {"output",  required_argument, 0, 'o'},
-        {"layerparts",  no_argument, &layerparts_flag, 'l'},
-        {0, 0, 0, 0}
+        {"help",    no_argument,       &help_flag, 1},
+        {"output",  required_argument, NULL, 'o'},
+        {NULL, 0, NULL, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
     int c;
-    while ((c = getopt_long (argc, argv, "o:m:hvl", long_options, &option_index)) > -1)
+    while ((c = getopt_long (argc, argv, "o:m:hv", long_options, &option_index)) > -1)
     {
         switch (c)
         {

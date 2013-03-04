@@ -92,9 +92,9 @@ public:
             fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
             isRetracted = false;
         }
+        //if ((p - currentPosition).testLength(200))
+        //    return;
         extrusionAmount += extrusion;
-        if ((p - currentPosition).testLength(200))
-            return;
         if (extrusion != 0)
         {
             fprintf(f, "G1");
@@ -126,11 +126,11 @@ public:
         for(unsigned int i=1; i<polygon.size(); i++)
         {
             Point p1 = polygon[(startIdx + i) % polygon.size()];
-            addMove(Point3(p1.X, p1.Y, zPos), vSizeMM(Point(p1) - Point(p0)) * extrusionPerMM);
+            addMove(Point3(p1.X, p1.Y, zPos), vSizeMM(p1 - p0) * extrusionPerMM);
             p0 = p1;
         }
         if (polygon.size() > 2)
-            addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), vSizeMM(Point(polygon[startIdx]) - Point(p0)) * extrusionPerMM);
+            addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), vSizeMM(polygon[startIdx] - p0) * extrusionPerMM);
     }
     
     void addPolygonsByOptimizer(Polygons& polygons)
