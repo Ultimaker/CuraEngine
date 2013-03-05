@@ -19,6 +19,7 @@ SliceData
 class SliceLayerPart
 {
 public:
+    AABB boundaryBox;
     Polygons outline;
     vector<Polygons> insets;
     Polygons skinOutline;

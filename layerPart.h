@@ -46,6 +46,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer)
         {
             storageLayer.parts[i].outline.push_back(resultPolys[i].holes[j]);
         }
+        storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
 

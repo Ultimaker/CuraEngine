@@ -31,10 +31,9 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
     
     matrix.apply(outline);
     
-    Point pMin = polymin(outline);
-    Point pMax = polymax(outline);
+    AABB boundary(outline);
     
-    int lineCount = (pMax.X - pMin.X + (lineSpacing - 1)) / lineSpacing;
+    int lineCount = (boundary.max.X - boundary.min.X + (lineSpacing - 1)) / lineSpacing;
     vector<int64_t> cutList[lineCount];
     for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
     {
@@ -42,14 +41,14 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
         for(unsigned int i=0; i < outline[polyNr].size(); i++)
         {
             Point p0 = outline[polyNr][i];
-            int idx0 = (p0.X - pMin.X) / lineSpacing;
-            int idx1 = (p1.X - pMin.X) / lineSpacing;
+            int idx0 = (p0.X - boundary.min.X) / lineSpacing;
+            int idx1 = (p1.X - boundary.min.X) / lineSpacing;
             int64_t xMin = p0.X, xMax = p1.X;
             if (p0.X > p1.X) { xMin = p1.X; xMax = p0.X; }
             if (idx0 > idx1) { int tmp = idx0; idx0 = idx1; idx1 = tmp; }
             for(int idx = idx0; idx<=idx1; idx++)
             {
-                int x = (idx * lineSpacing) + pMin.X + lineSpacing / 2;
+                int x = (idx * lineSpacing) + boundary.min.X + lineSpacing / 2;
                 if (x < xMin) continue;
                 if (x >= xMax) continue;
                 int y = p0.Y + (p1.Y - p0.Y) * (x - p0.X) / (p1.X - p0.X);
@@ -60,7 +59,7 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
     }
     
     int idx = 0;
-    for(int64_t x = pMin.X + lineSpacing / 2; x < pMax.X; x += lineSpacing)
+    for(int64_t x = boundary.min.X + lineSpacing / 2; x < boundary.max.X; x += lineSpacing)
     {
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)

@@ -165,52 +165,46 @@ public:
     }
 };
 
-INLINE Point polymin(ClipperLib::Polygon poly)
+/* Axis aligned boundary box */
+class AABB
 {
-    Point ret(LLONG_MAX, LLONG_MAX);
-    for(unsigned int i=0; i<poly.size(); i++)
+public:
+    Point min, max;
+    
+    AABB()
+    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
     {
-        if (ret.X > poly[i].X) ret.X = poly[i].X;
-        if (ret.Y > poly[i].Y) ret.Y = poly[i].Y;
     }
-    return ret;
-}
-INLINE Point polymin(Polygons polys)
-{
-    Point ret(LLONG_MAX, LLONG_MAX);
-    for(unsigned int i=0; i<polys.size(); i++)
+    AABB(Polygons polys)
+    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
     {
-        for(unsigned int j=0; j<polys[i].size(); j++)
+        calculate(polys);
+    }
+    
+    void calculate(Polygons polys)
+    {
+        min = Point(LLONG_MAX, LLONG_MAX);
+        max = Point(LLONG_MIN, LLONG_MIN);
+        for(unsigned int i=0; i<polys.size(); i++)
         {
-            if (ret.X > polys[i][j].X) ret.X = polys[i][j].X;
-            if (ret.Y > polys[i][j].Y) ret.Y = polys[i][j].Y;
+            for(unsigned int j=0; j<polys[i].size(); j++)
+            {
+                if (min.X > polys[i][j].X) min.X = polys[i][j].X;
+                if (min.Y > polys[i][j].Y) min.Y = polys[i][j].Y;
+                if (max.X < polys[i][j].X) max.X = polys[i][j].X;
+                if (max.Y < polys[i][j].Y) max.Y = polys[i][j].Y;
+            }
         }
     }
-    return ret;
-}
-
-INLINE Point polymax(ClipperLib::Polygon poly)
-{
-    Point ret(LLONG_MIN, LLONG_MIN);
-    for(unsigned int i=0; i<poly.size(); i++)
+    
+    bool hit(const AABB& other) const
     {
-        if (ret.X < poly[i].X) ret.X = poly[i].X;
-        if (ret.Y < poly[i].Y) ret.Y = poly[i].Y;
+        if (max.X < other.min.X) return false;
+        if (min.X > other.max.X) return false;
+        if (max.Y < other.min.Y) return false;
+        if (min.Y > other.max.Y) return false;
+        return true;
     }
-    return ret;
-}
-INLINE Point polymax(Polygons polys)
-{
-    Point ret(LLONG_MIN, LLONG_MIN);
-    for(unsigned int i=0; i<polys.size(); i++)
-    {
-        for(unsigned int j=0; j<polys[i].size(); j++)
-        {
-            if (ret.X < polys[i][j].X) ret.X = polys[i][j].X;
-            if (ret.Y < polys[i][j].Y) ret.Y = polys[i][j].Y;
-        }
-    }
-    return ret;
-}
+};
 
 #endif//INT_POINT_H
