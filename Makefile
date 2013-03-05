@@ -8,7 +8,7 @@
 CC=g++
 CFLAGS=-I. -c -Wall
 # also include debug symbols
-CFLAGS+=-ggdb
+#CFLAGS+=-ggdb
 LDFLAGS=
 SOURCES=main.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
@@ -20,6 +20,9 @@ ifeq ($(UNAME), Linux)
 endif
 ifeq ($(UNAME), Darwin)
 	OPEN_HTML=open
+	#For MacOS force to build 
+	CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
+	LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
 endif
 
 all: $(SOURCES) $(EXECUTABLE)
