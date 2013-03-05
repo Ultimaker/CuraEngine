@@ -34,11 +34,11 @@ public:
     int skirtDistance;
     int skirtLineCount;
     
-    unsigned int initialSpeedupLayers;
+    int initialSpeedupLayers;
     int initialLayerSpeed;
     int printSpeed;
     int moveSpeed;
-    unsigned int fanOnLayerNr;
+    int fanOnLayerNr;
     FMatrix3x3 matrix;
     Point objectPosition;
 };
@@ -106,7 +106,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
         
         gcode.addComment("LAYER:%d", layerNr);
-        if (layerNr == config.fanOnLayerNr)
+        if (int(layerNr) == config.fanOnLayerNr)
             gcode.addFanCommand(255);
         gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
         if (layerNr == 0)
@@ -115,7 +115,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             gcode.addComment("TYPE:SKIRT");
             gcode.addPolygonsByOptimizer(storage.skirt);
         }
-        if (layerNr < config.initialSpeedupLayers)
+        if (int(layerNr) < config.initialSpeedupLayers)
         {
             int n = config.initialSpeedupLayers;
             gcode.setSpeeds((config.initialLayerSpeed * (n - layerNr) + config.moveSpeed * (layerNr)) / n, (config.initialLayerSpeed * (n - layerNr) + config.printSpeed * (layerNr)) / n);
@@ -204,7 +204,7 @@ int main (int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
     int c;
-    while ((c = getopt_long (argc, argv, "o:m:hv", long_options, &option_index)) > -1)
+    while ((c = getopt_long (argc, argv, "o:m:s:hv", long_options, &option_index)) > -1)
     {
         switch (c)
         {
@@ -227,7 +227,32 @@ int main (int argc, char **argv)
                 &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
                 &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
             break;
-
+        case 's':
+            {
+                char* valuePtr = strchr(optarg, '=');
+                if (!valuePtr) break;
+                *valuePtr++ = '\0';
+#define STRINGIFY(_s) #_s
+#define SETTING(longName, shortName) if (strcasecmp(optarg, STRINGIFY(longName)) == 0 || strcasecmp(optarg, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
+                SETTING(layerThickness, lt);
+                SETTING(initialLayerThickness, ilt);
+                SETTING(filamentDiameter, fd);
+                SETTING(extrusionWidth, ew);
+                SETTING(insetCount, ic);
+                SETTING(downSkinCount, dsc);
+                SETTING(upSkinCount, usc);
+                SETTING(sparseInfillLineDistance, sild);
+                SETTING(skirtDistance, sd);
+                SETTING(skirtLineCount, slc);
+    
+                SETTING(initialSpeedupLayers, isl);
+                SETTING(initialLayerSpeed, ils);
+                SETTING(printSpeed, ps);
+                SETTING(moveSpeed, ms);
+                SETTING(fanOnLayerNr, fl);
+#undef SETTING
+            }
+            break;
         case '?':
             exit(1);
             /* getopt_long already printed an error message. */
