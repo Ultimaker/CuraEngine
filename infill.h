@@ -6,12 +6,12 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[],
     int step = 0;
     while(1)
     {
+        for(unsigned int polygonNr=0; polygonNr<outline.size(); polygonNr++)
+            result.push_back(outline[polygonNr]);
         ClipperLib::OffsetPolygons(outline, outline, -offsets[step], ClipperLib::jtSquare, 2, false);
         if (outline.size() < 1)
             break;
         step = (step + 1) % offsetsSize;
-        for(unsigned int polygonNr=0; polygonNr<outline.size(); polygonNr++)
-            result.push_back(outline[polygonNr]);
     }
 }
 
@@ -23,9 +23,9 @@ int compare_int64_t(const void* a, const void* b)
     return 0;
 }
 
-void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, int lineSpacing, double rotation)
+void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
 {
-    ClipperLib::OffsetPolygons(outline, outline, -extrusionWidth * (0.5 - 0.15), ClipperLib::jtSquare, 2, false);
+    ClipperLib::OffsetPolygons(outline, outline, extrusionWidth * infillOverlap / 100, ClipperLib::jtSquare, 2, false);
     PointMatrix matrix(rotation);
     PointMatrix unmatrix(-rotation);
     
@@ -64,7 +64,7 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)
         {
-            if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 2) continue;
+            //if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 2) continue;
             ClipperLib::Polygon p;
             p.push_back(unmatrix.apply(Point(x, cutList[idx][i])));
             p.push_back(unmatrix.apply(Point(x, cutList[idx][i+1])));

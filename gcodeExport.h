@@ -155,9 +155,9 @@ public:
     
     void addStartCode()
     {
+        fprintf(f, "M109 S210     ;Heatup to 210C\n");
         fprintf(f, "G21           ;metric values\n");
         fprintf(f, "G90           ;absolute positioning\n");
-        fprintf(f, "M109 S210     ;Heatup to 210C\n");
         fprintf(f, "G28           ;Home\n");
         fprintf(f, "G1 Z15.0 F300 ;move the platform down 15mm\n");
         fprintf(f, "G92 E0        ;zero the extruded length\n");

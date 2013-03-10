@@ -8,19 +8,25 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
+        Polygons temp;
+
+        ClipperLib::OffsetPolygons(part->insets[part->insets.size() - 1], temp, -extrusionWidth/2, ClipperLib::jtSquare, 2, false);
         
         ClipperLib::Clipper downskinClipper;
         ClipperLib::Clipper upskinClipper;
-        downskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
-        upskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
+        downskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
+        upskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
         
         if (part->insets.size() > 1)
         {
             ClipperLib::Clipper thinWallClipper;
-            Polygons temp;
-            ClipperLib::OffsetPolygons(part->insets[1], temp, extrusionWidth, ClipperLib::jtSquare, 2, false);
-            thinWallClipper.AddPolygons(part->insets[0], ClipperLib::ptSubject);
+
+            ClipperLib::OffsetPolygons(part->insets[0], temp, -extrusionWidth / 2, ClipperLib::jtSquare, 2, false);
+            thinWallClipper.AddPolygons(temp, ClipperLib::ptSubject);
+
+            ClipperLib::OffsetPolygons(part->insets[1], temp, extrusionWidth * 6 / 10, ClipperLib::jtSquare, 2, false);
             thinWallClipper.AddPolygons(temp, ClipperLib::ptClip);
+
             thinWallClipper.Execute(ClipperLib::ctDifference, temp);
             downskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
             upskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
@@ -57,7 +63,7 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
             skinCombineClipper.Execute(ClipperLib::ctUnion, part->skinOutline);
         }
 
-        double minAreaSize = 3.0;//(2 * M_PI * (double(config.extrusionWidth) / 1000.0) * (double(config.extrusionWidth) / 1000.0)) * 3;
+        double minAreaSize = (2 * M_PI * (double(extrusionWidth) / 1000.0) * (double(extrusionWidth) / 1000.0)) * 0.5;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {
             double area = fabs(ClipperLib::Area(part->skinOutline[i])) / 1000.0 / 1000.0;
@@ -70,18 +76,21 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSparse(int layerNr, SliceDataStorage& storage, int downSkinCount, int upSkinCount)
+void generateSparse(int layerNr, SliceDataStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
+
+        Polygons temp;
+        ClipperLib::OffsetPolygons(part->insets[part->insets.size() - 1], temp, -extrusionWidth/2, ClipperLib::jtSquare, 2, false);
         
         ClipperLib::Clipper downskinClipper;
         ClipperLib::Clipper upskinClipper;
-        downskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
-        upskinClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
+        downskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
+        upskinClipper.AddPolygons(temp, ClipperLib::ptSubject);
         if (int(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
@@ -128,7 +137,7 @@ void generateSparse(int layerNr, SliceDataStorage& storage, int downSkinCount, i
         }
         
         ClipperLib::Clipper sparseClipper;
-        sparseClipper.AddPolygons(part->insets[part->insets.size() - 1], ClipperLib::ptSubject);
+        sparseClipper.AddPolygons(temp, ClipperLib::ptSubject);
         sparseClipper.AddPolygons(result, ClipperLib::ptClip);
         sparseClipper.Execute(ClipperLib::ctDifference, part->sparseOutline);
     }

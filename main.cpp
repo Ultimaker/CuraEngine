@@ -89,7 +89,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateSkins(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
-        generateSparse(layerNr, storage, config.downSkinCount, config.upSkinCount);
+        generateSparse(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
         if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
     }
     fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
@@ -148,11 +148,12 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             
             gcode.addComment("TYPE:FILL");
             Polygons fillPolygons;
-            //generateConcentricInfill(part->skinOutline, fillPolygons, config.extrusionWidth);
-            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 45 + layerNr * 90);
+            //int sparseSteps[1] = {config.extrusionWidth};
+            //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
+            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, 45 + layerNr * 90);
             //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
             //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 45 + layerNr * 90);
+            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, 45 + layerNr * 90);
 
             gcode.addPolygonsByOptimizer(fillPolygons);
             
@@ -164,6 +165,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     
     fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
+    gcode.addFanCommand(0);
 
     fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
 }
