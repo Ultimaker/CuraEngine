@@ -27,7 +27,6 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
 {
     ClipperLib::OffsetPolygons(outline, outline, extrusionWidth * infillOverlap / 100, ClipperLib::jtSquare, 2, false);
     PointMatrix matrix(rotation);
-    PointMatrix unmatrix(-rotation);
     
     matrix.apply(outline);
     
@@ -66,8 +65,8 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
         {
             //if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 2) continue;
             ClipperLib::Polygon p;
-            p.push_back(unmatrix.apply(Point(x, cutList[idx][i])));
-            p.push_back(unmatrix.apply(Point(x, cutList[idx][i+1])));
+            p.push_back(matrix.unapply(Point(x, cutList[idx][i])));
+            p.push_back(matrix.unapply(Point(x, cutList[idx][i+1])));
             result.push_back(p);
         }
         idx += 1;

@@ -48,51 +48,51 @@ static int verbose_flag;
 void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
 {
     double t = getTime();
-    fprintf(stderr,"Loading %s from disk...",input_filename);
+    fprintf(stdout,"Loading %s from disk...",input_filename);
     SimpleModel* m = loadModel(input_filename, config.matrix);
-    fprintf(stderr, "\nLoaded from disk in %5.3fs\n", timeElapsed(t));
+    fprintf(stdout, "\nLoaded from disk in %5.3fs\n", timeElapsed(t));
     if (!m)
     {
-        fprintf(stderr, "Failed to load model: %s\n", input_filename);
+        fprintf(stdout, "Failed to load model: %s\n", input_filename);
         return;
     }
-    fprintf(stderr,"Analyzing and optimizing model...\n");
+    fprintf(stdout,"Analyzing and optimizing model...\n");
     OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, 0));
-    fprintf(stderr, "  #Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
-    fprintf(stderr, "  #Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
+    fprintf(stdout, "  #Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
+    fprintf(stdout, "  #Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
     delete m;
-    fprintf(stderr, "Optimize model %5.3fs \n", timeElapsed(t));
+    fprintf(stdout, "Optimize model %5.3fs \n", timeElapsed(t));
     //om->saveDebugSTL("output.stl");
     
-    fprintf(stderr,"Slicing model...\n");
+    fprintf(stdout,"Slicing model...\n");
     Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness);
     delete om;
-    fprintf(stderr, "Sliced model in %5.3fs\n", timeElapsed(t));
+    fprintf(stdout, "Sliced model in %5.3fs\n", timeElapsed(t));
     //slicer->dumpSegments("output.html");
     
-    fprintf(stderr,"Generating layer parts...\n");
+    fprintf(stdout,"Generating layer parts...\n");
     SliceDataStorage storage;
     storage.modelSize = slicer->modelSize;
     createLayerParts(storage, slicer);
     delete slicer;
-    fprintf(stderr, "Generated layer parts in %5.3fs\n", timeElapsed(t));
+    fprintf(stdout, "Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "output.html");
     
     const unsigned int totalLayers = storage.layers.size();
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateInsets(&storage.layers[layerNr], config.extrusionWidth, config.insetCount);
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating insets %d of %d...",layerNr+1,totalLayers);
+        if (verbose_flag && (getTime()-t)>2.0) fprintf(stdout, "\rGenerating insets %d of %d...",layerNr+1,totalLayers);
     }
-    fprintf(stderr, "Generated inset in %5.3fs\n", timeElapsed(t));
+    fprintf(stdout, "Generated inset in %5.3fs\n", timeElapsed(t));
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateSkins(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
         generateSparse(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stderr, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
+        if (verbose_flag && (getTime()-t)>2.0) fprintf(stdout, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
     }
-    fprintf(stderr, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
+    fprintf(stdout, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount);
 
     gcode.addComment("GCode for file %s", input_filename);
@@ -103,7 +103,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         if (verbose_flag && (getTime()-t)>2.0) 
-            fprintf(stderr, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
+            fprintf(stdout, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
         
         gcode.addComment("LAYER:%d", layerNr);
         if (int(layerNr) == config.fanOnLayerNr)
@@ -163,11 +163,11 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
     
-    fprintf(stderr, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
+    fprintf(stdout, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
     gcode.addFanCommand(0);
 
-    fprintf(stderr, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
+    fprintf(stdout, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
 }
 
 int main (int argc, char **argv)
@@ -193,7 +193,7 @@ int main (int argc, char **argv)
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.objectPosition = Point(102500, 102500);
 
-    fprintf(stderr,"Cura_SteamEngine version %s\n", VERSION);
+    fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
     struct option long_options[] =
     {

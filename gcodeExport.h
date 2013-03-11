@@ -11,7 +11,7 @@ class GCodeExport
     int moveSpeed, extrudeSpeed, currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
-    Polygons* combBoundary;
+    Comb* comb;
     
 public:
     GCodeExport(const char* filename)
@@ -32,12 +32,13 @@ public:
         currentSpeed = 0;
         retractionSpeed = 45;
         isRetracted = false;
-        combBoundary = NULL;
+        comb = NULL;
     }
     
     ~GCodeExport()
     {
         fclose(f);
+        delete comb;
     }
     
     void setExtrusion(int layerThickness, int lineWidth, int filamentDiameter)
@@ -59,7 +60,12 @@ public:
     
     void setCombBoundary(Polygons* polygons)
     {
-        combBoundary = polygons;
+        if (comb)
+            delete comb;
+        if (polygons)
+            comb = new Comb(*polygons);
+        else
+            comb = NULL;
     }
     
     Point getPositionXY()
@@ -80,10 +86,19 @@ public:
     void addMove(Point3 p, double extrusion)
     {
         int speed;
-        if (extrusion == 0 && !isRetracted && combBoundary != NULL)
+        if (extrusion == 0 && !isRetracted && comb != NULL)
         {
-            if (needsComb(Point(currentPosition.x, currentPosition.y), Point(p.x, p.y), *combBoundary))
+            vector<Point> pointList;
+            if (comb->calc(Point(currentPosition.x, currentPosition.y), Point(p.x, p.y), pointList))
             {
+                //Fake retraction so the addMove code doesn't try to comb again.
+                isRetracted = true;
+                for(unsigned int n=0; n<pointList.size(); n++)
+                {
+                    addMove(Point3(pointList[n].X, pointList[n].Y, p.z), 0.0);
+                }
+                isRetracted = false;
+            }else{
                 addRetraction();
             }
         }
@@ -192,12 +207,12 @@ public:
         if(fsize > 1024*1024) {
             fmagnitude = 'M';
             fsize /= 1024.0*1024.0;
-            fprintf(stderr, "Wrote %5.1f MB.\n",fsize);
+            fprintf(stdout, "Wrote %5.1f MB.\n",fsize);
         }
         if(fsize > 1024) {
             fmagnitude = 'k';
             fsize /= 1024.0;
-            fprintf(stderr, "Wrote %5.1f kilobytes.\n",fsize);
+            fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
         }
     }
 };

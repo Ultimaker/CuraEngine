@@ -21,7 +21,7 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
         {
             ClipperLib::Clipper thinWallClipper;
 
-            ClipperLib::OffsetPolygons(part->insets[0], temp, -extrusionWidth / 2, ClipperLib::jtSquare, 2, false);
+            ClipperLib::OffsetPolygons(part->insets[0], temp, -extrusionWidth / 2 - extrusionWidth * 15 / 100, ClipperLib::jtSquare, 2, false);
             thinWallClipper.AddPolygons(temp, ClipperLib::ptSubject);
 
             ClipperLib::OffsetPolygons(part->insets[1], temp, extrusionWidth * 6 / 10, ClipperLib::jtSquare, 2, false);
@@ -63,7 +63,7 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
             skinCombineClipper.Execute(ClipperLib::ctUnion, part->skinOutline);
         }
 
-        double minAreaSize = (2 * M_PI * (double(extrusionWidth) / 1000.0) * (double(extrusionWidth) / 1000.0)) * 0.5;
+        double minAreaSize = (2 * M_PI * (double(extrusionWidth) / 1000.0) * (double(extrusionWidth) / 1000.0)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {
             double area = fabs(ClipperLib::Area(part->skinOutline[i])) / 1000.0 / 1000.0;

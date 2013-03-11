@@ -44,7 +44,7 @@ public:
         {
             OptimizedFace f;
             percDone = 100*i/m->faces.size();
-            if((i%1000==0) && (getTime()-t)>2.0) fprintf(stderr, "\rOptimizing faces (%d percent)",percDone);
+            if((i%1000==0) && (getTime()-t)>2.0) fprintf(stdout, "\rOptimizing faces (%d percent)",percDone);
             for(uint32_t j=0; j<3; j++)
             {
                 Point3 p = m->faces[i].v[j];
@@ -92,7 +92,7 @@ public:
                 }
             }
         }
-        fprintf(stderr, "\rAll faces are optimized in %5.1fs.\n",timeElapsed(t));
+        fprintf(stdout, "\rAll faces are optimized in %5.1fs.\n",timeElapsed(t));
 
         int openFacesCount = 0;
         for(unsigned int i=0;i<faces.size();i++)
@@ -108,7 +108,7 @@ public:
             if (f->touching[2] == -1)
                 openFacesCount++;
         }
-        fprintf(stderr, "  Number of open faces: %i\n", openFacesCount);
+        fprintf(stdout, "  Number of open faces: %i\n", openFacesCount);
         
         Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
         vOffset -= center;

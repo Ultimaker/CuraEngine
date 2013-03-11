@@ -123,10 +123,29 @@ INLINE double vSizeMM(const Point& p0)
     return sqrt(fx*fx+fy*fy);
 }
 
+INLINE Point normal(const Point& p0, int32_t len)
+{
+    int32_t _len = vSize(p0);
+    return Point(p0.X * len / _len, p0.Y * len / _len);
+}
+
+INLINE Point crossZ(const Point& p0)
+{
+    return Point(-p0.Y, p0.X);
+}
+
 class PointMatrix
 {
 public:
     double matrix[4];
+
+    PointMatrix()
+    {
+        matrix[0] = 1;
+        matrix[1] = 0;
+        matrix[2] = 0;
+        matrix[3] = 1;
+    }
     
     PointMatrix(double rotation)
     {
@@ -151,6 +170,11 @@ public:
     Point apply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);
+    }
+
+    Point unapply(const Point p) const
+    {
+        return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
     }
     
     void apply(Polygons& polys) const
