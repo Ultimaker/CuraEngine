@@ -89,6 +89,7 @@ typedef ClipperLib::IntPoint Point;
 
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
+INLINE Point operator*(const Point& p0, const int32_t i) { return Point(p0.X*i, p0.Y*i); }
 INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
 
 //Point& operator += (const Point& p) { x += p.x; y += p.y; return *this; }
@@ -126,7 +127,7 @@ INLINE double vSizeMM(const Point& p0)
 INLINE Point normal(const Point& p0, int32_t len)
 {
     int32_t _len = vSize(p0);
-    return Point(p0.X * len / _len, p0.Y * len / _len);
+    return p0 * len / _len;
 }
 
 INLINE Point crossZ(const Point& p0)

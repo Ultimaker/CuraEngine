@@ -19,6 +19,30 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
+void optimizePolygon(ClipperLib::Polygon& poly)
+{
+    Point p0 = poly[poly.size()-1];
+    for(unsigned int i=0;i<poly.size();i++)
+    {
+        Point p1 = poly[i];
+        if (shorterThen(p0 - p1, 100))
+        {
+            poly.erase(poly.begin() + i);
+            i --;
+        }else{
+            p0 = p1;
+        }
+    }
+}
+
+void optimizePolygons(Polygons& polys)
+{
+    for(unsigned int n=0;n<polys.size();n++)
+    {
+        optimizePolygon(polys[n]);
+    }
+}
+
 #define VERSION "0.1"
 class Config
 {
@@ -135,6 +159,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
+            optimizePolygons(part->insets[0]);
             
             gcode.setCombBoundary(&part->insets[0]);
             for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)

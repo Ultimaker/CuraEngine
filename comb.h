@@ -89,6 +89,19 @@ private:
         }
         return ret;
     }
+    
+    Point getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx)
+    {
+        Point p0 = boundery[polygonNr][(idx > 0) ? (idx - 1) : (boundery[polygonNr].size() - 1)];
+        Point p1 = boundery[polygonNr][idx];
+        Point p2 = boundery[polygonNr][(idx < (boundery[polygonNr].size() - 1)) ? (idx + 1) : (0)];
+        
+        Point off0 = crossZ(normal(p1 - p0, 1000));
+        Point off1 = crossZ(normal(p2 - p1, 1000));
+        Point n = normal(off0 + off1, 200);
+        
+        return p1 + n;
+    }
 
 public:
     Comb(Polygons& _boundery)
@@ -130,7 +143,7 @@ public:
             {
                 for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i < boundery[n].size() - 1) ? (i + 1) : (0))
                 {
-                    pointList.push_back(boundery[n][i]);
+                    pointList.push_back(getBounderyPointWithOffset(n, i));
                 }
             }else{
                 minIdx[n]--;
@@ -139,7 +152,7 @@ public:
                 if (maxIdx[n] == UINT_MAX) maxIdx[n] = boundery[n].size() - 1;
                 for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i > 0) ? (i - 1) : (boundery[n].size() - 1))
                 {
-                    pointList.push_back(boundery[n][i]);
+                    pointList.push_back(getBounderyPointWithOffset(n, i));
                 }
             }
             pointList.push_back(matrix.unapply(Point(maxX[n] + 200, sp.Y)));
