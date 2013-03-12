@@ -134,6 +134,10 @@ INLINE Point crossZ(const Point& p0)
 {
     return Point(-p0.Y, p0.X);
 }
+INLINE int64_t dot(const Point& p0, const Point& p1)
+{
+    return p0.X * p1.X + p0.Y * p1.Y;
+}
 
 class PointMatrix
 {

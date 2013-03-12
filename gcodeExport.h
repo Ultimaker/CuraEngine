@@ -154,7 +154,7 @@ public:
         for(unsigned int i=0;i<polygons.size();i++)
             orderOptimizer.addPolygon(polygons[i]);
         orderOptimizer.optimize();
-        for(unsigned int i=0;i<polygons.size();i++)
+        for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
         {
             int nr = orderOptimizer.polyOrder[i];
             addPolygon(polygons[nr], orderOptimizer.polyStart[nr]);

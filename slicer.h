@@ -106,7 +106,6 @@ public:
 
                 if (shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
                 {
-                    polygonList[i].points.pop_back();
                     polygonList[i].closed = true;
                 }
 
@@ -138,6 +137,7 @@ public:
         //if (q) exit(1);
 
         //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
+        snapDistance = 1000;
         for(unsigned int i=0;i<polygonList.size();i++)
         {
             int length = 0;
@@ -153,6 +153,11 @@ public:
                 polygonList.erase(polygonList.begin() + i);
                 i--;
             }
+        }
+        //Finally optimize all the polygons. Every point removed saves time in the long run.
+        for(unsigned int i=0;i<polygonList.size();i++)
+        {
+            optimizePolygon(polygonList[i].points);
         }
     }
 };

@@ -166,6 +166,8 @@ public:
         {
             if (collisionTest(p0, pointList[n]))
             {
+                if (collisionTest(p0, pointList[n-1]))
+                    return false;
                 p0 = pointList[n-1];
                 combPoints.push_back(p0);
             }
