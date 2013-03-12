@@ -22,6 +22,11 @@ void optimizePolygons(Polygons& polys)
     for(unsigned int n=0;n<polys.size();n++)
     {
         optimizePolygon(polys[n]);
+        if (polys[n].size() < 3)
+        {
+            polys.erase(polys.begin() + n);
+            n--;
+        }
     }
 }
 
