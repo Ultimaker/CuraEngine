@@ -60,31 +60,6 @@ public:
     }
 };
 
-/*
-class Point
-{
-public:
-    int32_t x,y;
-    Point() {}
-    Point(int32_t _x, int32_t _y): x(_x), y(_y) {}
-    Point(ClipperLib::IntPoint p): x(p.X), y(p.Y) {}
-
-    Point operator+(const Point& p) const { return Point(x+p.x, y+p.y); }
-    Point operator-(const Point& p) const { return Point(x-p.x, y-p.y); }
-    Point operator/(const int32_t i) const { return Point(x/i, y/i); }
-    
-    Point& operator += (const Point& p) { x += p.x; y += p.y; return *this; }
-    Point& operator -= (const Point& p) { x -= p.x; y -= p.y; return *this; }
-    
-    bool operator==(Point& p) const { return x==p.x&&y==p.y; }
-    bool operator!=(Point& p) const { return x!=p.x||y!=p.y; }
-    
-    int32_t max()
-    {
-        if (x > y) return x;
-        return y;
-    }
-};*/
 typedef ClipperLib::IntPoint Point;
 
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
@@ -193,6 +168,32 @@ public:
         }
     }
 };
+
+INLINE Point centerOfMass(const ClipperLib::Polygon& poly)
+{
+    double x = 0, y = 0;
+    Point p0 = poly[poly.size()-1];
+    for(unsigned int n=0; n<poly.size(); n++)
+    {
+        Point p1 = poly[n];
+        double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
+        
+        x += double(p0.X + p1.X) * second_factor;
+        y += double(p0.Y + p1.Y) * second_factor;
+        p0 = p1;
+    }
+
+    double area = Area(poly);
+    x = x / 6 / area;
+    y = y / 6 / area;
+
+    if (x < 0)
+    {
+        x = -x;
+        y = -y;
+    }
+    return Point(x, y);
+}
 
 /* Axis aligned boundary box */
 class AABB

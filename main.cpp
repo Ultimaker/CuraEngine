@@ -15,6 +15,7 @@
 #include "inset.h"
 #include "skin.h"
 #include "infill.h"
+#include "bridge.h"
 #include "pathOptimizer.h"
 #include "skirt.h"
 #include "comb.h"
@@ -95,6 +96,17 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     }
     fprintf(stdout, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount);
+    
+    for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+    {
+        for(unsigned int partNr=0; partNr<storage.layers[layerNr].parts.size(); partNr++)
+        {
+            if (layerNr > 0)
+                storage.layers[layerNr].parts[partNr].bridgeAngle = bridgeAngle(&storage.layers[layerNr].parts[partNr], &storage.layers[layerNr-1]);
+            else
+                storage.layers[layerNr].parts[partNr].bridgeAngle = -1;
+        }
+    }
 
     gcode.addComment("GCode for file %s", input_filename);
     gcode.addComment("total_layers=%d",totalLayers);
@@ -149,12 +161,14 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             
             gcode.addComment("TYPE:FILL");
             Polygons fillPolygons;
+            int fillAngle = 45;
+            if (layerNr & 1) fillAngle += 90;
             //int sparseSteps[1] = {config.extrusionWidth};
             //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
-            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, 45 + layerNr * 90);
+            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
             //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
             //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, 45 + layerNr * 90);
+            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
 
             gcode.addPolygonsByOptimizer(fillPolygons);
             
