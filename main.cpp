@@ -43,6 +43,8 @@ public:
     int moveSpeed;
     int fanOnLayerNr;
     int supportAngle;
+    int supportEverywhere;
+    
     FMatrix3x3 matrix;
     Point objectPosition;
 };
@@ -187,7 +189,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         
         if (config.supportAngle > -1)
         {
-            SupportPolyGenerator supportGenerator(storage.support, z, 60);
+            SupportPolyGenerator supportGenerator(storage.support, z, 60, config.supportEverywhere > 0);
             if (supportGenerator.polygons.size() > 0)
             {
                 gcode.addComment("TYPE:SUPPORT");
@@ -198,8 +200,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
 
-    /*
-    // support debug
+    /* support debug
     for(int32_t y=0; y<storage.support.gridHeight; y++)
     {
         for(int32_t x=0; x<storage.support.gridWidth; x++)
@@ -212,7 +213,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             gcode.addMove(Point3(x * storage.support.gridScale + storage.support.gridOffset.X, y * storage.support.gridScale + storage.support.gridOffset.Y, 0), 0);
         }
     }
-    */
+    //*/
     
     fprintf(stdout, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
@@ -244,6 +245,7 @@ int main (int argc, char **argv)
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.objectPosition = Point(102500, 102500);
     config.supportAngle = -1;
+    config.supportEverywhere = 0;
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
@@ -304,7 +306,8 @@ int main (int argc, char **argv)
                 SETTING(printSpeed, ps);
                 SETTING(moveSpeed, ms);
                 SETTING(fanOnLayerNr, fl);
-                SETTING(supportAngle, sa);
+                SETTING(supportAngle, supa);
+                SETTING(supportEverywhere, supe);
 #undef SETTING
             }
             break;

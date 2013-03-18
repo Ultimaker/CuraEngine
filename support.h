@@ -95,6 +95,7 @@ private:
     SupportStorage& storage;
     double cosAngle;
     int32_t z;
+    bool everywhere;
 
     inline bool needSupportAt(int32_t x, int32_t y)
     {
@@ -102,26 +103,41 @@ private:
         if (y < 1) return false;
         if (x >= storage.gridWidth - 1) return false;
         if (y >= storage.gridHeight - 1) return false;
+        
         unsigned int n = x+y*storage.gridWidth;
-        if (storage.grid[n].size() < 1) return false;
-        if (storage.grid[n][0].cosAngle < cosAngle) return false;
-        if (storage.grid[n][0].z < z) return false;
+        
+        if (everywhere)
+        {
+            bool ok = false;
+            for(unsigned int i=0; i<storage.grid[n].size(); i+=2)
+            {
+                if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z >= z && (i == 0 || storage.grid[n][i-1].z < z))
+                {
+                    ok = true;
+                    break;
+                }
+            }
+            if (!ok) return false;
+        }else{
+            if (storage.grid[n].size() < 1) return false;
+            if (storage.grid[n][0].cosAngle < cosAngle) return false;
+            if (storage.grid[n][0].z < z) return false;
 
-        if (storage.grid[n-storage.gridWidth].size() < 1) return false;
-        if (storage.grid[n-storage.gridWidth][0].cosAngle < cosAngle) return false;
-        if (storage.grid[n-storage.gridWidth][0].z < z) return false;
-        if (storage.grid[n+storage.gridWidth].size() < 1) return false;
-        if (storage.grid[n+storage.gridWidth][0].cosAngle < cosAngle) return false;
-        if (storage.grid[n+storage.gridWidth][0].z < z) return false;
-
+            if (storage.grid[n-storage.gridWidth].size() < 1) return false;
+            if (storage.grid[n-storage.gridWidth][0].cosAngle < cosAngle) return false;
+            if (storage.grid[n-storage.gridWidth][0].z < z) return false;
+            if (storage.grid[n+storage.gridWidth].size() < 1) return false;
+            if (storage.grid[n+storage.gridWidth][0].cosAngle < cosAngle) return false;
+            if (storage.grid[n+storage.gridWidth][0].z < z) return false;
+        }
         return true;
     }
 
-public:    
-    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle)
-    : storage(storage), z(z)
+public:
+    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere)
+    : storage(storage), z(z), everywhere(everywhere)
     {
-        cosAngle = cos(double(90 - angle) / 180.0 * M_PI);
+        cosAngle = cos(double(90 - angle) / 180.0 * M_PI) - 0.01;
         for(int32_t y=0; y<storage.gridHeight; y+=2)
         {
             for(int32_t x=0; x<storage.gridWidth; x++)
