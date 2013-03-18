@@ -27,7 +27,7 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     int idx2 = -1;
     for(unsigned int n=0; n<islands.size(); n++)
     {
-        double area = abs(Area(islands[n]));
+        double area = fabs(Area(islands[n]));
         if (area > area1)
         {
             if (area1 > area2)

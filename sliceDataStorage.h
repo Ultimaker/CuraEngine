@@ -33,12 +33,33 @@ public:
     vector<SliceLayerPart> parts;
 };
 
+/******************/
+class SupportPoint
+{
+public:
+    int32_t z;
+    double cosAngle;
+    
+    SupportPoint(int32_t z, double cosAngle) : z(z), cosAngle(cosAngle) {}
+};
+class SupportStorage
+{
+public:
+    Point gridOffset;
+    int32_t gridScale;
+    int32_t gridWidth, gridHeight;
+    vector<SupportPoint>* grid;
+};
+/******************/
+
 class SliceDataStorage
 {
 public:
     Point3 modelSize;
     Polygons skirt;
     vector<SliceLayer> layers;
+    
+    SupportStorage support;
 };
 
 #endif//SLICE_DATA_STORAGE_H

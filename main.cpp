@@ -16,6 +16,7 @@
 #include "skin.h"
 #include "infill.h"
 #include "bridge.h"
+#include "support.h"
 #include "pathOptimizer.h"
 #include "skirt.h"
 #include "comb.h"
@@ -41,6 +42,7 @@ public:
     int printSpeed;
     int moveSpeed;
     int fanOnLayerNr;
+    int supportAngle;
     FMatrix3x3 matrix;
     Point objectPosition;
 };
@@ -68,12 +70,18 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     
     fprintf(stdout,"Slicing model...\n");
     Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness);
-    delete om;
     fprintf(stdout, "Sliced model in %5.3fs\n", timeElapsed(t));
     //slicer->dumpSegments("output.html");
+
+    SliceDataStorage storage;
+    if (config.supportAngle > -1)
+    {
+        fprintf(stdout,"Generating support map...\n");
+        generateSupportGrid(storage.support, om, config.initialLayerThickness / 2, config.layerThickness);
+    }
+    delete om;
     
     fprintf(stdout,"Generating layer parts...\n");
-    SliceDataStorage storage;
     storage.modelSize = slicer->modelSize;
     createLayerParts(storage, slicer);
     delete slicer;
@@ -121,7 +129,8 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         gcode.addComment("LAYER:%d", layerNr);
         if (int(layerNr) == config.fanOnLayerNr)
             gcode.addFanCommand(255);
-        gcode.setZ(config.initialLayerThickness + layerNr * config.layerThickness);
+        int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
+        gcode.setZ(z);
         if (layerNr == 0)
         {
             gcode.setSpeeds(config.moveSpeed, config.initialLayerSpeed);
@@ -175,8 +184,35 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             if (partCounter < layer->parts.size() - 1)
                 gcode.addRetraction();
         }
+        
+        if (config.supportAngle > -1)
+        {
+            SupportPolyGenerator supportGenerator(storage.support, z, 60);
+            if (supportGenerator.polygons.size() > 0)
+            {
+                gcode.addComment("TYPE:SUPPORT");
+                gcode.addPolygonsByOptimizer(supportGenerator.polygons);
+            }
+        }
+        
         gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
     }
+
+    /*
+    // support debug
+    for(int32_t y=0; y<storage.support.gridHeight; y++)
+    {
+        for(int32_t x=0; x<storage.support.gridWidth; x++)
+        {
+            unsigned int n = x+y*storage.support.gridWidth;
+            if (storage.support.grid[n].size() < 1) continue;
+            int32_t z = storage.support.grid[n][0].z;
+            gcode.addMove(Point3(x * storage.support.gridScale + storage.support.gridOffset.X, y * storage.support.gridScale + storage.support.gridOffset.Y, 0), 0);
+            gcode.addMove(Point3(x * storage.support.gridScale + storage.support.gridOffset.X, y * storage.support.gridScale + storage.support.gridOffset.Y, z), z);
+            gcode.addMove(Point3(x * storage.support.gridScale + storage.support.gridOffset.X, y * storage.support.gridScale + storage.support.gridOffset.Y, 0), 0);
+        }
+    }
+    */
     
     fprintf(stdout, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
@@ -207,6 +243,7 @@ int main (int argc, char **argv)
     config.skirtLineCount = 1;
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.objectPosition = Point(102500, 102500);
+    config.supportAngle = -1;
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
@@ -267,6 +304,7 @@ int main (int argc, char **argv)
                 SETTING(printSpeed, ps);
                 SETTING(moveSpeed, ms);
                 SETTING(fanOnLayerNr, fl);
+                SETTING(supportAngle, sa);
 #undef SETTING
             }
             break;

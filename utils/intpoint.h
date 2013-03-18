@@ -19,7 +19,7 @@ class Point3
 public:
     int32_t x,y,z;
     Point3() {}
-    Point3(int32_t _x, int32_t _y, int32_t _z): x(_x), y(_y), z(_z) {}
+    Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
     
     Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
@@ -28,8 +28,8 @@ public:
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     Point3& operator -= (const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
     
-    bool operator==(Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
-    bool operator!=(Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
+    bool operator==(const Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
+    bool operator!=(const Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
     
     int32_t max()
     {
@@ -49,14 +49,22 @@ public:
         return vSize2() <= len*len;
     }
     
-    int32_t vSize2()
+    int64_t vSize2()
     {
-        return x*x+y*y+z*z;
+        return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
     }
     
     int32_t vSize()
     {
         return sqrt(vSize2());
+    }
+    
+    Point3 cross(const Point3& p)
+    {
+        return Point3(
+            y*p.z-z*p.y,
+            z*p.x-x*p.z,
+            x*p.y-y*p.x);
     }
 };
 
@@ -102,6 +110,8 @@ INLINE double vSizeMM(const Point& p0)
 INLINE Point normal(const Point& p0, int32_t len)
 {
     int32_t _len = vSize(p0);
+    if (_len < 1)
+        return Point(len, 0);
     return p0 * len / _len;
 }
 

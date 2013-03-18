@@ -28,14 +28,15 @@ public:
     std::vector<OptimizedPoint3> points;
     std::vector<OptimizedFace> faces;
     Point3 modelSize;
+    Point3 vMin, vMax;
     
     OptimizedModel(SimpleModel* m, Point3 center)
     {
         points.reserve(m->faces.size() * 3);
         faces.reserve(m->faces.size());
     
-        Point3 vMin = m->min();
-        Point3 vMax = m->max();
+        vMin = m->min();
+        vMax = m->max();
         std::map<uint32_t, std::vector<uint32_t> > indexMap;
         
         double t = getTime();
@@ -117,6 +118,8 @@ public:
             points[i].p -= vOffset;
         }
         modelSize = vMax - vMin;
+        vMin -= vOffset;
+        vMax -= vOffset;
     }
     
     int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
