@@ -36,6 +36,8 @@ public:
     int sparseInfillLineDistance;
     int skirtDistance;
     int skirtLineCount;
+    int retractionAmount;
+    int retractionSpeed;
     
     int initialSpeedupLayers;
     int initialLayerSpeed;
@@ -47,6 +49,7 @@ public:
     
     FMatrix3x3 matrix;
     Point objectPosition;
+    int objectSink;
 };
 
 static int verbose_flag;
@@ -63,7 +66,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         return;
     }
     fprintf(stdout,"Analyzing and optimizing model...\n");
-    OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, 0));
+    OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
     fprintf(stdout, "  #Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
     fprintf(stdout, "  #Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
     delete m;
@@ -81,11 +84,13 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         fprintf(stdout,"Generating support map...\n");
         generateSupportGrid(storage.support, om, config.initialLayerThickness / 2, config.layerThickness);
     }
+    storage.modelSize = om->modelSize;
+    storage.modelMin = om->vMin;
+    storage.modelMax = om->vMax;
     delete om;
     
     fprintf(stdout,"Generating layer parts...\n");
-    storage.modelSize = slicer->modelSize;
-    createLayerParts(storage, slicer);
+    createLayerParts(storage, slicer, false);
     delete slicer;
     fprintf(stdout, "Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "output.html");
@@ -121,6 +126,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     gcode.addComment("GCode for file %s", input_filename);
     gcode.addComment("total_layers=%d",totalLayers);
     gcode.addStartCode();
+    gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed);
 
     gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -244,8 +250,11 @@ int main (int argc, char **argv)
     config.skirtLineCount = 1;
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.objectPosition = Point(102500, 102500);
+    config.objectSink = 0;
     config.supportAngle = -1;
     config.supportEverywhere = 0;
+    config.retractionAmount = 4.5;
+    config.retractionSpeed = 45;
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
@@ -308,6 +317,9 @@ int main (int argc, char **argv)
                 SETTING(fanOnLayerNr, fl);
                 SETTING(supportAngle, supa);
                 SETTING(supportEverywhere, supe);
+                SETTING(retractionAmount, reta);
+                SETTING(retractionSpeed, rets);
+                SETTING(objectSink, objsink);
 #undef SETTING
             }
             break;

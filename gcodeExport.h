@@ -52,6 +52,12 @@ public:
         this->moveSpeed = moveSpeed;
         this->extrudeSpeed = extrudeSpeed;
     }
+
+    void setRetractionSettings(int retractionAmount, int retractionSpeed)
+    {
+        this->retractionAmount = double(retractionAmount) / 1000.0;
+        this->retractionSpeed = retractionSpeed;
+    }
     
     void setZ(int z)
     {
@@ -163,9 +169,12 @@ public:
     
     void addRetraction()
     {
-        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
-        currentSpeed = retractionSpeed;
-        isRetracted = true;
+        if (retractionAmount > 0)
+        {
+            fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+            currentSpeed = retractionSpeed;
+            isRetracted = true;
+        }
     }
     
     void addStartCode()

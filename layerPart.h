@@ -14,7 +14,7 @@ It's also the first step that stores the result in the "data storage" so all oth
 */
 
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer)
+void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fixHorrible)
 {
     ClipperLib::Polygons polyList;
     for(unsigned int i=0; i<layer->polygonList.size(); i++)
@@ -29,13 +29,18 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer)
             p.push_back(layer->polygonList[i].points[j]);
             prev = j;
         }
+        if (fixHorrible && ClipperLib::Orientation(p))
+            ClipperLib::ReversePolygon(p);
         polyList.push_back(p);
     }
     
     ClipperLib::ExPolygons resultPolys;
     ClipperLib::Clipper clipper;
     clipper.AddPolygons(polyList, ClipperLib::ptSubject);
-    clipper.Execute(ClipperLib::ctUnion, resultPolys);
+    if (fixHorrible)
+        clipper.Execute(ClipperLib::ctUnion, resultPolys, ClipperLib::pftNonZero);
+    else
+        clipper.Execute(ClipperLib::ctUnion, resultPolys);
     
     for(unsigned int i=0; i<resultPolys.size(); i++)
     {
@@ -50,12 +55,12 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer)
     }
 }
 
-void createLayerParts(SliceDataStorage& storage, Slicer* slicer)
+void createLayerParts(SliceDataStorage& storage, Slicer* slicer, bool fixHorrible)
 {
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
         storage.layers.push_back(SliceLayer());
-        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr]);
+        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], fixHorrible);
         //LayerPartsLayer(&slicer->layers[layerNr])
     }
 }
@@ -65,6 +70,7 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");
     Point3 modelSize = storage.modelSize;
+    Point3 modelMin = storage.modelMin;
     
     for(unsigned int layerNr=0;layerNr<storage.layers.size(); layerNr++)
     {
@@ -78,7 +84,7 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
                 fprintf(out, "<polygon points=\"");
                 for(unsigned int k=0;k<part->outline[j].size();k++)
                 {
-                    fprintf(out, "%f,%f ", float(part->outline[j][k].X + modelSize.x/2)/modelSize.x*150, float(part->outline[j][k].Y + modelSize.y/2)/modelSize.y*150);
+                    fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*150, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*150);
                 }
                 if (j == 0)
                     fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
@@ -90,10 +96,6 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     }
     fprintf(out, "</body></html>");
     fclose(out);
-}
-
-void dumpLayer(FILE* out, Point3 modelSize)
-{
 }
 
 #endif//LAYERPART_H
