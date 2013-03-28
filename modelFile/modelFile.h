@@ -11,6 +11,8 @@ The format returned is a Model class with an array of faces, which have integer 
 #include "utils/intpoint.h"
 #include "utils/floatpoint.h"
 
+extern FILE* binaryMeshBlob;
+
 #define SET_MIN(n, m) do { if ((m) < (n)) n = m; } while(0)
 #define SET_MAX(n, m) do { if ((m) > (n)) n = m; } while(0)
 

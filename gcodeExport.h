@@ -3,6 +3,7 @@
 
 class GCodeExport
 {
+private:
     FILE* f;
     double extrusionAmount;
     double extrusionPerMM;
@@ -18,11 +19,6 @@ public:
     : currentPosition(0,0,0)
     {
         f = fopen(filename, "w");
-        if (!f)
-        {
-            fprintf(stderr, "Failed to open %s for writing.", filename);
-            exit(1);
-        }
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
@@ -37,8 +33,15 @@ public:
     
     ~GCodeExport()
     {
-        fclose(f);
-        delete comb;
+        if (f)
+            fclose(f);
+        if (comb)
+            delete comb;
+    }
+    
+    bool isValid()
+    {
+        return f != NULL;
     }
     
     void setExtrusion(int layerThickness, int lineWidth, int filamentDiameter)
@@ -85,6 +88,15 @@ public:
         va_start(args, comment);
         fprintf(f, ";");
         vfprintf(f, comment, args);
+        fprintf(f, "\n");
+        va_end(args);
+    }
+
+    void addLine(const char* line, ...)
+    {
+        va_list args;
+        va_start(args, line);
+        vfprintf(f, line, args);
         fprintf(f, "\n");
         va_end(args);
     }
@@ -212,14 +224,11 @@ public:
     }
     void tellFileSize() {
         float fsize = (float) ftell(f);
-        char fmagnitude = ' ';
         if(fsize > 1024*1024) {
-            fmagnitude = 'M';
             fsize /= 1024.0*1024.0;
             fprintf(stdout, "Wrote %5.1f MB.\n",fsize);
         }
         if(fsize > 1024) {
-            fmagnitude = 'k';
             fsize /= 1024.0;
             fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
         }

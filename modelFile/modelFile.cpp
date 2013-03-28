@@ -3,6 +3,8 @@
 
 #include "modelFile/modelFile.h"
 
+FILE* binaryMeshBlob = NULL;
+
 /* Custom fgets function to support Mac line-ends in Ascii STL files. OpenSCAD produces this when used on Mac */
 void* fgets_(char* ptr, size_t len, FILE* f)
 {
@@ -124,9 +126,33 @@ SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
 SimpleModel* loadModel(const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
-    if (strcasecmp(ext, ".stl") == 0)
+    if (ext && strcasecmp(ext, ".stl") == 0)
     {
         return loadModelSTL(filename, matrix);
+    }
+    if (strcmp(filename, "#") == 0 && binaryMeshBlob != NULL)
+    {
+        SimpleModel* m = new SimpleModel();
+        int32_t n, pNr = 0;
+        if (fread(&n, 1, sizeof(int32_t), binaryMeshBlob) < 1)
+            return NULL;
+        printf("Reading mesh from binary blob with %i vertexes\n", n);
+        Point3 v[3];
+        while(n)
+        {
+            float f[3];
+            if (fread(f, 3, sizeof(float), binaryMeshBlob) < 1)
+                return NULL;
+            FPoint3 fp(f[0], f[1], f[2]);
+            v[pNr++] = matrix.apply(fp);
+            if (pNr == 3)
+            {
+                m->addFace(v[0], v[1], v[2]);
+                pNr = 0;
+            }
+            n--;
+        }
+        return m;
     }
     return NULL;
 }

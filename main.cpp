@@ -5,6 +5,7 @@
 #include <getopt.h>
 
 #include "utils/gettime.h"
+#include "utils/logoutput.h"
 #include "sliceDataStorage.h"
 
 #include "modelFile/modelFile.h"
@@ -50,32 +51,34 @@ public:
     FMatrix3x3 matrix;
     Point objectPosition;
     int objectSink;
+    
+    int fixHorrible;
 };
 
-static int verbose_flag;
+int verbose_level;
 
 void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
 {
     double t = getTime();
-    fprintf(stdout,"Loading %s from disk...",input_filename);
+    log("Loading %s from disk...\n", input_filename);
     SimpleModel* m = loadModel(input_filename, config.matrix);
-    fprintf(stdout, "\nLoaded from disk in %5.3fs\n", timeElapsed(t));
     if (!m)
     {
-        fprintf(stdout, "Failed to load model: %s\n", input_filename);
+        log("Failed to load model: %s\n", input_filename);
         return;
     }
-    fprintf(stdout,"Analyzing and optimizing model...\n");
+    log("Loaded from disk in %5.3fs\n", timeElapsed(t));
+    log("Analyzing and optimizing model...\n");
     OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
-    fprintf(stdout, "  #Face counts: %i %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
-    fprintf(stdout, "  #Vertex counts: %i %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
+    log("  Face counts: %i -> %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
+    log("  Vertex counts: %i -> %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
     delete m;
-    fprintf(stdout, "Optimize model %5.3fs \n", timeElapsed(t));
-    //om->saveDebugSTL("output.stl");
+    log("Optimize model %5.3fs \n", timeElapsed(t));
+    om->saveDebugSTL("output.stl");
     
-    fprintf(stdout,"Slicing model...\n");
-    Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness);
-    fprintf(stdout, "Sliced model in %5.3fs\n", timeElapsed(t));
+    log("Slicing model...\n");
+    Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible);
+    log("Sliced model in %5.3fs\n", timeElapsed(t));
     //slicer->dumpSegments("output.html");
 
     SliceDataStorage storage;
@@ -90,7 +93,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     delete om;
     
     fprintf(stdout,"Generating layer parts...\n");
-    createLayerParts(storage, slicer, false);
+    createLayerParts(storage, slicer, config.fixHorrible);
     delete slicer;
     fprintf(stdout, "Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "output.html");
@@ -99,17 +102,19 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateInsets(&storage.layers[layerNr], config.extrusionWidth, config.insetCount);
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stdout, "\rGenerating insets %d of %d...",layerNr+1,totalLayers);
+        
+        logProgress("inset",layerNr+1,totalLayers);
     }
-    fprintf(stdout, "Generated inset in %5.3fs\n", timeElapsed(t));
+    log("Generated inset in %5.3fs\n", timeElapsed(t));
+    fflush(stdout);
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         generateSkins(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
         generateSparse(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
-        if (verbose_flag && (getTime()-t)>2.0) fprintf(stdout, "\rGenerating skin %d of %d...",layerNr+1,totalLayers);
+        logProgress("skin",layerNr+1,totalLayers);
     }
-    fprintf(stdout, "Generated up/down skin in %5.3fs\n", timeElapsed(t));
+    log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount);
     
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -131,8 +136,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        if (verbose_flag && (getTime()-t)>2.0) 
-            fprintf(stdout, "\rWriting layer %d of %d... (%d percent)", layerNr+1, totalLayers, 100*(layerNr+1)/totalLayers);
+        logProgress("export", layerNr+1, totalLayers);
         
         gcode.addComment("LAYER:%d", layerNr);
         if (int(layerNr) == config.fanOnLayerNr)
@@ -221,14 +225,47 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     }
     //*/
     
-    fprintf(stdout, "\nWrote layers in %5.2fs.\n", timeElapsed(t));
+    log("Wrote layers in %5.2fs.\n", timeElapsed(t));
     gcode.tellFileSize();
     gcode.addFanCommand(0);
 
-    fprintf(stdout, "Total time elapsed %5.2fs. ", timeElapsed(t,true));
+    log("Total time elapsed %5.2fs.\n", timeElapsed(t,true));
 }
 
-int main (int argc, char **argv)
+void setConfig(Config& config, char* str)
+{
+    char* valuePtr = strchr(str, '=');
+    if (!valuePtr) return;
+    *valuePtr++ = '\0';
+#define STRINGIFY(_s) #_s
+#define SETTING(longName, shortName) if (strcasecmp(optarg, STRINGIFY(longName)) == 0 || strcasecmp(optarg, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
+    SETTING(layerThickness, lt);
+    SETTING(initialLayerThickness, ilt);
+    SETTING(filamentDiameter, fd);
+    SETTING(extrusionWidth, ew);
+    SETTING(insetCount, ic);
+    SETTING(downSkinCount, dsc);
+    SETTING(upSkinCount, usc);
+    SETTING(sparseInfillLineDistance, sild);
+    SETTING(skirtDistance, sd);
+    SETTING(skirtLineCount, slc);
+
+    SETTING(initialSpeedupLayers, isl);
+    SETTING(initialLayerSpeed, ils);
+    SETTING(printSpeed, ps);
+    SETTING(moveSpeed, ms);
+    SETTING(fanOnLayerNr, fl);
+    SETTING(supportAngle, supa);
+    SETTING(supportEverywhere, supe);
+    SETTING(retractionAmount, reta);
+    SETTING(retractionSpeed, rets);
+    SETTING(objectPosition.X, posx);
+    SETTING(objectPosition.Y, posy);
+    SETTING(objectSink, objsink);
+#undef SETTING
+}
+
+int main(int argc, char **argv)
 {
     const char* output_file = "output.gcode";
     int help_flag = false;
@@ -255,21 +292,22 @@ int main (int argc, char **argv)
     config.supportEverywhere = 0;
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
+    config.fixHorrible = 0;
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
     struct option long_options[] =
     {
         /* These options set a flag. */
-        {"verbose", no_argument,       &verbose_flag, 1},
-        {"help",    no_argument,       &help_flag, 1},
-        {"output",  required_argument, NULL, 'o'},
-        {NULL, 0, NULL, 0}
+        {"verbose",     no_argument,       &verbose_level, 1},
+        {"help",        no_argument,       &help_flag, 1},
+        {"output",      required_argument, NULL, 'o'},
+        {NULL,          0,                 NULL, 0}
     };
     /* getopt_long stores the option index here. */
     int option_index = 0;
     int c;
-    while ((c = getopt_long (argc, argv, "o:m:s:hv", long_options, &option_index)) > -1)
+    while ((c = getopt_long (argc, argv, "o:m:s:b:hv", long_options, &option_index)) > -1)
     {
         switch (c)
         {
@@ -282,7 +320,9 @@ int main (int argc, char **argv)
                 fprintf(stderr," with arg %s", optarg);
             fprintf (stderr,"\n");
             break;
-
+        case 'v':
+            verbose_level++;
+            break;
         case 'o':
             output_file = optarg;
             break;
@@ -293,42 +333,17 @@ int main (int argc, char **argv)
                 &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
             break;
         case 's':
-            {
-                char* valuePtr = strchr(optarg, '=');
-                if (!valuePtr) break;
-                *valuePtr++ = '\0';
-#define STRINGIFY(_s) #_s
-#define SETTING(longName, shortName) if (strcasecmp(optarg, STRINGIFY(longName)) == 0 || strcasecmp(optarg, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
-                SETTING(layerThickness, lt);
-                SETTING(initialLayerThickness, ilt);
-                SETTING(filamentDiameter, fd);
-                SETTING(extrusionWidth, ew);
-                SETTING(insetCount, ic);
-                SETTING(downSkinCount, dsc);
-                SETTING(upSkinCount, usc);
-                SETTING(sparseInfillLineDistance, sild);
-                SETTING(skirtDistance, sd);
-                SETTING(skirtLineCount, slc);
-    
-                SETTING(initialSpeedupLayers, isl);
-                SETTING(initialLayerSpeed, ils);
-                SETTING(printSpeed, ps);
-                SETTING(moveSpeed, ms);
-                SETTING(fanOnLayerNr, fl);
-                SETTING(supportAngle, supa);
-                SETTING(supportEverywhere, supe);
-                SETTING(retractionAmount, reta);
-                SETTING(retractionSpeed, rets);
-                SETTING(objectSink, objsink);
-#undef SETTING
-            }
+            setConfig(config, optarg);
+            break;
+        case 'b':
+            binaryMeshBlob = fopen(optarg, "rb");
             break;
         case '?':
             exit(1);
             /* getopt_long already printed an error message. */
             break;
         default:
-            fprintf(stderr, "Unknown option: %d `%s'\n", c, optarg);
+            fprintf(stderr, "Unknown option: %c `%s'\n", c, optarg);
             exit(0);
         }
     }

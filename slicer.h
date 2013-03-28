@@ -29,7 +29,7 @@ public:
     
     std::vector<SlicerPolygon> polygonList;
     
-    void makePolygons(OptimizedModel* om)
+    void makePolygons(OptimizedModel* om, bool fixHorrible)
     {
         for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
         {
@@ -118,7 +118,7 @@ public:
         snapDistance = 1000;
         for(unsigned int i=0;i<polygonList.size();i++)
         {
-            if (shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
+            if (fixHorrible || shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
             {
                 polygonList[i].points.pop_back();
                 polygonList[i].closed = true;
@@ -168,7 +168,7 @@ public:
     std::vector<SlicerLayer> layers;
     Point3 modelSize;
     
-    Slicer(OptimizedModel* om, int32_t initial, int32_t thickness)
+    Slicer(OptimizedModel* om, int32_t initial, int32_t thickness, bool fixHorrible)
     {
         modelSize = om->modelSize;
         int layerCount = (modelSize.z - initial) / thickness + 1;
@@ -227,7 +227,7 @@ public:
         {
             percDone = 100*layerNr/layers.size();
             if((getTime()-t)>2.0) fprintf(stdout, "\rProcessing layers... (%d percent)",percDone);
-            layers[layerNr].makePolygons(om);
+            layers[layerNr].makePolygons(om, fixHorrible);
         }
         fprintf(stdout, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
     }

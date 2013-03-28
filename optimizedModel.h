@@ -93,7 +93,7 @@ public:
                 }
             }
         }
-        fprintf(stdout, "\rAll faces are optimized in %5.1fs.\n",timeElapsed(t));
+        //fprintf(stdout, "\rAll faces are optimized in %5.1fs.\n",timeElapsed(t));
 
         int openFacesCount = 0;
         for(unsigned int i=0;i<faces.size();i++)
@@ -109,7 +109,7 @@ public:
             if (f->touching[2] == -1)
                 openFacesCount++;
         }
-        fprintf(stdout, "  Number of open faces: %i\n", openFacesCount);
+        //fprintf(stdout, "  Number of open faces: %i\n", openFacesCount);
         
         Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
         vOffset -= center;
