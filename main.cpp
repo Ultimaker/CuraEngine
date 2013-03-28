@@ -2,6 +2,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <sys/time.h>
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+#include <sys/resource.h>
+#endif
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -271,6 +275,10 @@ void print_usage()
 
 int main(int argc, char **argv)
 {
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+    //Lower the process priority on linux and mac.
+    setpriority(PRIO_PROCESS, 0, 10);
+#endif
     GCodeExport gcode;
     Config config;
 
