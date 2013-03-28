@@ -15,10 +15,9 @@ private:
     Comb* comb;
     
 public:
-    GCodeExport(const char* filename)
+    GCodeExport()
     : currentPosition(0,0,0)
     {
-        f = fopen(filename, "w");
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
@@ -37,6 +36,11 @@ public:
             fclose(f);
         if (comb)
             delete comb;
+    }
+    
+    void setFilename(const char* filename)
+    {
+        f = fopen(filename, "w");
     }
     
     bool isValid()

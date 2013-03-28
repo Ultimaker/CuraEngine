@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
-#include <getopt.h>
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -23,7 +22,7 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define VERSION "0.1"
+#define VERSION "0.2"
 class Config
 {
 public:
@@ -130,7 +129,6 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
 
     gcode.addComment("GCode for file %s", input_filename);
     gcode.addComment("total_layers=%d",totalLayers);
-    gcode.addStartCode();
     gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed);
 
     gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
@@ -238,7 +236,7 @@ void setConfig(Config& config, char* str)
     if (!valuePtr) return;
     *valuePtr++ = '\0';
 #define STRINGIFY(_s) #_s
-#define SETTING(longName, shortName) if (strcasecmp(optarg, STRINGIFY(longName)) == 0 || strcasecmp(optarg, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
+#define SETTING(longName, shortName) if (strcasecmp(str, STRINGIFY(longName)) == 0 || strcasecmp(str, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
     SETTING(layerThickness, lt);
     SETTING(initialLayerThickness, ilt);
     SETTING(filamentDiameter, fd);
@@ -265,10 +263,14 @@ void setConfig(Config& config, char* str)
 #undef SETTING
 }
 
+void print_usage()
+{
+    printf("TODO\n");
+}
+
 int main(int argc, char **argv)
 {
-    const char* output_file = "output.gcode";
-    int help_flag = false;
+    GCodeExport gcode;
     Config config;
 
     config.filamentDiameter = 2890;
@@ -296,74 +298,59 @@ int main(int argc, char **argv)
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
-    struct option long_options[] =
+    for(int argn = 1; argn < argc; argn++)
     {
-        /* These options set a flag. */
-        {"verbose",     no_argument,       &verbose_level, 1},
-        {"help",        no_argument,       &help_flag, 1},
-        {"output",      required_argument, NULL, 'o'},
-        {NULL,          0,                 NULL, 0}
-    };
-    /* getopt_long stores the option index here. */
-    int option_index = 0;
-    int c;
-    while ((c = getopt_long (argc, argv, "o:m:s:b:hv", long_options, &option_index)) > -1)
-    {
-        switch (c)
+        char* str = argv[argn];
+        if (str[0] == '-')
         {
-        case 0:
-            /* If this option set a flag, do nothing else now. */
-            if (long_options[option_index].flag != 0)
-                break;
-            fprintf (stderr,"option %s", long_options[option_index].name);
-            if (optarg)
-                fprintf(stderr," with arg %s", optarg);
-            fprintf (stderr,"\n");
-            break;
-        case 'v':
-            verbose_level++;
-            break;
-        case 'o':
-            output_file = optarg;
-            break;
-        case 'm':
-            sscanf(optarg, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
-                &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
-                &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
-            break;
-        case 's':
-            setConfig(config, optarg);
-            break;
-        case 'b':
-            binaryMeshBlob = fopen(optarg, "rb");
-            break;
-        case '?':
-            exit(1);
-            /* getopt_long already printed an error message. */
-            break;
-        default:
-            fprintf(stderr, "Unknown option: %c `%s'\n", c, optarg);
-            exit(0);
+            for(str++; *str; str++)
+            {
+                switch(*str)
+                {
+                case 'h':
+                    print_usage();
+                    exit(1);
+                case 'v':
+                    verbose_level++;
+                    break;
+                case 'o':
+                    argn++;
+                    gcode.setFilename(argv[argn]);
+                    if (!gcode.isValid())
+                    {
+                        logError("Failed to open %s for output.\n", argv[argn]);
+                        exit(1);
+                    }
+                    gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
+                    gcode.addStartCode();
+                    break;
+                case 's':
+                    argn++;
+                    setConfig(config, argv[argn]);
+                    break;
+                case 'm':
+                    argn++;
+                    sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+                        &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
+                        &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
+                        &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
+                    break;
+                default:
+                    logError("Unknown option: %c\n", *str);
+                    break;
+                }
+            }
+        }else{
+            if (!gcode.isValid())
+            {
+                logError("No output file specified\n");
+                return 1;
+            }
+            processFile(argv[argn], config, gcode);
         }
     }
-    if(help_flag) {
-        fprintf(stderr,"Options: \n");
-        return 1;
-    }
-    if (output_file == NULL)
+    if (gcode.isValid())
     {
-        fprintf(stderr, "No output file specified\n");
-        return 1;
-    }
-
-    /* Print any remaining command line arguments (not options). */
-    if (optind < argc)
-    {
-        GCodeExport gcode(output_file);
-        gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
-        while (optind < argc)
-            processFile(argv[optind++], config, gcode);
         gcode.addEndCode();
     }
 }
