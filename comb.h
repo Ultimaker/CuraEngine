@@ -33,6 +33,8 @@ private:
         
         for(unsigned int n=0; n<boundery.size(); n++)
         {
+            if (boundery[n].size() < 1)
+                continue;
             Point p0 = matrix.apply(boundery[n][boundery[n].size()-1]);
             for(unsigned int i=0; i<boundery[n].size(); i++)
             {

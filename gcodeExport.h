@@ -13,7 +13,7 @@ private:
     int zPos;
     bool isRetracted;
     Comb* comb;
-    
+
 public:
     GCodeExport()
     : currentPosition(0,0,0)

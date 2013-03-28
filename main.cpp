@@ -194,6 +194,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
             if (partCounter < layer->parts.size() - 1)
                 gcode.addRetraction();
         }
+        gcode.setCombBoundary(NULL);
         
         if (config.supportAngle > -1)
         {
@@ -312,6 +313,10 @@ int main(int argc, char **argv)
                     exit(1);
                 case 'v':
                     verbose_level++;
+                    break;
+                case 'b':
+                    argn++;
+                    binaryMeshBlob = fopen(argv[argn], "rb");
                     break;
                 case 'o':
                     argn++;
