@@ -59,8 +59,9 @@ public:
 };
 
 int verbose_level;
+int maxObjectHeight;
 
-void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
+void processFile(const char* input_filename, Config& config, GCodeExport& gcode, bool firstFile)
 {
     double t = getTime();
     log("Loading %s from disk...\n", input_filename);
@@ -131,9 +132,18 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         }
     }
 
-    gcode.addComment("GCode for file %s", input_filename);
-    gcode.addComment("total_layers=%d",totalLayers);
     gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed);
+    if (firstFile)
+    {
+        gcode.addStartCode();
+    }else{
+        gcode.resetExtrusionValue();
+        gcode.setSpeeds(config.moveSpeed, config.printSpeed);
+        gcode.addRetraction();
+        gcode.setZ(maxObjectHeight + 5);
+        gcode.addMove(config.objectPosition, 0.0);
+    }
+    gcode.addComment("total_layers=%d",totalLayers);
 
     gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -141,6 +151,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
         logProgress("export", layerNr+1, totalLayers);
         
         gcode.addComment("LAYER:%d", layerNr);
+        gcode.resetExtrusionValue();
         if (int(layerNr) == config.fanOnLayerNr)
             gcode.addFanCommand(255);
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
@@ -233,6 +244,8 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode)
     gcode.addFanCommand(0);
 
     log("Total time elapsed %5.2fs.\n", timeElapsed(t,true));
+    
+    maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
 }
 
 void setConfig(Config& config, char* str)
@@ -281,6 +294,7 @@ int main(int argc, char **argv)
 #endif
     GCodeExport gcode;
     Config config;
+    int fileNr = 0;
 
     config.filamentDiameter = 2890;
     config.initialLayerThickness = 300;
@@ -335,7 +349,6 @@ int main(int argc, char **argv)
                         exit(1);
                     }
                     gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
-                    gcode.addStartCode();
                     break;
                 case 's':
                     argn++;
@@ -359,7 +372,8 @@ int main(int argc, char **argv)
                 logError("No output file specified\n");
                 return 1;
             }
-            processFile(argv[argn], config, gcode);
+            processFile(argv[argn], config, gcode, fileNr == 0);
+            fileNr ++;
         }
     }
     if (gcode.isValid())

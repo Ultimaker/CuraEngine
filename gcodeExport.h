@@ -105,6 +105,20 @@ public:
         va_end(args);
     }
     
+    void resetExtrusionValue()
+    {
+        if (extrusionAmount != 0.0)
+        {
+            fprintf(f, "G92 E0\n");
+            extrusionAmount = 0.0;
+        }
+    }
+    
+    void addMove(Point p, double extrusion)
+    {
+        addMove(Point3(p.X, p.Y, zPos), extrusion);
+    }
+    
     void addMove(Point3 p, double extrusion)
     {
         int speed;
@@ -127,6 +141,7 @@ public:
         if (extrusion != 0 && isRetracted)
         {
             fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
+            currentSpeed = retractionSpeed;
             isRetracted = false;
         }
         //if ((p - currentPosition).testLength(200))
