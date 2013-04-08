@@ -9,10 +9,9 @@ private:
     double extrusionPerMM;
     double retractionAmount;
     Point3 currentPosition;
-    int moveSpeed, extrudeSpeed, currentSpeed, retractionSpeed;
+    int currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
-    Comb* comb;
 
 public:
     GCodeExport()
@@ -22,20 +21,15 @@ public:
         extrusionPerMM = 0;
         retractionAmount = 4.5;
         
-        moveSpeed = 150;
-        extrudeSpeed = 50;
         currentSpeed = 0;
         retractionSpeed = 45;
         isRetracted = false;
-        comb = NULL;
     }
     
     ~GCodeExport()
     {
         if (f)
             fclose(f);
-        if (comb)
-            delete comb;
     }
     
     void setFilename(const char* filename)
@@ -48,18 +42,12 @@ public:
         return f != NULL;
     }
     
-    void setExtrusion(int layerThickness, int lineWidth, int filamentDiameter)
+    void setExtrusion(int layerThickness, int filamentDiameter)
     {
         double filamentArea = M_PI * (double(filamentDiameter) / 1000.0 / 2.0) * (double(filamentDiameter) / 1000.0 / 2.0);
-        extrusionPerMM = double(layerThickness) / 1000.0 * double(lineWidth) / 1000.0 / filamentArea;
+        extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea;
     }
     
-    void setSpeeds(int moveSpeed, int extrudeSpeed)
-    {
-        this->moveSpeed = moveSpeed;
-        this->extrudeSpeed = extrudeSpeed;
-    }
-
     void setRetractionSettings(int retractionAmount, int retractionSpeed)
     {
         this->retractionAmount = double(retractionAmount) / 1000.0;
@@ -69,16 +57,6 @@ public:
     void setZ(int z)
     {
         this->zPos = z;
-    }
-    
-    void setCombBoundary(Polygons* polygons)
-    {
-        if (comb)
-            delete comb;
-        if (polygons)
-            comb = new Comb(*polygons);
-        else
-            comb = NULL;
     }
     
     Point getPositionXY()
@@ -114,46 +92,20 @@ public:
         }
     }
     
-    void addMove(Point p, double extrusion)
+    void addMove(Point p, int speed, int lineWidth)
     {
-        addMove(Point3(p.X, p.Y, zPos), extrusion);
-    }
-    
-    void addMove(Point3 p, double extrusion)
-    {
-        int speed;
-        if (extrusion == 0 && !isRetracted && comb != NULL)
+        if (lineWidth != 0)
         {
-            vector<Point> pointList;
-            if (comb->calc(Point(currentPosition.x, currentPosition.y), Point(p.x, p.y), pointList))
+            if (isRetracted)
             {
-                //Fake retraction so the addMove code doesn't try to comb again.
-                isRetracted = true;
-                for(unsigned int n=0; n<pointList.size(); n++)
-                {
-                    addMove(Point3(pointList[n].X, pointList[n].Y, p.z), 0.0);
-                }
+                fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
+                currentSpeed = retractionSpeed;
                 isRetracted = false;
-            }else{
-                addRetraction();
             }
-        }
-        if (extrusion != 0 && isRetracted)
-        {
-            fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
-            currentSpeed = retractionSpeed;
-            isRetracted = false;
-        }
-        //if ((p - currentPosition).testLength(200))
-        //    return;
-        extrusionAmount += extrusion;
-        if (extrusion != 0)
-        {
+            extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(p - getPositionXY());
             fprintf(f, "G1");
-            speed = extrudeSpeed;
         }else{
             fprintf(f, "G0");
-            speed = moveSpeed;
         }
         
         if (currentSpeed != speed)
@@ -161,46 +113,19 @@ public:
             fprintf(f, " F%i", speed * 60);
             currentSpeed = speed;
         }
-        fprintf(f, " X%0.2f Y%0.2f", float(p.x)/1000, float(p.y)/1000);
-        if (p.z != currentPosition.z)
-            fprintf(f, " Z%0.2f", float(p.z)/1000);
-        if (extrusion != 0)
+        fprintf(f, " X%0.2f Y%0.2f", float(p.X)/1000, float(p.Y)/1000);
+        if (zPos != currentPosition.z)
+            fprintf(f, " Z%0.2f", float(zPos)/1000);
+        if (lineWidth != 0)
             fprintf(f, " E%0.4lf", extrusionAmount);
         fprintf(f, "\n");
         
-        currentPosition = p;
-    }
-    
-    void addPolygon(ClipperLib::Polygon& polygon, int startIdx)
-    {
-        Point p0 = polygon[startIdx];
-        addMove(Point3(p0.X, p0.Y, zPos), 0.0f);
-        for(unsigned int i=1; i<polygon.size(); i++)
-        {
-            Point p1 = polygon[(startIdx + i) % polygon.size()];
-            addMove(Point3(p1.X, p1.Y, zPos), vSizeMM(p1 - p0) * extrusionPerMM);
-            p0 = p1;
-        }
-        if (polygon.size() > 2)
-            addMove(Point3(polygon[startIdx].X, polygon[startIdx].Y, zPos), vSizeMM(polygon[startIdx] - p0) * extrusionPerMM);
-    }
-    
-    void addPolygonsByOptimizer(Polygons& polygons)
-    {
-        PathOptimizer orderOptimizer(getPositionXY());
-        for(unsigned int i=0;i<polygons.size();i++)
-            orderOptimizer.addPolygon(polygons[i]);
-        orderOptimizer.optimize();
-        for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
-        {
-            int nr = orderOptimizer.polyOrder[i];
-            addPolygon(polygons[nr], orderOptimizer.polyStart[nr]);
-        }
+        currentPosition = Point3(p.X, p.Y, zPos);
     }
     
     void addRetraction()
     {
-        if (retractionAmount > 0)
+        if (retractionAmount > 0 && !isRetracted)
         {
             fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
@@ -250,6 +175,183 @@ public:
         if(fsize > 1024) {
             fsize /= 1024.0;
             fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
+        }
+    }
+};
+
+class GCodePathConfig
+{
+public:
+    int speed;
+    int lineWidth;
+    const char* name;
+    
+    GCodePathConfig(int speed, int lineWidth, const char* name)
+    : speed(speed), lineWidth(lineWidth), name(name)
+    {
+    }
+};
+
+class GCodePath
+{
+public:
+    GCodePathConfig* config;
+    bool retract;
+    vector<Point> points;
+};
+
+class GCodePlanner
+{
+private:
+    GCodeExport& gcode;
+    
+    Point lastPosition;
+    vector<GCodePath> paths;
+    Comb* comb;
+    
+    GCodePathConfig moveConfig;
+    int speedFactor;
+private:
+    GCodePath* getLatestPathWithConfig(GCodePathConfig* config)
+    {
+        if (paths.size() > 0 && paths[paths.size()-1].config == config)
+        {
+            return &paths[paths.size()-1];
+        }
+        paths.push_back(GCodePath());
+        GCodePath* ret = &paths[paths.size()-1];
+        ret->retract = false;
+        ret->config = config;
+        return ret;
+    }
+public:
+    GCodePlanner(GCodeExport& gcode, int moveSpeed)
+    : gcode(gcode), moveConfig(moveSpeed, 0, "move")
+    {
+        lastPosition = gcode.getPositionXY();
+        comb = NULL;
+        speedFactor = 100;
+    }
+    ~GCodePlanner()
+    {
+        if (comb)
+            delete comb;
+    }
+
+    void setCombBoundary(Polygons* polygons)
+    {
+        if (comb)
+            delete comb;
+        if (polygons)
+            comb = new Comb(*polygons);
+        else
+            comb = NULL;
+    }
+    
+    void setSpeedFactor(int speedFactor)
+    {
+        if (speedFactor < 1) speedFactor = 1;
+        this->speedFactor = speedFactor;
+    }
+    
+    void addMove(Point p)
+    {
+        GCodePath* path = getLatestPathWithConfig(&moveConfig);
+        if (comb != NULL)
+        {
+            vector<Point> pointList;
+            if (comb->calc(lastPosition, p, pointList))
+            {
+                for(unsigned int n=0; n<pointList.size(); n++)
+                {
+                    path->points.push_back(pointList[n]);
+                }
+            }else{
+                path->retract = true;
+            }
+        }
+        path->points.push_back(p);
+        lastPosition = p;
+    }
+    
+    void addExtrusionMove(Point p, GCodePathConfig* config)
+    {
+        getLatestPathWithConfig(config)->points.push_back(p);
+        lastPosition = p;
+    }
+
+    void addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config)
+    {
+        Point p0 = polygon[startIdx];
+        addMove(p0);
+        for(unsigned int i=1; i<polygon.size(); i++)
+        {
+            Point p1 = polygon[(startIdx + i) % polygon.size()];
+            addExtrusionMove(p1, config);
+            p0 = p1;
+        }
+        if (polygon.size() > 2)
+            addExtrusionMove(polygon[startIdx], config);
+    }
+
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config)
+    {
+        PathOptimizer orderOptimizer(lastPosition);
+        for(unsigned int i=0;i<polygons.size();i++)
+            orderOptimizer.addPolygon(polygons[i]);
+        orderOptimizer.optimize();
+        for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
+        {
+            int nr = orderOptimizer.polyOrder[i];
+            addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
+        }
+    }
+    
+    void forceMinimalLayerTime(double minTime, int minimalSpeed)
+    {
+        Point p0 = gcode.getPositionXY();
+        double totalTime = 0.0;
+        for(unsigned int n=0; n<paths.size(); n++)
+        {
+            GCodePath* path = &paths[n];
+            for(unsigned int i=0; i<path->points.size(); i++)
+            {
+                totalTime += vSizeMM(p0 - path->points[i]) / double(path->config->speed);
+                p0 = path->points[i];
+            }
+        }
+        if (totalTime < minTime)
+        {
+            double factor = totalTime / minTime;
+            /*
+            for(unsigned int n=0; n<paths.size(); n++)
+            {
+                GCodePath* path = &paths[n];
+                int speed = path->config->speed * factor;
+                if (speed < minimalSpeed)
+                    factor = double(speed) / double(minimalSpeed);
+            }
+            */
+            setSpeedFactor(factor * 100);
+        }
+    }
+    
+    void writeGCode()
+    {
+        for(unsigned int n=0; n<paths.size(); n++)
+        {
+            GCodePath* path = &paths[n];
+            if (path->retract)
+                gcode.addRetraction();
+            if (path->config != &moveConfig)
+            {
+                gcode.addComment("TYPE:%s", path->config->name);
+            }
+            int speed = path->config->speed * speedFactor / 100;
+            for(unsigned int i=0; i<path->points.size(); i++)
+            {
+                gcode.addMove(path->points[i], speed, path->config->lineWidth);
+            }
         }
     }
 };

@@ -138,37 +138,30 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         gcode.addStartCode();
     }else{
         gcode.resetExtrusionValue();
-        gcode.setSpeeds(config.moveSpeed, config.printSpeed);
         gcode.addRetraction();
         gcode.setZ(maxObjectHeight + 5);
-        gcode.addMove(config.objectPosition, 0.0);
+        gcode.addMove(config.objectPosition, config.moveSpeed, 0);
     }
     gcode.addComment("total_layers=%d",totalLayers);
 
-    gcode.setExtrusion(config.initialLayerThickness, config.extrusionWidth, config.filamentDiameter);
+    GCodePathConfig skirtConfig(config.printSpeed, config.extrusionWidth, "SKIRT");
+    GCodePathConfig inset0Config(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
+    GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
+    GCodePathConfig skinConfig(config.printSpeed, config.extrusionWidth, "FILL");
+    GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
+
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         logProgress("export", layerNr+1, totalLayers);
         
+        GCodePlanner gcodeLayer(gcode, config.moveSpeed);
         gcode.addComment("LAYER:%d", layerNr);
-        gcode.resetExtrusionValue();
         if (int(layerNr) == config.fanOnLayerNr)
             gcode.addFanCommand(255);
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
         gcode.setZ(z);
         if (layerNr == 0)
-        {
-            gcode.setSpeeds(config.moveSpeed, config.initialLayerSpeed);
-            gcode.addComment("TYPE:SKIRT");
-            gcode.addPolygonsByOptimizer(storage.skirt);
-        }
-        if (int(layerNr) < config.initialSpeedupLayers)
-        {
-            int n = config.initialSpeedupLayers;
-            gcode.setSpeeds((config.initialLayerSpeed * (n - layerNr) + config.moveSpeed * (layerNr)) / n, (config.initialLayerSpeed * (n - layerNr) + config.printSpeed * (layerNr)) / n);
-        }else{
-            gcode.setSpeeds(config.moveSpeed, config.printSpeed);
-        }
+            gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
         
         SliceLayer* layer = &storage.layers[layerNr];
         
@@ -183,17 +176,15 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
             
-            gcode.setCombBoundary(&part->insets[0]);
+            gcodeLayer.setCombBoundary(&part->insets[0]);
             for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
             {
                 if (insetNr == 0)
-                    gcode.addComment("TYPE:WALL-OUTER");
+                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
                 else
-                    gcode.addComment("TYPE:WALL-INNER");
-                gcode.addPolygonsByOptimizer(part->insets[insetNr]);
+                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
             }
             
-            gcode.addComment("TYPE:FILL");
             Polygons fillPolygons;
             int fillAngle = 45;
             if (layerNr & 1) fillAngle += 90;
@@ -204,24 +195,32 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
             //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
             generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
 
-            gcode.addPolygonsByOptimizer(fillPolygons);
-            
-            if (partCounter < layer->parts.size() - 1)
-                gcode.addRetraction();
+            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &skinConfig);
         }
-        gcode.setCombBoundary(NULL);
+        gcodeLayer.setCombBoundary(NULL);
         
         if (config.supportAngle > -1)
         {
             SupportPolyGenerator supportGenerator(storage.support, z, 60, config.supportEverywhere > 0);
             if (supportGenerator.polygons.size() > 0)
             {
-                gcode.addComment("TYPE:SUPPORT");
-                gcode.addPolygonsByOptimizer(supportGenerator.polygons);
+                gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
             }
         }
-        
-        gcode.setExtrusion(config.layerThickness, config.extrusionWidth, config.filamentDiameter);
+
+        //Finish the layer by applying speed corrections for minimal layer times and slowdown for the initial layer.
+        if (int(layerNr) < config.initialSpeedupLayers)
+        {
+            int n = config.initialSpeedupLayers;
+            int layer0Factor = config.initialLayerSpeed * 100 / config.printSpeed;
+            gcodeLayer.setSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
+        }
+        gcodeLayer.forceMinimalLayerTime(5, 10);
+        if (layerNr == 0)
+            gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter);
+        else
+            gcode.setExtrusion(config.layerThickness, config.filamentDiameter);
+        gcodeLayer.writeGCode();
     }
 
     /* support debug
@@ -243,8 +242,10 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     gcode.tellFileSize();
     gcode.addFanCommand(0);
 
+    logProgress("process", 1, 1);
     log("Total time elapsed %5.2fs.\n", timeElapsed(t,true));
     
+    //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
 }
 
