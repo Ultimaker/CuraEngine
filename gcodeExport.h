@@ -323,16 +323,20 @@ public:
         if (totalTime < minTime)
         {
             double factor = totalTime / minTime;
-            /*
             for(unsigned int n=0; n<paths.size(); n++)
             {
                 GCodePath* path = &paths[n];
                 int speed = path->config->speed * factor;
                 if (speed < minimalSpeed)
-                    factor = double(speed) / double(minimalSpeed);
+                    factor = double(minimalSpeed) / double(path->config->speed);
             }
-            */
             setSpeedFactor(factor * 100);
+            
+            if (minTime - (totalTime / factor) > 0.5)
+            {
+                double extraTime = minTime - (totalTime / factor);
+                //TODO: Use up this extra time (circle around the print?)
+            }
         }
     }
     
