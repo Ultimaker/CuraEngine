@@ -9,9 +9,11 @@ private:
     double extrusionPerMM;
     double retractionAmount;
     Point3 currentPosition;
+    Point extruderOffset[16];
     int currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
+    int extruderNr;
 
 public:
     GCodeExport()
@@ -20,10 +22,13 @@ public:
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
+        extruderNr = 0;
         
         currentSpeed = 0;
         retractionSpeed = 45;
         isRetracted = false;
+        memset(extruderOffset, 0, sizeof(extruderOffset));
+        extruderOffset[1] = Point(0, 21600);
     }
     
     ~GCodeExport()
@@ -62,6 +67,11 @@ public:
     Point getPositionXY()
     {
         return Point(currentPosition.x, currentPosition.y);
+    }
+
+    int getExtruderNr()
+    {
+        return extruderNr;
     }
     
     void addComment(const char* comment, ...)
@@ -113,7 +123,7 @@ public:
             fprintf(f, " F%i", speed * 60);
             currentSpeed = speed;
         }
-        fprintf(f, " X%0.2f Y%0.2f", float(p.X)/1000, float(p.Y)/1000);
+        fprintf(f, " X%0.2f Y%0.2f", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000);
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", float(zPos)/1000);
         if (lineWidth != 0)
@@ -131,6 +141,19 @@ public:
             currentSpeed = retractionSpeed;
             isRetracted = true;
         }
+    }
+    
+    void switchExtruder(int newExtruder)
+    {
+        if (extruderNr == newExtruder)
+            return;
+        
+        extruderNr = newExtruder;
+
+        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - 12.5);
+        currentSpeed = retractionSpeed;
+        isRetracted = true;
+        fprintf(f, "T%i\n", extruderNr);
     }
     
     void addStartCode()
@@ -197,6 +220,7 @@ class GCodePath
 public:
     GCodePathConfig* config;
     bool retract;
+    int extruder;
     vector<Point> points;
 };
 
@@ -211,6 +235,7 @@ private:
     
     GCodePathConfig moveConfig;
     int speedFactor;
+    int currentExtruder;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config)
     {
@@ -222,6 +247,7 @@ private:
         GCodePath* ret = &paths[paths.size()-1];
         ret->retract = false;
         ret->config = config;
+        ret->extruder = currentExtruder;
         return ret;
     }
 public:
@@ -231,11 +257,16 @@ public:
         lastPosition = gcode.getPositionXY();
         comb = NULL;
         speedFactor = 100;
+        currentExtruder = gcode.getExtruderNr();
     }
     ~GCodePlanner()
     {
         if (comb)
             delete comb;
+    }
+    void setExtruder(int extruder)
+    {
+        currentExtruder = extruder;
     }
 
     void setCombBoundary(Polygons* polygons)
@@ -334,22 +365,31 @@ public:
             
             if (minTime - (totalTime / factor) > 0.5)
             {
-                double extraTime = minTime - (totalTime / factor);
                 //TODO: Use up this extra time (circle around the print?)
+                //double extraTime = minTime - (totalTime / factor);
             }
         }
     }
     
     void writeGCode()
     {
+        GCodePathConfig* lastConfig = NULL;
+        int extruder = gcode.getExtruderNr();
         for(unsigned int n=0; n<paths.size(); n++)
         {
             GCodePath* path = &paths[n];
-            if (path->retract)
+            if (extruder != path->extruder)
+            {
+                extruder = path->extruder;
+                gcode.switchExtruder(extruder);
+            }else if (path->retract)
+            {
                 gcode.addRetraction();
-            if (path->config != &moveConfig)
+            }
+            if (path->config != &moveConfig && lastConfig != path->config)
             {
                 gcode.addComment("TYPE:%s", path->config->name);
+                lastConfig = path->config;
             }
             int speed = path->config->speed * speedFactor / 100;
             for(unsigned int i=0; i<path->points.size(); i++)

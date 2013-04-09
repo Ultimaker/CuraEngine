@@ -52,12 +52,18 @@ public:
 };
 /******************/
 
+class SliceVolumeStorage
+{
+public:
+    vector<SliceLayer> layers;
+};
+
 class SliceDataStorage
 {
 public:
     Point3 modelSize, modelMin, modelMax;
     Polygons skirt;
-    vector<SliceLayer> layers;
+    vector<SliceVolumeStorage> volumes;
     
     SupportStorage support;
 };

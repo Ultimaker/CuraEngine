@@ -29,7 +29,7 @@ public:
     
     std::vector<SlicerPolygon> polygonList;
     
-    void makePolygons(OptimizedModel* om, bool fixHorrible)
+    void makePolygons(OptimizedVolume* ov, bool fixHorrible)
     {
         for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
         {
@@ -49,7 +49,7 @@ public:
                 Point p0 = segmentList[segmentIndex].end;
                 poly.points.push_back(p0);
                 int nextIndex = -1;
-                OptimizedFace* face = &om->faces[segmentList[segmentIndex].faceIndex];
+                OptimizedFace* face = &ov->faces[segmentList[segmentIndex].faceIndex];
                 for(unsigned int i=0;i<3;i++)
                 {
                     if (face->touching[i] > -1 && faceToSegmentIndex.find(face->touching[i]) != faceToSegmentIndex.end())
@@ -168,18 +168,18 @@ public:
     std::vector<SlicerLayer> layers;
     Point3 modelSize;
     
-    Slicer(OptimizedModel* om, int32_t initial, int32_t thickness, bool fixHorrible)
+    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool fixHorrible)
     {
-        modelSize = om->modelSize;
+        modelSize = ov->model->modelSize;
         int layerCount = (modelSize.z - initial) / thickness + 1;
         fprintf(stdout, "Layer count: %i\n", layerCount);
         layers.resize(layerCount);
         
-        for(unsigned int i=0; i<om->faces.size(); i++)
+        for(unsigned int i=0; i<ov->faces.size(); i++)
         {
-            Point3 p0 = om->points[om->faces[i].index[0]].p;
-            Point3 p1 = om->points[om->faces[i].index[1]].p;
-            Point3 p2 = om->points[om->faces[i].index[2]].p;
+            Point3 p0 = ov->points[ov->faces[i].index[0]].p;
+            Point3 p1 = ov->points[ov->faces[i].index[1]].p;
+            Point3 p2 = ov->points[ov->faces[i].index[2]].p;
             int32_t minZ = p0.z;
             int32_t maxZ = p0.z;
             if (p1.z < minZ) minZ = p1.z;
@@ -227,7 +227,7 @@ public:
         {
             percDone = 100*layerNr/layers.size();
             if((getTime()-t)>2.0) fprintf(stdout, "\rProcessing layers... (%d percent)",percDone);
-            layers[layerNr].makePolygons(om, fixHorrible);
+            layers[layerNr].makePolygons(ov, fixHorrible);
         }
         fprintf(stdout, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
     }

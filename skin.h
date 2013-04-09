@@ -1,7 +1,7 @@
 #ifndef SKIN_H
 #define SKIN_H
 
-void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -76,7 +76,7 @@ void generateSkins(int layerNr, SliceDataStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSparse(int layerNr, SliceDataStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 

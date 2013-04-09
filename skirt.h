@@ -6,11 +6,15 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         ClipperLib::Clipper skirtUnion;
-        for(unsigned int i=0; i<storage.layers[0].parts.size(); i++)
+        for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
         {
-            Polygons skirt;
-            ClipperLib::OffsetPolygons(storage.layers[0].parts[i].outline, skirt, distance + extrusionWidth * skirtNr + extrusionWidth / 2, ClipperLib::jtSquare, 2, false);
-            skirtUnion.AddPolygon(skirt[0], ClipperLib::ptSubject);
+            SliceLayer* layer = &storage.volumes[volumeIdx].layers[0];
+            for(unsigned int i=0; i<layer->parts.size(); i++)
+            {
+                Polygons skirt;
+                ClipperLib::OffsetPolygons(layer->parts[i].outline, skirt, distance + extrusionWidth * skirtNr + extrusionWidth / 2, ClipperLib::jtSquare, 2, false);
+                skirtUnion.AddPolygon(skirt[0], ClipperLib::ptSubject);
+            }
         }
         Polygons skirtResult;
         skirtUnion.Execute(ClipperLib::ctUnion, skirtResult, ClipperLib::pftNonZero, ClipperLib::pftNonZero);

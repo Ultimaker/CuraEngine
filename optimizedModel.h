@@ -22,33 +22,30 @@ public:
 };
 
 #define MELD_DIST 30
-class OptimizedModel
+class OptimizedModel;
+class OptimizedVolume
 {
 public:
+    OptimizedModel* model;
     std::vector<OptimizedPoint3> points;
     std::vector<OptimizedFace> faces;
-    Point3 modelSize;
-    Point3 vMin, vMax;
     
-    OptimizedModel(SimpleModel* m, Point3 center)
+    OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
+    : model(model)
     {
-        points.reserve(m->faces.size() * 3);
-        faces.reserve(m->faces.size());
+        points.reserve(volume->faces.size() * 3);
+        faces.reserve(volume->faces.size());
     
-        vMin = m->min();
-        vMax = m->max();
         std::map<uint32_t, std::vector<uint32_t> > indexMap;
         
         double t = getTime();
-        int percDone;
-        for(uint32_t i=0; i<m->faces.size(); i++)
+        for(uint32_t i=0; i<volume->faces.size(); i++)
         {
             OptimizedFace f;
-            percDone = 100*i/m->faces.size();
-            if((i%1000==0) && (getTime()-t)>2.0) fprintf(stdout, "\rOptimizing faces (%d percent)",percDone);
+            if((i%1000==0) && (getTime()-t)>2.0) logProgress("optimized", i + 1, volume->faces.size());
             for(uint32_t j=0; j<3; j++)
             {
-                Point3 p = m->faces[i].v[j];
+                Point3 p = volume->faces[i].v[j];
                 int hash = ((p.x + MELD_DIST/2) / MELD_DIST) ^ (((p.y + MELD_DIST/2) / MELD_DIST) << 10) ^ (((p.z + MELD_DIST/2) / MELD_DIST) << 20);
                 uint32_t idx;
                 bool add = true;
@@ -110,16 +107,6 @@ public:
                 openFacesCount++;
         }
         //fprintf(stdout, "  Number of open faces: %i\n", openFacesCount);
-        
-        Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
-        vOffset -= center;
-        for(unsigned int i=0;i<points.size();i++)
-        {
-            points[i].p -= vOffset;
-        }
-        modelSize = vMax - vMin;
-        vMin -= vOffset;
-        vMax -= vOffset;
     }
     
     int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
@@ -137,6 +124,31 @@ public:
         }
         return -1;
     }
+};
+class OptimizedModel
+{
+public:
+    vector<OptimizedVolume> volumes;
+    Point3 modelSize;
+    Point3 vMin, vMax;
+    
+    OptimizedModel(SimpleModel* model, Point3 center)
+    {
+        for(unsigned int i=0; i<model->volumes.size(); i++)
+            volumes.push_back(OptimizedVolume(&model->volumes[i], this));
+        vMin = model->min();
+        vMax = model->max();
+
+        Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
+        vOffset -= center;
+        for(unsigned int i=0; i<volumes.size(); i++)
+            for(unsigned int n=0; n<volumes[i].points.size(); n++)
+                volumes[i].points[n].p -= vOffset;
+        
+        modelSize = vMax - vMin;
+        vMin -= vOffset;
+        vMax -= vOffset;
+    }
 
     void saveDebugSTL(const char* filename)
     {
@@ -144,11 +156,12 @@ public:
         uint32_t n;
         uint16_t s;
         float flt;
+        OptimizedVolume* vol = &volumes[0];
         FILE* f = fopen(filename, "wb");
         fwrite(buffer, 80, 1, f);
-        n = faces.size();
+        n = vol->faces.size();
         fwrite(&n, sizeof(n), 1, f);
-        for(unsigned int i=0;i<faces.size();i++)
+        for(unsigned int i=0;i<vol->faces.size();i++)
         {
             flt = 0;
             s = 0;
@@ -156,15 +169,15 @@ public:
             fwrite(&flt, sizeof(flt), 1, f);
             fwrite(&flt, sizeof(flt), 1, f);
 
-            flt = points[faces[i].index[0]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[0]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[0]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[1]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[1]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[1]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[2]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[2]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-            flt = points[faces[i].index[2]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[0]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[0]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[0]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[1]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[1]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[1]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[2]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[2]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+            flt = vol->points[vol->faces[i].index[2]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
 
             fwrite(&s, sizeof(s), 1, f);
         }

@@ -24,6 +24,8 @@ void* fgets_(char* ptr, size_t len, FILE* f)
 SimpleModel* loadModelSTL_ascii(const char* filename, FMatrix3x3& matrix)
 {
     SimpleModel* m = new SimpleModel();
+    m->volumes.push_back(SimpleVolume());
+    SimpleVolume* vol = &m->volumes[0];
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
     FPoint3 vertex;
@@ -44,7 +46,7 @@ SimpleModel* loadModelSTL_ascii(const char* filename, FMatrix3x3& matrix)
                 break;
             case 3:
                 v2 = matrix.apply(vertex);
-                m->addFace(v0, v1, v2);
+                vol->addFace(v0, v1, v2);
                 n = 0;
                 break;
             }
@@ -74,6 +76,8 @@ SimpleModel* loadModelSTL_binary(const char* filename, FMatrix3x3& matrix)
     //For each face read:
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     SimpleModel* m = new SimpleModel();
+    m->volumes.push_back(SimpleVolume());
+    SimpleVolume* vol = &m->volumes[0];
     for(unsigned int i=0;i<faceCount;i++)
     {
         if (fread(buffer, sizeof(float) * 3, 1, f) != 1)
@@ -90,7 +94,7 @@ SimpleModel* loadModelSTL_binary(const char* filename, FMatrix3x3& matrix)
         Point3 v0 = matrix.apply(FPoint3(v[0], v[1], v[2]));
         Point3 v1 = matrix.apply(FPoint3(v[3], v[4], v[5]));
         Point3 v2 = matrix.apply(FPoint3(v[6], v[7], v[8]));
-        m->addFace(v0, v1, v2);
+        vol->addFace(v0, v1, v2);
         if (fread(buffer, sizeof(uint16_t), 1, f) != 1)
         {
             fclose(f);
@@ -130,27 +134,35 @@ SimpleModel* loadModel(const char* filename, FMatrix3x3& matrix)
     {
         return loadModelSTL(filename, matrix);
     }
-    if (strcmp(filename, "#") == 0 && binaryMeshBlob != NULL)
+    if (filename[0] == '#' && binaryMeshBlob != NULL)
     {
         SimpleModel* m = new SimpleModel();
-        int32_t n, pNr = 0;
-        if (fread(&n, 1, sizeof(int32_t), binaryMeshBlob) < 1)
-            return NULL;
-        printf("Reading mesh from binary blob with %i vertexes\n", n);
-        Point3 v[3];
-        while(n)
+        
+        while(*filename == '#')
         {
-            float f[3];
-            if (fread(f, 3, sizeof(float), binaryMeshBlob) < 1)
+            filename++;
+            
+            m->volumes.push_back(SimpleVolume());
+            SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
+            int32_t n, pNr = 0;
+            if (fread(&n, 1, sizeof(int32_t), binaryMeshBlob) < 1)
                 return NULL;
-            FPoint3 fp(f[0], f[1], f[2]);
-            v[pNr++] = matrix.apply(fp);
-            if (pNr == 3)
+            printf("Reading mesh from binary blob with %i vertexes\n", n);
+            Point3 v[3];
+            while(n)
             {
-                m->addFace(v[0], v[1], v[2]);
-                pNr = 0;
+                float f[3];
+                if (fread(f, 3, sizeof(float), binaryMeshBlob) < 1)
+                    return NULL;
+                FPoint3 fp(f[0], f[1], f[2]);
+                v[pNr++] = matrix.apply(fp);
+                if (pNr == 3)
+                {
+                    vol->addFace(v[0], v[1], v[2]);
+                    pNr = 0;
+                }
+                n--;
             }
-            n--;
         }
         return m;
     }

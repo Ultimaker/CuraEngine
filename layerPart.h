@@ -55,7 +55,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
     }
 }
 
-void createLayerParts(SliceDataStorage& storage, Slicer* slicer, bool fixHorrible)
+void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, bool fixHorrible)
 {
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
@@ -72,27 +72,30 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     Point3 modelSize = storage.modelSize;
     Point3 modelMin = storage.modelMin;
     
-    for(unsigned int layerNr=0;layerNr<storage.layers.size(); layerNr++)
+    for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
     {
-        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 150px; height:150px\">\n");
-        SliceLayer* layer = &storage.layers[layerNr];
-        for(unsigned int i=0;i<layer->parts.size();i++)
+        for(unsigned int layerNr=0;layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
         {
-            SliceLayerPart* part = &layer->parts[i];
-            for(unsigned int j=0;j<part->outline.size();j++)
+            fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 150px; height:150px\">\n");
+            SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+            for(unsigned int i=0;i<layer->parts.size();i++)
             {
-                fprintf(out, "<polygon points=\"");
-                for(unsigned int k=0;k<part->outline[j].size();k++)
+                SliceLayerPart* part = &layer->parts[i];
+                for(unsigned int j=0;j<part->outline.size();j++)
                 {
-                    fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*150, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*150);
+                    fprintf(out, "<polygon points=\"");
+                    for(unsigned int k=0;k<part->outline[j].size();k++)
+                    {
+                        fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*150, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*150);
+                    }
+                    if (j == 0)
+                        fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
+                    else
+                        fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
                 }
-                if (j == 0)
-                    fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-                else
-                    fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
             }
+            fprintf(out, "</svg>\n");
         }
-        fprintf(out, "</svg>\n");
     }
     fprintf(out, "</body></html>");
     fclose(out);

@@ -74,16 +74,23 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     log("Loaded from disk in %5.3fs\n", timeElapsed(t));
     log("Analyzing and optimizing model...\n");
     OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
-    log("  Face counts: %i -> %i %0.1f%%\n", (int)m->faces.size(), (int)om->faces.size(), float(om->faces.size()) / float(m->faces.size()) * 100);
-    log("  Vertex counts: %i -> %i %0.1f%%\n", (int)m->faces.size() * 3, (int)om->points.size(), float(om->points.size()) / float(m->faces.size() * 3) * 100);
+    for(unsigned int v = 0; v < m->volumes.size(); v++)
+    {
+        log("  Face counts: %i -> %i %0.1f%%\n", (int)m->volumes[v].faces.size(), (int)om->volumes[v].faces.size(), float(om->volumes[v].faces.size()) / float(m->volumes[v].faces.size()) * 100);
+        log("  Vertex counts: %i -> %i %0.1f%%\n", (int)m->volumes[v].faces.size() * 3, (int)om->volumes[v].points.size(), float(om->volumes[v].points.size()) / float(m->volumes[v].faces.size() * 3) * 100);
+    }
     delete m;
     log("Optimize model %5.3fs \n", timeElapsed(t));
-    om->saveDebugSTL("output.stl");
+    //om->saveDebugSTL("output.stl");
     
     log("Slicing model...\n");
-    Slicer* slicer = new Slicer(om, config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible);
+    vector<Slicer*> slicerList;
+    for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
+    {
+        slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible));
+    }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
-    //slicer->dumpSegments("output.html");
+    //slicer->dumpSegments("C:/output.html");
 
     SliceDataStorage storage;
     if (config.supportAngle > -1)
@@ -96,39 +103,50 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     storage.modelMax = om->vMax;
     delete om;
     
-    fprintf(stdout,"Generating layer parts...\n");
-    createLayerParts(storage, slicer, config.fixHorrible);
-    delete slicer;
-    fprintf(stdout, "Generated layer parts in %5.3fs\n", timeElapsed(t));
-    //dumpLayerparts(storage, "output.html");
+    log("Generating layer parts...\n");
+    for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
+    {
+        storage.volumes.push_back(SliceVolumeStorage());
+        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible);
+        delete slicerList[volumeIdx];
+    }
+    log("Generated layer parts in %5.3fs\n", timeElapsed(t));
+    //dumpLayerparts(storage, "c:/models/output.html");
     
-    const unsigned int totalLayers = storage.layers.size();
+    const unsigned int totalLayers = storage.volumes[0].layers.size();
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        generateInsets(&storage.layers[layerNr], config.extrusionWidth, config.insetCount);
-        
+        for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+        {
+            generateInsets(&storage.volumes[volumeIdx].layers[layerNr], config.extrusionWidth, config.insetCount);
+        }
         logProgress("inset",layerNr+1,totalLayers);
     }
     log("Generated inset in %5.3fs\n", timeElapsed(t));
-    fflush(stdout);
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        generateSkins(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
-        generateSparse(layerNr, storage, config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+        for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+        {
+            generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+            generateSparse(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+        }
         logProgress("skin",layerNr+1,totalLayers);
     }
     log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount);
     
-    for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+    for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
     {
-        for(unsigned int partNr=0; partNr<storage.layers[layerNr].parts.size(); partNr++)
+        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
-            if (layerNr > 0)
-                storage.layers[layerNr].parts[partNr].bridgeAngle = bridgeAngle(&storage.layers[layerNr].parts[partNr], &storage.layers[layerNr-1]);
-            else
-                storage.layers[layerNr].parts[partNr].bridgeAngle = -1;
+            for(unsigned int partNr=0; partNr<storage.volumes[volumeIdx].layers[layerNr].parts.size(); partNr++)
+            {
+                if (layerNr > 0)
+                    storage.volumes[volumeIdx].layers[layerNr].parts[partNr].bridgeAngle = bridgeAngle(&storage.volumes[volumeIdx].layers[layerNr].parts[partNr], &storage.volumes[volumeIdx].layers[layerNr-1]);
+                else
+                    storage.volumes[volumeIdx].layers[layerNr].parts[partNr].bridgeAngle = -1;
+            }
         }
     }
 
@@ -147,7 +165,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     GCodePathConfig skirtConfig(config.printSpeed, config.extrusionWidth, "SKIRT");
     GCodePathConfig inset0Config(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
     GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
-    GCodePathConfig skinConfig(config.printSpeed, config.extrusionWidth, "FILL");
+    GCodePathConfig fillConfig(config.printSpeed, config.extrusionWidth, "FILL");
     GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -163,42 +181,45 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         if (layerNr == 0)
             gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
         
-        SliceLayer* layer = &storage.layers[layerNr];
-        
-        PathOptimizer partOrderOptimizer(gcode.getPositionXY());
-        for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+        for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
         {
-            partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
-        }
-        partOrderOptimizer.optimize();
-        
-        for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
-        {
-            SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
+            SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+            gcodeLayer.setExtruder(volumeIdx);
             
-            gcodeLayer.setCombBoundary(&part->insets[0]);
-            for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+            PathOptimizer partOrderOptimizer(gcode.getPositionXY());
+            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {
-                if (insetNr == 0)
-                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
-                else
-                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
+                partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
             }
+            partOrderOptimizer.optimize();
             
-            Polygons fillPolygons;
-            int fillAngle = 45;
-            if (layerNr & 1) fillAngle += 90;
-            //int sparseSteps[1] = {config.extrusionWidth};
-            //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
-            generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
-            //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
-            //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-            generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+            for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
+            {
+                SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
+                
+                gcodeLayer.setCombBoundary(&part->insets[0]);
+                for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+                {
+                    if (insetNr == 0)
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                    else
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
+                }
+                
+                Polygons fillPolygons;
+                int fillAngle = 45;
+                if (layerNr & 1) fillAngle += 90;
+                //int sparseSteps[1] = {config.extrusionWidth};
+                //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
+                generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
+                //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
+                //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
+                generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
 
-            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &skinConfig);
+                gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
+            }
+            gcodeLayer.setCombBoundary(NULL);
         }
-        gcodeLayer.setCombBoundary(NULL);
-        
         if (config.supportAngle > -1)
         {
             SupportPolyGenerator supportGenerator(storage.support, z, 60, config.supportEverywhere > 0);
