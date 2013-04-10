@@ -8,6 +8,7 @@ private:
     double extrusionAmount;
     double extrusionPerMM;
     double retractionAmount;
+    double extruderSwitchRetraction;
     Point3 currentPosition;
     Point extruderOffset[16];
     int currentSpeed, retractionSpeed;
@@ -22,6 +23,7 @@ public:
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
+        extruderSwitchRetraction = 12.5;
         extruderNr = 0;
         
         currentSpeed = 0;
@@ -106,13 +108,16 @@ public:
     {
         if (lineWidth != 0)
         {
+            Point diff = p - getPositionXY();
+            if (shorterThen(diff, 30))
+                return;
             if (isRetracted)
             {
-                fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount);
+                fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
                 currentSpeed = retractionSpeed;
                 isRetracted = false;
             }
-            extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(p - getPositionXY());
+            extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
             fprintf(f, "G1");
         }else{
             fprintf(f, "G0");
@@ -127,7 +132,7 @@ public:
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", float(zPos)/1000);
         if (lineWidth != 0)
-            fprintf(f, " E%0.4lf", extrusionAmount);
+            fprintf(f, " E%0.5lf", extrusionAmount);
         fprintf(f, "\n");
         
         currentPosition = Point3(p.X, p.Y, zPos);
@@ -137,7 +142,7 @@ public:
     {
         if (retractionAmount > 0 && !isRetracted)
         {
-            fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+            fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
             isRetracted = true;
         }
@@ -150,7 +155,7 @@ public:
         
         extruderNr = newExtruder;
 
-        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - 12.5);
+        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
         isRetracted = true;
         fprintf(f, "T%i\n", extruderNr);
