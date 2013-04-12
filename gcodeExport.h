@@ -23,14 +23,14 @@ public:
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
-        extruderSwitchRetraction = 12.5;
+        extruderSwitchRetraction = 14.5;
         extruderNr = 0;
         
         currentSpeed = 0;
         retractionSpeed = 45;
         isRetracted = false;
         memset(extruderOffset, 0, sizeof(extruderOffset));
-        extruderOffset[1] = Point(0, 21600);
+        extruderOffset[1] = Point(0, 22100);
     }
     
     ~GCodeExport()

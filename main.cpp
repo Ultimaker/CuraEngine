@@ -168,6 +168,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     GCodePathConfig fillConfig(config.printSpeed, config.extrusionWidth, "FILL");
     GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
 
+    int volumeIdx = 0;
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
         logProgress("export", layerNr+1, totalLayers);
@@ -181,8 +182,10 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         if (layerNr == 0)
             gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
         
-        for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
+        for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
         {
+            if (volumeCnt > 0)
+                volumeIdx = (volumeIdx + 1) % storage.volumes.size();
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
             gcodeLayer.setExtruder(volumeIdx);
             
