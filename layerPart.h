@@ -24,8 +24,6 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
         unsigned int prev = 0;
         for(unsigned int j=1; j<layer->polygonList[i].points.size(); j++)
         {
-            if (shorterThen(layer->polygonList[i].points[j] - layer->polygonList[i].points[prev], 200))
-                continue;
             p.push_back(layer->polygonList[i].points[j]);
             prev = j;
         }

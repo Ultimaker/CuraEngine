@@ -56,7 +56,7 @@ public:
                     {
                         Point p1 = segmentList[faceToSegmentIndex[face->touching[i]]].start;
                         Point diff = p0 - p1;
-                        if (shorterThen(diff, 30))
+                        if (shorterThen(diff, 10))
                         {
                             if (faceToSegmentIndex[face->touching[i]] == (int)startSegment)
                                 canClose = true;
@@ -248,7 +248,7 @@ public:
         fprintf(f, "<!DOCTYPE html><html><body>\n");
         for(unsigned int i=0; i<layers.size(); i++)
         {
-            fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:150px;height:120px'>\n");
+            fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:1500px;height:1200px'>\n");
             fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
             fprintf(f, "<path d=\"");
             for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
@@ -261,7 +261,7 @@ public:
                         fprintf(f, "M");
                     else
                         fprintf(f, "L");
-                    fprintf(f, "%f,%f ", float(p->points[n].X)/1000, float(p->points[n].Y)/1000);
+                    fprintf(f, "%f,%f ", float(p->points[n].X)/100, float(p->points[n].Y)/100);
                 }
                 fprintf(f, "Z\n");
             }
@@ -274,7 +274,7 @@ public:
                 fprintf(f, "<polyline points=\"");
                 for(unsigned int n=0; n<p->points.size(); n++)
                 {
-                    fprintf(f, "%f,%f ", float(p->points[n].X)/1000, float(p->points[n].Y)/1000);
+                    fprintf(f, "%f,%f ", float(p->points[n].X)/100, float(p->points[n].Y)/100);
                 }
                 fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
             }

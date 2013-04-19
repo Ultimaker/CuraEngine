@@ -92,9 +92,9 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
         slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible));
+        //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
-    //slicer->dumpSegments("C:/output.html");
 
     SliceDataStorage storage;
     if (config.supportAngle > -1)
@@ -127,6 +127,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         logProgress("inset",layerNr+1,totalLayers);
     }
     log("Generated inset in %5.3fs\n", timeElapsed(t));
+    //dumpLayerparts(storage, "c:/models/output.html");
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
