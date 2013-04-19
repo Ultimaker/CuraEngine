@@ -50,6 +50,10 @@ public:
     int fanOnLayerNr;
     int supportAngle;
     int supportEverywhere;
+
+    int minimalLayerTime;
+    int minimalFeedrate;
+    int coolHeadLift;
     
     FMatrix3x3 matrix;
     Point objectPosition;
@@ -157,7 +161,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     }else{
         gcode.resetExtrusionValue();
         gcode.addRetraction();
-        gcode.setZ(maxObjectHeight + 5);
+        gcode.setZ(maxObjectHeight + 5000);
         gcode.addMove(config.objectPosition, config.moveSpeed, 0);
     }
     gcode.addComment("total_layers=%d",totalLayers);
@@ -239,12 +243,12 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
             int layer0Factor = config.initialLayerSpeed * 100 / config.printSpeed;
             gcodeLayer.setSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
         }
-        gcodeLayer.forceMinimalLayerTime(5, 10);
+        gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
         if (layerNr == 0)
             gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter);
         else
             gcode.setExtrusion(config.layerThickness, config.filamentDiameter);
-        gcodeLayer.writeGCode();
+        gcodeLayer.writeGCode(config.coolHeadLift > 0);
     }
 
     /* support debug
@@ -303,6 +307,10 @@ void setConfig(Config& config, char* str)
     SETTING(objectPosition.X, posx);
     SETTING(objectPosition.Y, posy);
     SETTING(objectSink, objsink);
+    
+    SETTING(minimalLayerTime, minLayTime);
+    SETTING(minimalFeedrate, minFeed);
+    SETTING(coolHeadLift, coolLift);
 #undef SETTING
 }
 
@@ -342,6 +350,9 @@ int main(int argc, char **argv)
     config.supportEverywhere = 0;
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
+    config.minimalLayerTime = 5;
+    config.minimalFeedrate = 10;
+    config.coolHeadLift = 1;
     config.fixHorrible = 0;
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);

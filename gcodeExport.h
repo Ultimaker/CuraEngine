@@ -70,6 +70,11 @@ public:
     {
         return Point(currentPosition.x, currentPosition.y);
     }
+    
+    int getPositionZ()
+    {
+        return currentPosition.z;
+    }
 
     int getExtruderNr()
     {
@@ -104,13 +109,16 @@ public:
         }
     }
     
+    void addDelay(double timeAmount)
+    {
+        fprintf(f, "G4 P%d\n", int(timeAmount * 1000));
+    }
+    
     void addMove(Point p, int speed, int lineWidth)
     {
         if (lineWidth != 0)
         {
             Point diff = p - getPositionXY();
-            if (shorterThen(diff, 30))
-                return;
             if (isRetracted)
             {
                 fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
@@ -241,6 +249,7 @@ private:
     GCodePathConfig moveConfig;
     int speedFactor;
     int currentExtruder;
+    double extraTime;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config)
     {
@@ -262,6 +271,7 @@ public:
         lastPosition = gcode.getPositionXY();
         comb = NULL;
         speedFactor = 100;
+        extraTime = 0.0;
         currentExtruder = gcode.getExtruderNr();
     }
     ~GCodePlanner()
@@ -368,15 +378,15 @@ public:
             }
             setSpeedFactor(factor * 100);
             
-            if (minTime - (totalTime / factor) > 0.5)
+            if (minTime - (totalTime / factor) > 0.1)
             {
                 //TODO: Use up this extra time (circle around the print?)
-                //double extraTime = minTime - (totalTime / factor);
+                this->extraTime = minTime - (totalTime / factor);
             }
         }
     }
     
-    void writeGCode()
+    void writeGCode(bool liftHeadIfNeeded)
     {
         GCodePathConfig* lastConfig = NULL;
         int extruder = gcode.getExtruderNr();
@@ -401,6 +411,15 @@ public:
             {
                 gcode.addMove(path->points[i], speed, path->config->lineWidth);
             }
+        }
+        if (liftHeadIfNeeded && extraTime > 0.0)
+        {
+            gcode.addComment("Small layer, adding delay of %f", extraTime);
+            gcode.addRetraction();
+            gcode.setZ(gcode.getPositionZ() + 3000);
+            gcode.addMove(gcode.getPositionXY(), moveConfig.speed, 0);
+            gcode.addMove(gcode.getPositionXY() - Point(-20000, 0), moveConfig.speed, 0);
+            gcode.addDelay(extraTime);
         }
     }
 };
