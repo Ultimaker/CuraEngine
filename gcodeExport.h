@@ -169,28 +169,11 @@ public:
         fprintf(f, "T%i\n", extruderNr);
     }
     
-    void addStartCode()
+    void addCode(const char* str)
     {
-        fprintf(f, "M109 S210     ;Heatup to 210C\n");
-        fprintf(f, "G21           ;metric values\n");
-        fprintf(f, "G90           ;absolute positioning\n");
-        fprintf(f, "G28           ;Home\n");
-        fprintf(f, "G1 Z15.0 F300 ;move the platform down 15mm\n");
-        fprintf(f, "G92 E0        ;zero the extruded length\n");
-        fprintf(f, "G1 F200 E5    ;extrude 5mm of feed stock\n");
-        fprintf(f, "G92 E0        ;zero the extruded length again\n");
+        fprintf(f, "%s\n", str);
     }
-    void addEndCode()
-    {
-        fprintf(f, "M104 S0                     ;extruder heater off\n");
-        fprintf(f, "M140 S0                     ;heated bed heater off (if you have it)\n");
-        fprintf(f, "G91                            ;relative positioning\n");
-        fprintf(f, "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n");
-        fprintf(f, "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n");
-        fprintf(f, "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n");
-        fprintf(f, "M84                         ;steppers off\n");
-        fprintf(f, "G90                         ;absolute positioning\n");
-    }
+    
     void addFanCommand(int speed)
     {
         if (speed > 0)

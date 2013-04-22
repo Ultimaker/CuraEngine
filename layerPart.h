@@ -21,11 +21,9 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
     {
         ClipperLib::Polygon p;
         p.push_back(layer->polygonList[i].points[0]);
-        unsigned int prev = 0;
         for(unsigned int j=1; j<layer->polygonList[i].points.size(); j++)
         {
             p.push_back(layer->polygonList[i].points[j]);
-            prev = j;
         }
         if (fixHorrible && ClipperLib::Orientation(p))
             ClipperLib::ReversePolygon(p);

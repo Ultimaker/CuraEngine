@@ -60,6 +60,9 @@ public:
     int objectSink;
     
     int fixHorrible;
+    
+    const char* startCode;
+    const char* endCode;
 };
 
 int verbose_level;
@@ -158,7 +161,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed);
     if (firstFile)
     {
-        gcode.addStartCode();
+        gcode.addCode(config.startCode);
     }else{
         gcode.resetExtrusionValue();
         gcode.addRetraction();
@@ -313,6 +316,10 @@ void setConfig(Config& config, char* str)
     SETTING(minimalFeedrate, minFeed);
     SETTING(coolHeadLift, coolLift);
 #undef SETTING
+    if (strcasecmp(str, "startCode") == 0)
+        config.startCode = valuePtr;
+    if (strcasecmp(str, "endCode") == 0)
+        config.endCode = valuePtr;
 }
 
 void print_usage()
@@ -355,6 +362,25 @@ int main(int argc, char **argv)
     config.minimalFeedrate = 10;
     config.coolHeadLift = 1;
     config.fixHorrible = 0;
+    
+    config.startCode =
+        "M109 S210     ;Heatup to 210C\n"
+        "G21           ;metric values\n"
+        "G90           ;absolute positioning\n"
+        "G28           ;Home\n"
+        "G1 Z15.0 F300 ;move the platform down 15mm\n"
+        "G92 E0        ;zero the extruded length\n"
+        "G1 F200 E5    ;extrude 5mm of feed stock\n"
+        "G92 E0        ;zero the extruded length again\n";
+    config.endCode = 
+        "M104 S0                     ;extruder heater off\n"
+        "M140 S0                     ;heated bed heater off (if you have it)\n"
+        "G91                            ;relative positioning\n"
+        "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n"
+        "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n"
+        "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n"
+        "M84                         ;steppers off\n"
+        "G90                         ;absolute positioning\n";
 
     fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
@@ -415,6 +441,6 @@ int main(int argc, char **argv)
     }
     if (gcode.isValid())
     {
-        gcode.addEndCode();
+        gcode.addCode(config.endCode);
     }
 }
