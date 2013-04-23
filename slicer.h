@@ -75,8 +75,45 @@ public:
             polygonList.push_back(poly);
         }
         
-        int snapDistance = 100;
         //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
+        while(1)
+        {
+            int64_t bestScore = 10000 * 10000;
+            unsigned int bestA = -1;
+            unsigned int bestB = -1;
+            for(unsigned int i=0;i<polygonList.size();i++)
+            {
+                if (polygonList[i].closed) continue;
+                for(unsigned int j=0;j<polygonList.size();j++)
+                {
+                    if (polygonList[j].closed) continue;
+                    
+                    Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[0];
+                    int64_t distSquared = vSize2(diff);
+                    if (distSquared < bestScore)
+                    {
+                        bestScore = distSquared;
+                        bestA = i;
+                        bestB = j;
+                    }
+                }
+            }
+            
+            if (bestScore >= 10000 * 10000)
+                break;
+            
+            if (bestA == bestB)
+            {
+                polygonList[bestA].closed = true;
+            }else{
+                for(unsigned int n=0; n<polygonList[bestB].points.size(); n++)
+                    polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+
+                polygonList.erase(polygonList.begin() + bestB);
+            }
+        }
+        /*
+        //int snapDistance = 100;
         for(unsigned int i=0;i<polygonList.size();i++)
         {
             if (polygonList[i].closed) continue;
@@ -124,6 +161,7 @@ public:
                 polygonList[i].closed = true;
             }
         }
+        */
 
         int q=0;
         for(unsigned int i=0;i<polygonList.size();i++)
@@ -137,7 +175,7 @@ public:
         //if (q) exit(1);
 
         //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-        snapDistance = 1000;
+        int snapDistance = 1000;
         for(unsigned int i=0;i<polygonList.size();i++)
         {
             int length = 0;
@@ -166,11 +204,13 @@ class Slicer
 {
 public:
     std::vector<SlicerLayer> layers;
-    Point3 modelSize;
+    Point3 modelSize, modelMin;
     
     Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool fixHorrible)
     {
         modelSize = ov->model->modelSize;
+        modelMin = ov->model->vMin;
+        
         int layerCount = (modelSize.z - initial) / thickness + 1;
         fprintf(stdout, "Layer count: %i\n", layerCount);
         layers.resize(layerCount);
@@ -244,11 +284,12 @@ public:
     
     void dumpSegments(const char* filename)
     {
+        float scale = std::max(modelSize.x, modelSize.y) / 1500;
         FILE* f = fopen(filename, "w");
         fprintf(f, "<!DOCTYPE html><html><body>\n");
         for(unsigned int i=0; i<layers.size(); i++)
         {
-            fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:1500px;height:1200px'>\n");
+            fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", int(modelSize.x / scale), int(modelSize.y / scale));
             fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
             fprintf(f, "<path d=\"");
             for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
@@ -261,7 +302,7 @@ public:
                         fprintf(f, "M");
                     else
                         fprintf(f, "L");
-                    fprintf(f, "%f,%f ", float(p->points[n].X)/100, float(p->points[n].Y)/100);
+                    fprintf(f, "%f,%f ", float(p->points[n].X - modelMin.x)/scale, float(p->points[n].Y - modelMin.y)/scale);
                 }
                 fprintf(f, "Z\n");
             }
@@ -274,7 +315,7 @@ public:
                 fprintf(f, "<polyline points=\"");
                 for(unsigned int n=0; n<p->points.size(); n++)
                 {
-                    fprintf(f, "%f,%f ", float(p->points[n].X)/100, float(p->points[n].Y)/100);
+                    fprintf(f, "%f,%f ", float(p->points[n].X - modelMin.x)/scale, float(p->points[n].Y - modelMin.y)/scale);
                 }
                 fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
             }
