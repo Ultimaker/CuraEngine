@@ -442,5 +442,7 @@ int main(int argc, char **argv)
     if (gcode.isValid())
     {
         gcode.addCode(config.endCode);
+        log("Print time: %d\n", int(gcode.getTotalPrintTime()));
+        log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));
     }
 }

@@ -112,56 +112,6 @@ public:
                 polygonList.erase(polygonList.begin() + bestB);
             }
         }
-        /*
-        //int snapDistance = 100;
-        for(unsigned int i=0;i<polygonList.size();i++)
-        {
-            if (polygonList[i].closed) continue;
-            
-            int best = -1;
-            int bestScore = snapDistance + 1;
-            for(unsigned int j=0;j<polygonList.size();j++)
-            {
-                if (polygonList[j].closed) continue;
-                if (i == j) continue;
-                
-                Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[0];
-                if (shorterThen(diff, snapDistance))
-                {
-                    int score = vSize(diff) - polygonList[j].points.size() * 10;
-                    if (score < bestScore) {
-                        best = j;
-                        bestScore = score;
-                    }
-                }
-            }
-            
-            if (best > -1)
-            {
-                for(unsigned int n=0; n<polygonList[best].points.size(); n++)
-                    polygonList[i].points.push_back(polygonList[best].points[n]);
-
-                if (shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
-                {
-                    polygonList[i].closed = true;
-                }
-
-                polygonList.erase(polygonList.begin() + best);
-                i = -1;
-            }
-        }
-        
-        //Check if a polygon is almost finished, if it is, join it end to end.
-        snapDistance = 1000;
-        for(unsigned int i=0;i<polygonList.size();i++)
-        {
-            if (fixHorrible || shorterThen((polygonList[i].points[0] - polygonList[i].points[polygonList[i].points.size()-1]), snapDistance))
-            {
-                polygonList[i].points.pop_back();
-                polygonList[i].closed = true;
-            }
-        }
-        */
 
         int q=0;
         for(unsigned int i=0;i<polygonList.size();i++)

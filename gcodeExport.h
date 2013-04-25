@@ -15,8 +15,11 @@ private:
     int zPos;
     bool isRetracted;
     int extruderNr;
-
+    
+    double totalFilament;
 public:
+    double totalPrintTime;
+    
     GCodeExport()
     : currentPosition(0,0,0)
     {
@@ -25,6 +28,9 @@ public:
         retractionAmount = 4.5;
         extruderSwitchRetraction = 14.5;
         extruderNr = 0;
+        
+        totalPrintTime = 0.0;
+        totalFilament = 0.0;
         
         currentSpeed = 0;
         retractionSpeed = 45;
@@ -81,6 +87,16 @@ public:
         return extruderNr;
     }
     
+    double getTotalFilamentUsed()
+    {
+        return totalFilament + extrusionAmount;
+    }
+
+    double getTotalPrintTime()
+    {
+        return totalPrintTime;
+    }
+    
     void addComment(const char* comment, ...)
     {
         va_list args;
@@ -105,6 +121,7 @@ public:
         if (extrusionAmount != 0.0)
         {
             fprintf(f, "G92 E0\n");
+            totalFilament += extrusionAmount;
             extrusionAmount = 0.0;
         }
     }
@@ -233,6 +250,7 @@ private:
     int speedFactor;
     int currentExtruder;
     double extraTime;
+    double totalPrintTime;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config)
     {
@@ -255,6 +273,7 @@ public:
         comb = NULL;
         speedFactor = 100;
         extraTime = 0.0;
+        totalPrintTime = 0.0;
         currentExtruder = gcode.getExtruderNr();
     }
     ~GCodePlanner()
@@ -366,6 +385,9 @@ public:
                 //TODO: Use up this extra time (circle around the print?)
                 this->extraTime = minTime - (totalTime / factor);
             }
+            this->totalPrintTime = totalTime * factor;
+        }else{
+            this->totalPrintTime = totalTime;
         }
     }
     
@@ -395,8 +417,12 @@ public:
                 gcode.addMove(path->points[i], speed, path->config->lineWidth);
             }
         }
+        
+        gcode.totalPrintTime += this->totalPrintTime;
         if (liftHeadIfNeeded && extraTime > 0.0)
         {
+            gcode.totalPrintTime += extraTime;
+            
             gcode.addComment("Small layer, adding delay of %f", extraTime);
             gcode.addRetraction();
             gcode.setZ(gcode.getPositionZ() + 3000);
