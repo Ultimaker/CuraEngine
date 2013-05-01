@@ -55,10 +55,10 @@ public:
         return f != NULL;
     }
     
-    void setExtrusion(int layerThickness, int filamentDiameter)
+    void setExtrusion(int layerThickness, int filamentDiameter, int flow)
     {
         double filamentArea = M_PI * (double(filamentDiameter) / 1000.0 / 2.0) * (double(filamentDiameter) / 1000.0 / 2.0);
-        extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea;
+        extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
     }
     
     void setRetractionSettings(int retractionAmount, int retractionSpeed)
@@ -141,6 +141,8 @@ public:
                 fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
                 currentSpeed = retractionSpeed;
                 isRetracted = false;
+            }else if (shorterThen(diff, 50)){
+                return;
             }
             extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
             fprintf(f, "G1");

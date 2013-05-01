@@ -33,6 +33,7 @@ public:
     int layerThickness;
     int initialLayerThickness;
     int filamentDiameter;
+    int filamentFlow;
     int extrusionWidth;
     int insetCount;
     int downSkinCount;
@@ -249,9 +250,9 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         }
         gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
         if (layerNr == 0)
-            gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter);
+            gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
         else
-            gcode.setExtrusion(config.layerThickness, config.filamentDiameter);
+            gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
         gcodeLayer.writeGCode(config.coolHeadLift > 0);
     }
 
@@ -291,6 +292,7 @@ void setConfig(Config& config, char* str)
     SETTING(layerThickness, lt);
     SETTING(initialLayerThickness, ilt);
     SETTING(filamentDiameter, fd);
+    SETTING(filamentFlow, ff);
     SETTING(extrusionWidth, ew);
     SETTING(insetCount, ic);
     SETTING(downSkinCount, dsc);
