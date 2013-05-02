@@ -117,6 +117,26 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         storage.volumes.push_back(SliceVolumeStorage());
         createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible);
         delete slicerList[volumeIdx];
+        
+        //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
+        for(unsigned int volumeIdx2=0; volumeIdx2<volumeIdx; volumeIdx2++)
+        {
+            for(unsigned int layerNr=0; layerNr < storage.volumes[volumeIdx].layers.size(); layerNr++)
+            {
+                SliceLayer* layer1 = &storage.volumes[volumeIdx].layers[layerNr];
+                SliceLayer* layer2 = &storage.volumes[volumeIdx2].layers[layerNr];
+                for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
+                {
+                    ClipperLib::Clipper clipper;
+                    clipper.AddPolygons(layer1->parts[p1].outline, ClipperLib::ptSubject);
+                    for(unsigned int p2 = 0; p2 < layer2->parts.size(); p2++)
+                    {
+                        clipper.AddPolygons(layer2->parts[p2].outline, ClipperLib::ptClip);
+                    }
+                    clipper.Execute(ClipperLib::ctDifference, layer1->parts[p1].outline);
+                }
+            }
+        }
     }
     log("Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "c:/models/output.html");
