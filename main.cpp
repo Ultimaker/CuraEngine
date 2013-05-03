@@ -62,6 +62,7 @@ public:
     
     int fixHorrible;
     
+    Point extruderOffset[16];
     const char* startCode;
     const char* endCode;
 };
@@ -71,6 +72,9 @@ int maxObjectHeight;
 
 void processFile(const char* input_filename, Config& config, GCodeExport& gcode, bool firstFile)
 {
+    for(unsigned int n=1; n<16;n++)
+        gcode.setExtruderOffset(n, config.extruderOffset[n]);
+    
     double t = getTime();
     log("Loading %s from disk...\n", input_filename);
     SimpleModel* m = loadModel(input_filename, config.matrix);
@@ -246,7 +250,15 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
                 //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
                 //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-                generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+                if (config.sparseInfillLineDistance > config.extrusionWidth * 4)
+                {
+                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45);
+                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45 + 90);
+                }
+                else
+                {
+                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+                }
 
                 gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
             }
@@ -337,6 +349,12 @@ void setConfig(Config& config, char* str)
     SETTING(minimalLayerTime, minLayTime);
     SETTING(minimalFeedrate, minFeed);
     SETTING(coolHeadLift, coolLift);
+    SETTING(extruderOffset[1].X, eOff1X);
+    SETTING(extruderOffset[1].Y, eOff1Y);
+    SETTING(extruderOffset[2].X, eOff2X);
+    SETTING(extruderOffset[2].Y, eOff2Y);
+    SETTING(extruderOffset[3].X, eOff3X);
+    SETTING(extruderOffset[3].Y, eOff3Y);
 #undef SETTING
     if (strcasecmp(str, "startCode") == 0)
         config.startCode = valuePtr;

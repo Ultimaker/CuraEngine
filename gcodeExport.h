@@ -36,13 +36,17 @@ public:
         retractionSpeed = 45;
         isRetracted = false;
         memset(extruderOffset, 0, sizeof(extruderOffset));
-        extruderOffset[1] = Point(0, 22100);
     }
     
     ~GCodeExport()
     {
         if (f)
             fclose(f);
+    }
+    
+    void setExtruderOffset(int id, Point p)
+    {
+        extruderOffset[id] = p;
     }
     
     void setFilename(const char* filename)
