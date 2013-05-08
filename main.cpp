@@ -250,14 +250,17 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
                 //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
                 //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
-                if (config.sparseInfillLineDistance > config.extrusionWidth * 4)
+                if (config.sparseInfillLineDistance > 0)
                 {
-                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45);
-                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45 + 90);
-                }
-                else
-                {
-                    generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+                    if (config.sparseInfillLineDistance > config.extrusionWidth * 4)
+                    {
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45);
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45 + 90);
+                    }
+                    else
+                    {
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+                    }
                 }
 
                 gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
