@@ -145,8 +145,8 @@ public:
                 fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
                 currentSpeed = retractionSpeed;
                 isRetracted = false;
-            }else if (shorterThen(diff, 50)){
-                return;
+            //}else if (shorterThen(diff, 50)){
+            //    return;
             }
             extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
             fprintf(f, "G1");

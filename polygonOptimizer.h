@@ -12,7 +12,23 @@ void optimizePolygon(ClipperLib::Polygon& poly)
             poly.erase(poly.begin() + i);
             i --;
         }else{
-            p0 = p1;
+            Point p2;
+            if (i < poly.size() - 1)
+                p2 = poly[i+1];
+            else
+                p2 = poly[0];
+            
+            Point diff0 = normal(p1 - p0, 1000000);
+            Point diff2 = normal(p1 - p2, 1000000);
+            
+            int64_t d = dot(diff0, diff2);
+            if (d < -999999000000)
+            {
+                poly.erase(poly.begin() + i);
+                i --;
+            }else{
+                p0 = p1;
+            }
         }
     }
 }
