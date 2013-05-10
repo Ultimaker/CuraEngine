@@ -96,9 +96,15 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
             {
-                if (layer2->parts[partNr2].insets.size() > 1)
-                    if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                {
+                    if (layer2->parts[partNr2].insets.size() > 1)
+                    {
                         downskinClipper.AddPolygons(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 2], ClipperLib::ptClip);
+                    }else{
+                        downskinClipper.AddPolygons(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1], ClipperLib::ptClip);
+                    }
+                }
             }
         }
         if (int(layerNr + upSkinCount) < (int)storage.layers.size())
@@ -106,9 +112,15 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
             SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
             {
-                if (layer2->parts[partNr2].insets.size() > 1)
-                    if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
+                {
+                    if (layer2->parts[partNr2].insets.size() > 1)
+                    {
                         upskinClipper.AddPolygons(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 2], ClipperLib::ptClip);
+                    }else{
+                        upskinClipper.AddPolygons(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1], ClipperLib::ptClip);
+                    }
+                }
             }
         }
         
