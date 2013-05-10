@@ -22,7 +22,7 @@ void optimizePolygon(ClipperLib::Polygon& poly)
             Point diff2 = normal(p1 - p2, 1000000);
             
             int64_t d = dot(diff0, diff2);
-            if (d < -999999000000)
+            if (d < -999999000000LL)
             {
                 poly.erase(poly.begin() + i);
                 i --;
