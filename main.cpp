@@ -23,6 +23,7 @@
 #include "support.h"
 #include "pathOptimizer.h"
 #include "skirt.h"
+#include "raft.h"
 #include "comb.h"
 #include "gcodeExport.h"
 
@@ -53,9 +54,18 @@ public:
     int supportAngle;
     int supportEverywhere;
 
+    //Cool settings
     int minimalLayerTime;
     int minimalFeedrate;
     int coolHeadLift;
+    
+    //Raft settings
+    int raftMargin;
+    int raftLineSpacing;
+    int raftBaseThickness;
+    int raftBaseLinewidth;
+    int raftInterfaceThickness;
+    int raftInterfaceLinewidth;
     
     FMatrix3x3 matrix;
     Point objectPosition;
@@ -169,6 +179,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     }
     log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount);
+    generateRaft(storage, config.raftMargin);
     
     for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
     {
@@ -201,6 +212,40 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
     GCodePathConfig fillConfig(config.printSpeed, config.extrusionWidth, "FILL");
     GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
+    
+    if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
+    {
+        GCodePathConfig raftBaseConfig(config.initialLayerSpeed, config.raftBaseLinewidth, "SUPPORT");
+        GCodePathConfig raftInterfaceConfig(config.initialLayerSpeed, config.raftInterfaceLinewidth, "SUPPORT");
+        {
+            gcode.addComment("LAYER:-2");
+            gcode.addComment("RAFT");
+            GCodePlanner gcodeLayer(gcode, config.moveSpeed);
+            gcode.setZ(config.raftBaseThickness);
+            gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
+            gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
+            
+            Polygons raftLines;
+            generateLineInfill(storage.raftOutline, raftLines, config.raftBaseLinewidth, config.raftLineSpacing, config.infillOverlap, 0);
+            gcodeLayer.addPolygonsByOptimizer(raftLines, &raftBaseConfig);
+            
+            gcodeLayer.writeGCode(false);
+        }
+
+        {
+            gcode.addComment("LAYER:-1");
+            gcode.addComment("RAFT");
+            GCodePlanner gcodeLayer(gcode, config.moveSpeed);
+            gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
+            gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
+            
+            Polygons raftLines;
+            generateLineInfill(storage.raftOutline, raftLines, config.raftInterfaceLinewidth, config.raftLineSpacing, config.infillOverlap, 90);
+            gcodeLayer.addPolygonsByOptimizer(raftLines, &raftInterfaceConfig);
+            
+            gcodeLayer.writeGCode(false);
+        }
+    }
 
     int volumeIdx = 0;
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -212,6 +257,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         if (int(layerNr) == config.fanOnLayerNr)
             gcode.addFanCommand(255);
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
+        z += config.raftBaseThickness + config.raftInterfaceThickness;
         gcode.setZ(z);
         if (layerNr == 0)
             gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
@@ -350,6 +396,13 @@ void setConfig(Config& config, char* str)
     SETTING(objectPosition.X, posx);
     SETTING(objectPosition.Y, posy);
     SETTING(objectSink, objsink);
+
+    SETTING(raftMargin, raftMar);
+    SETTING(raftLineSpacing, raftLS);
+    SETTING(raftBaseThickness, raftBaseT);
+    SETTING(raftBaseLinewidth, raftBaseL);
+    SETTING(raftInterfaceThickness, raftInterfaceT);
+    SETTING(raftInterfaceLinewidth, raftInterfaceL);
     
     SETTING(minimalLayerTime, minLayTime);
     SETTING(minimalFeedrate, minFeed);
@@ -404,9 +457,18 @@ int main(int argc, char **argv)
     config.supportEverywhere = 0;
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
+
     config.minimalLayerTime = 5;
     config.minimalFeedrate = 10;
     config.coolHeadLift = 1;
+
+    config.raftMargin = 5000;
+    config.raftLineSpacing = 1000;
+    config.raftBaseThickness = 0;
+    config.raftBaseLinewidth = 0;
+    config.raftInterfaceThickness = 0;
+    config.raftInterfaceLinewidth = 0;
+
     config.fixHorrible = 0;
     
     config.startCode =

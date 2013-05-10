@@ -63,6 +63,7 @@ class SliceDataStorage
 public:
     Point3 modelSize, modelMin, modelMax;
     Polygons skirt;
+    Polygons raftOutline;
     vector<SliceVolumeStorage> volumes;
     
     SupportStorage support;
