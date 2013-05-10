@@ -73,7 +73,12 @@ public:
             }
             if (best > -1)
             {
-                p0 = (*polygons[best])[polyStart[best]];
+                if (polygons[best]->size() == 2)
+                {
+                    p0 = (*polygons[best])[(polyStart[best] + 1) % 2];
+                }else{
+                    p0 = (*polygons[best])[polyStart[best]];
+                }
                 picked[best] = true;
                 polyOrder.push_back(best);
             }
