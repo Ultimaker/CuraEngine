@@ -1,7 +1,7 @@
 #ifndef SKIN_H
 #define SKIN_H
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -21,7 +21,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
         {
             ClipperLib::Clipper thinWallClipper;
 
-            ClipperLib::OffsetPolygons(part->insets[0], temp, -extrusionWidth / 2 - extrusionWidth * 15 / 100, ClipperLib::jtSquare, 2, false);
+            ClipperLib::OffsetPolygons(part->insets[0], temp, -extrusionWidth / 2 - extrusionWidth * infillOverlap / 100, ClipperLib::jtSquare, 2, false);
             thinWallClipper.AddPolygons(temp, ClipperLib::ptSubject);
 
             ClipperLib::OffsetPolygons(part->insets[1], temp, extrusionWidth * 6 / 10, ClipperLib::jtSquare, 2, false);

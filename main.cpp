@@ -39,6 +39,7 @@ public:
     int downSkinCount;
     int upSkinCount;
     int sparseInfillLineDistance;
+    int infillOverlap;
     int skirtDistance;
     int skirtLineCount;
     int retractionAmount;
@@ -161,7 +162,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     {
         for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
         {
-            generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+            generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
             generateSparse(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
         }
         logProgress("skin",layerNr+1,totalLayers);
@@ -247,19 +248,19 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 if (layerNr & 1) fillAngle += 90;
                 //int sparseSteps[1] = {config.extrusionWidth};
                 //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
-                generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, 15, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
+                generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
                 //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
                 //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
                 if (config.sparseInfillLineDistance > 0)
                 {
                     if (config.sparseInfillLineDistance > config.extrusionWidth * 4)
                     {
-                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45);
-                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, 15, 45 + 90);
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45);
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45 + 90);
                     }
                     else
                     {
-                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, 15, fillAngle);
+                        generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, config.infillOverlap, fillAngle);
                     }
                 }
 
@@ -333,6 +334,7 @@ void setConfig(Config& config, char* str)
     SETTING(downSkinCount, dsc);
     SETTING(upSkinCount, usc);
     SETTING(sparseInfillLineDistance, sild);
+    SETTING(infillOverlap, iover);
     SETTING(skirtDistance, sd);
     SETTING(skirtLineCount, slc);
 
@@ -395,6 +397,7 @@ int main(int argc, char **argv)
     config.skirtDistance = 6000;
     config.skirtLineCount = 1;
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
+    config.infillOverlap = 15;
     config.objectPosition = Point(102500, 102500);
     config.objectSink = 0;
     config.supportAngle = -1;
