@@ -52,8 +52,11 @@ public:
     int printSpeed;
     int moveSpeed;
     int fanOnLayerNr;
+    
+    //Support material
     int supportAngle;
     int supportEverywhere;
+    int supportLineWidth;
 
     //Cool settings
     int minimalLayerTime;
@@ -214,7 +217,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     GCodePathConfig inset0Config(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
     GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
     GCodePathConfig fillConfig(config.printSpeed, config.extrusionWidth, "FILL");
-    GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
+    GCodePathConfig supportConfig(config.printSpeed, config.supportLineWidth, "SUPPORT");
     
     if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
     {
@@ -317,10 +320,12 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         }
         if (config.supportAngle > -1)
         {
-            SupportPolyGenerator supportGenerator(storage.support, z, 60, config.supportEverywhere > 0);
-            if (supportGenerator.polygons.size() > 0)
+            SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, true);
+            gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
+            if (layerNr == 0)
             {
-                gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
+                SupportPolyGenerator supportGenerator2(storage.support, z, config.supportAngle, config.supportEverywhere > 0, false);
+                gcodeLayer.addPolygonsByOptimizer(supportGenerator2.polygons, &supportConfig);
             }
         }
 
@@ -404,8 +409,11 @@ void setConfig(Config& config, char* str)
     SETTING(printSpeed, ps);
     SETTING(moveSpeed, ms);
     SETTING(fanOnLayerNr, fl);
+    
     SETTING(supportAngle, supa);
     SETTING(supportEverywhere, supe);
+    SETTING(supportLineWidth, sulw);
+    
     SETTING(retractionAmount, reta);
     SETTING(retractionSpeed, rets);
     SETTING(objectPosition.X, posx);
@@ -481,6 +489,7 @@ int main(int argc, char **argv)
     config.objectSink = 0;
     config.supportAngle = -1;
     config.supportEverywhere = 0;
+    config.supportLineWidth = config.extrusionWidth;
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
 

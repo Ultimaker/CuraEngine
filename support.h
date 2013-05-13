@@ -138,30 +138,57 @@ private:
     }
 
 public:
-    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere)
+    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere, bool xAxis)
     : storage(storage), z(z), everywhere(everywhere)
     {
         cosAngle = cos(double(90 - angle) / 180.0 * M_PI) - 0.01;
-        for(int32_t y=0; y<storage.gridHeight; y+=2)
+    
+        if (xAxis)
         {
-            for(int32_t x=0; x<storage.gridWidth; x++)
+            for(int32_t y=0; y<storage.gridHeight; y+=2)
             {
-                if (!needSupportAt(x, y)) continue;
-                
-                int32_t startX = x;
-                while(x < storage.gridWidth && needSupportAt(x, y))
+                for(int32_t x=0; x<storage.gridWidth; x++)
                 {
-                    x ++;
+                    if (!needSupportAt(x, y)) continue;
+                    int32_t startX = x;
+                    while(x < storage.gridWidth && needSupportAt(x, y))
+                    {
+                        x ++;
+                    }
+                    x --;
+                    if (x > startX)
+                    {
+                        Point p0(startX * storage.gridScale + storage.gridOffset.X, y * storage.gridScale + storage.gridOffset.Y);
+                        Point p1(x * storage.gridScale + storage.gridOffset.X, y * storage.gridScale + storage.gridOffset.Y);
+                        ClipperLib::Polygon p;
+                        p.push_back(p0);
+                        p.push_back(p1);
+                        polygons.push_back(p);
+                    }
                 }
-                x --;
-                if (x > startX)
+            }
+        }else{
+            for(int32_t x=0; x<storage.gridWidth; x+=2)
+            {
+                for(int32_t y=0; y<storage.gridHeight; y++)
                 {
-                    Point p0(startX * storage.gridScale + storage.gridOffset.X, y * storage.gridScale + storage.gridOffset.Y);
-                    Point p1(x * storage.gridScale + storage.gridOffset.X, y * storage.gridScale + storage.gridOffset.Y);
-                    ClipperLib::Polygon p;
-                    p.push_back(p0);
-                    p.push_back(p1);
-                    polygons.push_back(p);
+                    if (!needSupportAt(x, y)) continue;
+                    
+                    int32_t startY = y;
+                    while(y < storage.gridHeight && needSupportAt(x, y))
+                    {
+                        y ++;
+                    }
+                    y --;
+                    if (y > startY)
+                    {
+                        Point p0(x * storage.gridScale + storage.gridOffset.X, startY * storage.gridScale + storage.gridOffset.Y);
+                        Point p1(x * storage.gridScale + storage.gridOffset.X, y * storage.gridScale + storage.gridOffset.Y);
+                        ClipperLib::Polygon p;
+                        p.push_back(p0);
+                        p.push_back(p1);
+                        polygons.push_back(p);
+                    }
                 }
             }
         }
