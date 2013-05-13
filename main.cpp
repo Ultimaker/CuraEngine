@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <sys/time.h>
+#include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
 #include <sys/resource.h>
 #endif
@@ -442,12 +443,20 @@ void print_usage()
     printf("TODO\n");
 }
 
+void signal_FPE(int n)
+{
+    printf("Floating point exception\n");
+    exit(1);
+}
+
 int main(int argc, char **argv)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
     //Lower the process priority on linux and mac.
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
+    signal(SIGFPE, signal_FPE);
+
     GCodeExport gcode;
     Config config;
     int fileNr = 0;
