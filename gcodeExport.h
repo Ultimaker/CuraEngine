@@ -15,6 +15,7 @@ private:
     int zPos;
     bool isRetracted;
     int extruderNr;
+    int currentFanSpeed;
     
     double totalFilament;
 public:
@@ -28,6 +29,7 @@ public:
         retractionAmount = 4.5;
         extruderSwitchRetraction = 14.5;
         extruderNr = 0;
+        currentFanSpeed = -1;
         
         totalPrintTime = 0.0;
         totalFilament = 0.0;
@@ -199,10 +201,13 @@ public:
     
     void addFanCommand(int speed)
     {
+        if (currentFanSpeed == speed)
+            return;
         if (speed > 0)
-            fprintf(f, "M106 S%d\n", speed);
+            fprintf(f, "M106 S%d\n", speed * 255 / 100);
         else
             fprintf(f, "M107\n");
+        currentFanSpeed = speed;
     }
 
     int getFileSize(){
@@ -306,6 +311,10 @@ public:
     {
         if (speedFactor < 1) speedFactor = 1;
         this->speedFactor = speedFactor;
+    }
+    int getSpeedFactor()
+    {
+        return this->speedFactor;
     }
     
     void addMove(Point p)

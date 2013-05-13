@@ -58,6 +58,8 @@ public:
     int minimalLayerTime;
     int minimalFeedrate;
     int coolHeadLift;
+    int fanSpeedMin;
+    int fanSpeedMax;
     
     //Raft settings
     int raftMargin;
@@ -254,8 +256,6 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         
         GCodePlanner gcodeLayer(gcode, config.moveSpeed);
         gcode.addComment("LAYER:%d", layerNr);
-        if (int(layerNr) == config.fanOnLayerNr)
-            gcode.addFanCommand(255);
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
         z += config.raftBaseThickness + config.raftInterfaceThickness;
         gcode.setZ(z);
@@ -335,6 +335,20 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
             gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
         else
             gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
+        if (int(layerNr) >= config.fanOnLayerNr)
+        {
+            int speed = config.fanSpeedMin;
+            if (gcodeLayer.getSpeedFactor() <= 50)
+            {
+                speed = config.fanSpeedMax;
+            }else{
+                int n = gcodeLayer.getSpeedFactor() - 50;
+                speed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
+            }
+            gcode.addFanCommand(speed);
+        }else{
+            gcode.addFanCommand(0);
+        }
         gcodeLayer.writeGCode(config.coolHeadLift > 0);
     }
 
@@ -407,6 +421,9 @@ void setConfig(Config& config, char* str)
     SETTING(minimalLayerTime, minLayTime);
     SETTING(minimalFeedrate, minFeed);
     SETTING(coolHeadLift, coolLift);
+    SETTING(fanSpeedMin, fanMin);
+    SETTING(fanSpeedMax, fanMax);
+    
     SETTING(extruderOffset[1].X, eOff1X);
     SETTING(extruderOffset[1].Y, eOff1Y);
     SETTING(extruderOffset[2].X, eOff2X);
@@ -461,6 +478,8 @@ int main(int argc, char **argv)
     config.minimalLayerTime = 5;
     config.minimalFeedrate = 10;
     config.coolHeadLift = 1;
+    config.fanSpeedMin = 100;
+    config.fanSpeedMax = 100;
 
     config.raftMargin = 5000;
     config.raftLineSpacing = 1000;
@@ -549,6 +568,7 @@ int main(int argc, char **argv)
     }
     if (gcode.isValid())
     {
+        gcode.addFanCommand(0);
         gcode.addCode(config.endCode);
         log("Print time: %d\n", int(gcode.getTotalPrintTime()));
         log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));
