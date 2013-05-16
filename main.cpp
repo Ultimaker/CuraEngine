@@ -50,6 +50,7 @@ public:
     int initialSpeedupLayers;
     int initialLayerSpeed;
     int printSpeed;
+    int infillSpeed;
     int moveSpeed;
     int fanOnLayerNr;
     
@@ -216,7 +217,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     GCodePathConfig skirtConfig(config.printSpeed, config.extrusionWidth, "SKIRT");
     GCodePathConfig inset0Config(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
     GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
-    GCodePathConfig fillConfig(config.printSpeed, config.extrusionWidth, "FILL");
+    GCodePathConfig fillConfig(config.infillSpeed, config.extrusionWidth, "FILL");
     GCodePathConfig supportConfig(config.printSpeed, config.supportLineWidth, "SUPPORT");
     
     if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
@@ -407,6 +408,7 @@ void setConfig(Config& config, char* str)
     SETTING(initialSpeedupLayers, isl);
     SETTING(initialLayerSpeed, ils);
     SETTING(printSpeed, ps);
+    SETTING(infillSpeed, is);
     SETTING(moveSpeed, ms);
     SETTING(fanOnLayerNr, fl);
     
@@ -479,6 +481,7 @@ int main(int argc, char **argv)
     config.initialSpeedupLayers = 4;
     config.initialLayerSpeed = 20;
     config.printSpeed = 50;
+    config.infillSpeed = 50;
     config.moveSpeed = 200;
     config.fanOnLayerNr = 2;
     config.skirtDistance = 6000;
