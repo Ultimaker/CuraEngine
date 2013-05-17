@@ -1,3 +1,4 @@
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,7 +29,7 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define VERSION "0.2"
+#define VERSION "1.0"
 class Config
 {
 public:

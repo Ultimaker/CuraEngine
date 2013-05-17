@@ -1,3 +1,4 @@
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #ifndef POLYGON_OPTIMIZER_H
 #define POLYGON_OPTIMIZER_H
 

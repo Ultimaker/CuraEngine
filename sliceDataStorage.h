@@ -1,3 +1,4 @@
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
