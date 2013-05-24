@@ -65,11 +65,29 @@ public:
             {
                 if (picked[i] || (*polygons[i]).size() < 1)
                     continue;
-                float dist = distanceSquared((*polygons[i])[polyStart[i]], p0);
-                if (dist < bestDist)
+                if ((*polygons[i]).size() == 2)
                 {
-                    best = i;
-                    bestDist = dist;
+                    float dist = distanceSquared((*polygons[i])[0], p0);
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                        polyStart[i] = 0;
+                    }
+                    dist = distanceSquared((*polygons[i])[1], p0);
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                        polyStart[i] = 1;
+                    }
+                }else{
+                    float dist = distanceSquared((*polygons[i])[polyStart[i]], p0);
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                    }
                 }
             }
             if (best > -1)
