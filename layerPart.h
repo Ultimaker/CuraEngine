@@ -15,7 +15,7 @@ It's also the first step that stores the result in the "data storage" so all oth
 */
 
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fixHorrible)
+void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
 {
     ClipperLib::Polygons polyList;
     for(unsigned int i=0; i<layer->polygonList.size(); i++)
@@ -26,7 +26,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
         {
             p.push_back(layer->polygonList[i].points[j]);
         }
-        if (fixHorrible && ClipperLib::Orientation(p))
+        if ((unionAllType & 0x02) && ClipperLib::Orientation(p))
             ClipperLib::ReversePolygon(p);
         polyList.push_back(p);
     }
@@ -34,8 +34,8 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
     ClipperLib::ExPolygons resultPolys;
     ClipperLib::Clipper clipper;
     clipper.AddPolygons(polyList, ClipperLib::ptSubject);
-    if (fixHorrible)
-        clipper.Execute(ClipperLib::ctUnion, resultPolys, ClipperLib::pftNonZero);
+    if (unionAllType)
+        clipper.Execute(ClipperLib::ctUnion, resultPolys, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
         clipper.Execute(ClipperLib::ctUnion, resultPolys);
     
@@ -52,12 +52,12 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool fix
     }
 }
 
-void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, bool fixHorrible)
+void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllType)
 {
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
         storage.layers.push_back(SliceLayer());
-        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], fixHorrible);
+        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
         //LayerPartsLayer(&slicer->layers[layerNr])
     }
 }

@@ -29,6 +29,10 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
+#define FIX_HORRIBLE_UNION_ALL_TYPE_A 0x01
+#define FIX_HORRIBLE_UNION_ALL_TYPE_B 0x02
+#define FIX_HORRIBLE_KEEP_NONE_CLOSED 0x10
+
 #define VERSION "1.0"
 class Config
 {
@@ -118,7 +122,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     vector<Slicer*> slicerList;
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
-        slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible));
+        slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED));
         //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
@@ -138,7 +142,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
     {
         storage.volumes.push_back(SliceVolumeStorage());
-        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible);
+        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B));
         delete slicerList[volumeIdx];
         
         //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
@@ -435,6 +439,8 @@ void setConfig(Config& config, char* str)
     SETTING(coolHeadLift, coolLift);
     SETTING(fanSpeedMin, fanMin);
     SETTING(fanSpeedMax, fanMax);
+    
+    SETTING(fixHorrible, fixHorrible);
     
     SETTING(extruderOffset[1].X, eOff1X);
     SETTING(extruderOffset[1].Y, eOff1Y);
