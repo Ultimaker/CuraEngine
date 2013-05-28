@@ -82,6 +82,7 @@ public:
             int64_t bestScore = 10000 * 10000;
             unsigned int bestA = -1;
             unsigned int bestB = -1;
+            bool reversed = false;
             for(unsigned int i=0;i<polygonList.size();i++)
             {
                 if (polygonList[i].closed) continue;
@@ -96,6 +97,20 @@ public:
                         bestScore = distSquared;
                         bestA = i;
                         bestB = j;
+                        reversed = false;
+                    }
+
+                    if (i != j)
+                    {
+                        Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[polygonList[j].points.size()-1];
+                        int64_t distSquared = vSize2(diff);
+                        if (distSquared < bestScore)
+                        {
+                            bestScore = distSquared;
+                            bestA = i;
+                            bestB = j;
+                            reversed = true;
+                        }
                     }
                 }
             }
@@ -107,8 +122,14 @@ public:
             {
                 polygonList[bestA].closed = true;
             }else{
-                for(unsigned int n=0; n<polygonList[bestB].points.size(); n++)
-                    polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+                if (reversed)
+                {
+                    for(unsigned int n=polygonList[bestB].points.size()-1; int(n)>=0; n--)
+                        polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+                }else{
+                    for(unsigned int n=0; n<polygonList[bestB].points.size(); n++)
+                        polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+                }
 
                 polygonList.erase(polygonList.begin() + bestB);
             }

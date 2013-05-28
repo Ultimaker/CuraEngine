@@ -22,6 +22,7 @@ class SliceLayerPart
 public:
     AABB boundaryBox;
     Polygons outline;
+    Polygons combBoundery;
     vector<Polygons> insets;
     Polygons skinOutline;
     Polygons sparseOutline;

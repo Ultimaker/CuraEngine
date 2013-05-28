@@ -112,7 +112,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     }
     delete m;
     log("Optimize model %5.3fs \n", timeElapsed(t));
-    //om->saveDebugSTL("output.stl");
+    //om->saveDebugSTL("c:\\models\\output.stl");
     
     log("Slicing model...\n");
     vector<Slicer*> slicerList;
@@ -286,7 +286,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
             {
                 SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
                 
-                gcodeLayer.setCombBoundary(&part->insets[0]);
+                gcodeLayer.setCombBoundary(&part->combBoundery);
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
