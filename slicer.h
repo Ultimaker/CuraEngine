@@ -7,13 +7,6 @@
     The result of the Slicer is a list of polygons without any order or structure.
 */
 
-class SlicerPolygon
-{
-public:
-    std::vector<Point> points;
-    bool closed;
-};
-
 class SlicerSegment
 {
 public:
@@ -28,18 +21,18 @@ public:
     std::vector<SlicerSegment> segmentList;
     std::map<int, int> faceToSegmentIndex;
     
-    std::vector<SlicerPolygon> polygonList;
+    Polygons polygonList;
+    Polygons openPolygonList;
     
-    void makePolygons(OptimizedVolume* ov, bool keepNoneCLosed)
+    void makePolygons(OptimizedVolume* ov, bool keepNoneClosed)
     {
         for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
         {
             if (segmentList[startSegment].addedToPolygon)
                 continue;
             
-            SlicerPolygon poly;
-            poly.closed = false;
-            poly.points.push_back(segmentList[startSegment].start);
+            ClipperLib::Polygon poly;
+            poly.push_back(segmentList[startSegment].start);
             
             unsigned int segmentIndex = startSegment;
             bool canClose;
@@ -48,7 +41,7 @@ public:
                 canClose = false;
                 segmentList[segmentIndex].addedToPolygon = true;
                 Point p0 = segmentList[segmentIndex].end;
-                poly.points.push_back(p0);
+                poly.push_back(p0);
                 int nextIndex = -1;
                 OptimizedFace* face = &ov->faces[segmentList[segmentIndex].faceIndex];
                 for(unsigned int i=0;i<3;i++)
@@ -72,25 +65,54 @@ public:
                 segmentIndex = nextIndex;
             }
             if (canClose)
-                poly.closed = true;
-            polygonList.push_back(poly);
+                polygonList.push_back(poly);
+            else
+                openPolygonList.push_back(poly);
+        }
+
+        //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
+        //First link up polygon ends that are within 2 microns.
+        for(unsigned int i=0;i<openPolygonList.size();i++)
+        {
+            if (openPolygonList[i].size() < 1) continue;
+            for(unsigned int j=0;j<openPolygonList.size();j++)
+            {
+                if (openPolygonList[j].size() < 1) continue;
+                
+                Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
+                int64_t distSquared = vSize2(diff);
+
+                if (distSquared < 2 * 2)
+                {
+                    if (i == j)
+                    {
+                        polygonList.push_back(openPolygonList[i]);
+                        openPolygonList.erase(openPolygonList.begin() + i);
+                    }else{
+                        for(unsigned int n=0; n<openPolygonList[j].size(); n++)
+                            openPolygonList[i].push_back(openPolygonList[j][n]);
+
+                        openPolygonList[j].clear();
+                    }
+                }
+            }
         }
         
-        //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
+        //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
         while(1)
         {
             int64_t bestScore = 10000 * 10000;
             unsigned int bestA = -1;
             unsigned int bestB = -1;
             bool reversed = false;
-            for(unsigned int i=0;i<polygonList.size();i++)
+            for(unsigned int i=0;i<openPolygonList.size();i++)
             {
-                if (polygonList[i].closed) continue;
-                for(unsigned int j=0;j<polygonList.size();j++)
+                if (openPolygonList[i].size() < 1) continue;
+                for(unsigned int j=0;j<openPolygonList.size();j++)
                 {
-                    if (polygonList[j].closed) continue;
+                    if (openPolygonList[j].size() < 1) continue;
                     
-                    Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[0];
+                    Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
                     int64_t distSquared = vSize2(diff);
                     if (distSquared < bestScore)
                     {
@@ -102,7 +124,7 @@ public:
 
                     if (i != j)
                     {
-                        Point diff = polygonList[i].points[polygonList[i].points.size()-1] - polygonList[j].points[polygonList[j].points.size()-1];
+                        Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][openPolygonList[j].size()-1];
                         int64_t distSquared = vSize2(diff);
                         if (distSquared < bestScore)
                         {
@@ -120,28 +142,29 @@ public:
             
             if (bestA == bestB)
             {
-                polygonList[bestA].closed = true;
+                polygonList.push_back(openPolygonList[bestA]);
+                openPolygonList.erase(openPolygonList.begin() + bestA);
             }else{
                 if (reversed)
                 {
-                    for(unsigned int n=polygonList[bestB].points.size()-1; int(n)>=0; n--)
-                        polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+                    for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
+                        openPolygonList[bestA].push_back(openPolygonList[bestB][n]);
                 }else{
-                    for(unsigned int n=0; n<polygonList[bestB].points.size(); n++)
-                        polygonList[bestA].points.push_back(polygonList[bestB].points[n]);
+                    for(unsigned int n=0; n<openPolygonList[bestB].size(); n++)
+                        openPolygonList[bestA].push_back(openPolygonList[bestB][n]);
                 }
 
-                polygonList.erase(polygonList.begin() + bestB);
+                openPolygonList[bestB].clear();
             }
         }
 
         int q=0;
-        for(unsigned int i=0;i<polygonList.size();i++)
+        for(unsigned int i=0;i<openPolygonList.size();i++)
         {
-            if (polygonList[i].closed) continue;
+            if (openPolygonList[i].size() < 2) continue;
             if (!q) printf("***\n");
-            printf("S: %f %f\n", float(polygonList[i].points[0].X), float(polygonList[i].points[0].Y));
-            printf("E: %f %f\n", float(polygonList[i].points[polygonList[i].points.size()-1].X), float(polygonList[i].points[polygonList[i].points.size()-1].Y));
+            printf("S: %f %f\n", float(openPolygonList[i][0].X), float(openPolygonList[i][0].Y));
+            printf("E: %f %f\n", float(openPolygonList[i][openPolygonList[i].size()-1].X), float(openPolygonList[i][openPolygonList[i].size()-1].Y));
             q = 1;
         }
         //if (q) exit(1);
@@ -152,22 +175,32 @@ public:
         {
             int length = 0;
             
-            for(unsigned int n=1; n<polygonList[i].points.size(); n++)
+            for(unsigned int n=1; n<polygonList[i].size(); n++)
             {
-                length += vSize(polygonList[i].points[n] - polygonList[i].points[n-1]);
+                length += vSize(polygonList[i][n] - polygonList[i][n-1]);
                 if (length > snapDistance)
                     break;
             }
-            if (length < snapDistance || (!polygonList[i].closed && !keepNoneCLosed))
+            if (length < snapDistance)
             {
                 polygonList.erase(polygonList.begin() + i);
                 i--;
             }
         }
+        
+        if (keepNoneClosed)
+        {
+            while(openPolygonList.size() > 0)
+            {
+                polygonList.push_back(openPolygonList[0]);
+                openPolygonList.erase(openPolygonList.begin());
+            }
+        }
+
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         for(unsigned int i=0;i<polygonList.size();i++)
         {
-            optimizePolygon(polygonList[i].points);
+            optimizePolygon(polygonList[i]);
         }
     }
 };
@@ -178,7 +211,7 @@ public:
     std::vector<SlicerLayer> layers;
     Point3 modelSize, modelMin;
     
-    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneCLosed)
+    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed)
     {
         modelSize = ov->model->modelSize;
         modelMin = ov->model->vMin;
@@ -239,7 +272,7 @@ public:
         {
             percDone = 100*layerNr/layers.size();
             if((getTime()-t)>2.0) fprintf(stdout, "\rProcessing layers... (%d percent)",percDone);
-            layers[layerNr].makePolygons(ov, keepNoneCLosed);
+            layers[layerNr].makePolygons(ov, keepNoneClosed);
         }
         fprintf(stdout, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
     }
@@ -266,28 +299,26 @@ public:
             fprintf(f, "<path d=\"");
             for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
             {
-                SlicerPolygon* p = &layers[i].polygonList[j];
-                if (!p->closed) continue;
-                for(unsigned int n=0; n<p->points.size(); n++)
+                ClipperLib::Polygon& p = layers[i].polygonList[j];
+                for(unsigned int n=0; n<p.size(); n++)
                 {
                     if (n == 0)
                         fprintf(f, "M");
                     else
                         fprintf(f, "L");
-                    fprintf(f, "%f,%f ", float(p->points[n].X - modelMin.x)/scale, float(p->points[n].Y - modelMin.y)/scale);
+                    fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
                 }
                 fprintf(f, "Z\n");
             }
             fprintf(f, "\"/>");
             fprintf(f, "</g>\n");
-            for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
+            for(unsigned int j=0; j<layers[i].openPolygonList.size(); j++)
             {
-                SlicerPolygon* p = &layers[i].polygonList[j];
-                if (p->closed) continue;
+                ClipperLib::Polygon& p = layers[i].openPolygonList[j];
                 fprintf(f, "<polyline points=\"");
-                for(unsigned int n=0; n<p->points.size(); n++)
+                for(unsigned int n=0; n<p.size(); n++)
                 {
-                    fprintf(f, "%f,%f ", float(p->points[n].X - modelMin.x)/scale, float(p->points[n].Y - modelMin.y)/scale);
+                    fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
                 }
                 fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
             }

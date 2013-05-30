@@ -21,10 +21,10 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
     for(unsigned int i=0; i<layer->polygonList.size(); i++)
     {
         ClipperLib::Polygon p;
-        p.push_back(layer->polygonList[i].points[0]);
-        for(unsigned int j=1; j<layer->polygonList[i].points.size(); j++)
+        p.push_back(layer->polygonList[i][0]);
+        for(unsigned int j=1; j<layer->polygonList[i].size(); j++)
         {
-            p.push_back(layer->polygonList[i].points[j]);
+            p.push_back(layer->polygonList[i][j]);
         }
         if ((unionAllType & 0x02) && ClipperLib::Orientation(p))
             ClipperLib::ReversePolygon(p);
