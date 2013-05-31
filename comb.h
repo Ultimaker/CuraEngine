@@ -105,6 +105,33 @@ private:
         
         return p1 + n;
     }
+    
+    bool checkInside(Point p)
+    {
+        //Check if we are inside the comb boundary.
+        int crossings = 0;
+        for(unsigned int n=0; n<boundery.size(); n++)
+        {
+            if (boundery[n].size() < 1)
+                continue;
+            Point p0 = boundery[n][boundery[n].size()-1];
+            for(unsigned int i=0; i<boundery[n].size(); i++)
+            {
+                Point p1 = boundery[n][i];
+                
+                if ((p0.Y > p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y < p.Y))
+                {
+                    int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
+                    if (x >= p.X)
+                        crossings ++;
+                }
+                p0 = p1;
+            }
+        }
+        if ((crossings % 2) == 0)
+            return false;
+        return true;
+    }
 
 public:
     Comb(Polygons& _boundery)
@@ -126,6 +153,12 @@ public:
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     {
+        //Check if we are inside the comb boundaries
+        if (!checkInside(startPoint))
+            return true;
+        if (!checkInside(endPoint))
+            return true;
+        
         //Check if we are crossing any bounderies, and pre-calculate some values.
         if (!preTest(startPoint, endPoint))
         {
@@ -133,7 +166,9 @@ public:
             return true;
         }
         
+        //Calculate the minimum and maximum positions where we cross the comb boundary
         calcMinMax();
+        
         int64_t x = sp.X;
         vector<Point> pointList;
         while(true)
