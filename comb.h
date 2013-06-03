@@ -132,6 +132,47 @@ private:
             return false;
         return true;
     }
+    
+    bool moveInside(Point& p)
+    {
+        Point ret = p;
+        int64_t bestDist = 10000LL * 10000LL;
+        for(unsigned int n=0; n<boundery.size(); n++)
+        {
+            if (boundery[n].size() < 1)
+                continue;
+            Point p0 = boundery[n][boundery[n].size()-1];
+            for(unsigned int i=0; i<boundery[n].size(); i++)
+            {
+                Point p1 = boundery[n][i];
+                
+                //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+                Point pDiff = p1 - p0;
+                int64_t lineLength = vSize(pDiff);
+                int64_t distOnLine = dot(pDiff, p - p0) / lineLength;
+                if (distOnLine < 0)
+                    distOnLine = 0;
+                if (distOnLine > lineLength)
+                    distOnLine = lineLength;
+                Point q = p0 + pDiff * distOnLine / lineLength;
+                
+                int64_t dist = vSize2(q - p);
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    ret = q + crossZ(normal(p1 - p0, 100));
+                }
+                
+                p0 = p1;
+            }
+        }
+        if (bestDist < 10000LL * 10000LL)
+        {
+            p = ret;
+            return true;
+        }
+        return false;
+    }
 
 public:
     Comb(Polygons& _boundery)
@@ -153,17 +194,27 @@ public:
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     {
+        bool addEndpoint = false;
         //Check if we are inside the comb boundaries
         if (!checkInside(startPoint))
-            return true;
+        {
+            if (!moveInside(startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+                return false;
+            combPoints.push_back(startPoint);
+        }
         if (!checkInside(endPoint))
-            return true;
+        {
+            if (!moveInside(endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+                return false;
+            addEndpoint = true;
+        }
         
         //Check if we are crossing any bounderies, and pre-calculate some values.
         if (!preTest(startPoint, endPoint))
         {
             //We're not crossing any boundaries. So skip the comb generation.
-            return true;
+            if (!addEndpoint && combPoints.size() == 0) //Only skip if we didn't move the start and end point.
+                return true;
         }
         
         //Calculate the minimum and maximum positions where we cross the comb boundary
@@ -210,6 +261,8 @@ public:
                 combPoints.push_back(p0);
             }
         }
+        if (addEndpoint)
+            combPoints.push_back(endPoint);
         return true;
     }
 };
