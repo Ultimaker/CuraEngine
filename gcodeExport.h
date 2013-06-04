@@ -428,6 +428,36 @@ public:
                 lastConfig = path->config;
             }
             int speed = path->config->speed * speedFactor / 100;
+            
+            if (path->points.size() == 1 && path->config != &moveConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
+            {
+                //Check for lots of small moves and combine them into one large line
+                Point p0 = path->points[0];
+                unsigned int i = n + 1;
+                while(i < paths.size() && paths[i].points.size() == 1 && shorterThen(p0 - paths[i].points[0], path->config->lineWidth * 2))
+                {
+                    p0 = paths[i].points[0];
+                    i ++;
+                }
+                if (paths[i-1].config == &moveConfig)
+                    i --;
+                if (i > n + 2)
+                {
+                    p0 = gcode.getPositionXY();
+                    for(unsigned int x=n; x<i-1; x+=2)
+                    {
+                        int64_t oldLen = vSize(p0 - paths[x].points[0]);
+                        Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
+                        int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
+                        gcode.addMove(newPoint, speed, path->config->lineWidth * oldLen / newLen);
+                        
+                        p0 = paths[x+1].points[0];
+                    }
+                    gcode.addMove(paths[i-1].points[0], speed, path->config->lineWidth);
+                    n = i - 1;
+                    continue;
+                }
+            }
             for(unsigned int i=0; i<path->points.size(); i++)
             {
                 gcode.addMove(path->points[i], speed, path->config->lineWidth);

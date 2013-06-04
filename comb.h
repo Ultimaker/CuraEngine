@@ -18,9 +18,6 @@ private:
 
     bool preTest(Point startPoint, Point endPoint)
     {
-        Point diff = endPoint - startPoint;
-        if (shorterThen(diff, 1500))
-            return false;
         return collisionTest(startPoint, endPoint);
     }
     
@@ -194,6 +191,9 @@ public:
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     {
+        if (shorterThen(endPoint - startPoint, 1500))
+            return true;
+        
         bool addEndpoint = false;
         //Check if we are inside the comb boundaries
         if (!checkInside(startPoint))
