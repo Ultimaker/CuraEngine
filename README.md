@@ -53,7 +53,7 @@ After the Slicer we have closed Polygons which can be used in Clipper, as Clippe
 
 LayerParts
 ==========
-An important concept to grasp is the LayerParts. LayerParts are seperate parts inside a single layer. For example, if you have a cube. Then each layer has a single LayerPart. However, if you have a castle, then the layers which build the towers have a LayerPart per tower.
+An important concept to grasp is the LayerParts. LayerParts are seperate parts inside a single layer. For example, if you have a cube. Then each layer has a single LayerPart. However, if you have a table, then the layers which build the legs have a LayerPart per leg, and thus there will be 4 LayerParts.
 A LayerPart is a seperated area inside a single layer which does not touch any other LayerParts. Most operations run on LayerParts as it reduces the amount of data to process. During GCode generation handling each LayerPart as an own step makes sure you never travel between LayerParts and thus reducing the amount of external travel.
 LayerParts are generated after the Slicer step.
 
