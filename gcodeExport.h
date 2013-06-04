@@ -261,6 +261,7 @@ private:
     GCodePathConfig moveConfig;
     int speedFactor;
     int currentExtruder;
+    bool forceRetraction;
     double extraTime;
     double totalPrintTime;
 private:
@@ -286,6 +287,7 @@ public:
         speedFactor = 100;
         extraTime = 0.0;
         totalPrintTime = 0.0;
+        forceRetraction = false;
         currentExtruder = gcode.getExtruderNr();
     }
     ~GCodePlanner()
@@ -308,6 +310,11 @@ public:
             comb = NULL;
     }
     
+    void forceRetract()
+    {
+        forceRetraction = true;
+    }
+    
     void setSpeedFactor(int speedFactor)
     {
         if (speedFactor < 1) speedFactor = 1;
@@ -321,7 +328,12 @@ public:
     void addMove(Point p)
     {
         GCodePath* path = getLatestPathWithConfig(&moveConfig);
-        if (comb != NULL)
+        if (forceRetraction)
+        {
+            if (!shorterThen(lastPosition - p, 1500))
+                path->retract = true;
+            forceRetraction = false;
+        }else if (comb != NULL)
         {
             vector<Point> pointList;
             if (comb->calc(lastPosition, p, pointList))
@@ -449,7 +461,8 @@ public:
                         int64_t oldLen = vSize(p0 - paths[x].points[0]);
                         Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
                         int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
-                        gcode.addMove(newPoint, speed, path->config->lineWidth * oldLen / newLen);
+                        if (newLen > 0)
+                            gcode.addMove(newPoint, speed, path->config->lineWidth * oldLen / newLen);
                         
                         p0 = paths[x+1].points[0];
                     }

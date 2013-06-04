@@ -291,6 +291,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
                 
                 gcodeLayer.setCombBoundary(&part->combBoundery);
+                gcodeLayer.forceRetract();
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
