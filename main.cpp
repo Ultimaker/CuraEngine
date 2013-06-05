@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+#include <execinfo.h>
 #include <sys/resource.h>
 #endif
 
@@ -463,7 +464,7 @@ void print_usage()
 
 void signal_FPE(int n)
 {
-    printf("Floating point exception\n");
+    printf("Arithmetic exception.\n");
     exit(1);
 }
 

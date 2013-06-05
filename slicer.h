@@ -15,6 +15,14 @@ public:
     bool addedToPolygon;
 };
 
+class closePolygonResult
+{
+public:
+    Point intersectionPoint;
+    int polygonIdx;
+    int pointIdx;
+};
+
 class SlicerLayer
 {
 public:
@@ -157,6 +165,28 @@ public:
                 openPolygonList[bestB].clear();
             }
         }
+        
+        bool extensiveStitching = false;
+        if (extensiveStitching)
+        {
+            //For extensive stitching find 2 open polygons that are touching the same closed polygon.
+            // Then find the sortest path over this polygon that can be used to connect the open polygons,
+            // And generate a path over this shortest bit to link up the 2 open polygons.
+            // (If these 2 open polygons are the same polygon, then the final result is a closed polyon)
+            
+            for(unsigned int i=0; i<openPolygonList.size(); i++)
+            {
+                if (openPolygonList[i].size() < 1) continue;
+                
+                closePolygonResult c1 = findPolygonPointClosestTo(openPolygonList[i][0]);
+                closePolygonResult c2 = findPolygonPointClosestTo(openPolygonList[i][openPolygonList[i].size()-1]);
+                
+                if (c1.polygonIdx > -1 && c1.polygonIdx == c2.polygonIdx)
+                {
+                    printf("|\n");
+                }
+            }
+        }
 
         int q=0;
         for(unsigned int i=0;i<openPolygonList.size();i++)
@@ -192,7 +222,8 @@ public:
         {
             while(openPolygonList.size() > 0)
             {
-                polygonList.push_back(openPolygonList[0]);
+                if (openPolygonList[0].size() > 0)
+                    polygonList.push_back(openPolygonList[0]);
                 openPolygonList.erase(openPolygonList.begin());
             }
         }
@@ -202,6 +233,42 @@ public:
         {
             optimizePolygon(polygonList[i]);
         }
+    }
+
+private:
+    closePolygonResult findPolygonPointClosestTo(Point input)
+    {
+        closePolygonResult ret;
+        for(unsigned int n=0; n<polygonList.size(); n++)
+        {
+            Point p0 = polygonList[n][polygonList[n].size()-1];
+            for(unsigned int i=0; i<polygonList[n].size(); i++)
+            {
+                Point p1 = polygonList[n][i];
+                
+                //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+                Point pDiff = p1 - p0;
+                int64_t lineLength = vSize(pDiff);
+                if (lineLength > 1)
+                {
+                    int64_t distOnLine = dot(pDiff, input - p0) / lineLength;
+                    if (distOnLine >= 0 && distOnLine <= lineLength)
+                    {
+                        Point q = p0 + pDiff * distOnLine / lineLength;
+                        if (shorterThen(q - input, 100))
+                        {
+                            ret.intersectionPoint = q;
+                            ret.polygonIdx = n;
+                            ret.pointIdx = i;
+                            return ret;
+                        }
+                    }
+                }
+                p0 = p1;
+            }
+        }
+        ret.polygonIdx = -1;
+        return ret;
     }
 };
 
