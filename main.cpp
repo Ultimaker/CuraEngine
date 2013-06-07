@@ -30,9 +30,10 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define FIX_HORRIBLE_UNION_ALL_TYPE_A 0x01
-#define FIX_HORRIBLE_UNION_ALL_TYPE_B 0x02
-#define FIX_HORRIBLE_KEEP_NONE_CLOSED 0x10
+#define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
+#define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
+#define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
+#define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
 #define VERSION "1.0"
 class Config
@@ -123,8 +124,8 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     vector<Slicer*> slicerList;
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
-        slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED));
-        //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
+        slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING));
+        slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
 
