@@ -68,10 +68,11 @@ public:
         extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
     }
     
-    void setRetractionSettings(int retractionAmount, int retractionSpeed)
+    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction)
     {
         this->retractionAmount = double(retractionAmount) / 1000.0;
         this->retractionSpeed = retractionSpeed;
+        this->extruderSwitchRetraction = double(extruderSwitchRetraction) / 1000.0;
     }
     
     void setZ(int z)

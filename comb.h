@@ -147,10 +147,10 @@ private:
                 Point pDiff = p1 - p0;
                 int64_t lineLength = vSize(pDiff);
                 int64_t distOnLine = dot(pDiff, p - p0) / lineLength;
-                if (distOnLine < 0)
-                    distOnLine = 0;
-                if (distOnLine > lineLength)
-                    distOnLine = lineLength;
+                if (distOnLine < 10)
+                    distOnLine = 10;
+                if (distOnLine > lineLength - 10)
+                    distOnLine = lineLength - 10;
                 Point q = p0 + pDiff * distOnLine / lineLength;
                 
                 int64_t dist = vSize2(q - p);

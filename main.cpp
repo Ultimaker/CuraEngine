@@ -52,6 +52,7 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int retractionAmount;
+    int retractionAmountExtruderSwitch;
     int retractionSpeed;
     
     int initialSpeedupLayers;
@@ -209,7 +210,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         }
     }
 
-    gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed);
+    gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch);
     if (firstFile)
     {
         gcode.addCode(config.startCode);
@@ -426,6 +427,7 @@ void setConfig(Config& config, char* str)
     
     SETTING(retractionAmount, reta);
     SETTING(retractionSpeed, rets);
+    SETTING(retractionAmountExtruderSwitch, retes);
     SETTING(objectPosition.X, posx);
     SETTING(objectPosition.Y, posy);
     SETTING(objectSink, objsink);
