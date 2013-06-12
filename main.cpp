@@ -149,6 +149,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         delete slicerList[volumeIdx];
         
         //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
+        /*
         for(unsigned int volumeIdx2=0; volumeIdx2<volumeIdx; volumeIdx2++)
         {
             for(unsigned int layerNr=0; layerNr < storage.volumes[volumeIdx].layers.size(); layerNr++)
@@ -167,6 +168,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 }
             }
         }
+        */
     }
     log("Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "c:/models/output.html");
@@ -507,6 +509,7 @@ int main(int argc, char **argv)
     config.supportLineWidth = config.extrusionWidth;
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
+    config.retractionAmountExtruderSwitch = 14.5;
 
     config.minimalLayerTime = 5;
     config.minimalFeedrate = 10;

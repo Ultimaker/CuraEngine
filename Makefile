@@ -12,7 +12,7 @@ CFLAGS=-I. -c -Wall
 LDFLAGS=
 SOURCES=main.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
-EXECUTABLE=Cura_SteamEngine
+EXECUTABLE=CuraEngine
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
