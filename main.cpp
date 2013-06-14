@@ -486,6 +486,7 @@ int main(int argc, char **argv)
     int fileNr = 0;
 
     config.filamentDiameter = 2890;
+    config.filamentFlow = 100;
     config.initialLayerThickness = 300;
     config.layerThickness = 100;
     config.extrusionWidth = 400;
