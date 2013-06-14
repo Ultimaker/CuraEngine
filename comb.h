@@ -183,10 +183,10 @@ public:
     
     ~Comb()
     {
-        delete minX;
-        delete maxX;
-        delete minIdx;
-        delete maxIdx;
+        delete[] minX;
+        delete[] maxX;
+        delete[] minIdx;
+        delete[] maxIdx;
     }
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
