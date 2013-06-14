@@ -6,7 +6,7 @@
 #g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o Cura_SteamEngine
 
 CC=g++
-CFLAGS=-I. -c -Wall
+CFLAGS=-I. -c -Wall -O3 -fomit-frame-pointer -march=pentium4
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS=
