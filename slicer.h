@@ -87,6 +87,8 @@ public:
             else
                 openPolygonList.push_back(poly);
         }
+        //Clear the segmentList to save memory, it is no longer needed after this point.
+        segmentList.clear();
 
         //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
         //First link up polygon ends that are within 2 microns.
@@ -285,6 +287,18 @@ public:
         }
         //if (q) exit(1);
 
+        if (keepNoneClosed)
+        {
+            while(openPolygonList.size() > 0)
+            {
+                if (openPolygonList[0].size() > 0)
+                    polygonList.push_back(openPolygonList[0]);
+                openPolygonList.erase(openPolygonList.begin());
+            }
+        }
+        //Clear the openPolygonList to save memory, the only reason to keep it after this is for debugging.
+        openPolygonList.clear();
+
         //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
         int snapDistance = 1000;
         for(unsigned int i=0;i<polygonList.size();i++)
@@ -303,22 +317,9 @@ public:
                 i--;
             }
         }
-        
-        if (keepNoneClosed)
-        {
-            while(openPolygonList.size() > 0)
-            {
-                if (openPolygonList[0].size() > 0)
-                    polygonList.push_back(openPolygonList[0]);
-                openPolygonList.erase(openPolygonList.begin());
-            }
-        }
 
         //Finally optimize all the polygons. Every point removed saves time in the long run.
-        for(unsigned int i=0;i<polygonList.size();i++)
-        {
-            optimizePolygon(polygonList[i]);
-        }
+        optimizePolygons(polygonList);
     }
 
 private:
