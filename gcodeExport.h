@@ -39,6 +39,7 @@ public:
         retractionSpeed = 45;
         isRetracted = false;
         memset(extruderOffset, 0, sizeof(extruderOffset));
+        f = NULL;
     }
     
     ~GCodeExport()
