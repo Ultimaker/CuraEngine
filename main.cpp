@@ -126,7 +126,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
         slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING));
-        slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
+        //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
 
