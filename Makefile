@@ -6,7 +6,7 @@
 #g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o Cura_SteamEngine
 
 CC=g++
-CFLAGS=-I. -c -Wall -O3 -fomit-frame-pointer -march=pentium4
+CFLAGS=-I. -c -Wall -O3 -fomit-frame-pointer
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS=
@@ -26,6 +26,7 @@ ifeq ($(UNAME), Darwin)
 endif
 ifeq ($(UNAME), MINGW32_NT6.1)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
+	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware
 endif
 
