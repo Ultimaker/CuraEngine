@@ -73,7 +73,7 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     {
         for(unsigned int layerNr=0;layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
         {
-            fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 150px; height:150px\">\n");
+            fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
             for(unsigned int i=0;i<layer->parts.size();i++)
             {
@@ -82,9 +82,7 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
                 {
                     fprintf(out, "<polygon points=\"");
                     for(unsigned int k=0;k<part->outline[j].size();k++)
-                    {
-                        fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*150, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*150);
-                    }
+                        fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*500, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*500);
                     if (j == 0)
                         fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
                     else

@@ -16,6 +16,7 @@
 
 #include "modelFile/modelFile.h"
 #include "optimizedModel.h"
+#include "multiVolumes.h"
 #include "polygonOptimizer.h"
 #include "slicer.h"
 #include "layerPart.h"
@@ -54,6 +55,7 @@ public:
     int retractionAmount;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
+    int multiVolumeOverlap;
     
     int initialSpeedupLayers;
     int initialLayerSpeed;
@@ -147,29 +149,9 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
         storage.volumes.push_back(SliceVolumeStorage());
         createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B));
         delete slicerList[volumeIdx];
-        
-        //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
-        /*
-        for(unsigned int volumeIdx2=0; volumeIdx2<volumeIdx; volumeIdx2++)
-        {
-            for(unsigned int layerNr=0; layerNr < storage.volumes[volumeIdx].layers.size(); layerNr++)
-            {
-                SliceLayer* layer1 = &storage.volumes[volumeIdx].layers[layerNr];
-                SliceLayer* layer2 = &storage.volumes[volumeIdx2].layers[layerNr];
-                for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
-                {
-                    ClipperLib::Clipper clipper;
-                    clipper.AddPolygons(layer1->parts[p1].outline, ClipperLib::ptSubject);
-                    for(unsigned int p2 = 0; p2 < layer2->parts.size(); p2++)
-                    {
-                        clipper.AddPolygons(layer2->parts[p2].outline, ClipperLib::ptClip);
-                    }
-                    clipper.Execute(ClipperLib::ctDifference, layer1->parts[p1].outline);
-                }
-            }
-        }
-        */
     }
+    //carveMultipleVolumes(storage.volumes);
+    generateMultipleVolumesOverlap(storage.volumes, config.multiVolumeOverlap);
     log("Generated layer parts in %5.3fs\n", timeElapsed(t));
     //dumpLayerparts(storage, "c:/models/output.html");
     
@@ -433,6 +415,7 @@ void setConfig(Config& config, char* str)
     SETTING(retractionAmount, reta);
     SETTING(retractionSpeed, rets);
     SETTING(retractionAmountExtruderSwitch, retes);
+    SETTING(multiVolumeOverlap, multiOverlap);
     SETTING(objectPosition.X, posx);
     SETTING(objectPosition.Y, posy);
     SETTING(objectSink, objsink);
@@ -514,6 +497,7 @@ int main(int argc, char **argv)
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
     config.retractionAmountExtruderSwitch = 14.5;
+    config.multiVolumeOverlap = 0;
 
     config.minimalLayerTime = 5;
     config.minimalFeedrate = 10;
