@@ -297,12 +297,15 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 
                 gcodeLayer.setCombBoundary(&part->combBoundery);
                 gcodeLayer.forceRetract();
-                for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+                if (config.insetCount > 0)
                 {
-                    if (insetNr == 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
-                    else
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
+                    for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+                    {
+                        if (insetNr == 0)
+                            gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                        else
+                            gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
+                    }
                 }
                 
                 Polygons fillPolygons;
