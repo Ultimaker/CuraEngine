@@ -450,7 +450,7 @@ void setConfig(Config& config, char* str)
 
 void print_usage()
 {
-    printf("TODO\n");
+    printf("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
 }
 
 void signal_FPE(int n)
