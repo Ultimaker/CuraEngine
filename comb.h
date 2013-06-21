@@ -103,6 +103,24 @@ private:
         return p1 + n;
     }
     
+public:
+    Comb(Polygons& _boundery)
+    : boundery(_boundery)
+    {
+        minX = new int64_t[boundery.size()];
+        maxX = new int64_t[boundery.size()];
+        minIdx = new unsigned int[boundery.size()];
+        maxIdx = new unsigned int[boundery.size()];
+    }
+    
+    ~Comb()
+    {
+        delete[] minX;
+        delete[] maxX;
+        delete[] minIdx;
+        delete[] maxIdx;
+    }
+
     bool checkInside(Point p)
     {
         //Check if we are inside the comb boundary.
@@ -129,7 +147,7 @@ private:
             return false;
         return true;
     }
-    
+
     bool moveInside(Point& p)
     {
         Point ret = p;
@@ -169,24 +187,6 @@ private:
             return true;
         }
         return false;
-    }
-
-public:
-    Comb(Polygons& _boundery)
-    : boundery(_boundery)
-    {
-        minX = new int64_t[boundery.size()];
-        maxX = new int64_t[boundery.size()];
-        minIdx = new unsigned int[boundery.size()];
-        maxIdx = new unsigned int[boundery.size()];
-    }
-    
-    ~Comb()
-    {
-        delete[] minX;
-        delete[] maxX;
-        delete[] minIdx;
-        delete[] maxIdx;
     }
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints)

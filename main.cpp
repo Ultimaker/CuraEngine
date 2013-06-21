@@ -312,6 +312,9 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
                 }
 
                 gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
+                
+                //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
+                gcodeLayer.moveInsideCombBoundary();
             }
             gcodeLayer.setCombBoundary(NULL);
         }

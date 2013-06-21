@@ -333,7 +333,9 @@ public:
         if (forceRetraction)
         {
             if (!shorterThen(lastPosition - p, 1500))
+            {
                 path->retract = true;
+            }
             forceRetraction = false;
         }else if (comb != NULL)
         {
@@ -356,6 +358,21 @@ public:
     {
         getLatestPathWithConfig(config)->points.push_back(p);
         lastPosition = p;
+    }
+    
+    void moveInsideCombBoundary()
+    {
+        if (!comb || comb->checkInside(lastPosition)) return;
+        Point p = lastPosition;
+        if (comb->moveInside(p))
+        {
+            addMove(p);
+            //Make sure the that any retraction happens after this move, not before it by starting a new move path.
+            GCodePath* p = getLatestPathWithConfig(&moveConfig);
+            p->config = NULL;
+            getLatestPathWithConfig(&moveConfig);
+            p->config = &moveConfig;
+        }
     }
 
     void addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config)
