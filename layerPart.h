@@ -15,6 +15,44 @@ It's also the first step that stores the result in the "data storage" so all oth
 */
 
 
+//////////////////////////////////////////////////////////////////////////////////////////
+//
+// old API compatibility
+// polytree to expolygons
+// http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Types/ExPolygons.htm
+
+struct ExPolygon
+{
+    ClipperLib::Polygon outer;
+    ClipperLib::Polygons holes;
+};
+typedef std::vector<ExPolygon> ExPolygons;
+
+void AddOuterPolyNodeToExPolygons(const ClipperLib::PolyNode * polynode, ExPolygons& expolygons)
+{
+    size_t cnt = expolygons.size();
+    expolygons.resize(cnt + 1);
+    expolygons[cnt].outer = polynode->Contour;
+    expolygons[cnt].holes.resize(polynode->ChildCount());
+    for (int i = 0; i < polynode->ChildCount(); ++i)
+    {
+        expolygons[cnt].holes[i] = polynode->Childs[i]->Contour;
+        //Add outer polygons contained by (nested within) holes ...
+        for (int j = 0; j < polynode->Childs[i]->ChildCount(); ++j)
+            AddOuterPolyNodeToExPolygons(polynode->Childs[i]->Childs[j], expolygons);
+    }
+}
+
+void PolyTreeToExPolygons(const ClipperLib::PolyTree * polytree, ExPolygons& expolygons)
+{
+    expolygons.clear();
+    for (int i = 0; i < polytree->ChildCount(); ++i)
+        AddOuterPolyNodeToExPolygons(polytree->Childs[i], expolygons);
+}
+
+//
+//////////////////////////////////////////////////////////////////////////////////////////
+
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
 {
     ClipperLib::Polygons polyList;
@@ -31,13 +69,16 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
         polyList.push_back(p);
     }
     
-    ClipperLib::ExPolygons resultPolys;
+    ExPolygons resultPolys;
+    ClipperLib::PolyTree resultPolyTree;
     ClipperLib::Clipper clipper;
     clipper.AddPolygons(polyList, ClipperLib::ptSubject);
     if (unionAllType)
-        clipper.Execute(ClipperLib::ctUnion, resultPolys, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
-        clipper.Execute(ClipperLib::ctUnion, resultPolys);
+        clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+    
+    PolyTreeToExPolygons(&resultPolyTree, resultPolys);
     
     for(unsigned int i=0; i<resultPolys.size(); i++)
     {
