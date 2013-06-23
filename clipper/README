@@ -2,6 +2,59 @@
 Clipper Change Log
 ============================================================
 
+v5.1.6 (23 May 2014)
+* BugFix: CleanPolygon function was buggy.
+* Changed: The behaviour of the 'miter' JoinType has been 
+  changed so that when squaring occurs, it's no longer 
+  extended up to the miter limit but is squared off at 
+  exactly 'delta' units. (This improves the look of mitering 
+  with larger limits at acute angles.) 
+* Added: New OffsetPolyLines function
+* Update: Minor code refactoring and optimisations
+
+v5.1.5 (5 May 2014)
+* Added: ForceSimple property to Clipper class
+* Update: Improved documentation  
+
+v5.1.4 (24 March 2013)
+* Update: CleanPolygon function enhanced.
+* Update: Documentation improved.  
+
+v5.1.3 (14 March 2013)
+* Bugfix: Minor bugfixes.
+* Update: Documentation significantly improved.  
+
+v5.1.2 (26 February 2013)
+* Bugfix: PolyNode class was missing a constructor. 
+* Update: The MiterLimit parameter in the OffsetPolygons 
+  function has been renamed Limit and can now also be used to 
+  limit the number of vertices used to construct arcs when 
+  JoinType is set to jtRound.
+
+v5.1.0 (17 February 2013)
+* Update: ExPolygons has been replaced with the PolyTree & 
+  PolyNode classes to more fully represent the parent-child 
+  relationships of the polygons returned by Clipper. 
+* Added: New CleanPolygon and CleanPolygons functions. 
+* Bugfix: Another orientation bug fixed.
+
+v5.0.2 - 30 December 2012
+* Bugfix: Significant fixes in and tidy of the internal 
+  Int128 class (which is used only when polygon coordinate 
+  values are greater than ±0x3FFFFFFF (~1.07e9)). 
+* Update: The Area algorithm has been updated and is faster. 
+* Update: Documentation updates. The newish but undocumented 
+  'CheckInputs' parameter of the OffsetPolygons function has been 
+  renamed 'AutoFix' and documented too. The comments on rounding 
+  have also been improved (ie clearer and expanded).
+
+v4.10.0 - 25 December 2012
+* Bugfix: Orientation bugs should now be resolved (finally!).
+* Bugfix: Bug in Int128 class
+
+v4.9.8 - 2 December 2012
+* Bugfix: Further fixes to rare Orientation bug.
+
 v4.9.7 - 29 November 2012
 * Bugfix: Bug that very rarely returned the wrong polygon 
   orientation.
