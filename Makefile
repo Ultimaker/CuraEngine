@@ -1,9 +1,9 @@
 #
-# Makefile for Cura_SteamEngine
+# Makefile for CuraEngine
 #
 
 # simplest working invocation to compile it
-#g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o Cura_SteamEngine
+#g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o CuraEngine
 
 CC=g++
 CFLAGS=-I. -c -Wall -O3 -fomit-frame-pointer
@@ -53,24 +53,24 @@ layers: $(EXECUTABLE)
 
 ## tests: will run several tests and output the gCode
 tests: $(EXECUTABLE) wolt testmodels klein
-	./Cura_SteamEngine --verbose -i  ./testcase_models/woltBaseline.stl
-	./Cura_SteamEngine --verbose -i ./testcase_models/woltNotFlat.stl
-	./Cura_SteamEngine --verbose -i ./testcase_models/wolt_scaled200Perc.stl
-	./Cura_SteamEngine --verbose -i ./testcase_models/wolt_smoothingOn.stl
+	./$(EXECUTABLE) --verbose -i  ./testcase_models/woltBaseline.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/woltNotFlat.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/wolt_scaled200Perc.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/wolt_smoothingOn.stl
 	#find ./testcase_models/*.stl -exec ./$(EXECUTABLE) {} \|\| echo ====== FAILED EXIT CODE $? ====== \;
 	rm html/gCodeViewer/output.gcode 2>/dev/null || echo
 	head -n 100000 output.gcode > html/gCodeViewer/output.gcode
 
 ## robot: will slice the robot
 robot: testmodels
-	./Cura_SteamEngine --verbose -i ./testcase_models/ultirobot_Martijn.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/ultirobot_Martijn.stl
 
 ## robot: will slice the klein bottle
 klein: testmodels
-	./Cura_SteamEngine --verbose -i ./testcase_models/kleinbottle_Dizingof.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/kleinbottle_Dizingof.stl
 
 wolt:
-	./Cura_SteamEngine --verbose -i ./testcase_models/wolt.stl
+	./$(EXECUTABLE) --verbose -i ./testcase_models/wolt.stl
 
 testmodels:
 	@ls testcase_models/ultirobot_Martijn.stl 2>/dev/null || \
