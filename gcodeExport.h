@@ -270,15 +270,21 @@ private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config)
     {
         if (paths.size() > 0 && paths[paths.size()-1].config == config)
-        {
             return &paths[paths.size()-1];
-        }
         paths.push_back(GCodePath());
         GCodePath* ret = &paths[paths.size()-1];
         ret->retract = false;
         ret->config = config;
         ret->extruder = currentExtruder;
         return ret;
+    }
+    void forceNewPathStart()
+    {
+        paths.push_back(GCodePath());
+        GCodePath* ret = &paths[paths.size()-1];
+        ret->retract = false;
+        ret->config = &moveConfig;
+        ret->extruder = currentExtruder;
     }
 public:
     GCodePlanner(GCodeExport& gcode, int moveSpeed)
@@ -368,10 +374,7 @@ public:
         {
             addMove(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
-            GCodePath* p = getLatestPathWithConfig(&moveConfig);
-            p->config = NULL;
-            getLatestPathWithConfig(&moveConfig);
-            p->config = &moveConfig;
+            forceNewPathStart();
         }
     }
 
