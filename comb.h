@@ -123,7 +123,8 @@ public:
 
     bool checkInside(Point p)
     {
-        //Check if we are inside the comb boundary.
+        //Check if we are inside the comb boundary. We do this by tracing from the point towards the negative X direction,
+        //  every boundary we cross increments the crossings counter. If we have an even number of crossings then we are not inside the boundary
         int crossings = 0;
         for(unsigned int n=0; n<boundery.size(); n++)
         {
@@ -222,6 +223,9 @@ public:
         
         int64_t x = sp.X;
         vector<Point> pointList;
+        //Now walk trough the crossings, for every boundary we cross, find the initial cross point and the exit point. Then add all the points in between
+        // to the pointList and continue with the next boundary we will cross, until there are no more boundaries to cross.
+        // This gives a path from the start to finish curved around the holes that it encounters.
         while(true)
         {
             unsigned int n = getPolygonAbove(x);
@@ -250,6 +254,7 @@ public:
         }
         pointList.push_back(endPoint);
         
+        //Optimize the pointList, skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.
         Point p0 = startPoint;
         for(unsigned int n=1; n<pointList.size(); n++)
         {
