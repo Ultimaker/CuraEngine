@@ -10,7 +10,7 @@ def main():
 	exitValue = 0
 	for subPath in os.listdir('testcase_models'):
 		print 'Running test on %s' % (subPath)
-		ret = subprocess.call([executableName, os.path.join('testcase_models', subPath))
+		ret = subprocess.call([executableName, os.path.join('testcase_models', subPath)])
 		if ret != 0:
 			exitValue = 1
 	
