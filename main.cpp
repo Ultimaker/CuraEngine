@@ -136,7 +136,7 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     if (config.supportAngle > -1)
     {
         fprintf(stdout,"Generating support map...\n");
-        generateSupportGrid(storage.support, om, config.initialLayerThickness / 2, config.layerThickness);
+        generateSupportGrid(storage.support, om);
     }
     storage.modelSize = om->modelSize;
     storage.modelMin = om->vMin;
@@ -458,6 +458,7 @@ void print_usage()
 
 void signal_FPE(int n)
 {
+    (void)n;
     printf("Arithmetic exception.\n");
     exit(1);
 }

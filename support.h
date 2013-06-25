@@ -20,7 +20,7 @@ int cmp_SupportPoint(const void* a, const void* b)
     return ((SupportPoint*)a)->z - ((SupportPoint*)b)->z;
 }
 
-void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int32_t initial, int32_t thickness)
+void generateSupportGrid(SupportStorage& storage, OptimizedModel* om)
 {
     storage.gridOffset.X = om->vMin.x;
     storage.gridOffset.Y = om->vMin.y;

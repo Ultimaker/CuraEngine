@@ -192,6 +192,7 @@ public:
                 gapCloserResult bestResult;
                 bestResult.len = LONG_LONG_MAX;
                 bestResult.polygonIdx = -1;
+                bestResult.pointIdxA = -1;
                 bestResult.pointIdxB = -1;
                 
                 for(unsigned int i=0; i<openPolygonList.size(); i++)
