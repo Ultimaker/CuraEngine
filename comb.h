@@ -134,7 +134,7 @@ public:
             {
                 Point p1 = boundery[n][i];
                 
-                if ((p0.Y > p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y < p.Y))
+                if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
                 {
                     int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
                     if (x >= p.X)
