@@ -3,14 +3,14 @@ import os
 import subprocess
 
 def main():
-	executableName = 'CuraEngine'
+	executableName = './CuraEngine'
 	if len(sys.argv) > 1:
 		executableName = sys.argv[1]
 	
 	exitValue = 0
 	for subPath in os.listdir('testcase_models'):
 		print 'Running test on %s' % (subPath)
-		ret = subprocess.call([executableName, os.path.join('testcase_models', subPath)])
+		ret = subprocess.call([executableName, os.path.join('testcase_models', subPath), '-o', 'temp.gcode'])
 		if ret != 0:
 			exitValue = 1
 	
