@@ -38,6 +38,9 @@ $(EXECUTABLE): $(OBJECTS)
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
 
+tests: $(EXECUTABLE)
+	python run_tests.py
+
 ## clean stuff
 clean:
 	rm -f $(EXECUTABLE) $(OBJECTS)
