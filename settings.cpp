@@ -1,9 +1,11 @@
+#include <stdio.h>
+
 #include "settings.h"
 
 #define STRINGIFY(_s) #_s
-#define SETTING(name) { STRINGIFY(name) , offsetof(ConfigSettings, name) }
-#define SETTING2(name, altName) { STRINGIFY(name) , offsetof(ConfigSettings, name) },  { STRINGIFY(altName) , offsetof(ConfigSettings, name) }
-static struct { const char* name; size_t offset; } settingsIndex[] = {
+#define SETTING(name) { STRINGIFY(name) , offsetof(ConfigSettings, name), sizeof(ConfigSettings::name) }
+#define SETTING2(name, altName) { STRINGIFY(name) , offsetof(ConfigSettings, name), sizeof(ConfigSettings::name) },  { STRINGIFY(altName) , offsetof(ConfigSettings, name), sizeof(ConfigSettings::name) }
+static struct { const char* name; size_t offset; size_t itemSize;} settingsIndex[] = {
     SETTING(layerThickness),
     SETTING(initialLayerThickness),
     SETTING(filamentDiameter),
@@ -68,8 +70,23 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
     {
         if (strcasecmp(key, settingsIndex[n].name) == 0)
         {
-            int* ptr = (int*)(((int8_t*)&this->layerThickness) + settingsIndex[n].offset);
-            *ptr = atoi(value);
+            switch(settingsIndex[n].itemSize)
+            {
+            case sizeof(int):
+                {
+                    int* ptr = (int*)(((int8_t*)&this->layerThickness) + settingsIndex[n].offset);
+                    *ptr = atoi(value);
+                }
+                break;
+            case sizeof(int64_t):
+                {
+                    int64_t* ptr = (int64_t*)(((int8_t*)&this->layerThickness) + settingsIndex[n].offset);
+                    *ptr = atoi(value);
+                }
+                break;
+            default:
+                fprintf(stderr, "ERR: Unknown itemSize in settingsIndex: %i\n", settingsIndex[n].itemSize);
+            }
             return true;
         }
     }
