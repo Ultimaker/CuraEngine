@@ -10,7 +10,7 @@ CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=
-SOURCES = main.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
+SOURCES = main.cpp settings.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
 OBJECTS = $(SOURCES:.cpp=.o)
 EXECUTABLE = CuraEngine
 UNAME := $(shell uname)
