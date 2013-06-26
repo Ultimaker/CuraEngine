@@ -9,12 +9,14 @@
 #include <execinfo.h>
 #include <sys/resource.h>
 #endif
+#include <stddef.h>
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
 
 #include "modelFile/modelFile.h"
+#include "settings.h"
 #include "optimizedModel.h"
 #include "multiVolumes.h"
 #include "polygonOptimizer.h"
@@ -37,68 +39,11 @@
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
 #define VERSION "13.06.4-dev"
-class Config
-{
-public:
-    int layerThickness;
-    int initialLayerThickness;
-    int filamentDiameter;
-    int filamentFlow;
-    int extrusionWidth;
-    int insetCount;
-    int downSkinCount;
-    int upSkinCount;
-    int sparseInfillLineDistance;
-    int infillOverlap;
-    int skirtDistance;
-    int skirtLineCount;
-    int retractionAmount;
-    int retractionAmountExtruderSwitch;
-    int retractionSpeed;
-    int multiVolumeOverlap;
-    
-    int initialSpeedupLayers;
-    int initialLayerSpeed;
-    int printSpeed;
-    int infillSpeed;
-    int moveSpeed;
-    int fanOnLayerNr;
-    
-    //Support material
-    int supportAngle;
-    int supportEverywhere;
-    int supportLineWidth;
-
-    //Cool settings
-    int minimalLayerTime;
-    int minimalFeedrate;
-    int coolHeadLift;
-    int fanSpeedMin;
-    int fanSpeedMax;
-    
-    //Raft settings
-    int raftMargin;
-    int raftLineSpacing;
-    int raftBaseThickness;
-    int raftBaseLinewidth;
-    int raftInterfaceThickness;
-    int raftInterfaceLinewidth;
-    
-    FMatrix3x3 matrix;
-    Point objectPosition;
-    int objectSink;
-    
-    int fixHorrible;
-    
-    Point extruderOffset[16];
-    const char* startCode;
-    const char* endCode;
-};
 
 int verbose_level;
 int maxObjectHeight;
 
-void processFile(const char* input_filename, Config& config, GCodeExport& gcode, bool firstFile)
+void processFile(const char* input_filename, ConfigSettings& config, GCodeExport& gcode, bool firstFile)
 {
     for(unsigned int n=1; n<16;n++)
         gcode.setExtruderOffset(n, config.extruderOffset[n]);
@@ -384,73 +329,6 @@ void processFile(const char* input_filename, Config& config, GCodeExport& gcode,
     maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
 }
 
-void setConfig(Config& config, char* str)
-{
-    char* valuePtr = strchr(str, '=');
-    if (!valuePtr) return;
-    *valuePtr++ = '\0';
-#define STRINGIFY(_s) #_s
-#define SETTING(longName, shortName) if (strcasecmp(str, STRINGIFY(longName)) == 0 || strcasecmp(str, STRINGIFY(shortName)) == 0) { config.longName = atoi(valuePtr); }
-    SETTING(layerThickness, lt);
-    SETTING(initialLayerThickness, ilt);
-    SETTING(filamentDiameter, fd);
-    SETTING(filamentFlow, ff);
-    SETTING(extrusionWidth, ew);
-    SETTING(insetCount, ic);
-    SETTING(downSkinCount, dsc);
-    SETTING(upSkinCount, usc);
-    SETTING(sparseInfillLineDistance, sild);
-    SETTING(infillOverlap, iover);
-    SETTING(skirtDistance, sd);
-    SETTING(skirtLineCount, slc);
-
-    SETTING(initialSpeedupLayers, isl);
-    SETTING(initialLayerSpeed, ils);
-    SETTING(printSpeed, ps);
-    SETTING(infillSpeed, is);
-    SETTING(moveSpeed, ms);
-    SETTING(fanOnLayerNr, fl);
-    
-    SETTING(supportAngle, supa);
-    SETTING(supportEverywhere, supe);
-    SETTING(supportLineWidth, sulw);
-    
-    SETTING(retractionAmount, reta);
-    SETTING(retractionSpeed, rets);
-    SETTING(retractionAmountExtruderSwitch, retes);
-    SETTING(multiVolumeOverlap, multiOverlap);
-    SETTING(objectPosition.X, posx);
-    SETTING(objectPosition.Y, posy);
-    SETTING(objectSink, objsink);
-
-    SETTING(raftMargin, raftMar);
-    SETTING(raftLineSpacing, raftLS);
-    SETTING(raftBaseThickness, raftBaseT);
-    SETTING(raftBaseLinewidth, raftBaseL);
-    SETTING(raftInterfaceThickness, raftInterfaceT);
-    SETTING(raftInterfaceLinewidth, raftInterfaceL);
-    
-    SETTING(minimalLayerTime, minLayTime);
-    SETTING(minimalFeedrate, minFeed);
-    SETTING(coolHeadLift, coolLift);
-    SETTING(fanSpeedMin, fanMin);
-    SETTING(fanSpeedMax, fanMax);
-    
-    SETTING(fixHorrible, fixHorrible);
-    
-    SETTING(extruderOffset[1].X, eOff1X);
-    SETTING(extruderOffset[1].Y, eOff1Y);
-    SETTING(extruderOffset[2].X, eOff2X);
-    SETTING(extruderOffset[2].Y, eOff2Y);
-    SETTING(extruderOffset[3].X, eOff3X);
-    SETTING(extruderOffset[3].Y, eOff3Y);
-#undef SETTING
-    if (strcasecmp(str, "startCode") == 0)
-        config.startCode = valuePtr;
-    if (strcasecmp(str, "endCode") == 0)
-        config.endCode = valuePtr;
-}
-
 void print_usage()
 {
     printf("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
@@ -472,7 +350,7 @@ int main(int argc, char **argv)
     signal(SIGFPE, signal_FPE);
 
     GCodeExport gcode;
-    Config config;
+    ConfigSettings config;
     int fileNr = 0;
 
     config.filamentDiameter = 2890;
@@ -569,8 +447,17 @@ int main(int argc, char **argv)
                     gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
                     break;
                 case 's':
-                    argn++;
-                    setConfig(config, argv[argn]);
+                    {
+                        argn++;
+                        char* valuePtr = strchr(argv[argn], '=');
+                        if (valuePtr)
+                        {
+                            *valuePtr++ = '\0';
+                            
+                            if (!config.setSetting(argv[argn], valuePtr))
+                                printf("Setting found: %s\n", argv[argn]);
+                        }
+                    }
                     break;
                 case 'm':
                     argn++;
