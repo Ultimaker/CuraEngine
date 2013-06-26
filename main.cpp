@@ -38,7 +38,7 @@
 #define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
-#define VERSION "13.06.4-dev"
+#define VERSION "13.06.4"
 
 int verbose_level;
 int maxObjectHeight;
