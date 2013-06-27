@@ -46,7 +46,7 @@ int maxObjectHeight;
 void processFile(const char* input_filename, ConfigSettings& config, GCodeExport& gcode, bool firstFile)
 {
     for(unsigned int n=1; n<16;n++)
-        gcode.setExtruderOffset(n, config.extruderOffset[n]);
+        gcode.setExtruderOffset(n, config.extruderOffset[n].p());
     
     double t = getTime();
     log("Loading %s from disk...\n", input_filename);
@@ -147,7 +147,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         gcode.resetExtrusionValue();
         gcode.addRetraction();
         gcode.setZ(maxObjectHeight + 5000);
-        gcode.addMove(config.objectPosition, config.moveSpeed, 0);
+        gcode.addMove(config.objectPosition.p(), config.moveSpeed, 0);
     }
     gcode.addComment("total_layers=%d",totalLayers);
 
@@ -371,7 +371,8 @@ int main(int argc, char **argv)
     config.skirtLineCount = 1;
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.infillOverlap = 15;
-    config.objectPosition = Point(102500, 102500);
+    config.objectPosition.X = 102500;
+    config.objectPosition.Y = 102500;
     config.objectSink = 0;
     config.supportAngle = -1;
     config.supportEverywhere = 0;

@@ -71,6 +71,11 @@ public:
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
+class IntPoint {
+public:
+    int X, Y;
+    Point p() { return Point(X, Y); }
+};
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }

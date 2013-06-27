@@ -2,10 +2,21 @@
 #define SETTINGS_H
 
 #include <utils/floatpoint.h>
-#include <stddef.h>
+#include <vector>
+
+class _ConfigSettingIndex
+{
+public:
+    const char* key;
+    int* ptr;
+    
+    _ConfigSettingIndex(const char* key, int* ptr) : key(key), ptr(ptr) {}
+};
 
 class ConfigSettings
 {
+private:
+    std::vector<_ConfigSettingIndex> _index;
 public:
     int layerThickness;
     int initialLayerThickness;
@@ -52,15 +63,16 @@ public:
     int raftInterfaceLinewidth;
     
     FMatrix3x3 matrix;
-    Point objectPosition;
+    IntPoint objectPosition;
     int objectSink;
     
     int fixHorrible;
     
-    Point extruderOffset[16];
+    IntPoint extruderOffset[16];
     const char* startCode;
     const char* endCode;
     
+    ConfigSettings();
     bool setSetting(const char* key, const char* value);
 };
 
