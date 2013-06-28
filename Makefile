@@ -17,6 +17,7 @@ UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
 	OPEN_HTML=firefox
+	LDFLAGS += --static
 endif
 ifeq ($(UNAME), Darwin)
 	OPEN_HTML=open
