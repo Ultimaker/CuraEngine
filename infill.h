@@ -64,7 +64,8 @@ void generateLineInfill(Polygons outline, Polygons& result, int extrusionWidth, 
         qsort(cutList[idx].data(), cutList[idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[idx].size(); i+=2)
         {
-            //if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 2) continue;
+            if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 5)
+                continue;
             ClipperLib::Polygon p;
             p.push_back(matrix.unapply(Point(x, cutList[idx][i])));
             p.push_back(matrix.unapply(Point(x, cutList[idx][i+1])));
