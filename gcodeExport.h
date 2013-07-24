@@ -435,7 +435,7 @@ public:
                 //TODO: Use up this extra time (circle around the print?)
                 this->extraTime = minTime - (totalTime / factor);
             }
-            this->totalPrintTime = totalTime * factor;
+            this->totalPrintTime = totalTime / factor;
         }else{
             this->totalPrintTime = totalTime;
         }
