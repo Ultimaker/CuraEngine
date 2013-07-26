@@ -17,6 +17,7 @@ private:
     bool isRetracted;
     int extruderNr;
     int currentFanSpeed;
+    int flavor;
     
     double totalFilament;
 public:
@@ -53,6 +54,15 @@ public:
         extruderOffset[id] = p;
     }
     
+    void setFlavor(int flavor)
+    {
+        this->flavor = flavor;
+    }
+    int getFlavor()
+    {
+        return this->flavor;
+    }
+    
     void setFilename(const char* filename)
     {
         f = fopen(filename, "w");
@@ -66,7 +76,10 @@ public:
     void setExtrusion(int layerThickness, int filamentDiameter, int flow)
     {
         double filamentArea = M_PI * (double(filamentDiameter) / 1000.0 / 2.0) * (double(filamentDiameter) / 1000.0 / 2.0);
-        extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
+        if (flavor == GCODE_FLAVOR_ULTIGCODE)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
+            extrusionPerMM = double(layerThickness) / 1000.0;
+        else
+            extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
     }
     
     void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction)
@@ -147,11 +160,14 @@ public:
             Point diff = p - getPositionXY();
             if (isRetracted)
             {
-                fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
-                currentSpeed = retractionSpeed;
+                if (flavor == GCODE_FLAVOR_ULTIGCODE)
+                {
+                    fprintf(f, "G11\n");
+                }else{
+                    fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
+                    currentSpeed = retractionSpeed;
+                }
                 isRetracted = false;
-            //}else if (shorterThen(diff, 50)){
-            //    return;
             }
             extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
             fprintf(f, "G1");
@@ -178,8 +194,13 @@ public:
     {
         if (retractionAmount > 0 && !isRetracted)
         {
-            fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
-            currentSpeed = retractionSpeed;
+            if (flavor == GCODE_FLAVOR_ULTIGCODE)
+            {
+                fprintf(f, "G10\n");
+            }else{
+                fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+                currentSpeed = retractionSpeed;
+            }
             isRetracted = true;
         }
     }
@@ -191,8 +212,13 @@ public:
         
         extruderNr = newExtruder;
 
-        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
-        currentSpeed = retractionSpeed;
+        if (flavor == GCODE_FLAVOR_ULTIGCODE)
+        {
+            fprintf(f, "G10 S1\n");
+        }else{
+            fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
+            currentSpeed = retractionSpeed;
+        }
         isRetracted = true;
         fprintf(f, "T%i\n", extruderNr);
     }

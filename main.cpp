@@ -42,6 +42,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
 {
     for(unsigned int n=1; n<16;n++)
         gcode.setExtruderOffset(n, config.extruderOffset[n].p());
+    gcode.setFlavor(config.gcodeFlavor);
     
     double t = getTime();
     log("Loading %s from disk...\n", input_filename);
@@ -137,13 +138,16 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch);
     if (firstFile)
     {
-        gcode.addCode(config.startCode);
+        if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+            gcode.addCode(";FLAVOR:UltiGCode");
+        else
+            gcode.addCode(config.startCode);
     }else{
         gcode.addFanCommand(0);
         gcode.resetExtrusionValue();
         gcode.addRetraction();
         gcode.setZ(maxObjectHeight + 5000);
-        gcode.addMove(config.objectPosition.p(), config.moveSpeed, 0);
+        gcode.addMove(Point(storage.modelMin.x, storage.modelMin.y), config.moveSpeed, 0);
     }
     gcode.addComment("total_layers=%d",totalLayers);
 
