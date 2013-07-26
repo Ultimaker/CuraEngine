@@ -33,11 +33,6 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
-#define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
-#define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
-#define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
-
 #define VERSION "13.06.4"
 
 int verbose_level;
@@ -144,6 +139,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     {
         gcode.addCode(config.startCode);
     }else{
+        gcode.addFanCommand(0);
         gcode.resetExtrusionValue();
         gcode.addRetraction();
         gcode.setZ(maxObjectHeight + 5000);
@@ -396,6 +392,7 @@ int main(int argc, char **argv)
     config.raftInterfaceLinewidth = 0;
 
     config.fixHorrible = 0;
+    config.gcodeFlavor = GCODE_FLAVOR_REPRAP;
     
     config.startCode =
         "M109 S210     ;Heatup to 210C\n"
@@ -485,6 +482,7 @@ int main(int argc, char **argv)
     if (gcode.isValid())
     {
         gcode.addFanCommand(0);
+        gcode.setZ(maxObjectHeight + 5000);
         gcode.addCode(config.endCode);
         log("Print time: %d\n", int(gcode.getTotalPrintTime()));
         log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));

@@ -54,6 +54,7 @@ ConfigSettings::ConfigSettings()
     SETTING(fanSpeedMax);
     
     SETTING(fixHorrible);
+    SETTING(gcodeFlavor);
     
     SETTING(extruderOffset[1].X);
     SETTING(extruderOffset[1].Y);
