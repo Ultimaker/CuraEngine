@@ -164,7 +164,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         {
             gcode.addComment("LAYER:-2");
             gcode.addComment("RAFT");
-            GCodePlanner gcodeLayer(gcode, config.moveSpeed);
+            GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
             gcode.setZ(config.raftBaseThickness);
             gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
             gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
@@ -179,7 +179,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         {
             gcode.addComment("LAYER:-1");
             gcode.addComment("RAFT");
-            GCodePlanner gcodeLayer(gcode, config.moveSpeed);
+            GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
             gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
             gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
             
@@ -196,7 +196,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     {
         logProgress("export", layerNr+1, totalLayers);
         
-        GCodePlanner gcodeLayer(gcode, config.moveSpeed);
+        GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
         gcode.addComment("LAYER:%d", layerNr);
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
         z += config.raftBaseThickness + config.raftInterfaceThickness;
@@ -380,6 +380,7 @@ int main(int argc, char **argv)
     config.retractionAmount = 4.5;
     config.retractionSpeed = 45;
     config.retractionAmountExtruderSwitch = 14.5;
+    config.retractionMinimalDistance = 1500;
     config.multiVolumeOverlap = 0;
 
     config.minimalLayerTime = 5;

@@ -35,6 +35,7 @@ ConfigSettings::ConfigSettings()
     SETTING(retractionAmount);
     SETTING(retractionSpeed);
     SETTING(retractionAmountExtruderSwitch);
+    SETTING(retractionMinimalDistance);
     SETTING(multiVolumeOverlap);
     SETTING2(objectPosition.X, posx);
     SETTING2(objectPosition.Y, posy);

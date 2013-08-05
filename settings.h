@@ -58,6 +58,7 @@ public:
     int retractionAmount;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
+    int retractionMinimalDistance;
     int multiVolumeOverlap;
     
     int initialSpeedupLayers;

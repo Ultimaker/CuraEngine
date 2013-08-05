@@ -289,6 +289,7 @@ private:
     GCodePathConfig moveConfig;
     int extrudeSpeedFactor;
     int currentExtruder;
+    int retractionMinimalDistance;
     bool forceRetraction;
     double extraTime;
     double totalPrintTime;
@@ -313,7 +314,7 @@ private:
         ret->extruder = currentExtruder;
     }
 public:
-    GCodePlanner(GCodeExport& gcode, int moveSpeed)
+    GCodePlanner(GCodeExport& gcode, int moveSpeed, int retractionMinimalDistance)
     : gcode(gcode), moveConfig(moveSpeed, 0, "move")
     {
         lastPosition = gcode.getPositionXY();
@@ -323,6 +324,7 @@ public:
         totalPrintTime = 0.0;
         forceRetraction = false;
         currentExtruder = gcode.getExtruderNr();
+        this->retractionMinimalDistance = retractionMinimalDistance;
     }
     ~GCodePlanner()
     {
@@ -379,7 +381,10 @@ public:
                     path->points.push_back(pointList[n]);
                 }
             }else{
-                path->retract = true;
+                if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+                {
+                    path->retract = true;
+                }
             }
         }
         path->points.push_back(p);
