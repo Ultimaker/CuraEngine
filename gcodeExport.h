@@ -434,34 +434,45 @@ public:
     void forceMinimalLayerTime(double minTime, int minimalSpeed)
     {
         Point p0 = gcode.getPositionXY();
-        double totalTime = 0.0;
+        double travelTime = 0.0;
+        double extrudeTime = 0.0;
         for(unsigned int n=0; n<paths.size(); n++)
         {
             GCodePath* path = &paths[n];
             for(unsigned int i=0; i<path->points.size(); i++)
             {
-                totalTime += vSizeMM(p0 - path->points[i]) / double(path->config->speed);
+                double thisTime = vSizeMM(p0 - path->points[i]) / double(path->config->speed);
+                if (path->config->lineWidth != 0)
+                    extrudeTime += thisTime;
+                else
+                    travelTime += thisTime;
                 p0 = path->points[i];
             }
         }
+        double totalTime = extrudeTime + travelTime;
         if (totalTime < minTime)
         {
-            double factor = totalTime / minTime;
+            double minExtrudeTime = minTime - travelTime;
+            if (minExtrudeTime < 1)
+                minExtrudeTime = 1;
+            double factor = extrudeTime / minExtrudeTime;
             for(unsigned int n=0; n<paths.size(); n++)
             {
                 GCodePath* path = &paths[n];
+                if (path->config->lineWidth == 0)
+                    continue;
                 int speed = path->config->speed * factor;
                 if (speed < minimalSpeed)
                     factor = double(minimalSpeed) / double(path->config->speed);
             }
             setSpeedFactor(factor * 100);
             
-            if (minTime - (totalTime / factor) > 0.1)
+            if (minTime - (extrudeTime / factor) - travelTime > 0.1)
             {
                 //TODO: Use up this extra time (circle around the print?)
-                this->extraTime = minTime - (totalTime / factor);
+                this->extraTime = minTime - (extrudeTime / factor) - travelTime;
             }
-            this->totalPrintTime = totalTime / factor;
+            this->totalPrintTime = (extrudeTime / factor) + travelTime;
         }else{
             this->totalPrintTime = totalTime;
         }
@@ -487,7 +498,10 @@ public:
                 gcode.addComment("TYPE:%s", path->config->name);
                 lastConfig = path->config;
             }
-            int speed = path->config->speed * speedFactor / 100;
+            int speed = path->config->speed;
+            // Only apply the speedFactor to extrusion moves
+            if (path->config->lineWidth != 0)
+                speed = speed * speedFactor / 100;
             
             if (path->points.size() == 1 && path->config != &moveConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
             {
