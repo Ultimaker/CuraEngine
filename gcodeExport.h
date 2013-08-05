@@ -287,7 +287,7 @@ private:
     Comb* comb;
     
     GCodePathConfig moveConfig;
-    int speedFactor;
+    int extrudeSpeedFactor;
     int currentExtruder;
     bool forceRetraction;
     double extraTime;
@@ -318,7 +318,7 @@ public:
     {
         lastPosition = gcode.getPositionXY();
         comb = NULL;
-        speedFactor = 100;
+        extrudeSpeedFactor = 100;
         extraTime = 0.0;
         totalPrintTime = 0.0;
         forceRetraction = false;
@@ -349,14 +349,14 @@ public:
         forceRetraction = true;
     }
     
-    void setSpeedFactor(int speedFactor)
+    void setExtrudeSpeedFactor(int speedFactor)
     {
         if (speedFactor < 1) speedFactor = 1;
-        this->speedFactor = speedFactor;
+        this->extrudeSpeedFactor = speedFactor;
     }
-    int getSpeedFactor()
+    int getExtrudeSpeedFactor()
     {
-        return this->speedFactor;
+        return this->extrudeSpeedFactor;
     }
     
     void addMove(Point p)
@@ -465,7 +465,7 @@ public:
                 if (speed < minimalSpeed)
                     factor = double(minimalSpeed) / double(path->config->speed);
             }
-            setSpeedFactor(factor * 100);
+            setExtrudeSpeedFactor(factor * 100);
             
             if (minTime - (extrudeTime / factor) - travelTime > 0.1)
             {
@@ -499,9 +499,9 @@ public:
                 lastConfig = path->config;
             }
             int speed = path->config->speed;
-            // Only apply the speedFactor to extrusion moves
-            if (path->config->lineWidth != 0)
-                speed = speed * speedFactor / 100;
+            
+            if (path->config->lineWidth != 0)// Only apply the extrudeSpeedFactor to extrusion moves
+                speed = speed * extrudeSpeedFactor / 100;
             
             if (path->points.size() == 1 && path->config != &moveConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
             {

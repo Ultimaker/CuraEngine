@@ -279,7 +279,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         {
             int n = config.initialSpeedupLayers;
             int layer0Factor = config.initialLayerSpeed * 100 / config.printSpeed;
-            gcodeLayer.setSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
+            gcodeLayer.setExtrudeSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
         }
         gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
         if (layerNr == 0)
@@ -289,11 +289,11 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         if (int(layerNr) >= config.fanOnLayerNr)
         {
             int speed = config.fanSpeedMin;
-            if (gcodeLayer.getSpeedFactor() <= 50)
+            if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
             {
                 speed = config.fanSpeedMax;
             }else{
-                int n = gcodeLayer.getSpeedFactor() - 50;
+                int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
                 speed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
             }
             gcode.addFanCommand(speed);
