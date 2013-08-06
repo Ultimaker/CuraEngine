@@ -42,7 +42,7 @@ public:
         
         currentSpeed = 0;
         retractionSpeed = 45;
-        isRetracted = false;
+        isRetracted = true;
         memset(extruderOffset, 0, sizeof(extruderOffset));
         f = NULL;
     }
