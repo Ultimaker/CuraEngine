@@ -36,6 +36,7 @@ ConfigSettings::ConfigSettings()
     SETTING(retractionSpeed);
     SETTING(retractionAmountExtruderSwitch);
     SETTING(retractionMinimalDistance);
+    SETTING(minimalExtrusionBeforeRetraction);
     SETTING(enableCombing);
     SETTING(multiVolumeOverlap);
     SETTING2(objectPosition.X, posx);

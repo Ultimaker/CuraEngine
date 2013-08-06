@@ -59,6 +59,7 @@ public:
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
     int retractionMinimalDistance;
+    int minimalExtrusionBeforeRetraction;
     int enableCombing;
     int multiVolumeOverlap;
     

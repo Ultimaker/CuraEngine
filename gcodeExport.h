@@ -10,6 +10,8 @@ private:
     double extrusionPerMM;
     double retractionAmount;
     double extruderSwitchRetraction;
+    double minimalExtrusionBeforeRetraction;
+    double extrusionAmountAtPreviousRetraction;
     Point3 currentPosition;
     Point extruderOffset[16];
     int currentSpeed, retractionSpeed;
@@ -29,6 +31,8 @@ public:
         extrusionAmount = 0;
         extrusionPerMM = 0;
         retractionAmount = 4.5;
+        minimalExtrusionBeforeRetraction = 0.0;
+        extrusionAmountAtPreviousRetraction = -10000;
         extruderSwitchRetraction = 14.5;
         extruderNr = 0;
         currentFanSpeed = -1;
@@ -82,11 +86,12 @@ public:
             extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
     }
     
-    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction)
+    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction)
     {
         this->retractionAmount = double(retractionAmount) / 1000.0;
         this->retractionSpeed = retractionSpeed;
         this->extruderSwitchRetraction = double(extruderSwitchRetraction) / 1000.0;
+        this->minimalExtrusionBeforeRetraction = double(minimalExtrusionBeforeRetraction) / 1000.0;
     }
     
     void setZ(int z)
@@ -192,7 +197,7 @@ public:
     
     void addRetraction()
     {
-        if (retractionAmount > 0 && !isRetracted)
+        if (retractionAmount > 0 && !isRetracted && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction < extrusionAmount)
         {
             if (flavor == GCODE_FLAVOR_ULTIGCODE)
             {
@@ -201,6 +206,7 @@ public:
                 fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
                 currentSpeed = retractionSpeed;
             }
+            extrusionAmountAtPreviousRetraction = extrusionAmount;
             isRetracted = true;
         }
     }

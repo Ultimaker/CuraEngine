@@ -135,7 +135,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         }
     }
 
-    gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch);
+    gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction);
     if (firstFile)
     {
         if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
@@ -380,10 +380,11 @@ int main(int argc, char **argv)
     config.supportAngle = -1;
     config.supportEverywhere = 0;
     config.supportLineWidth = config.extrusionWidth;
-    config.retractionAmount = 4.5;
+    config.retractionAmount = 4500;
     config.retractionSpeed = 45;
-    config.retractionAmountExtruderSwitch = 14.5;
+    config.retractionAmountExtruderSwitch = 14500;
     config.retractionMinimalDistance = 1500;
+    config.minimalExtrusionBeforeRetraction = 100;
     config.enableCombing = 1;
     config.multiVolumeOverlap = 0;
 
