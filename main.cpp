@@ -222,7 +222,10 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             {
                 SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
                 
-                gcodeLayer.setCombBoundary(&part->combBoundery);
+                if (config.enableCombing)
+                    gcodeLayer.setCombBoundary(&part->combBoundery);
+                else
+                    gcodeLayer.setAlwaysRetract(true);
                 gcodeLayer.forceRetract();
                 if (config.insetCount > 0)
                 {
@@ -381,6 +384,7 @@ int main(int argc, char **argv)
     config.retractionSpeed = 45;
     config.retractionAmountExtruderSwitch = 14.5;
     config.retractionMinimalDistance = 1500;
+    config.enableCombing = 1;
     config.multiVolumeOverlap = 0;
 
     config.minimalLayerTime = 5;

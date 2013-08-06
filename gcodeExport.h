@@ -291,6 +291,7 @@ private:
     int currentExtruder;
     int retractionMinimalDistance;
     bool forceRetraction;
+    bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
 private:
@@ -323,6 +324,7 @@ public:
         extraTime = 0.0;
         totalPrintTime = 0.0;
         forceRetraction = false;
+        alwaysRetract = false;
         currentExtruder = gcode.getExtruderNr();
         this->retractionMinimalDistance = retractionMinimalDistance;
     }
@@ -344,6 +346,11 @@ public:
             comb = new Comb(*polygons);
         else
             comb = NULL;
+    }
+    
+    void setAlwaysRetract(bool alwaysRetract)
+    {
+        this->alwaysRetract = alwaysRetract;
     }
     
     void forceRetract()
@@ -382,10 +389,12 @@ public:
                 }
             }else{
                 if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-                {
                     path->retract = true;
-                }
             }
+        }else if (alwaysRetract)
+        {
+            if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+                path->retract = true;
         }
         path->points.push_back(p);
         lastPosition = p;
