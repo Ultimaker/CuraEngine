@@ -268,6 +268,8 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         }
         if (config.supportAngle > -1)
         {
+            if (config.supportExtruder > -1)
+                gcodeLayer.setExtruder(config.supportExtruder);
             SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, true);
             gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
             if (layerNr == 0)
@@ -380,6 +382,7 @@ int main(int argc, char **argv)
     config.supportAngle = -1;
     config.supportEverywhere = 0;
     config.supportLineWidth = config.extrusionWidth;
+    config.supportExtruder = -1;
     config.retractionAmount = 4500;
     config.retractionSpeed = 45;
     config.retractionAmountExtruderSwitch = 14500;

@@ -74,6 +74,7 @@ public:
     int supportAngle;
     int supportEverywhere;
     int supportLineWidth;
+    int supportExtruder;
 
     //Cool settings
     int minimalLayerTime;
