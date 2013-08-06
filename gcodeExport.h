@@ -172,6 +172,8 @@ public:
                     fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
                     currentSpeed = retractionSpeed;
                 }
+                if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+                    resetExtrusionValue();
                 isRetracted = false;
             }
             extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
