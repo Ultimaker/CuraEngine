@@ -213,6 +213,20 @@ INLINE Point centerOfMass(const ClipperLib::Polygon& poly)
     return Point(x, y);
 }
 
+INLINE int64_t polygonLength(const ClipperLib::Polygon& poly)
+{
+    int64_t length = 0;
+    Point p0 = poly[poly.size()-1];
+    for(unsigned int n=0; n<poly.size(); n++)
+    {
+        Point p1 = poly[n];
+        length += vSize(p0 - p1);
+        p0 = p1;
+    }
+
+    return length;
+}
+
 /* Axis aligned boundary box */
 class AABB
 {

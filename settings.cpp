@@ -20,6 +20,7 @@ ConfigSettings::ConfigSettings()
     SETTING(infillOverlap);
     SETTING(skirtDistance);
     SETTING(skirtLineCount);
+    SETTING(skirtMinLenght);
 
     SETTING(initialSpeedupLayers);
     SETTING(initialLayerSpeed);

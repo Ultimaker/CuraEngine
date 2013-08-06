@@ -2,8 +2,9 @@
 #ifndef SKIRT_H
 #define SKIRT_H
 
-void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count)
+void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength)
 {
+    int length = 0;
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         ClipperLib::Clipper skirtUnion;
@@ -21,7 +22,12 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         Polygons skirtResult;
         skirtUnion.Execute(ClipperLib::ctUnion, skirtResult, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         for(unsigned int n=0; n<skirtResult.size(); n++)
+        {
             storage.skirt.push_back(skirtResult[n]);
+            length += polygonLength(skirtResult[n]);
+        }
+        if (skirtNr + 1 >= count && length < minLength)
+            count++;
     }
 }
 
