@@ -74,7 +74,9 @@ public:
     //Support material
     int supportAngle;
     int supportEverywhere;
-    int supportLineWidth;
+    int supportLineDistance;
+    int supportXYDistance;
+    int supportZDistance;
     int supportExtruder;
 
     //Cool settings

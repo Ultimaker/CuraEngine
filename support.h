@@ -24,7 +24,7 @@ void generateSupportGrid(SupportStorage& storage, OptimizedModel* om)
 {
     storage.gridOffset.X = om->vMin.x;
     storage.gridOffset.Y = om->vMin.y;
-    storage.gridScale = 400;
+    storage.gridScale = 200;
     storage.gridWidth = (om->modelSize.x / storage.gridScale) + 1;
     storage.gridHeight = (om->modelSize.y / storage.gridScale) + 1;
     storage.grid = new vector<SupportPoint>[storage.gridWidth * storage.gridHeight];
@@ -100,23 +100,26 @@ private:
     SupportStorage& storage;
     double cosAngle;
     int32_t z;
+    int supportZDistance;
     bool everywhere;
+    int* done;
 
-    inline bool needSupportAt(int32_t x, int32_t y)
+    inline bool needSupportAt(Point p)
     {
-        if (x < 1) return false;
-        if (y < 1) return false;
-        if (x >= storage.gridWidth - 1) return false;
-        if (y >= storage.gridHeight - 1) return false;
+        if (p.X < 1) return false;
+        if (p.Y < 1) return false;
+        if (p.X >= storage.gridWidth - 1) return false;
+        if (p.Y >= storage.gridHeight - 1) return false;
+        if (done[p.X + p.Y * storage.gridWidth]) return false;
         
-        unsigned int n = x+y*storage.gridWidth;
+        unsigned int n = p.X+p.Y*storage.gridWidth;
         
         if (everywhere)
         {
             bool ok = false;
             for(unsigned int i=0; i<storage.grid[n].size(); i+=2)
             {
-                if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z >= z && (i == 0 || storage.grid[n][i-1].z < z))
+                if (storage.grid[n][i].cosAngle >= cosAngle && storage.grid[n][i].z + supportZDistance >= z && (i == 0 || storage.grid[n][i-1].z - supportZDistance < z))
                 {
                     ok = true;
                     break;
@@ -126,33 +129,84 @@ private:
         }else{
             if (storage.grid[n].size() < 1) return false;
             if (storage.grid[n][0].cosAngle < cosAngle) return false;
-            if (storage.grid[n][0].z < z) return false;
-
-            if (storage.grid[n-storage.gridWidth].size() < 1) return false;
-            if (storage.grid[n-storage.gridWidth][0].cosAngle < cosAngle) return false;
-            if (storage.grid[n-storage.gridWidth][0].z < z) return false;
-            if (storage.grid[n+storage.gridWidth].size() < 1) return false;
-            if (storage.grid[n+storage.gridWidth][0].cosAngle < cosAngle) return false;
-            if (storage.grid[n+storage.gridWidth][0].z < z) return false;
+            if (storage.grid[n][0].z - supportZDistance < z) return false;
         }
         return true;
     }
 
+    void lazyFill(Point startPoint)
+    {
+        static int nr = 0;
+        nr++;
+        ClipperLib::Polygon poly;
+        ClipperLib::Polygon tmpPoly;
+
+        while(1)
+        {
+            Point p = startPoint;
+            done[p.X + p.Y * storage.gridWidth] = nr;
+            while(needSupportAt(p + Point(1, 0)))
+            {
+                p.X ++;
+                done[p.X + p.Y * storage.gridWidth] = nr;
+            }
+            tmpPoly.push_back(startPoint * storage.gridScale + storage.gridOffset - Point(storage.gridScale/2, 0));
+            poly.push_back(p * storage.gridScale + storage.gridOffset);
+            startPoint.Y++;
+            while(!needSupportAt(startPoint) && startPoint.X <= p.X)
+                startPoint.X ++;
+            if (startPoint.X > p.X)
+            {
+                for(unsigned int n=0;n<tmpPoly.size();n++)
+                {
+                    poly.push_back(tmpPoly[tmpPoly.size()-n-1]);
+                }
+                polygons.push_back(poly);
+                return;
+            }
+            while(needSupportAt(startPoint - Point(1, 0)) && startPoint.X > 1)
+                startPoint.X --;
+        }
+    }
+    
 public:
-    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere, bool xAxis)
+    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere, int supportDistance, int supportZDistance)
     : storage(storage), z(z), everywhere(everywhere)
     {
         cosAngle = cos(double(90 - angle) / 180.0 * M_PI) - 0.01;
-    
+        this->supportZDistance = supportZDistance;
+
+        done = new int[storage.gridWidth*storage.gridHeight];
+        memset(done, 0, sizeof(int) * storage.gridWidth*storage.gridHeight);
+        
+        for(int32_t y=1; y<storage.gridHeight; y++)
+        {
+            for(int32_t x=1; x<storage.gridWidth; x++)
+            {
+                if (!needSupportAt(Point(x, y)) || done[x + y * storage.gridWidth]) continue;
+                
+                lazyFill(Point(x, y));
+            }
+        }
+
+        delete done;
+        
+        Polygons tmpPolys, tmpPolys2;
+        //Do a morphological opening.
+        ClipperLib::OffsetPolygons(polygons, tmpPolys, storage.gridScale * 4, ClipperLib::jtSquare, 2, false);
+        ClipperLib::OffsetPolygons(tmpPolys, tmpPolys2,-storage.gridScale * 8 - supportDistance, ClipperLib::jtSquare, 2, false);
+        ClipperLib::OffsetPolygons(tmpPolys2, polygons, storage.gridScale * 4, ClipperLib::jtSquare, 2, false);
+        
+        /*
         if (xAxis)
         {
-            for(int32_t y=0; y<storage.gridHeight; y+=2)
+            for(int32_t y=0; y<storage.gridHeight; y+=4)
             {
                 for(int32_t x=0; x<storage.gridWidth; x++)
                 {
-                    if (!needSupportAt(x, y)) continue;
+                    if (!needSupportAt(Point(x, y))) continue;
                     int32_t startX = x;
-                    while(x < storage.gridWidth && needSupportAt(x, y))
+                    while(x < storage.gridWidth && needSupportAt(Point(x, y)))
                     {
                         x ++;
                     }
@@ -169,14 +223,14 @@ public:
                 }
             }
         }else{
-            for(int32_t x=0; x<storage.gridWidth; x+=2)
+            for(int32_t x=0; x<storage.gridWidth; x+=1)
             {
                 for(int32_t y=0; y<storage.gridHeight; y++)
                 {
-                    if (!needSupportAt(x, y)) continue;
+                    if (!needSupportAt(Point(x, y))) continue;
                     
                     int32_t startY = y;
-                    while(y < storage.gridHeight && needSupportAt(x, y))
+                    while(y < storage.gridHeight && needSupportAt(Point(x, y)))
                     {
                         y ++;
                     }
@@ -193,6 +247,7 @@ public:
                 }
             }
         }
+        */
     }
 };
 

@@ -119,7 +119,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     }
     log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount, config.skirtMinLenght);
-    generateRaft(storage, config.raftMargin);
+    generateRaft(storage, config.raftMargin, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance);
     
     for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
     {
@@ -155,7 +155,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     GCodePathConfig inset0Config(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
     GCodePathConfig inset1Config(config.printSpeed, config.extrusionWidth, "WALL-INNER");
     GCodePathConfig fillConfig(config.infillSpeed, config.extrusionWidth, "FILL");
-    GCodePathConfig supportConfig(config.printSpeed, config.supportLineWidth, "SUPPORT");
+    GCodePathConfig supportConfig(config.printSpeed, config.extrusionWidth, "SUPPORT");
     
     if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
     {
@@ -270,13 +270,14 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         {
             if (config.supportExtruder > -1)
                 gcodeLayer.setExtruder(config.supportExtruder);
-            SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, true);
+            SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
+            
+            Polygons supportLines;
+            generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+            generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+            
             gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
-            if (layerNr == 0)
-            {
-                SupportPolyGenerator supportGenerator2(storage.support, z, config.supportAngle, config.supportEverywhere > 0, false);
-                gcodeLayer.addPolygonsByOptimizer(supportGenerator2.polygons, &supportConfig);
-            }
+            gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
         }
 
         //Finish the layer by applying speed corrections for minimal layer times and slowdown for the initial layer.
@@ -382,8 +383,10 @@ int main(int argc, char **argv)
     config.objectSink = 0;
     config.supportAngle = -1;
     config.supportEverywhere = 0;
-    config.supportLineWidth = config.extrusionWidth;
+    config.supportLineDistance = config.sparseInfillLineDistance;
     config.supportExtruder = -1;
+    config.supportXYDistance = 700;
+    config.supportZDistance = 150;
     config.retractionAmount = 4500;
     config.retractionSpeed = 45;
     config.retractionAmountExtruderSwitch = 14500;

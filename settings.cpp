@@ -31,7 +31,9 @@ ConfigSettings::ConfigSettings()
     
     SETTING(supportAngle);
     SETTING(supportEverywhere);
-    SETTING(supportLineWidth);
+    SETTING(supportLineDistance);
+    SETTING(supportXYDistance);
+    SETTING(supportZDistance);
     SETTING(supportExtruder);
     
     SETTING(retractionAmount);
