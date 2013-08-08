@@ -273,8 +273,16 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
             
             Polygons supportLines;
-            generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
-            generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+            if (config.supportLineDistance > 0)
+            {
+                if (config.supportLineDistance > config.extrusionWidth * 4)
+                {
+                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+                }else{
+                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
+                }
+            }
             
             gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
