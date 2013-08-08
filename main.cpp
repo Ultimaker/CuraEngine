@@ -33,7 +33,7 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define VERSION "13.06.4"
+#define VERSION "13.07"
 
 int verbose_level;
 int maxObjectHeight;
