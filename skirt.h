@@ -26,7 +26,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
             storage.skirt.push_back(skirtResult[n]);
             length += polygonLength(skirtResult[n]);
         }
-        if (skirtNr + 1 >= count && length < minLength)
+        if (skirtNr + 1 >= count && length > 0 && length < minLength)
             count++;
     }
 }
