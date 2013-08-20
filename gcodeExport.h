@@ -32,7 +32,6 @@ public:
         extrusionPerMM = 0;
         retractionAmount = 4.5;
         minimalExtrusionBeforeRetraction = 0.0;
-        extrusionAmountAtPreviousRetraction = -10000;
         extruderSwitchRetraction = 14.5;
         extruderNr = 0;
         currentFanSpeed = -1;
@@ -92,6 +91,7 @@ public:
         this->retractionSpeed = retractionSpeed;
         this->extruderSwitchRetraction = double(extruderSwitchRetraction) / 1000.0;
         this->minimalExtrusionBeforeRetraction = double(minimalExtrusionBeforeRetraction) / 1000.0;
+        this->extrusionAmountAtPreviousRetraction = -10000;
     }
     
     void setZ(int z)
