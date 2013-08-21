@@ -167,8 +167,8 @@ public:
         {
             fprintf(f, "G92 E0\n");
             totalFilament += extrusionAmount;
+            extrusionAmountAtPreviousRetraction -= extrusionAmount;
             extrusionAmount = 0.0;
-            extrusionAmountAtPreviousRetraction = -10000;
         }
     }
     
