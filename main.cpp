@@ -139,9 +139,12 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     if (firstFile)
     {
         if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+        {
             gcode.addCode(";FLAVOR:UltiGCode");
-        else
-            gcode.addCode(config.startCode);
+            gcode.addCode(";TIME:<FILAMENT>");
+            gcode.addCode(";MATERIAL:<__TIME__>");
+        }
+        gcode.addCode(config.startCode);
     }else{
         gcode.addFanCommand(0);
         gcode.resetExtrusionValue();
@@ -511,5 +514,14 @@ int main(int argc, char **argv)
         gcode.addCode(config.endCode);
         log("Print time: %d\n", int(gcode.getTotalPrintTime()));
         log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));
+        
+        if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+        {
+            char numberString[16];
+            sprintf(numberString, "%d", int(gcode.getTotalPrintTime()));
+            gcode.replaceTagInStart("<__TIME__>", numberString);
+            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed()));
+            gcode.replaceTagInStart("<FILAMENT>", numberString);
+        }
     }
 }

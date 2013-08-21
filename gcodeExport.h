@@ -53,6 +53,24 @@ public:
             fclose(f);
     }
     
+    void replaceTagInStart(const char* tag, const char* replaceValue)
+    {
+        off64_t oldPos = ftello64(f);
+        
+        char buffer[1024];
+        fseeko64(f, 0, SEEK_SET);
+        fread(buffer, 1024, 1, f);
+        
+        char* c = strstr(buffer, tag);
+        memset(c, ' ', strlen(tag));
+        if (c) memcpy(c, replaceValue, strlen(replaceValue));
+        
+        fseeko64(f, 0, SEEK_SET);
+        fwrite(buffer, 1024, 1, f);
+        
+        fseeko64(f, oldPos, SEEK_SET);
+    }
+    
     void setExtruderOffset(int id, Point p)
     {
         extruderOffset[id] = p;
@@ -69,7 +87,7 @@ public:
     
     void setFilename(const char* filename)
     {
-        f = fopen(filename, "w");
+        f = fopen(filename, "w+");
     }
     
     bool isValid()
@@ -150,6 +168,7 @@ public:
             fprintf(f, "G92 E0\n");
             totalFilament += extrusionAmount;
             extrusionAmount = 0.0;
+            extrusionAmountAtPreviousRetraction = -10000;
         }
     }
     
