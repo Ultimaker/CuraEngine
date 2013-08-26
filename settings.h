@@ -55,7 +55,7 @@ public:
     int infillOverlap;
     int skirtDistance;
     int skirtLineCount;
-    int skirtMinLenght;
+    int skirtMinLength;
     int retractionAmount;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;

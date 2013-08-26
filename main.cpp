@@ -118,7 +118,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         logProgress("skin",layerNr+1,totalLayers);
     }
     log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
-    generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount, config.skirtMinLenght);
+    generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount, config.skirtMinLength);
     generateRaft(storage, config.raftMargin, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance);
     
     for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
@@ -141,8 +141,8 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
         {
             gcode.addCode(";FLAVOR:UltiGCode");
-            gcode.addCode(";TIME:<FILAMENT>");
-            gcode.addCode(";MATERIAL:<__TIME__>");
+            gcode.addCode(";TIME:<__TIME__>");
+            gcode.addCode(";MATERIAL:<FILAMENT>");
         }
         gcode.addCode(config.startCode);
     }else{
@@ -386,7 +386,7 @@ int main(int argc, char **argv)
     config.fanOnLayerNr = 2;
     config.skirtDistance = 6000;
     config.skirtLineCount = 1;
-    config.skirtMinLenght = 0;
+    config.skirtMinLength = 0;
     config.sparseInfillLineDistance = 100 * config.extrusionWidth / 20;
     config.infillOverlap = 15;
     config.objectPosition.X = 102500;
