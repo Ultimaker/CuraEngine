@@ -274,6 +274,19 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             if (config.supportExtruder > -1)
                 gcodeLayer.setExtruder(config.supportExtruder);
             SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
+            ClipperLib::Clipper supportClipper;
+            supportClipper.AddPolygons(supportGenerator.polygons, ClipperLib::ptSubject);
+            for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
+            {
+                SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+                Polygons polys;
+                for(unsigned int n=0; n<layer->parts.size(); n++)
+                    for(unsigned int m=0; m<layer->parts[n].outline.size(); m++)
+                        polys.push_back(layer->parts[n].outline[m]);
+                ClipperLib::OffsetPolygons(polys, polys, config.supportXYDistance, ClipperLib::jtSquare, 2, false);
+                supportClipper.AddPolygons(polys, ClipperLib::ptClip);
+            }
+            supportClipper.Execute(ClipperLib::ctDifference, supportGenerator.polygons);
             
             Polygons supportLines;
             if (config.supportLineDistance > 0)

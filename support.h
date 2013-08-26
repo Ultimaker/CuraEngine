@@ -191,11 +191,7 @@ public:
 
         delete done;
         
-        Polygons tmpPolys, tmpPolys2;
-        //Do a morphological opening.
-        ClipperLib::OffsetPolygons(polygons, tmpPolys, storage.gridScale * 4, ClipperLib::jtSquare, 2, false);
-        ClipperLib::OffsetPolygons(tmpPolys, tmpPolys2,-storage.gridScale * 8 - supportDistance, ClipperLib::jtSquare, 2, false);
-        ClipperLib::OffsetPolygons(tmpPolys2, polygons, storage.gridScale * 4, ClipperLib::jtSquare, 2, false);
+        ClipperLib::OffsetPolygons(polygons, polygons, 2000, ClipperLib::jtSquare, 2, false);
         
         /*
         if (xAxis)
