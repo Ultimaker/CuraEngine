@@ -34,6 +34,7 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     
     AABB boundary(outline);
     
+    boundary.min.X = ((boundary.min.X / lineSpacing) - 1) * lineSpacing;
     int lineCount = (boundary.max.X - boundary.min.X + (lineSpacing - 1)) / lineSpacing;
     vector<int64_t> cutList[lineCount];
     for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
