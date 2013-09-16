@@ -12,7 +12,7 @@ CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
 LDFLAGS +=
 SOURCES = main.cpp settings.cpp modelFile/modelFile.cpp clipper/clipper.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
-EXECUTABLE = CuraEngine
+EXECUTABLE = ./CuraEngine
 UNAME := $(shell uname)
 
 ifeq ($(UNAME), Linux)
