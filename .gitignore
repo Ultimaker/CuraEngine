@@ -12,3 +12,5 @@ _obj
 *.gcode
 *.o
 .*.swp
+CuraEngine
+
