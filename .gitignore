@@ -10,3 +10,5 @@ _bin
 _obj
 *.depend
 *.gcode
+*.o
+.*.swp
