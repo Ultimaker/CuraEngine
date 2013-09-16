@@ -1,8 +1,9 @@
 # vi:et:ts=4 sw=4 sts=4
-import sys
+import gzip
 import os
 import string
 import subprocess
+import sys
 import unittest
 
 EXECUTABLE = './CuraEngine'
@@ -14,9 +15,9 @@ class TestGCode(unittest.TestCase):
 
     def _main(self, base):
         stl_file = '{}.stl'.format(base)
-        gcode_file = '{}.gcode'.format(base)
+        gcode_file = '{}.gcode.gz'.format(base)
 
-        with open(os.path.join(TEST_DIR, gcode_file)) as ifp:
+        with gzip.GzipFile(os.path.join(TEST_DIR, gcode_file)) as ifp:
             gcode_output = map(string.strip, ifp.readlines())
 
         cmd = [EXECUTABLE, os.path.join(TEST_DIR, stl_file)]
@@ -49,5 +50,9 @@ class TestGCode(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        EXECUTABLE = sys.argv[1]
+        sys.argv.remove(EXECUTABLE)
+
 	unittest.main()
 
