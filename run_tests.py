@@ -49,5 +49,9 @@ class TestGCode(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2:
+        EXECUTABLE = sys.argv[1]
+        sys.argv.remove(EXECUTABLE)
+
 	unittest.main()
 

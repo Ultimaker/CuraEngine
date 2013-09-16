@@ -40,7 +40,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 tests: $(EXECUTABLE)
-	python run_tests.py
+	python run_tests.py $(EXECUTABLE)
 
 ## clean stuff
 clean:
