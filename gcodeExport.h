@@ -280,11 +280,11 @@ public:
         float fsize = (float) ftell(f);
         if(fsize > 1024*1024) {
             fsize /= 1024.0*1024.0;
-            fprintf(stdout, "Wrote %5.1f MB.\n",fsize);
+            fprintf(stderr, "Wrote %5.1f MB.\n",fsize);
         }
         if(fsize > 1024) {
             fsize /= 1024.0;
-            fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
+            fprintf(stderr, "Wrote %5.1f kilobytes.\n",fsize);
         }
     }
 };
