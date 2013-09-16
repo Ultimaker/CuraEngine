@@ -10,7 +10,7 @@ CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=
-SOURCES = main.cpp settings.cpp modelFile/modelFile.cpp clipper/clipper.cpp 
+SOURCES = main.cpp settings.cpp modelFile/modelFile.cpp clipper/clipper.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 EXECUTABLE = CuraEngine
 UNAME := $(shell uname)
@@ -21,7 +21,7 @@ ifeq ($(UNAME), Linux)
 endif
 ifeq ($(UNAME), Darwin)
 	OPEN_HTML=open
-	#For MacOS force to build 
+	#For MacOS force to build
 	CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
 	LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
 endif

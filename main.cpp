@@ -454,7 +454,7 @@ int main(int argc, char **argv)
         "M84                         ;steppers off\n"
         "G90                         ;absolute positioning\n";
 
-    fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
+    fprintf(stderr,"Cura_SteamEngine version %s\n", VERSION);
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -483,7 +483,6 @@ int main(int argc, char **argv)
                         logError("Failed to open %s for output.\n", argv[argn]);
                         exit(1);
                     }
-                    gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
                     break;
                 case 's':
                     {
@@ -516,6 +515,7 @@ int main(int argc, char **argv)
                 logError("No output file specified\n");
                 return 1;
             }
+			gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
             processFile(argv[argn], config, gcode, fileNr == 0);
             fileNr ++;
         }
