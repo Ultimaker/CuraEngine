@@ -2,7 +2,7 @@
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
-#ifdef __APPLE__ && __MACH__
+#if defined(__APPLE__) && defined(__MACH__)
 //On MacOS the file offset functions are always 64bit.
 #define off64_t off_t
 #define ftello64 ftello
