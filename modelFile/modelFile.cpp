@@ -79,6 +79,12 @@ SimpleModel* loadModelSTL_binary(const char* filename, FMatrix3x3& matrix)
     SimpleModel* m = new SimpleModel();
     m->volumes.push_back(SimpleVolume());
     SimpleVolume* vol = &m->volumes[0];
+	if(vol == NULL)
+	{
+		fclose(f);
+		return NULL;
+	}
+
     for(unsigned int i=0;i<faceCount;i++)
     {
         if (fread(buffer, sizeof(float) * 3, 1, f) != 1)
