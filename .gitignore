@@ -11,5 +11,6 @@ _obj
 *.depend
 *.o
 .*.swp
+*.gcode
 CuraEngine
 
