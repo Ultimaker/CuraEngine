@@ -191,7 +191,7 @@ public:
 
         delete done;
         
-        ClipperLib::OffsetPolygons(polygons, polygons, 2000, ClipperLib::jtSquare, 2, false);
+        ClipperLib::OffsetPolygons(polygons, polygons, supportDistance, ClipperLib::jtSquare, 2, false);
         
         /*
         if (xAxis)
