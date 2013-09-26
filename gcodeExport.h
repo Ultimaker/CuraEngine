@@ -2,7 +2,7 @@
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
-#ifdef __APPLE__ && __MACH__
+#if defined(__APPLE__) && defined(__MACH__)
 //On MacOS the file offset functions are always 64bit.
 #define off64_t off_t
 #define ftello64 ftello
@@ -51,7 +51,7 @@ public:
         retractionSpeed = 45;
         isRetracted = true;
         memset(extruderOffset, 0, sizeof(extruderOffset));
-        f = NULL;
+        f = stdout;
     }
     
     ~GCodeExport()
@@ -280,11 +280,11 @@ public:
         float fsize = (float) ftell(f);
         if(fsize > 1024*1024) {
             fsize /= 1024.0*1024.0;
-            fprintf(stdout, "Wrote %5.1f MB.\n",fsize);
+            fprintf(stderr, "Wrote %5.1f MB.\n",fsize);
         }
         if(fsize > 1024) {
             fsize /= 1024.0;
-            fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
+            fprintf(stderr, "Wrote %5.1f kilobytes.\n",fsize);
         }
     }
 };

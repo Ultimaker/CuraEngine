@@ -425,7 +425,7 @@ public:
         modelMin = ov->model->vMin;
         
         int layerCount = (modelSize.z - initial) / thickness + 1;
-        fprintf(stdout, "Layer count: %i\n", layerCount);
+        fprintf(stderr, "Layer count: %i\n", layerCount);
         layers.resize(layerCount);
         
         for(unsigned int i=0; i<ov->faces.size(); i++)
@@ -479,10 +479,10 @@ public:
         for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
         {
             percDone = 100*layerNr/layers.size();
-            if((getTime()-t)>2.0) fprintf(stdout, "\rProcessing layers... (%d percent)",percDone);
+            if((getTime()-t)>2.0) fprintf(stderr, "\rProcessing layers... (%d percent)",percDone);
             layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
         }
-        fprintf(stdout, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
+        fprintf(stderr, "\rProcessed all layers in %5.1fs           \n",timeElapsed(t));
     }
         
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z)
