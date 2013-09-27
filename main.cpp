@@ -310,6 +310,8 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             int n = config.initialSpeedupLayers;
             int layer0Factor = config.initialLayerSpeed * 100 / config.printSpeed;
             gcodeLayer.setExtrudeSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
+            if (layerNr == 0)//On the first layer, also slow down the travel
+                gcodeLayer.setTravelSpeedFactor(layer0Factor);
         }
         gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
         if (layerNr == 0)

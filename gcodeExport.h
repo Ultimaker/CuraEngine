@@ -320,8 +320,9 @@ private:
     vector<GCodePath> paths;
     Comb* comb;
     
-    GCodePathConfig moveConfig;
+    GCodePathConfig travelConfig;
     int extrudeSpeedFactor;
+    int travelSpeedFactor;
     int currentExtruder;
     int retractionMinimalDistance;
     bool forceRetraction;
@@ -345,16 +346,17 @@ private:
         paths.push_back(GCodePath());
         GCodePath* ret = &paths[paths.size()-1];
         ret->retract = false;
-        ret->config = &moveConfig;
+        ret->config = &travelConfig;
         ret->extruder = currentExtruder;
     }
 public:
-    GCodePlanner(GCodeExport& gcode, int moveSpeed, int retractionMinimalDistance)
-    : gcode(gcode), moveConfig(moveSpeed, 0, "move")
+    GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
+    : gcode(gcode), travelConfig(travelSpeed, 0, "travel")
     {
         lastPosition = gcode.getPositionXY();
         comb = NULL;
         extrudeSpeedFactor = 100;
+        travelSpeedFactor = 100;
         extraTime = 0.0;
         totalPrintTime = 0.0;
         forceRetraction = false;
@@ -401,10 +403,19 @@ public:
     {
         return this->extrudeSpeedFactor;
     }
-    
-    void addMove(Point p)
+    void setTravelSpeedFactor(int speedFactor)
     {
-        GCodePath* path = getLatestPathWithConfig(&moveConfig);
+        if (speedFactor < 1) speedFactor = 1;
+        this->travelSpeedFactor = speedFactor;
+    }
+    int getTravelSpeedFactor()
+    {
+        return this->travelSpeedFactor;
+    }
+    
+    void addTravel(Point p)
+    {
+        GCodePath* path = getLatestPathWithConfig(&travelConfig);
         if (forceRetraction)
         {
             if (!shorterThen(lastPosition - p, 1500))
@@ -446,7 +457,7 @@ public:
         Point p = lastPosition;
         if (comb->moveInside(p))
         {
-            addMove(p);
+            addTravel(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
             forceNewPathStart();
         }
@@ -455,7 +466,7 @@ public:
     void addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config)
     {
         Point p0 = polygon[startIdx];
-        addMove(p0);
+        addTravel(p0);
         for(unsigned int i=1; i<polygon.size(); i++)
         {
             Point p1 = polygon[(startIdx + i) % polygon.size()];
@@ -513,7 +524,12 @@ public:
                 if (speed < minimalSpeed)
                     factor = double(minimalSpeed) / double(path->config->speed);
             }
-            setExtrudeSpeedFactor(factor * 100);
+            
+            //Only slow down with the minimal time if that will be slower then a factor already set. First layer slowdown also sets the speed factor.
+            if (factor * 100 < getExtrudeSpeedFactor())
+                setExtrudeSpeedFactor(factor * 100);
+            else
+                factor = getExtrudeSpeedFactor() / 100.0;
             
             if (minTime - (extrudeTime / factor) - travelTime > 0.1)
             {
@@ -541,7 +557,7 @@ public:
             {
                 gcode.addRetraction();
             }
-            if (path->config != &moveConfig && lastConfig != path->config)
+            if (path->config != &travelConfig && lastConfig != path->config)
             {
                 gcode.addComment("TYPE:%s", path->config->name);
                 lastConfig = path->config;
@@ -550,8 +566,10 @@ public:
             
             if (path->config->lineWidth != 0)// Only apply the extrudeSpeedFactor to extrusion moves
                 speed = speed * extrudeSpeedFactor / 100;
+            else
+                speed = speed * travelSpeedFactor / 100;
             
-            if (path->points.size() == 1 && path->config != &moveConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
+            if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
             {
                 //Check for lots of small moves and combine them into one large line
                 Point p0 = path->points[0];
@@ -561,7 +579,7 @@ public:
                     p0 = paths[i].points[0];
                     i ++;
                 }
-                if (paths[i-1].config == &moveConfig)
+                if (paths[i-1].config == &travelConfig)
                     i --;
                 if (i > n + 2)
                 {
@@ -595,8 +613,8 @@ public:
             gcode.addComment("Small layer, adding delay of %f", extraTime);
             gcode.addRetraction();
             gcode.setZ(gcode.getPositionZ() + 3000);
-            gcode.addMove(gcode.getPositionXY(), moveConfig.speed, 0);
-            gcode.addMove(gcode.getPositionXY() - Point(-20000, 0), moveConfig.speed, 0);
+            gcode.addMove(gcode.getPositionXY(), travelConfig.speed, 0);
+            gcode.addMove(gcode.getPositionXY() - Point(-20000, 0), travelConfig.speed, 0);
             gcode.addDelay(extraTime);
         }
     }
