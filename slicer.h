@@ -107,7 +107,8 @@ public:
                     if (i == j)
                     {
                         polygonList.push_back(openPolygonList[i]);
-                        openPolygonList.erase(openPolygonList.begin() + i);
+                        openPolygonList[i].clear();
+                        break;
                     }else{
                         for(unsigned int n=0; n<openPolygonList[j].size(); n++)
                             openPolygonList[i].push_back(openPolygonList[j][n]);
@@ -163,7 +164,7 @@ public:
             if (bestA == bestB)
             {
                 polygonList.push_back(openPolygonList[bestA]);
-                openPolygonList.erase(openPolygonList.begin() + bestA);
+                openPolygonList[bestA].clear();
             }else{
                 if (reversed)
                 {
