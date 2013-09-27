@@ -232,7 +232,8 @@ public:
                         {
                             polygonList.push_back(openPolygonList[bestA]);
                             openPolygonList[bestA].clear();
-                        }else if (bestResult.AtoB)
+                        }
+                        else if (bestResult.AtoB)
                         {
                             unsigned int n = polygonList.size();
                             polygonList.push_back(ClipperLib::Polygon());
@@ -241,20 +242,25 @@ public:
                             for(unsigned int j = openPolygonList[bestA].size() - 1; int(j) >= 0; j--)
                                 polygonList[n].push_back(openPolygonList[bestA][j]);
                             openPolygonList[bestA].clear();
-                        }else{
+                        }
+                        else
+                        {
                             unsigned int n = polygonList.size();
                             polygonList.push_back(openPolygonList[bestA]);
                             for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
                                 polygonList[n].push_back(polygonList[bestResult.polygonIdx][j]);
                             openPolygonList[bestA].clear();
                         }
-                    }else{
+                    }
+                    else
+                    {
                         if (bestResult.pointIdxA == bestResult.pointIdxB)
                         {
                             for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
                                 openPolygonList[bestB].push_back(openPolygonList[bestA][n]);
                             openPolygonList[bestA].clear();
-                        }else if (bestResult.AtoB)
+                        }
+                        else if (bestResult.AtoB)
                         {
                             ClipperLib::Polygon poly;
                             for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
@@ -264,7 +270,9 @@ public:
                             for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
                                 openPolygonList[bestB].push_back(openPolygonList[bestA][n]);
                             openPolygonList[bestA].clear();
-                        }else{
+                        }
+                        else
+                        {
                             for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
                                 openPolygonList[bestB].push_back(polygonList[bestResult.polygonIdx][n]);
                             for(unsigned int n = openPolygonList[bestA].size() - 1; int(n) >= 0; n--)
@@ -272,7 +280,9 @@ public:
                             openPolygonList[bestA].clear();
                         }
                     }
-                }else{
+                }
+                else
+                {
                     break;
                 }
             }
