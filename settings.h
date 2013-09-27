@@ -47,6 +47,7 @@ public:
     int initialLayerThickness;
     int filamentDiameter;
     int filamentFlow;
+    int initialFilamentFlow;
     int extrusionWidth;
     int insetCount;
     int downSkinCount;

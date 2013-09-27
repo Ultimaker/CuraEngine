@@ -315,7 +315,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         }
         gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
         if (layerNr == 0)
-            gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
+            gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.initialFilamentFlow);
         else
             gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
         if (int(layerNr) >= config.fanOnLayerNr)
@@ -387,6 +387,7 @@ int main(int argc, char **argv)
 
     config.filamentDiameter = 2890;
     config.filamentFlow = 100;
+    config.initialFilamentFlow = 100;
     config.initialLayerThickness = 300;
     config.layerThickness = 100;
     config.extrusionWidth = 400;
