@@ -486,10 +486,8 @@ public:
         }
         
         double t = getTime();
-        int percDone;
         for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
         {
-            percDone = 100*layerNr/layers.size();
             layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
         }
         fprintf(stderr, "Processed all layers in %5.1fs\n",timeElapsed(t));
