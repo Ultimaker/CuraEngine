@@ -1151,7 +1151,6 @@ IntRect ClipperBase::GetBounds()
 
 Clipper::Clipper() : ClipperBase() //constructor
 {
-  m_Scanbeam = 0;
   m_ActiveEdges = 0;
   m_SortedEdges = 0;
   m_IntersectNodes = 0;
@@ -1164,7 +1163,6 @@ Clipper::Clipper() : ClipperBase() //constructor
 Clipper::~Clipper() //destructor
 {
   Clear();
-  DisposeScanbeamList();
 }
 //------------------------------------------------------------------------------
 
@@ -1174,22 +1172,13 @@ void Clipper::Clear()
   DisposeAllPolyPts();
   ClipperBase::Clear();
 }
-//------------------------------------------------------------------------------
 
-void Clipper::DisposeScanbeamList()
-{
-  while ( m_Scanbeam ) {
-  Scanbeam* sb2 = m_Scanbeam->next;
-  delete m_Scanbeam;
-  m_Scanbeam = sb2;
-  }
-}
 //------------------------------------------------------------------------------
 
 void Clipper::Reset()
 {
   ClipperBase::Reset();
-  m_Scanbeam = 0;
+  m_Scanbeam.clear();
   m_ActiveEdges = 0;
   m_SortedEdges = 0;
   DisposeAllPolyPts();
@@ -1310,7 +1299,7 @@ bool Clipper::ExecuteInternal(bool fixHoleLinkages)
       if (!succeeded) break;
       ProcessEdgesAtTopOfScanbeam(topY);
       botY = topY;
-    } while( m_Scanbeam );
+    } while( !m_Scanbeam.empty() );
   }
   catch(...) {
     succeeded = false;
@@ -1349,38 +1338,16 @@ bool Clipper::ExecuteInternal(bool fixHoleLinkages)
 
 void Clipper::InsertScanbeam(const long64 Y)
 {
-  if( !m_Scanbeam )
-  {
-    m_Scanbeam = new Scanbeam;
-    m_Scanbeam->next = 0;
-    m_Scanbeam->Y = Y;
-  }
-  else if(  Y > m_Scanbeam->Y )
-  {
-    Scanbeam* newSb = new Scanbeam;
-    newSb->Y = Y;
-    newSb->next = m_Scanbeam;
-    m_Scanbeam = newSb;
-  } else
-  {
-    Scanbeam* sb2 = m_Scanbeam;
-    while( sb2->next  && ( Y <= sb2->next->Y ) ) sb2 = sb2->next;
-    if(  Y == sb2->Y ) return; //ie ignores duplicates
-    Scanbeam* newSb = new Scanbeam;
-    newSb->Y = Y;
-    newSb->next = sb2->next;
-    sb2->next = newSb;
-  }
+    m_Scanbeam.insert(Y);
 }
 //------------------------------------------------------------------------------
 
 long64 Clipper::PopScanbeam()
 {
-  long64 Y = m_Scanbeam->Y;
-  Scanbeam* sb2 = m_Scanbeam;
-  m_Scanbeam = m_Scanbeam->next;
-  delete sb2;
-  return Y;
+    std::set<long64>::iterator front = m_Scanbeam.begin();
+    long64 botY = *front;
+    m_Scanbeam.erase(front);
+    return botY;
 }
 //------------------------------------------------------------------------------
 
