@@ -35,6 +35,8 @@
 #define clipper_hpp
 
 #include <vector>
+#include <set>
+#include <functional>
 #include <stdexcept>
 #include <cstring>
 #include <cstdlib>
@@ -130,11 +132,6 @@ struct LocalMinima {
   LocalMinima  *next;
 };
 
-struct Scanbeam {
-  long64    Y;
-  Scanbeam *next;
-};
-
 struct OutPt; //forward declaration
 
 struct OutRec {
@@ -224,7 +221,7 @@ private:
   JoinList          m_Joins;
   HorzJoinList      m_HorizJoins;
   ClipType          m_ClipType;
-  Scanbeam         *m_Scanbeam;
+  std::set<long64, std::greater<long64> > m_Scanbeam;
   TEdge           *m_ActiveEdges;
   TEdge           *m_SortedEdges;
   IntersectNode    *m_IntersectNodes;
@@ -304,5 +301,3 @@ class clipperException : public std::exception
 } //ClipperLib namespace
 
 #endif //clipper_hpp
-
-
