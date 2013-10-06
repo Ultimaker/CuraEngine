@@ -8,8 +8,8 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[],
     while(1)
     {
         for(unsigned int polygonNr=0; polygonNr<outline.size(); polygonNr++)
-            result.push_back(outline[polygonNr]);
-        ClipperLib::OffsetPolygons(outline, outline, -offsets[step], ClipperLib::jtSquare, 2, false);
+            result.add(outline[polygonNr]);
+        outline = outline.offset(-offsets[step]);
         if (outline.size() < 1)
             break;
         step = (step + 1) % offsetsSize;
@@ -26,11 +26,10 @@ int compare_int64_t(const void* a, const void* b)
 
 void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
 {
-    Polygons outline;
-    ClipperLib::OffsetPolygons(in_outline, outline, extrusionWidth * infillOverlap / 100, ClipperLib::jtSquare, 2, false);
+    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
     PointMatrix matrix(rotation);
     
-    matrix.apply(outline);
+    outline.applyMatrix(matrix);
     
     AABB boundary(outline);
     
@@ -74,7 +73,7 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
             ClipperLib::Polygon p;
             p.push_back(matrix.unapply(Point(x, cutList[idx][i])));
             p.push_back(matrix.unapply(Point(x, cutList[idx][i+1])));
-            result.push_back(p);
+            result.add(p);
         }
         idx += 1;
     }

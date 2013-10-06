@@ -5,7 +5,7 @@
 #include <vector>
 using std::vector;
 #include "utils/intpoint.h"
-using ClipperLib::Polygons;
+#include "utils/polygon.h"
 
 /*
 SliceData

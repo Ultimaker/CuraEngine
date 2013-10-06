@@ -161,7 +161,7 @@ private:
                 {
                     poly.push_back(tmpPoly[tmpPoly.size()-n-1]);
                 }
-                polygons.push_back(poly);
+                polygons.add(poly);
                 return;
             }
             while(needSupportAt(startPoint - Point(1, 0)) && startPoint.X > 1)
@@ -191,7 +191,7 @@ public:
 
         delete done;
         
-        ClipperLib::OffsetPolygons(polygons, polygons, supportDistance, ClipperLib::jtSquare, 2, false);
+        polygons = polygons.offset(supportDistance);
         
         /*
         if (xAxis)

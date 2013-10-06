@@ -8,8 +8,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
+//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
 #include "clipper/clipper.hpp"
-using ClipperLib::Polygons;
 
 #include <limits.h>
 #include <stdint.h>
@@ -173,99 +173,6 @@ public:
     Point unapply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
-    }
-    
-    void apply(Polygons& polys) const
-    {
-        for(unsigned int i=0; i<polys.size(); i++)
-        {
-            for(unsigned int j=0; j<polys[i].size(); j++)
-            {
-                polys[i][j] = apply(polys[i][j]);
-            }
-        }
-    }
-};
-
-INLINE Point centerOfMass(const ClipperLib::Polygon& poly)
-{
-    double x = 0, y = 0;
-    Point p0 = poly[poly.size()-1];
-    for(unsigned int n=0; n<poly.size(); n++)
-    {
-        Point p1 = poly[n];
-        double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
-        
-        x += double(p0.X + p1.X) * second_factor;
-        y += double(p0.Y + p1.Y) * second_factor;
-        p0 = p1;
-    }
-
-    double area = Area(poly);
-    x = x / 6 / area;
-    y = y / 6 / area;
-
-    if (x < 0)
-    {
-        x = -x;
-        y = -y;
-    }
-    return Point(x, y);
-}
-
-INLINE int64_t polygonLength(const ClipperLib::Polygon& poly)
-{
-    int64_t length = 0;
-    Point p0 = poly[poly.size()-1];
-    for(unsigned int n=0; n<poly.size(); n++)
-    {
-        Point p1 = poly[n];
-        length += vSize(p0 - p1);
-        p0 = p1;
-    }
-
-    return length;
-}
-
-/* Axis aligned boundary box */
-class AABB
-{
-public:
-    Point min, max;
-    
-    AABB()
-    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
-    {
-    }
-    AABB(Polygons polys)
-    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
-    {
-        calculate(polys);
-    }
-    
-    void calculate(Polygons polys)
-    {
-        min = Point(LLONG_MAX, LLONG_MAX);
-        max = Point(LLONG_MIN, LLONG_MIN);
-        for(unsigned int i=0; i<polys.size(); i++)
-        {
-            for(unsigned int j=0; j<polys[i].size(); j++)
-            {
-                if (min.X > polys[i][j].X) min.X = polys[i][j].X;
-                if (min.Y > polys[i][j].Y) min.Y = polys[i][j].Y;
-                if (max.X < polys[i][j].X) max.X = polys[i][j].X;
-                if (max.Y < polys[i][j].Y) max.Y = polys[i][j].Y;
-            }
-        }
-    }
-    
-    bool hit(const AABB& other) const
-    {
-        if (max.X < other.min.X) return false;
-        if (min.X > other.max.X) return false;
-        if (max.Y < other.min.Y) return false;
-        if (min.Y > other.max.Y) return false;
-        return true;
     }
 };
 

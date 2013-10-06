@@ -83,9 +83,9 @@ public:
                 segmentIndex = nextIndex;
             }
             if (canClose)
-                polygonList.push_back(poly);
+                polygonList.add(poly);
             else
-                openPolygonList.push_back(poly);
+                openPolygonList.add(poly);
         }
         //Clear the segmentList to save memory, it is no longer needed after this point.
         segmentList.clear();
@@ -106,7 +106,7 @@ public:
                 {
                     if (i == j)
                     {
-                        polygonList.push_back(openPolygonList[i]);
+                        polygonList.add(openPolygonList[i]);
                         openPolygonList[i].clear();
                         break;
                     }else{
@@ -163,7 +163,7 @@ public:
             
             if (bestA == bestB)
             {
-                polygonList.push_back(openPolygonList[bestA]);
+                polygonList.add(openPolygonList[bestA]);
                 openPolygonList[bestA].clear();
             }else{
                 if (reversed)
@@ -230,13 +230,13 @@ public:
                     {
                         if (bestResult.pointIdxA == bestResult.pointIdxB)
                         {
-                            polygonList.push_back(openPolygonList[bestA]);
+                            polygonList.add(openPolygonList[bestA]);
                             openPolygonList[bestA].clear();
                         }
                         else if (bestResult.AtoB)
                         {
                             unsigned int n = polygonList.size();
-                            polygonList.push_back(ClipperLib::Polygon());
+                            polygonList.add(ClipperLib::Polygon());
                             for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
                                 polygonList[n].push_back(polygonList[bestResult.polygonIdx][j]);
                             for(unsigned int j = openPolygonList[bestA].size() - 1; int(j) >= 0; j--)
@@ -246,7 +246,7 @@ public:
                         else
                         {
                             unsigned int n = polygonList.size();
-                            polygonList.push_back(openPolygonList[bestA]);
+                            polygonList.add(openPolygonList[bestA]);
                             for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
                                 polygonList[n].push_back(polygonList[bestResult.polygonIdx][j]);
                             openPolygonList[bestA].clear();
@@ -301,11 +301,10 @@ public:
 
         if (keepNoneClosed)
         {
-            while(openPolygonList.size() > 0)
+            for(unsigned int n=0; n<openPolygonList.size(); n++)
             {
-                if (openPolygonList[0].size() > 0)
-                    polygonList.push_back(openPolygonList[0]);
-                openPolygonList.erase(openPolygonList.begin());
+                if (openPolygonList[n].size() > 0)
+                    polygonList.add(openPolygonList[n]);
             }
         }
         //Clear the openPolygonList to save memory, the only reason to keep it after this is for debugging.
@@ -325,7 +324,7 @@ public:
             }
             if (length < snapDistance)
             {
-                polygonList.erase(polygonList.begin() + i);
+                polygonList.remove(i);
                 i--;
             }
         }

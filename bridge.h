@@ -16,7 +16,7 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
         bridgeClip.AddPolygon(prevLayer->parts[n].outline[0], ClipperLib::ptClip);
     }
     
-    Polygons islands;
+    ClipperLib::Polygons islands;
     bridgeClip.Execute(ClipperLib::ctIntersection, islands);
     if (islands.size() > 5)
         return -1;

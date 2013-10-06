@@ -4,7 +4,7 @@
 
 void generateInsets(SliceLayerPart* part, int offset, int insetCount)
 {
-    ClipperLib::OffsetPolygons(part->outline, part->combBoundery, -offset, ClipperLib::jtSquare, 2, false);
+    part->combBoundery = part->outline.offset(-offset);
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);
@@ -14,7 +14,7 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        ClipperLib::OffsetPolygons(part->outline, part->insets[i], -offset * i - offset/2, ClipperLib::jtSquare, 2, false);
+        part->insets[i] = part->outline.offset(-offset * i - offset/2);
         optimizePolygons(part->insets[i]);
         if (part->insets[i].size() < 1)
         {

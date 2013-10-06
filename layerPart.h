@@ -17,37 +17,20 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
 {
-    ClipperLib::Polygons polyList;
-    for(unsigned int i=0; i<layer->polygonList.size(); i++)
+    if (unionAllType & 0x02)
     {
-        ClipperLib::Polygon p;
-        p.push_back(layer->polygonList[i][0]);
-        for(unsigned int j=1; j<layer->polygonList[i].size(); j++)
+        for(unsigned int i=0; i<layer->polygonList.size(); i++)
         {
-            p.push_back(layer->polygonList[i][j]);
+            if (ClipperLib::Orientation(layer->polygonList[i]))
+                ClipperLib::ReversePolygon(layer->polygonList[i]);
         }
-        if ((unionAllType & 0x02) && ClipperLib::Orientation(p))
-            ClipperLib::ReversePolygon(p);
-        polyList.push_back(p);
     }
     
-    ClipperLib::ExPolygons resultPolys;
-    ClipperLib::Clipper clipper;
-    clipper.AddPolygons(polyList, ClipperLib::ptSubject);
-    if (unionAllType)
-        clipper.Execute(ClipperLib::ctUnion, resultPolys, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
-    else
-        clipper.Execute(ClipperLib::ctUnion, resultPolys);
-    
-    for(unsigned int i=0; i<resultPolys.size(); i++)
+    vector<Polygons> result = layer->polygonList.splitIntoParts(unionAllType);
+    for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.push_back(SliceLayerPart());
-        
-        storageLayer.parts[i].outline.push_back(resultPolys[i].outer);
-        for(unsigned int j=0; j<resultPolys[i].holes.size(); j++)
-        {
-            storageLayer.parts[i].outline.push_back(resultPolys[i].holes[j]);
-        }
+        storageLayer.parts[i].outline = result[i];
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
@@ -58,7 +41,6 @@ void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllT
     {
         storage.layers.push_back(SliceLayer());
         createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
-        //LayerPartsLayer(&slicer->layers[layerNr])
     }
 }
 

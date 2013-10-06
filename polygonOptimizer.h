@@ -41,7 +41,7 @@ void optimizePolygons(Polygons& polys)
         optimizePolygon(polys[n]);
         if (polys[n].size() < 3)
         {
-            polys.erase(polys.begin() + n);
+            polys.remove(n);
             n--;
         }
     }

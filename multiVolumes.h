@@ -16,13 +16,10 @@ void carveMultipleVolumes(vector<SliceVolumeStorage> &volumes)
                 SliceLayer* layer2 = &volumes[idx2].layers[layerNr];
                 for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
                 {
-                    ClipperLib::Clipper clipper;
-                    clipper.AddPolygons(layer1->parts[p1].outline, ClipperLib::ptSubject);
                     for(unsigned int p2 = 0; p2 < layer2->parts.size(); p2++)
                     {
-                        clipper.AddPolygons(layer2->parts[p2].outline, ClipperLib::ptClip);
+                        layer1->parts[p1].outline = layer1->parts[p1].outline.difference(layer2->parts[p2].outline);
                     }
-                    clipper.Execute(ClipperLib::ctDifference, layer1->parts[p1].outline);
                 }
             }
         }
@@ -40,31 +37,20 @@ void generateMultipleVolumesOverlap(vector<SliceVolumeStorage> &volumes, int ove
         Polygons fullLayer;
         for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
         {
-            ClipperLib::Clipper fullLayerClipper;
             SliceLayer* layer1 = &volumes[volIdx].layers[layerNr];
-            fullLayerClipper.AddPolygons(fullLayer, ClipperLib::ptSubject);
             for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
             {
-                Polygons tmp;
-                ClipperLib::OffsetPolygons(layer1->parts[p1].outline, tmp, 20, ClipperLib::jtSquare, 2, false);
-                fullLayerClipper.AddPolygons(tmp, ClipperLib::ptClip);
+                fullLayer = fullLayer.unionPolygons(layer1->parts[p1].outline.offset(20));
             }
-            fullLayerClipper.Execute(ClipperLib::ctUnion, fullLayer);
         }
-        ClipperLib::OffsetPolygons(fullLayer, fullLayer, -20, ClipperLib::jtSquare, 2, false);
+        fullLayer = fullLayer.offset(-20);
         
         for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
         {
             SliceLayer* layer1 = &volumes[volIdx].layers[layerNr];
             for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
             {
-                Polygons tmp;
-                ClipperLib::OffsetPolygons(layer1->parts[p1].outline, tmp, overlap / 2, ClipperLib::jtSquare, 2, false);
-                
-                ClipperLib::Clipper clipper;
-                clipper.AddPolygons(tmp, ClipperLib::ptClip);
-                clipper.AddPolygons(fullLayer, ClipperLib::ptSubject);
-                clipper.Execute(ClipperLib::ctIntersection, layer1->parts[p1].outline);
+                layer1->parts[p1].outline = fullLayer.intersection(layer1->parts[p1].outline.offset(overlap / 2));
             }
         }
     }
