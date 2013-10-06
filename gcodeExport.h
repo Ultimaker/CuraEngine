@@ -267,9 +267,19 @@ public:
         if (currentFanSpeed == speed)
             return;
         if (speed > 0)
-            fprintf(f, "M106 S%d\n", speed * 255 / 100);
+        {
+            if (flavor == GCODE_FLAVOR_MAKERBOT)
+                fprintf(f, "M126 T0 ; value = %d\n", speed * 255 / 100);
+            else
+                fprintf(f, "M106 S%d\n", speed * 255 / 100);
+        }
         else
-            fprintf(f, "M107\n");
+        {
+            if (flavor == GCODE_FLAVOR_MAKERBOT)
+                fprintf(f, "M127 T0\n");
+            else
+                fprintf(f, "M107\n");
+        }
         currentFanSpeed = speed;
     }
 
