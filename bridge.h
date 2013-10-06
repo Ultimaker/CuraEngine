@@ -6,18 +6,14 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
 {
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     // This gives us the islands that the layer rests on.
-    ClipperLib::Clipper bridgeClip;
-    bridgeClip.AddPolygon(part->outline[0], ClipperLib::ptSubject);
-    
+    Polygons islands;
     for(unsigned int n=0; n<prevLayer->parts.size(); n++)
     {
         if (!part->boundaryBox.hit(prevLayer->parts[n].boundaryBox)) continue;
         
-        bridgeClip.AddPolygon(prevLayer->parts[n].outline[0], ClipperLib::ptClip);
+        islands.add(part->outline.intersection(prevLayer->parts[n].outline));
     }
     
-    ClipperLib::Polygons islands;
-    bridgeClip.Execute(ClipperLib::ctIntersection, islands);
     if (islands.size() > 5)
         return -1;
     
