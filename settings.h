@@ -37,6 +37,16 @@ public:
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
 #define GCODE_FLAVOR_ULTIGCODE           1
+/**
+ * Makerbot flavored GCode.
+ *  Looks a lot like RepRap GCode with a few changes. Requires MakerWare to convert to X3G files.
+ *   Heating needs to be done with M104 Sxxx T0
+ *   No G21 or G90
+ *   Fan ON is M126 T0 (No fan strength control?)
+ *   Fan OFF is M127 T0
+ *   Homing is done with G162 X Y F2000
+ **/
+#define GCODE_FLAVOR_MAKERBOT           2
 
 class ConfigSettings
 {
