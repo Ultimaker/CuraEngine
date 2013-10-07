@@ -55,7 +55,7 @@ public:
         ClipperLib::Clipper clipper;
         clipper.AddPolygons(polygons, ClipperLib::ptSubject);
         clipper.AddPolygons(other.polygons, ClipperLib::ptSubject);
-        clipper.Execute(ClipperLib::ctUnion, ret.polygons);
+        clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         return ret;
     }
     Polygons intersection(const Polygons& other) const
