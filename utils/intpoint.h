@@ -93,6 +93,10 @@ INLINE int64_t vSize2(const Point& p0)
 {
     return p0.X*p0.X+p0.Y*p0.Y;
 }
+INLINE float vSize2f(const Point& p0)
+{
+    return float(p0.X)*float(p0.X)+float(p0.Y)*float(p0.Y);
+}
 
 INLINE bool shorterThen(const Point& p0, int32_t len)
 {

@@ -2,8 +2,6 @@
 #ifndef SLICE_DATA_STORAGE_H
 #define SLICE_DATA_STORAGE_H
 
-#include <vector>
-using std::vector;
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 

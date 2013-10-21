@@ -8,7 +8,7 @@ The format returned is a Model class with an array of faces, which have integer 
 **/
 
 #include <vector>
-
+using std::vector;
 #include "utils/intpoint.h"
 #include "utils/floatpoint.h"
 
@@ -30,7 +30,7 @@ public:
 class SimpleVolume
 {
 public:
-    std::vector<SimpleFace> faces;
+    vector<SimpleFace> faces;
     
     void addFace(Point3& v0, Point3& v1, Point3& v2)
     {
@@ -77,7 +77,7 @@ public:
 class SimpleModel
 {
 public:
-    std::vector<SimpleVolume> volumes;
+    vector<SimpleVolume> volumes;
 
     Point3 min()
     {

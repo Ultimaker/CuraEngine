@@ -2,6 +2,9 @@
 #ifndef LAYERPART_H
 #define LAYERPART_H
 
+#include "sliceDataStorage.h"
+#include "slicer.h"
+
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
 It takes the result of the Slice step, which is an unordered list of polygons, and makes groups of polygons,
@@ -15,67 +18,10 @@ It's also the first step that stores the result in the "data storage" so all oth
 */
 
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
-{
-    if (unionAllType & 0x02)
-    {
-        for(unsigned int i=0; i<layer->polygonList.size(); i++)
-        {
-            if (ClipperLib::Orientation(layer->polygonList[i]))
-                ClipperLib::ReversePolygon(layer->polygonList[i]);
-        }
-    }
-    
-    vector<Polygons> result = layer->polygonList.splitIntoParts(unionAllType);
-    for(unsigned int i=0; i<result.size(); i++)
-    {
-        storageLayer.parts.push_back(SliceLayerPart());
-        storageLayer.parts[i].outline = result[i];
-        storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
-    }
-}
+void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType);
 
-void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllType)
-{
-    for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
-    {
-        storage.layers.push_back(SliceLayer());
-        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
-    }
-}
+void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllType);
 
-void dumpLayerparts(SliceDataStorage& storage, const char* filename)
-{
-    FILE* out = fopen(filename, "w");
-    fprintf(out, "<!DOCTYPE html><html><body>");
-    Point3 modelSize = storage.modelSize;
-    Point3 modelMin = storage.modelMin;
-    
-    for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
-    {
-        for(unsigned int layerNr=0;layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
-        {
-            fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
-            SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
-            for(unsigned int i=0;i<layer->parts.size();i++)
-            {
-                SliceLayerPart* part = &layer->parts[i];
-                for(unsigned int j=0;j<part->outline.size();j++)
-                {
-                    fprintf(out, "<polygon points=\"");
-                    for(unsigned int k=0;k<part->outline[j].size();k++)
-                        fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*500, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*500);
-                    if (j == 0)
-                        fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-                    else
-                        fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-                }
-            }
-            fprintf(out, "</svg>\n");
-        }
-    }
-    fprintf(out, "</body></html>");
-    fclose(out);
-}
+void dumpLayerparts(SliceDataStorage& storage, const char* filename);
 
 #endif//LAYERPART_H

@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <sys/time.h>
 #include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -27,7 +26,7 @@
 #include "infill.h"
 #include "bridge.h"
 #include "support.h"
-#include "pathOptimizer.h"
+#include "pathOrderOptimizer.h"
 #include "skirt.h"
 #include "raft.h"
 #include "comb.h"
@@ -35,7 +34,6 @@
 
 #define VERSION "13.07"
 
-int verbose_level;
 int maxObjectHeight;
 
 void processFile(const char* input_filename, ConfigSettings& config, GCodeExport& gcode, bool firstFile)
@@ -88,13 +86,13 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
     {
         storage.volumes.push_back(SliceVolumeStorage());
-        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B));
+        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
         delete slicerList[volumeIdx];
     }
     //carveMultipleVolumes(storage.volumes);
     generateMultipleVolumesOverlap(storage.volumes, config.multiVolumeOverlap);
     log("Generated layer parts in %5.3fs\n", timeElapsed(t));
-    //dumpLayerparts(storage, "c:/models/output.html");
+    dumpLayerparts(storage, "c:/models/output.html");
     
     const unsigned int totalLayers = storage.volumes[0].layers.size();
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -214,7 +212,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
             gcodeLayer.setExtruder(volumeIdx);
             
-            PathOptimizer partOrderOptimizer(gcode.getPositionXY());
+            PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {
                 partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);

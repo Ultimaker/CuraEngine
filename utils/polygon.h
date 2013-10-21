@@ -1,6 +1,8 @@
 #ifndef UTILS_POLYGON_H
 #define UTILS_POLYGON_H
 
+#include <vector>
+using std::vector;
 #include "clipper/clipper.hpp"
 
 #include "utils/intpoint.h"
