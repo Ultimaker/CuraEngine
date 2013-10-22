@@ -414,7 +414,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
         }
     }
     double totalTime = extrudeTime + travelTime;
-    if (totalTime < minTime)
+    if (totalTime < minTime && extrudeTime > 0.0)
     {
         double minExtrudeTime = minTime - travelTime;
         if (minExtrudeTime < 1)
