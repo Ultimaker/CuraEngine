@@ -6,7 +6,7 @@
 #g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o CuraEngine
 
 CXX ?= g++
-CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
+CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer -D_FILE_OFFSET_BITS=64
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=
