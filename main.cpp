@@ -309,20 +309,22 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
         else
             gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
-        if (int(layerNr) >= config.fanOnLayerNr)
+
+        int fanSpeed = config.fanSpeedMin;
+        if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
         {
-            int speed = config.fanSpeedMin;
-            if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
-            {
-                speed = config.fanSpeedMax;
-            }else{
-                int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
-                speed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
-            }
-            gcode.addFanCommand(speed);
+            fanSpeed = config.fanSpeedMax;
         }else{
-            gcode.addFanCommand(0);
+            int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
+            fanSpeed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
         }
+        if (int(layerNr) < config.fanFullOnLayerNr)
+        {
+            //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
+            fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
+        }
+        gcode.addFanCommand(fanSpeed);
+
         gcodeLayer.writeGCode(config.coolHeadLift > 0);
     }
 
@@ -389,7 +391,7 @@ int main(int argc, char **argv)
     config.printSpeed = 50;
     config.infillSpeed = 50;
     config.moveSpeed = 200;
-    config.fanOnLayerNr = 2;
+    config.fanFullOnLayerNr = 2;
     config.skirtDistance = 6000;
     config.skirtLineCount = 1;
     config.skirtMinLength = 0;
@@ -486,7 +488,7 @@ int main(int argc, char **argv)
                             *valuePtr++ = '\0';
                             
                             if (!config.setSetting(argv[argn], valuePtr))
-                                printf("Setting found: %s\n", argv[argn]);
+                                printf("Setting found: %s %s\n", argv[argn], valuePtr);
                         }
                     }
                     break;

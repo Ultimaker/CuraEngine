@@ -27,7 +27,7 @@ ConfigSettings::ConfigSettings()
     SETTING(printSpeed);
     SETTING(infillSpeed);
     SETTING(moveSpeed);
-    SETTING(fanOnLayerNr);
+    SETTING(fanFullOnLayerNr);
     
     SETTING(supportAngle);
     SETTING(supportEverywhere);

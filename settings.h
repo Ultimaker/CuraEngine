@@ -80,7 +80,7 @@ public:
     int printSpeed;
     int infillSpeed;
     int moveSpeed;
-    int fanOnLayerNr;
+    int fanFullOnLayerNr;
     
     //Support material
     int supportAngle;
