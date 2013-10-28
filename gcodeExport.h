@@ -62,20 +62,20 @@ public:
     
     void replaceTagInStart(const char* tag, const char* replaceValue)
     {
-        off64_t oldPos = ftello64(f);
+        off_t oldPos = ftello(f);
         
         char buffer[1024];
-        fseeko64(f, 0, SEEK_SET);
+        fseeko(f, 0, SEEK_SET);
         fread(buffer, 1024, 1, f);
         
         char* c = strstr(buffer, tag);
         memset(c, ' ', strlen(tag));
         if (c) memcpy(c, replaceValue, strlen(replaceValue));
         
-        fseeko64(f, 0, SEEK_SET);
+        fseeko(f, 0, SEEK_SET);
         fwrite(buffer, 1024, 1, f);
         
-        fseeko64(f, oldPos, SEEK_SET);
+        fseeko(f, oldPos, SEEK_SET);
     }
     
     void setExtruderOffset(int id, Point p)
