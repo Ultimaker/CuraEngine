@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <sys/time.h>
 #include <signal.h>
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -27,7 +26,7 @@
 #include "infill.h"
 #include "bridge.h"
 #include "support.h"
-#include "pathOptimizer.h"
+#include "pathOrderOptimizer.h"
 #include "skirt.h"
 #include "raft.h"
 #include "comb.h"
@@ -35,7 +34,6 @@
 
 #define VERSION "13.10"
 
-int verbose_level;
 int maxObjectHeight;
 
 void processFile(const char* input_filename, ConfigSettings& config, GCodeExport& gcode, bool firstFile)
@@ -69,7 +67,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
         slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING));
-        //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
+        //slicerList[volumeIdx]->dumpSegmentsToHTML("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
 
@@ -88,7 +86,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
     {
         storage.volumes.push_back(SliceVolumeStorage());
-        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B));
+        createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
         delete slicerList[volumeIdx];
     }
     //carveMultipleVolumes(storage.volumes);
@@ -106,7 +104,6 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         logProgress("inset",layerNr+1,totalLayers);
     }
     log("Generated inset in %5.3fs\n", timeElapsed(t));
-    //dumpLayerparts(storage, "c:/models/output.html");
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
@@ -214,7 +211,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
             gcodeLayer.setExtruder(volumeIdx);
             
-            PathOptimizer partOrderOptimizer(gcode.getPositionXY());
+            PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {
                 partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
@@ -274,19 +271,15 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             if (config.supportExtruder > -1)
                 gcodeLayer.setExtruder(config.supportExtruder);
             SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
-            ClipperLib::Clipper supportClipper;
-            supportClipper.AddPolygons(supportGenerator.polygons, ClipperLib::ptSubject);
             for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
             {
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                 Polygons polys;
                 for(unsigned int n=0; n<layer->parts.size(); n++)
-                    for(unsigned int m=0; m<layer->parts[n].outline.size(); m++)
-                        polys.push_back(layer->parts[n].outline[m]);
-                ClipperLib::OffsetPolygons(polys, polys, config.supportXYDistance, ClipperLib::jtSquare, 2, false);
-                supportClipper.AddPolygons(polys, ClipperLib::ptClip);
+                    supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(config.supportXYDistance));
             }
-            supportClipper.Execute(ClipperLib::ctDifference, supportGenerator.polygons);
+            supportGenerator.polygons = supportGenerator.polygons.offset(-1000);
+            supportGenerator.polygons = supportGenerator.polygons.offset(1000);
             
             Polygons supportLines;
             if (config.supportLineDistance > 0)
@@ -318,20 +311,22 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
         else
             gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
-        if (int(layerNr) >= config.fanOnLayerNr)
+
+        int fanSpeed = config.fanSpeedMin;
+        if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
         {
-            int speed = config.fanSpeedMin;
-            if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
-            {
-                speed = config.fanSpeedMax;
-            }else{
-                int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
-                speed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
-            }
-            gcode.addFanCommand(speed);
+            fanSpeed = config.fanSpeedMax;
         }else{
-            gcode.addFanCommand(0);
+            int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
+            fanSpeed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
         }
+        if (int(layerNr) < config.fanFullOnLayerNr)
+        {
+            //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
+            fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
+        }
+        gcode.addFanCommand(fanSpeed);
+
         gcodeLayer.writeGCode(config.coolHeadLift > 0);
     }
 
@@ -398,7 +393,7 @@ int main(int argc, char **argv)
     config.printSpeed = 50;
     config.infillSpeed = 50;
     config.moveSpeed = 200;
-    config.fanOnLayerNr = 2;
+    config.fanFullOnLayerNr = 2;
     config.skirtDistance = 6000;
     config.skirtLineCount = 1;
     config.skirtMinLength = 0;
@@ -495,7 +490,7 @@ int main(int argc, char **argv)
                             *valuePtr++ = '\0';
                             
                             if (!config.setSetting(argv[argn], valuePtr))
-                                printf("Setting found: %s\n", argv[argn]);
+                                printf("Setting found: %s %s\n", argv[argn], valuePtr);
                         }
                     }
                     break;

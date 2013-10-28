@@ -16,6 +16,7 @@ public:
 #define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
 #define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
 #define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
+#define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
 /**
@@ -79,7 +80,7 @@ public:
     int printSpeed;
     int infillSpeed;
     int moveSpeed;
-    int fanOnLayerNr;
+    int fanFullOnLayerNr;
     
     //Support material
     int supportAngle;

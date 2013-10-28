@@ -10,7 +10,8 @@ CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=
-SOURCES = main.cpp settings.cpp modelFile/modelFile.cpp clipper/clipper.cpp
+SOURCES  = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp 
+SOURCES += clipper/clipper.cpp modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 EXECUTABLE = ./CuraEngine
 UNAME := $(shell uname)
