@@ -155,7 +155,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             unsigned int bestA = -1;
             unsigned int bestB = -1;
             gapCloserResult bestResult;
-            bestResult.len = LONG_LONG_MAX;
+            bestResult.len = LLONG_MAX;
             bestResult.polygonIdx = -1;
             bestResult.pointIdxA = -1;
             bestResult.pointIdxB = -1;
@@ -188,7 +188,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                 }
             }
             
-            if (bestResult.len < LONG_LONG_MAX)
+            if (bestResult.len < LLONG_MAX)
             {
                 if (bestA == bestB)
                 {
@@ -274,7 +274,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }
     }
     //Clear the openPolygonList to save memory, the only reason to keep it after this is for debugging.
-    openPolygonList.clear();
+    //openPolygonList.clear();
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
     int snapDistance = 1000;

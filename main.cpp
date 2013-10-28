@@ -67,7 +67,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
         slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING));
-        //slicerList[volumeIdx]->dumpSegments("C:\\models\\output.html");
+        //slicerList[volumeIdx]->dumpSegmentsToHTML("C:\\models\\output.html");
     }
     log("Sliced model in %5.3fs\n", timeElapsed(t));
 
@@ -92,7 +92,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     //carveMultipleVolumes(storage.volumes);
     generateMultipleVolumesOverlap(storage.volumes, config.multiVolumeOverlap);
     log("Generated layer parts in %5.3fs\n", timeElapsed(t));
-    dumpLayerparts(storage, "c:/models/output.html");
+    //dumpLayerparts(storage, "c:/models/output.html");
     
     const unsigned int totalLayers = storage.volumes[0].layers.size();
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -104,7 +104,6 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         logProgress("inset",layerNr+1,totalLayers);
     }
     log("Generated inset in %5.3fs\n", timeElapsed(t));
-    //dumpLayerparts(storage, "c:/models/output.html");
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
