@@ -1,7 +1,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <utils/floatpoint.h>
+#include "utils/floatpoint.h"
 #include <vector>
 
 class _ConfigSettingIndex
