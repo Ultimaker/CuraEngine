@@ -30,9 +30,9 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
     
     vector<Polygons> result;
     if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_C)
-        result = layer->polygonList.offset(1000).splitIntoParts(unionAllType);
+        result = layer->polygonList.offset(1000).splitIntoParts();
     else
-        result = layer->polygonList.splitIntoParts(unionAllType);
+        result = layer->polygonList.splitIntoParts();
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.push_back(SliceLayerPart());
