@@ -13,14 +13,23 @@ int cmp_SupportPoint(const void* a, const void* b)
     return ((SupportPoint*)a)->z - ((SupportPoint*)b)->z;
 }
 
-void generateSupportGrid(SupportStorage& storage, OptimizedModel* om)
+void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
 {
+    storage.generated = false;
+    if (supportAngle < 0)
+        return;
+    storage.generated = true;
+    
     storage.gridOffset.X = om->vMin.x;
     storage.gridOffset.Y = om->vMin.y;
     storage.gridScale = 200;
     storage.gridWidth = (om->modelSize.x / storage.gridScale) + 1;
     storage.gridHeight = (om->modelSize.y / storage.gridScale) + 1;
     storage.grid = new vector<SupportPoint>[storage.gridWidth * storage.gridHeight];
+    storage.angle = supportAngle;
+    storage.everywhere = supportEverywhere;
+    storage.XYDistance = supportXYDistance;
+    storage.ZDistance = supportZDistance;
 
     for(unsigned int volumeIdx = 0; volumeIdx < om->volumes.size(); volumeIdx++)
     {
@@ -149,11 +158,14 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
     }
 }
     
-SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere, int supportDistance, int supportZDistance)
-: storage(storage), z(z), everywhere(everywhere)
+SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
+: storage(storage), z(z), everywhere(storage.everywhere)
 {
-    cosAngle = cos(double(90 - angle) / 180.0 * M_PI) - 0.01;
-    this->supportZDistance = supportZDistance;
+    if (!storage.generated)
+        return;
+    
+    cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
+    this->supportZDistance = storage.ZDistance;
 
     done = new int[storage.gridWidth*storage.gridHeight];
     memset(done, 0, sizeof(int) * storage.gridWidth*storage.gridHeight);
@@ -170,6 +182,6 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
 
     delete done;
     
-    polygons = polygons.offset(supportDistance);
+    polygons = polygons.offset(storage.XYDistance);
 }
 

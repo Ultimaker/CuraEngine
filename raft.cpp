@@ -2,7 +2,7 @@
 #include "raft.h"
 #include "support.h"
 
-void generateRaft(SliceDataStorage& storage, int distance, int supportAngle, bool supportEverywhere, int supportDistance)
+void generateRaft(SliceDataStorage& storage, int distance)
 {
     for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
     {
@@ -14,9 +14,6 @@ void generateRaft(SliceDataStorage& storage, int distance, int supportAngle, boo
         }
     }
 
-    if (supportAngle > -1)
-    {
-        SupportPolyGenerator supportGenerator(storage.support, 0, supportAngle, supportEverywhere, supportDistance, 0);
-        storage.raftOutline = storage.raftOutline.unionPolygons(supportGenerator.polygons);
-    }
+    SupportPolyGenerator supportGenerator(storage.support, 0);
+    storage.raftOutline = storage.raftOutline.unionPolygons(supportGenerator.polygons);
 }

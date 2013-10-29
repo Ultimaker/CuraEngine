@@ -5,7 +5,7 @@
 #include "sliceDataStorage.h"
 #include "optimizedModel.h"
 
-void generateSupportGrid(SupportStorage& storage, OptimizedModel* om);
+void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance);
 
 class SupportPolyGenerator
 {
@@ -24,7 +24,7 @@ private:
     void lazyFill(Point startPoint);
     
 public:
-    SupportPolyGenerator(SupportStorage& storage, int32_t z, int angle, bool everywhere, int supportDistance, int supportZDistance);
+    SupportPolyGenerator(SupportStorage& storage, int32_t z);
 };
 
 #endif//SUPPORT_H

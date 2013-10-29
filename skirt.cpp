@@ -1,5 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "skirt.h"
+#include "support.h"
 
 void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength)
 {
@@ -15,6 +16,10 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
                 skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(distance + extrusionWidth * skirtNr + extrusionWidth / 2));
             }
         }
+        
+        SupportPolyGenerator supportGenerator(storage.support, 0);
+        skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(distance + extrusionWidth * skirtNr + extrusionWidth / 2));
+
         storage.skirt.add(skirtPolygons);
         
         int lenght = storage.skirt.polygonLength();

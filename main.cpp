@@ -72,11 +72,9 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     log("Sliced model in %5.3fs\n", timeElapsed(t));
 
     SliceDataStorage storage;
-    if (config.supportAngle > -1)
-    {
-        fprintf(stdout,"Generating support map...\n");
-        generateSupportGrid(storage.support, om);
-    }
+    fprintf(stdout,"Generating support map...\n");
+    generateSupportGrid(storage.support, om, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
+    
     storage.modelSize = om->modelSize;
     storage.modelMin = om->vMin;
     storage.modelMax = om->vMax;
@@ -116,7 +114,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     }
     log("Generated up/down skin in %5.3fs\n", timeElapsed(t));
     generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount, config.skirtMinLength);
-    generateRaft(storage, config.raftMargin, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance);
+    generateRaft(storage, config.raftMargin);
     
     for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
     {
@@ -266,11 +264,11 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             }
             gcodeLayer.setCombBoundary(NULL);
         }
-        if (config.supportAngle > -1)
+        if (storage.support.generated)
         {
             if (config.supportExtruder > -1)
                 gcodeLayer.setExtruder(config.supportExtruder);
-            SupportPolyGenerator supportGenerator(storage.support, z, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
+            SupportPolyGenerator supportGenerator(storage.support, z);
             for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
             {
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];

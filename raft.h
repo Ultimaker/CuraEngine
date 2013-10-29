@@ -4,6 +4,6 @@
 
 #include "sliceDataStorage.h"
 
-void generateRaft(SliceDataStorage& storage, int distance, int supportAngle, bool supportEverywhere, int supportDistance);
+void generateRaft(SliceDataStorage& storage, int distance);
 
 #endif//RAFT_H

@@ -45,6 +45,12 @@ public:
 class SupportStorage
 {
 public:
+    bool generated;
+    int angle;
+    bool everywhere;
+    int XYDistance;
+    int ZDistance;
+    
     Point gridOffset;
     int32_t gridScale;
     int32_t gridWidth, gridHeight;
