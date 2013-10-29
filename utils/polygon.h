@@ -81,7 +81,10 @@ public:
         ClipperLib::Clipper clipper;
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPolygons(polygons, ClipperLib::ptSubject);
-        clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        if (unionAll)
+            clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        else
+            clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
         
         _processPolyTreeNode(&resultPolyTree, ret);
         return ret;

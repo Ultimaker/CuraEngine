@@ -6,6 +6,7 @@
 #include <windows.h>
 #else
 #include <sys/time.h>
+#include <stddef.h>
 #endif
 
 static inline double getTime()
