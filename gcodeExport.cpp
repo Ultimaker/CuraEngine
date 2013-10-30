@@ -447,7 +447,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
     }
 }
 
-void GCodePlanner::writeGCode(bool liftHeadIfNeeded)
+void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 {
     GCodePathConfig* lastConfig = NULL;
     int extruder = gcode.getExtruderNr();
@@ -504,9 +504,35 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded)
                 continue;
             }
         }
-        for(unsigned int i=0; i<path->points.size(); i++)
+        
+        if (path->config->spiralize)
         {
-            gcode.addMove(path->points[i], speed, path->config->lineWidth);
+            //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
+            float totalLength = 0.0;
+            int z = gcode.getPositionZ();
+            Point p0 = gcode.getPositionXY();
+            for(unsigned int i=0; i<path->points.size(); i++)
+            {
+                Point p1 = path->points[i];
+                totalLength += vSizeMM(p0 - p1);
+                p0 = p1;
+            }
+            
+            float length = 0.0;
+            p0 = gcode.getPositionXY();
+            for(unsigned int i=0; i<path->points.size(); i++)
+            {
+                Point p1 = path->points[i];
+                length += vSizeMM(p0 - p1);
+                p0 = p1;
+                gcode.setZ(z + layerThickness * length / totalLength);
+                gcode.addMove(path->points[i], speed, path->config->lineWidth);
+            }
+        }else{
+            for(unsigned int i=0; i<path->points.size(); i++)
+            {
+                gcode.addMove(path->points[i], speed, path->config->lineWidth);
+            }
         }
     }
     

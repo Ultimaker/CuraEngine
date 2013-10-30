@@ -97,7 +97,10 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
     {
         for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
         {
-            generateInsets(&storage.volumes[volumeIdx].layers[layerNr], config.extrusionWidth, config.insetCount);
+            int insetCount = config.insetCount;
+            if (config.spiralizeMode && int(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                insetCount += 5;
+            generateInsets(&storage.volumes[volumeIdx].layers[layerNr], config.extrusionWidth, insetCount);
         }
         logProgress("inset",layerNr+1,totalLayers);
     }
@@ -105,10 +108,13 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+        if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
-            generateSparse(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+            for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+            {
+                generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
+                generateSparse(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+            }
         }
         logProgress("skin",layerNr+1,totalLayers);
     }
@@ -171,7 +177,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             generateLineInfill(storage.raftOutline, raftLines, config.raftBaseLinewidth, config.raftLineSpacing, config.infillOverlap, 0);
             gcodeLayer.addPolygonsByOptimizer(raftLines, &raftBaseConfig);
             
-            gcodeLayer.writeGCode(false);
+            gcodeLayer.writeGCode(false, config.raftBaseThickness);
         }
 
         {
@@ -185,7 +191,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             generateLineInfill(storage.raftOutline, raftLines, config.raftInterfaceLinewidth, config.raftLineSpacing, config.infillOverlap, 90);
             gcodeLayer.addPolygonsByOptimizer(raftLines, &raftInterfaceConfig);
             
-            gcodeLayer.writeGCode(false);
+            gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
         }
     }
 
@@ -227,6 +233,13 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 gcodeLayer.forceRetract();
                 if (config.insetCount > 0)
                 {
+                    if (config.spiralizeMode)
+                    {
+                        if (int(layerNr) >= config.downSkinCount)
+                            inset0Config.spiralize = true;
+                        if (int(layerNr) == config.downSkinCount && part->insets.size() > 0)
+                            gcodeLayer.addPolygonsByOptimizer(part->insets[0], &inset1Config);
+                    }
                     for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                     {
                         if (insetNr == 0)
@@ -260,7 +273,8 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
                 
                 //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-                gcodeLayer.moveInsideCombBoundary();
+                if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
+                    gcodeLayer.moveInsideCombBoundary();
             }
             gcodeLayer.setCombBoundary(NULL);
         }
@@ -276,6 +290,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 for(unsigned int n=0; n<layer->parts.size(); n++)
                     supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(config.supportXYDistance));
             }
+            //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
             supportGenerator.polygons = supportGenerator.polygons.offset(-1000);
             supportGenerator.polygons = supportGenerator.polygons.offset(1000);
             
@@ -325,7 +340,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         }
         gcode.addFanCommand(fanSpeed);
 
-        gcodeLayer.writeGCode(config.coolHeadLift > 0);
+        gcodeLayer.writeGCode(config.coolHeadLift > 0, int(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
     }
 
     /* support debug
@@ -427,6 +442,7 @@ int main(int argc, char **argv)
     config.raftInterfaceThickness = 0;
     config.raftInterfaceLinewidth = 0;
 
+    config.spiralizeMode = 0;
     config.fixHorrible = 0;
     config.gcodeFlavor = GCODE_FLAVOR_REPRAP;
     

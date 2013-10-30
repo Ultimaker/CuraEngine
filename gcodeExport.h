@@ -90,10 +90,12 @@ public:
     int speed;
     int lineWidth;
     const char* name;
+    bool spiralize;
     
     GCodePathConfig(int speed, int lineWidth, const char* name)
     : speed(speed), lineWidth(lineWidth), name(name)
     {
+        spiralize = false;
     }
 };
 
@@ -187,7 +189,7 @@ public:
     
     void forceMinimalLayerTime(double minTime, int minimalSpeed);
     
-    void writeGCode(bool liftHeadIfNeeded);
+    void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };
 
 #endif//GCODEEXPORT_H
