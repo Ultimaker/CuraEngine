@@ -33,7 +33,7 @@ public:
     
     bool checkInside(Point p);
 
-    bool moveInside(Point& p);
+    bool moveInside(Point* p, int distance = 100);
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints);
 };

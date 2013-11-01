@@ -133,9 +133,9 @@ bool Comb::checkInside(Point p)
     return true;
 }
 
-bool Comb::moveInside(Point& p)
+bool Comb::moveInside(Point* p, int distance)
 {
-    Point ret = p;
+    Point ret = *p;
     int64_t bestDist = 10000LL * 10000LL;
     for(unsigned int n=0; n<boundery.size(); n++)
     {
@@ -149,18 +149,18 @@ bool Comb::moveInside(Point& p)
             //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
             Point pDiff = p1 - p0;
             int64_t lineLength = vSize(pDiff);
-            int64_t distOnLine = dot(pDiff, p - p0) / lineLength;
+            int64_t distOnLine = dot(pDiff, *p - p0) / lineLength;
             if (distOnLine < 10)
                 distOnLine = 10;
             if (distOnLine > lineLength - 10)
                 distOnLine = lineLength - 10;
             Point q = p0 + pDiff * distOnLine / lineLength;
             
-            int64_t dist = vSize2(q - p);
+            int64_t dist = vSize2(q - *p);
             if (dist < bestDist)
             {
                 bestDist = dist;
-                ret = q + crossZ(normal(p1 - p0, 100));
+                ret = q + crossZ(normal(p1 - p0, distance));
             }
             
             p0 = p1;
@@ -168,7 +168,7 @@ bool Comb::moveInside(Point& p)
     }
     if (bestDist < 10000LL * 10000LL)
     {
-        p = ret;
+        *p = ret;
         return true;
     }
     return false;
@@ -183,13 +183,13 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     //Check if we are inside the comb boundaries
     if (!checkInside(startPoint))
     {
-        if (!moveInside(startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+        if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
         combPoints.push_back(startPoint);
     }
     if (!checkInside(endPoint))
     {
-        if (!moveInside(endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+        if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
         addEndpoint = true;
     }

@@ -106,6 +106,7 @@ public:
     bool retract;
     int extruder;
     vector<Point> points;
+    bool done;//Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 };
 
 class GCodePlanner
@@ -181,7 +182,7 @@ public:
     
     void addExtrusionMove(Point p, GCodePathConfig* config);
     
-    void moveInsideCombBoundary();
+    void moveInsideCombBoundary(int distance);
 
     void addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config);
 

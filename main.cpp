@@ -231,6 +231,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 else
                     gcodeLayer.setAlwaysRetract(true);
                 gcodeLayer.forceRetract();
+                
                 if (config.insetCount > 0)
                 {
                     if (config.spiralizeMode)
@@ -274,7 +275,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 
                 //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
                 if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
-                    gcodeLayer.moveInsideCombBoundary();
+                    gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
             }
             gcodeLayer.setCombBoundary(NULL);
         }
