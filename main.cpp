@@ -536,6 +536,7 @@ int main(int argc, char **argv)
     {
         gcode.addFanCommand(0);
         gcode.setZ(maxObjectHeight + 5000);
+        gcode.addMove(gcode.getPositionXY(), config.moveSpeed, 0);
         gcode.addCode(config.endCode);
         log("Print time: %d\n", int(gcode.getTotalPrintTime()));
         log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));
