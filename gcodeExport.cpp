@@ -473,7 +473,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         if (path->config->lineWidth != 0)// Only apply the extrudeSpeedFactor to extrusion moves
             speed = speed * extrudeSpeedFactor / 100;
         else
-            speed = speed * travelSpeedFactor / 100;
+            if (n>0)
+                speed = speed * travelSpeedFactor / 100;
         
         if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->lineWidth * 2))
         {
