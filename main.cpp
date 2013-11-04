@@ -32,7 +32,7 @@
 #include "comb.h"
 #include "gcodeExport.h"
 
-#define VERSION "13.10"
+#define VERSION "13.11"
 
 int maxObjectHeight;
 
