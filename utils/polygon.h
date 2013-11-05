@@ -75,7 +75,7 @@ public:
         ClipperLib::OffsetPolygons(polygons, ret.polygons, distance, ClipperLib::jtSquare, 2, false);
         return ret;
     }
-    vector<Polygons> splitIntoParts(bool unionAll) const
+    vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         vector<Polygons> ret;
         ClipperLib::Clipper clipper;

@@ -25,7 +25,8 @@ GCodeExport::GCodeExport()
     currentFanSpeed = -1;
     
     totalPrintTime = 0.0;
-    totalFilament = 0.0;
+    for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
+        totalFilament[e] = 0.0;
     
     currentSpeed = 0;
     retractionSpeed = 45;
@@ -119,9 +120,11 @@ int GCodeExport::getExtruderNr()
     return extruderNr;
 }
 
-double GCodeExport::getTotalFilamentUsed()
+double GCodeExport::getTotalFilamentUsed(int e)
 {
-    return totalFilament + extrusionAmount;
+    if (e == extruderNr)
+        return totalFilament[e] + extrusionAmount;
+    return totalFilament[e];
 }
 
 double GCodeExport::getTotalPrintTime()
@@ -153,7 +156,7 @@ void GCodeExport::resetExtrusionValue()
     if (extrusionAmount != 0.0)
     {
         fprintf(f, "G92 E0\n");
-        totalFilament += extrusionAmount;
+        totalFilament[extruderNr] += extrusionAmount;
         extrusionAmountAtPreviousRetraction -= extrusionAmount;
         extrusionAmount = 0.0;
     }
@@ -224,6 +227,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     if (extruderNr == newExtruder)
         return;
     
+    resetExtrusionValue();
     extruderNr = newExtruder;
 
     if (flavor == GCODE_FLAVOR_ULTIGCODE)

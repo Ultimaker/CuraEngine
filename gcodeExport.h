@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 
+#include "settings.h"
 #include "comb.h"
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
@@ -19,7 +20,7 @@ private:
     double minimalExtrusionBeforeRetraction;
     double extrusionAmountAtPreviousRetraction;
     Point3 currentPosition;
-    Point extruderOffset[16];
+    Point extruderOffset[MAX_EXTRUDERS];
     int currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
@@ -27,7 +28,7 @@ private:
     int currentFanSpeed;
     int flavor;
     
-    double totalFilament;
+    double totalFilament[MAX_EXTRUDERS];
 public:
     double totalPrintTime;
     
@@ -58,7 +59,7 @@ public:
 
     int getExtruderNr();
     
-    double getTotalFilamentUsed();
+    double getTotalFilamentUsed(int e);
 
     double getTotalPrintTime();
     

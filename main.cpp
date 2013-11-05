@@ -38,7 +38,7 @@ int maxObjectHeight;
 
 void processFile(const char* input_filename, ConfigSettings& config, GCodeExport& gcode, bool firstFile)
 {
-    for(unsigned int n=1; n<16;n++)
+    for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
         gcode.setExtruderOffset(n, config.extruderOffset[n].p());
     gcode.setFlavor(config.gcodeFlavor);
     
@@ -144,6 +144,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             gcode.addCode(";FLAVOR:UltiGCode");
             gcode.addCode(";TIME:<__TIME__>");
             gcode.addCode(";MATERIAL:<FILAMENT>");
+            gcode.addCode(";MATERIAL2:<FILAMEN2>");
         }
         gcode.addCode(config.startCode);
     }else{
@@ -295,20 +296,25 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             supportGenerator.polygons = supportGenerator.polygons.offset(-1000);
             supportGenerator.polygons = supportGenerator.polygons.offset(1000);
             
-            Polygons supportLines;
-            if (config.supportLineDistance > 0)
-            {
-                if (config.supportLineDistance > config.extrusionWidth * 4)
-                {
-                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
-                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
-                }else{
-                    generateLineInfill(supportGenerator.polygons, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
-                }
-            }
+            vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
             
-            gcodeLayer.addPolygonsByOptimizer(supportGenerator.polygons, &supportConfig);
-            gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
+            for(unsigned int n=0; n<supportIslands.size(); n++)
+            {
+                Polygons supportLines;
+                if (config.supportLineDistance > 0)
+                {
+                    if (config.supportLineDistance > config.extrusionWidth * 4)
+                    {
+                        generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+                        generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+                    }else{
+                        generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
+                    }
+                }
+            
+                gcodeLayer.addPolygonsByOptimizer(supportIslands[n], &supportConfig);
+                gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
+            }
         }
 
         //Finish the layer by applying speed corrections for minimal layer times and slowdown for the initial layer.
@@ -539,15 +545,18 @@ int main(int argc, char **argv)
         gcode.addMove(gcode.getPositionXY(), config.moveSpeed, 0);
         gcode.addCode(config.endCode);
         log("Print time: %d\n", int(gcode.getTotalPrintTime()));
-        log("Filament: %d\n", int(gcode.getTotalFilamentUsed()));
+        log("Filament: %d\n", int(gcode.getTotalFilamentUsed(0)));
+        log("Filament2: %d\n", int(gcode.getTotalFilamentUsed(1)));
         
         if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
         {
             char numberString[16];
             sprintf(numberString, "%d", int(gcode.getTotalPrintTime()));
             gcode.replaceTagInStart("<__TIME__>", numberString);
-            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed()));
+            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed(0)));
             gcode.replaceTagInStart("<FILAMENT>", numberString);
+            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed(1)));
+            gcode.replaceTagInStart("<FILAMEN2>", numberString);
         }
     }
 }

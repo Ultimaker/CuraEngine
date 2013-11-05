@@ -49,6 +49,8 @@ public:
  **/
 #define GCODE_FLAVOR_MAKERBOT           2
 
+#define MAX_EXTRUDERS 16
+
 class ConfigSettings
 {
 private:
@@ -113,7 +115,7 @@ public:
     int spiralizeMode;
     int gcodeFlavor;
     
-    IntPoint extruderOffset[16];
+    IntPoint extruderOffset[MAX_EXTRUDERS];
     const char* startCode;
     const char* endCode;
     
