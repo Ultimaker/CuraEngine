@@ -231,7 +231,10 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                     gcodeLayer.setCombBoundary(&part->combBoundery);
                 else
                     gcodeLayer.setAlwaysRetract(true);
-                gcodeLayer.forceRetract();
+                
+                //Force retraction on inter-island travel.
+                if (partOrderOptimizer.polyOrder.size() > 1)
+                    gcodeLayer.forceRetract();
                 
                 if (config.insetCount > 0)
                 {
