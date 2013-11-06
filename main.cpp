@@ -108,8 +108,12 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
     {
-        if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
-        {
+        // disable infill when infill is set to 0 or spiralizeMode is on.
+        // also omit the top skins when spiralize is on.
+        if ((!config.spiralizeMode
+             && ((config.sparseInfillLineDistance > 0) || (layerNr >= totalLayers - config.upSkinCount)))
+            || (int(layerNr) < config.downSkinCount)
+            ) {
             for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
             {
                 generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
