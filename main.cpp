@@ -259,11 +259,7 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                 if (layerNr & 1) fillAngle += 90;
                 //int sparseSteps[1] = {config.extrusionWidth};
                 //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
-                if (config.sparseInfillLineDistance > 0
-                    || (int)layerNr < config.downSkinCount
-                    || layerNr >= totalLayers - config.upSkinCount) {
-                    generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
-                }
+                generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
                 //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
                 //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
                 if (config.sparseInfillLineDistance > 0)
@@ -278,8 +274,8 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
                         generateLineInfill(part->sparseOutline, fillPolygons, config.extrusionWidth, config.sparseInfillLineDistance, config.infillOverlap, fillAngle);
                     }
                 }
-                gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
 
+                gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
                 
                 //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
                 if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
