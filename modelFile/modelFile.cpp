@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "modelFile.h"
+#include "modelFile/modelFile.h"
 
 FILE* binaryMeshBlob = NULL;
 

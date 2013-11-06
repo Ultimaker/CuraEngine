@@ -9,8 +9,8 @@ The format returned is a Model class with an array of faces, which have integer 
 
 #include <vector>
 
-#include "../utils/intpoint.h"
-#include "../utils/floatpoint.h"
+#include "utils/intpoint.h"
+#include "utils/floatpoint.h"
 
 extern FILE* binaryMeshBlob;
 

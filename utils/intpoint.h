@@ -8,7 +8,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
-#include "../clipper/clipper.hpp"
+#include "clipper/clipper.hpp"
 using ClipperLib::Polygons;
 
 #include <limits.h>
