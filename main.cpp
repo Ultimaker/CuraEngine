@@ -208,7 +208,6 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         gcode.setZ(z);
         if (layerNr == 0)
             gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
-        
         for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
         {
             if (volumeCnt > 0)
@@ -544,6 +543,7 @@ int main(int argc, char **argv)
     if (gcode.isValid())
     {
         gcode.addFanCommand(0);
+        gcode.addRetraction();
         gcode.setZ(maxObjectHeight + 5000);
         gcode.addMove(gcode.getPositionXY(), config.moveSpeed, 0);
         gcode.addCode(config.endCode);
