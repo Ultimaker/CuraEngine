@@ -70,6 +70,7 @@ public:
     Point3 modelSize, modelMin, modelMax;
     Polygons skirt;
     Polygons raftOutline;
+    vector<Polygons> oozeShield;
     vector<SliceVolumeStorage> volumes;
     
     SupportStorage support;

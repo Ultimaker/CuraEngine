@@ -42,6 +42,7 @@ ConfigSettings::ConfigSettings()
     SETTING(retractionMinimalDistance);
     SETTING(minimalExtrusionBeforeRetraction);
     SETTING(enableCombing);
+    SETTING(enableOozeShield);
     SETTING(multiVolumeOverlap);
     SETTING2(objectPosition.X, posx);
     SETTING2(objectPosition.Y, posy);

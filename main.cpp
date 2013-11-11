@@ -104,6 +104,29 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         }
         logProgress("inset",layerNr+1,totalLayers);
     }
+    if (config.enableOozeShield && storage.volumes.size() > 1)
+    {
+        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+        {
+            Polygons oozeShield;
+            for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+            {
+                for(unsigned int partNr=0; partNr<storage.volumes[volumeIdx].layers[layerNr].parts.size(); partNr++)
+                {
+                    oozeShield = oozeShield.unionPolygons(storage.volumes[volumeIdx].layers[layerNr].parts[partNr].outline.offset(2000));
+                }
+            }
+            storage.oozeShield.push_back(oozeShield);
+        }
+        
+        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+            storage.oozeShield[layerNr] = storage.oozeShield[layerNr].offset(-1000).offset(1000);
+        int offsetAngle = tan(60.0*M_PI/180) * config.layerThickness;//Allow for a 60deg angle in the oozeShield.
+        for(unsigned int layerNr=1; layerNr<totalLayers; layerNr++)
+            storage.oozeShield[layerNr] = storage.oozeShield[layerNr].unionPolygons(storage.oozeShield[layerNr-1].offset(-offsetAngle));
+        for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
+            storage.oozeShield[layerNr-1] = storage.oozeShield[layerNr-1].unionPolygons(storage.oozeShield[layerNr].offset(-offsetAngle));
+    }
     log("Generated inset in %5.3fs\n", timeElapsed(t));
 
     for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -215,6 +238,13 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
             gcodeLayer.setExtruder(volumeIdx);
             
+            if (storage.oozeShield.size() > 0)
+            {
+                gcodeLayer.setAlwaysRetract(true);
+                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &inset0Config);
+                gcodeLayer.setAlwaysRetract(!config.enableCombing);
+            }
+            
             PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {
@@ -285,7 +315,15 @@ void processFile(const char* input_filename, ConfigSettings& config, GCodeExport
         if (storage.support.generated)
         {
             if (config.supportExtruder > -1)
+            {
                 gcodeLayer.setExtruder(config.supportExtruder);
+                if (storage.oozeShield.size() > 0)
+                {
+                    gcodeLayer.setAlwaysRetract(true);
+                    gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &inset0Config);
+                    gcodeLayer.setAlwaysRetract(!config.enableCombing);
+                }
+            }
             SupportPolyGenerator supportGenerator(storage.support, z);
             for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
             {
@@ -435,6 +473,7 @@ int main(int argc, char **argv)
     config.retractionAmountExtruderSwitch = 14500;
     config.retractionMinimalDistance = 1500;
     config.minimalExtrusionBeforeRetraction = 100;
+    config.enableOozeShield = 0;
     config.enableCombing = 1;
     config.multiVolumeOverlap = 0;
 

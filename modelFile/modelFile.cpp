@@ -17,7 +17,7 @@ void* fgets_(char* ptr, size_t len, FILE* f)
             return ptr;
         }
         ptr++;
-        len++;
+        len--;
     }
     return NULL;
 }

@@ -75,6 +75,7 @@ public:
     int retractionMinimalDistance;
     int minimalExtrusionBeforeRetraction;
     int enableCombing;
+    int enableOozeShield;
     int multiVolumeOverlap;
     
     int initialSpeedupLayers;
