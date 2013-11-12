@@ -74,6 +74,8 @@ public:
     vector<SliceVolumeStorage> volumes;
     
     SupportStorage support;
+    Polygons wipeTower;
+    Point wipePoint;
 };
 
 #endif//SLICE_DATA_STORAGE_H

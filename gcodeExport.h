@@ -93,10 +93,14 @@ public:
     const char* name;
     bool spiralize;
     
-    GCodePathConfig(int speed, int lineWidth, const char* name)
-    : speed(speed), lineWidth(lineWidth), name(name)
+    GCodePathConfig() : speed(0), lineWidth(0), name(NULL), spiralize(false) {}
+    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
+    
+    void setData(int speed, int lineWidth, const char* name)
     {
-        spiralize = false;
+        this->speed = speed;
+        this->lineWidth = lineWidth;
+        this->name = name;
     }
 };
 
@@ -135,9 +139,17 @@ public:
     GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance);
     ~GCodePlanner();
     
-    void setExtruder(int extruder)
+    bool setExtruder(int extruder)
     {
+        if (extruder == currentExtruder)
+            return false;
         currentExtruder = extruder;
+        return true;
+    }
+    
+    int getExtruder()
+    {
+        return currentExtruder;
     }
 
     void setCombBoundary(Polygons* polygons)

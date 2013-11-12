@@ -355,12 +355,10 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
         }
     }
     
-    double t = getTime();
     for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
     {
         layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
     }
-    fprintf(stderr, "Processed all layers in %5.1fs\n",timeElapsed(t));
 }
 
 void Slicer::dumpSegmentsToHTML(const char* filename)

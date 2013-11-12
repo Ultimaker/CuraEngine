@@ -20,5 +20,14 @@ static inline double getTime()
 #endif
 }
 
-double timeElapsed(double &t,bool all_time = false);
+class TimeKeeper
+{
+private:
+    double startTime;
+public:
+    TimeKeeper();
+    
+    double restart();
+};
+
 #endif//GETTIME_H
