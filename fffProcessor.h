@@ -424,7 +424,8 @@ private:
             
             Polygons fillPolygons;
             int fillAngle = 45;
-            if (layerNr & 1) fillAngle += 90;
+            if (layerNr & 1) 
+                fillAngle += 90;
             //int sparseSteps[1] = {config.extrusionWidth};
             //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
             generateLineInfill(part->skinOutline, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);

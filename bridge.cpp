@@ -1,5 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "bridge.h"
+#include "utils/polygondebug.h"
 
 int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
 {
@@ -12,7 +13,6 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
         
         islands.add(part->outline.intersection(prevLayer->parts[n].outline));
     }
-    
     if (islands.size() > 5)
         return -1;
     
@@ -23,7 +23,10 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     int idx2 = -1;
     for(unsigned int n=0; n<islands.size(); n++)
     {
-        double area = fabs(Area(islands[n]));
+        //Skip internal holes
+        if (!ClipperLib::Orientation(islands[n]))
+            continue;
+        double area = fabs(ClipperLib::Area(islands[n]));
         if (area > area1)
         {
             if (area1 > area2)
