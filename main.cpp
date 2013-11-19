@@ -54,7 +54,6 @@ int main(int argc, char **argv)
     signal(SIGFPE, signal_FPE);
 
     ConfigSettings config;
-    int fileNr = 0;
     fffProcessor processor(config);
 
     config.filamentDiameter = 2890;
@@ -187,8 +186,12 @@ int main(int argc, char **argv)
                 }
             }
         }else{
-			processor.processFile(argv[argn]);
-            fileNr ++;
+            try {
+                processor.processFile(argv[argn]);
+            }catch(...){
+                printf("Unknown exception\n");
+                exit(1);
+            }
         }
     }
     
