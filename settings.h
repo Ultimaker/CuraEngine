@@ -4,7 +4,7 @@
 #include <utils/floatpoint.h>
 #include <vector>
 
-#define VERSION "13.11"
+#define VERSION "13.11.2"
 
 #define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
 #define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
