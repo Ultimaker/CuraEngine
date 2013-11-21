@@ -374,7 +374,7 @@ private:
     {
         int prevExtruder = gcodeLayer.getExtruder();
         bool extruderChanged = gcodeLayer.setExtruder(volumeIdx);
-        if (layerNr == 0)
+        if (layerNr == 0 && volumeIdx == 0)
             gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
 
         SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
