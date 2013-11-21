@@ -161,7 +161,7 @@ private:
             }
             logProgress("inset",layerNr+1,totalLayers);
         }
-        if (config.enableOozeShield && storage.volumes.size() > 1)
+        if (config.enableOozeShield)
         {
             for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
             {
@@ -381,7 +381,7 @@ private:
         if (extruderChanged)
             addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
         
-        if (storage.oozeShield.size() > 0)
+        if (storage.oozeShield.size() > 0 && storage.volumes.size() > 1)
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
@@ -464,7 +464,7 @@ private:
             if (gcodeLayer.setExtruder(config.supportExtruder))
                 addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
             
-            if (storage.oozeShield.size() > 0)
+            if (storage.oozeShield.size() > 0 && storage.volumes.size() == 1)
             {
                 gcodeLayer.setAlwaysRetract(true);
                 gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
