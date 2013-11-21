@@ -477,7 +477,6 @@ private:
         for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
         {
             SliceLayer* layer = &storage.volumes[volumeCnt].layers[layerNr];
-            Polygons polys;
             for(unsigned int n=0; n<layer->parts.size(); n++)
                 supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(config.supportXYDistance));
         }
@@ -501,6 +500,9 @@ private:
                 }
             }
         
+            gcodeLayer.forceRetract();
+            if (config.enableCombing)
+                gcodeLayer.setCombBoundary(&supportIslands[n]);
             gcodeLayer.addPolygonsByOptimizer(supportIslands[n], &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
         }
