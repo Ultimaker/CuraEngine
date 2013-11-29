@@ -505,6 +505,7 @@ private:
                 gcodeLayer.setCombBoundary(&supportIslands[n]);
             gcodeLayer.addPolygonsByOptimizer(supportIslands[n], &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
+            gcodeLayer.setCombBoundary(NULL);
         }
     }
     
