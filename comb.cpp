@@ -136,7 +136,7 @@ bool Comb::checkInside(Point p)
 bool Comb::moveInside(Point* p, int distance)
 {
     Point ret = *p;
-    int64_t bestDist = 10000LL * 10000LL;
+    int64_t bestDist = 2000LL * 2000LL;
     for(unsigned int n=0; n<boundery.size(); n++)
     {
         if (boundery[n].size() < 1)
@@ -166,7 +166,7 @@ bool Comb::moveInside(Point* p, int distance)
             p0 = p1;
         }
     }
-    if (bestDist < 10000LL * 10000LL)
+    if (bestDist < 2000LL * 2000LL)
     {
         *p = ret;
         return true;
