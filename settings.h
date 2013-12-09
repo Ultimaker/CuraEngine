@@ -78,7 +78,7 @@ public:
     int minimalExtrusionBeforeRetraction;
     int enableCombing;
     int enableOozeShield;
-    int enableWipeTower;
+    int wipeTowerSize;
     int multiVolumeOverlap;
     
     int initialSpeedupLayers;

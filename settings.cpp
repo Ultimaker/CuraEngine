@@ -43,7 +43,7 @@ ConfigSettings::ConfigSettings()
     SETTING(minimalExtrusionBeforeRetraction);
     SETTING(enableCombing);
     SETTING(enableOozeShield);
-    SETTING(enableWipeTower);
+    SETTING(wipeTowerSize);
     SETTING(multiVolumeOverlap);
     SETTING2(objectPosition.X, posx);
     SETTING2(objectPosition.Y, posy);

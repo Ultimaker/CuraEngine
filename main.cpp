@@ -91,7 +91,7 @@ int main(int argc, char **argv)
     config.minimalExtrusionBeforeRetraction = 100;
     config.enableOozeShield = 0;
     config.enableCombing = 1;
-    config.enableWipeTower = 0;
+    config.wipeTowerSize = 0;
     config.multiVolumeOverlap = 0;
 
     config.minimalLayerTime = 5;
