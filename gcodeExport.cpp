@@ -3,6 +3,7 @@
 
 #include "gcodeExport.h"
 #include "pathOrderOptimizer.h"
+#include "timeEstimate.h"
 #include "settings.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -132,6 +133,12 @@ double GCodeExport::getTotalPrintTime()
     return totalPrintTime;
 }
 
+void GCodeExport::updateTotalPrintTime()
+{
+    totalPrintTime += estimateCalculator.calculate();
+    estimateCalculator.reset();
+}
+
 void GCodeExport::addComment(const char* comment, ...)
 {
     va_list args;
@@ -165,6 +172,7 @@ void GCodeExport::resetExtrusionValue()
 void GCodeExport::addDelay(double timeAmount)
 {
     fprintf(f, "G4 P%d\n", int(timeAmount * 1000));
+    totalPrintTime += timeAmount;
 }
 
 void GCodeExport::addMove(Point p, int speed, int lineWidth)
@@ -180,6 +188,7 @@ void GCodeExport::addMove(Point p, int speed, int lineWidth)
             }else{
                 fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
                 currentSpeed = retractionSpeed;
+                estimateCalculator.plan(TimeEstimateCalculator::Position(double(p.X) / 1000.0, (p.Y) / 1000.0, double(zPos) / 1000.0, extrusionAmount), currentSpeed);
             }
             if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                 resetExtrusionValue();
@@ -204,6 +213,7 @@ void GCodeExport::addMove(Point p, int speed, int lineWidth)
     fprintf(f, "\n");
     
     currentPosition = Point3(p.X, p.Y, zPos);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount), currentSpeed);
 }
 
 void GCodeExport::addRetraction()
@@ -215,6 +225,7 @@ void GCodeExport::addRetraction()
             fprintf(f, "G10\n");
         }else{
             fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
             currentSpeed = retractionSpeed;
         }
         extrusionAmountAtPreviousRetraction = extrusionAmount;
@@ -541,11 +552,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
     }
     
-    gcode.totalPrintTime += this->totalPrintTime;
+    gcode.updateTotalPrintTime();
     if (liftHeadIfNeeded && extraTime > 0.0)
     {
-        gcode.totalPrintTime += extraTime;
-        
         gcode.addComment("Small layer, adding delay of %f", extraTime);
         gcode.addRetraction();
         gcode.setZ(gcode.getPositionZ() + 3000);
@@ -554,4 +563,3 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         gcode.addDelay(extraTime);
     }
 }
-
