@@ -377,9 +377,12 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     {
         //Move inside again, so we move out of tight 90deg corners
         comb->moveInside(&p, distance);
-        addTravel(p);
-        //Make sure the that any retraction happens after this move, not before it by starting a new move path.
-        forceNewPathStart();
+        if (comb->checkInside(p))
+        {
+            addTravel(p);
+            //Make sure the that any retraction happens after this move, not before it by starting a new move path.
+            forceNewPathStart();
+        }
     }
 }
 
