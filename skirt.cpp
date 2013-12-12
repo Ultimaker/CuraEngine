@@ -6,19 +6,21 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
 {
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
-        Polygons skirtPolygons;
+        int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
+        
+        Polygons skirtPolygons(storage.wipeTower.offset(offsetDistance));
         for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
         {
             if (storage.volumes[volumeIdx].layers.size() < 1) continue;
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[0];
             for(unsigned int i=0; i<layer->parts.size(); i++)
             {
-                skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(distance + extrusionWidth * skirtNr + extrusionWidth / 2));
+                skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(offsetDistance));
             }
         }
         
         SupportPolyGenerator supportGenerator(storage.support, 0);
-        skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(distance + extrusionWidth * skirtNr + extrusionWidth / 2));
+        skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(offsetDistance));
 
         storage.skirt.add(skirtPolygons);
         

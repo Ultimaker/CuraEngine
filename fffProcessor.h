@@ -199,6 +199,19 @@ private:
             logProgress("skin",layerNr+1,totalLayers);
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
+
+        if (config.wipeTowerSize > 0)
+        {
+            ClipperLib::Polygon p;
+            p.push_back(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000));
+            p.push_back(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000 + config.wipeTowerSize));
+            p.push_back(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize));
+            p.push_back(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000));
+            storage.wipeTower.add(p);
+            
+            storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize / 2, storage.modelMax.y + 3000 + config.wipeTowerSize / 2);
+        }
+
         generateSkirt(storage, config.skirtDistance, config.extrusionWidth, config.skirtLineCount, config.skirtMinLength);
         generateRaft(storage, config.raftMargin);
         
@@ -273,18 +286,6 @@ private:
                 
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
             }
-        }
-        
-        if (config.wipeTowerSize > 0)
-        {
-            ClipperLib::Polygon p;
-            p.push_back(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000));
-            p.push_back(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000 + config.wipeTowerSize));
-            p.push_back(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize));
-            p.push_back(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000));
-            storage.wipeTower.add(p);
-            
-            storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize / 2, storage.modelMax.y + 3000 + config.wipeTowerSize / 2);
         }
 
         int volumeIdx = 0;
