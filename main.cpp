@@ -131,7 +131,7 @@ int main(int argc, char **argv)
         "M84                         ;steppers off\n"
         "G90                         ;absolute positioning\n";
 
-    fprintf(stderr,"Cura_SteamEngine version %s\n", VERSION);
+    fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
 
     for(int argn = 1; argn < argc; argn++)
     {

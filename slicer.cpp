@@ -306,7 +306,7 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
     modelMin = ov->model->vMin;
     
     int layerCount = (modelSize.z - initial) / thickness + 1;
-    fprintf(stderr, "Layer count: %i\n", layerCount);
+    fprintf(stdout, "Layer count: %i\n", layerCount);
     layers.resize(layerCount);
     
     for(unsigned int i=0; i<ov->faces.size(); i++)
