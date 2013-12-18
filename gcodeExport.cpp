@@ -524,7 +524,17 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             }
         }
         
-        if (path->config->spiralize)
+        bool spiralize = path->config->spiralize;
+        if (spiralize)
+        {
+            //Check if we are the last spiralize path in the list, if not, do not spiralize.
+            for(unsigned int m=n+1; m<paths.size(); m++)
+            {
+                if (paths[m].config->spiralize)
+                    spiralize = false;
+            }
+        }
+        if (spiralize)
         {
             //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
             float totalLength = 0.0;
