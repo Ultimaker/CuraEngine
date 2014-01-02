@@ -471,7 +471,6 @@ private:
             }
         }
         int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
-        z += config.raftBaseThickness + config.raftInterfaceThickness;
         SupportPolyGenerator supportGenerator(storage.support, z);
         for(unsigned int volumeCnt = 0; volumeCnt < storage.volumes.size(); volumeCnt++)
         {
