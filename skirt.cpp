@@ -2,7 +2,7 @@
 #include "skirt.h"
 #include "support.h"
 
-void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength)
+void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight)
 {
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
@@ -19,7 +19,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
             }
         }
         
-        SupportPolyGenerator supportGenerator(storage.support, 0);
+        SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight);
         skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(offsetDistance));
 
         storage.skirt.add(skirtPolygons);

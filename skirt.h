@@ -4,6 +4,6 @@
 
 #include "sliceDataStorage.h"
 
-void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength);
+void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight);
 
 #endif//SKIRT_H
