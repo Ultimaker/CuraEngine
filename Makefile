@@ -28,6 +28,7 @@ ifeq ($(UNAME), Darwin)
 endif
 ifeq ($(UNAME), MINGW32_NT-6.1)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
+	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware -lm
 endif
@@ -40,8 +41,8 @@ $(EXECUTABLE): $(OBJECTS)
 .cpp.o:
 	$(CXX) $(CFLAGS) $< -o $@
 
-tests: $(EXECUTABLE)
-	python run_tests.py $(EXECUTABLE)
+test: $(EXECUTABLE)
+	python _tests/runtest.py $(abspath $(EXECUTABLE))
 
 ## clean stuff
 clean:

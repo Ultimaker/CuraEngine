@@ -169,7 +169,7 @@ int main(int argc, char **argv)
                             *valuePtr++ = '\0';
                             
                             if (!config.setSetting(argv[argn], valuePtr))
-                                printf("Setting found: %s %s\n", argv[argn], valuePtr);
+                                printf("Setting not found: %s %s\n", argv[argn], valuePtr);
                         }
                     }
                     break;
