@@ -4,7 +4,7 @@
 
 #include "utils/polygon.h"
 
-void optimizePolygon(ClipperLib::Polygon& poly);
+void optimizePolygon(PolygonRef poly);
 
 void optimizePolygons(Polygons& polys);
 

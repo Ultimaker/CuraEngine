@@ -200,7 +200,7 @@ public:
     
     void moveInsideCombBoundary(int distance);
 
-    void addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config);
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config);
 
     void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config);
     

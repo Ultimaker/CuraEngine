@@ -8,10 +8,10 @@ void PathOrderOptimizer::optimize()
     {
         int best = -1;
         float bestDist = 0xFFFFFFFFFFFFFFFFLL;
-        ClipperLib::Polygon* poly = polygons[i];
-        for(unsigned int j=0; j<poly->size(); j++)
+        PolygonRef poly = polygons[i];
+        for(unsigned int j=0; j<poly.size(); j++)
         {
-            float dist = vSize2f((*poly)[j] - startPoint);
+            float dist = vSize2f(poly[j] - startPoint);
             if (dist < bestDist)
             {
                 best = j;
@@ -29,18 +29,18 @@ void PathOrderOptimizer::optimize()
         float bestDist = 0xFFFFFFFFFFFFFFFFLL;
         for(unsigned int i=0;i<polygons.size(); i++)
         {
-            if (picked[i] || (*polygons[i]).size() < 1)
+            if (picked[i] || polygons[i].size() < 1)
                 continue;
-            if ((*polygons[i]).size() == 2)
+            if (polygons[i].size() == 2)
             {
-                float dist = vSize2f((*polygons[i])[0] - p0);
+                float dist = vSize2f(polygons[i][0] - p0);
                 if (dist < bestDist)
                 {
                     best = i;
                     bestDist = dist;
                     polyStart[i] = 0;
                 }
-                dist = vSize2f((*polygons[i])[1] - p0);
+                dist = vSize2f(polygons[i][1] - p0);
                 if (dist < bestDist)
                 {
                     best = i;
@@ -48,7 +48,7 @@ void PathOrderOptimizer::optimize()
                     polyStart[i] = 1;
                 }
             }else{
-                float dist = vSize2f((*polygons[i])[polyStart[i]] - p0);
+                float dist = vSize2f(polygons[i][polyStart[i]] - p0);
                 if (dist < bestDist)
                 {
                     best = i;
@@ -58,11 +58,11 @@ void PathOrderOptimizer::optimize()
         }
         if (best > -1)
         {
-            if (polygons[best]->size() == 2)
+            if (polygons[best].size() == 2)
             {
-                p0 = (*polygons[best])[(polyStart[best] + 1) % 2];
+                p0 = polygons[best][(polyStart[best] + 1) % 2];
             }else{
-                p0 = (*polygons[best])[polyStart[best]];
+                p0 = polygons[best][polyStart[best]];
             }
             picked[best] = true;
             polyOrder.push_back(best);
@@ -75,9 +75,9 @@ void PathOrderOptimizer::optimize()
         int nr = polyOrder[n];
         int best = -1;
         float bestDist = 0xFFFFFFFFFFFFFFFFLL;
-        for(unsigned int i=0;i<polygons[nr]->size(); i++)
+        for(unsigned int i=0;i<polygons[nr].size(); i++)
         {
-            float dist = vSize2f((*polygons[nr])[i] - p0);
+            float dist = vSize2f(polygons[nr][i] - p0);
             if (dist < bestDist)
             {
                 best = i;
@@ -85,11 +85,11 @@ void PathOrderOptimizer::optimize()
             }
         }
         polyStart[nr] = best;
-        if ((*polygons[nr]).size() <= 2)
+        if (polygons[nr].size() <= 2)
         {
-            p0 = (*polygons[nr])[(best + 1) % 2];
+            p0 = polygons[nr][(best + 1) % 2];
         }else{
-            p0 = (*polygons[nr])[best];
+            p0 = polygons[nr][best];
         }
     }
 }

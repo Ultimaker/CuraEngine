@@ -69,10 +69,9 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
         {
             if (cutList[idx][i+1] - cutList[idx][i] < extrusionWidth / 5)
                 continue;
-            ClipperLib::Polygon p;
-            p.push_back(matrix.unapply(Point(x, cutList[idx][i])));
-            p.push_back(matrix.unapply(Point(x, cutList[idx][i+1])));
-            result.add(p);
+            PolygonRef p = result.newPoly();
+            p.add(matrix.unapply(Point(x, cutList[idx][i])));
+            p.add(matrix.unapply(Point(x, cutList[idx][i+1])));
         }
         idx += 1;
     }

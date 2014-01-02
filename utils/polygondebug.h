@@ -52,7 +52,7 @@ public:
             fprintf(f, "<path d=\"");
             for(unsigned int j=0; j<polys.size(); j++)
             {
-                ClipperLib::Polygon& p = polys[j];
+                PolygonRef p = polys[j];
                 for(unsigned int n=0; n<p.size(); n++)
                 {
                     if (n == 0)

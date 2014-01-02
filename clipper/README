@@ -2,7 +2,54 @@
 Clipper Change Log
 ============================================================
 
-v5.1.6 (23 May 2014)
+v6.1.2 (15 December 2013)
+* Fixed broken C++ header file.
+* Minor improvement to joining polygons.
+
+v6.1.1 (13 December 2013)
+* Fixed a couple of bugs affecting open paths that could 
+  raise unhandled exceptions.
+  
+v6.1.0 (12 December 2013)
+* Deleted: Previously deprecated code has been removed. 
+* Modified: The OffsetPaths function is now deprecated as it has 
+  been replaced by the ClipperOffset class which is much more 
+  flexible. 
+* Bugfixes: Several minor bugs have been fixed including 
+  occasionally an incorrect nesting within the PolyTree structure.
+
+v6.0.0 (30 October 2013)
+* Added: Open path (polyline) clipping. A new 'Curves' demo 
+  application showcases this (see the 'Curves' directory). 
+* Update: Major improvement in the merging of 
+  shared/collinear edges in clip solutions (see Execute). 
+* Added: The IntPoint structure now has an optional 'Z' member. 
+  (See the precompiler directive use_xyz.) 
+* Added: Users can now force Clipper to use 32bit integers 
+  (via the precompiler directive use_int32) instead of using 
+  64bit integers.
+* Modified: To accommodate open paths, the Polygon and Polygons 
+  structures have been renamed Path and Paths respectively. The 
+  AddPolygon and AddPolygons methods of the ClipperBase class 
+  have been renamed AddPath and AddPaths respectively. Several 
+  other functions have been similarly renamed. 
+* Modified: The PolyNode Class has a new IsOpen property. 
+* Modified: The Clipper class has a new ZFillFunction property. 
+* Added: MinkowskiSum and MinkowskiDiff functions added. 
+* Added: Several other new functions have been added including 
+  PolyTreeToPaths, OpenPathsFromPolyTree and ClosedPathsFromPolyTree. 
+* Added: The Clipper constructor now accepts an optional InitOptions 
+  parameter to simplify setting properties. 
+* Bugfixes: Numerous minor bugs have been fixed. 
+* Deprecated: Version 6 is a major upgrade from previous versions 
+  and quite a number of changes have been made to exposed structures 
+  and functions. To minimize inconvenience to existing library users, 
+  some code has been retained and some added to maintain backward 
+  compatibility. However, because this code will be removed in a 
+  future update, it has been marked as deprecated and a precompiler 
+  directive use_deprecated has been defined.
+
+v5.1.6 (23 May 2013)
 * BugFix: CleanPolygon function was buggy.
 * Changed: The behaviour of the 'miter' JoinType has been 
   changed so that when squaring occurs, it's no longer 
@@ -12,7 +59,7 @@ v5.1.6 (23 May 2014)
 * Added: New OffsetPolyLines function
 * Update: Minor code refactoring and optimisations
 
-v5.1.5 (5 May 2014)
+v5.1.5 (5 May 2013)
 * Added: ForceSimple property to Clipper class
 * Update: Improved documentation  
 

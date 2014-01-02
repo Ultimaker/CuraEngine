@@ -24,9 +24,9 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     for(unsigned int n=0; n<islands.size(); n++)
     {
         //Skip internal holes
-        if (!ClipperLib::Orientation(islands[n]))
+        if (!islands[n].orientation())
             continue;
-        double area = fabs(ClipperLib::Area(islands[n]));
+        double area = fabs(islands[n].area());
         if (area > area1)
         {
             if (area1 > area2)
@@ -46,8 +46,8 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     if (idx1 < 0 || idx2 < 0)
         return -1;
     
-    Point center1 = centerOfMass(islands[idx1]);
-    Point center2 = centerOfMass(islands[idx2]);
+    Point center1 = islands[idx1].centerOfMass();
+    Point center2 = islands[idx2].centerOfMass();
     
     double angle = atan2(center2.X - center1.X, center2.Y - center1.Y) / M_PI * 180;
     if (angle < 0) angle += 360;

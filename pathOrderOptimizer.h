@@ -9,24 +9,24 @@ class PathOrderOptimizer
 {
 public:
     Point startPoint;
-    vector<ClipperLib::Polygon*> polygons;
+    vector<PolygonRef> polygons;
     vector<int> polyStart;
     vector<int> polyOrder;
 
-    PathOrderOptimizer(ClipperLib::IntPoint startPoint)
+    PathOrderOptimizer(Point startPoint)
     {
         this->startPoint = startPoint;
     }
 
-    void addPolygon(ClipperLib::Polygon& polygon)
+    void addPolygon(PolygonRef polygon)
     {
-        this->polygons.push_back(&polygon);
+        this->polygons.push_back(polygon);
     }
     
-    void addPolygons(ClipperLib::Polygons& polygons)
+    void addPolygons(Polygons& polygons)
     {
         for(unsigned int i=0;i<polygons.size(); i++)
-            this->polygons.push_back(&polygons[i]);
+            this->polygons.push_back(polygons[i]);
     }
     
     void optimize();

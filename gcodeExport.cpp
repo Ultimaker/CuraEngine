@@ -386,7 +386,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     }
 }
 
-void GCodePlanner::addPolygon(ClipperLib::Polygon& polygon, int startIdx, GCodePathConfig* config)
+void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config)
 {
     Point p0 = polygon[startIdx];
     addTravel(p0);

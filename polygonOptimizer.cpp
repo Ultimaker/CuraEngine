@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "polygonOptimizer.h"
 
-void optimizePolygon(ClipperLib::Polygon& poly)
+void optimizePolygon(PolygonRef poly)
 {
     Point p0 = poly[poly.size()-1];
     for(unsigned int i=0;i<poly.size();i++)
@@ -9,7 +9,7 @@ void optimizePolygon(ClipperLib::Polygon& poly)
         Point p1 = poly[i];
         if (shorterThen(p0 - p1, 10))
         {
-            poly.erase(poly.begin() + i);
+            poly.remove(i);
             i --;
         }else{
             Point p2;
@@ -24,7 +24,7 @@ void optimizePolygon(ClipperLib::Polygon& poly)
             int64_t d = dot(diff0, diff2);
             if (d < -999999000000LL)
             {
-                poly.erase(poly.begin() + i);
+                poly.remove(i);
                 i --;
             }else{
                 p0 = p1;

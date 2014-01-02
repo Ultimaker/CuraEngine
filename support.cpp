@@ -127,8 +127,9 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
 {
     static int nr = 0;
     nr++;
-    ClipperLib::Polygon poly;
-    ClipperLib::Polygon tmpPoly;
+    PolygonRef poly = polygons.newPoly();
+    Polygons tmpPolygons;
+    PolygonRef tmpPoly = tmpPolygons.newPoly();
 
     while(1)
     {
@@ -139,8 +140,8 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
             p.X ++;
             done[p.X + p.Y * storage.gridWidth] = nr;
         }
-        tmpPoly.push_back(startPoint * storage.gridScale + storage.gridOffset - Point(storage.gridScale/2, 0));
-        poly.push_back(p * storage.gridScale + storage.gridOffset);
+        tmpPoly.add(startPoint * storage.gridScale + storage.gridOffset - Point(storage.gridScale/2, 0));
+        poly.add(p * storage.gridScale + storage.gridOffset);
         startPoint.Y++;
         while(!needSupportAt(startPoint) && startPoint.X <= p.X)
             startPoint.X ++;
@@ -148,7 +149,7 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
         {
             for(unsigned int n=0;n<tmpPoly.size();n++)
             {
-                poly.push_back(tmpPoly[tmpPoly.size()-n-1]);
+                poly.add(tmpPoly[tmpPoly.size()-n-1]);
             }
             polygons.add(poly);
             return;

@@ -43,7 +43,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
         double minAreaSize = (2 * M_PI * (double(extrusionWidth) / 1000.0) * (double(extrusionWidth) / 1000.0)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {
-            double area = fabs(ClipperLib::Area(part->skinOutline[i])) / 1000.0 / 1000.0;
+            double area = fabs(part->skinOutline[i].area()) / 1000.0 / 1000.0;
             if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
             {
                 part->skinOutline.remove(i);
@@ -103,7 +103,7 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
         double minAreaSize = 3.0;//(2 * M_PI * (double(config.extrusionWidth) / 1000.0) * (double(config.extrusionWidth) / 1000.0)) * 3;
         for(unsigned int i=0; i<result.size(); i++)
         {
-            double area = fabs(ClipperLib::Area(result[i])) / 1000.0 / 1000.0;
+            double area = fabs(result[i].area()) / 1000.0 / 1000.0;
             if (area < minAreaSize) /* Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill" */
             {
                 result.remove(i);

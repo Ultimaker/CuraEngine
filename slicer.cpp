@@ -13,8 +13,9 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         if (segmentList[startSegment].addedToPolygon)
             continue;
         
-        ClipperLib::Polygon poly;
-        poly.push_back(segmentList[startSegment].start);
+        Polygons tmpPolygons;
+        PolygonRef poly = tmpPolygons.newPoly();
+        poly.add(segmentList[startSegment].start);
         
         unsigned int segmentIndex = startSegment;
         bool canClose;
@@ -23,7 +24,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             canClose = false;
             segmentList[segmentIndex].addedToPolygon = true;
             Point p0 = segmentList[segmentIndex].end;
-            poly.push_back(p0);
+            poly.add(p0);
             int nextIndex = -1;
             OptimizedFace* face = &ov->faces[segmentList[segmentIndex].faceIndex];
             for(unsigned int i=0;i<3;i++)
@@ -75,7 +76,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                     break;
                 }else{
                     for(unsigned int n=0; n<openPolygonList[j].size(); n++)
-                        openPolygonList[i].push_back(openPolygonList[j][n]);
+                        openPolygonList[i].add(openPolygonList[j][n]);
 
                     openPolygonList[j].clear();
                 }
@@ -133,10 +134,10 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             if (reversed)
             {
                 for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
-                    openPolygonList[bestA].push_back(openPolygonList[bestB][n]);
+                    openPolygonList[bestA].add(openPolygonList[bestB][n]);
             }else{
                 for(unsigned int n=0; n<openPolygonList[bestB].size(); n++)
-                    openPolygonList[bestA].push_back(openPolygonList[bestB][n]);
+                    openPolygonList[bestA].add(openPolygonList[bestB][n]);
             }
 
             openPolygonList[bestB].clear();
@@ -199,12 +200,11 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                     }
                     else if (bestResult.AtoB)
                     {
-                        unsigned int n = polygonList.size();
-                        polygonList.add(ClipperLib::Polygon());
+                        PolygonRef poly = polygonList.newPoly();
                         for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
-                            polygonList[n].push_back(polygonList[bestResult.polygonIdx][j]);
+                            poly.add(polygonList[bestResult.polygonIdx][j]);
                         for(unsigned int j = openPolygonList[bestA].size() - 1; int(j) >= 0; j--)
-                            polygonList[n].push_back(openPolygonList[bestA][j]);
+                            poly.add(openPolygonList[bestA][j]);
                         openPolygonList[bestA].clear();
                     }
                     else
@@ -212,7 +212,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                         unsigned int n = polygonList.size();
                         polygonList.add(openPolygonList[bestA]);
                         for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
-                            polygonList[n].push_back(polygonList[bestResult.polygonIdx][j]);
+                            polygonList[n].add(polygonList[bestResult.polygonIdx][j]);
                         openPolygonList[bestA].clear();
                     }
                 }
@@ -221,26 +221,27 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                     if (bestResult.pointIdxA == bestResult.pointIdxB)
                     {
                         for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
-                            openPolygonList[bestB].push_back(openPolygonList[bestA][n]);
+                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
                         openPolygonList[bestA].clear();
                     }
                     else if (bestResult.AtoB)
                     {
-                        ClipperLib::Polygon poly;
+                        Polygons tmpPolygons;
+                        PolygonRef poly = tmpPolygons.newPoly();
                         for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
-                            poly.push_back(polygonList[bestResult.polygonIdx][n]);
+                            poly.add(polygonList[bestResult.polygonIdx][n]);
                         for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
-                            openPolygonList[bestB].push_back(poly[n]);
+                            openPolygonList[bestB].add(poly[n]);
                         for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
-                            openPolygonList[bestB].push_back(openPolygonList[bestA][n]);
+                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
                         openPolygonList[bestA].clear();
                     }
                     else
                     {
                         for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
-                            openPolygonList[bestB].push_back(polygonList[bestResult.polygonIdx][n]);
+                            openPolygonList[bestB].add(polygonList[bestResult.polygonIdx][n]);
                         for(unsigned int n = openPolygonList[bestA].size() - 1; int(n) >= 0; n--)
-                            openPolygonList[bestB].push_back(openPolygonList[bestA][n]);
+                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
                         openPolygonList[bestA].clear();
                     }
                 }
@@ -373,7 +374,7 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
         fprintf(f, "<path d=\"");
         for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
         {
-            ClipperLib::Polygon& p = layers[i].polygonList[j];
+            PolygonRef p = layers[i].polygonList[j];
             for(unsigned int n=0; n<p.size(); n++)
             {
                 if (n == 0)
@@ -388,7 +389,7 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
         fprintf(f, "</g>\n");
         for(unsigned int j=0; j<layers[i].openPolygonList.size(); j++)
         {
-            ClipperLib::Polygon& p = layers[i].openPolygonList[j];
+            PolygonRef p = layers[i].openPolygonList[j];
             if (p.size() < 1) continue;
             fprintf(f, "<polyline points=\"");
             for(unsigned int n=0; n<p.size(); n++)
