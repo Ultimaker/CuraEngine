@@ -225,8 +225,8 @@ void GCodeExport::addRetraction()
             fprintf(f, "G10\n");
         }else{
             fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
-            estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
             currentSpeed = retractionSpeed;
+            estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
         }
         extrusionAmountAtPreviousRetraction = extrusionAmount;
         isRetracted = true;
