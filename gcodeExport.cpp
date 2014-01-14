@@ -249,7 +249,10 @@ void GCodeExport::switchExtruder(int newExtruder)
         currentSpeed = retractionSpeed;
     }
     isRetracted = true;
-    fprintf(f, "T%i\n", extruderNr);
+    if (flavor == GCODE_FLAVOR_MAKERBOT)
+        fprintf(f, "M135 T%i\n", extruderNr);
+    else
+        fprintf(f, "T%i\n", extruderNr);
 }
 
 void GCodeExport::addCode(const char* str)
