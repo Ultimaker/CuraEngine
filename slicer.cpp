@@ -83,7 +83,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             }
         }
     }
-    
+
     //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
     while(1)
     {
@@ -133,14 +133,21 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }else{
             if (reversed)
             {
-                for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
-                    openPolygonList[bestA].add(openPolygonList[bestB][n]);
+                if (openPolygonList[bestA].polygonLength() > openPolygonList[bestB].polygonLength())
+                {
+                    for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
+                        openPolygonList[bestA].add(openPolygonList[bestB][n]);
+                    openPolygonList[bestB].clear();
+                }else{
+                    for(unsigned int n=openPolygonList[bestA].size()-1; int(n)>=0; n--)
+                        openPolygonList[bestB].add(openPolygonList[bestA][n]);
+                    openPolygonList[bestA].clear();
+                }
             }else{
                 for(unsigned int n=0; n<openPolygonList[bestB].size(); n++)
                     openPolygonList[bestA].add(openPolygonList[bestB][n]);
+                openPolygonList[bestB].clear();
             }
-
-            openPolygonList[bestB].clear();
         }
     }
 
@@ -370,8 +377,11 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
     for(unsigned int i=0; i<layers.size(); i++)
     {
         fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", int(modelSize.x / scale), int(modelSize.y / scale));
+        fprintf(f, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
+        fprintf(f, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
+        fprintf(f, "</marker>");
         fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
-        fprintf(f, "<path d=\"");
+        fprintf(f, "<path marker-mid='url(#MidMarker)' d=\"");
         for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
         {
             PolygonRef p = layers[i].polygonList[j];
@@ -391,7 +401,7 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
         {
             PolygonRef p = layers[i].openPolygonList[j];
             if (p.size() < 1) continue;
-            fprintf(f, "<polyline points=\"");
+            fprintf(f, "<polyline marker-mid='url(#MidMarker)' points=\"");
             for(unsigned int n=0; n<p.size(); n++)
             {
                 fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
