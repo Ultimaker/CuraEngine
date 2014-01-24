@@ -35,13 +35,13 @@
 
 void print_usage()
 {
-    printf("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
+    log("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
 }
 
 void signal_FPE(int n)
 {
     (void)n;
-    printf("Arithmetic exception.\n");
+    logError("Arithmetic exception.\n");
     exit(1);
 }
 
@@ -131,7 +131,7 @@ int main(int argc, char **argv)
         "M84                         ;steppers off\n"
         "G90                         ;absolute positioning\n";
 
-    fprintf(stdout,"Cura_SteamEngine version %s\n", VERSION);
+    fprintf(stderr,"Cura_SteamEngine version %s\n", VERSION);
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
                             *valuePtr++ = '\0';
                             
                             if (!config.setSetting(argv[argn], valuePtr))
-                                printf("Setting not found: %s %s\n", argv[argn], valuePtr);
+                                logError("Setting not found: %s %s\n", argv[argn], valuePtr);
                         }
                     }
                     break;
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             try {
                 processor.processFile(argv[argn]);
             }catch(...){
-                printf("Unknown exception\n");
+                logError("Unknown exception\n");
                 exit(1);
             }
         }

@@ -2,6 +2,7 @@
 #include <stdio.h>
 
 #include "utils/gettime.h"
+#include "utils/logoutput.h"
 
 #include "slicer.h"
 #include "polygonOptimizer.h"
@@ -13,8 +14,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         if (segmentList[startSegment].addedToPolygon)
             continue;
         
-        Polygons tmpPolygons;
-        PolygonRef poly = tmpPolygons.newPoly();
+        Polygon poly;
         poly.add(segmentList[startSegment].start);
         
         unsigned int segmentIndex = startSegment;
@@ -233,8 +233,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                     }
                     else if (bestResult.AtoB)
                     {
-                        Polygons tmpPolygons;
-                        PolygonRef poly = tmpPolygons.newPoly();
+                        Polygon poly;
                         for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
                             poly.add(polygonList[bestResult.polygonIdx][n]);
                         for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
@@ -265,9 +264,9 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
     for(unsigned int i=0;i<openPolygonList.size();i++)
     {
         if (openPolygonList[i].size() < 2) continue;
-        if (!q) printf("***\n");
-        printf("S: %f %f\n", float(openPolygonList[i][0].X), float(openPolygonList[i][0].Y));
-        printf("E: %f %f\n", float(openPolygonList[i][openPolygonList[i].size()-1].X), float(openPolygonList[i][openPolygonList[i].size()-1].Y));
+        if (!q) log("***\n");
+        log("S: %f %f\n", float(openPolygonList[i][0].X), float(openPolygonList[i][0].Y));
+        log("E: %f %f\n", float(openPolygonList[i][openPolygonList[i].size()-1].X), float(openPolygonList[i][openPolygonList[i].size()-1].Y));
         q = 1;
     }
     */
@@ -314,8 +313,13 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
     modelMin = ov->model->vMin;
     
     int layerCount = (modelSize.z - initial) / thickness + 1;
-    fprintf(stdout, "Layer count: %i\n", layerCount);
+    log("Layer count: %i\n", layerCount);
     layers.resize(layerCount);
+    
+    for(int32_t layerNr = 0; layerNr < layerCount; layerNr++)
+    {
+        layers[layerNr].z = initial + thickness * layerNr;
+    }
     
     for(unsigned int i=0; i<ov->faces.size(); i++)
     {

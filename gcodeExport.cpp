@@ -5,6 +5,7 @@
 #include "pathOrderOptimizer.h"
 #include "timeEstimate.h"
 #include "settings.h"
+#include "utils/logoutput.h"
 
 #if defined(__APPLE__) && defined(__MACH__)
 //On MacOS the file offset functions are always 64bit.
@@ -288,11 +289,11 @@ void GCodeExport::tellFileSize() {
     float fsize = (float) ftell(f);
     if(fsize > 1024*1024) {
         fsize /= 1024.0*1024.0;
-        fprintf(stdout, "Wrote %5.1f MB.\n",fsize);
+        log("Wrote %5.1f MB.\n",fsize);
     }
     if(fsize > 1024) {
         fsize /= 1024.0;
-        fprintf(stdout, "Wrote %5.1f kilobytes.\n",fsize);
+        log("Wrote %5.1f kilobytes.\n",fsize);
     }
 }
 

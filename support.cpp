@@ -128,8 +128,7 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
     static int nr = 0;
     nr++;
     PolygonRef poly = polygons.newPoly();
-    Polygons tmpPolygons;
-    PolygonRef tmpPoly = tmpPolygons.newPoly();
+    Polygon tmpPoly;
 
     while(1)
     {

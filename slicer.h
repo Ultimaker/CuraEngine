@@ -41,6 +41,7 @@ public:
     std::vector<SlicerSegment> segmentList;
     std::map<int, int> faceToSegmentIndex;
     
+    int z;
     Polygons polygonList;
     Polygons openPolygonList;
     

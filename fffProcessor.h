@@ -100,7 +100,7 @@ private:
         SimpleModel* m = loadModel(input_filename, config.matrix);
         if (!m)
         {
-            log("Failed to load model: %s\n", input_filename);
+            logError("Failed to load model: %s\n", input_filename);
             return false;
         }
         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
@@ -119,12 +119,18 @@ private:
         vector<Slicer*> slicerList;
         for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
         {
-            slicerList.push_back(new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING));
-            //slicerList[volumeIdx]->dumpSegmentsToHTML("C:\\models\\output.html");
+            Slicer* slicer = new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness - config.layerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+            slicerList.push_back(slicer);
+            for(unsigned int layerNr=0; layerNr<slicer->layers.size(); layerNr++)
+            {
+                //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
+                //logPolygons("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
+                logPolygons("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+            }
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
-        fprintf(stdout,"Generating support map...\n");
+        log("Generating support map...\n");
         generateSupportGrid(storage.support, om, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
         
         storage.modelSize = om->modelSize;
@@ -157,7 +163,18 @@ private:
                 int insetCount = config.insetCount;
                 if (config.spiralizeMode && int(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
-                generateInsets(&storage.volumes[volumeIdx].layers[layerNr], config.extrusionWidth, insetCount);
+                SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+                generateInsets(layer, config.extrusionWidth, insetCount);
+
+                for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+                {
+                    if (layer->parts[partNr].insets.size() > 0)
+                    {
+                        logPolygons("inset0", layerNr, layer->z, layer->parts[partNr].insets[0]);
+                        for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
+                            logPolygons("insetx", layerNr, layer->z, layer->parts[partNr].insets[inset]);
+                    }
+                }
             }
             logProgress("inset",layerNr+1,totalLayers);
         }
@@ -194,6 +211,10 @@ private:
                 {
                     generateSkins(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
                     generateSparse(layerNr, storage.volumes[volumeIdx], config.extrusionWidth, config.downSkinCount, config.upSkinCount);
+                    
+                    SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+                    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+                        logPolygons("skin", layerNr, layer->z, layer->parts[partNr].skinOutline);
                 }
             }
             logProgress("skin",layerNr+1,totalLayers);
@@ -384,6 +405,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
+            logPolygons("oozeshield", layerNr, layer->z, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
         
@@ -444,6 +466,7 @@ private:
             }
 
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
+            logPolygons("infill", layerNr, layer->z, fillPolygons);
             
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
@@ -481,6 +504,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
+        logPolygons("support", layerNr, z, supportGenerator.polygons);
         
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
         

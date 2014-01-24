@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 
+#include "utils/logoutput.h"
+
 #include "layerPart.h"
 #include "settings.h"
 
@@ -51,6 +53,7 @@ void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllT
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
         storage.layers.push_back(SliceLayer());
+        storage.layers[layerNr].z = slicer->layers[layerNr].z;
         createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
     }
 }

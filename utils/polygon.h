@@ -110,6 +110,17 @@ public:
     friend class Polygons;
 };
 
+class _Polygon : public PolygonRef
+{
+    ClipperLib::Path poly;
+public:
+    _Polygon()
+    : PolygonRef(poly)
+    {
+    }
+};
+#define Polygon _Polygon
+
 class Polygons
 {
 private:

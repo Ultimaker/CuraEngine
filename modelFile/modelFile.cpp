@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "modelFile/modelFile.h"
+#include "utils/logoutput.h"
 
 FILE* binaryMeshBlob = NULL;
 
@@ -154,7 +155,7 @@ SimpleModel* loadModel(const char* filename, FMatrix3x3& matrix)
             int32_t n, pNr = 0;
             if (fread(&n, 1, sizeof(int32_t), binaryMeshBlob) < 1)
                 return NULL;
-            printf("Reading mesh from binary blob with %i vertexes\n", n);
+            log("Reading mesh from binary blob with %i vertexes\n", n);
             Point3 v[3];
             while(n)
             {
