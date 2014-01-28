@@ -37,6 +37,11 @@ public:
         return (*polygon)[index];
     }
     
+    void* data()
+    {
+        return polygon->data();
+    }
+    
     void add(const Point p)
     {
         polygon->push_back(p);

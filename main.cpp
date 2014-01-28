@@ -148,6 +148,10 @@ int main(int argc, char **argv)
                 case 'v':
                     verbose_level++;
                     break;
+                case 'g':
+                    argn++;
+                    processor.guiConnect(atoi(argv[argn]));
+                    break;
                 case 'b':
                     argn++;
                     binaryMeshBlob = fopen(argv[argn], "rb");

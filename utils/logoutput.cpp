@@ -34,17 +34,3 @@ void logProgress(const char* type, int value, int maxValue)
     fprintf(stderr, "Progress:%s:%i:%i\n", type, value, maxValue);
     fflush(stderr);
 }
-
-void logPolygons(const char* name, int layerNr, int z, Polygons& polygons)
-{
-    if (verbose_level < 3)
-        return;
-    
-    fprintf(stderr, "Polygons:%s:%i:%i:%f\n", name, layerNr, polygons.size(), float(z) / 1000);
-    for(unsigned int n=0; n<polygons.size(); n++)
-    {
-        for(unsigned int i=0; i<polygons[n].size(); i++)
-            fprintf(stderr, "%.2f %.2f ", float(polygons[n][i].X) / 1000, float(polygons[n][i].Y) / 1000);
-        fprintf(stderr, "\n");
-    }
-}

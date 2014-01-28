@@ -1,6 +1,11 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
+#include "utils/socket.h"
+
+#define GUI_CMD_REQUEST_MESH 0x01
+#define GUI_CMD_SEND_POLYGONS 0x02
+
 //FusedFilamentFabrication processor.
 class fffProcessor
 {
@@ -10,6 +15,7 @@ private:
     GCodeExport gcode;
     ConfigSettings& config;
     TimeKeeper timeKeeper;
+    ClientSocket guiSocket;
 
     GCodePathConfig skirtConfig;
     GCodePathConfig inset0Config;
@@ -22,6 +28,27 @@ public:
     {
         fileNr = 1;
         maxObjectHeight = 0;
+    }
+    
+    void guiConnect(int portNr)
+    {
+        guiSocket.connectTo("127.0.0.1", portNr);
+    }
+    
+    void sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons)
+    {
+        guiSocket.sendNr(GUI_CMD_SEND_POLYGONS);
+        guiSocket.sendNr(polygons.size());
+        guiSocket.sendNr(layerNr);
+        guiSocket.sendNr(z);
+        guiSocket.sendNr(strlen(name));
+        guiSocket.sendAll(name, strlen(name));
+        for(unsigned int n=0; n<polygons.size(); n++)
+        {
+            PolygonRef polygon = polygons[n];
+            guiSocket.sendNr(polygon.size());
+            guiSocket.sendAll(polygon.data(), polygon.size() * sizeof(Point));
+        }
     }
     
     bool setTargetFile(const char* filename)
@@ -97,7 +124,37 @@ private:
     {
         timeKeeper.restart();
         log("Loading %s from disk...\n", input_filename);
-        SimpleModel* m = loadModel(input_filename, config.matrix);
+        SimpleModel* m;
+        if (input_filename[0] == '$')
+        {
+            m = new SimpleModel();
+            for(unsigned int n=0; input_filename[n]; n++)
+            {
+                m->volumes.push_back(SimpleVolume());
+                SimpleVolume* volume = &m->volumes[m->volumes.size()-1];
+                guiSocket.sendNr(GUI_CMD_REQUEST_MESH);
+                
+                int32_t vertexCount = guiSocket.recvNr();
+                int pNr = 0;
+                log("Reading mesh from socket with %i vertexes\n", vertexCount);
+                Point3 v[3];
+                while(vertexCount)
+                {
+                    float f[3];
+                    guiSocket.recvAll(f, 3 * sizeof(float));
+                    FPoint3 fp(f[0], f[1], f[2]);
+                    v[pNr++] = config.matrix.apply(fp);
+                    if (pNr == 3)
+                    {
+                        volume->addFace(v[0], v[1], v[2]);
+                        pNr = 0;
+                    }
+                    vertexCount--;
+                }
+            }
+        }else{
+            m = loadModel(input_filename, config.matrix);
+        }
         if (!m)
         {
             logError("Failed to load model: %s\n", input_filename);
@@ -125,7 +182,7 @@ private:
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
                 //logPolygons("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
-                logPolygons("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+                sendPolygons("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
             }
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
@@ -170,9 +227,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        logPolygons("inset0", layerNr, layer->z, layer->parts[partNr].insets[0]);
+                        sendPolygons("inset0", layerNr, layer->z, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            logPolygons("insetx", layerNr, layer->z, layer->parts[partNr].insets[inset]);
+                            sendPolygons("insetx", layerNr, layer->z, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
@@ -214,7 +271,7 @@ private:
                     
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        logPolygons("skin", layerNr, layer->z, layer->parts[partNr].skinOutline);
+                        sendPolygons("skin", layerNr, layer->z, layer->parts[partNr].skinOutline);
                 }
             }
             logProgress("skin",layerNr+1,totalLayers);
@@ -405,7 +462,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            logPolygons("oozeshield", layerNr, layer->z, storage.oozeShield[layerNr]);
+            sendPolygons("oozeshield", layerNr, layer->z, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
         
@@ -466,7 +523,7 @@ private:
             }
 
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
-            logPolygons("infill", layerNr, layer->z, fillPolygons);
+            sendPolygons("infill", layerNr, layer->z, fillPolygons);
             
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
@@ -504,7 +561,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
-        logPolygons("support", layerNr, z, supportGenerator.polygons);
+        sendPolygons("support", layerNr, z, supportGenerator.polygons);
         
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
         
