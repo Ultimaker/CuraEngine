@@ -3,10 +3,10 @@
 #
 
 # simplest working invocation to compile it
-#g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -I. -o CuraEngine
+#g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -o CuraEngine
 
 CXX ?= g++
-CFLAGS += -I. -c -Wall -Wextra -O3 -fomit-frame-pointer
+CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=

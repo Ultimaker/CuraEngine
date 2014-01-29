@@ -2,8 +2,6 @@
 #ifndef LOGOUTPUT_H
 #define LOGOUTPUT_H
 
-#include "utils/polygon.h"
-
 extern int verbose_level;
 
 void logError(const char* fmt, ...);

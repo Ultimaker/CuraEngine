@@ -2,8 +2,8 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "modelFile/modelFile.h"
-#include "utils/logoutput.h"
+#include "modelFile.h"
+#include "../utils/logoutput.h"
 
 FILE* binaryMeshBlob = NULL;
 

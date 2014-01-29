@@ -4,9 +4,9 @@
 #include <vector>
 #include <assert.h>
 using std::vector;
-#include "clipper/clipper.hpp"
+#include "../clipper/clipper.hpp"
 
-#include "utils/intpoint.h"
+#include "intpoint.h"
 
 //#define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS

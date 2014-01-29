@@ -1,8 +1,9 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include <utils/floatpoint.h>
 #include <vector>
+
+#include "utils/floatpoint.h"
 
 #define VERSION "13.12"
 

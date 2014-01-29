@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-#include "utils/logoutput.h"
+#include "logoutput.h"
 
 int verbose_level;
 
