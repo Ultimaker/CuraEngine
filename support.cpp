@@ -180,7 +180,7 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
         }
     }
 
-    delete done;
+    delete[] done;
     
     polygons = polygons.offset(storage.XYDistance);
 }
