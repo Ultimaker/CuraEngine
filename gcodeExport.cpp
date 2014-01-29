@@ -47,7 +47,7 @@ void GCodeExport::replaceTagInStart(const char* tag, const char* replaceValue)
 {
     if (f == stdout)
     {
-        log("Replace:%s:%s", tag, replaceValue);
+        log("Replace:%s:%s\n", tag, replaceValue);
         return;
     }
     off64_t oldPos = ftello64(f);
