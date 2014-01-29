@@ -19,7 +19,7 @@ private:
 
     GCodePathConfig skirtConfig;
     GCodePathConfig inset0Config;
-    GCodePathConfig inset1Config;
+    GCodePathConfig insetXConfig;
     GCodePathConfig fillConfig;
     GCodePathConfig supportConfig;
 public:
@@ -109,8 +109,8 @@ private:
     void preSetup()
     {
         skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
-        inset0Config.setData(config.printSpeed, config.extrusionWidth, "WALL-OUTER");
-        inset1Config.setData(config.printSpeed, config.extrusionWidth, "WALL-INNER");
+        inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
+        insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
         fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
         supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
 
@@ -371,6 +371,22 @@ private:
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
             logProgress("export", layerNr+1, totalLayers);
+
+            if (int(layerNr) < config.initialSpeedupLayers)
+            {
+                int n = config.initialSpeedupLayers;
+                skirtConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "SKIRT");
+                inset0Config.setData(config.inset0Speed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "WALL-OUTER");
+                insetXConfig.setData(config.insetXSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "WALL-INNER");
+                fillConfig.setData(config.infillSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "FILL");
+                supportConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "SUPPORT");
+            }else{
+                skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
+                inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
+                insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
+                fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
+                supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
+            }
             
             gcode.addComment("LAYER:%d", layerNr);
             if (layerNr == 0)
@@ -396,15 +412,7 @@ private:
             if (!printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
             
-            //Finish the layer by applying speed corrections for minimal layer times and slowdown for the initial layer.
-            if (int(layerNr) < config.initialSpeedupLayers)
-            {
-                int n = config.initialSpeedupLayers;
-                int layer0Factor = config.initialLayerSpeed * 100 / config.printSpeed;
-                gcodeLayer.setExtrudeSpeedFactor((layer0Factor * (n - layerNr) + 100 * (layerNr)) / n);
-                if (layerNr == 0)//On the first layer, also slow down the travel
-                    gcodeLayer.setTravelSpeedFactor(layer0Factor);
-            }
+            //Finish the layer by applying speed corrections for minimal layer times
             gcodeLayer.forceMinimalLayerTime(config.minimalLayerTime, config.minimalFeedrate);
 
             int fanSpeed = config.fanSpeedMin;
@@ -476,14 +484,14 @@ private:
                     if (int(layerNr) >= config.downSkinCount)
                         inset0Config.spiralize = true;
                     if (int(layerNr) == config.downSkinCount && part->insets.size() > 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &inset1Config);
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
                         gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
                     else
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset1Config);
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
                 }
             }
             

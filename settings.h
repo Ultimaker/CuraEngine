@@ -86,6 +86,8 @@ public:
     int initialLayerSpeed;
     int printSpeed;
     int infillSpeed;
+    int inset0Speed;
+    int insetXSpeed;
     int moveSpeed;
     int fanFullOnLayerNr;
     

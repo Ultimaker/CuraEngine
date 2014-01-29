@@ -26,6 +26,8 @@ ConfigSettings::ConfigSettings()
     SETTING(initialLayerSpeed);
     SETTING(printSpeed);
     SETTING(infillSpeed);
+    SETTING(inset0Speed);
+    SETTING(insetXSpeed);
     SETTING(moveSpeed);
     SETTING(fanFullOnLayerNr);
     
