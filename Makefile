@@ -11,7 +11,7 @@ CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer
 #CFLAGS+=-ggdb
 LDFLAGS +=
 SOURCES  = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
-SOURCES += clipper/clipper.cpp modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp
+SOURCES += clipper/clipper.cpp modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
 OBJECTS = $(SOURCES:.cpp=.o)
 EXECUTABLE = ./CuraEngine
 UNAME := $(shell uname)
