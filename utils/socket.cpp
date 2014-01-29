@@ -1,5 +1,14 @@
-#include <winsock2.h>
 #include <stdio.h>
+
+#ifdef WIN32
+#include <winsock2.h>
+#else
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#endif
 
 #include "socket.h"
 
@@ -10,20 +19,21 @@ bool wsaStartupDone = false;
 ClientSocket::ClientSocket()
 {
     sockfd = -1;
+
+#ifdef WIN32
+    if (!wsaStartupDone)
+    {
+        WSADATA wsaData = {0};
+        //WSAStartup needs to be called on windows before sockets can be used. Request version 1.1, which is supported on windows 98 and higher.
+        WSAStartup(MAKEWORD(1, 1), &wsaData);
+        wsaStartupDone = true;
+    }
+#endif
 }
 
 void ClientSocket::connectTo(std::string host, int port)
 {
     struct sockaddr_in serv_addr;
-#ifdef WIN32
-    if (!wsaStartupDone)
-    {
-        WSADATA wsaData = {0};
-        WSAStartup(MAKEWORD(1, 1), &wsaData);
-        wsaStartupDone = true;
-    }
-#endif
-    
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     
     memset(&serv_addr, '0', sizeof(serv_addr)); 
