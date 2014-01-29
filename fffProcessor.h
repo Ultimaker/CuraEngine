@@ -560,24 +560,33 @@ private:
         
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
         
+        PathOrderOptimizer islandOrderOptimizer(gcode.getPositionXY());
         for(unsigned int n=0; n<supportIslands.size(); n++)
         {
+            islandOrderOptimizer.addPolygon(supportIslands[n][0]);
+        }
+        islandOrderOptimizer.optimize();
+        
+        for(unsigned int n=0; n<supportIslands.size(); n++)
+        {
+            Polygons& island = supportIslands[islandOrderOptimizer.polyOrder[n]];
+            
             Polygons supportLines;
             if (config.supportLineDistance > 0)
             {
                 if (config.supportLineDistance > config.extrusionWidth * 4)
                 {
-                    generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
-                    generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
                 }else{
-                    generateLineInfill(supportIslands[n], supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
+                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
                 }
             }
         
             gcodeLayer.forceRetract();
             if (config.enableCombing)
-                gcodeLayer.setCombBoundary(&supportIslands[n]);
-            gcodeLayer.addPolygonsByOptimizer(supportIslands[n], &supportConfig);
+                gcodeLayer.setCombBoundary(&island);
+            gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
             gcodeLayer.setCombBoundary(NULL);
         }
