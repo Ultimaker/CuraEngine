@@ -39,12 +39,17 @@ GCodeExport::GCodeExport()
 
 GCodeExport::~GCodeExport()
 {
-    if (f)
+    if (f && f != stdout)
         fclose(f);
 }
 
 void GCodeExport::replaceTagInStart(const char* tag, const char* replaceValue)
 {
+    if (f == stdout)
+    {
+        log("Replace:%s:%s", tag, replaceValue);
+        return;
+    }
     off64_t oldPos = ftello64(f);
     
     char buffer[1024];

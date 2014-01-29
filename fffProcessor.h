@@ -124,7 +124,7 @@ private:
     {
         timeKeeper.restart();
         log("Loading %s from disk...\n", input_filename);
-        SimpleModel* m;
+        SimpleModel* m = NULL;
         if (input_filename[0] == '$')
         {
             m = new SimpleModel();
