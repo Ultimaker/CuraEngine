@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -108,7 +109,7 @@ void ClientSocket::close()
 #ifdef WIN32
     closesocket(sockfd);
 #else
-    close(sockfd);
+    ::close(sockfd);
 #endif
     sockfd = -1;
 }
