@@ -38,6 +38,7 @@ void print_usage()
     log("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
 }
 
+//Signal handler for a "floating point exception", which can also be integer division by zero errors.
 void signal_FPE(int n)
 {
     (void)n;
@@ -48,14 +49,17 @@ void signal_FPE(int n)
 int main(int argc, char **argv)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-    //Lower the process priority on linux and mac.
+    //Lower the process priority on linux and mac. On windows this is done on process creation from the GUI.
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
+
+    //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
     signal(SIGFPE, signal_FPE);
 
     ConfigSettings config;
     fffProcessor processor(config);
 
+    //Hardcoded defaults (TODO: Move to settings class)
     config.filamentDiameter = 2890;
     config.filamentFlow = 100;
     config.initialLayerThickness = 300;
@@ -133,7 +137,7 @@ int main(int argc, char **argv)
         "M84                         ;steppers off\n"
         "G90                         ;absolute positioning\n";
 
-    fprintf(stderr,"Cura_SteamEngine version %s\n", VERSION);
+    logError("Cura_SteamEngine version %s\n", VERSION);
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -148,14 +152,19 @@ int main(int argc, char **argv)
                     print_usage();
                     exit(1);
                 case 'v':
-                    verbose_level++;
+                    increaseVerboseLevel();
+                    break;
+                case 'p':
+                    enableProgressLogging();
                     break;
                 case 'g':
                     argn++;
+                    //Connect the GUI socket to the given port number.
                     processor.guiConnect(atoi(argv[argn]));
                     break;
                 case 'b':
                     argn++;
+                    //The binaryMeshBlob is depricated and will be removed in the future.
                     binaryMeshBlob = fopen(argv[argn], "rb");
                     break;
                 case 'o':
@@ -168,6 +177,7 @@ int main(int argc, char **argv)
                     break;
                 case 's':
                     {
+                        //Parse the given setting and store it.
                         argn++;
                         char* valuePtr = strchr(argv[argn], '=');
                         if (valuePtr)
@@ -180,6 +190,7 @@ int main(int argc, char **argv)
                     }
                     break;
                 case 'm':
+                    //Read the given rotation/scale matrix
                     argn++;
                     sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
                         &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
@@ -193,6 +204,8 @@ int main(int argc, char **argv)
             }
         }else{
             try {
+                //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
                 processor.processFile(argv[argn]);
             }catch(...){
                 logError("Unknown exception\n");
@@ -201,5 +214,6 @@ int main(int argc, char **argv)
         }
     }
     
+    //Finalize the processor, this adds the end.gcode. And reports statistics.
     processor.finalize();
 }

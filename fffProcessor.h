@@ -54,14 +54,14 @@ public:
     bool setTargetFile(const char* filename)
     {
         gcode.setFilename(filename);
-        if (gcode.isValid())
-            gcode.addComment("Generated with Cura_SteamEngine %s", VERSION);
-        return gcode.isValid();
+        if (gcode.isOpened())
+            gcode.writeComment("Generated with Cura_SteamEngine %s", VERSION);
+        return gcode.isOpened();
     }
     
     bool processFile(const char* input_filename)
     {
-        if (!gcode.isValid())
+        if (!gcode.isOpened())
             return false;
 
         TimeKeeper timeKeeperTotal;
@@ -73,7 +73,7 @@ public:
         processSliceData(storage);
         writeGCode(storage);
 
-        logProgress("process", 1, 1);
+        logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
 
         return true;
@@ -81,28 +81,9 @@ public:
     
     void finalize()
     {
-        if (!gcode.isValid())
+        if (!gcode.isOpened())
             return;
-
-        gcode.addFanCommand(0);
-        gcode.addRetraction();
-        gcode.setZ(maxObjectHeight + 5000);
-        gcode.addMove(gcode.getPositionXY(), config.moveSpeed, 0);
-        gcode.addCode(config.endCode);
-        log("Print time: %d\n", int(gcode.getTotalPrintTime()));
-        log("Filament: %d\n", int(gcode.getTotalFilamentUsed(0)));
-        log("Filament2: %d\n", int(gcode.getTotalFilamentUsed(1)));
-        
-        if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
-        {
-            char numberString[16];
-            sprintf(numberString, "%d", int(gcode.getTotalPrintTime()));
-            gcode.replaceTagInStart("<__TIME__>", numberString);
-            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed(0)));
-            gcode.replaceTagInStart("<FILAMENT>", numberString);
-            sprintf(numberString, "%d", int(gcode.getTotalFilamentUsed(1)));
-            gcode.replaceTagInStart("<FILAMEN2>", numberString);
-        }
+        gcode.finalize(maxObjectHeight, config.moveSpeed, config.endCode);
     }
 
 private:
@@ -124,14 +105,14 @@ private:
     {
         timeKeeper.restart();
         log("Loading %s from disk...\n", input_filename);
-        SimpleModel* m = NULL;
+        SimpleModel* model = NULL;
         if (input_filename[0] == '$')
         {
-            m = new SimpleModel();
+            model = new SimpleModel();
             for(unsigned int n=0; input_filename[n]; n++)
             {
-                m->volumes.push_back(SimpleVolume());
-                SimpleVolume* volume = &m->volumes[m->volumes.size()-1];
+                model->volumes.push_back(SimpleVolume());
+                SimpleVolume* volume = &model->volumes[model->volumes.size()-1];
                 guiSocket.sendNr(GUI_CMD_REQUEST_MESH);
                 
                 int32_t vertexCount = guiSocket.recvNr();
@@ -153,47 +134,47 @@ private:
                 }
             }
         }else{
-            m = loadModel(input_filename, config.matrix);
+            model = loadModelFromFile(input_filename, config.matrix);
         }
-        if (!m)
+        if (!model)
         {
             logError("Failed to load model: %s\n", input_filename);
             return false;
         }
         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
         log("Analyzing and optimizing model...\n");
-        OptimizedModel* om = new OptimizedModel(m, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
-        for(unsigned int v = 0; v < m->volumes.size(); v++)
+        OptimizedModel* optimizedModel = new OptimizedModel(model, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
+        for(unsigned int v = 0; v < model->volumes.size(); v++)
         {
-            log("  Face counts: %i -> %i %0.1f%%\n", (int)m->volumes[v].faces.size(), (int)om->volumes[v].faces.size(), float(om->volumes[v].faces.size()) / float(m->volumes[v].faces.size()) * 100);
-            log("  Vertex counts: %i -> %i %0.1f%%\n", (int)m->volumes[v].faces.size() * 3, (int)om->volumes[v].points.size(), float(om->volumes[v].points.size()) / float(m->volumes[v].faces.size() * 3) * 100);
+            log("  Face counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size(), (int)optimizedModel->volumes[v].faces.size(), float(optimizedModel->volumes[v].faces.size()) / float(model->volumes[v].faces.size()) * 100);
+            log("  Vertex counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size() * 3, (int)optimizedModel->volumes[v].points.size(), float(optimizedModel->volumes[v].points.size()) / float(model->volumes[v].faces.size() * 3) * 100);
         }
-        delete m;
+        delete model;
         log("Optimize model %5.3fs \n", timeKeeper.restart());
         //om->saveDebugSTL("c:\\models\\output.stl");
         
         log("Slicing model...\n");
         vector<Slicer*> slicerList;
-        for(unsigned int volumeIdx=0; volumeIdx < om->volumes.size(); volumeIdx++)
+        for(unsigned int volumeIdx=0; volumeIdx < optimizedModel->volumes.size(); volumeIdx++)
         {
-            Slicer* slicer = new Slicer(&om->volumes[volumeIdx], config.initialLayerThickness - config.layerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+            Slicer* slicer = new Slicer(&optimizedModel->volumes[volumeIdx], config.initialLayerThickness - config.layerThickness / 2, config.layerThickness, config.fixHorrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, config.fixHorrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
             slicerList.push_back(slicer);
             for(unsigned int layerNr=0; layerNr<slicer->layers.size(); layerNr++)
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-                //logPolygons("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
+                //sendPolygonsToGui("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
                 sendPolygonsToGui("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
             }
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
         log("Generating support map...\n");
-        generateSupportGrid(storage.support, om, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
+        generateSupportGrid(storage.support, optimizedModel, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
         
-        storage.modelSize = om->modelSize;
-        storage.modelMin = om->vMin;
-        storage.modelMax = om->vMax;
-        delete om;
+        storage.modelSize = optimizedModel->modelSize;
+        storage.modelMin = optimizedModel->vMin;
+        storage.modelMax = optimizedModel->vMax;
+        delete optimizedModel;
 
         log("Generating layer parts...\n");
         for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
@@ -315,31 +296,31 @@ private:
         {
             if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
             {
-                gcode.addCode(";FLAVOR:UltiGCode");
-                gcode.addCode(";TIME:<__TIME__>");
-                gcode.addCode(";MATERIAL:<FILAMENT>");
-                gcode.addCode(";MATERIAL2:<FILAMEN2>");
+                gcode.writeCode(";FLAVOR:UltiGCode");
+                gcode.writeCode(";TIME:<__TIME__>");
+                gcode.writeCode(";MATERIAL:<FILAMENT>");
+                gcode.writeCode(";MATERIAL2:<FILAMEN2>");
             }
-            gcode.addCode(config.startCode);
+            gcode.writeCode(config.startCode);
         }else{
-            gcode.addFanCommand(0);
+            gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
-            gcode.addRetraction();
+            gcode.writeRetraction();
             gcode.setZ(maxObjectHeight + 5000);
-            gcode.addMove(Point(storage.modelMin.x, storage.modelMin.y), config.moveSpeed, 0);
+            gcode.writeMove(Point(storage.modelMin.x, storage.modelMin.y), config.moveSpeed, 0);
         }
         fileNr++;
         
         unsigned int totalLayers = storage.volumes[0].layers.size();
-        gcode.addComment("Layer count: %d", totalLayers);
+        gcode.writeComment("Layer count: %d", totalLayers);
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
             GCodePathConfig raftBaseConfig(config.initialLayerSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.initialLayerSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             {
-                gcode.addComment("LAYER:-2");
-                gcode.addComment("RAFT");
+                gcode.writeComment("LAYER:-2");
+                gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcode.setZ(config.raftBaseThickness);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
@@ -353,8 +334,8 @@ private:
             }
 
             {
-                gcode.addComment("LAYER:-1");
-                gcode.addComment("RAFT");
+                gcode.writeComment("LAYER:-1");
+                gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
                 gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
@@ -388,7 +369,7 @@ private:
                 supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
             }
             
-            gcode.addComment("LAYER:%d", layerNr);
+            gcode.writeComment("LAYER:%d", layerNr);
             if (layerNr == 0)
                 gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
             else
@@ -428,14 +409,14 @@ private:
                 //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
                 fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
             }
-            gcode.addFanCommand(fanSpeed);
+            gcode.writeFanCommand(fanSpeed);
 
             gcodeLayer.writeGCode(config.coolHeadLift > 0, int(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
         }
         
         log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
         gcode.tellFileSize();
-        gcode.addFanCommand(0);
+        gcode.writeFanCommand(0);
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);

@@ -105,6 +105,6 @@ public:
     }
 };
 
-SimpleModel* loadModel(const char* filename, FMatrix3x3& matrix);
+SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix);
 
 #endif//MODELFILE_H

@@ -135,7 +135,7 @@ SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
     return loadModelSTL_binary(filename, matrix);
 }
 
-SimpleModel* loadModel(const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && strcasecmp(ext, ".stl") == 0)
