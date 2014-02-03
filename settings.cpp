@@ -74,6 +74,8 @@ ConfigSettings::ConfigSettings()
     SETTING(extruderOffset[2].Y);
     SETTING(extruderOffset[3].X);
     SETTING(extruderOffset[3].Y);
+    
+    SETTING(stretchDistance);
 }
 
 #undef STRINGIFY
