@@ -321,7 +321,7 @@ void GCodePlanner::forceNewPathStart()
 }
 
 GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
-: gcode(gcode), travelConfig(travelSpeed, 0, "travel")
+: gcode(gcode), travelConfig(travelSpeed, 0, 0, "travel")
 {
     lastPosition = gcode.getPositionXY();
     comb = NULL;
@@ -567,10 +567,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 gcode.addMove(path->points[i], speed, path->config->lineWidth);
             }
         }else{
-            for(unsigned int i=0; i<path->points.size(); i++)
-            {
-                gcode.addMove(path->points[i], speed, path->config->lineWidth);
-            }
+            writeStretchedPath(path->points, speed, path->config->lineWidth, path->config->stretchDistance);
         }
     }
     
@@ -585,3 +582,93 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         gcode.addDelay(extraTime);
     }
 }
+
+void GCodePlanner::writeStretchedPath(vector<Point>& points, int speed, int lineWidth, int _stretchDistance)
+{
+    int64_t stretchDistance = _stretchDistance; //600 Leash length in microns
+    if (stretchDistance)
+    {
+        Point p0 = gcode.getPositionXY(); // Previous unmodified point
+        for(unsigned int i=0; i<points.size(); i++)
+        {
+            // We need 3 points, and the distance between two point should be more than stretchDistance
+            unsigned int ip1 = i; // Point to move
+            unsigned int ip2 = i; // Next point
+            unsigned int ip3 = i; // Previous point
+            bool ok2 = false;
+            for (unsigned int j=0;!ok2 && j<points.size();j++)
+            {
+                if (++ip2 == points.size())
+                    ip2 = 0;
+                if (vSize2(points[ip1] - points[ip2]) >= stretchDistance * stretchDistance)
+                    ok2 = true;
+            }
+            bool ok3 = false;
+            for (unsigned int j=0;ok2 && !ok3 && j<points.size();j++)
+            {
+                if (ip3 == 0)
+                    ip3 = points.size();
+                --ip3;
+                if (ip3 == ip2)
+                    break;
+                if (vSize2(points[ip1] - points[ip3]) >= stretchDistance * stretchDistance)
+                    ok3 = true;
+            }
+            if (ok2 && ok3)
+            {
+                Point pc = CircleCenter(points[ip3],points[ip1],points[ip2]);
+                double ratio = sqrt(1.0 + (double)stretchDistance * (double)stretchDistance / (double)vSize2(points[ip1]-pc));
+                /* Modified radius is square root of (R*R + A*A) where R is the original radius and A is the leash length. */
+                Point np1;
+                np1.X = (int64_t)floor(pc.X + (double)(points[ip1].X-pc.X)*ratio + 0.5);
+                np1.Y = (int64_t)floor(pc.Y + (double)(points[ip1].Y-pc.Y)*ratio + 0.5);
+                //p1 = Point();pc + (p1-pc)*ratio;
+                
+                int64_t oldLen = vSize(p0 - points[i]);
+                int64_t newLen = vSize(gcode.getPositionXY() - np1);
+                if (newLen > 0)
+                    gcode.addMove(np1, speed, lineWidth * oldLen / newLen);
+            }
+            else
+                gcode.addMove(points[i], speed, lineWidth);
+            p0 = points[i];
+        }
+    }
+    else
+    {
+        // Original code
+        for(unsigned int i=0; i<points.size(); i++)
+        {
+            gcode.addMove(points[i], speed, lineWidth);
+        }
+    }
+}
+
+Point GCodePlanner::CircleCenter(Point& A, Point& B, Point& C)
+{
+    // This method return the center of the circle
+    // A, B and C are three points of the circle
+    double yDelta_a = B.Y - A.Y;
+    double xDelta_a = B.X - A.X;
+    double yDelta_b = C.Y - B.Y;
+    double xDelta_b = C.X - B.X;
+    Point center(0,0);
+    
+    if (fabs(xDelta_a) < 1e-10)
+        xDelta_a = 1e-10;
+    if (fabs(xDelta_b) < 1e-10)
+        xDelta_b = 1e-10;
+
+    double aSlope = yDelta_a/xDelta_a;
+    if (fabs(aSlope) < 1e-10)
+        aSlope = 1e-10;
+    double bSlope = yDelta_b/xDelta_b;
+    if (fabs(bSlope-aSlope) < 1e-10)
+        bSlope = aSlope + 1e-10;
+    center.X = (aSlope*bSlope*(A.Y - C.Y) + bSlope*(A.X + B.X)
+    - aSlope*(B.X+C.X) )/(2* (bSlope-aSlope) );
+    center.Y = -1*(center.X - (A.X+B.X)/2)/aSlope +  (A.Y+B.Y)/2;
+
+    return center;
+}
+

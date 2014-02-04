@@ -109,6 +109,7 @@ int main(int argc, char **argv)
     config.raftInterfaceThickness = 0;
     config.raftInterfaceLinewidth = 0;
 
+    config.stretchDistance = 0; // 600 = good default value
     config.spiralizeMode = 0;
     config.fixHorrible = 0;
     config.gcodeFlavor = GCODE_FLAVOR_REPRAP;
