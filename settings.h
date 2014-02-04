@@ -114,6 +114,8 @@ public:
     int raftInterfaceThickness;
     int raftInterfaceLinewidth;
     
+    int stretchDistance;
+    
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;

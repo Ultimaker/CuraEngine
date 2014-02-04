@@ -108,11 +108,11 @@ public:
 private:
     void preSetup()
     {
-        skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
-        inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
-        insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
-        fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
-        supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
+        skirtConfig.setData(config.printSpeed, config.extrusionWidth, 0, "SKIRT");
+        inset0Config.setData(config.inset0Speed, config.extrusionWidth, config.stretchDistance, "WALL-OUTER");
+        insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, config.stretchDistance, "WALL-INNER");
+        fillConfig.setData(config.infillSpeed, config.extrusionWidth, 0, "FILL");
+        supportConfig.setData(config.printSpeed, config.extrusionWidth, 0, "SUPPORT");
 
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
             gcode.setExtruderOffset(n, config.extruderOffset[n].p());
@@ -335,8 +335,8 @@ private:
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
-            GCodePathConfig raftBaseConfig(config.initialLayerSpeed, config.raftBaseLinewidth, "SUPPORT");
-            GCodePathConfig raftInterfaceConfig(config.initialLayerSpeed, config.raftInterfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftBaseConfig(config.initialLayerSpeed, config.raftBaseLinewidth, 0, "SUPPORT");
+            GCodePathConfig raftInterfaceConfig(config.initialLayerSpeed, config.raftInterfaceLinewidth, 0, "SUPPORT");
             {
                 gcode.addComment("LAYER:-2");
                 gcode.addComment("RAFT");
@@ -375,17 +375,17 @@ private:
             if (int(layerNr) < config.initialSpeedupLayers)
             {
                 int n = config.initialSpeedupLayers;
-                skirtConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "SKIRT");
-                inset0Config.setData(config.inset0Speed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(config.insetXSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "WALL-INNER");
-                fillConfig.setData(config.infillSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "FILL");
-                supportConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, "SUPPORT");
+                skirtConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, 0, "SKIRT");
+                inset0Config.setData(config.inset0Speed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, config.stretchDistance, "WALL-OUTER");
+                insetXConfig.setData(config.insetXSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, config.stretchDistance, "WALL-INNER");
+                fillConfig.setData(config.infillSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, 0, "FILL");
+                supportConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, config.extrusionWidth, 0, "SUPPORT");
             }else{
-                skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
-                inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
-                fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
-                supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
+                skirtConfig.setData(config.printSpeed, config.extrusionWidth, 0, "SKIRT");
+                inset0Config.setData(config.inset0Speed, config.extrusionWidth, config.stretchDistance, "WALL-OUTER");
+                insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, config.stretchDistance, "WALL-INNER");
+                fillConfig.setData(config.infillSpeed, config.extrusionWidth, 0, "FILL");
+                supportConfig.setData(config.printSpeed, config.extrusionWidth, 0, "SUPPORT");
             }
             
             gcode.addComment("LAYER:%d", layerNr);
