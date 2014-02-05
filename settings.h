@@ -72,11 +72,15 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
+    
+    //Retraction settings
     int retractionAmount;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
     int retractionMinimalDistance;
     int minimalExtrusionBeforeRetraction;
+    int retractionZHop;
+    
     int enableCombing;
     int enableOozeShield;
     int wipeTowerSize;

@@ -3,77 +3,98 @@
 #include "settings.h"
 
 #define STRINGIFY(_s) #_s
-#define SETTING(name) _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name))
-#define SETTING2(name, altName) _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altName), &name))
+#define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
+#define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
 
 ConfigSettings::ConfigSettings()
 {
-    SETTING(layerThickness);
-    SETTING(initialLayerThickness);
-    SETTING(filamentDiameter);
-    SETTING(filamentFlow);
-    SETTING(extrusionWidth);
-    SETTING(insetCount);
-    SETTING(downSkinCount);
-    SETTING(upSkinCount);
-    SETTING(sparseInfillLineDistance);
-    SETTING(infillOverlap);
-    SETTING(skirtDistance);
-    SETTING(skirtLineCount);
-    SETTING(skirtMinLength);
+    SETTING(layerThickness, 100);
+    SETTING(initialLayerThickness, 300);
+    SETTING(filamentDiameter, 2890);
+    SETTING(filamentFlow, 100);
+    SETTING(extrusionWidth, 400);
+    SETTING(insetCount, 2);
+    SETTING(downSkinCount, 6);
+    SETTING(upSkinCount, 6);
+    SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
+    SETTING(infillOverlap, 15);
+    SETTING(skirtDistance, 6000);
+    SETTING(skirtLineCount, 1);
+    SETTING(skirtMinLength, 0);
 
-    SETTING(initialSpeedupLayers);
-    SETTING(initialLayerSpeed);
-    SETTING(printSpeed);
-    SETTING(infillSpeed);
-    SETTING(inset0Speed);
-    SETTING(insetXSpeed);
-    SETTING(moveSpeed);
-    SETTING(fanFullOnLayerNr);
+    SETTING(initialSpeedupLayers, 4);
+    SETTING(initialLayerSpeed, 20);
+    SETTING(printSpeed, 50);
+    SETTING(infillSpeed, 50);
+    SETTING(inset0Speed, 50);
+    SETTING(insetXSpeed, 50);
+    SETTING(moveSpeed, 150);
+    SETTING(fanFullOnLayerNr, 2);
     
-    SETTING(supportAngle);
-    SETTING(supportEverywhere);
-    SETTING(supportLineDistance);
-    SETTING(supportXYDistance);
-    SETTING(supportZDistance);
-    SETTING(supportExtruder);
+    SETTING(supportAngle, -1);
+    SETTING(supportEverywhere, 0);
+    SETTING(supportLineDistance, sparseInfillLineDistance);
+    SETTING(supportXYDistance, 700);
+    SETTING(supportZDistance, 150);
+    SETTING(supportExtruder, -1);
     
-    SETTING(retractionAmount);
-    SETTING(retractionSpeed);
-    SETTING(retractionAmountExtruderSwitch);
-    SETTING(retractionMinimalDistance);
-    SETTING(minimalExtrusionBeforeRetraction);
-    SETTING(enableCombing);
-    SETTING(enableOozeShield);
-    SETTING(wipeTowerSize);
-    SETTING(multiVolumeOverlap);
-    SETTING2(objectPosition.X, posx);
-    SETTING2(objectPosition.Y, posy);
-    SETTING(objectSink);
+    SETTING(retractionAmount, 4500);
+    SETTING(retractionSpeed, 45);
+    SETTING(retractionAmountExtruderSwitch, 14500);
+    SETTING(retractionMinimalDistance, 1500);
+    SETTING(minimalExtrusionBeforeRetraction, 100);
+    SETTING(retractionZHop, 0);
+    
+    SETTING(enableCombing, 1);
+    SETTING(enableOozeShield, 0);
+    SETTING(wipeTowerSize, 0);
+    SETTING(multiVolumeOverlap, 0);
+    SETTING2(objectPosition.X, posx, 102500);
+    SETTING2(objectPosition.Y, posy, 102500);
+    SETTING(objectSink, 0);
 
-    SETTING(raftMargin);
-    SETTING(raftLineSpacing);
-    SETTING(raftBaseThickness);
-    SETTING(raftBaseLinewidth);
-    SETTING(raftInterfaceThickness);
-    SETTING(raftInterfaceLinewidth);
+    SETTING(raftMargin, 5000);
+    SETTING(raftLineSpacing, 1000);
+    SETTING(raftBaseThickness, 0);
+    SETTING(raftBaseLinewidth, 0);
+    SETTING(raftInterfaceThickness, 0);
+    SETTING(raftInterfaceLinewidth, 0);
     
-    SETTING(minimalLayerTime);
-    SETTING(minimalFeedrate);
-    SETTING(coolHeadLift);
-    SETTING(fanSpeedMin);
-    SETTING(fanSpeedMax);
+    SETTING(minimalLayerTime, 5);
+    SETTING(minimalFeedrate, 10);
+    SETTING(coolHeadLift, 0);
+    SETTING(fanSpeedMin, 100);
+    SETTING(fanSpeedMax, 100);
     
-    SETTING(fixHorrible);
-    SETTING(spiralizeMode);
-    SETTING(gcodeFlavor);
+    SETTING(fixHorrible, 0);
+    SETTING(spiralizeMode, 0);
+    SETTING(gcodeFlavor, GCODE_FLAVOR_REPRAP);
     
-    SETTING(extruderOffset[1].X);
-    SETTING(extruderOffset[1].Y);
-    SETTING(extruderOffset[2].X);
-    SETTING(extruderOffset[2].Y);
-    SETTING(extruderOffset[3].X);
-    SETTING(extruderOffset[3].Y);
+    SETTING(extruderOffset[1].X, 0);
+    SETTING(extruderOffset[1].Y, 0);
+    SETTING(extruderOffset[2].X, 0);
+    SETTING(extruderOffset[2].Y, 0);
+    SETTING(extruderOffset[3].X, 0);
+    SETTING(extruderOffset[3].Y, 0);
+    
+    startCode =
+        "M109 S210     ;Heatup to 210C\n"
+        "G21           ;metric values\n"
+        "G90           ;absolute positioning\n"
+        "G28           ;Home\n"
+        "G1 Z15.0 F300 ;move the platform down 15mm\n"
+        "G92 E0        ;zero the extruded length\n"
+        "G1 F200 E5    ;extrude 5mm of feed stock\n"
+        "G92 E0        ;zero the extruded length again\n";
+    endCode = 
+        "M104 S0                     ;extruder heater off\n"
+        "M140 S0                     ;heated bed heater off (if you have it)\n"
+        "G91                            ;relative positioning\n"
+        "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n"
+        "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n"
+        "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n"
+        "M84                         ;steppers off\n"
+        "G90                         ;absolute positioning\n";
 }
 
 #undef STRINGIFY

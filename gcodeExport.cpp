@@ -99,12 +99,13 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
         extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
 }
 
-void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction)
+void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop)
 {
     this->retractionAmount = double(retractionAmount) / 1000.0;
     this->retractionSpeed = retractionSpeed;
     this->extruderSwitchRetraction = double(extruderSwitchRetraction) / 1000.0;
     this->minimalExtrusionBeforeRetraction = double(minimalExtrusionBeforeRetraction) / 1000.0;
+    this->retractionZHop = zHop;
 }
 
 void GCodeExport::setZ(int z)
@@ -188,6 +189,8 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         Point diff = p - getPositionXY();
         if (isRetracted)
         {
+            if (retractionZHop > 0)
+                fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
             if (flavor == GCODE_FLAVOR_ULTIGCODE)
             {
                 fprintf(f, "G11\n");
@@ -234,6 +237,8 @@ void GCodeExport::writeRetraction()
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
         }
+        if (retractionZHop > 0)
+            fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z + retractionZHop)/1000);
         extrusionAmountAtPreviousRetraction = extrusionAmount;
         isRetracted = true;
     }
