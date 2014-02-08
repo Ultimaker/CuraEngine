@@ -35,7 +35,7 @@
 
 void print_usage()
 {
-    log("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
+    log("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-c <config file>] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
 }
 
 //Signal handler for a "floating point exception", which can also be integer division by zero errors.
@@ -99,6 +99,15 @@ int main(int argc, char **argv)
                     {
                         logError("Failed to open %s for output.\n", argv[argn]);
                         exit(1);
+                    }
+                    break;
+                case 'c':
+                    {
+                        // Read a config file from the given path
+                        argn++;
+                        if(!config.readSettings(argv[argn])) {
+                            logError("Failed to read config '%s'\n", argv[argn]);
+                        }
                     }
                     break;
                 case 's':
