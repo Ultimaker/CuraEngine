@@ -65,9 +65,9 @@ int main(int argc, char **argv)
 
     logError("Cura_SteamEngine version %s\n", VERSION);
 
-	if(!config.readSettings(DEFAULT_CONFIG_PATH)) {
-	  logError("Config %s not used\n", DEFAULT_CONFIG_PATH);
-	}
+    if(!config.readSettings(DEFAULT_CONFIG_PATH)) {
+        logError("Config %s not used\n", DEFAULT_CONFIG_PATH);
+    }
 
     for(int argn = 1; argn < argc; argn++)
     {

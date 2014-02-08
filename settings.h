@@ -132,7 +132,7 @@ public:
 
     ConfigSettings();
     bool setSetting(const char* key, const char* value);
-	bool readSettings(const char* path);
+    bool readSettings(const char* path);
 };
 
 #endif//SETTINGS_H
