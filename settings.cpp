@@ -5,6 +5,7 @@
 
 #include "settings.h"
 
+#define TRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[0])) { (s).erase(0, 1); } while(((s).length() > 0) && isspace((s)[(s).length() - 1])) { (s).erase((s).length() - 1); } } while(0)
 #define STRINGIFY(_s) #_s
 #define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
 #define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
@@ -126,17 +127,6 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
     return false;
 }
 
-void _trim_string(std::string &s) {
-    // ltrim
-    while((s.length() > 0) && isspace(s[0])) {
-        s.erase(0, 1);
-    }
-    // rtrim
-    while((s.length() > 0) && isspace(s[s.length() - 1])) {
-        s.erase(s.length() - 1);
-    }
-}
-
 bool ConfigSettings::readSettings(const char* path) {
     std::ifstream config(path);
     std::string line;
@@ -150,7 +140,7 @@ bool ConfigSettings::readSettings(const char* path) {
         // De-comment and trim, skipping anything that shows up empty
         pos = line.find_first_of('#');
         if(pos != std::string::npos) line.erase(pos);
-        _trim_string(line);
+        TRIM_STRING(line);
         if(line.length() == 0) continue;
 
         // Split into key = val
@@ -159,8 +149,8 @@ bool ConfigSettings::readSettings(const char* path) {
         if(pos != std::string::npos && line.length() > (pos + 1)) {
             key = line.substr(0, pos);
             val = line.substr(pos + 1);
-            _trim_string(key);
-            _trim_string(val);
+            TRIM_STRING(key);
+            TRIM_STRING(val);
         }
 
         // Fail if we don't get a key and val
