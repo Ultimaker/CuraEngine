@@ -168,6 +168,7 @@ bool ConfigSettings::readSettings(const char* path) {
         // Set a config setting for the current K=V
         if(!setSetting(key.c_str(), val.c_str())) {
             logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
+            return false;
         }
     }
 
