@@ -33,6 +33,10 @@
 #include "gcodeExport.h"
 #include "fffProcessor.h"
 
+#ifndef DEFAULT_CONFIG_PATH
+#define DEFAULT_CONFIG_PATH "default.cfg"
+#endif
+
 void print_usage()
 {
     log("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
@@ -60,6 +64,10 @@ int main(int argc, char **argv)
     fffProcessor processor(config);
 
     logError("Cura_SteamEngine version %s\n", VERSION);
+
+	if(!config.readSettings(DEFAULT_CONFIG_PATH)) {
+	  logError("Config %s not used\n", DEFAULT_CONFIG_PATH);
+	}
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -105,7 +113,7 @@ int main(int argc, char **argv)
                         if (valuePtr)
                         {
                             *valuePtr++ = '\0';
-                            
+
                             if (!config.setSetting(argv[argn], valuePtr))
                                 logError("Setting not found: %s %s\n", argv[argn], valuePtr);
                         }
@@ -135,7 +143,7 @@ int main(int argc, char **argv)
             }
         }
     }
-    
+
     //Finalize the processor, this adds the end.gcode. And reports statistics.
     processor.finalize();
 }
