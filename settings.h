@@ -13,6 +13,10 @@
 #define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
+#ifndef DEFAULT_CONFIG_PATH
+#define DEFAULT_CONFIG_PATH "default.cfg"
+#endif
+
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
  *  This is the most commonly used GCode set.
@@ -132,6 +136,7 @@ public:
 
     ConfigSettings();
     bool setSetting(const char* key, const char* value);
+    bool readSettings(void);
     bool readSettings(const char* path);
 };
 

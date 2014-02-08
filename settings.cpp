@@ -127,6 +127,10 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
     return false;
 }
 
+bool ConfigSettings::readSettings(void) {
+    return readSettings(DEFAULT_CONFIG_PATH);
+}
+
 bool ConfigSettings::readSettings(const char* path) {
     std::ifstream config(path);
     std::string line;
