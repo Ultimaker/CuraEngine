@@ -1,3 +1,5 @@
+#include <cctype>
+#include <fstream>
 #include <stdio.h>
 #include "utils/logoutput.h"
 
@@ -124,8 +126,54 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
     return false;
 }
 
-bool ConfigSettings::readSettings(const char* path) {
+void _trim_string(std::string &s) {
+	// ltrim
+	while((s.length() > 0) && isspace(s[0])) {
+	  s.erase(0, 1);
+	}
+	// rtrim
+	while((s.length() > 0) && isspace(s[s.length() - 1])) {
+	  s.erase(s.length() - 1);
+	}
+}
 
-  logError("TODO: Actually read config from %s\n" , path);
+bool ConfigSettings::readSettings(const char* path) {
+  std::ifstream config(path);
+  std::string line;
+  size_t line_number = 0;
+
+  while(config.good()) {
+	size_t pos = std::string::npos;
+	std::getline(config, line);
+	line_number += 1;
+
+	// De-comment and trim, skipping anything that shows up empty
+	pos = line.find_first_of('#');
+	if(pos != std::string::npos) line.erase(pos);
+	_trim_string(line);
+	if(line.length() == 0) continue;
+
+	// Split into key = val
+	std::string key(""), val("");
+	pos = line.find_first_of('=');
+	if(pos != std::string::npos && line.length() > (pos + 1)) {
+	  key = line.substr(0, pos);
+	  val = line.substr(pos + 1);
+	  _trim_string(key);
+	  _trim_string(val);
+	}
+
+	// Fail if we don't get a key and val
+	if(key.length() == 0 || val.length() == 0) {
+	  logError("Config(%s): Line %zd: No key value pair found\n", path, line_number);
+	  return false;
+	}
+
+	// Set a config setting for the current K=V
+	if(!setSetting(key.c_str(), val.c_str())) {
+	  logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
+	}
+  }
+
   return true;
 }
