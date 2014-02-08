@@ -136,6 +136,8 @@ bool ConfigSettings::readSettings(const char* path) {
     std::string line;
     size_t line_number = 0;
 
+    if(!config.good()) return false;
+
     while(config.good()) {
         size_t pos = std::string::npos;
         std::getline(config, line);
