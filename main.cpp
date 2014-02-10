@@ -60,7 +60,6 @@ int main(int argc, char **argv)
     fffProcessor processor(config);
 
     logError("Cura_SteamEngine version %s\n", VERSION);
-    config.stretchDistance = 0; // 600 = good default value
 
     if(!config.readSettings()) {
         logError("Default config '%s' not used\n", DEFAULT_CONFIG_PATH);
