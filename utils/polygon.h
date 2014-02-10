@@ -124,6 +124,7 @@ public:
     {
     }
 };
+//<windows.h> defines a Polygon structure, to prevent a clash define Polygon as _Polygon.
 #define Polygon _Polygon
 
 class Polygons

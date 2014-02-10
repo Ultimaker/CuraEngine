@@ -4,7 +4,18 @@
 
 #include "logoutput.h"
 
-int verbose_level;
+static int verbose_level;
+static bool progressLogging;
+
+void increaseVerboseLevel()
+{
+    verbose_level++;
+}
+
+void enableProgressLogging()
+{
+    progressLogging = true;
+}
 
 void logError(const char* fmt, ...)
 {
@@ -28,7 +39,7 @@ void _log(const char* fmt, ...)
 }
 void logProgress(const char* type, int value, int maxValue)
 {
-    if (verbose_level < 2)
+    if (!progressLogging)
         return;
 
     fprintf(stderr, "Progress:%s:%i:%i\n", type, value, maxValue);
