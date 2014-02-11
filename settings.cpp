@@ -1,3 +1,4 @@
+#include <iostream>
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
@@ -157,6 +158,29 @@ bool ConfigSettings::readSettings(const char* path) {
             val = line.substr(pos + 1);
             TRIM_STRING(key);
             TRIM_STRING(val);
+        }
+
+        if(val == CONFIG_MULTILINE_SEPARATOR) {
+            bool done_multiline = false;
+            std::cerr << ":: TODO: Read multiline" << std::endl;
+
+            while(config.good() && !done_multiline) {
+                std::getline(config, line);
+                line_number += 1;
+                std::cerr << "Line [" << line << "]" << std::endl;
+                if(line == CONFIG_MULTILINE_SEPARATOR) {
+                    done_multiline = true;
+                    std::cerr << ":: TODO: Finish reading multiline" << std::endl;
+                    std::cerr << ":: TODO: Copy the string, because, or make sure that we check values in setSetting" << std::endl;
+                }
+            }
+
+            // If we drop out but didn't finish reading, something failed
+            if(!done_multiline) {
+                logError("Config(%s):L%zd: Failed while reading multiline string.\n", path, line_number);
+                return false;
+            }
+
         }
 
         // Fail if we don't get a key and val
