@@ -83,7 +83,7 @@ public:
     {
         if (!gcode.isOpened())
             return;
-        gcode.finalize(maxObjectHeight, config.moveSpeed, config.endCode);
+        gcode.finalize(maxObjectHeight, config.moveSpeed, config.endCode.c_str());
     }
 
 private:
@@ -301,7 +301,7 @@ private:
                 gcode.writeCode(";MATERIAL:<FILAMENT>");
                 gcode.writeCode(";MATERIAL2:<FILAMEN2>");
             }
-            gcode.writeCode(config.startCode);
+            gcode.writeCode(config.startCode.c_str());
         }else{
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
