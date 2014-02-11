@@ -162,18 +162,32 @@ bool ConfigSettings::readSettings(const char* path) {
             TRIM_STRING(val);
         }
 
+        // Are we about to read a multiline string?
         if(val == CONFIG_MULTILINE_SEPARATOR) {
+            val = "";
             bool done_multiline = false;
-            std::cerr << ":: TODO: Read multiline" << std::endl;
 
             while(config.good() && !done_multiline) {
                 std::getline(config, line);
                 line_number += 1;
-                //                std::cerr << "Line [" << line << "]" << std::endl;
+
+                // We RTRIM the line for two reasons:
+                //
+                // 1) Make sure that a direct == comparison with '"""' works without
+                //    worrying about trailing space.
+                // 2) Nobody likes trailing whitespace anyway
+                RTRIM_STRING(line);
+
+                // Either accumuliate or terminate
                 if(line == CONFIG_MULTILINE_SEPARATOR) {
                     done_multiline = true;
-                    std::cerr << ":: TODO: Finish reading multiline" << std::endl;
-                    std::cerr << ":: TODO: Copy the string, because, or make sure that we check values in setSetting" << std::endl;
+                    // Make sure we don't add an extra trailing newline
+                    // to the parsed value
+                    RTRIM_STRING(val);
+                }
+                else {
+                    line += "\n";
+                    val += line;
                 }
             }
 
