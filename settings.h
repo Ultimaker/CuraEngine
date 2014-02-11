@@ -17,6 +17,8 @@
 #define DEFAULT_CONFIG_PATH "default.cfg"
 #endif
 
+#define CONFIG_MULTILINE_SEPARATOR "\"\"\""
+
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
  *  This is the most commonly used GCode set.
