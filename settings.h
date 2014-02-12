@@ -17,6 +17,8 @@
 #define DEFAULT_CONFIG_PATH "default.cfg"
 #endif
 
+#define CONFIG_MULTILINE_SEPARATOR "\"\"\""
+
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
  *  This is the most commonly used GCode set.
@@ -131,8 +133,8 @@ public:
     int gcodeFlavor;
 
     IntPoint extruderOffset[MAX_EXTRUDERS];
-    const char* startCode;
-    const char* endCode;
+    std::string startCode;
+    std::string endCode;
 
     ConfigSettings();
     bool setSetting(const char* key, const char* value);
