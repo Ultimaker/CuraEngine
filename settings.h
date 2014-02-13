@@ -13,6 +13,14 @@
 #define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
 #define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
 
+/**
+ * Type of support material.
+ * Grid is a X/Y grid with an outline, which is very strong, provides good support. But in some cases is hard to remove.
+ * Lines give a row of lines which break off one at a time, making them easier to remove, but they do not support as good as the grid support.
+ */
+#define SUPPORT_TYPE_GRID                0
+#define SUPPORT_TYPE_LINES               1
+
 #ifndef DEFAULT_CONFIG_PATH
 #define DEFAULT_CONFIG_PATH "default.cfg"
 #endif
@@ -102,6 +110,7 @@ public:
     int fanFullOnLayerNr;
 
     //Support material
+    int supportType;
     int supportAngle;
     int supportEverywhere;
     int supportLineDistance;

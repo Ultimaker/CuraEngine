@@ -555,19 +555,28 @@ private:
             Polygons supportLines;
             if (config.supportLineDistance > 0)
             {
-                if (config.supportLineDistance > config.extrusionWidth * 4)
+                switch(config.supportType)
                 {
-                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
-                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
-                }else{
-                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
+                case SUPPORT_TYPE_GRID:
+                    if (config.supportLineDistance > config.extrusionWidth * 4)
+                    {
+                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 0);
+                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance*2, config.infillOverlap, 90);
+                    }else{
+                        generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, (layerNr & 1) ? 0 : 90);
+                    }
+                    break;
+                case SUPPORT_TYPE_LINES:
+                    generateLineInfill(island, supportLines, config.extrusionWidth, config.supportLineDistance, config.infillOverlap, 0);
+                    break;
                 }
             }
 
             gcodeLayer.forceRetract();
             if (config.enableCombing)
                 gcodeLayer.setCombBoundary(&island);
-            gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
+            if (config.supportType == SUPPORT_TYPE_GRID)
+                gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
             gcodeLayer.setCombBoundary(NULL);
         }

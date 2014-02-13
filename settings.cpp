@@ -37,6 +37,7 @@ ConfigSettings::ConfigSettings()
     SETTING(moveSpeed, 150);
     SETTING(fanFullOnLayerNr, 2);
 
+    SETTING(supportType, 0);
     SETTING(supportAngle, -1);
     SETTING(supportEverywhere, 0);
     SETTING(supportLineDistance, sparseInfillLineDistance);
