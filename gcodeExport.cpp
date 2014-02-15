@@ -167,7 +167,7 @@ void GCodeExport::writeLine(const char* line, ...)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (extrusionAmount != 0.0)
+    if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT)
     {
         fprintf(f, "G92 E0\n");
         totalFilament[extruderNr] += extrusionAmount;

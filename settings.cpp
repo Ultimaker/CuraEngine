@@ -5,7 +5,9 @@
 
 #include "settings.h"
 
-#define TRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[0])) { (s).erase(0, 1); } while(((s).length() > 0) && isspace((s)[(s).length() - 1])) { (s).erase((s).length() - 1); } } while(0)
+#define LTRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[0])) { (s).erase(0, 1); } } while(0)
+#define RTRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[(s).length() - 1])) { (s).erase((s).length() - 1); } } while(0)
+#define TRIM_STRING(s) do { LTRIM_STRING(s); RTRIM_STRING(s); } while(0)
 #define STRINGIFY(_s) #_s
 #define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
 #define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
@@ -35,6 +37,7 @@ ConfigSettings::ConfigSettings()
     SETTING(moveSpeed, 150);
     SETTING(fanFullOnLayerNr, 2);
 
+    SETTING(supportType, 0);
     SETTING(supportAngle, -1);
     SETTING(supportEverywhere, 0);
     SETTING(supportLineDistance, sparseInfillLineDistance);
@@ -159,6 +162,43 @@ bool ConfigSettings::readSettings(const char* path) {
             val = line.substr(pos + 1);
             TRIM_STRING(key);
             TRIM_STRING(val);
+        }
+
+        // Are we about to read a multiline string?
+        if(val == CONFIG_MULTILINE_SEPARATOR) {
+            val = "";
+            bool done_multiline = false;
+
+            while(config.good() && !done_multiline) {
+                std::getline(config, line);
+                line_number += 1;
+
+                // We RTRIM the line for two reasons:
+                //
+                // 1) Make sure that a direct == comparison with '"""' works without
+                //    worrying about trailing space.
+                // 2) Nobody likes trailing whitespace anyway
+                RTRIM_STRING(line);
+
+                // Either accumuliate or terminate
+                if(line == CONFIG_MULTILINE_SEPARATOR) {
+                    done_multiline = true;
+                    // Make sure we don't add an extra trailing newline
+                    // to the parsed value
+                    RTRIM_STRING(val);
+                }
+                else {
+                    line += "\n";
+                    val += line;
+                }
+            }
+
+            // If we drop out but didn't finish reading, something failed
+            if(!done_multiline) {
+                logError("Config(%s):L%zd: Failed while reading multiline string.\n", path, line_number);
+                return false;
+            }
+
         }
 
         // Fail if we don't get a key and val
