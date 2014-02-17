@@ -300,12 +300,17 @@ private:
         {
             if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
             {
-                gcode.writeCode(";FLAVOR:UltiGCode");
-                gcode.writeCode(";TIME:<__TIME__>");
-                gcode.writeCode(";MATERIAL:<FILAMENT>");
-                gcode.writeCode(";MATERIAL2:<FILAMEN2>");
+                gcode.writeComment("FLAVOR:UltiGCode");
+                gcode.writeComment("TIME:<__TIME__>");
+                gcode.writeComment("MATERIAL:<FILAMENT>");
+                gcode.writeComment("MATERIAL2:<FILAMEN2>");
             }
             gcode.writeCode(config.startCode.c_str());
+            if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
+            {
+                gcode.writeComment("enable auto-retraction");
+                gcode.writeLine("M227 S%d P%d", config.retractionAmount * 2560 / 1000, config.retractionAmount * 2560 / 1000);
+            }
         }else{
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();

@@ -184,49 +184,86 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
-    if (lineWidth != 0)
+    if (flavor == GCODE_FLAVOR_BFB)
     {
-        Point diff = p - getPositionXY();
-        if (isRetracted)
+        //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values.
+
+        float fspeed = speed * 60;
+        float rpm = (extrusionPerMM * double(lineWidth) / 1000.0) * speed * 60;
+        //rpm /= mm_per_rpm;
+        if (rpm > 0)
         {
-            if (retractionZHop > 0)
-                fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
-            if (flavor == GCODE_FLAVOR_ULTIGCODE)
+            if (isRetracted)
             {
-                fprintf(f, "G11\n");
-            }else{
-                fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
-                currentSpeed = retractionSpeed;
-                estimateCalculator.plan(TimeEstimateCalculator::Position(double(p.X) / 1000.0, (p.Y) / 1000.0, double(zPos) / 1000.0, extrusionAmount), currentSpeed);
+                if (currentSpeed != int(rpm * 10))
+                {
+                    //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusionPerMM, lineWidth, speed);
+                    fprintf(f, "M108 S%0.3f\n", rpm * 10);
+                    fprintf(f, "M108 S%0.1f\n", rpm * 10);
+                    currentSpeed = int(rpm * 10);
+                }
+                fprintf(f, "M101\n");
+                isRetracted = false;
             }
-            if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
-                resetExtrusionValue();
-            isRetracted = false;
+            fspeed *= (rpm / (roundf(rpm * 100) / 100));
+        }else{
+            if (!isRetracted)
+            {
+                fprintf(f, "M103\n");
+                isRetracted = true;
+            }
         }
-        extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
-        fprintf(f, "G1");
+        fprintf(f, "G1 X%0.2f Y%0.2f Z%0.2f F%0.1f\n", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000, float(zPos)/1000, fspeed);
     }else{
-        fprintf(f, "G0");
+        
+        //Normal E handling.
+        if (lineWidth != 0)
+        {
+            Point diff = p - getPositionXY();
+            if (isRetracted)
+            {
+                if (retractionZHop > 0)
+                    fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
+                if (flavor == GCODE_FLAVOR_ULTIGCODE)
+                {
+                    fprintf(f, "G11\n");
+                }else{
+                    fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
+                    currentSpeed = retractionSpeed;
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(double(p.X) / 1000.0, (p.Y) / 1000.0, double(zPos) / 1000.0, extrusionAmount), currentSpeed);
+                }
+                if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+                    resetExtrusionValue();
+                isRetracted = false;
+            }
+            extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
+            fprintf(f, "G1");
+        }else{
+            fprintf(f, "G0");
+        }
+
+        if (currentSpeed != speed)
+        {
+            fprintf(f, " F%i", speed * 60);
+            currentSpeed = speed;
+        }
+        fprintf(f, " X%0.2f Y%0.2f", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000);
+        if (zPos != currentPosition.z)
+            fprintf(f, " Z%0.2f", float(zPos)/1000);
+        if (lineWidth != 0)
+            fprintf(f, " E%0.5lf", extrusionAmount);
+        fprintf(f, "\n");
     }
-    
-    if (currentSpeed != speed)
-    {
-        fprintf(f, " F%i", speed * 60);
-        currentSpeed = speed;
-    }
-    fprintf(f, " X%0.2f Y%0.2f", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000);
-    if (zPos != currentPosition.z)
-        fprintf(f, " Z%0.2f", float(zPos)/1000);
-    if (lineWidth != 0)
-        fprintf(f, " E%0.5lf", extrusionAmount);
-    fprintf(f, "\n");
     
     currentPosition = Point3(p.X, p.Y, zPos);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount), currentSpeed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount), speed);
 }
 
 void GCodeExport::writeRetraction()
 {
+    if (flavor == GCODE_FLAVOR_BFB)//BitsFromBytes does automatic retraction.
+        return;
+    
     if (retractionAmount > 0 && !isRetracted && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction < extrusionAmount)
     {
         if (flavor == GCODE_FLAVOR_ULTIGCODE)
