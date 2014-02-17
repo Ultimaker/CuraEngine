@@ -182,6 +182,10 @@ private:
             storage.volumes.push_back(SliceVolumeStorage());
             createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
             delete slicerList[volumeIdx];
+            
+            //Add the raft offset to each layer.
+            for(unsigned int layerNr=0; layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
+                storage.volumes[volumeIdx].layers[layerNr].printZ += config.raftBaseThickness + config.raftInterfaceThickness;
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         return true;
@@ -208,9 +212,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygonsToGui("inset0", layerNr, layer->z, layer->parts[partNr].insets[0]);
+                        sendPolygonsToGui("inset0", layerNr, layer->printZ, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygonsToGui("insetx", layerNr, layer->z, layer->parts[partNr].insets[inset]);
+                            sendPolygonsToGui("insetx", layerNr, layer->printZ, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
@@ -252,7 +256,7 @@ private:
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        sendPolygonsToGui("skin", layerNr, layer->z, layer->parts[partNr].skinOutline);
+                        sendPolygonsToGui("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
                 }
             }
             logProgress("skin",layerNr+1,totalLayers);
@@ -316,6 +320,9 @@ private:
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
+            sendPolygonsToGui("support", 0, config.raftBaseThickness, storage.raftOutline);
+            sendPolygonsToGui("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
+
             GCodePathConfig raftBaseConfig(config.initialLayerSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.initialLayerSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             {
@@ -438,7 +445,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            sendPolygonsToGui("oozeshield", layerNr, layer->z, storage.oozeShield[layerNr]);
+            sendPolygonsToGui("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
 

@@ -53,7 +53,8 @@ void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllT
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
         storage.layers.push_back(SliceLayer());
-        storage.layers[layerNr].z = slicer->layers[layerNr].z;
+        storage.layers[layerNr].sliceZ = slicer->layers[layerNr].z;
+        storage.layers[layerNr].printZ = slicer->layers[layerNr].z;
         createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
     }
 }
