@@ -33,6 +33,7 @@ GCodeExport::GCodeExport()
     currentSpeed = 0;
     retractionSpeed = 45;
     isRetracted = true;
+    setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
     f = stdout;
 }
@@ -74,6 +75,12 @@ void GCodeExport::setExtruderOffset(int id, Point p)
 void GCodeExport::setFlavor(int flavor)
 {
     this->flavor = flavor;
+    if (flavor == GCODE_FLAVOR_MACH3)
+        for(int n=0; n<MAX_EXTRUDERS; n++)
+            extruderCharacter[n] = 'A' + n;
+    else
+        for(int n=0; n<MAX_EXTRUDERS; n++)
+            extruderCharacter[n] = 'E';
 }
 int GCodeExport::getFlavor()
 {
@@ -169,7 +176,7 @@ void GCodeExport::resetExtrusionValue()
 {
     if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT)
     {
-        fprintf(f, "G92 E0\n");
+        fprintf(f, "G92 %c0\n", extruderCharacter[extruderNr]);
         totalFilament[extruderNr] += extrusionAmount;
         extrusionAmountAtPreviousRetraction -= extrusionAmount;
         extrusionAmount = 0.0;
@@ -228,7 +235,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 {
                     fprintf(f, "G11\n");
                 }else{
-                    fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount);
+                    fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount);
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(double(p.X) / 1000.0, (p.Y) / 1000.0, double(zPos) / 1000.0, extrusionAmount), currentSpeed);
                 }
@@ -251,7 +258,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", float(zPos)/1000);
         if (lineWidth != 0)
-            fprintf(f, " E%0.5lf", extrusionAmount);
+            fprintf(f, " %c%0.5lf", extruderCharacter[extruderNr], extrusionAmount);
         fprintf(f, "\n");
     }
     
@@ -270,7 +277,7 @@ void GCodeExport::writeRetraction()
         {
             fprintf(f, "G10\n");
         }else{
-            fprintf(f, "G1 F%i E%0.5lf\n", retractionSpeed * 60, extrusionAmount - retractionAmount);
+            fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
         }
@@ -286,16 +293,17 @@ void GCodeExport::switchExtruder(int newExtruder)
     if (extruderNr == newExtruder)
         return;
     
-    resetExtrusionValue();
-    extruderNr = newExtruder;
-
     if (flavor == GCODE_FLAVOR_ULTIGCODE)
     {
         fprintf(f, "G10 S1\n");
     }else{
-        fprintf(f, "G1 F%i E%0.4lf\n", retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
+        fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
     }
+    resetExtrusionValue();
+    extruderNr = newExtruder;
+    if (flavor == GCODE_FLAVOR_MACH3)
+        resetExtrusionValue();
     isRetracted = true;
     if (flavor == GCODE_FLAVOR_MAKERBOT)
         fprintf(f, "M135 T%i\n", extruderNr);

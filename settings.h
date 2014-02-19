@@ -65,6 +65,12 @@
  **/
 #define GCODE_FLAVOR_BFB                3
 
+/**
+ * MACH3 GCode
+ *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
+ **/
+#define GCODE_FLAVOR_MACH3              4
+
 #define MAX_EXTRUDERS 16
 
 class _ConfigSettingIndex
