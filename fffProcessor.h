@@ -5,6 +5,7 @@
 
 #define GUI_CMD_REQUEST_MESH 0x01
 #define GUI_CMD_SEND_POLYGONS 0x02
+#define GUI_CMD_FINISH_OBJECT 0x03
 
 //FusedFilamentFabrication processor.
 class fffProcessor
@@ -75,6 +76,7 @@ public:
 
         logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
+        guiSocket.sendNr(GUI_CMD_FINISH_OBJECT);
 
         return true;
     }
