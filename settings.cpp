@@ -77,6 +77,7 @@ ConfigSettings::ConfigSettings()
     SETTING(spiralizeMode, 0);
     SETTING(gcodeFlavor, GCODE_FLAVOR_REPRAP);
 
+    memset(extruderOffset, 0, sizeof(extruderOffset));
     SETTING(extruderOffset[1].X, 0);
     SETTING(extruderOffset[1].Y, 0);
     SETTING(extruderOffset[2].X, 0);
