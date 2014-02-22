@@ -4,6 +4,7 @@
 
 void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight)
 {
+    bool externalOnly = (distance > 0);
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
@@ -15,7 +16,14 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
             SliceLayer* layer = &storage.volumes[volumeIdx].layers[0];
             for(unsigned int i=0; i<layer->parts.size(); i++)
             {
-                skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(offsetDistance));
+                if (externalOnly)
+                {
+                    Polygons p;
+                    p.add(layer->parts[i].outline[0]);
+                    skirtPolygons = skirtPolygons.unionPolygons(p.offset(offsetDistance));
+                }
+                else
+                    skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(offsetDistance));
             }
         }
         
