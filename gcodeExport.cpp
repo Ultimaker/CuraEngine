@@ -193,11 +193,11 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
     if (flavor == GCODE_FLAVOR_BFB)
     {
-        //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values.
-
+        //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
         float fspeed = speed * 60;
         float rpm = (extrusionPerMM * double(lineWidth) / 1000.0) * speed * 60;
-        //rpm /= mm_per_rpm;
+        const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
+        rpm /= mm_per_rpm;
         if (rpm > 0)
         {
             if (isRetracted)
@@ -205,15 +205,17 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 if (currentSpeed != int(rpm * 10))
                 {
                     //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusionPerMM, lineWidth, speed);
-                    fprintf(f, "M108 S%0.3f\n", rpm * 10);
                     fprintf(f, "M108 S%0.1f\n", rpm * 10);
                     currentSpeed = int(rpm * 10);
                 }
                 fprintf(f, "M101\n");
                 isRetracted = false;
             }
+            //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
+            // (Trick copied from KISSlicer, thanks Jonathan)
             fspeed *= (rpm / (roundf(rpm * 100) / 100));
         }else{
+            //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
             {
                 fprintf(f, "M103\n");
