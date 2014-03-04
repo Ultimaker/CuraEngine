@@ -107,7 +107,7 @@ INLINE bool shorterThen(const Point& p0, int32_t len)
     return vSize2(p0) <= len*len;
 }
 
-INLINE int32_t vSize(const Point& p0)
+INLINE int64_t vSize(const Point& p0)
 {
     return sqrt(vSize2(p0));
 }
@@ -119,9 +119,9 @@ INLINE double vSizeMM(const Point& p0)
     return sqrt(fx*fx+fy*fy);
 }
 
-INLINE Point normal(const Point& p0, int32_t len)
+INLINE Point normal(const Point& p0, int64_t len)
 {
-    int32_t _len = vSize(p0);
+    int64_t _len = vSize(p0);
     if (_len < 1)
         return Point(len, 0);
     return p0 * len / _len;

@@ -8,7 +8,7 @@
 
 const double max_feedrate[TimeEstimateCalculator::NUM_AXIS] = {600, 600, 40, 25};
 const double minimumfeedrate = 0.01;
-const double acceleration = 5000;
+const double acceleration = 3000;
 const double max_acceleration[TimeEstimateCalculator::NUM_AXIS] = {9000,9000,100,10000};
 const double max_xy_jerk = 20.0;
 const double max_z_jerk = 0.4;
