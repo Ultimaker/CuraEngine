@@ -81,9 +81,9 @@ Point Comb::getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx)
     Point p1 = boundery[polygonNr][idx];
     Point p2 = boundery[polygonNr][(idx < (boundery[polygonNr].size() - 1)) ? (idx + 1) : (0)];
     
-    Point off0 = crossZ(normal(p1 - p0, 1000));
-    Point off1 = crossZ(normal(p2 - p1, 1000));
-    Point n = normal(off0 + off1, 200);
+    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0)));
+    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0)));
+    Point n = normal(off0 + off1, MM2INT(0.2));
     
     return p1 + n;
 }
@@ -136,7 +136,7 @@ bool Comb::checkInside(Point p)
 bool Comb::moveInside(Point* p, int distance)
 {
     Point ret = *p;
-    int64_t bestDist = 2000LL * 2000LL;
+    int64_t bestDist = MM2INT(2.0) * MM2INT(2.0);
     for(unsigned int n=0; n<boundery.size(); n++)
     {
         if (boundery[n].size() < 1)
@@ -166,7 +166,7 @@ bool Comb::moveInside(Point* p, int distance)
             p0 = p1;
         }
     }
-    if (bestDist < 2000LL * 2000LL)
+    if (bestDist < MM2INT(2.0) * MM2INT(2.0))
     {
         *p = ret;
         return true;
@@ -176,7 +176,7 @@ bool Comb::moveInside(Point* p, int distance)
 
 bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
 {
-    if (shorterThen(endPoint - startPoint, 1500))
+    if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
         return true;
     
     bool addEndpoint = false;
@@ -215,7 +215,7 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
         unsigned int n = getPolygonAbove(x);
         if (n == UINT_MAX) break;
         
-        pointList.push_back(matrix.unapply(Point(minX[n] - 200, sp.Y)));
+        pointList.push_back(matrix.unapply(Point(minX[n] - MM2INT(0.2), sp.Y)));
         if ( (minIdx[n] - maxIdx[n] + boundery[n].size()) % boundery[n].size() > (maxIdx[n] - minIdx[n] + boundery[n].size()) % boundery[n].size())
         {
             for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i < boundery[n].size() - 1) ? (i + 1) : (0))
@@ -232,7 +232,7 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
                 pointList.push_back(getBounderyPointWithOffset(n, i));
             }
         }
-        pointList.push_back(matrix.unapply(Point(maxX[n] + 200, sp.Y)));
+        pointList.push_back(matrix.unapply(Point(maxX[n] + MM2INT(0.2), sp.Y)));
         
         x = maxX[n];
     }

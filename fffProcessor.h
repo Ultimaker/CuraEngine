@@ -106,7 +106,6 @@ private:
     bool prepareModel(SliceDataStorage& storage, const char* input_filename)
     {
         timeKeeper.restart();
-        log("Loading %s from disk...\n", input_filename);
         SimpleModel* model = NULL;
         if (input_filename[0] == '$')
         {
@@ -136,6 +135,7 @@ private:
                 }
             }
         }else{
+            log("Loading %s from disk...\n", input_filename);
             model = loadModelFromFile(input_filename, config.matrix);
         }
         if (!model)
@@ -150,6 +150,7 @@ private:
         {
             log("  Face counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size(), (int)optimizedModel->volumes[v].faces.size(), float(optimizedModel->volumes[v].faces.size()) / float(model->volumes[v].faces.size()) * 100);
             log("  Vertex counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size() * 3, (int)optimizedModel->volumes[v].points.size(), float(optimizedModel->volumes[v].points.size()) / float(model->volumes[v].faces.size() * 3) * 100);
+            log("  Size: %f %f %f\n", INT2MM(optimizedModel->modelSize.x), INT2MM(optimizedModel->modelSize.y), INT2MM(optimizedModel->modelSize.z));
         }
         delete model;
         log("Optimize model %5.3fs \n", timeKeeper.restart());
@@ -231,14 +232,14 @@ private:
                 {
                     for(unsigned int partNr=0; partNr<storage.volumes[volumeIdx].layers[layerNr].parts.size(); partNr++)
                     {
-                        oozeShield = oozeShield.unionPolygons(storage.volumes[volumeIdx].layers[layerNr].parts[partNr].outline.offset(2000));
+                        oozeShield = oozeShield.unionPolygons(storage.volumes[volumeIdx].layers[layerNr].parts[partNr].outline.offset(MM2INT(2.0)));
                     }
                 }
                 storage.oozeShield.push_back(oozeShield);
             }
 
             for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
-                storage.oozeShield[layerNr] = storage.oozeShield[layerNr].offset(-1000).offset(1000);
+                storage.oozeShield[layerNr] = storage.oozeShield[layerNr].offset(-MM2INT(1.0)).offset(MM2INT(1.0));
             int offsetAngle = tan(60.0*M_PI/180) * config.layerThickness;//Allow for a 60deg angle in the oozeShield.
             for(unsigned int layerNr=1; layerNr<totalLayers; layerNr++)
                 storage.oozeShield[layerNr] = storage.oozeShield[layerNr].unionPolygons(storage.oozeShield[layerNr-1].offset(-offsetAngle));
