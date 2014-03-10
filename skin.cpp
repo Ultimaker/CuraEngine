@@ -40,10 +40,10 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
         
         part->skinOutline = upskin.unionPolygons(downskin);
 
-        double minAreaSize = (2 * M_PI * (double(extrusionWidth) / 1000.0) * (double(extrusionWidth) / 1000.0)) * 0.3;
+        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {
-            double area = fabs(part->skinOutline[i].area()) / 1000.0 / 1000.0;
+            double area = INT2MM(INT2MM(fabs(part->skinOutline[i].area())));
             if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
             {
                 part->skinOutline.remove(i);
@@ -100,10 +100,10 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
         
         Polygons result = upskin.unionPolygons(downskin);
 
-        double minAreaSize = 3.0;//(2 * M_PI * (double(config.extrusionWidth) / 1000.0) * (double(config.extrusionWidth) / 1000.0)) * 3;
+        double minAreaSize = 3.0;//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
         for(unsigned int i=0; i<result.size(); i++)
         {
-            double area = fabs(result[i].area()) / 1000.0 / 1000.0;
+            double area = INT2MM(INT2MM(fabs(result[i].area())));
             if (area < minAreaSize) /* Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill" */
             {
                 result.remove(i);

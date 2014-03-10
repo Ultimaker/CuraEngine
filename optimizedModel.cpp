@@ -105,15 +105,15 @@ void OptimizedModel::saveDebugSTL(const char* filename)
         fwrite(&flt, sizeof(flt), 1, f);
         fwrite(&flt, sizeof(flt), 1, f);
 
-        flt = vol->points[vol->faces[i].index[0]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[0]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[0]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.z); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.z); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.z); fwrite(&flt, sizeof(flt), 1, f);
 
         fwrite(&s, sizeof(s), 1, f);
     }
