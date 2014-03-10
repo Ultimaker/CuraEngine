@@ -99,19 +99,19 @@ bool GCodeExport::isOpened()
 
 void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flow)
 {
-    double filamentArea = M_PI * (double(filamentDiameter) / 1000.0 / 2.0) * (double(filamentDiameter) / 1000.0 / 2.0);
+    double filamentArea = M_PI * (INT2MM(filamentDiameter) / 2.0) * (INT2MM(filamentDiameter) / 2.0);
     if (flavor == GCODE_FLAVOR_ULTIGCODE)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
-        extrusionPerMM = double(layerThickness) / 1000.0;
+        extrusionPerMM = INT2MM(layerThickness);
     else
-        extrusionPerMM = double(layerThickness) / 1000.0 / filamentArea * double(flow) / 100.0;
+        extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
 }
 
 void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop)
 {
-    this->retractionAmount = double(retractionAmount) / 1000.0;
+    this->retractionAmount = INT2MM(retractionAmount);
     this->retractionSpeed = retractionSpeed;
-    this->extruderSwitchRetraction = double(extruderSwitchRetraction) / 1000.0;
-    this->minimalExtrusionBeforeRetraction = double(minimalExtrusionBeforeRetraction) / 1000.0;
+    this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
+    this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
     this->retractionZHop = zHop;
 }
 
@@ -222,7 +222,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 isRetracted = true;
             }
         }
-        fprintf(f, "G1 X%0.2f Y%0.2f Z%0.2f F%0.1f\n", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000, float(zPos)/1000, fspeed);
+        fprintf(f, "G1 X%0.2f Y%0.2f Z%0.2f F%0.1f\n", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y), INT2MM(zPos), fspeed);
     }else{
         
         //Normal E handling.
@@ -239,13 +239,13 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 }else{
                     fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount);
                     currentSpeed = retractionSpeed;
-                    estimateCalculator.plan(TimeEstimateCalculator::Position(double(p.X) / 1000.0, (p.Y) / 1000.0, double(zPos) / 1000.0, extrusionAmount), currentSpeed);
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(zPos), extrusionAmount), currentSpeed);
                 }
                 if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                     resetExtrusionValue();
                 isRetracted = false;
             }
-            extrusionAmount += extrusionPerMM * double(lineWidth) / 1000.0 * vSizeMM(diff);
+            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
             fprintf(f, "G1");
         }else{
             fprintf(f, "G0");
@@ -256,16 +256,17 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             fprintf(f, " F%i", speed * 60);
             currentSpeed = speed;
         }
-        fprintf(f, " X%0.2f Y%0.2f", float(p.X - extruderOffset[extruderNr].X)/1000, float(p.Y - extruderOffset[extruderNr].Y)/1000);
+
+        fprintf(f, " X%0.2f Y%0.2f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
         if (zPos != currentPosition.z)
-            fprintf(f, " Z%0.2f", float(zPos)/1000);
+            fprintf(f, " Z%0.2f", INT2MM(zPos));
         if (lineWidth != 0)
             fprintf(f, " %c%0.5lf", extruderCharacter[extruderNr], extrusionAmount);
         fprintf(f, "\n");
     }
     
     currentPosition = Point3(p.X, p.Y, zPos);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), speed);
 }
 
 void GCodeExport::writeRetraction()
@@ -281,10 +282,10 @@ void GCodeExport::writeRetraction()
         }else{
             fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(double(currentPosition.x) / 1000.0, (currentPosition.y) / 1000.0, double(currentPosition.z) / 1000.0, extrusionAmount - retractionAmount), currentSpeed);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
         }
         if (retractionZHop > 0)
-            fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z + retractionZHop)/1000);
+            fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + retractionZHop));
         extrusionAmountAtPreviousRetraction = extrusionAmount;
         isRetracted = true;
     }
@@ -654,9 +655,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     {
         gcode.writeComment("Small layer, adding delay of %f", extraTime);
         gcode.writeRetraction();
-        gcode.setZ(gcode.getPositionZ() + 3000);
+        gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), travelConfig.speed, 0);
-        gcode.writeMove(gcode.getPositionXY() - Point(-20000, 0), travelConfig.speed, 0);
+        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);
         gcode.writeDelay(extraTime);
     }
 }

@@ -33,7 +33,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                 {
                     Point p1 = segmentList[faceToSegmentIndex[face->touching[i]]].start;
                     Point diff = p0 - p1;
-                    if (shorterThen(diff, 10))
+                    if (shorterThen(diff, MM2INT(0.01)))
                     {
                         if (faceToSegmentIndex[face->touching[i]] == (int)startSegment)
                             canClose = true;
@@ -67,7 +67,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
             int64_t distSquared = vSize2(diff);
 
-            if (distSquared < 2 * 2)
+            if (distSquared < MM2INT(0.02) * MM2INT(0.02))
             {
                 if (i == j)
                 {
@@ -87,7 +87,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
     //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
     while(1)
     {
-        int64_t bestScore = 10000 * 10000;
+        int64_t bestScore = MM2INT(10.0) * MM2INT(10.0);
         unsigned int bestA = -1;
         unsigned int bestB = -1;
         bool reversed = false;
@@ -123,7 +123,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             }
         }
         
-        if (bestScore >= 10000 * 10000)
+        if (bestScore >= MM2INT(10.0) * MM2INT(10.0))
             break;
         
         if (bestA == bestB)
@@ -284,7 +284,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
     //openPolygonList.clear();
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    int snapDistance = 1000;
+    int snapDistance = MM2INT(1.0);
     for(unsigned int i=0;i<polygonList.size();i++)
     {
         int length = 0;

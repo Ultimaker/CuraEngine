@@ -15,6 +15,12 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <stdint.h>
 #include <math.h>
 
+#define INT2MM(n) (double(n) / 1000.0)
+#define MM2INT(n) (int64_t((n) * 1000))
+
+#define INT2MICRON(n) ((n) / 1)
+#define MICRON2INT(n) ((n) * 1)
+
 class Point3
 {
 public:
@@ -107,21 +113,21 @@ INLINE bool shorterThen(const Point& p0, int32_t len)
     return vSize2(p0) <= len*len;
 }
 
-INLINE int32_t vSize(const Point& p0)
+INLINE int64_t vSize(const Point& p0)
 {
     return sqrt(vSize2(p0));
 }
 
 INLINE double vSizeMM(const Point& p0)
 {
-    double fx = double(p0.X) / 1000.0;
-    double fy = double(p0.Y) / 1000.0;
+    double fx = INT2MM(p0.X);
+    double fy = INT2MM(p0.Y);
     return sqrt(fx*fx+fy*fy);
 }
 
-INLINE Point normal(const Point& p0, int32_t len)
+INLINE Point normal(const Point& p0, int64_t len)
 {
-    int32_t _len = vSize(p0);
+    int64_t _len = vSize(p0);
     if (_len < 1)
         return Point(len, 0);
     return p0 * len / _len;

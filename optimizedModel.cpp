@@ -5,7 +5,7 @@
 #include "utils/logoutput.h"
 #include "optimizedModel.h"
 
-#define MELD_DIST 30
+#define MELD_DIST MM2INT(0.03)
 OptimizedVolume::OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
 : model(model)
 {
@@ -118,24 +118,4 @@ void OptimizedModel::saveDebugSTL(const char* filename)
         fwrite(&s, sizeof(s), 1, f);
     }
     fclose(f);
-    //Export the open faces so you can view the with Cura (hacky)
-    /*
-    char gcodeFilename[1024];
-    strcpy(gcodeFilename, filename);
-    strcpy(strchr(gcodeFilename, '.'), ".gcode");
-    f = fopen(gcodeFilename, "w");
-    for(unsigned int i=0;i<faces.size();i++)
-    {
-        for(int j=0;j<3;j++)
-        {
-            if (faces[i].touching[j] == -1)
-            {
-                Point3 p0 = points[faces[i].index[j]].p;
-                Point3 p1 = points[faces[i].index[(j+1)%3]].p;
-                fprintf(f, ";Model error(open face): (%f, %f, %f) (%f, %f, %f)\n", p0.x / 1000.0, p0.y / 1000.0, p0.z / 1000.0, p1.x / 1000.0, p1.y / 1000.0, p1.z / 1000.0);
-            }
-        }
-    }
-    fclose(f);
-    */
 }
