@@ -1,8 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 
-#include "utils/logoutput.h"
-
 #include "layerPart.h"
 #include "settings.h"
 
