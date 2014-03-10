@@ -39,6 +39,8 @@ public:
     
     Point3 min()
     {
+        if (faces.size() < 1)
+            return Point3(0, 0, 0);
         Point3 ret = faces[0].v[0];
         for(unsigned int i=0; i<faces.size(); i++)
         {
@@ -56,6 +58,8 @@ public:
     }
     Point3 max()
     {
+        if (faces.size() < 1)
+            return Point3(0, 0, 0);
         Point3 ret = faces[0].v[0];
         for(unsigned int i=0; i<faces.size(); i++)
         {
@@ -81,6 +85,8 @@ public:
 
     Point3 min()
     {
+        if (volumes.size() < 1)
+            return Point3(0, 0, 0);
         Point3 ret = volumes[0].min();
         for(unsigned int i=0; i<volumes.size(); i++)
         {
@@ -93,6 +99,8 @@ public:
     }
     Point3 max()
     {
+        if (volumes.size() < 1)
+            return Point3(0, 0, 0);
         Point3 ret = volumes[0].max();
         for(unsigned int i=0; i<volumes.size(); i++)
         {

@@ -12,6 +12,7 @@
 #endif
 
 #include "socket.h"
+#include "logOutput.h"
 
 #ifdef WIN32
 bool wsaStartupDone = false;
@@ -94,10 +95,11 @@ void ClientSocket::recvAll(void* data, int length)
         int n = recv(sockfd, ptr, length, 0);
         if (n <= 0)
         {
+            log("ClientSocket::recvAll error...");
             close();
             return;
         }
-        ptr += length;
+        ptr += n;
         length -= n;
     }
 }
