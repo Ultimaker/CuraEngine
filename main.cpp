@@ -64,6 +64,8 @@ int main(int argc, char **argv)
     if(!config.readSettings()) {
         logError("Default config '%s' not used\n", DEFAULT_CONFIG_PATH);
     }
+    for(int argn = 1; argn < argc; argn++)
+        log("Arg: %s\n", argv[argn]);
     
     for(int argn = 1; argn < argc; argn++)
     {
