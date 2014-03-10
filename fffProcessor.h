@@ -151,6 +151,16 @@ private:
             log("  Face counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size(), (int)optimizedModel->volumes[v].faces.size(), float(optimizedModel->volumes[v].faces.size()) / float(model->volumes[v].faces.size()) * 100);
             log("  Vertex counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size() * 3, (int)optimizedModel->volumes[v].points.size(), float(optimizedModel->volumes[v].points.size()) / float(model->volumes[v].faces.size() * 3) * 100);
             log("  Size: %f %f %f\n", INT2MM(optimizedModel->modelSize.x), INT2MM(optimizedModel->modelSize.y), INT2MM(optimizedModel->modelSize.z));
+            log("  vMin: %f %f %f\n", INT2MM(optimizedModel->vMin.x), INT2MM(optimizedModel->vMin.y), INT2MM(optimizedModel->vMin.z));
+            log("  vMax: %f %f %f\n", INT2MM(optimizedModel->vMax.x), INT2MM(optimizedModel->vMax.y), INT2MM(optimizedModel->vMax.z));
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][0], config.matrix.m[1][0], config.matrix.m[2][0]);
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][1], config.matrix.m[1][1], config.matrix.m[2][1]);
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][2], config.matrix.m[1][2], config.matrix.m[2][2]);
+            if (INT2MM(optimizedModel->modelSize.x) > 10000.0 || INT2MM(optimizedModel->modelSize.y)  > 10000.0 || INT2MM(optimizedModel->modelSize.z) > 10000.0)
+            {
+                logError("Object is way to big, CuraEngine bug?");
+                exit(1);
+            }
         }
         delete model;
         log("Optimize model %5.3fs \n", timeKeeper.restart());
