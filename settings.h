@@ -5,7 +5,9 @@
 
 #include "utils/floatpoint.h"
 
-#define VERSION "13.12"
+#ifndef VERSION
+#define VERSION "DEV"
+#endif
 
 #define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
 #define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
