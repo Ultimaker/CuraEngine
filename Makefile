@@ -7,7 +7,7 @@
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=$(VERSION)
+CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\"
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS +=
