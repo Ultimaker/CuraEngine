@@ -12,7 +12,7 @@
 #endif
 
 #include "socket.h"
-#include "logOutput.h"
+#include "logoutput.h"
 
 #ifdef WIN32
 bool wsaStartupDone = false;
