@@ -4,7 +4,6 @@
 
 #include <map>
 #include "modelFile/modelFile.h"
-#include "utils/logOutput.h"
 
 class OptimizedFace
 {
