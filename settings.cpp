@@ -27,6 +27,7 @@ ConfigSettings::ConfigSettings()
     SETTING(skirtDistance, 6000);
     SETTING(skirtLineCount, 1);
     SETTING(skirtMinLength, 0);
+    SETTING(perimInset, 0);
 
     SETTING(initialSpeedupLayers, 4);
     SETTING(initialLayerSpeed, 20);

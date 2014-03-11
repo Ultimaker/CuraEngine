@@ -88,6 +88,7 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
+    int perimInset;
 
     //Retraction settings
     int retractionAmount;
