@@ -4158,9 +4158,12 @@ void ClipperOffset::OffsetPoint(int j, int& k, JoinType jointype)
   {
     m_destPoly.push_back(IntPoint(Round(m_srcPoly[j].X + m_normals[k].X * m_delta),
       Round(m_srcPoly[j].Y + m_normals[k].Y * m_delta)));
-    m_destPoly.push_back(m_srcPoly[j]);
-    m_destPoly.push_back(IntPoint(Round(m_srcPoly[j].X + m_normals[j].X * m_delta),
-      Round(m_srcPoly[j].Y + m_normals[j].Y * m_delta)));
+    if (fabs(m_normals[j].X - m_normals[k].X) + fabs(m_normals[j].Y - m_normals[k].Y) > 1.0)
+    {
+        m_destPoly.push_back(m_srcPoly[j]);
+        m_destPoly.push_back(IntPoint(Round(m_srcPoly[j].X + m_normals[j].X * m_delta),
+          Round(m_srcPoly[j].Y + m_normals[j].Y * m_delta)));
+    }
   }
   else
     switch (jointype)
