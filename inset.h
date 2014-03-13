@@ -4,8 +4,8 @@
 
 #include "sliceDataStorage.h"
 
-void generateInsets(SliceLayerPart* part, int offset, int insetCount);
+void generateInsets(SliceLayerPart* part, int offset, int insetCount, int perimInset);
 
-void generateInsets(SliceLayer* layer, int offset, int insetCount);
+void generateInsets(SliceLayer* layer, int offset, int insetCount, int perimInset);
 
 #endif//INSET_H

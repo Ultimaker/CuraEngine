@@ -221,7 +221,7 @@ private:
                 if (config.spiralizeMode && int(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
-                generateInsets(layer, config.extrusionWidth, insetCount);
+                generateInsets(layer, config.extrusionWidth, insetCount, config.perimInset);
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
@@ -565,7 +565,7 @@ private:
             for(unsigned int n=0; n<layer->parts.size(); n++)
                 supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(config.supportXYDistance));
         }
-        //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
+        //Contract and expand the support polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
         sendPolygonsToGui("support", layerNr, z, supportGenerator.polygons);
