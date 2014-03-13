@@ -16,6 +16,8 @@ using std::vector;
 #define POLY_ASSERT(e) do {} while(0)
 #endif
 
+#define CLIPPER_INIT (0)
+
 class PolygonRef
 {
     ClipperLib::Path* polygon;
@@ -189,7 +191,7 @@ public:
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctDifference, ret.polygons);
@@ -198,7 +200,7 @@ public:
     Polygons unionPolygons(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
@@ -207,7 +209,7 @@ public:
     Polygons intersection(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
@@ -225,7 +227,7 @@ public:
     vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         vector<Polygons> ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         if (unionAll)
@@ -256,7 +258,7 @@ public:
     Polygons processEvenOdd() const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons);
         return ret;

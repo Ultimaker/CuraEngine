@@ -4150,7 +4150,7 @@ void ClipperOffset::DoOffset(double delta)
 void ClipperOffset::OffsetPoint(int j, int& k, JoinType jointype)
 {
   m_sinA = (m_normals[k].X * m_normals[j].Y - m_normals[j].X * m_normals[k].Y);
-  if (m_sinA < 0.00005 && m_sinA > -0.00005) return;
+  if (m_sinA * m_delta < 1.0 && m_sinA * m_delta > -1.0) return;
   else if (m_sinA > 1.0) m_sinA = 1.0;
   else if (m_sinA < -1.0) m_sinA = -1.0;
 
