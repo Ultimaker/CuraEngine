@@ -237,7 +237,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 {
                     fprintf(f, "G11\n");
                 }else{
-                    fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount);
+                    fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(zPos), extrusionAmount), currentSpeed);
                 }
@@ -280,7 +280,7 @@ void GCodeExport::writeRetraction()
         {
             fprintf(f, "G10\n");
         }else{
-            fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount - retractionAmount);
+            fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
         }
@@ -300,7 +300,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         fprintf(f, "G10 S1\n");
     }else{
-        fprintf(f, "G1 F%i %c%0.5lf\n", extruderCharacter[extruderNr], retractionSpeed * 60, extrusionAmount - extruderSwitchRetraction);
+        fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
     }
     resetExtrusionValue();
