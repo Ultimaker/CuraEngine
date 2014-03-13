@@ -66,6 +66,10 @@ ConfigSettings::ConfigSettings()
     SETTING(raftBaseLinewidth, 0);
     SETTING(raftInterfaceThickness, 0);
     SETTING(raftInterfaceLinewidth, 0);
+    SETTING(raftInterfaceLineSpacing, 250);
+    SETTING(raftAirGap, 200);
+    SETTING(raftBaseSpeed, 8);
+    SETTING(raftInterfaceLayers, 2);
 
     SETTING(minimalLayerTime, 5);
     SETTING(minimalFeedrate, 10);

@@ -134,6 +134,10 @@ public:
     int raftBaseLinewidth;
     int raftInterfaceThickness;
     int raftInterfaceLinewidth;
+    int raftInterfaceLineSpacing;
+    int raftAirGap;
+    int raftBaseSpeed;
+    int raftInterfaceLayers;
 
     FMatrix3x3 matrix;
     IntPoint objectPosition;
