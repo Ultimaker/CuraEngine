@@ -528,11 +528,7 @@ private:
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
-            //int sparseSteps[1] = {config.extrusionWidth};
-            //generateConcentricInfill(part->skinOutline, fillPolygons, sparseSteps, 1);
             generateLineInfill(part->skinOutline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
-            //int sparseSteps[2] = {config.extrusionWidth*5, config.extrusionWidth * 0.8};
-            //generateConcentricInfill(part->sparseOutline, fillPolygons, sparseSteps, 2);
             if (config.sparseInfillLineDistance > 0)
             {
                 if (config.sparseInfillLineDistance > extrusionWidth * 4)
