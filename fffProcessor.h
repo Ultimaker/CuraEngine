@@ -338,12 +338,14 @@ private:
         config.raftBaseThickness = 300;
         config.raftBaseLinewidth = 1000;
         config.raftLineSpacing = 3000;
+
         config.raftInterfaceThickness = 250;
         config.raftInterfaceLinewidth = 350;
         config.raftInterfaceLineSpacing = 1000;
+
         config.raftFullThickness = 250;
-        config.raftFullLinewidth = 350;
-        config.raftFullLineSpacing = 250;
+        config.raftFullLinewidth = 400;
+        config.raftFullLineSpacing = 400;
         config.raftFullLayers = 2;
         config.raftAirGap = 250;
 
@@ -380,7 +382,7 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcodeLayer.setAlwaysRetract(true);
-                gcode.setZ(config.raftInterfaceThickness + config.raftInterfaceThickness);
+                gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
                 gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
@@ -396,11 +398,11 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcodeLayer.setAlwaysRetract(true);
-                gcode.setZ(config.raftBaseThickness + config.raftFullThickness*raftFullLayer);
+                gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness + config.raftFullThickness*raftFullLayer);
                 gcode.setExtrusion(config.raftFullThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, config.raftFullLinewidth, config.raftInterfaceLineSpacing, config.infillOverlap, 90);
+                generateLineInfill(storage.raftOutline, raftLines, config.raftFullLinewidth, config.raftFullLineSpacing, config.infillOverlap, 90);
                 gcodeLayer.addPolygonsByOptimizer(raftLines, &raftFullConfig);
 
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
