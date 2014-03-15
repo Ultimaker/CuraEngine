@@ -334,21 +334,6 @@ private:
         unsigned int totalLayers = storage.volumes[0].layers.size();
         gcode.writeComment("Layer count: %d", totalLayers);
 
-        // XXX
-        config.raftBaseThickness = 300;
-        config.raftBaseLinewidth = 1000;
-        config.raftLineSpacing = 3000;
-
-        config.raftInterfaceThickness = 250;
-        config.raftInterfaceLinewidth = 350;
-        config.raftInterfaceLineSpacing = 1000;
-
-        config.raftSurfaceThickness = 250;
-        config.raftSurfaceLinewidth = 400;
-        config.raftSurfaceLineSpacing = 400;
-        config.raftSurfaceLayers = 2;
-        config.raftAirGap = 200;
-
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
             sendPolygonsToGui("support", 0, config.raftBaseThickness, storage.raftOutline);
