@@ -70,10 +70,10 @@ ConfigSettings::ConfigSettings()
     SETTING(raftAirGap, 0);
     SETTING(raftBaseSpeed, 8);
 
-    SETTING(raftFullThickness, 0);
-    SETTING(raftFullLinewidth, 0);
-    SETTING(raftFullLineSpacing, 0);
-    SETTING(raftFullLayers, 2);
+    SETTING(raftSurfaceThickness, 0);
+    SETTING(raftSurfaceLinewidth, 0);
+    SETTING(raftSurfaceLineSpacing, 0);
+    SETTING(raftSurfaceLayers, 2);
 
     SETTING(minimalLayerTime, 5);
     SETTING(minimalFeedrate, 10);

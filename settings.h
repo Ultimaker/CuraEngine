@@ -137,10 +137,10 @@ public:
     int raftInterfaceLinewidth;
     int raftInterfaceLineSpacing;
 
-    int raftFullThickness;
-    int raftFullLinewidth;
-    int raftFullLineSpacing;
-    int raftFullLayers;
+    int raftSurfaceThickness;
+    int raftSurfaceLinewidth;
+    int raftSurfaceLineSpacing;
+    int raftSurfaceLayers;
     int raftAirGap;
 
     FMatrix3x3 matrix;

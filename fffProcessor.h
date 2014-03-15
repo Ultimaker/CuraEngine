@@ -343,11 +343,11 @@ private:
         config.raftInterfaceLinewidth = 350;
         config.raftInterfaceLineSpacing = 1000;
 
-        config.raftFullThickness = 250;
-        config.raftFullLinewidth = 400;
-        config.raftFullLineSpacing = 400;
-        config.raftFullLayers = 2;
-        config.raftAirGap = 250;
+        config.raftSurfaceThickness = 250;
+        config.raftSurfaceLinewidth = 400;
+        config.raftSurfaceLineSpacing = 400;
+        config.raftSurfaceLayers = 2;
+        config.raftAirGap = 200;
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
@@ -357,7 +357,7 @@ private:
             GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
-            GCodePathConfig raftFullConfig(config.printSpeed, config.raftFullLinewidth, "SUPPORT");
+            GCodePathConfig raftSurfaceConfig(config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
             
             {
                 gcode.writeComment("LAYER:-2");
@@ -392,18 +392,18 @@ private:
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
             }
 
-            for (int raftFullLayer=1; raftFullLayer<=config.raftFullLayers; raftFullLayer++)
+            for (int raftSurfaceLayer=1; raftSurfaceLayer<=config.raftSurfaceLayers; raftSurfaceLayer++)
             {
                 gcode.writeComment("LAYER:FullRaft");
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 gcodeLayer.setAlwaysRetract(true);
-                gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness + config.raftFullThickness*raftFullLayer);
-                gcode.setExtrusion(config.raftFullThickness, config.filamentDiameter, config.filamentFlow);
+                gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceThickness*raftSurfaceLayer);
+                gcode.setExtrusion(config.raftSurfaceThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, config.raftFullLinewidth, config.raftFullLineSpacing, config.infillOverlap, 90);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raftFullConfig);
+                generateLineInfill(storage.raftOutline, raftLines, config.raftSurfaceLinewidth, config.raftSurfaceLineSpacing, config.infillOverlap, 90);
+                gcodeLayer.addPolygonsByOptimizer(raftLines, &raftSurfaceConfig);
 
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
             }
@@ -438,7 +438,7 @@ private:
 
             GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
             int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
-            z += config.raftAirGap + config.raftBaseThickness + config.raftInterfaceThickness + config.raftFullLayers*config.raftFullThickness;
+            z += config.raftAirGap + config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
             gcode.setZ(z);
 
             bool printSupportFirst = (storage.support.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());
