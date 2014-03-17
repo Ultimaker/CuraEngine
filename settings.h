@@ -59,6 +59,20 @@
  **/
 #define GCODE_FLAVOR_MAKERBOT           2
 
+/**
+ * Bits From Bytes GCode.
+ *  BFB machines use RPM instead of E. Which is coupled to the F instead of independed. (M108 S[deciRPM])
+ *  Need X,Y,Z,F on every line.
+ *  Needs extruder ON/OFF (M101, M103), has auto-retrection (M227 S[2560*mm] P[2560*mm])
+ **/
+#define GCODE_FLAVOR_BFB                3
+
+/**
+ * MACH3 GCode
+ *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
+ **/
+#define GCODE_FLAVOR_MACH3              4
+
 #define MAX_EXTRUDERS 16
 
 class _ConfigSettingIndex
@@ -79,6 +93,7 @@ public:
     int initialLayerThickness;
     int filamentDiameter;
     int filamentFlow;
+    int layer0extrusionWidth;
     int extrusionWidth;
     int insetCount;
     int downSkinCount;

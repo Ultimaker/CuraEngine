@@ -25,6 +25,7 @@ private:
     double extrusionAmountAtPreviousRetraction;
     Point3 currentPosition;
     Point extruderOffset[MAX_EXTRUDERS];
+    char extruderCharacter[MAX_EXTRUDERS];
     int currentSpeed, retractionSpeed;
     int zPos;
     bool isRetracted;
