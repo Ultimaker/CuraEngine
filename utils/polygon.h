@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <assert.h>
+#include <float.h>
 using std::vector;
 #include "../clipper/clipper.hpp"
 
@@ -14,6 +15,8 @@ using std::vector;
 #else
 #define POLY_ASSERT(e) do {} while(0)
 #endif
+
+#define CLIPPER_INIT (0)
 
 class PolygonRef
 {
@@ -112,6 +115,22 @@ public:
         return Point(x, y);
     }
     
+    Point closestPointTo(Point p)
+    {
+        Point ret = p;
+        float bestDist = FLT_MAX;
+        for(unsigned int n=0; n<polygon->size(); n++)
+        {
+            float dist = vSize2f(p - (*polygon)[n]);
+            if (dist < bestDist)
+            {
+                ret = (*polygon)[n];
+                bestDist = dist;
+            }
+        }
+        return ret;
+    }
+    
     friend class Polygons;
 };
 
@@ -172,7 +191,7 @@ public:
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctDifference, ret.polygons);
@@ -181,7 +200,7 @@ public:
     Polygons unionPolygons(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
@@ -190,7 +209,7 @@ public:
     Polygons intersection(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
@@ -208,7 +227,7 @@ public:
     vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         vector<Polygons> ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         if (unionAll)
@@ -239,7 +258,7 @@ public:
     Polygons processEvenOdd() const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper;
+        ClipperLib::Clipper clipper(CLIPPER_INIT);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons);
         return ret;

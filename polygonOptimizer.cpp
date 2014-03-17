@@ -7,28 +7,29 @@ void optimizePolygon(PolygonRef poly)
     for(unsigned int i=0;i<poly.size();i++)
     {
         Point p1 = poly[i];
-        if (shorterThen(p0 - p1, 10))
+        if (shorterThen(p0 - p1, MICRON2INT(10)))
         {
             poly.remove(i);
             i --;
         }else{
+        /*
             Point p2;
             if (i < poly.size() - 1)
                 p2 = poly[i+1];
             else
                 p2 = poly[0];
             
-            Point diff0 = normal(p1 - p0, 1000000);
-            Point diff2 = normal(p1 - p2, 1000000);
+            Point diff0 = normal(p1 - p0, 10000000);
+            Point diff2 = normal(p1 - p2, 10000000);
             
             int64_t d = dot(diff0, diff2);
-            if (d < -999999000000LL)
+            if (d < -99999999999999LL)
             {
                 poly.remove(i);
                 i --;
-            }else{
+            }else{*/
                 p0 = p1;
-            }
+            /*}*/
         }
     }
 }

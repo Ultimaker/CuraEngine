@@ -5,7 +5,7 @@
 #include "utils/logoutput.h"
 #include "optimizedModel.h"
 
-#define MELD_DIST 30
+#define MELD_DIST MM2INT(0.03)
 OptimizedVolume::OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
 : model(model)
 {
@@ -105,37 +105,17 @@ void OptimizedModel::saveDebugSTL(const char* filename)
         fwrite(&flt, sizeof(flt), 1, f);
         fwrite(&flt, sizeof(flt), 1, f);
 
-        flt = vol->points[vol->faces[i].index[0]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[0]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[0]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[1]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.x / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.y / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
-        flt = vol->points[vol->faces[i].index[2]].p.z / 1000.0; fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[0]].p.z); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[1]].p.z); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.x); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.y); fwrite(&flt, sizeof(flt), 1, f);
+        flt = INT2MM(vol->points[vol->faces[i].index[2]].p.z); fwrite(&flt, sizeof(flt), 1, f);
 
         fwrite(&s, sizeof(s), 1, f);
     }
     fclose(f);
-    //Export the open faces so you can view the with Cura (hacky)
-    /*
-    char gcodeFilename[1024];
-    strcpy(gcodeFilename, filename);
-    strcpy(strchr(gcodeFilename, '.'), ".gcode");
-    f = fopen(gcodeFilename, "w");
-    for(unsigned int i=0;i<faces.size();i++)
-    {
-        for(int j=0;j<3;j++)
-        {
-            if (faces[i].touching[j] == -1)
-            {
-                Point3 p0 = points[faces[i].index[j]].p;
-                Point3 p1 = points[faces[i].index[(j+1)%3]].p;
-                fprintf(f, ";Model error(open face): (%f, %f, %f) (%f, %f, %f)\n", p0.x / 1000.0, p0.y / 1000.0, p0.z / 1000.0, p1.x / 1000.0, p1.y / 1000.0, p1.z / 1000.0);
-            }
-        }
-    }
-    fclose(f);
-    */
 }
