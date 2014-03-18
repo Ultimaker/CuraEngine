@@ -1,6 +1,7 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
+#include <algorithm>
 #include "utils/socket.h"
 
 #define GUI_CMD_REQUEST_MESH 0x01
@@ -416,11 +417,14 @@ private:
             if (int(layerNr) < config.initialSpeedupLayers)
             {
                 int n = config.initialSpeedupLayers;
-                skirtConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, "SKIRT");
-                inset0Config.setData(config.inset0Speed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(config.insetXSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, "WALL-INNER");
-                fillConfig.setData(config.infillSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, "FILL");
-                supportConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, "SUPPORT");
+#define SPEED_SMOOTH(speed) \
+                std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
+                skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SKIRT");
+                inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
+                insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
+                fillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  "FILL");
+                supportConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SUPPORT");
+#undef SPEED_SMOOTH
             }else{
                 skirtConfig.setData(config.printSpeed, extrusionWidth, "SKIRT");
                 inset0Config.setData(config.inset0Speed, extrusionWidth, "WALL-OUTER");
