@@ -53,4 +53,3 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     if (angle < 0) angle += 360;
     return angle;
 }
-
