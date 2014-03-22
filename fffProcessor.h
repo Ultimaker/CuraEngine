@@ -346,6 +346,24 @@ private:
         unsigned int totalLayers = storage.volumes[0].layers.size();
         gcode.writeComment("Layer count: %d", totalLayers);
 
+        if (config.anchorThickness > 0)
+        {
+            GCodePathConfig anchorConfig(config.anchorSpeed, config.anchorLinewidth, "ANCHOR");
+            gcode.writeComment("ANCHOR");
+            GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
+            if (config.supportExtruder > 0)
+                gcodeLayer.setExtruder(config.supportExtruder);
+            gcodeLayer.setAlwaysRetract(true);
+            gcode.setZ(config.anchorThickness);
+            gcode.setExtrusion(config.anchorThickness, config.filamentDiameter, config.filamentFlow);
+            Polygons anchors;
+            PolygonRef anchorLine = anchors.newPoly();
+            anchorLine.add(Point(config.anchorFromX, config.anchorY));
+            anchorLine.add(Point(config.anchorToX, config.anchorY));
+            gcodeLayer.addPolygon(anchorLine, 0, &anchorConfig);
+            gcodeLayer.writeGCode(false, config.anchorThickness);
+        }
+
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
             sendPolygonsToGui("support", 0, config.raftBaseThickness, storage.raftOutline);
@@ -373,7 +391,7 @@ private:
 
                 gcodeLayer.writeGCode(false, config.raftBaseThickness);
             }
-            
+                
             {
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");

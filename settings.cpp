@@ -93,6 +93,13 @@ ConfigSettings::ConfigSettings()
     SETTING(extruderOffset[2].Y, 0);
     SETTING(extruderOffset[3].X, 0);
     SETTING(extruderOffset[3].Y, 0);
+    
+    SETTING(anchorThickness, 400);
+    SETTING(anchorLinewidth, 400);
+    SETTING(anchorSpeed, 8);
+    SETTING(anchorY, 10000);
+    SETTING(anchorFromX, 50000);
+    SETTING(anchorToX, 150000);
 
     startCode =
         "M109 S210     ;Heatup to 210C\n"
