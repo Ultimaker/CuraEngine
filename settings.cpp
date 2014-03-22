@@ -74,7 +74,7 @@ ConfigSettings::ConfigSettings()
     SETTING(raftSurfaceThickness, 0);
     SETTING(raftSurfaceLinewidth, 0);
     SETTING(raftSurfaceLineSpacing, 0);
-    SETTING(raftSurfaceLayers, 2);
+    SETTING(raftSurfaceLayers, 0);
 
     SETTING(minimalLayerTime, 5);
     SETTING(minimalFeedrate, 10);

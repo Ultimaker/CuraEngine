@@ -1,6 +1,7 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
+#include <algorithm>
 #include "utils/socket.h"
 
 #define GUI_CMD_REQUEST_MESH 0x01
@@ -416,11 +417,14 @@ private:
             if (int(layerNr) < config.initialSpeedupLayers)
             {
                 int n = config.initialSpeedupLayers;
-                skirtConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, 0, "SKIRT");
-                inset0Config.setData(config.inset0Speed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, config.stretchDistance, "WALL-OUTER");
-                insetXConfig.setData(config.insetXSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, config.stretchDistance, "WALL-INNER");
-                fillConfig.setData(config.infillSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, 0, "FILL");
-                supportConfig.setData(config.printSpeed * layerNr / n + config.initialLayerSpeed * (n - layerNr) / n, extrusionWidth, 0, "SUPPORT");
+#define SPEED_SMOOTH(speed) \
+                std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
+                skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, 0, "SKIRT");
+                inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, config.stretchDistance, "WALL-OUTER");
+                insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, config.stretchDistance, "WALL-INNER");
+                fillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  0, "FILL");
+                supportConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, 0, "SUPPORT");
+#undef SPEED_SMOOTH
             }else{
                 skirtConfig.setData(config.printSpeed, extrusionWidth, 0, "SKIRT");
                 inset0Config.setData(config.inset0Speed, extrusionWidth, config.stretchDistance, "WALL-OUTER");
@@ -437,7 +441,10 @@ private:
 
             GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
             int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
-            z += config.raftAirGap + config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
+            z += config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
+            if (layerNr == 0) {
+                z += config.raftAirGap;
+            }
             gcode.setZ(z);
 
             bool printSupportFirst = (storage.support.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());
