@@ -354,7 +354,7 @@ private:
             GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
-            GCodePathConfig raftSurfaceConfig(config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftSurfaceConfig((config.raftSurfaceSpeed > 0) ? config.raftSurfaceSpeed : config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
             
             {
                 gcode.writeComment("LAYER:-2");
@@ -372,6 +372,10 @@ private:
                 gcodeLayer.addPolygonsByOptimizer(raftLines, &raftBaseConfig);
 
                 gcodeLayer.writeGCode(false, config.raftBaseThickness);
+            }
+
+            if (config.raftFanSpeed) {
+                gcode.writeFanCommand(config.raftFanSpeed);
             }
             
             {
