@@ -151,11 +151,12 @@ public:
     int raftInterfaceThickness;
     int raftInterfaceLinewidth;
     int raftInterfaceLineSpacing;
-
+    int raftFanSpeed;
     int raftSurfaceThickness;
     int raftSurfaceLinewidth;
     int raftSurfaceLineSpacing;
     int raftSurfaceLayers;
+    int raftSurfaceSpeed;
     int raftAirGap;
 
     FMatrix3x3 matrix;
