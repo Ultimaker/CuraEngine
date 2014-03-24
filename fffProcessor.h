@@ -101,7 +101,7 @@ private:
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
             gcode.setExtruderOffset(n, config.extruderOffset[n].p());
         gcode.setFlavor(config.gcodeFlavor);
-        gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop);
+        gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
     }
 
     bool prepareModel(SliceDataStorage& storage, const char* input_filename)
@@ -372,7 +372,7 @@ private:
             GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
-            GCodePathConfig raftSurfaceConfig(config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftSurfaceConfig((config.raftSurfaceSpeed > 0) ? config.raftSurfaceSpeed : config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
             
             {
                 gcode.writeComment("LAYER:-2");
@@ -392,6 +392,11 @@ private:
                 gcodeLayer.writeGCode(false, config.raftBaseThickness);
             }
                 
+
+            if (config.raftFanSpeed) {
+                gcode.writeFanCommand(config.raftFanSpeed);
+            }
+            
             {
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");

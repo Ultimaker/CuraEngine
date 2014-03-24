@@ -106,6 +106,7 @@ public:
 
     //Retraction settings
     int retractionAmount;
+    int retractionAmountPrime;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
     int retractionMinimalDistance;
@@ -151,11 +152,12 @@ public:
     int raftInterfaceThickness;
     int raftInterfaceLinewidth;
     int raftInterfaceLineSpacing;
-
+    int raftFanSpeed;
     int raftSurfaceThickness;
     int raftSurfaceLinewidth;
     int raftSurfaceLineSpacing;
     int raftSurfaceLayers;
+    int raftSurfaceSpeed;
     int raftAirGap;
 
     // Anchor settings
