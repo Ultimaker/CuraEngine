@@ -106,6 +106,7 @@ public:
 
     //Retraction settings
     int retractionAmount;
+    int retractionAmountPrime;
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
     int retractionMinimalDistance;

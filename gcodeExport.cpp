@@ -106,9 +106,10 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
         extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
 }
 
-void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop)
+void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime)
 {
     this->retractionAmount = INT2MM(retractionAmount);
+    this->retractionAmountPrime = INT2MM(retractionAmountPrime);
     this->retractionSpeed = retractionSpeed;
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
@@ -237,6 +238,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 {
                     fprintf(f, "G11\n");
                 }else{
+                    extrusionAmount += retractionAmountPrime;
                     fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(zPos), extrusionAmount), currentSpeed);
