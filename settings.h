@@ -160,6 +160,14 @@ public:
     int raftSurfaceSpeed;
     int raftAirGap;
 
+    // Anchor settings
+    int anchorThickness;
+    int anchorLinewidth;
+    int anchorSpeed;
+    int anchorY;
+    int anchorFromX;
+    int anchorToX;
+
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;
