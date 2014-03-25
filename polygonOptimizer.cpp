@@ -11,8 +11,8 @@ void optimizePolygon(PolygonRef poly)
         {
             poly.remove(i);
             i --;
-        }else{
-        /*
+        }else if (shorterThen(p0 - p1, MICRON2INT(500)))
+        {
             Point p2;
             if (i < poly.size() - 1)
                 p2 = poly[i+1];
@@ -27,9 +27,11 @@ void optimizePolygon(PolygonRef poly)
             {
                 poly.remove(i);
                 i --;
-            }else{*/
+            }else{
                 p0 = p1;
-            /*}*/
+            }
+        }else{
+            p0 = p1;
         }
     }
 }

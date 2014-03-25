@@ -214,6 +214,10 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
             // (Trick copied from KISSlicer, thanks Jonathan)
             fspeed *= (rpm / (roundf(rpm * 100) / 100));
+
+            //Increase the extrusion amount to calculate the amount of filament used.
+            Point diff = p - getPositionXY();
+            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
