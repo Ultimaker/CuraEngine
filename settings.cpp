@@ -47,6 +47,7 @@ ConfigSettings::ConfigSettings()
     SETTING(supportExtruder, -1);
 
     SETTING(retractionAmount, 4500);
+    SETTING(retractionAmountPrime, 0);
     SETTING(retractionSpeed, 45);
     SETTING(retractionAmountExtruderSwitch, 14500);
     SETTING(retractionMinimalDistance, 1500);
@@ -70,11 +71,12 @@ ConfigSettings::ConfigSettings()
     SETTING(raftInterfaceLineSpacing, 250);
     SETTING(raftAirGap, 0);
     SETTING(raftBaseSpeed, 0);
-
+    SETTING(raftFanSpeed, 0);
     SETTING(raftSurfaceThickness, 0);
     SETTING(raftSurfaceLinewidth, 0);
     SETTING(raftSurfaceLineSpacing, 0);
     SETTING(raftSurfaceLayers, 0);
+    SETTING(raftSurfaceSpeed, 0);
 
     SETTING(minimalLayerTime, 5);
     SETTING(minimalFeedrate, 10);
