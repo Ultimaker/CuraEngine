@@ -301,6 +301,13 @@ void GCodeExport::switchExtruder(int newExtruder)
 {
     if (extruderNr == newExtruder)
         return;
+    if (flavor == GCODE_FLAVOR_BFB)
+    {
+        if (!isRetracted)
+            fprintf(f, "M%03\n", extruderNr);
+        isRetracted = true;
+        return;
+    }
     
     if (flavor == GCODE_FLAVOR_ULTIGCODE)
     {
