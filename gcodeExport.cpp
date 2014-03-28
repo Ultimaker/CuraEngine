@@ -206,10 +206,10 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 if (currentSpeed != int(rpm * 10))
                 {
                     //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusionPerMM, lineWidth, speed);
-                    fprintf(f, "M108 S%0.1f\n", rpm * 10);
+                    fprintf(f, "M108 S%0.1f\n", rpm);
                     currentSpeed = int(rpm * 10);
                 }
-                fprintf(f, "M101\n");
+                fprintf(f, "M%d01\n", extruderNr);
                 isRetracted = false;
             }
             //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
@@ -223,7 +223,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
             {
-                fprintf(f, "M103\n");
+                fprintf(f, "M%03\n", extruderNr);
                 isRetracted = true;
             }
         }
