@@ -160,6 +160,7 @@ public:
     int raftSurfaceSpeed;
     int raftAirGap;
 
+    int stretchDistance;
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;

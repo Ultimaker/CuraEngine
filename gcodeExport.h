@@ -103,16 +103,19 @@ public:
     int lineWidth;
     const char* name;
     bool spiralize;
+    int stretchDistance;
     
-    GCodePathConfig() : speed(0), lineWidth(0), name(NULL), spiralize(false) {}
-    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
+    GCodePathConfig() : speed(0), lineWidth(0), name(NULL), spiralize(false), stretchDistance(0) {}
+    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false), stretchDistance(0) {}
     
-    void setData(int speed, int lineWidth, const char* name)
+    void setData(int speed, int lineWidth, const char* name, int _stretchDistance = 0)
     {
         this->speed = speed;
         this->lineWidth = lineWidth;
         this->name = name;
+        this->stretchDistance = _stretchDistance;
     }
+
 };
 
 class GCodePath
@@ -149,6 +152,7 @@ private:
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
+    void writeStretchedPath(vector<Point>& points, int speed, int lineWidth, int _stretchDistance);
 public:
     GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance);
     ~GCodePlanner();
@@ -218,6 +222,8 @@ public:
     void forceMinimalLayerTime(double minTime, int minimalSpeed);
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
+
+    static Point CircleCenter(Point& A, Point& B, Point& C);
 };
 
 #endif//GCODEEXPORT_H

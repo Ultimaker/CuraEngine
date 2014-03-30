@@ -93,8 +93,8 @@ private:
     void preSetup()
     {
         skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
-        inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
-        insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
+        inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER", config.stretchDistance);
+        insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER", config.stretchDistance);
         fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
         supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
 
@@ -424,15 +424,15 @@ private:
 #define SPEED_SMOOTH(speed) \
                 std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
                 skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SKIRT");
-                inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
+                inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER", config.stretchDistance);
+                insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER", config.stretchDistance);
                 fillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  "FILL");
                 supportConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SUPPORT");
 #undef SPEED_SMOOTH
             }else{
                 skirtConfig.setData(config.printSpeed, extrusionWidth, "SKIRT");
-                inset0Config.setData(config.inset0Speed, extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(config.insetXSpeed, extrusionWidth, "WALL-INNER");
+                inset0Config.setData(config.inset0Speed, extrusionWidth, "WALL-OUTER", config.stretchDistance);
+                insetXConfig.setData(config.insetXSpeed, extrusionWidth, "WALL-INNER", config.stretchDistance);
                 fillConfig.setData(config.infillSpeed, extrusionWidth, "FILL");
                 supportConfig.setData(config.printSpeed, extrusionWidth, "SUPPORT");
             }
