@@ -19,6 +19,7 @@ private:
     double extrusionAmount;
     double extrusionPerMM;
     double retractionAmount;
+    double retractionAmountPrime;
     int retractionZHop;
     double extruderSwitchRetraction;
     double minimalExtrusionBeforeRetraction;
@@ -55,7 +56,7 @@ public:
     
     void setExtrusion(int layerThickness, int filamentDiameter, int flow);
     
-    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop);
+    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime);
     
     void setZ(int z);
     

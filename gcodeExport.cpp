@@ -106,9 +106,10 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
         extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
 }
 
-void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop)
+void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime)
 {
     this->retractionAmount = INT2MM(retractionAmount);
+    this->retractionAmountPrime = INT2MM(retractionAmountPrime);
     this->retractionSpeed = retractionSpeed;
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
@@ -174,7 +175,7 @@ void GCodeExport::writeLine(const char* line, ...)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT)
+    if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
     {
         fprintf(f, "G92 %c0\n", extruderCharacter[extruderNr]);
         totalFilament[extruderNr] += extrusionAmount;
@@ -205,20 +206,24 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 if (currentSpeed != int(rpm * 10))
                 {
                     //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusionPerMM, lineWidth, speed);
-                    fprintf(f, "M108 S%0.1f\n", rpm * 10);
+                    fprintf(f, "M108 S%0.1f\n", rpm);
                     currentSpeed = int(rpm * 10);
                 }
-                fprintf(f, "M101\n");
+                fprintf(f, "M%d01\n", extruderNr);
                 isRetracted = false;
             }
             //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
             // (Trick copied from KISSlicer, thanks Jonathan)
             fspeed *= (rpm / (roundf(rpm * 100) / 100));
+
+            //Increase the extrusion amount to calculate the amount of filament used.
+            Point diff = p - getPositionXY();
+            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
             {
-                fprintf(f, "M103\n");
+                fprintf(f, "M%03\n", extruderNr);
                 isRetracted = true;
             }
         }
@@ -237,6 +242,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                 {
                     fprintf(f, "G11\n");
                 }else{
+                    extrusionAmount += retractionAmountPrime;
                     fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(zPos), extrusionAmount), currentSpeed);
@@ -295,6 +301,13 @@ void GCodeExport::switchExtruder(int newExtruder)
 {
     if (extruderNr == newExtruder)
         return;
+    if (flavor == GCODE_FLAVOR_BFB)
+    {
+        if (!isRetracted)
+            fprintf(f, "M%03\n", extruderNr);
+        isRetracted = true;
+        return;
+    }
     
     if (flavor == GCODE_FLAVOR_ULTIGCODE)
     {
