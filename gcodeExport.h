@@ -105,15 +105,16 @@ public:
     int stretchDistance;
     
     GCodePathConfig() : speed(0), lineWidth(0), name(NULL), spiralize(false), stretchDistance(0) {}
-    GCodePathConfig(int speed, int lineWidth, int _stretchDistance, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false), stretchDistance(_stretchDistance) {}
+    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false), stretchDistance(0) {}
     
-    void setData(int speed, int lineWidth, int _stretchDistance, const char* name)
+    void setData(int speed, int lineWidth, const char* name, int _stretchDistance = 0)
     {
         this->speed = speed;
         this->lineWidth = lineWidth;
         this->name = name;
         this->stretchDistance = _stretchDistance;
     }
+
 };
 
 class GCodePath

@@ -397,7 +397,7 @@ void GCodePlanner::forceNewPathStart()
 }
 
 GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
-: gcode(gcode), travelConfig(travelSpeed, 0, 0, "travel")
+: gcode(gcode), travelConfig(travelSpeed, 0, "travel")
 {
     lastPosition = gcode.getPositionXY();
     comb = NULL;
