@@ -223,7 +223,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
             {
-                fprintf(f, "M%03\n", extruderNr);
+                fprintf(f, "M103\n");
                 isRetracted = true;
             }
         }
@@ -304,7 +304,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     if (flavor == GCODE_FLAVOR_BFB)
     {
         if (!isRetracted)
-            fprintf(f, "M%03\n", extruderNr);
+            fprintf(f, "M103\n");
         isRetracted = true;
         return;
     }
