@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "skin.h"
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
+void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap, int raftLayers)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -28,7 +28,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
                     downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
             }
         }
-        if (int(layerNr + upSkinCount) < (int)storage.layers.size())
+        if (int(layerNr + upSkinCount) < (int)storage.layers.size()-raftLayers)
         {
             SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
