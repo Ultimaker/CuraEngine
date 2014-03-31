@@ -214,6 +214,7 @@ private:
         //dumpLayerparts(storage, "c:/models/output.html");
 
         const unsigned int totalLayers = storage.volumes[0].layers.size();
+        const unsigned int raftLayers = (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0) ? 2 + config.raftSurfaceLayers : 0;
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
             for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
@@ -273,7 +274,7 @@ private:
                     int extrusionWidth = config.extrusionWidth;
                     if (layerNr == 0)
                         extrusionWidth = config.layer0extrusionWidth;
-                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
+                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap, raftLayers);
                     generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount);
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
