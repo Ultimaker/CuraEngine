@@ -14,5 +14,5 @@ _obj
 *.gcode
 CuraEngine
 build/*
-
- *~
+*~
+NUL
