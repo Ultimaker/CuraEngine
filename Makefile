@@ -31,7 +31,11 @@ ifeq ($(OS),Windows_NT)
 	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
+	MKDIR_PREFIX = mkdir 
+	MKDIR_POSTFIX = 2> NUL
 else
+	MKDIR_PREFIX = mkdir -p
+	MKDIR_POSTFIX = 
 	UNAME := $(shell uname)
 	ifeq ($(UNAME), Linux)
 		OPEN_HTML=firefox
@@ -51,7 +55,7 @@ $(EXECUTABLE): $(OBJECTS)
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
-	-mkdir "$@" 2> NUL
+	-$(MKDIR_PREFIX) "$@" $(MKDIR_POSTFIX)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
