@@ -9,7 +9,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define INLINE static inline
 
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include "../clipper/clipper.hpp"
+#include <clipper/clipper.hpp>
 
 #include <limits.h>
 #include <stdint.h>

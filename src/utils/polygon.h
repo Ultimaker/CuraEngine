@@ -5,7 +5,7 @@
 #include <assert.h>
 #include <float.h>
 using std::vector;
-#include "../clipper/clipper.hpp"
+#include <clipper/clipper.hpp>
 
 #include "intpoint.h"
 

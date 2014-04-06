@@ -1,0 +1,3 @@
+These libraries are extern, and while they're utilized by this project,
+they are in fact not actually developed on this repository.
+If changes are desired for these projects, please refer to their official repositories.

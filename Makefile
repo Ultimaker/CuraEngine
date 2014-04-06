@@ -7,16 +7,17 @@
 
 BUILD_DIR = build
 SRC_DIR = src
+LIBS_DIR = libs
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\"
+CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\" -isystem libs
 # also include debug symbols
 #CFLAGS+=-ggdb
-LDFLAGS +=
+LDFLAGS += -Lbuild/ -lclipper
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
-SOURCES_RAW += clipper/clipper.cpp modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
+SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
 SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
 
 OBJECTS_RAW = $(SOURCES_RAW:.cpp=.o)
@@ -51,7 +52,10 @@ endif
 
 all: $(DIRS) $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
+libclipper.a: 
+	$(CXX) $(CFLAGS) -o $(BUILD_DIR)/libclipper.a $(LIBS_DIR)/clipper/clipper.cpp
+
+$(EXECUTABLE): $(OBJECTS) libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
