@@ -13,4 +13,6 @@ _obj
 .*.swp
 *.gcode
 CuraEngine
-
+build/*
+*~
+NUL

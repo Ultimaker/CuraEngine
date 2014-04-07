@@ -5,45 +5,67 @@
 # simplest working invocation to compile it
 #g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -o CuraEngine
 
+BUILD_DIR = build
+SRC_DIR = src
+LIBS_DIR = libs
+
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\"
+CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\" -isystem libs
 # also include debug symbols
 #CFLAGS+=-ggdb
-LDFLAGS +=
-SOURCES  = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
-SOURCES += clipper/clipper.cpp modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
-OBJECTS = $(SOURCES:.cpp=.o)
-EXECUTABLE = ./CuraEngine
-UNAME := $(shell uname)
+LDFLAGS += -Lbuild/ -lclipper
 
-ifeq ($(UNAME), Linux)
-	OPEN_HTML=firefox
-	LDFLAGS += --static
-endif
-ifeq ($(UNAME), Darwin)
-	OPEN_HTML=open
-	#For MacOS force to build
-	CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
-	LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
-endif
-ifeq ($(UNAME), MINGW32_NT-6.1)
+SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
+SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
+SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
+
+OBJECTS_RAW = $(SOURCES_RAW:.cpp=.o)
+OBJECTS = $(addprefix $(BUILD_DIR)/,$(OBJECTS_RAW))
+
+DIRS = $(sort $(dir $(OBJECTS)))
+
+EXECUTABLE = $(BUILD_DIR)/CuraEngine
+
+ifeq ($(OS),Windows_NT)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
 	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
+	MKDIR_PREFIX = mkdir 
+	MKDIR_POSTFIX = 2> NUL
+else
+	MKDIR_PREFIX = mkdir -p
+	MKDIR_POSTFIX = 
+	UNAME := $(shell uname)
+	ifeq ($(UNAME), Linux)
+		OPEN_HTML=firefox
+		LDFLAGS += --static
+	endif
+	ifeq ($(UNAME), Darwin)
+		OPEN_HTML=open
+		#For MacOS force to build
+		CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
+		LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
+	endif
 endif
 
-all: $(SOURCES) $(EXECUTABLE)
+all: $(DIRS) $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(OBJECTS)
+libclipper.a: 
+	$(CXX) $(CFLAGS) -o $(BUILD_DIR)/libclipper.a $(LIBS_DIR)/clipper/clipper.cpp
+
+$(EXECUTABLE): $(OBJECTS) libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
-.cpp.o:
+$(DIRS):
+	-$(MKDIR_PREFIX) "$@" $(MKDIR_POSTFIX)
+
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
 
 test: $(EXECUTABLE)
-	python _tests/runtest.py $(abspath $(EXECUTABLE))
+	python tests/runtest.py $(abspath $(EXECUTABLE))
 
 ## clean stuff
 clean:
