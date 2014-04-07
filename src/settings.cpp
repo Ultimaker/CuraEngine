@@ -227,11 +227,3 @@ bool ConfigSettings::readSettings(const char* path) {
 
     return true;
 }
-Setting(key.c_str(), val.c_str())) {
-            cura::logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
-            return false;
-        }
-    }
-
-    return true;
-}

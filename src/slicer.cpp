@@ -417,15 +417,3 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
     fprintf(f, "</body></html>");
     fclose(f);
 }
-rker-mid='url(#MidMarker)' points=\"");
-            for(unsigned int n=0; n<p.size(); n++)
-            {
-                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
-            }
-            fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
-        }
-        fprintf(f, "</svg>\n");
-    }
-    fprintf(f, "</body></html>");
-    fclose(f);
-}
