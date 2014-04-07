@@ -41,7 +41,7 @@ void GCodeExport::replaceTagInStart(const char* tag, const char* replaceValue)
 {
     if (f == stdout)
     {
-        log("Replace:%s:%s\n", tag, replaceValue);
+        cura::log("Replace:%s:%s\n", tag, replaceValue);
         return;
     }
     fpos_t oldPos;
@@ -237,7 +237,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     fprintf(f, "G11\n");
                 }else{
                     extrusionAmount += retractionAmountPrime;
-                    fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                    fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(zPos), extrusionAmount), currentSpeed);
                 }
@@ -261,7 +261,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", INT2MM(zPos));
         if (lineWidth != 0)
-            fprintf(f, " %c%0.5lf", extruderCharacter[extruderNr], extrusionAmount);
+            fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusionAmount);
         fprintf(f, "\n");
     }
     
@@ -280,7 +280,7 @@ void GCodeExport::writeRetraction()
         {
             fprintf(f, "G10\n");
         }else{
-            fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
+            fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
         }
@@ -307,7 +307,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         fprintf(f, "G10 S1\n");
     }else{
-        fprintf(f, "G1 F%i %c%0.5lf\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+        fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
     }
     resetExtrusionValue();
@@ -354,11 +354,11 @@ void GCodeExport::tellFileSize() {
     float fsize = (float) ftell(f);
     if(fsize > 1024*1024) {
         fsize /= 1024.0*1024.0;
-        log("Wrote %5.1f MB.\n",fsize);
+        cura::log("Wrote %5.1f MB.\n",fsize);
     }
     if(fsize > 1024) {
         fsize /= 1024.0;
-        log("Wrote %5.1f kilobytes.\n",fsize);
+        cura::log("Wrote %5.1f kilobytes.\n",fsize);
     }
 }
 
@@ -369,9 +369,9 @@ void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCo
     setZ(maxObjectHeight + 5000);
     writeMove(getPositionXY(), moveSpeed, 0);
     writeCode(endCode);
-    log("Print time: %d\n", int(getTotalPrintTime()));
-    log("Filament: %d\n", int(getTotalFilamentUsed(0)));
-    log("Filament2: %d\n", int(getTotalFilamentUsed(1)));
+    cura::log("Print time: %d\n", int(getTotalPrintTime()));
+    cura::log("Filament: %d\n", int(getTotalFilamentUsed(0)));
+    cura::log("Filament2: %d\n", int(getTotalFilamentUsed(1)));
     
     if (getFlavor() == GCODE_FLAVOR_ULTIGCODE)
     {

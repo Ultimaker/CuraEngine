@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifdef WIN32
+#ifdef __WIN32
 #include <winsock2.h>
 #else
 #include <sys/types.h>
@@ -95,7 +95,7 @@ void ClientSocket::recvAll(void* data, int length)
         int n = recv(sockfd, ptr, length, 0);
         if (n <= 0)
         {
-            log("ClientSocket::recvAll error...");
+            cura::log("ClientSocket::recvAll error...");
             close();
             return;
         }
@@ -108,7 +108,7 @@ void ClientSocket::close()
 {
     if (sockfd == -1)
         return;
-#ifdef WIN32
+#ifdef __WIN32
     closesocket(sockfd);
 #else
     ::close(sockfd);

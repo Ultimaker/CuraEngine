@@ -29,7 +29,7 @@ public:
     
     ~PolygonDebug()
     {
-        Point polyMin(INT_MAX, INT_MAX), polyMax(INT_MIN, INT_MIN);
+        Point polyMin(POINT_MAX, POINT_MAX), polyMax(POINT_MIN, POINT_MIN);
         for(unsigned int j=0; j<polys.size(); j++)
         {
             for(unsigned int n=0; n<polys[j].size(); n++)

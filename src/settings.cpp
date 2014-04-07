@@ -2,6 +2,7 @@
 #include <fstream>
 #include <stdio.h>
 #include "utils/logoutput.h"
+#include "utils/string.h"
 
 #include "settings.h"
 
@@ -205,7 +206,7 @@ bool ConfigSettings::readSettings(const char* path) {
 
             // If we drop out but didn't finish reading, something failed
             if(!done_multiline) {
-                logError("Config(%s):L%zd: Failed while reading multiline string.\n", path, line_number);
+                cura::logError("Config(%s):L%zd: Failed while reading multiline string.\n", path, line_number);
                 return false;
             }
 
@@ -213,13 +214,21 @@ bool ConfigSettings::readSettings(const char* path) {
 
         // Fail if we don't get a key and val
         if(key.length() == 0 || val.length() == 0) {
-            logError("Config(%s): Line %zd: No key value pair found\n", path, line_number);
+            cura::logError("Config(%s): Line %zd: No key value pair found\n", path, line_number);
             return false;
         }
 
         // Set a config setting for the current K=V
         if(!setSetting(key.c_str(), val.c_str())) {
-            logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
+            cura::logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
+            return false;
+        }
+    }
+
+    return true;
+}
+Setting(key.c_str(), val.c_str())) {
+            cura::logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
             return false;
         }
     }

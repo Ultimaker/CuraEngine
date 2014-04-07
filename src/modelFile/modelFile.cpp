@@ -1,9 +1,11 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 
 #include "modelFile.h"
 #include "../utils/logoutput.h"
+#include "../utils/string.h"
 
 FILE* binaryMeshBlob = NULL;
 
@@ -128,7 +130,7 @@ SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
     fclose(f);
 
     buffer[5] = '\0';
-    if (strcasecmp(buffer, "SOLID") == 0)
+    if (strcasecmp(buffer, "solid") == 0)
     {
         return loadModelSTL_ascii(filename, matrix);
     }
@@ -138,7 +140,7 @@ SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
 SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
-    if (ext && strcasecmp(ext, ".stl") == 0)
+    if (ext && strcmp(ext, ".stl") == 0)
     {
         return loadModelSTL(filename, matrix);
     }
@@ -155,7 +157,7 @@ SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix)
             int32_t n, pNr = 0;
             if (fread(&n, 1, sizeof(int32_t), binaryMeshBlob) < 1)
                 return NULL;
-            log("Reading mesh from binary blob with %i vertexes\n", n);
+            cura::log("Reading mesh from binary blob with %i vertexes\n", n);
             Point3 v[3];
             while(n)
             {

@@ -163,7 +163,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             unsigned int bestA = -1;
             unsigned int bestB = -1;
             gapCloserResult bestResult;
-            bestResult.len = LLONG_MAX;
+            bestResult.len = POINT_MAX;
             bestResult.polygonIdx = -1;
             bestResult.pointIdxA = -1;
             bestResult.pointIdxB = -1;
@@ -196,7 +196,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                 }
             }
             
-            if (bestResult.len < LLONG_MAX)
+            if (bestResult.len < POINT_MAX)
             {
                 if (bestA == bestB)
                 {
@@ -313,7 +313,7 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
     modelMin = ov->model->vMin;
     
     int layerCount = (modelSize.z - initial) / thickness + 1;
-    log("Layer count: %i\n", layerCount);
+    cura::log("Layer count: %i\n", layerCount);
     layers.resize(layerCount);
     
     for(int32_t layerNr = 0; layerNr < layerCount; layerNr++)
@@ -406,6 +406,18 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
             PolygonRef p = layers[i].openPolygonList[j];
             if (p.size() < 1) continue;
             fprintf(f, "<polyline marker-mid='url(#MidMarker)' points=\"");
+            for(unsigned int n=0; n<p.size(); n++)
+            {
+                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
+            }
+            fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
+        }
+        fprintf(f, "</svg>\n");
+    }
+    fprintf(f, "</body></html>");
+    fclose(f);
+}
+rker-mid='url(#MidMarker)' points=\"");
             for(unsigned int n=0; n<p.size(); n++)
             {
                 fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);

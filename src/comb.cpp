@@ -62,8 +62,8 @@ void Comb::calcMinMax()
 
 unsigned int Comb::getPolygonAbove(int64_t x)
 {
-    int64_t min = INT64_MIN;
-    unsigned int ret = UINT32_MAX;
+    int64_t min = POINT_MAX;
+    unsigned int ret = NO_INDEX;
     for(unsigned int n=0; n<boundery.size(); n++)
     {
         if (minX[n] > x && minX[n] < min)
@@ -213,7 +213,7 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     while(true)
     {
         unsigned int n = getPolygonAbove(x);
-        if (n == UINT_MAX) break;
+        if (n == NO_INDEX) break;
         
         pointList.push_back(matrix.unapply(Point(minX[n] - MM2INT(0.2), sp.Y)));
         if ( (minIdx[n] - maxIdx[n] + boundery[n].size()) % boundery[n].size() > (maxIdx[n] - minIdx[n] + boundery[n].size()) % boundery[n].size())
@@ -223,10 +223,15 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
                 pointList.push_back(getBounderyPointWithOffset(n, i));
             }
         }else{
-            minIdx[n]--;
-            if (minIdx[n] == UINT_MAX) minIdx[n] = boundery[n].size() - 1;
-            maxIdx[n]--;
-            if (maxIdx[n] == UINT_MAX) maxIdx[n] = boundery[n].size() - 1;
+            if (minIdx[n] == 0)
+                minIdx[n] = boundery[n].size() - 1;
+            else
+                minIdx[n]--;
+            if (maxIdx[n] == 0)
+                maxIdx[n] = boundery[n].size() - 1;
+            else
+                maxIdx[n]--;
+            
             for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i > 0) ? (i - 1) : (boundery[n].size() - 1))
             {
                 pointList.push_back(getBounderyPointWithOffset(n, i));

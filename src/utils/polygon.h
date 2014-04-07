@@ -16,7 +16,8 @@ using std::vector;
 #define POLY_ASSERT(e) do {} while(0)
 #endif
 
-#define CLIPPER_INIT (0)
+const static int clipper_init = (0);
+#define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
 class PolygonRef
 {
@@ -191,7 +192,7 @@ public:
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper(CLIPPER_INIT);
+        ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctDifference, ret.polygons);
@@ -200,7 +201,7 @@ public:
     Polygons unionPolygons(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper(CLIPPER_INIT);
+        ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
@@ -209,7 +210,7 @@ public:
     Polygons intersection(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper(CLIPPER_INIT);
+        ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
@@ -227,7 +228,7 @@ public:
     vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         vector<Polygons> ret;
-        ClipperLib::Clipper clipper(CLIPPER_INIT);
+        ClipperLib::Clipper clipper(clipper_init);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         if (unionAll)
@@ -258,7 +259,7 @@ public:
     Polygons processEvenOdd() const
     {
         Polygons ret;
-        ClipperLib::Clipper clipper(CLIPPER_INIT);
+        ClipperLib::Clipper clipper(clipper_init);
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
         clipper.Execute(ClipperLib::ctUnion, ret.polygons);
         return ret;
@@ -299,19 +300,19 @@ public:
     Point min, max;
     
     AABB()
-    : min(INT64_MIN, INT64_MIN), max(INT64_MIN, INT64_MIN)
+    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
     }
     AABB(Polygons polys)
-    : min(INT64_MIN, INT64_MIN), max(INT64_MIN, INT64_MIN)
+    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
         calculate(polys);
     }
     
     void calculate(Polygons polys)
     {
-        min = Point(INT64_MAX, INT64_MAX);
-        max = Point(INT64_MIN, INT64_MIN);
+        min = Point(POINT_MAX, POINT_MAX);
+        max = Point(POINT_MIN, POINT_MIN);
         for(unsigned int i=0; i<polys.size(); i++)
         {
             for(unsigned int j=0; j<polys[i].size(); j++)

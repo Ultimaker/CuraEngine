@@ -4,6 +4,8 @@
 
 #include "logoutput.h"
 
+namespace cura {
+
 static int verbose_level;
 static bool progressLogging;
 
@@ -26,7 +28,7 @@ void logError(const char* fmt, ...)
     fflush(stderr);
 }
 
-void _log(const char* fmt, ...)
+void log(const char* fmt, ...)
 {
     if (verbose_level < 1)
         return;
@@ -45,3 +47,5 @@ void logProgress(const char* type, int value, int maxValue)
     fprintf(stderr, "Progress:%s:%i:%i\n", type, value, maxValue);
     fflush(stderr);
 }
+
+}//namespace cura

@@ -11,7 +11,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 //Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
 #include <clipper/clipper.hpp>
 
-#include <limits.h>
+#include <limits>
 #include <cstdint>
 #include <cmath>
 
@@ -87,6 +87,8 @@ public:
     int X, Y;
     Point p() { return Point(X, Y); }
 };
+#define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
+#define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
