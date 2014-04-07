@@ -39,8 +39,8 @@ void Comb::calcMinMax()
 {
     for(unsigned int n=0; n<boundery.size(); n++)
     {
-        minX[n] = LLONG_MAX;
-        maxX[n] = LLONG_MIN;
+        minX[n] = INT64_MAX;
+        maxX[n] = INT64_MIN;
         Point p0 = matrix.apply(boundery[n][boundery[n].size()-1]);
         for(unsigned int i=0; i<boundery[n].size(); i++)
         {
@@ -62,8 +62,8 @@ void Comb::calcMinMax()
 
 unsigned int Comb::getPolygonAbove(int64_t x)
 {
-    int64_t min = LLONG_MAX;
-    unsigned int ret = UINT_MAX;
+    int64_t min = INT64_MIN;
+    unsigned int ret = UINT32_MAX;
     for(unsigned int n=0; n<boundery.size(); n++)
     {
         if (minX[n] > x && minX[n] < min)

@@ -12,14 +12,19 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <clipper/clipper.hpp>
 
 #include <limits.h>
-#include <stdint.h>
-#include <math.h>
+#include <cstdint>
+#include <cmath>
 
 #define INT2MM(n) (double(n) / 1000.0)
 #define MM2INT(n) (int64_t((n) * 1000))
 
 #define INT2MICRON(n) ((n) / 1)
 #define MICRON2INT(n) ((n) * 1)
+
+//c++11 no longer defines M_PI, so add our own constant.
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 class Point3
 {

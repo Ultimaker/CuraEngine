@@ -11,7 +11,7 @@ LIBS_DIR = libs
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -DVERSION=\"$(VERSION)\" -isystem libs
+CFLAGS += -c -Wall -Wextra -O3 -fomit-frame-pointer -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 # also include debug symbols
 #CFLAGS+=-ggdb
 LDFLAGS += -Lbuild/ -lclipper

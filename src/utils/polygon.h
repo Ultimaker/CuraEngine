@@ -299,19 +299,19 @@ public:
     Point min, max;
     
     AABB()
-    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
+    : min(INT64_MIN, INT64_MIN), max(INT64_MIN, INT64_MIN)
     {
     }
     AABB(Polygons polys)
-    : min(LLONG_MIN, LLONG_MIN), max(LLONG_MIN, LLONG_MIN)
+    : min(INT64_MIN, INT64_MIN), max(INT64_MIN, INT64_MIN)
     {
         calculate(polys);
     }
     
     void calculate(Polygons polys)
     {
-        min = Point(LLONG_MAX, LLONG_MAX);
-        max = Point(LLONG_MIN, LLONG_MIN);
+        min = Point(INT64_MAX, INT64_MAX);
+        max = Point(INT64_MIN, INT64_MIN);
         for(unsigned int i=0; i<polys.size(); i++)
         {
             for(unsigned int j=0; j<polys[i].size(); j++)

@@ -7,13 +7,6 @@
 #include "settings.h"
 #include "utils/logoutput.h"
 
-#if defined(__APPLE__) && defined(__MACH__)
-//On MacOS the file offset functions are always 64bit.
-#define off64_t off_t
-#define ftello64 ftello
-#define fseeko64 fseeko
-#endif
-
 GCodeExport::GCodeExport()
 : currentPosition(0,0,0)
 {
@@ -51,20 +44,21 @@ void GCodeExport::replaceTagInStart(const char* tag, const char* replaceValue)
         log("Replace:%s:%s\n", tag, replaceValue);
         return;
     }
-    off64_t oldPos = ftello64(f);
+    fpos_t oldPos;
+    fgetpos(f, &oldPos);
     
     char buffer[1024];
-    fseeko64(f, 0, SEEK_SET);
+    fseek(f, 0, SEEK_SET);
     fread(buffer, 1024, 1, f);
     
     char* c = strstr(buffer, tag);
     memset(c, ' ', strlen(tag));
     if (c) memcpy(c, replaceValue, strlen(replaceValue));
     
-    fseeko64(f, 0, SEEK_SET);
+    fseek(f, 0, SEEK_SET);
     fwrite(buffer, 1024, 1, f);
     
-    fseeko64(f, oldPos, SEEK_SET);
+    fseek(f, oldPos, SEEK_SET);
 }
 
 void GCodeExport::setExtruderOffset(int id, Point p)
