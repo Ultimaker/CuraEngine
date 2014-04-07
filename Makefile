@@ -52,10 +52,10 @@ endif
 
 all: $(DIRS) $(SOURCES) $(EXECUTABLE)
 
-libclipper.a: 
+$(BUILD_DIR)/libclipper.a: $(LIBS_DIR)/clipper/clipper.cpp
 	$(CXX) $(CFLAGS) -o $(BUILD_DIR)/libclipper.a $(LIBS_DIR)/clipper/clipper.cpp
 
-$(EXECUTABLE): $(OBJECTS) libclipper.a
+$(EXECUTABLE): $(OBJECTS) $(BUILD_DIR)/libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
