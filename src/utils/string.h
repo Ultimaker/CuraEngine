@@ -2,7 +2,7 @@
 #define STRING_H
 
 //c++11 no longer supplies a strcasecmp, so define our own version.
-static inline int strcasecmp(const char* a, const char* b)
+static inline int stringcasecompare(const char* a, const char* b)
 {
     while(*a && *b)
     {

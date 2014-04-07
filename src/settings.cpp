@@ -124,18 +124,18 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
 {
     for(unsigned int n=0; n < _index.size(); n++)
     {
-        if (strcasecmp(key, _index[n].key) == 0)
+        if (stringcasecompare(key, _index[n].key) == 0)
         {
             *_index[n].ptr = atoi(value);
             return true;
         }
     }
-    if (strcasecmp(key, "startCode") == 0)
+    if (stringcasecompare(key, "startCode") == 0)
     {
         this->startCode = value;
         return true;
     }
-    if (strcasecmp(key, "endCode") == 0)
+    if (stringcasecompare(key, "endCode") == 0)
     {
         this->endCode = value;
         return true;

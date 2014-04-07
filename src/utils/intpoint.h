@@ -12,7 +12,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <clipper/clipper.hpp>
 
 #include <limits>
-#include <cstdint>
+#include <stdint.h>
 #include <cmath>
 
 #define INT2MM(n) (double(n) / 1000.0)
