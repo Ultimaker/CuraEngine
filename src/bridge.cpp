@@ -3,18 +3,20 @@
 
 namespace cura {
 
-int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
+int bridgeAngle(Polygons outline, SliceLayer* prevLayer)
 {
+    AABB boundaryBox(outline);
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     // This gives us the islands that the layer rests on.
     Polygons islands;
-    for(unsigned int n=0; n<prevLayer->parts.size(); n++)
+    for(auto prevLayerPart : prevLayer->parts)
     {
-        if (!part->boundaryBox.hit(prevLayer->parts[n].boundaryBox)) continue;
+        if (!boundaryBox.hit(prevLayerPart.boundaryBox))
+            continue;
         
-        islands.add(part->outline.intersection(prevLayer->parts[n].outline));
+        islands.add(outline.intersection(prevLayerPart.outline));
     }
-    if (islands.size() > 5)
+    if (islands.size() > 5 || islands.size() < 1)
         return -1;
     
     //Next find the 2 largest islands that we rest on.
@@ -49,7 +51,7 @@ int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer)
     
     Point center1 = islands[idx1].centerOfMass();
     Point center2 = islands[idx2].centerOfMass();
-    
+
     return angle(center2 - center1);
 }
 

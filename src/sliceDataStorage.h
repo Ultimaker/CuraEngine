@@ -25,7 +25,6 @@ public:
     vector<Polygons> insets;
     Polygons skinOutline;
     Polygons sparseOutline;
-    int bridgeAngle;
 };
 
 class SliceLayer

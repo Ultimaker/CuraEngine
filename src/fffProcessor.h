@@ -302,20 +302,6 @@ private:
         generateRaft(storage, config.raftMargin);
 
         sendPolygonsToGui("skirt", 0, config.initialLayerThickness, storage.skirt);
-
-        for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
-        {
-            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
-            {
-                for(unsigned int partNr=0; partNr<storage.volumes[volumeIdx].layers[layerNr].parts.size(); partNr++)
-                {
-                    if (layerNr > 0)
-                        storage.volumes[volumeIdx].layers[layerNr].parts[partNr].bridgeAngle = bridgeAngle(&storage.volumes[volumeIdx].layers[layerNr].parts[partNr], &storage.volumes[volumeIdx].layers[layerNr-1]);
-                    else
-                        storage.volumes[volumeIdx].layers[layerNr].parts[partNr].bridgeAngle = -1;
-                }
-            }
-        }
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -560,7 +546,13 @@ private:
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
-            generateLineInfill(part->skinOutline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (part->bridgeAngle > -1) ? part->bridgeAngle : fillAngle);
+            for(Polygons outline : part->skinOutline.splitIntoParts())
+            {
+                int bridge = -1;
+                if (layerNr > 0)
+                    bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
+                generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+            }
             if (config.sparseInfillLineDistance > 0)
             {
                 if (config.sparseInfillLineDistance > extrusionWidth * 4)

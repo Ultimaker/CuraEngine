@@ -6,7 +6,7 @@
 
 namespace cura {
 
-int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer);
+int bridgeAngle(Polygons outline, SliceLayer* prevLayer);
 
 }//namespace cura
 

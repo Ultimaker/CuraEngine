@@ -202,6 +202,7 @@ double TimeEstimateCalculator::calculate()
 // The kernel called by accelerationPlanner::calculate() when scanning the plan from last to first entry.
 void TimeEstimateCalculator::planner_reverse_pass_kernel(Block *previous, Block *current, Block *next)
 {
+    (void)previous;
     if(!current || !next)
         return;
 
@@ -237,6 +238,7 @@ void TimeEstimateCalculator::reverse_pass()
 // The kernel called by accelerationPlanner::calculate() when scanning the plan from first to last entry.
 void TimeEstimateCalculator::planner_forward_pass_kernel(Block *previous, Block *current, Block *next)
 {
+    (void)next;
     if(!previous)
         return;
 
