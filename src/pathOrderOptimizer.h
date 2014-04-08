@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include "utils/polygon.h"
 
+namespace cura {
+
 class PathOrderOptimizer
 {
 public:
@@ -31,5 +33,7 @@ public:
     
     void optimize();
 };
+
+}//namespace cura
 
 #endif//PATHOPTIMIZER_H

@@ -4,6 +4,10 @@
 
 #include "sliceDataStorage.h"
 
+namespace cura {
+
 int bridgeAngle(SliceLayerPart* part, SliceLayer* prevLayer);
+
+}//namespace cura
 
 #endif//BRIDGE_H

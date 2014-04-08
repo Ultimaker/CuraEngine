@@ -4,8 +4,12 @@
 
 #include "utils/polygon.h"
 
+namespace cura {
+
 void optimizePolygon(PolygonRef poly);
 
 void optimizePolygons(Polygons& polys);
+
+}//namespace cura
 
 #endif//POLYGON_OPTIMIZER_H

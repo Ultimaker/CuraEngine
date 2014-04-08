@@ -2,7 +2,7 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
-#ifdef WIN32
+#ifdef __WIN32
 #include <windows.h>
 #else
 #include <sys/time.h>
@@ -11,7 +11,7 @@
 
 static inline double getTime()
 {
-#ifdef WIN32
+#ifdef __WIN32
     return double(GetTickCount()) / 1000.0;
 #else
     struct timeval tv;

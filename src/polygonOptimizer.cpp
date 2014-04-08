@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "polygonOptimizer.h"
 
+namespace cura {
+
 void optimizePolygon(PolygonRef poly)
 {
     Point p0 = poly[poly.size()-1];
@@ -48,3 +50,5 @@ void optimizePolygons(Polygons& polys)
         }
     }
 }
+
+}//namespace cura

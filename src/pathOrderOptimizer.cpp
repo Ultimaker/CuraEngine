@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "pathOrderOptimizer.h"
 
+namespace cura {
+
 void PathOrderOptimizer::optimize()
 {
     std::vector<bool> picked;
@@ -93,3 +95,5 @@ void PathOrderOptimizer::optimize()
         }
     }
 }
+
+}//namespace cura

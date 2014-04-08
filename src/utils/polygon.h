@@ -16,6 +16,8 @@ using std::vector;
 #define POLY_ASSERT(e) do {} while(0)
 #endif
 
+namespace cura {
+
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
@@ -132,7 +134,32 @@ public:
         return ret;
     }
     
+    //Check if we are inside the polygon. We do this by tracing from the point towards the negative X direction,
+    //  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+    bool inside(Point p)
+    {
+        if (polygon->size() < 1)
+            return false;
+        
+        int crossings = 0;
+        Point p0 = (*polygon)[polygon->size()-1];
+        for(unsigned int n=0; n<polygon->size(); n++)
+        {
+            Point p1 = (*polygon)[n];
+            
+            if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
+            {
+                int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
+                if (x >= p.X)
+                    crossings ++;
+            }
+            p0 = p1;
+        }
+        return (crossings % 2) == 1;
+    }
+    
     friend class Polygons;
+    friend class _Polygon;
 };
 
 class _Polygon : public PolygonRef
@@ -142,6 +169,12 @@ public:
     _Polygon()
     : PolygonRef(poly)
     {
+    }
+
+    _Polygon(const PolygonRef& other)
+    : PolygonRef(poly)
+    {
+        poly = *other.polygon;
     }
 };
 //<windows.h> defines a Polygon structure, to prevent a clash define Polygon as _Polygon.
@@ -281,6 +314,18 @@ public:
         return length;
     }
 
+    bool inside(Point p)
+    {
+        if (!(*this)[0].inside(p))
+            return false;
+        for(unsigned int n=1; n<polygons.size(); n++)
+        {
+            if ((*this)[n].inside(p))
+                return false;
+        }
+        return true;
+    }
+
     void applyMatrix(const PointMatrix& matrix)
     {
         for(unsigned int i=0; i<polygons.size(); i++)
@@ -334,5 +379,7 @@ public:
         return true;
     }
 };
+
+}//namespace cura
 
 #endif//UTILS_POLYGON_H

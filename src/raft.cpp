@@ -2,6 +2,8 @@
 #include "raft.h"
 #include "support.h"
 
+namespace cura {
+
 void generateRaft(SliceDataStorage& storage, int distance)
 {
     for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
@@ -18,3 +20,5 @@ void generateRaft(SliceDataStorage& storage, int distance)
     storage.raftOutline = storage.raftOutline.unionPolygons(supportGenerator.polygons.offset(distance));
     storage.raftOutline = storage.raftOutline.unionPolygons(storage.wipeTower.offset(distance));
 }
+
+}//namespace cura

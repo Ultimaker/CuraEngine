@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "skin.h"
 
+namespace cura {
+
 void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
 {
     SliceLayer* layer = &storage.layers[layerNr];
@@ -114,3 +116,5 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
         part->sparseOutline = sparse.difference(result);
     }
 }
+
+}//namespace cura

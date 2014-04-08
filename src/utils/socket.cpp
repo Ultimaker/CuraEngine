@@ -14,7 +14,7 @@
 #include "socket.h"
 #include "logoutput.h"
 
-#ifdef WIN32
+#ifdef __WIN32
 bool wsaStartupDone = false;
 #endif
 
@@ -22,10 +22,11 @@ ClientSocket::ClientSocket()
 {
     sockfd = -1;
 
-#ifdef WIN32
+#ifdef __WIN32
     if (!wsaStartupDone)
     {
-        WSADATA wsaData = {0};
+        WSADATA wsaData;
+        memset(&wsaData, 0, sizeof(WSADATA));
         //WSAStartup needs to be called on windows before sockets can be used. Request version 1.1, which is supported on windows 98 and higher.
         WSAStartup(MAKEWORD(1, 1), &wsaData);
         wsaStartupDone = true;

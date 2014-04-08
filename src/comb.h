@@ -4,6 +4,8 @@
 
 #include "utils/polygon.h"
 
+namespace cura {
+
 class Comb
 {
 private:
@@ -31,11 +33,12 @@ public:
     Comb(Polygons& _boundery);
     ~Comb();
     
-    bool checkInside(Point p);
-
+    bool inside(const Point p) { return boundery.inside(p); }
     bool moveInside(Point* p, int distance = 100);
     
     bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints);
 };
+
+}//namespace cura
 
 #endif//COMB_H

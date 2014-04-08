@@ -46,6 +46,8 @@ void signal_FPE(int n)
     exit(1);
 }
 
+using namespace cura;
+
 int main(int argc, char **argv)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))

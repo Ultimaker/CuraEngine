@@ -4,8 +4,12 @@
 
 #include "sliceDataStorage.h"
 
+namespace cura {
+
 void generateInsets(SliceLayerPart* part, int offset, int insetCount);
 
 void generateInsets(SliceLayer* layer, int offset, int insetCount);
+
+}//namespace cura
 
 #endif//INSET_H

@@ -2,6 +2,8 @@
 #include "skirt.h"
 #include "support.h"
 
+namespace cura {
+
 void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight)
 {
     bool externalOnly = (distance > 0);
@@ -45,3 +47,5 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
             count++;
     }
 }
+
+}//namespace cura

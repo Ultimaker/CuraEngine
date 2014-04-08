@@ -4,6 +4,10 @@
 
 #include "sliceDataStorage.h"
 
+namespace cura {
+
 void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight);
+
+}//namespace cura
 
 #endif//SKIRT_H

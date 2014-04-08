@@ -4,7 +4,11 @@
 
 #include "sliceDataStorage.h"
 
+namespace cura {
+
 void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap);
 void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
+
+}//namespace cura
 
 #endif//SKIN_H

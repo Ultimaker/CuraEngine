@@ -14,6 +14,7 @@ SliceData
       + Polygons[]
     + SkinPolygons[]
 */
+namespace cura {
 
 class SliceLayerPart
 {
@@ -81,5 +82,7 @@ public:
     Polygons wipeTower;
     Point wipePoint;
 };
+
+}//namespace cura
 
 #endif//SLICE_DATA_STORAGE_H

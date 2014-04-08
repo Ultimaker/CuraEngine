@@ -7,6 +7,8 @@
 #include "slicer.h"
 #include "polygonOptimizer.h"
 
+namespace cura {
+
 void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching)
 {
     for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
@@ -417,3 +419,5 @@ void Slicer::dumpSegmentsToHTML(const char* filename)
     fprintf(f, "</body></html>");
     fclose(f);
 }
+
+}//namespace cura

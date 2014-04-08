@@ -4,6 +4,10 @@
 
 #include "sliceDataStorage.h"
 
+namespace cura {
+
 void generateRaft(SliceDataStorage& storage, int distance);
+
+}//namespace cura
 
 #endif//RAFT_H

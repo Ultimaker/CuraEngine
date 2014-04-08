@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "comb.h"
 
+namespace cura {
+
 bool Comb::preTest(Point startPoint, Point endPoint)
 {
     return collisionTest(startPoint, endPoint);
@@ -105,34 +107,6 @@ Comb::~Comb()
     delete[] maxIdx;
 }
 
-bool Comb::checkInside(Point p)
-{
-    //Check if we are inside the comb boundary. We do this by tracing from the point towards the negative X direction,
-    //  every boundary we cross increments the crossings counter. If we have an even number of crossings then we are not inside the boundary
-    int crossings = 0;
-    for(unsigned int n=0; n<boundery.size(); n++)
-    {
-        if (boundery[n].size() < 1)
-            continue;
-        Point p0 = boundery[n][boundery[n].size()-1];
-        for(unsigned int i=0; i<boundery[n].size(); i++)
-        {
-            Point p1 = boundery[n][i];
-            
-            if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
-            {
-                int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
-                if (x >= p.X)
-                    crossings ++;
-            }
-            p0 = p1;
-        }
-    }
-    if ((crossings % 2) == 0)
-        return false;
-    return true;
-}
-
 bool Comb::moveInside(Point* p, int distance)
 {
     Point ret = *p;
@@ -181,13 +155,13 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     
     bool addEndpoint = false;
     //Check if we are inside the comb boundaries
-    if (!checkInside(startPoint))
+    if (!boundery.inside(startPoint))
     {
         if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
         combPoints.push_back(startPoint);
     }
-    if (!checkInside(endPoint))
+    if (!boundery.inside(endPoint))
     {
         if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
@@ -259,3 +233,5 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
         combPoints.push_back(endPoint);
     return true;
 }
+
+}//namespace cura

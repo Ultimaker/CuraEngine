@@ -8,6 +8,8 @@
 #define GUI_CMD_SEND_POLYGONS 0x02
 #define GUI_CMD_FINISH_OBJECT 0x03
 
+namespace cura {
+
 //FusedFilamentFabrication processor.
 class fffProcessor
 {
@@ -670,5 +672,7 @@ private:
         gcodeLayer.addTravel(storage.wipePoint - config.extruderOffset[prevExtruder].p() + config.extruderOffset[gcodeLayer.getExtruder()].p());
     }
 };
+
+}//namespace cura
 
 #endif//FFF_PROCESSOR_H

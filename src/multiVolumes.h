@@ -2,6 +2,7 @@
 #define MULTIVOLUMES_H
 
 /* This file contains code to help fixing up and changing layers that are build from multiple volumes. */
+namespace cura {
 
 void carveMultipleVolumes(vector<SliceVolumeStorage> &volumes)
 {
@@ -55,5 +56,7 @@ void generateMultipleVolumesOverlap(vector<SliceVolumeStorage> &volumes, int ove
         }
     }
 }
+
+}//namespace cura
 
 #endif//MULTIVOLUMES_H

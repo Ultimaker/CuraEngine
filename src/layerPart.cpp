@@ -16,6 +16,7 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
+namespace cura {
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
 {
@@ -90,3 +91,5 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     fprintf(out, "</body></html>");
     fclose(out);
 }
+
+}//namespace cura

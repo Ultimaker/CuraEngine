@@ -2,6 +2,8 @@
 #include "inset.h"
 #include "polygonOptimizer.h"
 
+namespace cura {
+
 void generateInsets(SliceLayerPart* part, int offset, int insetCount)
 {
     part->combBoundery = part->outline.offset(-offset);
@@ -43,3 +45,4 @@ void generateInsets(SliceLayer* layer, int offset, int insetCount)
     }
 }
 
+}//namespace cura

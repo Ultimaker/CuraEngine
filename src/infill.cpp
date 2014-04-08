@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "infill.h"
 
+namespace cura {
+
 void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[], int offsetsSize)
 {
     int step = 0;
@@ -77,3 +79,4 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     }
 }
 
+}//namespace cura

@@ -5,6 +5,8 @@
 #include "sliceDataStorage.h"
 #include "optimizedModel.h"
 
+namespace cura {
+
 void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance);
 
 class SupportPolyGenerator
@@ -26,5 +28,7 @@ private:
 public:
     SupportPolyGenerator(SupportStorage& storage, int32_t z);
 };
+
+}//namespace cura
 
 #endif//SUPPORT_H

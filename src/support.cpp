@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "support.h"
 
+namespace cura {
+
 template<typename T> inline void swap(T& p0, T& p1)
 {
     T tmp = p0;
@@ -185,3 +187,4 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
     polygons = polygons.offset(storage.XYDistance);
 }
 
+}//namespace cura
