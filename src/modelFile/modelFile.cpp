@@ -130,7 +130,7 @@ SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
     fclose(f);
 
     buffer[5] = '\0';
-    if (strcasecmp(buffer, "solid") == 0)
+    if (stringcasecompare(buffer, "solid") == 0)
     {
         return loadModelSTL_ascii(filename, matrix);
     }
