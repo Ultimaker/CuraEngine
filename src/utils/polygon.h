@@ -316,7 +316,7 @@ public:
 
     bool inside(Point p)
     {
-        if (size() < 0)
+        if (size() < 1)
             return false;
         if (!(*this)[0].inside(p))
             return false;
