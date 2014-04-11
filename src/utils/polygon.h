@@ -316,6 +316,8 @@ public:
 
     bool inside(Point p)
     {
+        if (size() < 0)
+            return false;
         if (!(*this)[0].inside(p))
             return false;
         for(unsigned int n=1; n<polygons.size(); n++)
