@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     }
     for(int argn = 1; argn < argc; argn++)
         cura::log("Arg: %s\n", argv[argn]);
-    
+
     for(int argn = 1; argn < argc; argn++)
     {
         char* str = argv[argn];

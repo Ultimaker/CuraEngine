@@ -89,6 +89,7 @@ class ConfigSettings
 private:
     std::vector<_ConfigSettingIndex> _index;
 public:
+    static ConfigSettings *config; // allow access to config settings from everywhere
     int layerThickness;
     int initialLayerThickness;
     int filamentDiameter;
@@ -163,6 +164,7 @@ public:
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;
+    int autocenter;
 
     int fixHorrible;
     int spiralizeMode;
