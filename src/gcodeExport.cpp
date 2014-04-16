@@ -353,7 +353,7 @@ int GCodeExport::getFileSize(){
     return ftell(f);
 }
 void GCodeExport::tellFileSize() {
-    float fsize = (float) ftell(f);
+    float fsize = ftell(f);
     if(fsize > 1024*1024) {
         fsize /= 1024.0*1024.0;
         cura::log("Wrote %5.1f MB.\n",fsize);

@@ -21,7 +21,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
             upskin.add(thinWalls);
             downskin.add(thinWalls);
         }
-        if (int(layerNr - downSkinCount) >= 0)
+        if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
@@ -30,7 +30,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
                     downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
             }
         }
-        if (int(layerNr + upSkinCount) < (int)storage.layers.size())
+        if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
         {
             SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
@@ -67,7 +67,7 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
         Polygons downskin = sparse;
         Polygons upskin = sparse;
         
-        if (int(layerNr - downSkinCount) >= 0)
+        if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
@@ -83,7 +83,7 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
                 }
             }
         }
-        if (int(layerNr + upSkinCount) < (int)storage.layers.size())
+        if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
         {
             SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
             for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
