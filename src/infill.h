@@ -6,7 +6,7 @@
 
 namespace cura {
 
-void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value, int inset_count);
+void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
 void generateAutomaticInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation);
 void generateGridInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation);
 void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation);

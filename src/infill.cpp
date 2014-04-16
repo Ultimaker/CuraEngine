@@ -3,9 +3,9 @@
 
 namespace cura {
 
-void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value, int inset_count)
+void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
 {
-    for(int step = 0; step < inset_count; step++)
+    while(true)
     {
         if (outline.size() < 1)
             break;
