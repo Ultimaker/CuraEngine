@@ -2,9 +2,6 @@
 # Makefile for CuraEngine
 #
 
-# simplest working invocation to compile it
-#g++ main.cpp modelFile/modelFile.cpp clipper/clipper.cpp -o CuraEngine
-
 BUILD_DIR = build
 SRC_DIR = src
 LIBS_DIR = libs
