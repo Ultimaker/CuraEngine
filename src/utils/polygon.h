@@ -25,7 +25,7 @@ class PolygonRef
 {
     ClipperLib::Path* polygon;
     PolygonRef()
-    : polygon(NULL)
+    : polygon(nullptr)
     {}
 public:
     PolygonRef(ClipperLib::Path& polygon)
@@ -159,26 +159,24 @@ public:
     }
     
     friend class Polygons;
-    friend class _Polygon;
+    friend class Polygon;
 };
 
-class _Polygon : public PolygonRef
+class Polygon : public PolygonRef
 {
     ClipperLib::Path poly;
 public:
-    _Polygon()
+    Polygon()
     : PolygonRef(poly)
     {
     }
 
-    _Polygon(const PolygonRef& other)
+    Polygon(const PolygonRef& other)
     : PolygonRef(poly)
     {
         poly = *other.polygon;
     }
 };
-//<windows.h> defines a Polygon structure, to prevent a clash define Polygon as _Polygon.
-#define Polygon _Polygon
 
 class Polygons
 {
