@@ -3,18 +3,46 @@
 
 namespace cura {
 
-void generateConcentricInfill(Polygons outline, Polygons& result, int offsets[], int offsetsSize)
+void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
 {
-    int step = 0;
-    while(1)
+    while(true)
     {
-        for(unsigned int polygonNr=0; polygonNr<outline.size(); polygonNr++)
-            result.add(outline[polygonNr]);
-        outline = outline.offset(-offsets[step]);
         if (outline.size() < 1)
             break;
-        step = (step + 1) % offsetsSize;
+
+        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
+        {
+            PolygonRef r = outline[polyNr];
+            result.add(r);
+        }
+        outline = outline.offset(-inset_value);
     }
+}
+
+void generateAutomaticInfill(const Polygons& in_outline, Polygons& result,
+                             int extrusionWidth, int lineSpacing,
+                             int infillOverlap, double rotation)
+{
+    if (lineSpacing > extrusionWidth * 4)
+    {
+        generateGridInfill(in_outline, result, extrusionWidth, lineSpacing,
+                           infillOverlap, rotation);
+    }
+    else
+    {
+        generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+                           infillOverlap, rotation);
+    }
+}
+
+void generateGridInfill(const Polygons& in_outline, Polygons& result,
+                        int extrusionWidth, int lineSpacing, int infillOverlap,
+                        double rotation)
+{
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing * 2,
+                       infillOverlap, rotation);
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing * 2,
+                       infillOverlap, rotation + 90);
 }
 
 int compare_int64_t(const void* a, const void* b)

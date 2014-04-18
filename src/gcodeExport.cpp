@@ -90,7 +90,7 @@ void GCodeExport::setFilename(const char* filename)
 
 bool GCodeExport::isOpened()
 {
-    return f != NULL;
+    return f != nullptr;
 }
 
 void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flow)
@@ -409,7 +409,7 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMi
 : gcode(gcode), travelConfig(travelSpeed, 0, "travel")
 {
     lastPosition = gcode.getPositionXY();
-    comb = NULL;
+    comb = nullptr;
     extrudeSpeedFactor = 100;
     travelSpeedFactor = 100;
     extraTime = 0.0;
@@ -435,7 +435,7 @@ void GCodePlanner::addTravel(Point p)
             path->retract = true;
         }
         forceRetraction = false;
-    }else if (comb != NULL)
+    }else if (comb != nullptr)
     {
         vector<Point> pointList;
         if (comb->calc(lastPosition, p, pointList))
@@ -561,7 +561,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
 
 void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 {
-    GCodePathConfig* lastConfig = NULL;
+    GCodePathConfig* lastConfig = nullptr;
     int extruder = gcode.getExtruderNr();
 
     for(unsigned int n=0; n<paths.size(); n++)

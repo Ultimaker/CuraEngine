@@ -109,7 +109,7 @@ private:
     bool prepareModel(SliceDataStorage& storage, const char* input_filename)
     {
         timeKeeper.restart();
-        SimpleModel* model = NULL;
+        SimpleModel* model = nullptr;
         if (input_filename[0] == '$')
         {
             model = new SimpleModel();
@@ -478,7 +478,7 @@ private:
         gcode.writeFanCommand(0);
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
-        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
+        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z - config.objectSink);
     }
 
     //Add a single layer from a single mesh-volume to the GCode
@@ -555,14 +555,34 @@ private:
             }
             if (config.sparseInfillLineDistance > 0)
             {
-                if (config.sparseInfillLineDistance > extrusionWidth * 4)
+                switch (config.infillPattern)
                 {
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45);
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45 + 90);
-                }
-                else
-                {
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance, config.infillOverlap, fillAngle);
+                    case INFILL_AUTOMATIC:
+                        generateAutomaticInfill(
+                            part->sparseOutline, fillPolygons, extrusionWidth,
+                            config.sparseInfillLineDistance,
+                            config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_GRID:
+                        generateGridInfill(part->sparseOutline, fillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_LINES:
+                        generateLineInfill(part->sparseOutline, fillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_CONCENTRIC:
+                        generateConcentricInfill(
+                            part->sparseOutline, fillPolygons,
+                            config.sparseInfillLineDistance);
+                        break;
                 }
             }
 
@@ -573,7 +593,7 @@ private:
             if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
-        gcodeLayer.setCombBoundary(NULL);
+        gcodeLayer.setCombBoundary(nullptr);
     }
 
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
@@ -646,7 +666,7 @@ private:
             if (config.supportType == SUPPORT_TYPE_GRID)
                 gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
-            gcodeLayer.setCombBoundary(NULL);
+            gcodeLayer.setCombBoundary(nullptr);
         }
     }
 
