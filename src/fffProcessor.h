@@ -109,7 +109,7 @@ private:
     bool prepareModel(SliceDataStorage& storage, const char* input_filename)
     {
         timeKeeper.restart();
-        SimpleModel* model = NULL;
+        SimpleModel* model = nullptr;
         if (input_filename[0] == '$')
         {
             model = new SimpleModel();
@@ -573,7 +573,7 @@ private:
             if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
-        gcodeLayer.setCombBoundary(NULL);
+        gcodeLayer.setCombBoundary(nullptr);
     }
 
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
@@ -646,7 +646,7 @@ private:
             if (config.supportType == SUPPORT_TYPE_GRID)
                 gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
-            gcodeLayer.setCombBoundary(NULL);
+            gcodeLayer.setCombBoundary(nullptr);
         }
     }
 

@@ -25,7 +25,7 @@ class PolygonRef
 {
     ClipperLib::Path* polygon;
     PolygonRef()
-    : polygon(NULL)
+    : polygon(nullptr)
     {}
 public:
     PolygonRef(ClipperLib::Path& polygon)

@@ -106,7 +106,7 @@ public:
     const char* name;
     bool spiralize;
     
-    GCodePathConfig() : speed(0), lineWidth(0), name(NULL), spiralize(false) {}
+    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false) {}
     GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
     
     void setData(int speed, int lineWidth, const char* name)
@@ -175,7 +175,7 @@ public:
         if (polygons)
             comb = new Comb(*polygons);
         else
-            comb = NULL;
+            comb = nullptr;
     }
     
     void setAlwaysRetract(bool alwaysRetract)
