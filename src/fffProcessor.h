@@ -478,7 +478,7 @@ private:
         gcode.writeFanCommand(0);
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
-        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
+        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z - config.objectSink);
     }
 
     //Add a single layer from a single mesh-volume to the GCode
