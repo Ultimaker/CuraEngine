@@ -2,6 +2,7 @@
 #define FFF_PROCESSOR_H
 
 #include <algorithm>
+#include <vector>
 #include "utils/socket.h"
 
 #define GUI_CMD_REQUEST_MESH 0x01
@@ -63,7 +64,7 @@ public:
         return gcode.isOpened();
     }
 
-    bool processFile(const char* input_filename)
+    bool processFile(const std::vector<std::string> &files)
     {
         if (!gcode.isOpened())
             return false;
@@ -71,7 +72,7 @@ public:
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
         preSetup();
-        if (!prepareModel(storage, input_filename))
+        if (!prepareModel(storage, files))
             return false;
 
         processSliceData(storage);
@@ -106,12 +107,13 @@ private:
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
     }
 
-    bool prepareModel(SliceDataStorage& storage, const char* input_filename)
+    bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)
     {
         timeKeeper.restart();
-        SimpleModel* model = NULL;
-        if (input_filename[0] == '$')
+        SimpleModel* model = nullptr;
+        if (files.size() == 1 && files[0][0] == '$')
         {
+            const char *input_filename = files[0].c_str();
             model = new SimpleModel();
             for(unsigned int n=0; input_filename[n]; n++)
             {
@@ -138,13 +140,21 @@ private:
                 }
             }
         }else{
-            cura::log("Loading %s from disk...\n", input_filename);
-            model = loadModelFromFile(input_filename, config.matrix);
-        }
-        if (!model)
-        {
-            cura::logError("Failed to load model: %s\n", input_filename);
-            return false;
+            if(files.size()>0 && config.autocenter == 1)
+                config.autocenter = 0;
+            model = new SimpleModel();
+            for(int i=0;i < files.size(); i++) {
+                if(files[i] == "-")
+                    model->volumes.push_back(SimpleVolume());
+                else {
+                    cura::log("Loading %s from disk...\n", files[i].c_str());
+                    SimpleModel *test = loadModelFromFile(model,files[i].c_str(), config.matrix);
+                    if(test == nullptr) { // error while reading occurred
+                        cura::logError("Failed to load model: %s\n", files[i].c_str());
+                        return false;
+                    }
+                }
+            }
         }
         cura::log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
         cura::log("Analyzing and optimizing model...\n");
@@ -200,7 +210,7 @@ private:
             storage.volumes.push_back(SliceVolumeStorage());
             createLayerParts(storage.volumes[volumeIdx], slicerList[volumeIdx], config.fixHorrible & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
             delete slicerList[volumeIdx];
-            
+
             //Add the raft offset to each layer.
             for(unsigned int layerNr=0; layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
                 storage.volumes[volumeIdx].layers[layerNr].printZ += config.raftBaseThickness + config.raftInterfaceThickness;
@@ -338,12 +348,12 @@ private:
         {
             sendPolygonsToGui("support", 0, config.raftBaseThickness, storage.raftOutline);
             sendPolygonsToGui("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
-            
+
             GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftSurfaceConfig((config.raftSurfaceSpeed > 0) ? config.raftSurfaceSpeed : config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
-            
+
             {
                 gcode.writeComment("LAYER:-2");
                 gcode.writeComment("RAFT");
@@ -365,7 +375,7 @@ private:
             if (config.raftFanSpeed) {
                 gcode.writeFanCommand(config.raftFanSpeed);
             }
-            
+
             {
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
@@ -478,7 +488,7 @@ private:
         gcode.writeFanCommand(0);
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
-        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
+        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z - config.objectSink);
     }
 
     //Add a single layer from a single mesh-volume to the GCode
@@ -555,14 +565,34 @@ private:
             }
             if (config.sparseInfillLineDistance > 0)
             {
-                if (config.sparseInfillLineDistance > extrusionWidth * 4)
+                switch (config.infillPattern)
                 {
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45);
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance * 2, config.infillOverlap, 45 + 90);
-                }
-                else
-                {
-                    generateLineInfill(part->sparseOutline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance, config.infillOverlap, fillAngle);
+                    case INFILL_AUTOMATIC:
+                        generateAutomaticInfill(
+                            part->sparseOutline, fillPolygons, extrusionWidth,
+                            config.sparseInfillLineDistance,
+                            config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_GRID:
+                        generateGridInfill(part->sparseOutline, fillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_LINES:
+                        generateLineInfill(part->sparseOutline, fillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_CONCENTRIC:
+                        generateConcentricInfill(
+                            part->sparseOutline, fillPolygons,
+                            config.sparseInfillLineDistance);
+                        break;
                 }
             }
 
@@ -573,7 +603,7 @@ private:
             if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
-        gcodeLayer.setCombBoundary(NULL);
+        gcodeLayer.setCombBoundary(nullptr);
     }
 
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
@@ -646,7 +676,7 @@ private:
             if (config.supportType == SUPPORT_TYPE_GRID)
                 gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
-            gcodeLayer.setCombBoundary(NULL);
+            gcodeLayer.setCombBoundary(nullptr);
         }
     }
 

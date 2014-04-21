@@ -75,6 +75,17 @@
 
 #define MAX_EXTRUDERS 16
 
+/**
+ * Type of infill pattern.
+ */
+enum Infill_Pattern
+{
+    INFILL_AUTOMATIC = 0,
+    INFILL_GRID = 1,
+    INFILL_LINES = 2,
+    INFILL_CONCENTRIC = 3
+};
+
 class _ConfigSettingIndex
 {
 public:
@@ -99,8 +110,6 @@ public:
     int insetCount;
     int downSkinCount;
     int upSkinCount;
-    int sparseInfillLineDistance;
-    int infillOverlap;
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
@@ -122,11 +131,16 @@ public:
     int initialSpeedupLayers;
     int initialLayerSpeed;
     int printSpeed;
-    int infillSpeed;
     int inset0Speed;
     int insetXSpeed;
     int moveSpeed;
     int fanFullOnLayerNr;
+
+    //Infill settings
+    int sparseInfillLineDistance;
+    int infillOverlap;
+    int infillSpeed;
+    int infillPattern;
 
     //Support material
     int supportType;

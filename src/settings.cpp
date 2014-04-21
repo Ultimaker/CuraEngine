@@ -27,8 +27,6 @@ ConfigSettings::ConfigSettings()
     SETTING(insetCount, 2);
     SETTING(downSkinCount, 6);
     SETTING(upSkinCount, 6);
-    SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
-    SETTING(infillOverlap, 15);
     SETTING(skirtDistance, 6000);
     SETTING(skirtLineCount, 1);
     SETTING(skirtMinLength, 0);
@@ -36,11 +34,15 @@ ConfigSettings::ConfigSettings()
     SETTING(initialSpeedupLayers, 4);
     SETTING(initialLayerSpeed, 20);
     SETTING(printSpeed, 50);
-    SETTING(infillSpeed, 50);
     SETTING(inset0Speed, 50);
     SETTING(insetXSpeed, 50);
     SETTING(moveSpeed, 150);
     SETTING(fanFullOnLayerNr, 2);
+
+    SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
+    SETTING(infillOverlap, 15);
+    SETTING(infillSpeed, 50);
+    SETTING(infillPattern, INFILL_AUTOMATIC);
 
     SETTING(supportType, 0);
     SETTING(supportAngle, -1);
