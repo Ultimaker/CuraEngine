@@ -40,7 +40,7 @@ ifeq ($(OS),Windows_NT)
 	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
-	MKDIR_PREFIX = mkdir
+	MKDIR_PREFIX = mkdir -p
 else
 	MKDIR_PREFIX = mkdir -p
 	UNAME := $(shell uname)
@@ -65,7 +65,7 @@ $(EXECUTABLE): $(OBJECTS) $(BUILD_DIR)/libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
-	@-$(MKDIR_PREFIX) $(DIRS)
+	-@$(MKDIR_PREFIX) $(DIRS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
