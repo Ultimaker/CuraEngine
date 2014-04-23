@@ -40,11 +40,9 @@ ifeq ($(OS),Windows_NT)
 	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4
 	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
-	MKDIR_PREFIX = mkdir 
-	MKDIR_POSTFIX = 2> NUL
+	MKDIR_PREFIX = mkdir
 else
 	MKDIR_PREFIX = mkdir -p
-	MKDIR_POSTFIX = 
 	UNAME := $(shell uname)
 	ifeq ($(UNAME), Linux)
 		OPEN_HTML=firefox
@@ -67,7 +65,7 @@ $(EXECUTABLE): $(OBJECTS) $(BUILD_DIR)/libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
-	-$(MKDIR_PREFIX) "$@" $(MKDIR_POSTFIX)
+	@-$(MKDIR_PREFIX) $(DIRS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
