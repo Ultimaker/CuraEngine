@@ -96,7 +96,7 @@ bool GCodeExport::isOpened()
 void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flow)
 {
     double filamentArea = M_PI * (INT2MM(filamentDiameter) / 2.0) * (INT2MM(filamentDiameter) / 2.0);
-    if (flavor == GCODE_FLAVOR_ULTIGCODE)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
+    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
         extrusionPerMM = INT2MM(layerThickness);
     else
         extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
@@ -234,7 +234,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             {
                 if (retractionZHop > 0)
                     fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
-                if (flavor == GCODE_FLAVOR_ULTIGCODE)
+                if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     fprintf(f, "G11\n");
                 }else{
@@ -278,7 +278,7 @@ void GCodeExport::writeRetraction()
     
     if (retractionAmount > 0 && !isRetracted && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction < extrusionAmount)
     {
-        if (flavor == GCODE_FLAVOR_ULTIGCODE)
+        if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
         {
             fprintf(f, "G10\n");
         }else{
@@ -305,7 +305,7 @@ void GCodeExport::switchExtruder(int newExtruder)
         return;
     }
     
-    if (flavor == GCODE_FLAVOR_ULTIGCODE)
+    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
         fprintf(f, "G10 S1\n");
     }else{

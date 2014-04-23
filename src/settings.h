@@ -76,7 +76,16 @@ enum GCode_Flavor
  * MACH3 GCode
  *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
  **/
-    GCODE_FLAVOR_MACH3 = 4
+    GCODE_FLAVOR_MACH3 = 4,
+/**
+ * RepRap volumatric flavored GCode is Marlin based GCode.
+ *  Volumatric uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
+ *  G0 for moves, G1 for extrusion.
+ *  E values give mm^3 of filament extrusion. Ignores the filament diameter setting.
+ *  Retraction is done with G10 and G11. Retraction settings are ignored. G10 S1 is used for multi-extruder switch retraction.
+ *  M106 Sxxx and M107 are used to turn the fan on/off.
+ **/
+    GCODE_FLAVOR_REPRAP_VOLUMATRIC = 5,
 };
 
 #define MAX_EXTRUDERS 16
@@ -89,7 +98,7 @@ enum Infill_Pattern
     INFILL_AUTOMATIC = 0,
     INFILL_GRID = 1,
     INFILL_LINES = 2,
-    INFILL_CONCENTRIC = 3
+    INFILL_CONCENTRIC = 3,
 };
 
 class _ConfigSettingIndex
