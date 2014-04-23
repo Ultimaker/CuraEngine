@@ -37,7 +37,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
                     Point diff = p0 - p1;
                     if (shorterThen(diff, MM2INT(0.01)))
                     {
-                        if (faceToSegmentIndex[face->touching[i]] == (int)startSegment)
+                        if (faceToSegmentIndex[face->touching[i]] == static_cast<int>(startSegment))
                             canClose = true;
                         if (segmentList[faceToSegmentIndex[face->touching[i]]].addedToPolygon)
                             continue;
