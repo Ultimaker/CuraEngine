@@ -20,8 +20,11 @@
  * Grid is a X/Y grid with an outline, which is very strong, provides good support. But in some cases is hard to remove.
  * Lines give a row of lines which break off one at a time, making them easier to remove, but they do not support as good as the grid support.
  */
-#define SUPPORT_TYPE_GRID                0
-#define SUPPORT_TYPE_LINES               1
+enum Support_Pattern
+{
+    SUPPORT_TYPE_GRID = 0,
+    SUPPORT_TYPE_LINES = 1
+};
 
 #ifndef DEFAULT_CONFIG_PATH
 #define DEFAULT_CONFIG_PATH "default.cfg"
@@ -29,6 +32,8 @@
 
 #define CONFIG_MULTILINE_SEPARATOR "\"\"\""
 
+enum GCode_Flavor
+{
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
  *  This is the most commonly used GCode set.
@@ -37,7 +42,7 @@
  *  Retraction is done on E values with G1. Start/end code is added.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-#define GCODE_FLAVOR_REPRAP              0
+    GCODE_FLAVOR_REPRAP = 0,
 /**
  * UltiGCode flavored is Marlin based GCode.
  *  UltiGCode uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -47,7 +52,7 @@
  *  Start/end code is not added.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-#define GCODE_FLAVOR_ULTIGCODE           1
+    GCODE_FLAVOR_ULTIGCODE = 1,
 /**
  * Makerbot flavored GCode.
  *  Looks a lot like RepRap GCode with a few changes. Requires MakerWare to convert to X3G files.
@@ -57,7 +62,7 @@
  *   Fan OFF is M127 T0
  *   Homing is done with G162 X Y F2000
  **/
-#define GCODE_FLAVOR_MAKERBOT           2
+    GCODE_FLAVOR_MAKERBOT = 2,
 
 /**
  * Bits From Bytes GCode.
@@ -65,13 +70,14 @@
  *  Need X,Y,Z,F on every line.
  *  Needs extruder ON/OFF (M101, M103), has auto-retrection (M227 S[2560*mm] P[2560*mm])
  **/
-#define GCODE_FLAVOR_BFB                3
+    GCODE_FLAVOR_BFB = 3,
 
 /**
  * MACH3 GCode
  *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
  **/
-#define GCODE_FLAVOR_MACH3              4
+    GCODE_FLAVOR_MACH3 = 4
+};
 
 #define MAX_EXTRUDERS 16
 

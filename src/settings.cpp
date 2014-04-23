@@ -41,7 +41,7 @@ ConfigSettings::ConfigSettings()
     SETTING(infillSpeed, 50);
     SETTING(infillPattern, INFILL_AUTOMATIC);
 
-    SETTING(supportType, 0);
+    SETTING(supportType, SUPPORT_TYPE_GRID);
     SETTING(supportAngle, -1);
     SETTING(supportEverywhere, 0);
     SETTING(supportLineDistance, sparseInfillLineDistance);
