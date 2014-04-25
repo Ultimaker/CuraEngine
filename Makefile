@@ -25,7 +25,7 @@ endif
 LDFLAGS += -Lbuild/ -lclipper
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
-SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
+SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/polygon.cpp utils/logoutput.cpp utils/socket.cpp
 SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
 
 OBJECTS_RAW = $(SOURCES_RAW:.cpp=.o)
