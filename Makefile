@@ -10,7 +10,7 @@ BUILD_TYPE = RELEASE
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -flto -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
+CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
 	CFLAGS+=-ggdb -Og -g
@@ -22,7 +22,7 @@ ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
 endif
 
-LDFLAGS += -flto -Lbuild/ -lclipper
+LDFLAGS += -Lbuild/ -lclipper
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
@@ -38,15 +38,16 @@ EXECUTABLE = $(BUILD_DIR)/CuraEngine
 ifeq ($(OS),Windows_NT)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
 	EXECUTABLE := $(EXECUTABLE).exe
-	CFLAGS += -march=pentium4
-	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
+	CFLAGS += -march=pentium4 -flto
+	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32 -flto
 	MKDIR_PREFIX = mkdir -p
 else
 	MKDIR_PREFIX = mkdir -p
 	UNAME := $(shell uname)
 	ifeq ($(UNAME), Linux)
 		OPEN_HTML=firefox
-		LDFLAGS += --static
+		CFLAGS += -flto
+		LDFLAGS += --static -flto
 	endif
 	ifeq ($(UNAME), Darwin)
 		OPEN_HTML=open
