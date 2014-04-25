@@ -24,6 +24,7 @@ ConfigSettings::ConfigSettings()
     SETTING(insetCount, 2);
     SETTING(downSkinCount, 6);
     SETTING(upSkinCount, 6);
+    SETTING(up5050SkinCount, 2);
     SETTING(skirtDistance, 6000);
     SETTING(skirtLineCount, 1);
     SETTING(skirtMinLength, 0);
