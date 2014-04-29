@@ -44,7 +44,7 @@ ConfigSettings::ConfigSettings()
     SETTING(infillSpeed, 50);
     SETTING(infillPattern, INFILL_AUTOMATIC);
 
-    SETTING(supportType, 0);
+    SETTING(supportType, SUPPORT_TYPE_GRID);
     SETTING(supportAngle, -1);
     SETTING(supportEverywhere, 0);
     SETTING(supportLineDistance, sparseInfillLineDistance);
@@ -75,7 +75,7 @@ ConfigSettings::ConfigSettings()
     SETTING(raftBaseLinewidth, 0);
     SETTING(raftInterfaceThickness, 0);
     SETTING(raftInterfaceLinewidth, 0);
-    SETTING(raftInterfaceLineSpacing, 250);
+    SETTING(raftInterfaceLineSpacing, 0);
     SETTING(raftAirGap, 0);
     SETTING(raftBaseSpeed, 0);
     SETTING(raftFanSpeed, 0);

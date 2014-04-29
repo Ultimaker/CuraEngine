@@ -43,7 +43,8 @@ void ClientSocket::connectTo(std::string host, int port)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    // TODO: Check this: C style cast replaced by reinterpret_cast!!
+    if (connect(sockfd, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0)
     {
         printf("Connect to %s:%d failed\n", host.c_str(), port);
         close();
@@ -65,7 +66,7 @@ void ClientSocket::sendAll(const void* data, int length)
 {
     if (sockfd == -1)
         return;
-    const char* ptr = (const char*)data;
+    const char* ptr = static_cast<const char*>(data);
     while(length > 0)
     {
         int n = send(sockfd, ptr, length, 0);
@@ -90,7 +91,7 @@ void ClientSocket::recvAll(void* data, int length)
 {
     if (sockfd == -1)
         return;
-    char* ptr = (char*)data;
+    char* ptr = static_cast<char*>(data);
     while(length > 0)
     {
         int n = recv(sockfd, ptr, length, 0);

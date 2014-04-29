@@ -231,7 +231,7 @@ private:
             for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
             {
                 int insetCount = config.insetCount;
-                if (config.spiralizeMode && int(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                if (config.spiralizeMode && static_cast<int>(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                 int extrusionWidth = config.extrusionWidth;
@@ -278,7 +278,7 @@ private:
 
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
-            if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
                 {
@@ -360,7 +360,6 @@ private:
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
                 if (config.supportExtruder > 0)
                     gcodeLayer.setExtruder(config.supportExtruder);
-                gcodeLayer.setAlwaysRetract(true);
                 gcode.setZ(config.raftBaseThickness);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
@@ -380,7 +379,6 @@ private:
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
-                gcodeLayer.setAlwaysRetract(true);
                 gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness);
                 gcode.setExtrusion(config.raftInterfaceThickness, config.filamentDiameter, config.filamentFlow);
 
@@ -393,15 +391,14 @@ private:
 
             for (int raftSurfaceLayer=1; raftSurfaceLayer<=config.raftSurfaceLayers; raftSurfaceLayer++)
             {
-                gcode.writeComment("LAYER:FullRaft");
+                gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
-                gcodeLayer.setAlwaysRetract(true);
                 gcode.setZ(config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceThickness*raftSurfaceLayer);
                 gcode.setExtrusion(config.raftSurfaceThickness, config.filamentDiameter, config.filamentFlow);
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, config.raftSurfaceLinewidth, config.raftSurfaceLineSpacing, config.infillOverlap, 90);
+                generateLineInfill(storage.raftOutline, raftLines, config.raftSurfaceLinewidth, config.raftSurfaceLineSpacing, config.infillOverlap, 90 * raftSurfaceLayer);
                 gcodeLayer.addPolygonsByOptimizer(raftLines, &raftSurfaceConfig);
 
                 gcodeLayer.writeGCode(false, config.raftInterfaceThickness);
@@ -416,7 +413,7 @@ private:
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
-            if (int(layerNr) < config.initialSpeedupLayers)
+            if (static_cast<int>(layerNr) < config.initialSpeedupLayers)
             {
                 int n = config.initialSpeedupLayers;
 #define SPEED_SMOOTH(speed) \
@@ -473,14 +470,14 @@ private:
                 int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
                 fanSpeed = config.fanSpeedMin * n / 50 + config.fanSpeedMax * (50 - n) / 50;
             }
-            if (int(layerNr) < config.fanFullOnLayerNr)
+            if (static_cast<int>(layerNr) < config.fanFullOnLayerNr)
             {
                 //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
                 fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
             }
             gcode.writeFanCommand(fanSpeed);
 
-            gcodeLayer.writeGCode(config.coolHeadLift > 0, int(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
+            gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
         }
 
         cura::log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
@@ -535,9 +532,9 @@ private:
             {
                 if (config.spiralizeMode)
                 {
-                    if (int(layerNr) >= config.downSkinCount)
+                    if (static_cast<int>(layerNr) >= config.downSkinCount)
                         inset0Config.spiralize = true;
-                    if (int(layerNr) == config.downSkinCount && part->insets.size() > 0)
+                    if (static_cast<int>(layerNr) == config.downSkinCount && part->insets.size() > 0)
                         gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
@@ -600,7 +597,7 @@ private:
             //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-            if (!config.spiralizeMode || int(layerNr) < config.downSkinCount)
+            if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);

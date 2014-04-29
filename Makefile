@@ -38,17 +38,16 @@ EXECUTABLE = $(BUILD_DIR)/CuraEngine
 ifeq ($(OS),Windows_NT)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
 	EXECUTABLE := $(EXECUTABLE).exe
-	CFLAGS += -march=pentium4
-	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32
-	MKDIR_PREFIX = mkdir 
-	MKDIR_POSTFIX = 2> NUL
+	CFLAGS += -march=pentium4 -flto
+	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32 -flto
+	MKDIR_PREFIX = mkdir -p
 else
 	MKDIR_PREFIX = mkdir -p
-	MKDIR_POSTFIX = 
 	UNAME := $(shell uname)
 	ifeq ($(UNAME), Linux)
 		OPEN_HTML=firefox
-		LDFLAGS += --static
+		CFLAGS += -flto
+		LDFLAGS += --static -flto
 	endif
 	ifeq ($(UNAME), Darwin)
 		OPEN_HTML=open
@@ -67,7 +66,7 @@ $(EXECUTABLE): $(OBJECTS) $(BUILD_DIR)/libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
-	-$(MKDIR_PREFIX) "$@" $(MKDIR_POSTFIX)
+	-@$(MKDIR_PREFIX) $(DIRS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
