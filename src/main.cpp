@@ -12,6 +12,7 @@
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/string.h"
 #include "sliceDataStorage.h"
 
 #include "modelFile/modelFile.h"
@@ -80,79 +81,89 @@ int main(int argc, char **argv)
     if(!config.readSettings()) {
         cura::logError("Default config '%s' not used\n", DEFAULT_CONFIG_PATH);
     }
-    for(int argn = 1; argn < argc; argn++)
-        cura::log("Arg: %s\n", argv[argn]);
     
+    CommandSocket* commandSocket = NULL;
     for(int argn = 1; argn < argc; argn++)
     {
         char* str = argv[argn];
         if (str[0] == '-')
         {
-            for(str++; *str; str++)
+            if (str[1] == '-')
             {
-                switch(*str)
+                //Long options
+                if (stringcasecompare(str, "--socket") == 0)
                 {
-                case 'h':
-                    print_usage();
-                    exit(1);
-                case 'v':
-                    cura::increaseVerboseLevel();
-                    break;
-                case 'p':
-                    cura::enableProgressLogging();
-                    break;
-                case 'g':
                     argn++;
-                    //Connect the GUI socket to the given port number.
-                    processor.guiConnect(atoi(argv[argn]));
-                    break;
-                case 'b':
-                    argn++;
-                    //The binaryMeshBlob is depricated and will be removed in the future.
-                    binaryMeshBlob = fopen(argv[argn], "rb");
-                    break;
-                case 'o':
-                    argn++;
-                    if (!processor.setTargetFile(argv[argn]))
+                    commandSocket = new CommandSocket(atoi(argv[argn]));
+                    processor.setCommandSocket(commandSocket);
+                }else if (stringcasecompare(str, "--command-socket") == 0)
+                {
+                    commandSocket->handleIncommingData(&config, &processor);
+                }else{
+                    cura::logError("Unknown option: %s\n", str);
+                }
+            }else{
+                for(str++; *str; str++)
+                {
+                    switch(*str)
                     {
-                        cura::logError("Failed to open %s for output.\n", argv[argn]);
+                    case 'h':
+                        print_usage();
                         exit(1);
-                    }
-                    break;
-                case 'c':
-                    {
-                        // Read a config file from the given path
+                    case 'v':
+                        cura::increaseVerboseLevel();
+                        break;
+                    case 'p':
+                        cura::enableProgressLogging();
+                        break;
+                    case 'b':
                         argn++;
-                        if(!config.readSettings(argv[argn])) {
-                            cura::logError("Failed to read config '%s'\n", argv[argn]);
-                        }
-                    }
-                    break;
-                case 's':
-                    {
-                        //Parse the given setting and store it.
+                        //The binaryMeshBlob is depricated and will be removed in the future.
+                        binaryMeshBlob = fopen(argv[argn], "rb");
+                        break;
+                    case 'o':
                         argn++;
-                        char* valuePtr = strchr(argv[argn], '=');
-                        if (valuePtr)
+                        if (!processor.setTargetFile(argv[argn]))
                         {
-                            *valuePtr++ = '\0';
-
-                            if (!config.setSetting(argv[argn], valuePtr))
-                                cura::logError("Setting not found: %s %s\n", argv[argn], valuePtr);
+                            cura::logError("Failed to open %s for output.\n", argv[argn]);
+                            exit(1);
                         }
+                        break;
+                    case 'c':
+                        {
+                            // Read a config file from the given path
+                            argn++;
+                            if(!config.readSettings(argv[argn])) {
+                                cura::logError("Failed to read config '%s'\n", argv[argn]);
+                            }
+                        }
+                        break;
+                    case 's':
+                        {
+                            //Parse the given setting and store it.
+                            argn++;
+                            char* valuePtr = strchr(argv[argn], '=');
+                            if (valuePtr)
+                            {
+                                *valuePtr++ = '\0';
+
+                                if (!config.setSetting(argv[argn], valuePtr))
+                                    cura::logError("Setting not found: %s %s\n", argv[argn], valuePtr);
+                            }
+                        }
+                        break;
+                    case 'm':
+                        //Read the given rotation/scale matrix
+                        argn++;
+                        sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
+                            &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
+                            &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
+                            &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
+                        break;
+                    default:
+                        cura::logError("Unknown option: %c\n", *str);
+                        break;
                     }
-                    break;
-                case 'm':
-                    //Read the given rotation/scale matrix
-                    argn++;
-                    sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                        &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
-                        &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
-                        &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
-                    break;
-                default:
-                    cura::logError("Unknown option: %c\n", *str);
-                    break;
                 }
             }
         }else{

@@ -15,14 +15,14 @@ They represent millimeters in 3D space.
 class FPoint3
 {
 public:
-    double x,y,z;
+    float x,y,z;
     FPoint3() {}
-    FPoint3(double _x, double _y, double _z): x(_x), y(_y), z(_z) {}
+    FPoint3(float _x, float _y, float _z): x(_x), y(_y), z(_z) {}
     
     FPoint3 operator+(const FPoint3& p) const { return FPoint3(x+p.x, y+p.y, z+p.z); }
     FPoint3 operator-(const FPoint3& p) const { return FPoint3(x-p.x, y-p.y, z-p.z); }
-    FPoint3 operator*(const double f) const { return FPoint3(x*f, y*f, z*f); }
-    FPoint3 operator/(const double f) const { return FPoint3(x/f, y/f, z/f); }
+    FPoint3 operator*(const float f) const { return FPoint3(x*f, y*f, z*f); }
+    FPoint3 operator/(const float f) const { return FPoint3(x/f, y/f, z/f); }
     
     FPoint3& operator += (const FPoint3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     FPoint3& operator -= (const FPoint3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
@@ -30,24 +30,24 @@ public:
     bool operator==(FPoint3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(FPoint3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
     
-    double max()
+    float max()
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
     
-    bool testLength(double len)
+    bool testLength(float len)
     {
         return vSize2() <= len*len;
     }
     
-    double vSize2()
+    float vSize2()
     {
         return x*x+y*y+z*z;
     }
     
-    double vSize()
+    float vSize()
     {
         return sqrt(vSize2());
     }

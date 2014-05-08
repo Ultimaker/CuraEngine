@@ -37,7 +37,7 @@ SimpleModel* loadModelSTL_ascii(const char* filename, FMatrix3x3& matrix)
     Point3 v0(0,0,0), v1(0,0,0), v2(0,0,0);
     while(fgets_(buffer, sizeof(buffer), f))
     {
-        if (sscanf(buffer, " vertex %lf %lf %lf", &vertex.x, &vertex.y, &vertex.z) == 3)
+        if (sscanf(buffer, " vertex %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
         {
             n++;
             switch(n)

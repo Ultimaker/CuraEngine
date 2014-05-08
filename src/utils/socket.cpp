@@ -82,7 +82,7 @@ void ClientSocket::sendAll(const void* data, int length)
 
 int ClientSocket::recvNr()
 {
-    int ret = 0;
+    int32_t ret = 0;
     recvAll(&ret, 4);
     return ret;
 }
@@ -95,9 +95,14 @@ void ClientSocket::recvAll(void* data, int length)
     while(length > 0)
     {
         int n = recv(sockfd, ptr, length, 0);
-        if (n <= 0)
+        if (n == 0)
         {
-            cura::log("ClientSocket::recvAll error...");
+            close();
+            return;
+        }
+        if (n < 0)
+        {
+            cura::logError("ClientSocket::recvAll error...");
             close();
             return;
         }

@@ -2,7 +2,24 @@
 #define FFF_PROCESSOR_H
 
 #include <algorithm>
-#include "utils/socket.h"
+#include "utils/gettime.h"
+#include "utils/logoutput.h"
+#include "sliceDataStorage.h"
+#include "modelFile/modelFile.h"
+#include "optimizedModel.h"
+#include "slicer.h"
+#include "support.h"
+#include "multiVolumes.h"
+#include "layerPart.h"
+#include "inset.h"
+#include "skirt.h"
+#include "raft.h"
+#include "skin.h"
+#include "infill.h"
+#include "bridge.h"
+#include "pathOrderOptimizer.h"
+#include "gcodeExport.h"
+#include "commandSocket.h"
 
 #define GUI_CMD_REQUEST_MESH 0x01
 #define GUI_CMD_SEND_POLYGONS 0x02
@@ -19,7 +36,7 @@ private:
     GCodeExport gcode;
     ConfigSettings& config;
     TimeKeeper timeKeeper;
-    ClientSocket guiSocket;
+    CommandSocket* commandSocket;
 
     GCodePathConfig skirtConfig;
     GCodePathConfig inset0Config;
@@ -32,15 +49,19 @@ public:
     {
         fileNr = 1;
         maxObjectHeight = 0;
+        commandSocket = NULL;
     }
 
-    void guiConnect(int portNr)
+    void setCommandSocket(CommandSocket* socket)
     {
-        guiSocket.connectTo("127.0.0.1", portNr);
+        commandSocket = socket;
     }
 
-    void sendPolygonsToGui(const char* name, int layerNr, int32_t z, Polygons& polygons)
+    void sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons)
     {
+        if (commandSocket)
+            commandSocket->sendPolygons(name, layerNr, z, polygons);
+        /*
         guiSocket.sendNr(GUI_CMD_SEND_POLYGONS);
         guiSocket.sendNr(polygons.size());
         guiSocket.sendNr(layerNr);
@@ -53,6 +74,7 @@ public:
             guiSocket.sendNr(polygon.size());
             guiSocket.sendAll(polygon.data(), polygon.size() * sizeof(Point));
         }
+        */
     }
 
     bool setTargetFile(const char* filename)
@@ -62,24 +84,72 @@ public:
             gcode.writeComment("Generated with Cura_SteamEngine %s", VERSION);
         return gcode.isOpened();
     }
-
+    
     bool processFile(const char* input_filename)
     {
+        timeKeeper.restart();
+        SimpleModel* model = nullptr;
+        /*
+        if (input_filename[0] == '$')
+        {
+            model = new SimpleModel();
+            for(unsigned int n=0; input_filename[n]; n++)
+            {
+                model->volumes.push_back(SimpleVolume());
+                SimpleVolume* volume = &model->volumes[model->volumes.size()-1];
+                guiSocket.sendNr(GUI_CMD_REQUEST_MESH);
+
+                int32_t vertexCount = guiSocket.recvNr();
+                int pNr = 0;
+                log("Reading mesh from socket with %i vertexes\n", vertexCount);
+                Point3 v[3];
+                while(vertexCount)
+                {
+                    float f[3];
+                    guiSocket.recvAll(f, 3 * sizeof(float));
+                    FPoint3 fp(f[0], f[1], f[2]);
+                    v[pNr++] = config.matrix.apply(fp);
+                    if (pNr == 3)
+                    {
+                        volume->addFace(v[0], v[1], v[2]);
+                        pNr = 0;
+                    }
+                    vertexCount--;
+                }
+            }
+        }else{*/
+            log("Loading %s from disk...\n", input_filename);
+            model = loadModelFromFile(input_filename, config.matrix);
+        /*}*/
+        if (!model)
+        {
+            logError("Failed to load model: %s\n", input_filename);
+            return false;
+        }
+        log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
+        return processModel(model);
+    }
+
+    bool processModel(SimpleModel* model)
+    {
+        timeKeeper.restart();
+        if (!model)
+            return false;
         if (!gcode.isOpened())
             return false;
 
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
         preSetup();
-        if (!prepareModel(storage, input_filename))
+        if (!prepareModel(storage, model))
             return false;
 
         processSliceData(storage);
         writeGCode(storage);
 
-        cura::logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
-        cura::log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
-        guiSocket.sendNr(GUI_CMD_FINISH_OBJECT);
+        logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
+        log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
+        //guiSocket.sendNr(GUI_CMD_FINISH_OBJECT);
 
         return true;
     }
@@ -106,72 +176,33 @@ private:
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
     }
 
-    bool prepareModel(SliceDataStorage& storage, const char* input_filename)
+    bool prepareModel(SliceDataStorage& storage, SimpleModel* model)
     {
-        timeKeeper.restart();
-        SimpleModel* model = nullptr;
-        if (input_filename[0] == '$')
-        {
-            model = new SimpleModel();
-            for(unsigned int n=0; input_filename[n]; n++)
-            {
-                model->volumes.push_back(SimpleVolume());
-                SimpleVolume* volume = &model->volumes[model->volumes.size()-1];
-                guiSocket.sendNr(GUI_CMD_REQUEST_MESH);
-
-                int32_t vertexCount = guiSocket.recvNr();
-                int pNr = 0;
-                cura::log("Reading mesh from socket with %i vertexes\n", vertexCount);
-                Point3 v[3];
-                while(vertexCount)
-                {
-                    float f[3];
-                    guiSocket.recvAll(f, 3 * sizeof(float));
-                    FPoint3 fp(f[0], f[1], f[2]);
-                    v[pNr++] = config.matrix.apply(fp);
-                    if (pNr == 3)
-                    {
-                        volume->addFace(v[0], v[1], v[2]);
-                        pNr = 0;
-                    }
-                    vertexCount--;
-                }
-            }
-        }else{
-            cura::log("Loading %s from disk...\n", input_filename);
-            model = loadModelFromFile(input_filename, config.matrix);
-        }
-        if (!model)
-        {
-            cura::logError("Failed to load model: %s\n", input_filename);
-            return false;
-        }
-        cura::log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
-        cura::log("Analyzing and optimizing model...\n");
+        log("Analyzing and optimizing model...\n");
         OptimizedModel* optimizedModel = new OptimizedModel(model, Point3(config.objectPosition.X, config.objectPosition.Y, -config.objectSink));
         for(unsigned int v = 0; v < model->volumes.size(); v++)
         {
-            cura::log("  Face counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size(), (int)optimizedModel->volumes[v].faces.size(), float(optimizedModel->volumes[v].faces.size()) / float(model->volumes[v].faces.size()) * 100);
-            cura::log("  Vertex counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size() * 3, (int)optimizedModel->volumes[v].points.size(), float(optimizedModel->volumes[v].points.size()) / float(model->volumes[v].faces.size() * 3) * 100);
-            cura::log("  Size: %f %f %f\n", INT2MM(optimizedModel->modelSize.x), INT2MM(optimizedModel->modelSize.y), INT2MM(optimizedModel->modelSize.z));
-            cura::log("  vMin: %f %f %f\n", INT2MM(optimizedModel->vMin.x), INT2MM(optimizedModel->vMin.y), INT2MM(optimizedModel->vMin.z));
-            cura::log("  vMax: %f %f %f\n", INT2MM(optimizedModel->vMax.x), INT2MM(optimizedModel->vMax.y), INT2MM(optimizedModel->vMax.z));
-            cura::log("  vMin: %f %f %f\n", INT2MM(model->min().x), INT2MM(model->min().y), INT2MM(model->min().z));
-            cura::log("  vMax: %f %f %f\n", INT2MM(model->max().x), INT2MM(model->max().y), INT2MM(model->max().z));
-            cura::log("  Matrix: %f %f %f\n", config.matrix.m[0][0], config.matrix.m[1][0], config.matrix.m[2][0]);
-            cura::log("  Matrix: %f %f %f\n", config.matrix.m[0][1], config.matrix.m[1][1], config.matrix.m[2][1]);
-            cura::log("  Matrix: %f %f %f\n", config.matrix.m[0][2], config.matrix.m[1][2], config.matrix.m[2][2]);
+            log("  Face counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size(), (int)optimizedModel->volumes[v].faces.size(), float(optimizedModel->volumes[v].faces.size()) / float(model->volumes[v].faces.size()) * 100);
+            log("  Vertex counts: %i -> %i %0.1f%%\n", (int)model->volumes[v].faces.size() * 3, (int)optimizedModel->volumes[v].points.size(), float(optimizedModel->volumes[v].points.size()) / float(model->volumes[v].faces.size() * 3) * 100);
+            log("  Size: %f %f %f\n", INT2MM(optimizedModel->modelSize.x), INT2MM(optimizedModel->modelSize.y), INT2MM(optimizedModel->modelSize.z));
+            log("  vMin: %f %f %f\n", INT2MM(optimizedModel->vMin.x), INT2MM(optimizedModel->vMin.y), INT2MM(optimizedModel->vMin.z));
+            log("  vMax: %f %f %f\n", INT2MM(optimizedModel->vMax.x), INT2MM(optimizedModel->vMax.y), INT2MM(optimizedModel->vMax.z));
+            log("  vMin: %f %f %f\n", INT2MM(model->min().x), INT2MM(model->min().y), INT2MM(model->min().z));
+            log("  vMax: %f %f %f\n", INT2MM(model->max().x), INT2MM(model->max().y), INT2MM(model->max().z));
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][0], config.matrix.m[1][0], config.matrix.m[2][0]);
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][1], config.matrix.m[1][1], config.matrix.m[2][1]);
+            log("  Matrix: %f %f %f\n", config.matrix.m[0][2], config.matrix.m[1][2], config.matrix.m[2][2]);
             if (INT2MM(optimizedModel->modelSize.x) > 10000.0 || INT2MM(optimizedModel->modelSize.y)  > 10000.0 || INT2MM(optimizedModel->modelSize.z) > 10000.0)
             {
-                cura::logError("Object is way to big, CuraEngine bug?");
+                logError("Object is way to big, CuraEngine bug?");
                 exit(1);
             }
         }
         delete model;
-        cura::log("Optimize model %5.3fs \n", timeKeeper.restart());
+        log("Optimize model %5.3fs \n", timeKeeper.restart());
         //om->saveDebugSTL("c:\\models\\output.stl");
 
-        cura::log("Slicing model...\n");
+        log("Slicing model...\n");
         vector<Slicer*> slicerList;
         for(unsigned int volumeIdx=0; volumeIdx < optimizedModel->volumes.size(); volumeIdx++)
         {
@@ -180,13 +211,13 @@ private:
             for(unsigned int layerNr=0; layerNr<slicer->layers.size(); layerNr++)
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-                //sendPolygonsToGui("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
-                sendPolygonsToGui("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+                //sendPolygons("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
+                sendPolygons("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
             }
         }
-        cura::log("Sliced model in %5.3fs\n", timeKeeper.restart());
+        log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
-        cura::log("Generating support map...\n");
+        log("Generating support map...\n");
         generateSupportGrid(storage.support, optimizedModel, config.supportAngle, config.supportEverywhere > 0, config.supportXYDistance, config.supportZDistance);
 
         storage.modelSize = optimizedModel->modelSize;
@@ -194,7 +225,7 @@ private:
         storage.modelMax = optimizedModel->vMax;
         delete optimizedModel;
 
-        cura::log("Generating layer parts...\n");
+        log("Generating layer parts...\n");
         for(unsigned int volumeIdx=0; volumeIdx < slicerList.size(); volumeIdx++)
         {
             storage.volumes.push_back(SliceVolumeStorage());
@@ -205,7 +236,7 @@ private:
             for(unsigned int layerNr=0; layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
                 storage.volumes[volumeIdx].layers[layerNr].printZ += config.raftBaseThickness + config.raftInterfaceThickness;
         }
-        cura::log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
+        log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         return true;
     }
 
@@ -233,13 +264,13 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygonsToGui("inset0", layerNr, layer->printZ, layer->parts[partNr].insets[0]);
+                        sendPolygons("inset0", layerNr, layer->printZ, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygonsToGui("insetx", layerNr, layer->printZ, layer->parts[partNr].insets[inset]);
+                            sendPolygons("insetx", layerNr, layer->printZ, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
-            cura::logProgress("inset",layerNr+1,totalLayers);
+            logProgress("inset",layerNr+1,totalLayers);
         }
         if (config.enableOozeShield)
         {
@@ -264,7 +295,7 @@ private:
             for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
                 storage.oozeShield[layerNr-1] = storage.oozeShield[layerNr-1].unionPolygons(storage.oozeShield[layerNr].offset(-offsetAngle));
         }
-        cura::log("Generated inset in %5.3fs\n", timeKeeper.restart());
+        log("Generated inset in %5.3fs\n", timeKeeper.restart());
 
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
@@ -280,12 +311,12 @@ private:
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        sendPolygonsToGui("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
+                        sendPolygons("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
                 }
             }
-            cura::logProgress("skin",layerNr+1,totalLayers);
+            logProgress("skin",layerNr+1,totalLayers);
         }
-        cura::log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
+        log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
         if (config.wipeTowerSize > 0)
         {
@@ -301,7 +332,7 @@ private:
         generateSkirt(storage, config.skirtDistance, config.layer0extrusionWidth, config.skirtLineCount, config.skirtMinLength, config.initialLayerThickness);
         generateRaft(storage, config.raftMargin);
 
-        sendPolygonsToGui("skirt", 0, config.initialLayerThickness, storage.skirt);
+        sendPolygons("skirt", 0, config.initialLayerThickness, storage.skirt);
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -336,8 +367,8 @@ private:
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
-            sendPolygonsToGui("support", 0, config.raftBaseThickness, storage.raftOutline);
-            sendPolygonsToGui("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
+            sendPolygons("support", 0, config.raftBaseThickness, storage.raftOutline);
+            sendPolygons("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
             
             GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
@@ -398,7 +429,7 @@ private:
         int volumeIdx = 0;
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
-            cura::logProgress("export", layerNr+1, totalLayers);
+            logProgress("export", layerNr+1, totalLayers);
 
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
@@ -470,7 +501,7 @@ private:
             gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
         }
 
-        cura::log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
+        log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
         gcode.tellFileSize();
         gcode.writeFanCommand(0);
 
@@ -498,7 +529,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            sendPolygonsToGui("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
+            sendPolygons("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
 
@@ -622,7 +653,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
-        sendPolygonsToGui("support", layerNr, z, supportGenerator.polygons);
+        sendPolygons("support", layerNr, z, supportGenerator.polygons);
 
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
 
