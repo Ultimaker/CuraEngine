@@ -164,11 +164,11 @@ public:
 private:
     void preSetup()
     {
-        skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
+        skirtConfig.setData(config.skirtSpeed, config.extrusionWidth, "SKIRT");
         inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
         insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
         fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
-        supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
+        supportConfig.setData(config.supportSpeed, config.extrusionWidth, "SUPPORT");
 
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
             gcode.setExtruderOffset(n, config.extruderOffset[n].p());
@@ -271,6 +271,7 @@ private:
                 }
             }
             logProgress("inset",layerNr+1,totalLayers);
+            if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layerNr) / float(totalLayers));
         }
         if (config.enableOozeShield)
         {
@@ -315,6 +316,7 @@ private:
                 }
             }
             logProgress("skin",layerNr+1,totalLayers);
+            if (commandSocket) commandSocket->sendProgress(1.0/3.0 + 1.0/3.0 * float(layerNr) / float(totalLayers));
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
@@ -370,10 +372,10 @@ private:
             sendPolygons("support", 0, config.raftBaseThickness, storage.raftOutline);
             sendPolygons("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
             
-            GCodePathConfig raftBaseConfig((config.raftBaseSpeed <= 0) ? config.initialLayerSpeed : config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
-            GCodePathConfig raftMiddleConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
-            GCodePathConfig raftInterfaceConfig(config.printSpeed, config.raftInterfaceLinewidth, "SUPPORT");
-            GCodePathConfig raftSurfaceConfig((config.raftSurfaceSpeed > 0) ? config.raftSurfaceSpeed : config.printSpeed, config.raftSurfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftBaseConfig(config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
+            GCodePathConfig raftMiddleConfig(config.raftInterfaceSpeed, config.raftInterfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftInterfaceConfig(config.raftInterfaceSpeed, config.raftInterfaceLinewidth, "SUPPORT");
+            GCodePathConfig raftSurfaceConfig(config.raftSurfaceSpeed, config.raftSurfaceLinewidth, "SUPPORT");
             
             {
                 gcode.writeComment("LAYER:-2");
@@ -430,6 +432,7 @@ private:
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
             logProgress("export", layerNr+1, totalLayers);
+            if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layerNr) / float(totalLayers));
 
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
@@ -439,18 +442,18 @@ private:
                 int n = config.initialSpeedupLayers;
 #define SPEED_SMOOTH(speed) \
                 std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
-                skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SKIRT");
+                skirtConfig.setData(SPEED_SMOOTH(config.skirtSpeed), extrusionWidth, "SKIRT");
                 inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
                 fillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  "FILL");
-                supportConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SUPPORT");
+                supportConfig.setData(SPEED_SMOOTH(config.supportSpeed), extrusionWidth, "SUPPORT");
 #undef SPEED_SMOOTH
             }else{
-                skirtConfig.setData(config.printSpeed, extrusionWidth, "SKIRT");
+                skirtConfig.setData(config.skirtSpeed, extrusionWidth, "SKIRT");
                 inset0Config.setData(config.inset0Speed, extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(config.insetXSpeed, extrusionWidth, "WALL-INNER");
                 fillConfig.setData(config.infillSpeed, extrusionWidth, "FILL");
-                supportConfig.setData(config.printSpeed, extrusionWidth, "SUPPORT");
+                supportConfig.setData(config.supportSpeed, extrusionWidth, "SUPPORT");
             }
 
             gcode.writeComment("LAYER:%d", layerNr);

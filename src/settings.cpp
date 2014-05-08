@@ -30,9 +30,10 @@ ConfigSettings::ConfigSettings()
 
     SETTING(initialSpeedupLayers, 4);
     SETTING(initialLayerSpeed, 20);
-    SETTING(printSpeed, 50);
+    SETTING(skirtSpeed, 50);
     SETTING(inset0Speed, 50);
     SETTING(insetXSpeed, 50);
+    SETTING(supportSpeed, 50);
     SETTING(moveSpeed, 150);
     SETTING(fanFullOnLayerNr, 2);
 
@@ -73,7 +74,8 @@ ConfigSettings::ConfigSettings()
     SETTING(raftInterfaceLinewidth, 0);
     SETTING(raftInterfaceLineSpacing, 0);
     SETTING(raftAirGap, 0);
-    SETTING(raftBaseSpeed, 0);
+    SETTING(raftBaseSpeed, 15);
+    SETTING(raftInterfaceSpeed, 15);
     SETTING(raftFanSpeed, 0);
     SETTING(raftSurfaceThickness, 0);
     SETTING(raftSurfaceLinewidth, 0);

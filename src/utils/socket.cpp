@@ -62,6 +62,12 @@ void ClientSocket::sendNr(int nr)
     sendAll(&nr, sizeof(int));
 }
 
+void ClientSocket::sendFloat(float f)
+{
+    sendAll(&f, sizeof(float));
+}
+
+
 void ClientSocket::sendAll(const void* data, int length)
 {
     if (sockfd == -1)
@@ -83,6 +89,13 @@ void ClientSocket::sendAll(const void* data, int length)
 int ClientSocket::recvNr()
 {
     int32_t ret = 0;
+    recvAll(&ret, 4);
+    return ret;
+}
+
+float ClientSocket::recvFloat()
+{
+    float ret = 0;
     recvAll(&ret, 4);
     return ret;
 }

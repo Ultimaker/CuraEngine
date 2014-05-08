@@ -18,6 +18,7 @@ public:
     void handleIncommingData(ConfigSettings* config, fffProcessor* processor);
     
     void sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons);
+    void sendProgress(float amount);
 };
 
 }//namespace cura

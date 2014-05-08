@@ -13,8 +13,11 @@ public:
     void connectTo(std::string host, int port);
     
     void sendNr(int nr);
+    void sendFloat(float f);
     void sendAll(const void* data, int length);
+    
     int recvNr();
+    float recvFloat();
     void recvAll(void* data, int length);
     
     void close();

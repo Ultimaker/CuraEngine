@@ -13,6 +13,8 @@ const static int CMD_VOLUME_VERTEX_POSITION = 0x1002;
 const static int CMD_VOLUME_VERTEX_NORMAL = 0x1003;
 const static int CMD_FINISHED = 0x9000;
 
+const static int CMD_PROGRESS_UPDATE = 0x10000;
+
 CommandSocket::CommandSocket(int portNr)
 {
     socket.connectTo("127.0.0.1", portNr);
@@ -40,6 +42,13 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                 char* value = strchr(buffer, '=');
                 if (value)
                     config->setSetting(buffer, value+1);
+            }
+            break;
+        case CMD_MATRIX:
+            {
+                for(int x=0; x<3; x++)
+                    for(int y=0; y<3; y++)
+                        config->matrix.m[x][y] = socket.recvFloat();
             }
             break;
         case CMD_START_MESH:
@@ -98,6 +107,14 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
 
 void CommandSocket::sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons)
 {
+    //TODO
+}
+
+void CommandSocket::sendProgress(float amount)
+{
+    socket.sendNr(8);
+    socket.sendNr(CMD_PROGRESS_UPDATE);
+    socket.sendFloat(amount);
 }
 
 }//namespace cura
