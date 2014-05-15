@@ -6,6 +6,8 @@
 #include "modelFile.h"
 #include "../utils/logoutput.h"
 #include "../utils/string.h"
+#include "map"
+#include "tr1/unordered_map"
 
 FILE* binaryMeshBlob = nullptr;
 
@@ -59,7 +61,7 @@ SimpleModel* loadModelSTL_ascii(SimpleModel *m,const char* filename, FMatrix3x3&
     return m;
 }
 
-SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3& matrix, bool colorSupport)
 {
     FILE* f = fopen(filename, "rb");
     char buffer[80];
@@ -78,13 +80,8 @@ SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3
     }
     //For each face read:
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
-    m->volumes.push_back(SimpleVolume());
-    SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
-	if(vol == nullptr)
-	{
-		fclose(f);
-		return nullptr;
-	}
+    std::tr1::unordered_map<int, int> volumesMap;
+    std::vector<SimpleVolume> volumes;
 
     for(unsigned int i=0;i<faceCount;i++)
     {
@@ -102,18 +99,53 @@ SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3
         Point3 v0 = matrix.apply(FPoint3(v[0], v[1], v[2]));
         Point3 v1 = matrix.apply(FPoint3(v[3], v[4], v[5]));
         Point3 v2 = matrix.apply(FPoint3(v[6], v[7], v[8]));
-        vol->addFace(v0, v1, v2);
+
         if (fread(buffer, sizeof(uint16_t), 1, f) != 1)
         {
             fclose(f);
             return nullptr;
         }
+        unsigned int color;
+        if (colorSupport)
+        {
+          color = buffer[0] + (buffer[1]<<8);
+        }else{
+          color = 0;
+        }
+
+        SimpleVolume* vol;
+        std::tr1::unordered_map<int, int>::iterator it = volumesMap.find(color);
+        if (it == volumesMap.end()) {
+          //we have not seen this color yet. Make new volume for faces of this color
+          volumes.push_back(SimpleVolume());
+          int idx = volumes.size() - 1;
+          vol = &volumes[idx];
+          volumesMap[color] = idx;
+        } else {
+          int idx = it->second;
+          vol = &volumes[idx];
+        }
+
+        if(vol == nullptr)
+        {
+          fclose(f);
+          return nullptr;
+        }
+        vol->addFace(v0, v1, v2);
+    }
+    std::map<int, int> colorSortedVolumes;
+    //putting volumes into sorted map, sorts them by their key (color, ascending)
+    colorSortedVolumes.insert(volumesMap.begin(), volumesMap.end());
+    for(auto it = colorSortedVolumes.begin(); it != colorSortedVolumes.end(); it++) {
+      SimpleVolume vol = volumes.at(it->second);
+      //put volumes in the model in correct order
+      m->volumes.push_back(vol);
     }
     fclose(f);
     return m;
 }
 
-SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matrix, bool colorSupport)
 {
     FILE* f = fopen(filename, "r");
     char buffer[6];
@@ -132,15 +164,15 @@ SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matri
     {
         return loadModelSTL_ascii(m, filename, matrix);
     }
-    return loadModelSTL_binary(m, filename, matrix);
+    return loadModelSTL_binary(m, filename, matrix, colorSupport);
 }
 
-SimpleModel* loadModelFromFile(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelFromFile(SimpleModel *m,const char* filename, FMatrix3x3& matrix, bool colorSupport)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && strcmp(ext, ".stl") == 0)
     {
-        return loadModelSTL(m,filename, matrix);
+      return loadModelSTL(m, filename, matrix, colorSupport);
     }
     if (filename[0] == '#' && binaryMeshBlob != nullptr)
     {

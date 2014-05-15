@@ -113,6 +113,6 @@ public:
     }
 };
 
-SimpleModel* loadModelFromFile(SimpleModel*m,const char* filename, FMatrix3x3& matrix);
+SimpleModel* loadModelFromFile(SimpleModel*m,const char* filename, FMatrix3x3& matrix, bool colorSupport);
 
 #endif//MODELFILE_H
