@@ -27,7 +27,7 @@ GCodeExport::GCodeExport()
     
     currentSpeed = 0;
     retractionSpeed = 45;
-    isRetracted = true;
+    isRetracted = false;
     setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
     f = stdout;
