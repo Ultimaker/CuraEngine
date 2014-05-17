@@ -67,7 +67,7 @@ ConfigSettings::ConfigSettings()
     SETTING2(objectPosition.X, posx, 102500);
     SETTING2(objectPosition.Y, posy, 102500);
     SETTING(objectSink, 0);
-    SETTING(autocenter, 1);
+    SETTING(autoCenter, 1);
 
     SETTING(raftMargin, 5000);
     SETTING(raftLineSpacing, 1000);
@@ -77,6 +77,7 @@ ConfigSettings::ConfigSettings()
     SETTING(raftInterfaceLinewidth, 0);
     SETTING(raftInterfaceLineSpacing, 0);
     SETTING(raftAirGap, 0);
+    SETTING(raftAirGapLayer0, 0);
     SETTING(raftBaseSpeed, 0);
     SETTING(raftFanSpeed, 0);
     SETTING(raftSurfaceThickness, 0);

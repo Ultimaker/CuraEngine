@@ -140,8 +140,6 @@ private:
                 }
             }
         }else{
-            if(files.size()>0 && config.autocenter == 1)
-                config.autocenter = 0;
             model = new SimpleModel();
             for(int i=0;i < files.size(); i++) {
                 if(files[i] == "-")
@@ -441,8 +439,14 @@ private:
             GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
             int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
             z += config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
-            if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0) {
-                z += config.raftAirGap;
+            if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
+            {
+                if (layerNr == 0)
+                {
+                    z += config.raftAirGapLayer0;
+                } else {
+                    z += config.raftAirGap;
+                }
             }
             gcode.setZ(z);
 

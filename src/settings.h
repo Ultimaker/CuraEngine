@@ -189,11 +189,12 @@ public:
     int raftSurfaceLayers;
     int raftSurfaceSpeed;
     int raftAirGap;
+    int raftAirGapLayer0;
 
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;
-    int autocenter;
+    int autoCenter;
 
     int fixHorrible;
     int spiralizeMode;

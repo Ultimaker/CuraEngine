@@ -63,10 +63,11 @@ public:
 
         Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
         vOffset -= center;
-        if(ConfigSettings::config->autocenter != 1) {
+        if(ConfigSettings::config->autoCenter != 1)
+        {
             vOffset.x = 0;
             vOffset.y = 0;
-            if(ConfigSettings::config->autocenter == 2)
+            if(ConfigSettings::config->autoCenter == 2)
                 vOffset.z = 0;
         }
         for(unsigned int i=0; i<volumes.size(); i++)
