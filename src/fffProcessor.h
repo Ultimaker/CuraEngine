@@ -141,7 +141,7 @@ private:
             }
         }else{
             model = new SimpleModel();
-            for(int i=0;i < files.size(); i++) {
+            for(unsigned int i=0;i < files.size(); i++) {
                 if(files[i] == "-")
                     model->volumes.push_back(SimpleVolume());
                 else {
