@@ -198,6 +198,7 @@ public:
 
     int fixHorrible;
     int spiralizeMode;
+    int simpleMode;
     int gcodeFlavor;
 
     IntPoint extruderOffset[MAX_EXTRUDERS];

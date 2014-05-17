@@ -516,6 +516,31 @@ private:
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
 
+        if (config.simpleMode)
+        {
+            Polygons polygons;
+            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+            {
+                polygons.add(layer->parts[partNr].outline);
+            }
+            for(unsigned int n=0; n<layer->openLines.size(); n++)
+            {
+                for(unsigned int m=1; m<layer->openLines[n].size(); m++)
+                {
+                    Polygon p;
+                    p.add(layer->openLines[n][m-1]);
+                    p.add(layer->openLines[n][m]);
+                    polygons.add(p);
+                }
+            }
+            if (config.spiralizeMode)
+                inset0Config.spiralize = true;
+            
+            gcodeLayer.addPolygonsByOptimizer(polygons, &inset0Config);
+            return;
+        }
+
+
         PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
