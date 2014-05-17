@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="CuraEngine" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/CuraEngine" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-march=pentium4" />
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-std=c++11" />
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
+					<Add option="-g" />
+					<Add directory="libs" />
+				</Compiler>
+				<Linker>
+					<Add option="-Wl,--large-address-aware" />
+					<Add library="m" />
+					<Add library="wsock32" />
+				</Linker>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/CuraEngine" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Option parameters='-p -v -c &quot;C:\Users\littwin\AppData\Local\RepetierHost\cura.ini&quot; -s posx=20251 -s posy=-39481 -o &quot;C:\Users\littwin\AppData\Local\RepetierHost\composition.gcode&quot; &quot;C:\Users\littwin\AppData\Local\RepetierHost\composition.stl&quot;' />
+				<Compiler>
+					<Add option="-march=pentium4" />
+					<Add option="-fomit-frame-pointer" />
+					<Add option="-O3" />
+					<Add option="-std=c++11" />
+					<Add option="-Wextra" />
+					<Add option="-Wall" />
+					<Add option='-DVERSION=\&quot;14.03\&quot;' />
+					<Add directory="libs" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add option="-Wl,--large-address-aware" />
+					<Add library="wsock32" />
+					<Add library="m" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-fexceptions" />
+		</Compiler>
+		<Unit filename="libs/clipper/clipper.cpp" />
+		<Unit filename="libs/clipper/clipper.hpp" />
+		<Unit filename="src/bridge.cpp" />
+		<Unit filename="src/bridge.h" />
+		<Unit filename="src/comb.cpp" />
+		<Unit filename="src/comb.h" />
+		<Unit filename="src/fffProcessor.h" />
+		<Unit filename="src/gcodeExport.cpp" />
+		<Unit filename="src/gcodeExport.h" />
+		<Unit filename="src/infill.cpp" />
+		<Unit filename="src/infill.h" />
+		<Unit filename="src/inset.cpp" />
+		<Unit filename="src/inset.h" />
+		<Unit filename="src/layerPart.cpp" />
+		<Unit filename="src/layerPart.h" />
+		<Unit filename="src/main.cpp" />
+		<Unit filename="src/modelFile/modelFile.cpp" />
+		<Unit filename="src/modelFile/modelFile.h" />
+		<Unit filename="src/multiVolumes.h" />
+		<Unit filename="src/optimizedModel.cpp" />
+		<Unit filename="src/optimizedModel.h" />
+		<Unit filename="src/pathOrderOptimizer.cpp" />
+		<Unit filename="src/pathOrderOptimizer.h" />
+		<Unit filename="src/polygonOptimizer.cpp" />
+		<Unit filename="src/polygonOptimizer.h" />
+		<Unit filename="src/raft.cpp" />
+		<Unit filename="src/raft.h" />
+		<Unit filename="src/settings.cpp" />
+		<Unit filename="src/settings.h" />
+		<Unit filename="src/skin.cpp" />
+		<Unit filename="src/skin.h" />
+		<Unit filename="src/skirt.cpp" />
+		<Unit filename="src/skirt.h" />
+		<Unit filename="src/sliceDataStorage.h" />
+		<Unit filename="src/slicer.cpp" />
+		<Unit filename="src/slicer.h" />
+		<Unit filename="src/support.cpp" />
+		<Unit filename="src/support.h" />
+		<Unit filename="src/timeEstimate.cpp" />
+		<Unit filename="src/timeEstimate.h" />
+		<Unit filename="src/utils/floatpoint.h" />
+		<Unit filename="src/utils/gettime.cpp" />
+		<Unit filename="src/utils/gettime.h" />
+		<Unit filename="src/utils/intpoint.h" />
+		<Unit filename="src/utils/logoutput.cpp" />
+		<Unit filename="src/utils/logoutput.h" />
+		<Unit filename="src/utils/polygon.h" />
+		<Unit filename="src/utils/polygondebug.h" />
+		<Unit filename="src/utils/socket.cpp" />
+		<Unit filename="src/utils/socket.h" />
+		<Unit filename="src/utils/string.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

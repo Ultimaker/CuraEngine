@@ -13,8 +13,11 @@
 #define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
 #define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
 
+ConfigSettings *ConfigSettings::config = NULL;
+
 ConfigSettings::ConfigSettings()
 {
+    config = this;
     SETTING(layerThickness, 100);
     SETTING(initialLayerThickness, 300);
     SETTING(filamentDiameter, 2890);
@@ -64,6 +67,7 @@ ConfigSettings::ConfigSettings()
     SETTING2(objectPosition.X, posx, 102500);
     SETTING2(objectPosition.Y, posy, 102500);
     SETTING(objectSink, 0);
+    SETTING(autocenter, 1);
 
     SETTING(raftMargin, 5000);
     SETTING(raftLineSpacing, 1000);
