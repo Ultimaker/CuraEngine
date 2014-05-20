@@ -5,7 +5,7 @@ namespace cura {
 
 void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
 {
-    while(outline.size() < 1)
+    while(outline.size() > 0)
     {
         for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
         {
