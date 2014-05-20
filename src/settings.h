@@ -115,6 +115,7 @@ class ConfigSettings
 private:
     std::vector<_ConfigSettingIndex> _index;
 public:
+    static ConfigSettings *config; // allow access to config settings from everywhere
     int layerThickness;
     int initialLayerThickness;
     int filamentDiameter;
@@ -190,13 +191,16 @@ public:
     int raftSurfaceLayers;
     int raftSurfaceSpeed;
     int raftAirGap;
+    int raftAirGapLayer0;
 
     FMatrix3x3 matrix;
     IntPoint objectPosition;
     int objectSink;
+    int autoCenter;
 
     int fixHorrible;
     int spiralizeMode;
+    int simpleMode;
     int gcodeFlavor;
 
     IntPoint extruderOffset[MAX_EXTRUDERS];
