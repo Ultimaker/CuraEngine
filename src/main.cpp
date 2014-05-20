@@ -152,6 +152,10 @@ int main(int argc, char **argv)
                         &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
                         &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
                     break;
+                case 'e':
+                  cura::log("Support for multiple extruders using the color flag in STL file has been enabled\n");
+                    processor.enableColoredStlSupport();
+                    break;
                 default:
                     cura::logError("Unknown option: %c\n", *str);
                     break;

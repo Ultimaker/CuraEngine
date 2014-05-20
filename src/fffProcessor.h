@@ -17,6 +17,7 @@ class fffProcessor
 private:
     int maxObjectHeight;
     int fileNr;
+    bool coloredStlSupport = false;
     GCodeExport gcode;
     ConfigSettings& config;
     TimeKeeper timeKeeper;
@@ -85,6 +86,11 @@ public:
         return true;
     }
 
+    void enableColoredStlSupport()
+    {
+      this->coloredStlSupport = true;
+    }
+
     void finalize()
     {
         if (!gcode.isOpened())
@@ -146,7 +152,7 @@ private:
                     model->volumes.push_back(SimpleVolume());
                 else {
                     cura::log("Loading %s from disk...\n", files[i].c_str());
-                    SimpleModel *test = loadModelFromFile(model,files[i].c_str(), config.matrix);
+                    SimpleModel *test = loadModelFromFile(model,files[i].c_str(), config.matrix, this->coloredStlSupport);
                     if(test == nullptr) { // error while reading occurred
                         cura::logError("Failed to load model: %s\n", files[i].c_str());
                         return false;
