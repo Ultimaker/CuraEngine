@@ -62,7 +62,8 @@ void PathOrderOptimizer::optimize()
         {
             if (polygons[best].size() == 2)
             {
-                p0 = polygons[best][(polyStart[best] + 1) % 2];
+                int endIdx = (polyStart[best] + 1) % 2;
+                p0 = polygons[best][endIdx];
             }else{
                 p0 = polygons[best][polyStart[best]];
             }

@@ -189,6 +189,9 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
+    if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
+        return;
+
     if (flavor == GCODE_FLAVOR_BFB)
     {
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
