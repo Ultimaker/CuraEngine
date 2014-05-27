@@ -206,6 +206,8 @@ public:
     IntPoint extruderOffset[MAX_EXTRUDERS];
     std::string startCode;
     std::string endCode;
+    std::string preSwitchExtruderCode;
+    std::string postSwitchExtruderCode;
 
     ConfigSettings();
     bool setSetting(const char* key, const char* value);

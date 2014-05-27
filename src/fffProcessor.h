@@ -175,6 +175,7 @@ private:
 
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
             gcode.setExtruderOffset(n, config.extruderOffset[n].p());
+        gcode.setSwitchExtruderCode(config.preSwitchExtruderCode, config.postSwitchExtruderCode);
         gcode.setFlavor(config.gcodeFlavor);
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
     }
@@ -245,11 +246,27 @@ private:
 
     void processSliceData(SliceDataStorage& storage)
     {
+        const unsigned int totalLayers = storage.volumes[0].layers.size();
+        
         //carveMultipleVolumes(storage.volumes);
         generateMultipleVolumesOverlap(storage.volumes, config.multiVolumeOverlap);
         //dumpLayerparts(storage, "c:/models/output.html");
+        if (config.simpleMode)
+        {
+            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+            {
+                for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+                {
+                    SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
+                    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+                    {
+                        sendPolygonsToGui("inset0", layerNr, layer->printZ, layer->parts[partNr].outline);
+                    }
+                }
+            }
+            return;
+        }
 
-        const unsigned int totalLayers = storage.volumes[0].layers.size();
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
             for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
@@ -549,7 +566,23 @@ private:
             Polygons polygons;
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {
-                polygons.add(layer->parts[partNr].outline);
+                for(unsigned int n=0; n<layer->parts[partNr].outline.size(); n++)
+                {
+                    for(unsigned int m=1; m<layer->parts[partNr].outline[n].size(); m++)
+                    {
+                        Polygon p;
+                        p.add(layer->parts[partNr].outline[n][m-1]);
+                        p.add(layer->parts[partNr].outline[n][m]);
+                        polygons.add(p);
+                    }
+                    if (layer->parts[partNr].outline[n].size() > 0)
+                    {
+                        Polygon p;
+                        p.add(layer->parts[partNr].outline[n][layer->parts[partNr].outline[n].size()-1]);
+                        p.add(layer->parts[partNr].outline[n][0]);
+                        polygons.add(p);
+                    }
+                }
             }
             for(unsigned int n=0; n<layer->openLines.size(); n++)
             {

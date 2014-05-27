@@ -150,6 +150,16 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
         this->endCode = value;
         return true;
     }
+    if (stringcasecompare(key, "preSwitchExtruderCode") == 0)
+    {
+        this->preSwitchExtruderCode = value;
+        return true;
+    }
+    if (stringcasecompare(key, "postSwitchExtruderCode") == 0)
+    {
+        this->postSwitchExtruderCode = value;
+        return true;
+    }
     return false;
 }
 

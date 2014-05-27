@@ -69,6 +69,12 @@ void GCodeExport::setExtruderOffset(int id, Point p)
     extruderOffset[id] = p;
 }
 
+void GCodeExport::setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
+{
+    this->preSwitchExtruderCode = preSwitchExtruderCode;
+    this->postSwitchExtruderCode = postSwitchExtruderCode;
+}
+
 void GCodeExport::setFlavor(int flavor)
 {
     this->flavor = flavor;
@@ -189,6 +195,9 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 {
+    if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
+        return;
+
     if (flavor == GCODE_FLAVOR_BFB)
     {
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
@@ -313,15 +322,19 @@ void GCodeExport::switchExtruder(int newExtruder)
         fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
     }
+    if (retractionZHop > 0)
+        fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + retractionZHop));
     resetExtrusionValue();
     extruderNr = newExtruder;
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
     isRetracted = true;
+    writeCode(preSwitchExtruderCode.c_str());
     if (flavor == GCODE_FLAVOR_MAKERBOT)
         fprintf(f, "M135 T%i\n", extruderNr);
     else
         fprintf(f, "T%i\n", extruderNr);
+    writeCode(postSwitchExtruderCode.c_str());
 }
 
 void GCodeExport::writeCode(const char* str)
