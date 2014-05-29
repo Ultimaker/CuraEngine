@@ -20,8 +20,6 @@ namespace cura {
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
 {
-    storageLayer.openLines = layer->openPolygonList;
-
     if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_B)
     {
         for(unsigned int i=0; i<layer->polygonList.size(); i++)

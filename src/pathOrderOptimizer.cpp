@@ -24,7 +24,6 @@ void PathOrderOptimizer::optimize()
         picked.push_back(false);
     }
 
-    Point incommingPerpundicularNormal(0, 0);
     Point p0 = startPoint;
     for(unsigned int n=0; n<polygons.size(); n++)
     {
@@ -37,7 +36,6 @@ void PathOrderOptimizer::optimize()
             if (polygons[i].size() == 2)
             {
                 float dist = vSize2f(polygons[i][0] - p0);
-                dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
                 if (dist < bestDist)
                 {
                     best = i;
@@ -45,7 +43,6 @@ void PathOrderOptimizer::optimize()
                     polyStart[i] = 0;
                 }
                 dist = vSize2f(polygons[i][1] - p0);
-                dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
                 if (dist < bestDist)
                 {
                     best = i;
@@ -65,12 +62,9 @@ void PathOrderOptimizer::optimize()
         {
             if (polygons[best].size() == 2)
             {
-                int endIdx = (polyStart[best] + 1) % 2;
-                p0 = polygons[best][endIdx];
-                incommingPerpundicularNormal = crossZ(normal(polygons[best][endIdx] - polygons[best][polyStart[best]], 1000));
+                p0 = polygons[best][(polyStart[best] + 1) % 2];
             }else{
                 p0 = polygons[best][polyStart[best]];
-                incommingPerpundicularNormal = Point(0, 0);
             }
             picked[best] = true;
             polyOrder.push_back(best);

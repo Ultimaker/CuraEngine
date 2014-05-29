@@ -32,24 +32,24 @@ public:
     int32_t x,y,z;
     Point3() {}
     Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
-
+    
     Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
     Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
-
+    
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     Point3& operator -= (const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
-
+    
     bool operator==(const Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(const Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
-
+    
     int32_t max()
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
-
+    
     bool testLength(int32_t len)
     {
         if (x > len || x < -len)
@@ -60,17 +60,17 @@ public:
             return false;
         return vSize2() <= len*len;
     }
-
+    
     int64_t vSize2()
     {
         return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
     }
-
+    
     int32_t vSize()
     {
         return sqrt(vSize2());
     }
-
+    
     Point3 cross(const Point3& p)
     {
         return Point3(
@@ -168,7 +168,7 @@ public:
         matrix[2] = 0;
         matrix[3] = 1;
     }
-
+    
     PointMatrix(double rotation)
     {
         rotation = rotation / 180 * M_PI;
@@ -177,7 +177,7 @@ public:
         matrix[2] = -matrix[1];
         matrix[3] = matrix[0];
     }
-
+    
     PointMatrix(const Point p)
     {
         matrix[0] = p.X;
@@ -188,7 +188,7 @@ public:
         matrix[2] = -matrix[1];
         matrix[3] = matrix[0];
     }
-
+    
     Point apply(const Point p) const
     {
         return Point(p.X * matrix[0] + p.Y * matrix[1], p.X * matrix[2] + p.Y * matrix[3]);

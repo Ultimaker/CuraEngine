@@ -35,8 +35,6 @@ private:
     int extruderNr;
     int currentFanSpeed;
     int flavor;
-    std::string preSwitchExtruderCode;
-    std::string postSwitchExtruderCode;
     
     double totalFilament[MAX_EXTRUDERS];
     double totalPrintTime;
@@ -50,7 +48,6 @@ public:
     void replaceTagInStart(const char* tag, const char* replaceValue);
     
     void setExtruderOffset(int id, Point p);
-    void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(int flavor);
     int getFlavor();
@@ -108,15 +105,28 @@ public:
     int lineWidth;
     const char* name;
     bool spiralize;
+    int clip;
     
-    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false) {}
-    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
+    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false), clip(0) {}
+    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false), clip(0) {}
     
     void setData(int speed, int lineWidth, const char* name)
     {
         this->speed = speed;
         this->lineWidth = lineWidth;
         this->name = name;
+    }
+
+/*
+* New initializer to support setting clip distance from the settings.
+* inset0 and insetX are calling this one
+*/
+    void setData(int speed, int lineWidth, int clip, const char* name)
+    {
+        this->speed = speed;
+        this->lineWidth = lineWidth;
+        this->name = name;
+        this->clip = clip;
     }
 };
 

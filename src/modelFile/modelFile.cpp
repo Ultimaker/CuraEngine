@@ -25,10 +25,11 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-SimpleModel* loadModelSTL_ascii(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelSTL_ascii(const char* filename, FMatrix3x3& matrix)
 {
+    SimpleModel* m = new SimpleModel();
     m->volumes.push_back(SimpleVolume());
-    SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
+    SimpleVolume* vol = &m->volumes[0];
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
     FPoint3 vertex;
@@ -59,7 +60,7 @@ SimpleModel* loadModelSTL_ascii(SimpleModel *m,const char* filename, FMatrix3x3&
     return m;
 }
 
-SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelSTL_binary(const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
     char buffer[80];
@@ -78,8 +79,9 @@ SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3
     }
     //For each face read:
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
+    SimpleModel* m = new SimpleModel();
     m->volumes.push_back(SimpleVolume());
-    SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
+    SimpleVolume* vol = &m->volumes[0];
 	if(vol == nullptr)
 	{
 		fclose(f);
@@ -108,18 +110,18 @@ SimpleModel* loadModelSTL_binary(SimpleModel *m,const char* filename, FMatrix3x3
             fclose(f);
             return nullptr;
         }
-    }
+    } 
     fclose(f);
     return m;
 }
 
-SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelSTL(const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "r");
     char buffer[6];
     if (f == nullptr)
         return nullptr;
-
+    
     if (fread(buffer, 5, 1, f) != 1)
     {
         fclose(f);
@@ -130,24 +132,26 @@ SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matri
     buffer[5] = '\0';
     if (stringcasecompare(buffer, "solid") == 0)
     {
-        return loadModelSTL_ascii(m, filename, matrix);
+        return loadModelSTL_ascii(filename, matrix);
     }
-    return loadModelSTL_binary(m, filename, matrix);
+    return loadModelSTL_binary(filename, matrix);
 }
 
-SimpleModel* loadModelFromFile(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
+SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && strcmp(ext, ".stl") == 0)
     {
-        return loadModelSTL(m,filename, matrix);
+        return loadModelSTL(filename, matrix);
     }
     if (filename[0] == '#' && binaryMeshBlob != nullptr)
     {
+        SimpleModel* m = new SimpleModel();
+        
         while(*filename == '#')
         {
             filename++;
-
+            
             m->volumes.push_back(SimpleVolume());
             SimpleVolume* vol = &m->volumes[m->volumes.size()-1];
             int32_t n, pNr = 0;
