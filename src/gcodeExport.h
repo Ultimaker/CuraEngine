@@ -86,7 +86,7 @@ public:
     
     void writeMove(Point p, int speed, int lineWidth);
     
-    void writeRetraction();
+    void writeRetraction(bool force=false);
     
     void switchExtruder(int newExtruder);
     

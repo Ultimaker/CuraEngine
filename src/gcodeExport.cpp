@@ -281,12 +281,12 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), speed);
 }
 
-void GCodeExport::writeRetraction()
+void GCodeExport::writeRetraction(bool force)
 {
     if (flavor == GCODE_FLAVOR_BFB)//BitsFromBytes does automatic retraction.
         return;
     
-    if (retractionAmount > 0 && !isRetracted && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction < extrusionAmount)
+    if (retractionAmount > 0 && !isRetracted && (extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction < extrusionAmount || force))
     {
         if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
         {
@@ -315,6 +315,7 @@ void GCodeExport::switchExtruder(int newExtruder)
         return;
     }
     
+    resetExtrusionValue();
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
         fprintf(f, "G10 S1\n");
@@ -324,7 +325,6 @@ void GCodeExport::switchExtruder(int newExtruder)
     }
     if (retractionZHop > 0)
         fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + retractionZHop));
-    resetExtrusionValue();
     extruderNr = newExtruder;
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
@@ -677,7 +677,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     if (liftHeadIfNeeded && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay of %f", extraTime);
-        gcode.writeRetraction();
+        gcode.writeRetraction(true);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), travelConfig.speed, 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);
