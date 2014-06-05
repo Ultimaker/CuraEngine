@@ -145,9 +145,10 @@ public:
 
     int initialSpeedupLayers;
     int initialLayerSpeed;
-    int printSpeed;
+    int skirtSpeed;
     int inset0Speed;
     int insetXSpeed;
+    int supportSpeed;
     int moveSpeed;
     int fanFullOnLayerNr;
 
@@ -179,6 +180,7 @@ public:
     int raftBaseThickness;
     int raftBaseLinewidth;
     int raftBaseSpeed;
+    int raftInterfaceSpeed;
     int raftInterfaceThickness;
     int raftInterfaceLinewidth;
     int raftInterfaceLineSpacing;
