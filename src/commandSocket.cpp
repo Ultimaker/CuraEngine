@@ -40,8 +40,12 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                 buffer[dataSize] = '\0';
                 socket.recvAll(buffer, dataSize);
                 char* value = strchr(buffer, '=');
+                logError("CMD_SETTING: %s\n", buffer);
                 if (value)
+                {
+                    *value = '\0';
                     config->setSetting(buffer, value+1);
+                }
             }
             break;
         case CMD_MATRIX:
@@ -67,16 +71,18 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
         case CMD_VOLUME_VERTEX_POSITION:
             if (volume)
             {
+                Point3 offset(config->objectPosition.X, config->objectPosition.Y, 0);
                 int faceCount = dataSize / 4 / 3 / 3;
                 logError("Reading %i faces\n", faceCount);
+                logError("%i %i\n", config->objectPosition.X, config->objectPosition.Y);
                 for(int n=0; n<faceCount; n++)
                 {
                     FPoint3 fv[3];
                     socket.recvAll(fv, 4 * 3 * 3);
                     Point3 v[3];
-                    v[0] = config->matrix.apply(fv[0]);
-                    v[1] = config->matrix.apply(fv[1]);
-                    v[2] = config->matrix.apply(fv[2]);
+                    v[0] = config->matrix.apply(fv[0]) + offset;
+                    v[1] = config->matrix.apply(fv[1]) + offset;
+                    v[2] = config->matrix.apply(fv[2]) + offset;
                     volume->addFace(v[0], v[1], v[2]);
                 }
             }else{

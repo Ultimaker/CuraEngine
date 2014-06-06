@@ -82,6 +82,7 @@ class SimpleModel
 {
 public:
     vector<SimpleVolume> volumes;
+    IntPoint position;
 
     Point3 min()
     {
