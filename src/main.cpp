@@ -9,6 +9,7 @@
 #include <sys/resource.h>
 #endif
 #include <stddef.h>
+#include <vector>
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -60,6 +61,7 @@ int main(int argc, char **argv)
 
     ConfigSettings config;
     fffProcessor processor(config);
+    std::vector<std::string> files;
 
     cura::logError("Cura_SteamEngine version %s\n", VERSION);
     cura::logError("Copyright (C) 2014 David Braam\n");
@@ -82,7 +84,7 @@ int main(int argc, char **argv)
     }
     for(int argn = 1; argn < argc; argn++)
         cura::log("Arg: %s\n", argv[argn]);
-    
+
     for(int argn = 1; argn < argc; argn++)
     {
         char* str = argv[argn];
@@ -156,17 +158,33 @@ int main(int argc, char **argv)
                 }
             }
         }else{
-            try {
-                //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                processor.processFile(argv[argn]);
-            }catch(...){
-                cura::logError("Unknown exception\n");
-                exit(1);
+            if (argv[argn][0] == '$')
+            {
+                try {
+                    //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                    // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+                    std::vector<std::string> tmp;
+                    tmp.push_back(argv[argn]);
+                    processor.processFile(tmp);
+                }catch(...){
+                    cura::logError("Unknown exception\n");
+                    exit(1);
+                }
+            }else{
+                files.push_back(argv[argn]);
             }
         }
     }
-
+    try {
+        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+        if (files.size() > 0)
+            processor.processFile(files);
+    }catch(...){
+        cura::logError("Unknown exception\n");
+        exit(1);
+    }
     //Finalize the processor, this adds the end.gcode. And reports statistics.
     processor.finalize();
+    return 0;
 }

@@ -22,7 +22,7 @@ class SimpleFace
 {
 public:
     Point3 v[3];
-    
+
     SimpleFace(Point3& v0, Point3& v1, Point3& v2) { v[0] = v0; v[1] = v1; v[2] = v2; }
 };
 
@@ -31,12 +31,12 @@ class SimpleVolume
 {
 public:
     vector<SimpleFace> faces;
-    
+
     void addFace(Point3& v0, Point3& v1, Point3& v2)
     {
         faces.push_back(SimpleFace(v0, v1, v2));
     }
-    
+
     Point3 min()
     {
         if (faces.size() < 1)
@@ -113,6 +113,6 @@ public:
     }
 };
 
-SimpleModel* loadModelFromFile(const char* filename, FMatrix3x3& matrix);
+SimpleModel* loadModelFromFile(SimpleModel*m,const char* filename, FMatrix3x3& matrix);
 
 #endif//MODELFILE_H
