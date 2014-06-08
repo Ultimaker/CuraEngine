@@ -376,6 +376,7 @@ private:
                 if (config.supportExtruder > 0)
                     gcodeLayer.setExtruder(config.supportExtruder);
                 gcode.setZ(config.raftBaseThickness);
+                gcodeLayer.addPolygonsByOptimizer(storage.skirt, &raftBaseConfig);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
 
@@ -514,7 +515,7 @@ private:
     {
         int prevExtruder = gcodeLayer.getExtruder();
         bool extruderChanged = gcodeLayer.setExtruder(volumeIdx);
-        if (layerNr == 0 && volumeIdx == 0)
+        if (layerNr == 0 && volumeIdx == 0 && !(config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0))
         {
             if (storage.skirt.size() > 0)
                 gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
