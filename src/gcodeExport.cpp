@@ -7,7 +7,6 @@
 #include "timeEstimate.h"
 #include "settings.h"
 #include "utils/logoutput.h"
-#include <iostream>
 
 namespace cura {
 
