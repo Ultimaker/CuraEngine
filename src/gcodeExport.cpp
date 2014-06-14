@@ -7,6 +7,7 @@
 #include "timeEstimate.h"
 #include "settings.h"
 #include "utils/logoutput.h"
+#include <iostream>
 
 namespace cura {
 
@@ -716,17 +717,29 @@ void GCodePlanner::writeStretchedPath(vector<Point>& points, int speed, int line
             if (ok2 && ok3)
             {
                 Point pc = CircleCenter(points[ip3],points[ip1],points[ip2]);
-                double ratio = sqrt(1.0 + (double)stretchDistance * (double)stretchDistance / (double)vSize2(points[ip1]-pc));
-                /* Modified radius is square root of (R*R + A*A) where R is the original radius and A is the leash length. */
-                Point np1;
-                np1.X = (int64_t)floor(pc.X + (double)(points[ip1].X-pc.X)*ratio + 0.5);
-                np1.Y = (int64_t)floor(pc.Y + (double)(points[ip1].Y-pc.Y)*ratio + 0.5);
-                //p1 = Point();pc + (p1-pc)*ratio;
-                
-                int64_t oldLen = vSize(p0 - points[i]);
-                int64_t newLen = vSize(gcode.getPositionXY() - np1);
-                if (newLen > 0)
-                    gcode.writeMove(np1, speed, lineWidth * oldLen / newLen);
+                if (pc.X > -1000000 && pc.X < 1000000 && pc.Y > -1000000 && pc.Y < 1000000)
+                {
+                    double ratio = sqrt(1.0 + static_cast<double>(stretchDistance) * static_cast<double>(stretchDistance) / static_cast<double>(vSize2(points[ip1]-pc)));
+                    /* Modified radius is square root of (R*R + A*A) where R is the original radius and A is the leash length. */
+                    Point np1;
+                    np1.X = static_cast<int64_t>(floor(pc.X + (static_cast<double>(points[ip1].X-pc.X)*ratio) + 0.5));
+                    np1.Y = static_cast<int64_t>(floor(pc.Y + static_cast<double>((points[ip1].Y-pc.Y)*ratio) + 0.5));
+                    //p1 = Point();pc + (p1-pc)*ratio;
+
+                    int64_t oldLen = vSize(p0 - points[i]);
+                    int64_t newLen = vSize(gcode.getPositionXY() - np1);
+                    if (newLen > 0)
+                        gcode.writeMove(np1, speed, lineWidth * oldLen / newLen);
+                }
+                else
+                {
+                    /*
+                     * Computed radius is too high (more than 1 meter)
+                     * We can consider that points are aligned,
+                     * so there is no need for stretching
+                     */
+                    gcode.writeMove(points[i], speed, lineWidth);
+                }
             }
             else
                 gcode.writeMove(points[i], speed, lineWidth);
