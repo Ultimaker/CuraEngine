@@ -465,7 +465,7 @@ private:
 					gcode.setExtrusion(config.raftAirGapLayer0, config.filamentDiameter, config.filamentFlow);
 					gcode.setZ(z);
 					addSupportToGCode(storage, gcodeLayerAirGap, layerNr);
-					gcodeLayer.writeGCode(false, config.initialLayerThickness);
+					gcodeLayerAirGap.writeGCode(false, config.initialLayerThickness);
 					gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
                     z += config.raftAirGapLayer0;
                 } else {
