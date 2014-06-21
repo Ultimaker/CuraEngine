@@ -460,14 +460,14 @@ private:
             {
                 if (layerNr == 0)
                 {
-					z += config.raftAirGapLayer0;
-					// Increase adhesion of support structure with raft by filling the air gap
-					GCodePlanner gcodeLayerAirGap(gcode, config.moveSpeed, config.retractionMinimalDistance);
-					gcode.setExtrusion(config.raftAirGapLayer0, config.filamentDiameter, config.filamentFlow);
-					gcode.setZ(z - config.initialLayerThickness);
-					addSupportToGCode(storage, gcodeLayerAirGap, layerNr);
-					gcodeLayerAirGap.writeGCode(false, config.raftAirGapLayer0);
-					gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
+                    z += config.raftAirGapLayer0;
+                    // Increase adhesion of support structure with raft by filling the air gap
+                    GCodePlanner gcodeLayerAirGap(gcode, config.moveSpeed, config.retractionMinimalDistance);
+                    gcode.setExtrusion(config.raftAirGapLayer0, config.filamentDiameter, config.filamentFlow);
+                    gcode.setZ(z - config.initialLayerThickness);
+                    addSupportToGCode(storage, gcodeLayerAirGap, layerNr);
+                    gcodeLayerAirGap.writeGCode(false, config.raftAirGapLayer0);
+                    gcode.setExtrusion(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow);
                 } else {
                     z += config.raftAirGap;
                 }
