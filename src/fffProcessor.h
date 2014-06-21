@@ -460,6 +460,10 @@ private:
             {
                 if (layerNr == 0)
                 {
+					// Increase adhesion of support structure with raft by filling the air gap
+					gcode.setExtrusion(config.raftAirGapLayer0, config.filamentDiameter, config.filamentFlow);
+					gcode.setZ(z);
+					addSupportToGCode(storage, gcodeLayer, layerNr);
                     z += config.raftAirGapLayer0;
                 } else {
                     z += config.raftAirGap;
