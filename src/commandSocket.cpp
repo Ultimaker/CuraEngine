@@ -13,11 +13,11 @@ const static int CMD_VERSION_REPLY = 0x00100003;
 const static int CMD_SETTING = 0x00100004;
 const static int CMD_MATRIX = 0x00300002;
 const static int CMD_PROCESS_MESH = 0x00300000;
-const static int CMD_START_MESH = 0x1000;
-const static int CMD_START_VOLUME = 0x1001;
-const static int CMD_VOLUME_VERTEX_POSITION = 0x1002;
-const static int CMD_VOLUME_VERTEX_NORMAL = 0x1003;
-const static int CMD_FINISHED = 0x9000;
+const static int CMD_OBJECT_LIST = 0x00200000;
+const static int CMD_MESH_LIST = 0x00200001;
+const static int CMD_VERTEX_LIST = 0x00200002;
+const static int CMD_NORMAL_LIST = 0x00200003;
+const static int CMD_FINISHED = 0x00300003;
 
 const static int CMD_PROGRESS_REPORT = 0x00300001;
 
@@ -63,20 +63,22 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                         config->matrix.m[x][y] = socket.recvFloat32();
             }
             break;
-        case CMD_START_MESH:
+        case CMD_OBJECT_LIST:
+            socket.recvInt32(); //Number of following CMD_MESH_LIST commands
             if (model)
                 delete model;
             model = new SimpleModel();
             volume = NULL;
             break;
-        case CMD_START_VOLUME:
+        case CMD_MESH_LIST:
+            socket.recvInt32(); //Number of following CMD_?_LIST commands that fill this mesh with data
             if (model)
             {
                 model->volumes.push_back(SimpleVolume());
                 volume = &model->volumes[model->volumes.size()-1];
             }
             break;
-        case CMD_VOLUME_VERTEX_POSITION:
+        case CMD_VERTEX_LIST:
             if (volume)
             {
                 Point3 offset(config->objectPosition.X, config->objectPosition.Y, 0);
