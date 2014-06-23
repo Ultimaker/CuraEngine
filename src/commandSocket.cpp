@@ -4,16 +4,22 @@
 
 namespace cura {
 
-const static int CMD_SETTING = 0x0001;
-const static int CMD_MATRIX = 0x0002;
-const static int CMD_PROCESS_MESH = 0x0003;
+#define CURA_IDENTIFIER "CuraEngine"
+const static int CMD_REQUEST_IDENTIFIER = 0x00100000;
+const static int CMD_IDENTIFIER_REPLY = 0x00100001;
+const static int CMD_REQUEST_VERSION = 0x00100002;
+const static int CMD_VERSION_REPLY = 0x00100003;
+
+const static int CMD_SETTING = 0x00100004;
+const static int CMD_MATRIX = 0x00300002;
+const static int CMD_PROCESS_MESH = 0x00300000;
 const static int CMD_START_MESH = 0x1000;
 const static int CMD_START_VOLUME = 0x1001;
 const static int CMD_VOLUME_VERTEX_POSITION = 0x1002;
 const static int CMD_VOLUME_VERTEX_NORMAL = 0x1003;
 const static int CMD_FINISHED = 0x9000;
 
-const static int CMD_PROGRESS_UPDATE = 0x10000;
+const static int CMD_PROGRESS_REPORT = 0x00300001;
 
 CommandSocket::CommandSocket(int portNr)
 {
@@ -27,24 +33,26 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
     
     while(true)
     {
-        int dataSize = socket.recvNr();
-        dataSize -= 4;
+        int command = socket.recvInt32();
+        int dataSize = socket.recvInt32();
         if (dataSize < 0)
             break;
-        int command = socket.recvNr();
         switch(command)
         {
+        case CMD_REQUEST_IDENTIFIER:
+            socket.sendInt32(CMD_IDENTIFIER_REPLY);
+            socket.sendInt32(strlen(CURA_IDENTIFIER) + 1);
+            socket.sendAll(CURA_IDENTIFIER, strlen(CURA_IDENTIFIER) + 1);
+            break;
         case CMD_SETTING:
             {
                 char buffer[dataSize+1];
                 buffer[dataSize] = '\0';
                 socket.recvAll(buffer, dataSize);
-                char* value = strchr(buffer, '=');
-                logError("CMD_SETTING: %s\n", buffer);
-                if (value)
+                char* value = (buffer + strlen(buffer)) + 1;
+                if ((value - buffer) < dataSize)
                 {
-                    *value = '\0';
-                    config->setSetting(buffer, value+1);
+                    config->setSetting(buffer, value);
                 }
             }
             break;
@@ -52,7 +60,7 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             {
                 for(int x=0; x<3; x++)
                     for(int y=0; y<3; y++)
-                        config->matrix.m[x][y] = socket.recvFloat();
+                        config->matrix.m[x][y] = socket.recvFloat32();
             }
             break;
         case CMD_START_MESH:
@@ -118,9 +126,9 @@ void CommandSocket::sendPolygons(const char* name, int layerNr, int32_t z, Polyg
 
 void CommandSocket::sendProgress(float amount)
 {
-    socket.sendNr(8);
-    socket.sendNr(CMD_PROGRESS_UPDATE);
-    socket.sendFloat(amount);
+    socket.sendInt32(CMD_PROGRESS_REPORT);
+    socket.sendInt32(4);
+    socket.sendFloat32(amount);
 }
 
 }//namespace cura

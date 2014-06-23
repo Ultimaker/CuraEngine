@@ -57,12 +57,12 @@ ClientSocket::~ClientSocket()
     close();
 }
 
-void ClientSocket::sendNr(int nr)
+void ClientSocket::sendInt32(int32_t nr)
 {
-    sendAll(&nr, sizeof(int));
+    sendAll(&nr, sizeof(int32_t));
 }
 
-void ClientSocket::sendFloat(float f)
+void ClientSocket::sendFloat32(float f)
 {
     sendAll(&f, sizeof(float));
 }
@@ -86,17 +86,17 @@ void ClientSocket::sendAll(const void* data, int length)
     }
 }
 
-int ClientSocket::recvNr()
+int32_t ClientSocket::recvInt32()
 {
-    int32_t ret = 0;
-    recvAll(&ret, 4);
+    int32_t ret = -1;
+    recvAll(&ret, sizeof(int32_t));
     return ret;
 }
 
-float ClientSocket::recvFloat()
+float ClientSocket::recvFloat32()
 {
     float ret = 0;
-    recvAll(&ret, 4);
+    recvAll(&ret, sizeof(float));
     return ret;
 }
 
