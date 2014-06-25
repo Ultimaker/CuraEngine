@@ -152,6 +152,18 @@ int main(int argc, char **argv)
                         &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
                         &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
                     break;
+                case '-':
+                    try {
+                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+                        if (files.size() > 0)
+                            processor.processFile(files);
+                        files.clear();
+                    }catch(...){
+                        cura::logError("Unknown exception\n");
+                        exit(1);
+                    }
+                    break;
                 default:
                     cura::logError("Unknown option: %c\n", *str);
                     break;
