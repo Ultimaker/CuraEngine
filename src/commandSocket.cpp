@@ -12,18 +12,20 @@ const static int CMD_VERSION_REPLY = 0x00100003;
 
 const static int CMD_SETTING = 0x00100004;
 const static int CMD_MATRIX = 0x00300002;
-const static int CMD_PROCESS_MESH = 0x00300000;
+const static int CMD_OBJECT_COUNT = 0x00300003;
 const static int CMD_OBJECT_LIST = 0x00200000;
 const static int CMD_MESH_LIST = 0x00200001;
 const static int CMD_VERTEX_LIST = 0x00200002;
 const static int CMD_NORMAL_LIST = 0x00200003;
-const static int CMD_FINISHED = 0x00300003;
+const static int CMD_PROCESS_MESH = 0x00300000;
 
 const static int CMD_PROGRESS_REPORT = 0x00300001;
 
 CommandSocket::CommandSocket(int portNr)
 {
     socket.connectTo("127.0.0.1", portNr);
+    object_count = 1;
+    current_object_number = 0;
 }
 
 void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* processor)
@@ -63,6 +65,10 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                         config->matrix.m[x][y] = socket.recvFloat32();
             }
             break;
+        case CMD_OBJECT_COUNT:
+            object_count = socket.recvInt32();
+            current_object_number = 0;
+            break;
         case CMD_OBJECT_LIST:
             socket.recvInt32(); //Number of following CMD_MESH_LIST commands
             if (model)
@@ -84,7 +90,6 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                 Point3 offset(config->objectPosition.X, config->objectPosition.Y, 0);
                 int faceCount = dataSize / 4 / 3 / 3;
                 logError("Reading %i faces\n", faceCount);
-                logError("%i %i\n", config->objectPosition.X, config->objectPosition.Y);
                 for(int n=0; n<faceCount; n++)
                 {
                     FPoint3 fv[3];
@@ -105,10 +110,10 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             {
                 processor->processModel(model);
                 model = NULL;
+                current_object_number++;
+                if (current_object_number >= object_count)
+                    socket.close();
             }
-            break;
-        case CMD_FINISHED:
-            socket.close();
             break;
         default:
             logError("Unknown command: %04x (%i)\n", command, dataSize);
@@ -130,7 +135,7 @@ void CommandSocket::sendProgress(float amount)
 {
     socket.sendInt32(CMD_PROGRESS_REPORT);
     socket.sendInt32(4);
-    socket.sendFloat32(amount);
+    socket.sendFloat32(float(current_object_number) / float(object_count) + amount / float(object_count));
 }
 
 }//namespace cura

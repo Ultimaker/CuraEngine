@@ -12,6 +12,9 @@ class CommandSocket
 {
 private:
     ClientSocket socket;
+    
+    int object_count;
+    int current_object_number;
 public:
     CommandSocket(int portNr);
     
