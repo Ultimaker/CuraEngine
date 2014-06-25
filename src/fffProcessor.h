@@ -135,6 +135,16 @@ public:
             return;
         gcode.finalize(maxObjectHeight, config.moveSpeed, config.endCode.c_str());
     }
+    
+    double getTotalFilamentUsed(int e)
+    {
+        return gcode.getTotalFilamentUsed(e);
+    }
+
+    double getTotalPrintTime()
+    {
+        return gcode.getTotalPrintTime();
+    }
 
 private:
     void preSetup()

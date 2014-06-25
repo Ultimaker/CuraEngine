@@ -20,6 +20,8 @@ const static int CMD_NORMAL_LIST = 0x00200003;
 const static int CMD_PROCESS_MESH = 0x00300000;
 
 const static int CMD_PROGRESS_REPORT = 0x00300001;
+const static int CMD_OBJECT_PRINT_TIME = 0x00300004;
+const static int CMD_OBJECT_PRINT_MATERIAL = 0x00300005;
 
 CommandSocket::CommandSocket(int portNr)
 {
@@ -32,6 +34,10 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
 {
     SimpleModel* model = NULL;
     SimpleVolume* volume = NULL;
+    float total_print_time = 0.0;
+    float total_material_amount[MAX_EXTRUDERS];
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+        total_material_amount[n] = 0.0;
     
     while(true)
     {
@@ -110,6 +116,14 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             {
                 processor->processModel(model);
                 model = NULL;
+                sendPrintTimeForObject(current_object_number, processor->getTotalPrintTime() - total_print_time);
+                for(int n=0; n<MAX_EXTRUDERS; n++)
+                {
+                    if (processor->getTotalFilamentUsed(n) != total_material_amount[n])
+                        sendPrintMaterialForObject(current_object_number, n, processor->getTotalFilamentUsed(n) - total_material_amount[n]);
+                    total_material_amount[n] = processor->getTotalFilamentUsed(n);
+                }
+                total_print_time = processor->getTotalPrintTime();
                 current_object_number++;
                 if (current_object_number >= object_count)
                     socket.close();
@@ -136,6 +150,23 @@ void CommandSocket::sendProgress(float amount)
     socket.sendInt32(CMD_PROGRESS_REPORT);
     socket.sendInt32(4);
     socket.sendFloat32(float(current_object_number) / float(object_count) + amount / float(object_count));
+}
+
+void CommandSocket::sendPrintTimeForObject(int index, float print_time)
+{
+    socket.sendInt32(CMD_OBJECT_PRINT_TIME);
+    socket.sendInt32(8);
+    socket.sendInt32(index);
+    socket.sendFloat32(print_time);
+}
+
+void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
+{
+    socket.sendInt32(CMD_OBJECT_PRINT_MATERIAL);
+    socket.sendInt32(12);
+    socket.sendInt32(index);
+    socket.sendInt32(extruder_nr);
+    socket.sendFloat32(print_time);
 }
 
 }//namespace cura
