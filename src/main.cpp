@@ -170,21 +170,7 @@ int main(int argc, char **argv)
                 }
             }
         }else{
-            if (argv[argn][0] == '$')
-            {
-                try {
-                    //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                    // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                    std::vector<std::string> tmp;
-                    tmp.push_back(argv[argn]);
-                    processor.processFile(tmp);
-                }catch(...){
-                    cura::logError("Unknown exception\n");
-                    exit(1);
-                }
-            }else{
-                files.push_back(argv[argn]);
-            }
+            files.push_back(argv[argn]);
         }
     }
     try {

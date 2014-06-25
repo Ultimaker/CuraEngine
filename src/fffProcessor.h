@@ -89,46 +89,18 @@ public:
     {
         timeKeeper.restart();
         SimpleModel* model = nullptr;
-        /*
-        if (input_filename[0] == '$')
-        {
-            model = new SimpleModel();
-            for(unsigned int n=0; input_filename[n]; n++)
-            {
-                model->volumes.push_back(SimpleVolume());
-                SimpleVolume* volume = &model->volumes[model->volumes.size()-1];
-                guiSocket.sendNr(GUI_CMD_REQUEST_MESH);
 
-                int32_t vertexCount = guiSocket.recvNr();
-                int pNr = 0;
-                log("Reading mesh from socket with %i vertexes\n", vertexCount);
-                Point3 v[3];
-                while(vertexCount)
-                {
-                    float f[3];
-                    guiSocket.recvAll(f, 3 * sizeof(float));
-                    FPoint3 fp(f[0], f[1], f[2]);
-                    v[pNr++] = config.matrix.apply(fp);
-                    if (pNr == 3)
-                    {
-                        volume->addFace(v[0], v[1], v[2]);
-                        pNr = 0;
-                    }
-                    vertexCount--;
-                }
-            }
-        }else{*/
-            model = new SimpleModel();
-            for(unsigned int n=0; n<files.size(); n++)
+        model = new SimpleModel();
+        for(unsigned int n=0; n<files.size(); n++)
+        {
+            log("Loading %s from disk...\n", files[n].c_str());
+            if (!loadModelFromFile(model, files[n].c_str(), config.matrix))
             {
-                log("Loading %s from disk...\n", files[n].c_str());
-                if (!loadModelFromFile(model, files[n].c_str(), config.matrix))
-                {
-                    logError("Failed to load model: %s\n", files[0].c_str());
-                    return false;
-                }
+                logError("Failed to load model: %s\n", files[0].c_str());
+                return false;
             }
-        /*}*/
+        }
+
         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
         return processModel(model);
     }
