@@ -102,6 +102,19 @@ int main(int argc, char **argv)
                 }else if (stringcasecompare(str, "--command-socket") == 0)
                 {
                     commandSocket->handleIncommingData(&config, &processor);
+                }else if (stringcasecompare(str, "--") == 0)
+                {
+                    try {
+                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+                        if (files.size() > 0)
+                            processor.processFile(files);
+                        files.clear();
+                    }catch(...){
+                        cura::logError("Unknown exception\n");
+                        exit(1);
+                    }
+                    break;
                 }else{
                     cura::logError("Unknown option: %s\n", str);
                 }
