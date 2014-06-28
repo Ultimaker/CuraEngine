@@ -130,8 +130,11 @@ SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matri
     buffer[5] = '\0';
     if (stringcasecompare(buffer, "solid") == 0)
     {
-        if (!loadModelSTL_ascii(m, filename, matrix))
+        SimpleModel* asciiModel = loadModelSTL_ascii(m, filename, matrix);
+        if (!asciiModel)
             return nullptr;
+        else
+            return asciiModel;
         if (m->volumes[m->volumes.size()-1].faces.size() < 1)
         {
             m->volumes.erase(m->volumes.end() - 1);
