@@ -57,24 +57,10 @@ public:
         commandSocket = socket;
     }
 
-    void sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons)
+    void sendPolygons(const char* name, int layerNr, Polygons& polygons)
     {
         if (commandSocket)
-            commandSocket->sendPolygons(name, layerNr, z, polygons);
-        /*
-        guiSocket.sendNr(GUI_CMD_SEND_POLYGONS);
-        guiSocket.sendNr(polygons.size());
-        guiSocket.sendNr(layerNr);
-        guiSocket.sendNr(z);
-        guiSocket.sendNr(strlen(name));
-        guiSocket.sendAll(name, strlen(name));
-        for(unsigned int n=0; n<polygons.size(); n++)
-        {
-            PolygonRef polygon = polygons[n];
-            guiSocket.sendNr(polygon.size());
-            guiSocket.sendAll(polygon.data(), polygon.size() * sizeof(Point));
-        }
-        */
+            commandSocket->sendPolygons(name, layerNr, polygons);
     }
 
     bool setTargetFile(const char* filename)
@@ -198,7 +184,7 @@ private:
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
                 //sendPolygons("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
-                sendPolygons("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+                //sendPolygons("openoutline", layerNr, slicer->layers[layerNr].openPolygonList);
             }
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
@@ -220,7 +206,12 @@ private:
 
             //Add the raft offset to each layer.
             for(unsigned int layerNr=0; layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
+            {
                 storage.volumes[volumeIdx].layers[layerNr].printZ += config.raftBaseThickness + config.raftInterfaceThickness;
+
+                if (commandSocket)
+                    commandSocket->sendLayerInfo(layerNr, storage.volumes[volumeIdx].layers[layerNr].printZ, layerNr == 0 ? config.initialLayerThickness: config.layerThickness);
+            }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         return true;
@@ -242,7 +233,7 @@ private:
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                     {
-                        sendPolygons("inset0", layerNr, layer->printZ, layer->parts[partNr].outline);
+                        sendPolygons("inset0", layerNr, layer->parts[partNr].outline);
                     }
                 }
             }
@@ -266,9 +257,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygons("inset0", layerNr, layer->printZ, layer->parts[partNr].insets[0]);
+                        sendPolygons("inset0", layerNr, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygons("insetx", layerNr, layer->printZ, layer->parts[partNr].insets[inset]);
+                            sendPolygons("insetx", layerNr, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
@@ -314,7 +305,7 @@ private:
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        sendPolygons("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
+                        sendPolygons("skin", layerNr, layer->parts[partNr].skinOutline);
                 }
             }
             logProgress("skin",layerNr+1,totalLayers);
@@ -336,7 +327,7 @@ private:
         generateSkirt(storage, config.skirtDistance, config.layer0extrusionWidth, config.skirtLineCount, config.skirtMinLength, config.initialLayerThickness);
         generateRaft(storage, config.raftMargin);
 
-        sendPolygons("skirt", 0, config.initialLayerThickness, storage.skirt);
+        sendPolygons("skirt", 0, storage.skirt);
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -371,8 +362,8 @@ private:
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
-            sendPolygons("support", 0, config.raftBaseThickness, storage.raftOutline);
-            sendPolygons("support", 0, config.raftBaseThickness + config.raftInterfaceThickness, storage.raftOutline);
+            sendPolygons("support", -2, storage.raftOutline);
+            sendPolygons("support", -1, storage.raftOutline);
             
             GCodePathConfig raftBaseConfig(config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.raftInterfaceSpeed, config.raftInterfaceLinewidth, "SUPPORT");
@@ -539,7 +530,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            sendPolygons("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
+            sendPolygons("oozeshield", layerNr, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
 
@@ -704,7 +695,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
-        sendPolygons("support", layerNr, z, supportGenerator.polygons);
+        sendPolygons("support", layerNr, supportGenerator.polygons);
 
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
 

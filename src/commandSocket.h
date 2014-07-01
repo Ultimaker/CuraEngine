@@ -20,7 +20,8 @@ public:
     
     void handleIncommingData(ConfigSettings* config, fffProcessor* processor);
     
-    void sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons);
+    void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
+    void sendPolygons(const char* name, int layer_nr, Polygons& polygons);
     void sendProgress(float amount);
     void sendPrintTimeForObject(int index, float print_time);
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);

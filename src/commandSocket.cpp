@@ -22,6 +22,8 @@ const static int CMD_PROCESS_MESH = 0x00300000;
 const static int CMD_PROGRESS_REPORT = 0x00300001;
 const static int CMD_OBJECT_PRINT_TIME = 0x00300004;
 const static int CMD_OBJECT_PRINT_MATERIAL = 0x00300005;
+const static int CMD_LAYER_INFO = 0x00300007;
+const static int CMD_POLYGON = 0x00300006;
 
 CommandSocket::CommandSocket(int portNr)
 {
@@ -140,9 +142,35 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
         delete model;
 }
 
-void CommandSocket::sendPolygons(const char* name, int layerNr, int32_t z, Polygons& polygons)
+void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
-    //TODO
+    socket.sendInt32(CMD_LAYER_INFO);
+    socket.sendInt32(4 * 4);
+    socket.sendInt32(current_object_number);
+    socket.sendInt32(layer_nr);
+    socket.sendInt32(z);
+    socket.sendInt32(height);
+}
+
+void CommandSocket::sendPolygons(const char* name, int layer_nr, Polygons& polygons)
+{
+    int size = (strlen(name) + 1) + 3 * 4 + polygons.size() * 4;
+    for(unsigned int n=0; n<polygons.size(); n++)
+        size += polygons[n].size() * sizeof(Point);
+    if (polygons.size() < 1)
+        return;
+
+    socket.sendInt32(CMD_POLYGON);
+    socket.sendInt32(size);
+    socket.sendAll(name, strlen(name) + 1);
+    socket.sendInt32(current_object_number);
+    socket.sendInt32(layer_nr);
+    socket.sendInt32(polygons.size());
+    for(unsigned int n=0; n<polygons.size(); n++)
+    {
+        socket.sendInt32(polygons[n].size());
+        socket.sendAll(polygons[n].data(), polygons[n].size() * sizeof(Point));
+    }
 }
 
 void CommandSocket::sendProgress(float amount)
