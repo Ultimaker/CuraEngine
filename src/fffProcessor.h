@@ -300,8 +300,7 @@ private:
                     int extrusionWidth = config.extrusionWidth;
                     if (layerNr == 0)
                         extrusionWidth = config.layer0extrusionWidth;
-                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
-                    generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount);
+                    generateSparseAndSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
