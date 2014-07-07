@@ -128,6 +128,9 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
+    int pointsClipDistance;
+    int polygonL1Resolution;
+    int polygonL2Resolution;
 
     //Retraction settings
     int retractionAmount;
