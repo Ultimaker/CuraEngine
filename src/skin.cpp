@@ -58,20 +58,35 @@ void generateSparseAndSkins(int layerNr, SliceVolumeStorage& storage, int extrus
             }
         }
 
-        part->skinOutline = upskin.unionPolygons(downskin);
+        //part->skinOutline = upskin.unionPolygons(downskin);
+        SkinPart skinPart;
+        skinPart.outline = upskin;
+        skinPart.skinType = SkinTypeUpskin;
+        part->skinParts.push_back(skinPart);
 
+        skinPart.outline = downskin.difference(upskin);
+        skinPart.skinType = SkinTypeDownskin;
+        part->skinParts.push_back(skinPart);
+
+
+        // for  now, there are only one upskin, downskin and sparse part (which each may contain many polygons.
+        //Later, there may be also many bridge parts, each containing ecatly one polygon.
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
-        for(unsigned int i=0; i<part->skinOutline.size(); i++)
-        {
-            double area = INT2MM(INT2MM(fabs(part->skinOutline[i].area())));
-            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
-            {
-                part->skinOutline.remove(i);
-                i -= 1;
-            }
-        }
+        for(unsigned int partNr=0; partNr<part->skinParts.size();++partNr)
+	    for(unsigned int polyNr=0; polyNr<part->skinParts[partNr].outline.size(); polyNr++)
+	    {
+			double area = INT2MM(INT2MM(fabs(part->skinParts[partNr].outline[polyNr].area())));
+			if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
+			{
+		    	part->skinParts[partNr].outline.remove(polyNr);
+		    	polyNr -= 1;
+			}
+	    }
 
-        part->sparseOutline = sparse.difference(part->skinOutline);
+        //part->sparseOutline = sparse.difference(part->skinOutline);
+        skinPart.outline = sparse.difference(upskin.unionPolygons(downskin));
+        skinPart.skinType = SkinTypeSparse;
+        part->skinParts.push_back(skinPart);
     }
 }
 
