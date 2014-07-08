@@ -300,12 +300,16 @@ private:
                     int extrusionWidth = config.extrusionWidth;
                     if (layerNr == 0)
                         extrusionWidth = config.layer0extrusionWidth;
-                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
-                    generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount);
+                    generateSparseAndSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        sendPolygonsToGui("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
+                        for(unsigned int skinPartNr=0; skinPartNr<layer->parts[partNr].skinParts.size();skinPartNr++)
+                        {
+                            SkinPart skinPart = layer->parts[partNr].skinParts[skinPartNr];
+                            if(skinPart.skinType == SkinTypeUpskin || skinPart.skinType == SkinTypeDownskin)
+                                sendPolygonsToGui("skin", layerNr, layer->printZ, skinPart.outline);
+                        }
                 }
             }
             cura::logProgress("skin",layerNr+1,totalLayers);
@@ -615,44 +619,51 @@ private:
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
-            for(Polygons outline : part->skinOutline.splitIntoParts())
+            for(int skinPartNr=0;skinPartNr<part->skinParts.size();skinPartNr++)
             {
-                int bridge = -1;
-                if (layerNr > 0)
-                    bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
-                generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                if(part->skinParts[skinPartNr].skinType == SkinTypeUpskin || part->skinParts[skinPartNr].skinType == SkinTypeDownskin)
+                {
+                    int bridge = -1;
+                    if (layerNr > 0)
+                        bridge = bridgeAngle(part->skinParts[skinPartNr].outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
+                    generateLineInfill(part->skinParts[skinPartNr].outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                }
             }
             if (config.sparseInfillLineDistance > 0)
             {
-                switch (config.infillPattern)
-                {
-                    case INFILL_AUTOMATIC:
-                        generateAutomaticInfill(
-                            part->sparseOutline, fillPolygons, extrusionWidth,
-                            config.sparseInfillLineDistance,
-                            config.infillOverlap, fillAngle);
-                        break;
+                for(int skinPartNr=0;skinPartNr<part->skinParts.size();++skinPartNr)
+                    if(part->skinParts[skinPartNr].skinType == SkinTypeSparse)
+                    {
+                        switch (config.infillPattern)
+                        {
+                        case INFILL_AUTOMATIC:
+                            generateAutomaticInfill(
+                                    part->skinParts[skinPartNr].outline, fillPolygons, extrusionWidth,
+                                    config.sparseInfillLineDistance,
+                                    config.infillOverlap, fillAngle);
+                            break;
 
-                    case INFILL_GRID:
-                        generateGridInfill(part->sparseOutline, fillPolygons,
+                        case INFILL_GRID:
+                            generateGridInfill(part->skinParts[skinPartNr].outline, fillPolygons,
                                            extrusionWidth,
                                            config.sparseInfillLineDistance,
                                            config.infillOverlap, fillAngle);
-                        break;
+                            break;
 
-                    case INFILL_LINES:
-                        generateLineInfill(part->sparseOutline, fillPolygons,
+                        case INFILL_LINES:
+                            generateLineInfill(part->skinParts[skinPartNr].outline, fillPolygons,
                                            extrusionWidth,
                                            config.sparseInfillLineDistance,
                                            config.infillOverlap, fillAngle);
-                        break;
+                            break;
 
-                    case INFILL_CONCENTRIC:
-                        generateConcentricInfill(
-                            part->sparseOutline, fillPolygons,
-                            config.sparseInfillLineDistance);
-                        break;
-                }
+                        case INFILL_CONCENTRIC:
+                            generateConcentricInfill(
+                                    part->skinParts[skinPartNr].outline, fillPolygons,
+                                    config.sparseInfillLineDistance);
+                            break;
+                        }
+                    }
             }
 
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);

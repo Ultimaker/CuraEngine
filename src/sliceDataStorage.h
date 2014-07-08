@@ -16,6 +16,22 @@ SliceData
 */
 namespace cura {
 
+typedef enum
+{
+    SkinTypeUpskin,
+    SkinTypeDownskin,
+    SkinTypeBridge,
+    SkinTypeSparse
+} SkinTypeEnum;
+
+class SkinPart
+{
+public:
+    Polygons outline;
+    SkinTypeEnum skinType;
+    int bridgeAngle;
+};
+
 class SliceLayerPart
 {
 public:
@@ -23,8 +39,7 @@ public:
     Polygons outline;
     Polygons combBoundery;
     vector<Polygons> insets;
-    Polygons skinOutline;
-    Polygons sparseOutline;
+    vector<SkinPart> skinParts;
 };
 
 class SliceLayer
