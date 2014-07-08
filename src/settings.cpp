@@ -31,8 +31,6 @@ ConfigSettings::ConfigSettings()
     SETTING(skirtLineCount, 1);
     SETTING(skirtMinLength, 0);
     SETTING(pointsClipDistance, 0);
-    SETTING(polygonL1Resolution, 0);
-    SETTING(polygonL2Resolution, 0);
 
     SETTING(initialSpeedupLayers, 4);
     SETTING(initialLayerSpeed, 20);
