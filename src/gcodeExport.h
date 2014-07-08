@@ -120,6 +120,11 @@ public:
         this->name = name;
     }
 
+    /**
+     * New method to support clip distance value.
+     * - Clip value comes from SETTINGS
+     * - This method is called by inset0Config and insetXConfig
+     */
     void setData(int speed, int lineWidth, int clip, const char* name)
     {
         this->speed = speed;

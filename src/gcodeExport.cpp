@@ -681,6 +681,11 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         			 */
         			currentDistance = vSize((path->points[p] - path->points[p-1]));
 
+        			/**
+        			 * If distance exceeds clip distance:
+        			 * - Stores last point to do a fast move after the clip
+        			 * - Sets the new last path point
+        			 */
         			if(currentDistance > targetDistance)
         			{
         				Point temp;
@@ -698,11 +703,13 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         			}
         			else if(currentDistance == targetDistance)
         			{
+        				//Pops up last point because it is at the limit distance
         				path->points.pop_back();
         				break;
         			}
         			else
         			{
+        				//Pops last point and reduces distance remaining to target
         				targetDistance = targetDistance - currentDistance;
         				path->points.pop_back();
         			}
@@ -715,6 +722,11 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         		gcode.writeMove(path->points[i], speed, path->config->lineWidth);
         	}
 
+        	/**
+        	 * If it is to clip, then do:
+        	 * - a retraction in INNER WALLS
+        	 * - a fast move in OUTER WALLS
+        	 */
         	if(clip == true)
         	{
         		if(strcmp(path->config->name,"WALL-INNER") == 0)
