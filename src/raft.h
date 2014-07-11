@@ -6,7 +6,7 @@
 
 namespace cura {
 
-void generateRaft(SliceDataStorage& storage, int distance);
+void generateRaft(SliceDataStorage& storage, int distance, int extrusionWidth);
 
 }//namespace cura
 

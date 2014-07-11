@@ -74,6 +74,7 @@ class SliceDataStorage
 public:
     Point3 modelSize, modelMin, modelMax;
     Polygons skirt;
+    Polygons raftPrimer;                //First outline of the raft, to prime the extruder
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     vector<Polygons> oozeShield;        //oozeShield per layer
     vector<SliceVolumeStorage> volumes;

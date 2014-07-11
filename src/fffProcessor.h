@@ -324,7 +324,7 @@ private:
         }
 
         generateSkirt(storage, config.skirtDistance, config.layer0extrusionWidth, config.skirtLineCount, config.skirtMinLength, config.initialLayerThickness);
-        generateRaft(storage, config.raftMargin);
+        generateRaft(storage, config.raftMargin, config.raftBaseLinewidth);
 
         sendPolygonsToGui("skirt", 0, config.initialLayerThickness, storage.skirt);
     }
@@ -377,6 +377,7 @@ private:
                     gcodeLayer.setExtruder(config.supportExtruder);
                 gcode.setZ(config.raftBaseThickness);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
+                gcodeLayer.addPolygonsByOptimizer(storage.raftPrimer, &raftBaseConfig);
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
 
                 Polygons raftLines;
