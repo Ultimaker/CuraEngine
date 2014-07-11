@@ -192,6 +192,7 @@ public:
     int raftAirGapLayer0;
 
     int stretchDistance;
+    int enableCoat;
 
     FMatrix3x3 matrix;
     IntPoint objectPosition;

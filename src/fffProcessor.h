@@ -266,6 +266,28 @@ private:
             }
             cura::logProgress("inset",layerNr+1,totalLayers);
         }
+        if (config.enableCoat)
+        {
+            vector<Polygons> coat;
+            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+            {
+                Polygons coatLayer;
+                for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+                {
+                    for(unsigned int partNr=0; partNr<storage.volumes[volumeIdx].layers[layerNr].parts.size(); partNr++)
+                    {
+                        coatLayer = coatLayer.unionPolygons(storage.volumes[volumeIdx].layers[layerNr].parts[partNr].outline.offset(MM2INT(1.0)));
+                    }
+                }
+                storage.coatOutline.push_back(coatLayer);
+                coat.push_back(coatLayer);
+            }
+            int offsetAngle = tan(60.0*M_PI/180) * config.layerThickness;//Allow for a 60deg angle in the coat.
+            for(unsigned int layerNr=1; layerNr<totalLayers; layerNr++)
+                storage.coatOutline[layerNr] = storage.coatOutline[layerNr].unionPolygons(coat[layerNr-1].offset(-offsetAngle));
+            for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
+                storage.coatOutline[layerNr-1] = storage.coatOutline[layerNr-1].unionPolygons(coat[layerNr].offset(-offsetAngle));
+        }
         if (config.enableOozeShield)
         {
             for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
@@ -526,6 +548,13 @@ private:
         if (extruderChanged)
             addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
 
+        if (storage.coatOutline.size() > 0)
+        {
+            gcodeLayer.setAlwaysRetract(true);
+            gcodeLayer.addPolygonsByOptimizer(storage.coatOutline[layerNr], &skirtConfig);
+            sendPolygonsToGui("coat", layerNr, layer->printZ, storage.coatOutline[layerNr]);
+            gcodeLayer.setAlwaysRetract(!config.enableCombing);
+        }
         if (storage.oozeShield.size() > 0 && storage.volumes.size() > 1)
         {
             gcodeLayer.setAlwaysRetract(true);
