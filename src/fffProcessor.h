@@ -362,9 +362,6 @@ private:
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
         {
-            sendPolygons("support", -2, storage.raftOutline);
-            sendPolygons("support", -1, storage.raftOutline);
-            
             GCodePathConfig raftBaseConfig(config.raftBaseSpeed, config.raftBaseLinewidth, "SUPPORT");
             GCodePathConfig raftMiddleConfig(config.raftInterfaceSpeed, config.raftInterfaceLinewidth, "SUPPORT");
             GCodePathConfig raftInterfaceConfig(config.raftInterfaceSpeed, config.raftInterfaceLinewidth, "SUPPORT");
