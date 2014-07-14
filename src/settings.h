@@ -90,6 +90,9 @@ enum GCode_Flavor
 
 #define MAX_EXTRUDERS 16
 
+//Maximum number of sparse layers that can be combined into a single sparse extrusion.
+#define MAX_SPARSE_COMBINE 8
+
 /**
  * Type of skin pattern.
  */
@@ -163,6 +166,7 @@ public:
 
     //Infill settings
     int sparseInfillLineDistance;
+    int sparseInfillCombineCount;
     int infillOverlap;
     int infillSpeed;
     int infillPattern;

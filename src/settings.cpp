@@ -42,6 +42,7 @@ ConfigSettings::ConfigSettings()
     SETTING(fanFullOnLayerNr, 2);
 
     SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
+    SETTING(sparseInfillCombineCount, 1);
     SETTING(infillOverlap, 15);
     SETTING(infillSpeed, 50);
     SETTING(infillPattern, INFILL_GRID);

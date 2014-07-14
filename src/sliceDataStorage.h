@@ -22,9 +22,9 @@ public:
     AABB boundaryBox;
     Polygons outline;
     Polygons combBoundery;
-    vector<Polygons> insets;
+    vector<Polygons> insets;    //insets[n] is the inset (n * line_width + line_width/2) offset
     Polygons skinOutline;
-    Polygons sparseOutline;
+    vector<Polygons> sparse_outline; //sparse_outline[n] is sparse outline of (n+1) layer thick. 
 };
 
 class SliceLayer

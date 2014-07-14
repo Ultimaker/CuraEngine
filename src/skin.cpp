@@ -113,7 +113,36 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
             }
         }
         
-        part->sparseOutline = sparse.difference(result);
+        part->sparse_outline.push_back(sparse.difference(result));
+    }
+}
+
+void combineSparseLayers(int layerNr, SliceVolumeStorage& storage, int amount)
+{
+    SliceLayer* layer = &storage.layers[layerNr];
+
+    for(int n=1; n<amount; n++)
+    {
+        if (layerNr < n)
+            break;
+        
+        SliceLayer* layer2 = &storage.layers[layerNr - n];
+        for(SliceLayerPart& part : layer->parts)
+        {
+            Polygons result;
+            for(SliceLayerPart& part2 : layer2->parts)
+            {
+                if (part.boundaryBox.hit(part2.boundaryBox))
+                {
+                    Polygons intersection = part.sparse_outline[n - 1].intersection(part2.sparse_outline[0]);
+                    result.add(intersection);
+                    part.sparse_outline[n - 1] = part.sparse_outline[n - 1].difference(intersection);
+                    part2.sparse_outline[0] = part2.sparse_outline[0].difference(intersection);
+                }
+            }
+            
+            part.sparse_outline.push_back(result);
+        }
     }
 }
 
