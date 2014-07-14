@@ -618,19 +618,25 @@ private:
                 int bridge = -1;
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
-                generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                if (bridge > -1)
+                {
+                    generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, bridge);
+                }else{
+                    switch(config.skinPattern)
+                    {
+                    case SKIN_LINES:
+                        generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, fillAngle);
+                        break;
+                    case SKIN_CONCENTRIC:
+                        generateConcentricInfill(outline.offset(-extrusionWidth/2.0), fillPolygons, extrusionWidth);
+                        break;
+                    }
+                }
             }
             if (config.sparseInfillLineDistance > 0)
             {
                 switch (config.infillPattern)
                 {
-                    case INFILL_AUTOMATIC:
-                        generateAutomaticInfill(
-                            part->sparseOutline, fillPolygons, extrusionWidth,
-                            config.sparseInfillLineDistance,
-                            config.infillOverlap, fillAngle);
-                        break;
-
                     case INFILL_GRID:
                         generateGridInfill(part->sparseOutline, fillPolygons,
                                            extrusionWidth,
@@ -654,7 +660,6 @@ private:
             }
 
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
-            //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)

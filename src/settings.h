@@ -91,14 +91,22 @@ enum GCode_Flavor
 #define MAX_EXTRUDERS 16
 
 /**
+ * Type of skin pattern.
+ */
+enum Skin_Pattern
+{
+    SKIN_LINES = 0,
+    SKIN_CONCENTRIC = 1,
+};
+
+/**
  * Type of infill pattern.
  */
 enum Infill_Pattern
 {
-    INFILL_AUTOMATIC = 0,
-    INFILL_GRID = 1,
-    INFILL_LINES = 2,
-    INFILL_CONCENTRIC = 3,
+    INFILL_GRID = 0,
+    INFILL_LINES = 1,
+    INFILL_CONCENTRIC = 2,
 };
 
 class _ConfigSettingIndex
@@ -125,6 +133,7 @@ public:
     int insetCount;
     int downSkinCount;
     int upSkinCount;
+    int skinPattern;
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;

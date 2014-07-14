@@ -16,22 +16,6 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int inset_valu
     }
 }
 
-void generateAutomaticInfill(const Polygons& in_outline, Polygons& result,
-                             int extrusionWidth, int lineSpacing,
-                             int infillOverlap, double rotation)
-{
-    if (lineSpacing > extrusionWidth * 4)
-    {
-        generateGridInfill(in_outline, result, extrusionWidth, lineSpacing,
-                           infillOverlap, rotation);
-    }
-    else
-    {
-        generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
-                           infillOverlap, rotation);
-    }
-}
-
 void generateGridInfill(const Polygons& in_outline, Polygons& result,
                         int extrusionWidth, int lineSpacing, int infillOverlap,
                         double rotation)

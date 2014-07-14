@@ -27,6 +27,7 @@ ConfigSettings::ConfigSettings()
     SETTING(insetCount, 2);
     SETTING(downSkinCount, 6);
     SETTING(upSkinCount, 6);
+    SETTING(skinPattern, SKIN_LINES);
     SETTING(skirtDistance, 6000);
     SETTING(skirtLineCount, 1);
     SETTING(skirtMinLength, 0);
@@ -43,7 +44,7 @@ ConfigSettings::ConfigSettings()
     SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
     SETTING(infillOverlap, 15);
     SETTING(infillSpeed, 50);
-    SETTING(infillPattern, INFILL_AUTOMATIC);
+    SETTING(infillPattern, INFILL_GRID);
 
     SETTING(supportType, SUPPORT_TYPE_GRID);
     SETTING(supportAngle, -1);
