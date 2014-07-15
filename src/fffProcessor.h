@@ -323,7 +323,10 @@ private:
             storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize / 2, storage.modelMax.y + 3000 + config.wipeTowerSize / 2);
         }
 
-        generateSkirt(storage, config.skirtDistance, config.layer0extrusionWidth, config.skirtLineCount, config.skirtMinLength, config.initialLayerThickness);
+        if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
+            generateSkirt(storage, config.raftMargin + config.raftBaseLinewidth, config.raftBaseLinewidth, config.skirtLineCount, config.skirtMinLength, config.raftBaseThickness);
+        else
+            generateSkirt(storage, config.skirtDistance, config.layer0extrusionWidth, config.skirtLineCount, config.skirtMinLength, config.initialLayerThickness);
         generateRaft(storage, config.raftMargin);
 
         sendPolygonsToGui("skirt", 0, config.initialLayerThickness, storage.skirt);
@@ -377,6 +380,8 @@ private:
                     gcodeLayer.setExtruder(config.supportExtruder);
                 gcode.setZ(config.raftBaseThickness);
                 gcode.setExtrusion(config.raftBaseThickness, config.filamentDiameter, config.filamentFlow);
+
+                gcodeLayer.addPolygonsByOptimizer(storage.skirt, &raftBaseConfig);
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
 
                 Polygons raftLines;
@@ -514,7 +519,7 @@ private:
     {
         int prevExtruder = gcodeLayer.getExtruder();
         bool extruderChanged = gcodeLayer.setExtruder(volumeIdx);
-        if (layerNr == 0 && volumeIdx == 0)
+        if (layerNr == 0 && volumeIdx == 0 && !(config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0))
         {
             if (storage.skirt.size() > 0)
                 gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
