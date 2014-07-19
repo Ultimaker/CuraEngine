@@ -46,8 +46,12 @@ else
 	UNAME := $(shell uname)
 	ifeq ($(UNAME), Linux)
 		OPEN_HTML=firefox
-		CFLAGS += -flto
-		LDFLAGS += --static -flto
+		ifeq ($(BUILD_TYPE),DEBUG)
+			LDFLAGS += --static
+		else
+			CFLAGS += -flto
+			LDFLAGS += --static -flto
+		endif
 	endif
 	ifeq ($(UNAME), Darwin)
 		OPEN_HTML=open
