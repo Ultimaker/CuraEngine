@@ -135,7 +135,7 @@ public:
 private:
     void preSetup()
     {
-        skirtConfig.setData(config.skirtSpeed, config.extrusionWidth, "SKIRT");
+        skirtConfig.setData(config.initialLayerSpeed, config.extrusionWidth, "SKIRT");
         inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
         insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
         for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
@@ -441,7 +441,7 @@ private:
                 int n = config.initialSpeedupLayers;
 #define SPEED_SMOOTH(speed) \
                 std::min<int>((speed), (((speed)*layerNr)/n + (config.initialLayerSpeed*(n-layerNr)/n)))
-                skirtConfig.setData(SPEED_SMOOTH(config.skirtSpeed), extrusionWidth, "SKIRT");
+                skirtConfig.setData(config.skirtSpeed, extrusionWidth, "SKIRT");
                 inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
                 for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
