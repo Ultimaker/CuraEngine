@@ -134,7 +134,7 @@ void combineSparseLayers(int layerNr, SliceVolumeStorage& storage, int amount)
             {
                 if (part.boundaryBox.hit(part2.boundaryBox))
                 {
-                    Polygons intersection = part.sparse_outline[n - 1].intersection(part2.sparse_outline[0]);
+                    Polygons intersection = part.sparse_outline[n - 1].intersection(part2.sparse_outline[0]).offset(-200).offset(200);
                     result.add(intersection);
                     part.sparse_outline[n - 1] = part.sparse_outline[n - 1].difference(intersection);
                     part2.sparse_outline[0] = part2.sparse_outline[0].difference(intersection);

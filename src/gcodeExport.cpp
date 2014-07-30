@@ -104,7 +104,7 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
 {
     double filamentArea = M_PI * (INT2MM(filamentDiameter) / 2.0) * (INT2MM(filamentDiameter) / 2.0);
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
-        extrusionPerMM = INT2MM(layerThickness);
+        extrusionPerMM = INT2MM(layerThickness) * double(flow) / 100.0;
     else
         extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
 }
