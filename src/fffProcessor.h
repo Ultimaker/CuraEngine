@@ -344,13 +344,6 @@ private:
     {
         if (fileNr == 1)
         {
-            if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
-            {
-                gcode.writeComment("FLAVOR:UltiGCode");
-                gcode.writeComment("TIME:<__TIME__>");
-                gcode.writeComment("MATERIAL:<FILAMENT>");
-                gcode.writeComment("MATERIAL2:<FILAMEN2>");
-            }
             gcode.writeCode(config.startCode.c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {

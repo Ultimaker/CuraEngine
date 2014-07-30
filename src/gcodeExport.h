@@ -47,8 +47,6 @@ public:
     
     ~GCodeExport();
     
-    void replaceTagInStart(const char* tag, const char* replaceValue);
-    
     void setExtruderOffset(int id, Point p);
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     

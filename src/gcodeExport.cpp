@@ -40,30 +40,6 @@ GCodeExport::~GCodeExport()
         fclose(f);
 }
 
-void GCodeExport::replaceTagInStart(const char* tag, const char* replaceValue)
-{
-    if (f == stdout)
-    {
-        cura::log("Replace:%s:%s\n", tag, replaceValue);
-        return;
-    }
-    fpos_t oldPos;
-    fgetpos(f, &oldPos);
-    
-    char buffer[1024];
-    fseek(f, 0, SEEK_SET);
-    fread(buffer, 1024, 1, f);
-    
-    char* c = strstr(buffer, tag);
-    memset(c, ' ', strlen(tag));
-    if (c) memcpy(c, replaceValue, strlen(replaceValue));
-    
-    fseek(f, 0, SEEK_SET);
-    fwrite(buffer, 1024, 1, f);
-    
-    fsetpos(f, &oldPos);
-}
-
 void GCodeExport::setExtruderOffset(int id, Point p)
 {
     extruderOffset[id] = p;
@@ -388,17 +364,6 @@ void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCo
     cura::log("Print time: %d\n", int(getTotalPrintTime()));
     cura::log("Filament: %d\n", int(getTotalFilamentUsed(0)));
     cura::log("Filament2: %d\n", int(getTotalFilamentUsed(1)));
-    
-    if (getFlavor() == GCODE_FLAVOR_ULTIGCODE)
-    {
-        char numberString[16];
-        sprintf(numberString, "%d", int(getTotalPrintTime()));
-        replaceTagInStart("<__TIME__>", numberString);
-        sprintf(numberString, "%d", int(getTotalFilamentUsed(0)));
-        replaceTagInStart("<FILAMENT>", numberString);
-        sprintf(numberString, "%d", int(getTotalFilamentUsed(1)));
-        replaceTagInStart("<FILAMEN2>", numberString);
-    }
 }
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)
