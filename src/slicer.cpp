@@ -9,7 +9,7 @@
 
 namespace cura {
 
-void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching)
+void SlicerLayer::makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching)
 {
     for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
     {
@@ -28,20 +28,20 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             Point p0 = segmentList[segmentIndex].end;
             poly.add(p0);
             int nextIndex = -1;
-            OptimizedFace* face = &ov->faces[segmentList[segmentIndex].faceIndex];
+            MeshFace* face = &mesh->faces[segmentList[segmentIndex].faceIndex];
             for(unsigned int i=0;i<3;i++)
             {
-                if (face->touching[i] > -1 && faceToSegmentIndex.find(face->touching[i]) != faceToSegmentIndex.end())
+                if (face->connected_face_index[i] > -1 && faceToSegmentIndex.find(face->connected_face_index[i]) != faceToSegmentIndex.end())
                 {
-                    Point p1 = segmentList[faceToSegmentIndex[face->touching[i]]].start;
+                    Point p1 = segmentList[faceToSegmentIndex[face->connected_face_index[i]]].start;
                     Point diff = p0 - p1;
                     if (shorterThen(diff, MM2INT(0.01)))
                     {
-                        if (faceToSegmentIndex[face->touching[i]] == static_cast<int>(startSegment))
+                        if (faceToSegmentIndex[face->connected_face_index[i]] == static_cast<int>(startSegment))
                             canClose = true;
-                        if (segmentList[faceToSegmentIndex[face->touching[i]]].addedToPolygon)
+                        if (segmentList[faceToSegmentIndex[face->connected_face_index[i]]].addedToPolygon)
                             continue;
-                        nextIndex = faceToSegmentIndex[face->touching[i]];
+                        nextIndex = faceToSegmentIndex[face->connected_face_index[i]];
                     }
                 }
             }
@@ -309,12 +309,9 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
 }
 
 
-Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching)
+Slicer::Slicer(Mesh* mesh, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching)
 {
-    modelSize = ov->model->modelSize;
-    modelMin = ov->model->vMin;
-    
-    int layerCount = (modelSize.z - initial) / thickness + 1;
+    int layerCount = (mesh->max().z - initial) / thickness + 1;
     cura::log("Layer count: %i\n", layerCount);
     layers.resize(layerCount);
     
@@ -323,11 +320,12 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
         layers[layerNr].z = initial + thickness * layerNr;
     }
     
-    for(unsigned int i=0; i<ov->faces.size(); i++)
+    for(unsigned int i=0; i<mesh->faces.size(); i++)
     {
-        Point3 p0 = ov->points[ov->faces[i].index[0]].p;
-        Point3 p1 = ov->points[ov->faces[i].index[1]].p;
-        Point3 p2 = ov->points[ov->faces[i].index[2]].p;
+        MeshFace& face = mesh->faces[i];
+        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
+        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
+        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ) minZ = p1.z;
@@ -371,53 +369,8 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
     
     for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
     {
-        layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
+        layers[layerNr].makePolygons(mesh, keepNoneClosed, extensiveStitching);
     }
-}
-
-void Slicer::dumpSegmentsToHTML(const char* filename)
-{
-    float scale = std::max(modelSize.x, modelSize.y) / 1500;
-    FILE* f = fopen(filename, "w");
-    fprintf(f, "<!DOCTYPE html><html><body>\n");
-    for(unsigned int i=0; i<layers.size(); i++)
-    {
-        fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", int(modelSize.x / scale), int(modelSize.y / scale));
-        fprintf(f, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
-        fprintf(f, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
-        fprintf(f, "</marker>");
-        fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
-        fprintf(f, "<path marker-mid='url(#MidMarker)' d=\"");
-        for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
-        {
-            PolygonRef p = layers[i].polygonList[j];
-            for(unsigned int n=0; n<p.size(); n++)
-            {
-                if (n == 0)
-                    fprintf(f, "M");
-                else
-                    fprintf(f, "L");
-                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
-            }
-            fprintf(f, "Z\n");
-        }
-        fprintf(f, "\"/>");
-        fprintf(f, "</g>\n");
-        for(unsigned int j=0; j<layers[i].openPolygonList.size(); j++)
-        {
-            PolygonRef p = layers[i].openPolygonList[j];
-            if (p.size() < 1) continue;
-            fprintf(f, "<polyline marker-mid='url(#MidMarker)' points=\"");
-            for(unsigned int n=0; n<p.size(); n++)
-            {
-                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
-            }
-            fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
-        }
-        fprintf(f, "</svg>\n");
-    }
-    fprintf(f, "</body></html>");
-    fclose(f);
 }
 
 }//namespace cura

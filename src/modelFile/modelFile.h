@@ -7,113 +7,62 @@ modelFile contains the model loaders for the slicer. The model loader turns any 
 The format returned is a Model class with an array of faces, which have integer points with a resolution of 1 micron. Giving a maximum object size of 4 meters.
 **/
 
-#include <vector>
-using std::vector;
-#include "../utils/intpoint.h"
-#include "../utils/floatpoint.h"
+#include "../mesh.h"
 
-extern FILE* binaryMeshBlob;
-
-#define SET_MIN(n, m) do { if ((m) < (n)) n = m; } while(0)
-#define SET_MAX(n, m) do { if ((m) > (n)) n = m; } while(0)
-
-/* A SimpleFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers */
-class SimpleFace
+//A PrintObject is a 3D model with 1 or more 3D meshes.
+class PrintObject : public SettingsBase
 {
 public:
-    Point3 v[3];
-
-    SimpleFace(Point3& v0, Point3& v1, Point3& v2) { v[0] = v0; v[1] = v1; v[2] = v2; }
-};
-
-/* A SimpleVolume is the most basic reprisentation of a 3D model. It contains all the faces as SimpleTriangles, with nothing fancy. */
-class SimpleVolume
-{
-public:
-    vector<SimpleFace> faces;
-
-    void addFace(Point3& v0, Point3& v1, Point3& v2)
+    std::vector<Mesh> meshes;
+    
+    PrintObject(SettingsBase* settings_base)
+    : SettingsBase(settings_base)
     {
-        faces.push_back(SimpleFace(v0, v1, v2));
     }
 
     Point3 min()
     {
-        if (faces.size() < 1)
+        if (meshes.size() < 1)
             return Point3(0, 0, 0);
-        Point3 ret = faces[0].v[0];
-        for(unsigned int i=0; i<faces.size(); i++)
+        Point3 ret = meshes[0].min();
+        for(unsigned int i=1; i<meshes.size(); i++)
         {
-            SET_MIN(ret.x, faces[i].v[0].x);
-            SET_MIN(ret.y, faces[i].v[0].y);
-            SET_MIN(ret.z, faces[i].v[0].z);
-            SET_MIN(ret.x, faces[i].v[1].x);
-            SET_MIN(ret.y, faces[i].v[1].y);
-            SET_MIN(ret.z, faces[i].v[1].z);
-            SET_MIN(ret.x, faces[i].v[2].x);
-            SET_MIN(ret.y, faces[i].v[2].y);
-            SET_MIN(ret.z, faces[i].v[2].z);
+            Point3 v = meshes[i].min();
+            ret.x = std::min(ret.x, v.x);
+            ret.y = std::min(ret.y, v.y);
+            ret.z = std::min(ret.z, v.z);
         }
         return ret;
     }
     Point3 max()
     {
-        if (faces.size() < 1)
+        if (meshes.size() < 1)
             return Point3(0, 0, 0);
-        Point3 ret = faces[0].v[0];
-        for(unsigned int i=0; i<faces.size(); i++)
+        Point3 ret = meshes[0].max();
+        for(unsigned int i=1; i<meshes.size(); i++)
         {
-            SET_MAX(ret.x, faces[i].v[0].x);
-            SET_MAX(ret.y, faces[i].v[0].y);
-            SET_MAX(ret.z, faces[i].v[0].z);
-            SET_MAX(ret.x, faces[i].v[1].x);
-            SET_MAX(ret.y, faces[i].v[1].y);
-            SET_MAX(ret.z, faces[i].v[1].z);
-            SET_MAX(ret.x, faces[i].v[2].x);
-            SET_MAX(ret.y, faces[i].v[2].y);
-            SET_MAX(ret.z, faces[i].v[2].z);
+            Point3 v = meshes[i].max();
+            ret.x = std::max(ret.x, v.x);
+            ret.y = std::max(ret.y, v.y);
+            ret.z = std::max(ret.z, v.z);
         }
         return ret;
+    }
+    
+    void clear()
+    {
+        for(Mesh& m : meshes)
+            m.clear();
+    }
+    
+    void offset(Point3 offset)
+    {
+        for(Mesh& m : meshes)
+            for(MeshVertex& v : m.vertices)
+                v.p += offset;
     }
 };
 
-//A SimpleModel is a 3D model with 1 or more 3D volumes.
-class SimpleModel
-{
-public:
-    vector<SimpleVolume> volumes;
-    IntPoint position;
-
-    Point3 min()
-    {
-        if (volumes.size() < 1)
-            return Point3(0, 0, 0);
-        Point3 ret = volumes[0].min();
-        for(unsigned int i=0; i<volumes.size(); i++)
-        {
-            Point3 v = volumes[i].min();
-            SET_MIN(ret.x, v.x);
-            SET_MIN(ret.y, v.y);
-            SET_MIN(ret.z, v.z);
-        }
-        return ret;
-    }
-    Point3 max()
-    {
-        if (volumes.size() < 1)
-            return Point3(0, 0, 0);
-        Point3 ret = volumes[0].max();
-        for(unsigned int i=0; i<volumes.size(); i++)
-        {
-            Point3 v = volumes[i].max();
-            SET_MAX(ret.x, v.x);
-            SET_MAX(ret.y, v.y);
-            SET_MAX(ret.z, v.z);
-        }
-        return ret;
-    }
-};
-
-SimpleModel* loadModelFromFile(SimpleModel*m,const char* filename, FMatrix3x3& matrix);
+bool loadMeshFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix);
 
 #endif//MODELFILE_H

@@ -36,7 +36,7 @@ public:
     bool inside(const Point p) { return boundery.inside(p); }
     bool moveInside(Point* p, int distance = 100);
     
-    bool calc(Point startPoint, Point endPoint, vector<Point>& combPoints);
+    bool calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints);
 };
 
 }//namespace cura

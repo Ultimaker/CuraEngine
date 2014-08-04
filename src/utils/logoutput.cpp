@@ -28,6 +28,15 @@ void logError(const char* fmt, ...)
     fflush(stderr);
 }
 
+void logCopyright(const char* fmt, ...)
+{
+    va_list args;
+    va_start(args, fmt);
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fflush(stderr);
+}
+
 void log(const char* fmt, ...)
 {
     if (verbose_level < 1)

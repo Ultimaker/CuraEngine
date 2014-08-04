@@ -11,9 +11,9 @@ class PathOrderOptimizer
 {
 public:
     Point startPoint;
-    vector<PolygonRef> polygons;
-    vector<int> polyStart;
-    vector<int> polyOrder;
+    std::vector<PolygonRef> polygons;
+    std::vector<int> polyStart;
+    std::vector<int> polyOrder;
 
     PathOrderOptimizer(Point startPoint)
     {

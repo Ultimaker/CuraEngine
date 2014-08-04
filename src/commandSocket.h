@@ -18,7 +18,7 @@ private:
 public:
     CommandSocket(int portNr);
     
-    void handleIncommingData(ConfigSettings* config, fffProcessor* processor);
+    void handleIncommingData(fffProcessor* processor);
     
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     void sendPolygons(const char* name, int layer_nr, Polygons& polygons);

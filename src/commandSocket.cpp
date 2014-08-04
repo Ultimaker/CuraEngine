@@ -32,10 +32,12 @@ CommandSocket::CommandSocket(int portNr)
     current_object_number = 0;
 }
 
-void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* processor)
+void CommandSocket::handleIncommingData(fffProcessor* processor)
 {
-    SimpleModel* model = NULL;
-    SimpleVolume* volume = NULL;
+    std::vector<PrintObject*> object_list;
+    PrintObject* object = NULL;
+    Mesh* mesh = NULL;
+    FMatrix3x3 matrix;
     float total_print_time = 0.0;
     float total_material_amount[MAX_EXTRUDERS];
     for(int n=0; n<MAX_EXTRUDERS; n++)
@@ -62,7 +64,7 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                 char* value = (buffer + strlen(buffer)) + 1;
                 if ((value - buffer) < dataSize)
                 {
-                    config->setSetting(buffer, value);
+                    processor->setSetting(buffer, value);
                 }
             }
             break;
@@ -70,7 +72,7 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             {
                 for(int x=0; x<3; x++)
                     for(int y=0; y<3; y++)
-                        config->matrix.m[x][y] = socket.recvFloat32();
+                        matrix.m[x][y] = socket.recvFloat32();
             }
             break;
         case CMD_OBJECT_COUNT:
@@ -79,23 +81,22 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             break;
         case CMD_OBJECT_LIST:
             socket.recvInt32(); //Number of following CMD_MESH_LIST commands
-            if (model)
-                delete model;
-            model = new SimpleModel();
-            volume = NULL;
+            if (object)
+                object_list.push_back(object);
+            object = new PrintObject(processor);
+            mesh = NULL;
             break;
         case CMD_MESH_LIST:
             socket.recvInt32(); //Number of following CMD_?_LIST commands that fill this mesh with data
-            if (model)
+            if (object)
             {
-                model->volumes.push_back(SimpleVolume());
-                volume = &model->volumes[model->volumes.size()-1];
+                object->meshes.emplace_back(object);
+                mesh = &object->meshes[object->meshes.size()-1];
             }
             break;
         case CMD_VERTEX_LIST:
-            if (volume)
+            if (mesh)
             {
-                Point3 offset(config->objectPosition.X, config->objectPosition.Y, 0);
                 int faceCount = dataSize / 4 / 3 / 3;
                 logError("Reading %i faces\n", faceCount);
                 for(int n=0; n<faceCount; n++)
@@ -103,10 +104,10 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
                     FPoint3 fv[3];
                     socket.recvAll(fv, 4 * 3 * 3);
                     Point3 v[3];
-                    v[0] = config->matrix.apply(fv[0]) + offset;
-                    v[1] = config->matrix.apply(fv[1]) + offset;
-                    v[2] = config->matrix.apply(fv[2]) + offset;
-                    volume->addFace(v[0], v[1], v[2]);
+                    v[0] = matrix.apply(fv[0]);
+                    v[1] = matrix.apply(fv[1]);
+                    v[2] = matrix.apply(fv[2]);
+                    mesh->addFace(v[0], v[1], v[2]);
                 }
             }else{
                 for(int n=0; n<dataSize; n++)
@@ -114,21 +115,26 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             }
             break;
         case CMD_PROCESS_MESH:
-            if (model)
+            if (object)
             {
-                processor->processModel(model);
-                model = NULL;
+                //for(PrintObject* m : object_list)
+                //    for(OptimizedVolume& v : m->volumes)
+                //        optimized_model->volumes.push_back(v);
+                object_list.clear();
+                processor->processModel(object);
                 sendPrintTimeForObject(current_object_number, processor->getTotalPrintTime() - total_print_time);
+                total_print_time = processor->getTotalPrintTime();
                 for(int n=0; n<MAX_EXTRUDERS; n++)
                 {
                     if (processor->getTotalFilamentUsed(n) != total_material_amount[n])
                         sendPrintMaterialForObject(current_object_number, n, processor->getTotalFilamentUsed(n) - total_material_amount[n]);
                     total_material_amount[n] = processor->getTotalFilamentUsed(n);
                 }
-                total_print_time = processor->getTotalPrintTime();
                 current_object_number++;
                 if (current_object_number >= object_count)
                     socket.close();
+                delete object;
+                object = NULL;
             }
             break;
         default:
@@ -138,8 +144,8 @@ void CommandSocket::handleIncommingData(ConfigSettings* config, fffProcessor* pr
             break;
         }
     }
-    if (model)
-        delete model;
+    if (object)
+        delete object;
 }
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)

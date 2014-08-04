@@ -2,6 +2,7 @@
 #define SETTINGS_H
 
 #include <vector>
+#include <map>
 
 #include "utils/floatpoint.h"
 
@@ -112,120 +113,20 @@ enum Infill_Pattern
     INFILL_CONCENTRIC = 2,
 };
 
-class _ConfigSettingIndex
-{
-public:
-    const char* key;
-    int* ptr;
-
-    _ConfigSettingIndex(const char* key, int* ptr) : key(key), ptr(ptr) {}
-};
-
-class ConfigSettings
+class SettingsBase
 {
 private:
-    std::vector<_ConfigSettingIndex> _index;
+    std::map<std::string, std::string> settings;
+    SettingsBase* parent;
 public:
-    static ConfigSettings *config; // allow access to config settings from everywhere
-    int layerThickness;
-    int initialLayerThickness;
-    int filamentDiameter;
-    int filamentFlow;
-    int layer0extrusionWidth;
-    int extrusionWidth;
-    int insetCount;
-    int downSkinCount;
-    int upSkinCount;
-    int skinPattern;
-    int skirtDistance;
-    int skirtLineCount;
-    int skirtMinLength;
+    SettingsBase();
+    SettingsBase(SettingsBase* parent);
+    
+    void copySettings(SettingsBase& other);
 
-    //Retraction settings
-    int retractionAmount;
-    int retractionAmountPrime;
-    int retractionAmountExtruderSwitch;
-    int retractionSpeed;
-    int retractionMinimalDistance;
-    int minimalExtrusionBeforeRetraction;
-    int retractionZHop;
-
-    int enableCombing;
-    int enableOozeShield;
-    int wipeTowerSize;
-    int multiVolumeOverlap;
-
-    int initialSpeedupLayers;
-    int initialLayerSpeed;
-    int skirtSpeed;
-    int inset0Speed;
-    int insetXSpeed;
-    int supportSpeed;
-    int moveSpeed;
-    int fanFullOnLayerNr;
-
-    //Infill settings
-    int sparseInfillLineDistance;
-    int sparseInfillCombineCount;
-    int infillOverlap;
-    int infillSpeed;
-    int infillPattern;
-
-    //Support material
-    int supportType;
-    int supportAngle;
-    int supportEverywhere;
-    int supportLineDistance;
-    int supportXYDistance;
-    int supportZDistance;
-    int supportExtruder;
-
-    //Cool settings
-    int minimalLayerTime;
-    int minimalFeedrate;
-    int coolHeadLift;
-    int fanSpeedMin;
-    int fanSpeedMax;
-
-    //Raft settings
-    int raftMargin;
-    int raftLineSpacing;
-    int raftBaseThickness;
-    int raftBaseLinewidth;
-    int raftBaseSpeed;
-    int raftInterfaceSpeed;
-    int raftInterfaceThickness;
-    int raftInterfaceLinewidth;
-    int raftInterfaceLineSpacing;
-    int raftFanSpeed;
-    int raftSurfaceThickness;
-    int raftSurfaceLinewidth;
-    int raftSurfaceLineSpacing;
-    int raftSurfaceLayers;
-    int raftSurfaceSpeed;
-    int raftAirGap;
-    int raftAirGapLayer0;
-
-    FMatrix3x3 matrix;
-    IntPoint objectPosition;
-    int objectSink;
-    int autoCenter;
-
-    int fixHorrible;
-    int spiralizeMode;
-    int simpleMode;
-    int gcodeFlavor;
-
-    IntPoint extruderOffset[MAX_EXTRUDERS];
-    std::string startCode;
-    std::string endCode;
-    std::string preSwitchExtruderCode;
-    std::string postSwitchExtruderCode;
-
-    ConfigSettings();
-    bool setSetting(const char* key, const char* value);
-    bool readSettings(void);
-    bool readSettings(const char* path);
+    void setSetting(std::string key, std::string value);
+    int getSettingInt(std::string key);
+    std::string getSetting(std::string key);
 };
 
 #endif//SETTINGS_H

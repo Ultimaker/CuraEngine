@@ -2,7 +2,7 @@
 
 namespace cura {
 
-void carveMultipleVolumes(vector<SliceVolumeStorage> &volumes)
+void carveMultipleVolumes(std::vector<SliceMeshStorage> &volumes)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
     for(unsigned int idx=0; idx < volumes.size(); idx++)
@@ -27,7 +27,7 @@ void carveMultipleVolumes(vector<SliceVolumeStorage> &volumes)
 
 //Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.
 //This generates some overlap in dual extrusion, for better bonding in touching parts.
-void generateMultipleVolumesOverlap(vector<SliceVolumeStorage> &volumes, int overlap)
+void generateMultipleVolumesOverlap(std::vector<SliceMeshStorage> &volumes, int overlap)
 {
     if (volumes.size() < 2 || overlap <= 0) return;
     

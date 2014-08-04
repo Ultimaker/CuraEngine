@@ -3,11 +3,11 @@
 #define SUPPORT_H
 
 #include "sliceDataStorage.h"
-#include "optimizedModel.h"
+#include "modelFile/modelFile.h"
 
 namespace cura {
 
-void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance);
+void generateSupportGrid(SupportStorage& storage, PrintObject* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance);
 
 class SupportPolyGenerator
 {

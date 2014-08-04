@@ -4,7 +4,6 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-using std::vector;
 #include <clipper/clipper.hpp>
 
 #include "intpoint.h"
@@ -256,9 +255,9 @@ public:
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
-    vector<Polygons> splitIntoParts(bool unionAll = false) const
+    std::vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
-        vector<Polygons> ret;
+        std::vector<Polygons> ret;
         ClipperLib::Clipper clipper(clipper_init);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
@@ -271,7 +270,7 @@ public:
         return ret;
     }
 private:
-    void _processPolyTreeNode(ClipperLib::PolyNode* node, vector<Polygons>& ret) const
+    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Polygons>& ret) const
     {
         for(int n=0; n<node->ChildCount(); n++)
         {

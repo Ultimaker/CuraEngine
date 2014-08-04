@@ -60,29 +60,135 @@ int main(int argc, char **argv)
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
     signal(SIGFPE, signal_FPE);
 
-    ConfigSettings config;
-    fffProcessor processor(config);
+    fffProcessor processor;
     std::vector<std::string> files;
 
-    cura::logError("Cura_SteamEngine version %s\n", VERSION);
-    cura::logError("Copyright (C) 2014 David Braam\n");
-    cura::logError("\n");
-    cura::logError("This program is free software: you can redistribute it and/or modify\n");
-    cura::logError("it under the terms of the GNU Affero General Public License as published by\n");
-    cura::logError("the Free Software Foundation, either version 3 of the License, or\n");
-    cura::logError("(at your option) any later version.\n");
-    cura::logError("\n");
-    cura::logError("This program is distributed in the hope that it will be useful,\n");
-    cura::logError("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
-    cura::logError("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
-    cura::logError("GNU Affero General Public License for more details.\n");
-    cura::logError("\n");
-    cura::logError("You should have received a copy of the GNU Affero General Public License\n");
-    cura::logError("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
+    logCopyright("Cura_SteamEngine version %s\n", VERSION);
+    logCopyright("Copyright (C) 2014 David Braam\n");
+    logCopyright("\n");
+    logCopyright("This program is free software: you can redistribute it and/or modify\n");
+    logCopyright("it under the terms of the GNU Affero General Public License as published by\n");
+    logCopyright("the Free Software Foundation, either version 3 of the License, or\n");
+    logCopyright("(at your option) any later version.\n");
+    logCopyright("\n");
+    logCopyright("This program is distributed in the hope that it will be useful,\n");
+    logCopyright("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
+    logCopyright("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
+    logCopyright("GNU Affero General Public License for more details.\n");
+    logCopyright("\n");
+    logCopyright("You should have received a copy of the GNU Affero General Public License\n");
+    logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
-    if(!config.readSettings()) {
-        cura::logError("Default config '%s' not used\n", DEFAULT_CONFIG_PATH);
-    }
+    processor.setSetting("layerThickness", "100");
+    processor.setSetting("initialLayerThickness", "300");
+    processor.setSetting("filamentDiameter", "2890");
+    processor.setSetting("filamentFlow", "100");
+    processor.setSetting("layer0extrusionWidth", "600");
+    processor.setSetting("extrusionWidth", "400");
+    processor.setSetting("insetCount", "2");
+    processor.setSetting("downSkinCount", "6");
+    processor.setSetting("upSkinCount", "6");
+    processor.setSetting("skinPattern", "SKIN_LINES");
+    processor.setSetting("skirtDistance", "6000");
+    processor.setSetting("skirtLineCount", "1");
+    processor.setSetting("skirtMinLength", "0");
+
+    processor.setSetting("initialSpeedupLayers", "4");
+    processor.setSetting("initialLayerSpeed", "20");
+    processor.setSetting("skirtSpeed", "50");
+    processor.setSetting("inset0Speed", "50");
+    processor.setSetting("insetXSpeed", "50");
+    processor.setSetting("supportSpeed", "50");
+    processor.setSetting("moveSpeed", "150");
+    processor.setSetting("fanFullOnLayerNr", "2");
+
+    processor.setSetting("sparseInfillLineDistance", "100 * extrusionWidth / 20");
+    processor.setSetting("sparseInfillCombineCount", "1");
+    processor.setSetting("infillOverlap", "15");
+    processor.setSetting("infillSpeed", "50");
+    processor.setSetting("infillPattern", "INFILL_GRID");
+
+    processor.setSetting("supportType", "SUPPORT_TYPE_GRID");
+    processor.setSetting("supportAngle", "-1");
+    processor.setSetting("supportEverywhere", "0");
+    processor.setSetting("supportLineDistance", "sparseInfillLineDistance");
+    processor.setSetting("supportXYDistance", "700");
+    processor.setSetting("supportZDistance", "150");
+    processor.setSetting("supportExtruder", "-1");
+
+    processor.setSetting("retractionAmount", "4500");
+    processor.setSetting("retractionAmountPrime", "0");
+    processor.setSetting("retractionSpeed", "45");
+    processor.setSetting("retractionAmountExtruderSwitch", "14500");
+    processor.setSetting("retractionMinimalDistance", "1500");
+    processor.setSetting("minimalExtrusionBeforeRetraction", "100");
+    processor.setSetting("retractionZHop", "0");
+
+    processor.setSetting("enableCombing", "1");
+    processor.setSetting("enableOozeShield", "0");
+    processor.setSetting("wipeTowerSize", "0");
+    processor.setSetting("multiVolumeOverlap", "0");
+    processor.setSetting("position.X", "102500");
+    processor.setSetting("position.Y", "102500");
+    processor.setSetting("objectSink", "0");
+    processor.setSetting("autoCenter", "1");
+
+    processor.setSetting("raftMargin", "5000");
+    processor.setSetting("raftLineSpacing", "1000");
+    processor.setSetting("raftBaseThickness", "0");
+    processor.setSetting("raftBaseLinewidth", "0");
+    processor.setSetting("raftInterfaceThickness", "0");
+    processor.setSetting("raftInterfaceLinewidth", "0");
+    processor.setSetting("raftInterfaceLineSpacing", "0");
+    processor.setSetting("raftAirGap", "0");
+    processor.setSetting("raftAirGapLayer0", "0");
+    processor.setSetting("raftBaseSpeed", "15");
+    processor.setSetting("raftInterfaceSpeed", "15");
+    processor.setSetting("raftFanSpeed", "0");
+    processor.setSetting("raftSurfaceThickness", "0");
+    processor.setSetting("raftSurfaceLinewidth", "0");
+    processor.setSetting("raftSurfaceLineSpacing", "0");
+    processor.setSetting("raftSurfaceLayers", "0");
+    processor.setSetting("raftSurfaceSpeed", "0");
+
+    processor.setSetting("minimalLayerTime", "5");
+    processor.setSetting("minimalFeedrate", "10");
+    processor.setSetting("coolHeadLift", "0");
+    processor.setSetting("fanSpeedMin", "100");
+    processor.setSetting("fanSpeedMax", "100");
+
+    processor.setSetting("fixHorrible", "0");
+    processor.setSetting("spiralizeMode", "0");
+    processor.setSetting("simpleMode", "0");
+    processor.setSetting("gcodeFlavor", "GCODE_FLAVOR_REPRAP");
+
+    processor.setSetting("extruderOffset1.X", "0");
+    processor.setSetting("extruderOffset1.Y", "0");
+    processor.setSetting("extruderOffset2.X", "0");
+    processor.setSetting("extruderOffset2.Y", "0");
+    processor.setSetting("extruderOffset3.X", "0");
+    processor.setSetting("extruderOffset3.Y", "0");
+
+    processor.setSetting("startCode", 
+        "M109 S210     ;Heatup to 210C\n"
+        "G21           ;metric values\n"
+        "G90           ;absolute positioning\n"
+        "G28           ;Home\n"
+        "G1 Z15.0 F300 ;move the platform down 15mm\n"
+        "G92 E0        ;zero the extruded length\n"
+        "G1 F200 E5    ;extrude 5mm of feed stock\n"
+        "G92 E0        ;zero the extruded length again\n");
+    processor.setSetting("endCode",
+        "M104 S0                     ;extruder heater off\n"
+        "M140 S0                     ;heated bed heater off (if you have it)\n"
+        "G91                            ;relative positioning\n"
+        "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n"
+        "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n"
+        "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n"
+        "M84                         ;steppers off\n"
+        "G90                         ;absolute positioning\n");
+    processor.setSetting("postSwitchExtruderCode", "");
+    processor.setSetting("preSwitchExtruderCode", "");
     
     CommandSocket* commandSocket = NULL;
 
@@ -101,7 +207,7 @@ int main(int argc, char **argv)
                     processor.setCommandSocket(commandSocket);
                 }else if (stringcasecompare(str, "--command-socket") == 0)
                 {
-                    commandSocket->handleIncommingData(&config, &processor);
+                    commandSocket->handleIncommingData(&processor);
                 }else if (stringcasecompare(str, "--") == 0)
                 {
                     try {
@@ -132,26 +238,12 @@ int main(int argc, char **argv)
                     case 'p':
                         cura::enableProgressLogging();
                         break;
-                    case 'b':
-                        argn++;
-                        //The binaryMeshBlob is depricated and will be removed in the future.
-                        binaryMeshBlob = fopen(argv[argn], "rb");
-                        break;
                     case 'o':
                         argn++;
                         if (!processor.setTargetFile(argv[argn]))
                         {
                             cura::logError("Failed to open %s for output.\n", argv[argn]);
                             exit(1);
-                        }
-                        break;
-                    case 'c':
-                        {
-                            // Read a config file from the given path
-                            argn++;
-                            if(!config.readSettings(argv[argn])) {
-                                cura::logError("Failed to read config '%s'\n", argv[argn]);
-                            }
                         }
                         break;
                     case 's':
@@ -163,18 +255,9 @@ int main(int argc, char **argv)
                             {
                                 *valuePtr++ = '\0';
 
-                                if (!config.setSetting(argv[argn], valuePtr))
-                                    cura::logError("Setting not found: %s %s\n", argv[argn], valuePtr);
+                                processor.setSetting(argv[argn], valuePtr);
                             }
                         }
-                        break;
-                    case 'm':
-                        //Read the given rotation/scale matrix
-                        argn++;
-                        sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                            &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
-                            &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
-                            &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
                         break;
                     default:
                         cura::logError("Unknown option: %c\n", *str);

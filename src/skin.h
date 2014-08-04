@@ -6,9 +6,9 @@
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap);
-void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
-void combineSparseLayers(int layerNr, SliceVolumeStorage& storage, int amount);
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap);
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
+void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount);
 
 }//namespace cura
 

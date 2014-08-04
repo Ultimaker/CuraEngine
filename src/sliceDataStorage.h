@@ -4,6 +4,7 @@
 
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
+#include "mesh.h"
 
 /*
 SliceData
@@ -22,9 +23,9 @@ public:
     AABB boundaryBox;
     Polygons outline;
     Polygons combBoundery;
-    vector<Polygons> insets;    //insets[n] is the inset (n * line_width + line_width/2) offset
+    std::vector<Polygons> insets;    //insets[n] is the inset (n * line_width + line_width/2) offset
     Polygons skinOutline;
-    vector<Polygons> sparse_outline; //sparse_outline[n] is sparse outline of (n+1) layer thick. 
+    std::vector<Polygons> sparse_outline; //sparse_outline[n] is sparse outline of (n+1) layer thick. 
 };
 
 class SliceLayer
@@ -32,7 +33,7 @@ class SliceLayer
 public:
     int sliceZ;
     int printZ;
-    vector<SliceLayerPart> parts;
+    std::vector<SliceLayerPart> parts;
     Polygons openLines;
 };
 
@@ -57,16 +58,17 @@ public:
     Point gridOffset;
     int32_t gridScale;
     int32_t gridWidth, gridHeight;
-    vector<SupportPoint>* grid;
+    std::vector<SupportPoint>* grid;
    	SupportStorage(){grid = nullptr;}
 	  ~SupportStorage(){if(grid) delete [] grid;}
 };
 /******************/
 
-class SliceVolumeStorage
+class SliceMeshStorage
 {
 public:
-    vector<SliceLayer> layers;
+    Mesh* mesh;
+    std::vector<SliceLayer> layers;
 };
 
 class SliceDataStorage
@@ -75,8 +77,8 @@ public:
     Point3 modelSize, modelMin, modelMax;
     Polygons skirt;
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
-    vector<Polygons> oozeShield;        //oozeShield per layer
-    vector<SliceVolumeStorage> volumes;
+    std::vector<Polygons> oozeShield;        //oozeShield per layer
+    std::vector<SliceMeshStorage> meshes;
     
     SupportStorage support;
     Polygons wipeTower;

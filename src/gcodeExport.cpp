@@ -45,13 +45,18 @@ void GCodeExport::setExtruderOffset(int id, Point p)
     extruderOffset[id] = p;
 }
 
+Point GCodeExport::getExtruderOffset(int id)
+{
+    return extruderOffset[id];
+}
+
 void GCodeExport::setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
 {
     this->preSwitchExtruderCode = preSwitchExtruderCode;
     this->postSwitchExtruderCode = postSwitchExtruderCode;
 }
 
-void GCodeExport::setFlavor(int flavor)
+void GCodeExport::setFlavor(GCode_Flavor flavor)
 {
     this->flavor = flavor;
     if (flavor == GCODE_FLAVOR_MACH3)
@@ -416,7 +421,7 @@ void GCodePlanner::addTravel(Point p)
         forceRetraction = false;
     }else if (comb != nullptr)
     {
-        vector<Point> pointList;
+        std::vector<Point> pointList;
         if (comb->calc(lastPosition, p, pointList))
         {
             for(unsigned int n=0; n<pointList.size(); n++)
@@ -529,7 +534,6 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
         
         if (minTime - (extrudeTime / factor) - travelTime > 0.1)
         {
-            //TODO: Use up this extra time (circle around the print?)
             this->extraTime = minTime - (extrudeTime / factor) - travelTime;
         }
         this->totalPrintTime = (extrudeTime / factor) + travelTime;

@@ -45,9 +45,9 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     
     boundary.min.X = ((boundary.min.X / lineSpacing) - 1) * lineSpacing;
     int lineCount = (boundary.max.X - boundary.min.X + (lineSpacing - 1)) / lineSpacing;
-    vector<vector<int64_t> > cutList;
+    std::vector<std::vector<int64_t> > cutList;
     for(int n=0; n<lineCount; n++)
-        cutList.push_back(vector<int64_t>());
+        cutList.push_back(std::vector<int64_t>());
 
     for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
     {

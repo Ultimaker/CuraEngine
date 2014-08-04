@@ -34,7 +34,7 @@ private:
     bool isRetracted;
     int extruderNr;
     int currentFanSpeed;
-    int flavor;
+    GCode_Flavor flavor;
     std::string preSwitchExtruderCode;
     std::string postSwitchExtruderCode;
     
@@ -48,9 +48,10 @@ public:
     ~GCodeExport();
     
     void setExtruderOffset(int id, Point p);
+    Point getExtruderOffset(int id);
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
-    void setFlavor(int flavor);
+    void setFlavor(GCode_Flavor flavor);
     int getFlavor();
     
     void setFilename(const char* filename);
@@ -124,7 +125,7 @@ public:
     GCodePathConfig* config;
     bool retract;
     int extruder;
-    vector<Point> points;
+    std::vector<Point> points;
     bool done;//Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 };
 
@@ -137,7 +138,7 @@ private:
     GCodeExport& gcode;
     
     Point lastPosition;
-    vector<GCodePath> paths;
+    std::vector<GCodePath> paths;
     Comb* comb;
     
     GCodePathConfig travelConfig;

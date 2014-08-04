@@ -21,7 +21,7 @@ namespace cura {
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType);
 
-void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllType);
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, int unionAllType);
 
 void dumpLayerparts(SliceDataStorage& storage, const char* filename);
 

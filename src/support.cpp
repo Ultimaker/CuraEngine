@@ -15,33 +15,34 @@ int cmp_SupportPoint(const void* a, const void* b)
     return ((SupportPoint*)a)->z - ((SupportPoint*)b)->z;
 }
 
-void generateSupportGrid(SupportStorage& storage, OptimizedModel* om, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
+void generateSupportGrid(SupportStorage& storage, PrintObject* object, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
 {
     storage.generated = false;
     if (supportAngle < 0)
         return;
     storage.generated = true;
+    Point3 object_min = object->min();
+    Point3 object_max = object->max();
+    Point3 object_size = object_max - object_min;
     
-    storage.gridOffset.X = om->vMin.x;
-    storage.gridOffset.Y = om->vMin.y;
+    storage.gridOffset.X = object_min.x;
+    storage.gridOffset.Y = object_min.y;
     storage.gridScale = 200;
-    storage.gridWidth = (om->modelSize.x / storage.gridScale) + 1;
-    storage.gridHeight = (om->modelSize.y / storage.gridScale) + 1;
-    storage.grid = new vector<SupportPoint>[storage.gridWidth * storage.gridHeight];
+    storage.gridWidth = (object_size.x / storage.gridScale) + 1;
+    storage.gridHeight = (object_size.y / storage.gridScale) + 1;
+    storage.grid = new std::vector<SupportPoint>[storage.gridWidth * storage.gridHeight];
     storage.angle = supportAngle;
     storage.everywhere = supportEverywhere;
     storage.XYDistance = supportXYDistance;
     storage.ZDistance = supportZDistance;
 
-    for(unsigned int volumeIdx = 0; volumeIdx < om->volumes.size(); volumeIdx++)
+    for(Mesh& mesh : object->meshes)
     {
-        OptimizedVolume* vol = &om->volumes[volumeIdx];
-        for(unsigned int faceIdx = 0; faceIdx < vol->faces.size(); faceIdx++)
+        for(MeshFace& face : mesh.faces)
         {
-            OptimizedFace* face = &vol->faces[faceIdx];
-            Point3 v0 = vol->points[face->index[0]].p;
-            Point3 v1 = vol->points[face->index[1]].p;
-            Point3 v2 = vol->points[face->index[2]].p;
+            Point3 v0 = mesh.vertices[face.vertex_index[0]].p;
+            Point3 v1 = mesh.vertices[face.vertex_index[1]].p;
+            Point3 v2 = mesh.vertices[face.vertex_index[2]].p;
             
             Point3 normal = (v1 - v0).cross(v2 - v0);
             int32_t normalSize = normal.vSize();

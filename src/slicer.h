@@ -2,7 +2,7 @@
 #ifndef SLICER_H
 #define SLICER_H
 
-#include "optimizedModel.h"
+#include "mesh.h"
 #include "utils/polygon.h"
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -46,7 +46,7 @@ public:
     Polygons polygonList;
     Polygons openPolygonList;
     
-    void makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching);
+    void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
 private:
     gapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
@@ -142,9 +142,8 @@ class Slicer
 {
 public:
     std::vector<SlicerLayer> layers;
-    Point3 modelSize, modelMin;
     
-    Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(Mesh* mesh, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching);
     
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {

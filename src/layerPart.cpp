@@ -31,7 +31,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
         }
     }
     
-    vector<Polygons> result;
+    std::vector<Polygons> result;
     if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_C)
         result = layer->polygonList.offset(1000).splitIntoParts(unionAllType);
     else
@@ -49,7 +49,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
     }
 }
 
-void createLayerParts(SliceVolumeStorage& storage, Slicer* slicer, int unionAllType)
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, int unionAllType)
 {
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
@@ -67,20 +67,18 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
     Point3 modelSize = storage.modelSize;
     Point3 modelMin = storage.modelMin;
     
-    for(unsigned int volumeIdx=0; volumeIdx<storage.volumes.size(); volumeIdx++)
+    for(SliceMeshStorage& mesh : storage.meshes)
     {
-        for(unsigned int layerNr=0;layerNr<storage.volumes[volumeIdx].layers.size(); layerNr++)
+        for(SliceLayer& layer : mesh.layers)
         {
             fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
-            SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
-            for(unsigned int i=0;i<layer->parts.size();i++)
+            for(SliceLayerPart& part : layer.parts)
             {
-                SliceLayerPart* part = &layer->parts[i];
-                for(unsigned int j=0;j<part->outline.size();j++)
+                for(unsigned int j=0;j<part.outline.size();j++)
                 {
                     fprintf(out, "<polygon points=\"");
-                    for(unsigned int k=0;k<part->outline[j].size();k++)
-                        fprintf(out, "%f,%f ", float(part->outline[j][k].X - modelMin.x)/modelSize.x*500, float(part->outline[j][k].Y - modelMin.y)/modelSize.y*500);
+                    for(unsigned int k=0;k<part.outline[j].size();k++)
+                        fprintf(out, "%f,%f ", float(part.outline[j][k].X - modelMin.x)/modelSize.x*500, float(part.outline[j][k].Y - modelMin.y)/modelSize.y*500);
                     if (j == 0)
                         fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
                     else

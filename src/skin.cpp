@@ -3,7 +3,7 @@
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -55,7 +55,7 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
     }
 }
 
-void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -117,7 +117,7 @@ void generateSparse(int layerNr, SliceVolumeStorage& storage, int extrusionWidth
     }
 }
 
-void combineSparseLayers(int layerNr, SliceVolumeStorage& storage, int amount)
+void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
