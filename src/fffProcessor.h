@@ -473,8 +473,15 @@ private:
             if (printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
 
+            if (storage.oozeShield.size() > 0)
+            {
+                gcodeLayer.setAlwaysRetract(true);
+                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
+                gcodeLayer.setAlwaysRetract(!getSettingInt("enableCombing"));
+            }
+
             //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
-            std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage);
+            std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
             for(SliceMeshStorage* mesh : mesh_order)
             {
                 addMeshLayerToGCode(storage, mesh, gcodeLayer, layerNr);
@@ -511,12 +518,27 @@ private:
         maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
     }
     
-    std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage)
+    std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
     {
         std::vector<SliceMeshStorage*> ret;
+        std::vector<SliceMeshStorage*> add_list;
         for(SliceMeshStorage& mesh : storage.meshes)
+            add_list.push_back(&mesh);
+        
+        int add_extruder_nr = current_extruder;
+        while(add_list.size() > 0)
         {
-            ret.push_back(&mesh);
+            for(unsigned int idx=0; idx<add_list.size(); idx++)
+            {
+                if (add_list[idx]->settings->getSettingInt("extruderNr") == add_extruder_nr)
+                {
+                    ret.push_back(add_list[idx]);
+                    add_list.erase(add_list.begin() + idx);
+                    idx--;
+                }
+            }
+            if (add_list.size() > 0)
+                add_extruder_nr = add_list[0]->settings->getSettingInt("extruderNr");
         }
         return ret;
     }
@@ -530,14 +552,6 @@ private:
         SliceLayer* layer = &mesh->layers[layerNr];
         if (extruderChanged)
             addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
-
-        if (storage.oozeShield.size() > 0 && storage.meshes.size() > 1)
-        {
-            gcodeLayer.setAlwaysRetract(true);
-            gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            sendPolygons("oozeshield", layerNr, storage.oozeShield[layerNr]);
-            gcodeLayer.setAlwaysRetract(!getSettingInt("enableCombing"));
-        }
 
         if (getSettingInt("simpleMode"))
         {
@@ -693,13 +707,6 @@ private:
             int prevExtruder = gcodeLayer.getExtruder();
             if (gcodeLayer.setExtruder(getSettingInt("supportExtruder")))
                 addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
-
-            if (storage.oozeShield.size() > 0 && storage.meshes.size() == 1)
-            {
-                gcodeLayer.setAlwaysRetract(true);
-                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-                gcodeLayer.setAlwaysRetract(!getSettingInt("enableCombing"));
-            }
         }
         int32_t z = getSettingInt("initialLayerThickness") + layerNr * getSettingInt("layerThickness");
         SupportPolyGenerator supportGenerator(storage.support, z);

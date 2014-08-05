@@ -133,6 +133,7 @@ int main(int argc, char **argv)
     processor.setSetting("position.Z", "0");
     processor.setSetting("objectSink", "0");
     processor.setSetting("autoCenter", "1");
+    processor.setSetting("extruderNr", "0");
 
     processor.setSetting("raftMargin", "5000");
     processor.setSetting("raftLineSpacing", "1000");
