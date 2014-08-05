@@ -65,23 +65,24 @@ public:
         return gcode.isOpened();
     }
 
-    bool processFile(const std::vector<std::string> &files)
+    bool processFiles(const std::vector<std::string> &files)
     {
         timeKeeper.restart();
         PrintObject* model = nullptr;
 
         model = new PrintObject(this);
-        for(unsigned int n=0; n<files.size(); n++)
+        for(std::string filename : files)
         {
-            log("Loading %s from disk...\n", files[n].c_str());
+            log("Loading %s from disk...\n", filename.c_str());
             
             FMatrix3x3 matrix;
-            if (!loadMeshFromFile(model, files[n].c_str(), matrix))
+            if (!loadMeshFromFile(model, filename.c_str(), matrix))
             {
-                logError("Failed to load model: %s\n", files[0].c_str());
+                logError("Failed to load model: %s\n", filename.c_str());
                 return false;
             }
         }
+        model->finalize();
 
         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
         return processModel(model);
@@ -159,16 +160,8 @@ private:
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object)
     {
-        Point3 object_min = object->min();
-        Point3 object_max = object->max();
-        Point3 object_size = object_max - object_min;
-        Point3 offset = Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
-        offset.x += object->getSettingInt("position.X");
-        offset.y += object->getSettingInt("position.Y");
-        object->offset(offset);
-
-        storage.model_min = object_min + offset;
-        storage.model_max = object_max + offset;
+        storage.model_min = object->min();
+        storage.model_max = object->max();
         storage.model_size = storage.model_max - storage.model_min;
         
         log("Slicing model...\n");
@@ -419,7 +412,6 @@ private:
             }
         }
 
-        int meshIdx = 0;
         for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
         {
             logProgress("export", layerNr+1, totalLayers);
@@ -470,15 +462,22 @@ private:
             }
             gcode.setZ(z);
 
+            if (layerNr == 0)
+            {
+                if (storage.skirt.size() > 0)
+                    gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+                gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
+            }
+
             bool printSupportFirst = (storage.support.generated && getSettingInt("supportExtruder") > 0 && getSettingInt("supportExtruder") == gcodeLayer.getExtruder());
             if (printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
 
-            for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
+            //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
+            std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage);
+            for(SliceMeshStorage* mesh : mesh_order)
             {
-                if (meshCnt > 0)
-                    meshIdx = (meshIdx + 1) % storage.meshes.size();
-                addMeshLayerToGCode(storage, gcodeLayer, meshIdx, layerNr);
+                addMeshLayerToGCode(storage, mesh, gcodeLayer, layerNr);
             }
             if (!printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
@@ -511,21 +510,24 @@ private:
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
     }
+    
+    std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage)
+    {
+        std::vector<SliceMeshStorage*> ret;
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            ret.push_back(&mesh);
+        }
+        return ret;
+    }
 
     //Add a single layer from a single mesh-volume to the GCode
-    void addMeshLayerToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int meshIdx, int layerNr)
+    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layerNr)
     {
         int prevExtruder = gcodeLayer.getExtruder();
-        bool extruderChanged = gcodeLayer.setExtruder(meshIdx);
-        if (layerNr == 0 && meshIdx == 0)
-        {
-            //TODO: Don't think this needs to be here.
-            if (storage.skirt.size() > 0)
-                gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
-            gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
-        }
+        bool extruderChanged = gcodeLayer.setExtruder(mesh->settings->getSettingInt("extruderNr"));
 
-        SliceLayer* layer = &storage.meshes[meshIdx].layers[layerNr];
+        SliceLayer* layer = &mesh->layers[layerNr];
         if (extruderChanged)
             addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
 
@@ -645,7 +647,7 @@ private:
             {
                 int bridge = -1;
                 if (layerNr > 0)
-                    bridge = bridgeAngle(outline, &storage.meshes[meshIdx].layers[layerNr-1]);
+                    bridge = bridgeAngle(outline, &mesh->layers[layerNr-1]);
                 if (bridge > -1)
                 {
                     generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);

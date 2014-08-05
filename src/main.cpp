@@ -130,6 +130,7 @@ int main(int argc, char **argv)
     processor.setSetting("multiVolumeOverlap", "0");
     processor.setSetting("position.X", "102500");
     processor.setSetting("position.Y", "102500");
+    processor.setSetting("position.Z", "0");
     processor.setSetting("objectSink", "0");
     processor.setSetting("autoCenter", "1");
 
@@ -214,7 +215,7 @@ int main(int argc, char **argv)
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
                         if (files.size() > 0)
-                            processor.processFile(files);
+                            processor.processFiles(files);
                         files.clear();
                     }catch(...){
                         cura::logError("Unknown exception\n");
@@ -273,7 +274,7 @@ int main(int argc, char **argv)
         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
         if (files.size() > 0)
-            processor.processFile(files);
+            processor.processFiles(files);
     }catch(...){
         cura::logError("Unknown exception\n");
         exit(1);

@@ -64,7 +64,11 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                 char* value = (buffer + strlen(buffer)) + 1;
                 if ((value - buffer) < dataSize)
                 {
-                    processor->setSetting(buffer, value);
+                    processor->getSetting(buffer);
+                    if (object)
+                        object->setSetting(buffer, value);
+                    else
+                        processor->setSetting(buffer, value);
                 }
             }
             break;
@@ -82,7 +86,10 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
         case CMD_OBJECT_LIST:
             socket.recvInt32(); //Number of following CMD_MESH_LIST commands
             if (object)
+            {
+                object->finalize();
                 object_list.push_back(object);
+            }
             object = new PrintObject(processor);
             mesh = NULL;
             break;
@@ -117,11 +124,14 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
         case CMD_PROCESS_MESH:
             if (object)
             {
-                //for(PrintObject* m : object_list)
-                //    for(OptimizedVolume& v : m->volumes)
-                //        optimized_model->volumes.push_back(v);
-                object_list.clear();
+                object->finalize();
+                for(PrintObject* obj : object_list)
+                    for(Mesh& m : obj->meshes)
+                        object->meshes.push_back(m);
                 processor->processModel(object);
+                for(PrintObject* obj : object_list)
+                    delete obj;
+                object_list.clear();
                 sendPrintTimeForObject(current_object_number, processor->getTotalPrintTime() - total_print_time);
                 total_print_time = processor->getTotalPrintTime();
                 for(int n=0; n<MAX_EXTRUDERS; n++)
