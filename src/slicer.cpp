@@ -364,7 +364,6 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             layers[layer_nr].segmentList.push_back(s);
         }
     }
-    log("Slice step 2\n");
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
