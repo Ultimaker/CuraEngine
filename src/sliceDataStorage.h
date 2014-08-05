@@ -6,15 +6,6 @@
 #include "utils/polygon.h"
 #include "mesh.h"
 
-/*
-SliceData
-+ Layers[]
-  + LayerParts[]
-    + OutlinePolygons[]
-    + Insets[]
-      + Polygons[]
-    + SkinPolygons[]
-*/
 namespace cura {
 
 class SliceLayerPart
@@ -59,22 +50,25 @@ public:
     int32_t gridScale;
     int32_t gridWidth, gridHeight;
     std::vector<SupportPoint>* grid;
+    
    	SupportStorage(){grid = nullptr;}
-	  ~SupportStorage(){if(grid) delete [] grid;}
+    ~SupportStorage(){if(grid) delete [] grid;}
 };
 /******************/
 
 class SliceMeshStorage
 {
 public:
-    Mesh* mesh;
+    SettingsBase* settings;
     std::vector<SliceLayer> layers;
+    
+    SliceMeshStorage(SettingsBase* settings) : settings(settings) {}
 };
 
 class SliceDataStorage
 {
 public:
-    Point3 modelSize, modelMin, modelMax;
+    Point3 model_size, model_min, model_max;
     Polygons skirt;
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     std::vector<Polygons> oozeShield;        //oozeShield per layer

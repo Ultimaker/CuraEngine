@@ -64,8 +64,8 @@ void dumpLayerparts(SliceDataStorage& storage, const char* filename)
 {
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");
-    Point3 modelSize = storage.modelSize;
-    Point3 modelMin = storage.modelMin;
+    Point3 modelSize = storage.model_size;
+    Point3 modelMin = storage.model_min;
     
     for(SliceMeshStorage& mesh : storage.meshes)
     {

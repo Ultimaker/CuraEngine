@@ -9,7 +9,7 @@
 
 namespace cura {
 
-void SlicerLayer::makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching)
+void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
     for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
     {
@@ -153,7 +153,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveSt
         }
     }
 
-    if (extensiveStitching)
+    if (extensive_stitching)
     {
         //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
         // Then find the sortest path over this polygon that can be used to connect the open polygons,
@@ -274,7 +274,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveSt
     */
     //if (q) exit(1);
 
-    if (keepNoneClosed)
+    if (keep_none_closed)
     {
         for(unsigned int n=0; n<openPolygonList.size(); n++)
         {
@@ -309,15 +309,13 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveSt
 }
 
 
-Slicer::Slicer(Mesh* mesh, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
 {
-    int layerCount = (mesh->max().z - initial) / thickness + 1;
-    cura::log("Layer count: %i\n", layerCount);
-    layers.resize(layerCount);
+    layers.resize(layer_count);
     
-    for(int32_t layerNr = 0; layerNr < layerCount; layerNr++)
+    for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
     {
-        layers[layerNr].z = initial + thickness * layerNr;
+        layers[layer_nr].z = initial + thickness * layer_nr;
     }
     
     for(unsigned int i=0; i<mesh->faces.size(); i++)
@@ -333,11 +331,11 @@ Slicer::Slicer(Mesh* mesh, int32_t initial, int32_t thickness, bool keepNoneClos
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
         
-        for(int32_t layerNr = (minZ - initial) / thickness; layerNr <= (maxZ - initial) / thickness; layerNr++)
+        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= (maxZ - initial) / thickness; layer_nr++)
         {
-            int32_t z = layerNr * thickness + initial;
+            int32_t z = layer_nr * thickness + initial;
             if (z < minZ) continue;
-            if (layerNr < 0) continue;
+            if (layer_nr < 0) continue;
             
             SlicerSegment s;
             if (p0.z < z && p1.z >= z && p2.z >= z)
@@ -360,16 +358,16 @@ Slicer::Slicer(Mesh* mesh, int32_t initial, int32_t thickness, bool keepNoneClos
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layerNr].faceToSegmentIndex[i] = layers[layerNr].segmentList.size();
+            layers[layer_nr].faceToSegmentIndex[i] = layers[layer_nr].segmentList.size();
             s.faceIndex = i;
             s.addedToPolygon = false;
-            layers[layerNr].segmentList.push_back(s);
+            layers[layer_nr].segmentList.push_back(s);
         }
     }
-    
-    for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
+    log("Slice step 2\n");
+    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
-        layers[layerNr].makePolygons(mesh, keepNoneClosed, extensiveStitching);
+        layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }
 }
 

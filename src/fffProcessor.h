@@ -21,10 +21,6 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 
-#define GUI_CMD_REQUEST_MESH 0x01
-#define GUI_CMD_SEND_POLYGONS 0x02
-#define GUI_CMD_FINISH_OBJECT 0x03
-
 namespace cura {
 
 //FusedFilamentFabrication processor.
@@ -78,7 +74,7 @@ public:
         for(unsigned int n=0; n<files.size(); n++)
         {
             log("Loading %s from disk...\n", files[n].c_str());
-            //TODO: matrix from settings
+            
             FMatrix3x3 matrix;
             if (!loadMeshFromFile(model, files[n].c_str(), matrix))
             {
@@ -145,8 +141,19 @@ private:
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
             gcode.setExtruderOffset(n, Point(getSettingInt("extruderOffset1.X"), getSettingInt("extruderOffset1.Y")));
         gcode.setSwitchExtruderCode(getSetting("preSwitchExtruderCode"), getSetting("postSwitchExtruderCode"));
-        //TODO: GCode flavor
-        gcode.setFlavor(GCODE_FLAVOR_REPRAP);
+        
+        if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP")
+            gcode.setFlavor(GCODE_FLAVOR_REPRAP);
+        else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_ULTIGCODE")
+            gcode.setFlavor(GCODE_FLAVOR_ULTIGCODE);
+        else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_MAKERBOT")
+            gcode.setFlavor(GCODE_FLAVOR_MAKERBOT);
+        else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_BFB")
+            gcode.setFlavor(GCODE_FLAVOR_BFB);
+        else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_MACH3")
+            gcode.setFlavor(GCODE_FLAVOR_MACH3);
+        else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP_VOLUMATRIC")
+            gcode.setFlavor(GCODE_FLAVOR_REPRAP_VOLUMATRIC);
         gcode.setRetractionSettings(getSettingInt("retractionAmount"), getSettingInt("retractionSpeed"), getSettingInt("retractionAmountExtruderSwitch"), getSettingInt("minimalExtrusionBeforeRetraction"), getSettingInt("retractionZHop"), getSettingInt("retractionAmountPrime"));
     }
 
@@ -156,16 +163,24 @@ private:
         Point3 object_max = object->max();
         Point3 object_size = object_max - object_min;
         Point3 offset = Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
-        logError("%d %d %d\n", offset.x, offset.y, offset.z);
         offset.x += object->getSettingInt("position.X");
         offset.y += object->getSettingInt("position.Y");
         object->offset(offset);
+
+        storage.model_min = object_min + offset;
+        storage.model_max = object_max + offset;
+        storage.model_size = storage.model_max - storage.model_min;
         
         log("Slicing model...\n");
+        int initial_layer_thickness = object->getSettingInt("initialLayerThickness");
+        int layer_thickness = object->getSettingInt("layerThickness");
+        int layer_count = (storage.model_max.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
+        log("Layer count: %i\n", layer_count);
         std::vector<Slicer*> slicerList;
         for(Mesh& mesh : object->meshes)
         {
-            Slicer* slicer = new Slicer(&mesh, mesh.getSettingInt("initialLayerThickness") - mesh.getSettingInt("layerThickness") / 2, mesh.getSettingInt("layerThickness"), mesh.getSettingInt("fixHorrible") & FIX_HORRIBLE_KEEP_NONE_CLOSED, mesh.getSettingInt("fixHorrible") & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+            int fix_horrible = mesh.getSettingInt("fixHorrible");
+            Slicer* slicer = new Slicer(&mesh, initial_layer_thickness - layer_thickness / 2, layer_thickness, layer_count, fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
             slicerList.push_back(slicer);
             /*
             for(SlicerLayer& layer : slicer->layers)
@@ -180,28 +195,23 @@ private:
 
         log("Generating support map...\n");
         generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
-
-        storage.modelMin = object->min();
-        storage.modelMax = object->max();
-        storage.modelSize = storage.modelMax - storage.modelMin;
         object->clear();//Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");
         for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
         {
-            storage.meshes.emplace_back();
+            storage.meshes.emplace_back(&object->meshes[meshIdx]);
             SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
-            meshStorage.mesh = &object->meshes[meshIdx];
-            createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.mesh->getSettingInt("fixHorrible") & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
+            createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingInt("fixHorrible") & (FIX_HORRIBLE_UNION_ALL_TYPE_A | FIX_HORRIBLE_UNION_ALL_TYPE_B | FIX_HORRIBLE_UNION_ALL_TYPE_C));
             delete slicerList[meshIdx];
 
             //Add the raft offset to each layer.
             for(unsigned int layerNr=0; layerNr<meshStorage.layers.size(); layerNr++)
             {
-                meshStorage.layers[layerNr].printZ += meshStorage.mesh->getSettingInt("raftBaseThickness") + meshStorage.mesh->getSettingInt("raftInterfaceThickness");
+                meshStorage.layers[layerNr].printZ += meshStorage.settings->getSettingInt("raftBaseThickness") + meshStorage.settings->getSettingInt("raftInterfaceThickness");
 
                 if (commandSocket)
-                    commandSocket->sendLayerInfo(layerNr, meshStorage.layers[layerNr].printZ, layerNr == 0 ? meshStorage.mesh->getSettingInt("initialLayerThickness") : meshStorage.mesh->getSettingInt("layerThickness"));
+                    commandSocket->sendLayerInfo(layerNr, meshStorage.layers[layerNr].printZ, layerNr == 0 ? meshStorage.settings->getSettingInt("initialLayerThickness") : meshStorage.settings->getSettingInt("layerThickness"));
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -235,13 +245,13 @@ private:
         {
             for(SliceMeshStorage& mesh : storage.meshes)
             {
-                int insetCount = mesh.mesh->getSettingInt("insetCount");
-                if (mesh.mesh->getSettingInt("spiralizeMode") && static_cast<int>(layerNr) < mesh.mesh->getSettingInt("downSkinCount") && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                int insetCount = mesh.settings->getSettingInt("insetCount");
+                if (mesh.settings->getSettingInt("spiralizeMode") && static_cast<int>(layerNr) < mesh.settings->getSettingInt("downSkinCount") && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layerNr];
-                int extrusionWidth = mesh.mesh->getSettingInt("extrusionWidth");
+                int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                 if (layerNr == 0)
-                    extrusionWidth = mesh.mesh->getSettingInt("layer0extrusionWidth");
+                    extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
                 generateInsets(layer, extrusionWidth, insetCount);
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -288,25 +298,25 @@ private:
             {
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
-                    int extrusionWidth = mesh.mesh->getSettingInt("extrusionWidth");
+                    int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                     if (layerNr == 0)
-                        extrusionWidth = mesh.mesh->getSettingInt("layer0extrusionWidth");
-                    generateSkins(layerNr, mesh, extrusionWidth, mesh.mesh->getSettingInt("downSkinCount"), mesh.mesh->getSettingInt("upSkinCount"), mesh.mesh->getSettingInt("infillOverlap"));
-                    if (mesh.mesh->getSettingInt("sparseInfillLineDistance") > 0)
-                        generateSparse(layerNr, mesh, extrusionWidth, mesh.mesh->getSettingInt("downSkinCount"), mesh.mesh->getSettingInt("upSkinCount"));
+                        extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
+                    generateSkins(layerNr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"));
+                    if (mesh.settings->getSettingInt("sparseInfillLineDistance") > 0)
+                        generateSparse(layerNr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"));
 
                     SliceLayer& layer = mesh.layers[layerNr];
                     for(SliceLayerPart& part : layer.parts)
                         sendPolygons("skin", layerNr, part.skinOutline);
                 }
             }
-            logProgress("skin",layerNr+1,totalLayers);
+            logProgress("skin", layerNr+1, totalLayers);
             if (commandSocket) commandSocket->sendProgress(1.0/3.0 + 1.0/3.0 * float(layerNr) / float(totalLayers));
         }
         for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
         {
             for(SliceMeshStorage& mesh : storage.meshes)
-                combineSparseLayers(layerNr, mesh, mesh.mesh->getSettingInt("sparseInfillCombineCount"));
+                combineSparseLayers(layerNr, mesh, mesh.settings->getSettingInt("sparseInfillCombineCount"));
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
@@ -314,12 +324,12 @@ private:
         {
             PolygonRef p = storage.wipeTower.newPoly();
             int tower_size = getSettingInt("wipeTowerSize");
-            p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000));
-            p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000 + tower_size));
-            p.add(Point(storage.modelMin.x - 3000 - tower_size, storage.modelMax.y + 3000 + tower_size));
-            p.add(Point(storage.modelMin.x - 3000 - tower_size, storage.modelMax.y + 3000));
+            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000));
+            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000 + tower_size));
+            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000 + tower_size));
+            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000));
 
-            storage.wipePoint = Point(storage.modelMin.x - 3000 - tower_size / 2, storage.modelMax.y + 3000 + tower_size / 2);
+            storage.wipePoint = Point(storage.model_min.x - 3000 - tower_size / 2, storage.model_max.y + 3000 + tower_size / 2);
         }
 
         generateSkirt(storage, getSettingInt("skirtDistance"), getSettingInt("layer0extrusionWidth"), getSettingInt("skirtLineCount"), getSettingInt("skirtMinLength"), getSettingInt("initialLayerThickness"));
@@ -344,7 +354,7 @@ private:
             gcode.writeRetraction();
             gcode.setZ(maxObjectHeight + 5000);
             gcode.writeMove(gcode.getPositionXY(), getSettingInt("moveSpeed"), 0);
-            gcode.writeMove(Point(storage.modelMin.x, storage.modelMin.y), getSettingInt("moveSpeed"), 0);
+            gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInt("moveSpeed"), 0);
         }
         fileNr++;
 
@@ -499,7 +509,7 @@ private:
         gcode.writeFanCommand(0);
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
-        maxObjectHeight = std::max(maxObjectHeight, storage.modelSize.z);
+        maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
     }
 
     //Add a single layer from a single mesh-volume to the GCode
