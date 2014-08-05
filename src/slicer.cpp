@@ -31,17 +31,17 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             MeshFace* face = &mesh->faces[segmentList[segmentIndex].faceIndex];
             for(unsigned int i=0;i<3;i++)
             {
-                if (face->connected_face_index[i] > -1 && faceToSegmentIndex.find(face->connected_face_index[i]) != faceToSegmentIndex.end())
+                if (face->connected_face_index[i] > -1 && face_idx_to_segment_index.find(face->connected_face_index[i]) != face_idx_to_segment_index.end())
                 {
-                    Point p1 = segmentList[faceToSegmentIndex[face->connected_face_index[i]]].start;
+                    Point p1 = segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].start;
                     Point diff = p0 - p1;
                     if (shorterThen(diff, MM2INT(0.01)))
                     {
-                        if (faceToSegmentIndex[face->connected_face_index[i]] == static_cast<int>(startSegment))
+                        if (face_idx_to_segment_index[face->connected_face_index[i]] == static_cast<int>(startSegment))
                             canClose = true;
-                        if (segmentList[faceToSegmentIndex[face->connected_face_index[i]]].addedToPolygon)
+                        if (segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].addedToPolygon)
                             continue;
-                        nextIndex = faceToSegmentIndex[face->connected_face_index[i]];
+                        nextIndex = face_idx_to_segment_index[face->connected_face_index[i]];
                     }
                 }
             }
@@ -358,7 +358,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layer_nr].faceToSegmentIndex[i] = layers[layer_nr].segmentList.size();
+            layers[layer_nr].face_idx_to_segment_index[i] = layers[layer_nr].segmentList.size();
             s.faceIndex = i;
             s.addedToPolygon = false;
             layers[layer_nr].segmentList.push_back(s);

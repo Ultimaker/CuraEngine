@@ -18,6 +18,7 @@
 #include "infill.h"
 #include "bridge.h"
 #include "pathOrderOptimizer.h"
+#include "gcodePlanner.h"
 #include "gcodeExport.h"
 #include "commandSocket.h"
 
@@ -51,10 +52,10 @@ public:
         commandSocket = socket;
     }
 
-    void sendPolygons(const char* name, int layerNr, Polygons& polygons)
+    void sendPolygons(const char* name, int layer_nr, Polygons& polygons)
     {
         if (commandSocket)
-            commandSocket->sendPolygons(name, layerNr, polygons);
+            commandSocket->sendPolygons(name, layer_nr, polygons);
     }
 
     bool setTargetFile(const char* filename)
@@ -179,8 +180,8 @@ private:
             for(SlicerLayer& layer : slicer->layers)
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-                //sendPolygons("outline", layerNr, layer.z, layer.polygonList);
-                //sendPolygons("openoutline", layerNr, layer.openPolygonList);
+                //sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
+                //sendPolygons("openoutline", layer_nr, layer.openPolygonList);
             }
             */
         }
@@ -199,12 +200,12 @@ private:
             delete slicerList[meshIdx];
 
             //Add the raft offset to each layer.
-            for(unsigned int layerNr=0; layerNr<meshStorage.layers.size(); layerNr++)
+            for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
             {
-                meshStorage.layers[layerNr].printZ += meshStorage.settings->getSettingInt("raftBaseThickness") + meshStorage.settings->getSettingInt("raftInterfaceThickness");
+                meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInt("raftBaseThickness") + meshStorage.settings->getSettingInt("raftInterfaceThickness");
 
                 if (commandSocket)
-                    commandSocket->sendLayerInfo(layerNr, meshStorage.layers[layerNr].printZ, layerNr == 0 ? meshStorage.settings->getSettingInt("initialLayerThickness") : meshStorage.settings->getSettingInt("layerThickness"));
+                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInt("initialLayerThickness") : meshStorage.settings->getSettingInt("layerThickness"));
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -220,30 +221,30 @@ private:
         //dumpLayerparts(storage, "c:/models/output.html");
         if (getSettingInt("simpleMode"))
         {
-            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+            for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
             {
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
-                    SliceLayer* layer = &mesh.layers[layerNr];
+                    SliceLayer* layer = &mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer->parts)
                     {
-                        sendPolygons("inset0", layerNr, part.outline);
+                        sendPolygons("inset0", layer_nr, part.outline);
                     }
                 }
             }
             return;
         }
 
-        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+        for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         {
             for(SliceMeshStorage& mesh : storage.meshes)
             {
                 int insetCount = mesh.settings->getSettingInt("insetCount");
-                if (mesh.settings->getSettingInt("spiralizeMode") && static_cast<int>(layerNr) < mesh.settings->getSettingInt("downSkinCount") && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                if (mesh.settings->getSettingInt("spiralizeMode") && static_cast<int>(layer_nr) < mesh.settings->getSettingInt("downSkinCount") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
-                SliceLayer* layer = &mesh.layers[layerNr];
+                SliceLayer* layer = &mesh.layers[layer_nr];
                 int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
-                if (layerNr == 0)
+                if (layer_nr == 0)
                     extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
                 generateInsets(layer, extrusionWidth, insetCount);
 
@@ -251,23 +252,23 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygons("inset0", layerNr, layer->parts[partNr].insets[0]);
+                        sendPolygons("inset0", layer_nr, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygons("insetx", layerNr, layer->parts[partNr].insets[inset]);
+                            sendPolygons("insetx", layer_nr, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
-            logProgress("inset",layerNr+1,totalLayers);
-            if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layerNr) / float(totalLayers));
+            logProgress("inset",layer_nr+1,totalLayers);
+            if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layer_nr) / float(totalLayers));
         }
         if (getSettingInt("enableOozeShield"))
         {
-            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+            for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
             {
                 Polygons oozeShield;
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
-                    for(SliceLayerPart& part : mesh.layers[layerNr].parts)
+                    for(SliceLayerPart& part : mesh.layers[layer_nr].parts)
                     {
                         oozeShield = oozeShield.unionPolygons(part.outline.offset(MM2INT(2.0)));
                     }
@@ -275,41 +276,41 @@ private:
                 storage.oozeShield.push_back(oozeShield);
             }
 
-            for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
-                storage.oozeShield[layerNr] = storage.oozeShield[layerNr].offset(-MM2INT(1.0)).offset(MM2INT(1.0));
+            for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+                storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0));
             int offsetAngle = tan(60.0*M_PI/180) * getSettingInt("layerThickness");//Allow for a 60deg angle in the oozeShield.
-            for(unsigned int layerNr=1; layerNr<totalLayers; layerNr++)
-                storage.oozeShield[layerNr] = storage.oozeShield[layerNr].unionPolygons(storage.oozeShield[layerNr-1].offset(-offsetAngle));
-            for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
-                storage.oozeShield[layerNr-1] = storage.oozeShield[layerNr-1].unionPolygons(storage.oozeShield[layerNr].offset(-offsetAngle));
+            for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
+                storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
+            for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+                storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-offsetAngle));
         }
         log("Generated inset in %5.3fs\n", timeKeeper.restart());
 
-        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+        for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         {
-            if (!getSettingInt("spiralizeMode") || static_cast<int>(layerNr) < getSettingInt("downSkinCount"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
                     int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
-                    if (layerNr == 0)
+                    if (layer_nr == 0)
                         extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
-                    generateSkins(layerNr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"));
+                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"));
                     if (mesh.settings->getSettingInt("sparseInfillLineDistance") > 0)
-                        generateSparse(layerNr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"));
+                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"));
 
-                    SliceLayer& layer = mesh.layers[layerNr];
+                    SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
-                        sendPolygons("skin", layerNr, part.skinOutline);
+                        sendPolygons("skin", layer_nr, part.skinOutline);
                 }
             }
-            logProgress("skin", layerNr+1, totalLayers);
-            if (commandSocket) commandSocket->sendProgress(1.0/3.0 + 1.0/3.0 * float(layerNr) / float(totalLayers));
+            logProgress("skin", layer_nr+1, totalLayers);
+            if (commandSocket) commandSocket->sendProgress(1.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
         }
-        for(unsigned int layerNr=totalLayers-1; layerNr>0; layerNr--)
+        for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
         {
             for(SliceMeshStorage& mesh : storage.meshes)
-                combineSparseLayers(layerNr, mesh, mesh.settings->getSettingInt("sparseInfillCombineCount"));
+                combineSparseLayers(layer_nr, mesh, mesh.settings->getSettingInt("sparseInfillCombineCount"));
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
@@ -412,20 +413,20 @@ private:
             }
         }
 
-        for(unsigned int layerNr=0; layerNr<totalLayers; layerNr++)
+        for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         {
-            logProgress("export", layerNr+1, totalLayers);
-            if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layerNr) / float(totalLayers));
+            logProgress("export", layer_nr+1, totalLayers);
+            if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
             int extrusionWidth = getSettingInt("extrusionWidth");
-            if (layerNr == 0)
+            if (layer_nr == 0)
                 extrusionWidth = getSettingInt("layer0extrusionWidth");
-            if (static_cast<int>(layerNr) < getSettingInt("initialSpeedupLayers"))
+            if (static_cast<int>(layer_nr) < getSettingInt("initialSpeedupLayers"))
             {
                 int n = getSettingInt("initialSpeedupLayers");
                 int initialLayerSpeed = getSettingInt("initialLayerSpeed");
 #define SPEED_SMOOTH(speed) \
-                std::min<int>((speed), (((speed)*layerNr)/n + (initialLayerSpeed*(n-layerNr)/n)))
+                std::min<int>((speed), (((speed)*layer_nr)/n + (initialLayerSpeed*(n-layer_nr)/n)))
                 skirtConfig.setData(getSettingInt("skirtSpeed"), extrusionWidth, "SKIRT");
                 inset0Config.setData(SPEED_SMOOTH(getSettingInt("inset0Speed")), extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(SPEED_SMOOTH(getSettingInt("insetXSpeed")), extrusionWidth, "WALL-INNER");
@@ -442,18 +443,18 @@ private:
                 supportConfig.setData(getSettingInt("supportSpeed"), extrusionWidth, "SUPPORT");
             }
 
-            gcode.writeComment("LAYER:%d", layerNr);
-            if (layerNr == 0)
+            gcode.writeComment("LAYER:%d", layer_nr);
+            if (layer_nr == 0)
                 gcode.setExtrusion(getSettingInt("initialLayerThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
             else
                 gcode.setExtrusion(getSettingInt("layerThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
             GCodePlanner gcodeLayer(gcode, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
-            int32_t z = getSettingInt("initialLayerThickness") + layerNr * getSettingInt("layerThickness");
+            int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
             z += getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceLayers")*getSettingInt("raftSurfaceThickness");
             if (getSettingInt("raftBaseThickness") > 0 && getSettingInt("raftInterfaceThickness") > 0)
             {
-                if (layerNr == 0)
+                if (layer_nr == 0)
                 {
                     z += getSettingInt("raftAirGapLayer0");
                 } else {
@@ -462,7 +463,7 @@ private:
             }
             gcode.setZ(z);
 
-            if (layerNr == 0)
+            if (layer_nr == 0)
             {
                 if (storage.skirt.size() > 0)
                     gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
@@ -471,12 +472,12 @@ private:
 
             bool printSupportFirst = (storage.support.generated && getSettingInt("supportExtruder") > 0 && getSettingInt("supportExtruder") == gcodeLayer.getExtruder());
             if (printSupportFirst)
-                addSupportToGCode(storage, gcodeLayer, layerNr);
+                addSupportToGCode(storage, gcodeLayer, layer_nr);
 
             if (storage.oozeShield.size() > 0)
             {
                 gcodeLayer.setAlwaysRetract(true);
-                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
+                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &skirtConfig);
                 gcodeLayer.setAlwaysRetract(!getSettingInt("enableCombing"));
             }
 
@@ -484,10 +485,10 @@ private:
             std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
             for(SliceMeshStorage* mesh : mesh_order)
             {
-                addMeshLayerToGCode(storage, mesh, gcodeLayer, layerNr);
+                addMeshLayerToGCode(storage, mesh, gcodeLayer, layer_nr);
             }
             if (!printSupportFirst)
-                addSupportToGCode(storage, gcodeLayer, layerNr);
+                addSupportToGCode(storage, gcodeLayer, layer_nr);
 
             //Finish the layer by applying speed corrections for minimal layer times
             gcodeLayer.forceMinimalLayerTime(getSettingInt("minimalLayerTime"), getSettingInt("minimalFeedrate"));
@@ -500,14 +501,14 @@ private:
                 int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
                 fanSpeed = getSettingInt("fanSpeedMin") * n / 50 + getSettingInt("fanSpeedMax") * (50 - n) / 50;
             }
-            if (static_cast<int>(layerNr) < getSettingInt("fanFullOnLayerNr"))
+            if (static_cast<int>(layer_nr) < getSettingInt("fanFullOnLayerNr"))
             {
                 //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
-                fanSpeed = fanSpeed * layerNr / getSettingInt("fanFullOnLayerNr");
+                fanSpeed = fanSpeed * layer_nr / getSettingInt("fanFullOnLayerNr");
             }
             gcode.writeFanCommand(fanSpeed);
 
-            gcodeLayer.writeGCode(getSettingInt("coolHeadLift") > 0, static_cast<int>(layerNr) > 0 ? getSettingInt("layerThickness") : getSettingInt("initialLayerThickness"));
+            gcodeLayer.writeGCode(getSettingInt("coolHeadLift") > 0, static_cast<int>(layer_nr) > 0 ? getSettingInt("layerThickness") : getSettingInt("initialLayerThickness"));
         }
 
         log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
@@ -544,14 +545,15 @@ private:
     }
 
     //Add a single layer from a single mesh-volume to the GCode
-    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layerNr)
+    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
     {
         int prevExtruder = gcodeLayer.getExtruder();
-        bool extruderChanged = gcodeLayer.setExtruder(mesh->settings->getSettingInt("extruderNr"));
+        bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingInt("extruderNr"));
 
-        SliceLayer* layer = &mesh->layers[layerNr];
-        if (extruderChanged)
-            addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
+        if (extruder_changed)
+            addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
+
+        SliceLayer* layer = &mesh->layers[layer_nr];
 
         if (getSettingInt("simpleMode"))
         {
@@ -614,9 +616,9 @@ private:
             {
                 if (getSettingInt("spiralizeMode"))
                 {
-                    if (static_cast<int>(layerNr) >= getSettingInt("downSkinCount"))
+                    if (static_cast<int>(layer_nr) >= getSettingInt("downSkinCount"))
                         inset0Config.spiralize = true;
-                    if (static_cast<int>(layerNr) == getSettingInt("downSkinCount") && part->insets.size() > 0)
+                    if (static_cast<int>(layer_nr) == getSettingInt("downSkinCount") && part->insets.size() > 0)
                         gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
@@ -629,10 +631,10 @@ private:
             }
 
             int fillAngle = 45;
-            if (layerNr & 1)
+            if (layer_nr & 1)
                 fillAngle += 90;
             int extrusionWidth = getSettingInt("extrusionWidth");
-            if (layerNr == 0)
+            if (layer_nr == 0)
                 extrusionWidth = getSettingInt("layer0extrusionWidth");
             
             //Add thicker (multiple layers) sparse infill.
@@ -660,8 +662,8 @@ private:
             for(Polygons outline : part->skinOutline.splitIntoParts())
             {
                 int bridge = -1;
-                if (layerNr > 0)
-                    bridge = bridgeAngle(outline, &mesh->layers[layerNr-1]);
+                if (layer_nr > 0)
+                    bridge = bridgeAngle(outline, &mesh->layers[layer_nr-1]);
                 if (bridge > -1)
                 {
                     generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);
@@ -691,13 +693,13 @@ private:
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig[0]);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-            if (!getSettingInt("spiralizeMode") || static_cast<int>(layerNr) < getSettingInt("downSkinCount"))
+            if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))
                 gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);
     }
 
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
     {
         if (!storage.support.generated)
             return;
@@ -706,20 +708,20 @@ private:
         {
             int prevExtruder = gcodeLayer.getExtruder();
             if (gcodeLayer.setExtruder(getSettingInt("supportExtruder")))
-                addWipeTower(storage, gcodeLayer, layerNr, prevExtruder);
+                addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
         }
-        int32_t z = getSettingInt("initialLayerThickness") + layerNr * getSettingInt("layerThickness");
+        int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
         SupportPolyGenerator supportGenerator(storage.support, z);
         for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
         {
-            SliceLayer* layer = &storage.meshes[meshCnt].layers[layerNr];
+            SliceLayer* layer = &storage.meshes[meshCnt].layers[layer_nr];
             for(unsigned int n=0; n<layer->parts.size(); n++)
                 supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(getSettingInt("supportXYDistance")));
         }
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-getSettingInt("extrusionWidth") * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(getSettingInt("extrusionWidth") * 3);
-        sendPolygons("support", layerNr, supportGenerator.polygons);
+        sendPolygons("support", layer_nr, supportGenerator.polygons);
 
         std::vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
 
@@ -745,7 +747,7 @@ private:
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 0);
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 90);
                     }else{
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layerNr & 1) ? 0 : 90);
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layer_nr & 1) ? 0 : 90);
                     }
                 }else if (getSetting("supportType") == "SUPPORT_TYPE_LINES")
                 {
@@ -763,7 +765,7 @@ private:
         }
     }
 
-    void addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr, int prevExtruder)
+    void addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder)
     {
         if (getSettingInt("wipeTowerSize") < 1)
             return;
@@ -772,7 +774,7 @@ private:
         //If we changed extruder, print the wipe/prime tower for this nozzle;
         gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &supportConfig);
         Polygons fillPolygons;
-        generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layerNr % 2));
+        generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layer_nr % 2));
         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &supportConfig);
 
         //Make sure we wipe the old extruder on the wipe tower.
