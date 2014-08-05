@@ -2,6 +2,7 @@
 #define FFF_PROCESSOR_H
 
 #include <algorithm>
+#include <sstream>
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
@@ -141,7 +142,11 @@ private:
         supportConfig.setData(getSettingInt("supportSpeed"), extrusionWidth, "SUPPORT");
 
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
-            gcode.setExtruderOffset(n, Point(getSettingInt("extruderOffset1.X"), getSettingInt("extruderOffset1.Y")));
+        {
+            std::ostringstream stream;
+            stream << "extruderOffset" << n;
+            gcode.setExtruderOffset(n, Point(getSettingInt(stream.str() + ".X"), getSettingInt(stream.str() + ".Y")));
+        }
         gcode.setSwitchExtruderCode(getSetting("preSwitchExtruderCode"), getSetting("postSwitchExtruderCode"));
         
         if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP")

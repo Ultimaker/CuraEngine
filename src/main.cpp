@@ -164,12 +164,13 @@ int main(int argc, char **argv)
     processor.setSetting("simpleMode", "0");
     processor.setSetting("gcodeFlavor", "GCODE_FLAVOR_REPRAP");
 
-    processor.setSetting("extruderOffset1.X", "0");
-    processor.setSetting("extruderOffset1.Y", "0");
-    processor.setSetting("extruderOffset2.X", "0");
-    processor.setSetting("extruderOffset2.Y", "0");
-    processor.setSetting("extruderOffset3.X", "0");
-    processor.setSetting("extruderOffset3.Y", "0");
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+    {
+        std::ostringstream stream;
+        stream << "extruderOffset" << n;
+        processor.setSetting(stream.str() + ".X", "0");
+        processor.setSetting(stream.str() + ".Y", "0");
+    }
 
     processor.setSetting("startCode", 
         "M109 S210     ;Heatup to 210C\n"
