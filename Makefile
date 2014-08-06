@@ -35,26 +35,39 @@ DIRS = $(sort $(dir $(OBJECTS)))
 
 EXECUTABLE = $(BUILD_DIR)/CuraEngine
 
+TARGET_OS ?= Unknown
+
 ifeq ($(OS),Windows_NT)
+	#On windows, we target windows.
+	TARGET_OS := WIN32
+else
+	UNAME := $(shell uname)
+	ifeq ($UNAME, Darwin)
+		#On MacOS, we target MacOS.
+		TARGET_OS := MACOS
+	else
+		#On linux, check our compiler, we might be compiling for Windows with mingw
+		ifneq (,$(findstring mingw,$(CXX)))
+			TARGET_OS := WIN32
+		else
+			TARGET_OS := LINUX
+		end
+	endif
+endif
+
+ifeq ($(TARGET_OS),WIN32)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
 	EXECUTABLE := $(EXECUTABLE).exe
 	CFLAGS += -march=pentium4 -flto
 	LDFLAGS += -Wl,--large-address-aware -lm -lwsock32 -flto
-	MKDIR_PREFIX = mkdir -p
-else
-	MKDIR_PREFIX = mkdir -p
-	UNAME := $(shell uname)
-	ifeq ($(UNAME), Linux)
-		OPEN_HTML=firefox
-		CFLAGS += -flto
-		LDFLAGS += --static -flto
-	endif
-	ifeq ($(UNAME), Darwin)
-		OPEN_HTML=open
-		#For MacOS force to build
-		CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
-		LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
-	endif
+endif
+ifeq ($(TARGET_OS),LINUX)
+	CFLAGS += -flto
+	LDFLAGS += --static -flto
+endif
+ifeq ($(TARGET_OS), MACOS)
+	CFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
+	LDFLAGS += -force_cpusubtype_ALL -mmacosx-version-min=10.6 -arch x86_64 -arch i386
 endif
 
 all: $(DIRS) $(SOURCES) $(EXECUTABLE)
@@ -66,7 +79,7 @@ $(EXECUTABLE): $(OBJECTS) $(BUILD_DIR)/libclipper.a
 	$(CXX) $(OBJECTS) -o $@ $(LDFLAGS)
 
 $(DIRS):
-	-@$(MKDIR_PREFIX) $(DIRS)
+	-@mkdir -p $(DIRS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CFLAGS) $< -o $@
