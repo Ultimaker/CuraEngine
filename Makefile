@@ -51,7 +51,7 @@ else
 			TARGET_OS := WIN32
 		else
 			TARGET_OS := LINUX
-		end
+		endif
 	endif
 endif
 
