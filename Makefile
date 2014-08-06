@@ -89,7 +89,7 @@ test: $(EXECUTABLE)
 
 ## clean stuff
 clean:
-	rm -f $(EXECUTABLE) $(OBJECTS)
+	rm -f $(EXECUTABLE) $(OBJECTS) $(BUILD_DIR)/libclipper.a
 
 help:
 	@cat Makefile |grep \#\#| grep \: |cut -d\# -f3
