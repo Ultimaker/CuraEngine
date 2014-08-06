@@ -22,7 +22,7 @@ ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
 endif
 
-LDFLAGS += -Lbuild/ -lclipper
+LDFLAGS += -L$(BUILD_DIR)/ -lclipper
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp commandSocket.cpp multiVolumes.cpp mesh.cpp gcodePlanner.cpp
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
