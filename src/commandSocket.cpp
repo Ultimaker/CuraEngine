@@ -116,6 +116,7 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                     v[2] = matrix.apply(fv[2]);
                     mesh->addFace(v[0], v[1], v[2]);
                 }
+                mesh->finish();
             }else{
                 for(int n=0; n<dataSize; n++)
                     socket.recvAll(&command, 1);
