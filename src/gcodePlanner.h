@@ -17,15 +17,24 @@ public:
     int lineWidth;
     const char* name;
     bool spiralize;
+    RetractionConfig* retraction_config;
     
-    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false) {}
-    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
+    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), lineWidth(0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
-    void setData(int speed, int lineWidth, const char* name)
+    void setSpeed(int speed)
     {
         this->speed = speed;
+    }
+    
+    void setLineWidth(int lineWidth)
+    {
         this->lineWidth = lineWidth;
-        this->name = name;
+    }
+    
+    void smoothSpeed(int min_speed, int layer_nr, int max_speed_layer)
+    {
+        speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
 };
 
@@ -64,7 +73,7 @@ private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
 public:
-    GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance);
+    GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance);
     ~GCodePlanner();
     
     bool setExtruder(int extruder)

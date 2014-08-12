@@ -22,10 +22,11 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance)
-: gcode(gcode), travelConfig(travelSpeed, 0, "travel")
+GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance)
+: gcode(gcode), travelConfig(retraction_config, "MOVE")
 {
     lastPosition = gcode.getPositionXY();
+    travelConfig.setSpeed(travelSpeed);
     comb = nullptr;
     extrudeSpeedFactor = 100;
     travelSpeedFactor = 100;
@@ -189,7 +190,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             gcode.switchExtruder(extruder);
         }else if (path->retract)
         {
-            gcode.writeRetraction();
+            gcode.writeRetraction(path->config->retraction_config);
         }
         if (path->config != &travelConfig && lastConfig != path->config)
         {
@@ -279,7 +280,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     if (liftHeadIfNeeded && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay of %f", extraTime);
-        gcode.writeRetraction(true);
+        if (lastConfig)
+            gcode.writeRetraction(lastConfig->retraction_config, true);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), travelConfig.speed, 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);

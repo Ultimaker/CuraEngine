@@ -10,6 +10,16 @@
 
 namespace cura {
 
+class RetractionConfig
+{
+public:
+    double amount;
+    int speed;
+    int primeSpeed;
+    double primeAmount;
+    int zHop;
+};
+
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport
@@ -18,18 +28,19 @@ private:
     FILE* f;
     double extrusionAmount;
     double extrusionPerMM;
-    double retractionAmount;
-    double retractionAmountPrime;
-    int retractionZHop;
     double extruderSwitchRetraction;
+    int extruderSwitchRetractionSpeed;
+    int extruderSwitchPrimeSpeed;
     double minimalExtrusionBeforeRetraction;
     double extrusionAmountAtPreviousRetraction;
     Point3 currentPosition;
     Point extruderOffset[MAX_EXTRUDERS];
     char extruderCharacter[MAX_EXTRUDERS];
-    int currentSpeed, retractionSpeed;
+    int currentSpeed;
     int zPos;
     bool isRetracted;
+    bool isZHopped;
+    int retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
     GCode_Flavor flavor;
@@ -58,7 +69,7 @@ public:
     
     void setExtrusion(int layerThickness, int filamentDiameter, int flow);
     
-    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime);
+    void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
     
     void setZ(int z);
     
@@ -83,7 +94,7 @@ public:
     
     void writeMove(Point p, int speed, int lineWidth);
     
-    void writeRetraction(bool force=false);
+    void writeRetraction(RetractionConfig* config, bool force=false);
     
     void switchExtruder(int newExtruder);
     

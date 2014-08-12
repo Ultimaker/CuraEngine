@@ -5,6 +5,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
+#include "GCodePlanner.h"
 
 namespace cura {
 
@@ -61,8 +62,18 @@ class SliceMeshStorage
 public:
     SettingsBase* settings;
     std::vector<SliceLayer> layers;
+
+    RetractionConfig retraction_config;
+    GCodePathConfig inset0_config;
+    GCodePathConfig insetX_config;
+    GCodePathConfig fill_config[MAX_SPARSE_COMBINE];
     
-    SliceMeshStorage(SettingsBase* settings) : settings(settings) {}
+    SliceMeshStorage(SettingsBase* settings)
+    : settings(settings), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER")
+    {
+        for(int n=0; n<MAX_SPARSE_COMBINE; n++)
+            fill_config[n] = GCodePathConfig(&retraction_config, "FILL");
+    }
 };
 
 class SliceDataStorage
@@ -73,10 +84,19 @@ public:
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     std::vector<Polygons> oozeShield;        //oozeShield per layer
     std::vector<SliceMeshStorage> meshes;
+
+    RetractionConfig retraction_config;
+    GCodePathConfig skirt_config;
+    GCodePathConfig support_config;
     
     SupportStorage support;
     Polygons wipeTower;
     Point wipePoint;
+    
+    SliceDataStorage()
+    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT")
+    {
+    }
 };
 
 }//namespace cura

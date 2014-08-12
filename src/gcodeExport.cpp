@@ -12,7 +12,6 @@ GCodeExport::GCodeExport()
 {
     extrusionAmount = 0;
     extrusionPerMM = 0;
-    retractionAmount = 4.5;
     minimalExtrusionBeforeRetraction = 0.0;
     extrusionAmountAtPreviousRetraction = -10000;
     extruderSwitchRetraction = 14.5;
@@ -23,9 +22,10 @@ GCodeExport::GCodeExport()
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
         totalFilament[e] = 0.0;
     
-    currentSpeed = 0;
-    retractionSpeed = 45;
+    currentSpeed = 1;
+    retractionPrimeSpeed = 1;
     isRetracted = false;
+    isZHopped = false;
     setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
     f = stdout;
@@ -89,14 +89,12 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
     }
 }
 
-void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime)
+void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction)
 {
-    this->retractionAmount = INT2MM(retractionAmount);
-    this->retractionAmountPrime = INT2MM(retractionAmountPrime);
-    this->retractionSpeed = retractionSpeed;
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
+    this->extruderSwitchRetractionSpeed = extruderSwitchRetractionSpeed;
+    this->extruderSwitchPrimeSpeed = extruderSwitchPrimeSpeed;
     this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
-    this->retractionZHop = zHop;
 }
 
 void GCodeExport::setZ(int z)
@@ -220,17 +218,20 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         if (lineWidth != 0)
         {
             Point diff = p - getPositionXY();
+            if (isZHopped > 0)
+            {
+                fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
+                isZHopped = false;
+            }
             if (isRetracted)
             {
-                if (retractionZHop > 0)
-                    fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
                 if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     fprintf(f, "G11\n");
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), 25.0);
                 }else{
-                    extrusionAmount += retractionAmountPrime;
-                    fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
-                    currentSpeed = retractionSpeed;
+                    fprintf(f, "G1 F%i %c%0.5f\n", retractionPrimeSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                    currentSpeed = retractionPrimeSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), currentSpeed);
                 }
                 if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
@@ -261,27 +262,35 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), speed);
 }
 
-void GCodeExport::writeRetraction(bool force)
+void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 {
     if (flavor == GCODE_FLAVOR_BFB)//BitsFromBytes does automatic retraction.
         return;
     if (isRetracted)
         return;
-    if (!force && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction > extrusionAmount)
+    if (!force && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction > config->amount)
         return;
-    if (retractionAmount <= 0)
+    if (config->amount <= 0)
         return;
+
+    if (config->primeAmount > 0)
+        extrusionAmount += config->primeAmount;
+    retractionPrimeSpeed = config->primeSpeed;
     
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
         fprintf(f, "G10\n");
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - 4.5), 25);
     }else{
-        fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
-        currentSpeed = retractionSpeed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
+        fprintf(f, "G1 F%i %c%0.5f\n", config->speed * 60, extruderCharacter[extruderNr], extrusionAmount - config->amount);
+        currentSpeed = config->speed;
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - config->amount), currentSpeed);
     }
-    if (retractionZHop > 0)
-        fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + retractionZHop));
+    if (config->zHop > 0)
+    {
+        fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + config->zHop));
+        isZHopped = true;
+    }
     extrusionAmountAtPreviousRetraction = extrusionAmount;
     isRetracted = true;
 }
@@ -303,11 +312,9 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         fprintf(f, "G10 S1\n");
     }else{
-        fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
-        currentSpeed = retractionSpeed;
+        fprintf(f, "G1 F%i %c%0.5f\n", extruderSwitchRetractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+        currentSpeed = extruderSwitchRetractionSpeed;
     }
-    if (retractionZHop > 0)
-        fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + retractionZHop));
     extruderNr = newExtruder;
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
@@ -364,7 +371,7 @@ void GCodeExport::tellFileSize() {
 void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCode)
 {
     writeFanCommand(0);
-    writeRetraction();
+    //TODO: writeRetraction();
     setZ(maxObjectHeight + 5000);
     writeMove(getPositionXY(), moveSpeed, 0);
     writeCode(endCode);

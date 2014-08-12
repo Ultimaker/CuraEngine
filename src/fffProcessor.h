@@ -35,11 +35,6 @@ private:
     TimeKeeper timeKeeper;
     CommandSocket* commandSocket;
 
-    GCodePathConfig skirtConfig;
-    GCodePathConfig inset0Config;
-    GCodePathConfig insetXConfig;
-    GCodePathConfig fillConfig[MAX_SPARSE_COMBINE];
-    GCodePathConfig supportConfig;
 public:
     fffProcessor()
     {
@@ -133,14 +128,6 @@ public:
 private:
     void preSetup()
     {
-        int extrusionWidth = getSettingInt("extrusionWidth");
-        skirtConfig.setData(getSettingInt("initialLayerSpeed"), extrusionWidth, "SKIRT");
-        inset0Config.setData(getSettingInt("inset0Speed"), extrusionWidth, "WALL-OUTER");
-        insetXConfig.setData(getSettingInt("insetXSpeed"), extrusionWidth, "WALL-INNER");
-        for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
-            fillConfig[idx].setData(getSettingInt("infillSpeed"), extrusionWidth * (idx + 1), "FILL");
-        supportConfig.setData(getSettingInt("supportSpeed"), extrusionWidth, "SUPPORT");
-
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
@@ -161,7 +148,7 @@ private:
             gcode.setFlavor(GCODE_FLAVOR_MACH3);
         else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP_VOLUMATRIC")
             gcode.setFlavor(GCODE_FLAVOR_REPRAP_VOLUMATRIC);
-        gcode.setRetractionSettings(getSettingInt("retractionAmount"), getSettingInt("retractionSpeed"), getSettingInt("retractionAmountExtruderSwitch"), getSettingInt("minimalExtrusionBeforeRetraction"), getSettingInt("retractionZHop"), getSettingInt("retractionAmountPrime"));
+        gcode.setRetractionSettings(getSettingInt("retractionAmountExtruderSwitch"), getSettingInt("retractionExtruderSwitchSpeed"), getSettingInt("retractionExtruderSwitchPrimeSpeed"), getSettingInt("minimalExtrusionBeforeRetraction"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object)
@@ -339,6 +326,21 @@ private:
 
     void writeGCode(SliceDataStorage& storage)
     {
+        //Setup the retraction parameters.
+        storage.retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));
+        storage.retraction_config.primeAmount = INT2MM(getSettingInt("retractionPrimeAmount"));
+        storage.retraction_config.speed = getSettingInt("retractionSpeed");
+        storage.retraction_config.primeSpeed = getSettingInt("retractionPrimeSpeed");
+        storage.retraction_config.zHop = getSettingInt("retractionZHop");
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            mesh.retraction_config.amount = INT2MM(mesh.settings->getSettingInt("retractionAmount"));
+            mesh.retraction_config.primeAmount = INT2MM(mesh.settings->getSettingInt("retractionPrimeAmount"));
+            mesh.retraction_config.speed = mesh.settings->getSettingInt("retractionSpeed");
+            mesh.retraction_config.primeSpeed = mesh.settings->getSettingInt("retractionPrimeSpeed");
+            mesh.retraction_config.zHop = mesh.settings->getSettingInt("retractionZHop");
+        }
+
         if (fileNr == 1)
         {
             gcode.writeCode(getSetting("startCode").c_str());
@@ -350,7 +352,7 @@ private:
         }else{
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
-            gcode.writeRetraction();
+            //TODO: gcode.writeRetraction();
             gcode.setZ(maxObjectHeight + 5000);
             gcode.writeMove(gcode.getPositionXY(), getSettingInt("moveSpeed"), 0);
             gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInt("moveSpeed"), 0);
@@ -362,23 +364,28 @@ private:
 
         if (getSettingInt("raftBaseThickness") > 0 && getSettingInt("raftInterfaceThickness") > 0)
         {
-            GCodePathConfig raftBaseConfig(getSettingInt("raftBaseSpeed"), getSettingInt("raftBaseLinewidth"), "SUPPORT");
-            GCodePathConfig raftMiddleConfig(getSettingInt("raftInterfaceSpeed"), getSettingInt("raftInterfaceLinewidth"), "SUPPORT");
-            GCodePathConfig raftInterfaceConfig(getSettingInt("raftInterfaceSpeed"), getSettingInt("raftInterfaceLinewidth"), "SUPPORT");
-            GCodePathConfig raftSurfaceConfig(getSettingInt("raftSurfaceSpeed"), getSettingInt("raftSurfaceLinewidth"), "SUPPORT");
+            GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
+            raft_base_config.setSpeed(getSettingInt("raftBaseSpeed"));
+            raft_base_config.setLineWidth(getSettingInt("raftBaseLinewidth"));
+            GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
+            raft_interface_config.setSpeed(getSettingInt("raftInterfaceSpeed"));
+            raft_interface_config.setLineWidth(getSettingInt("raftInterfaceLinewidth"));
+            GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
+            raft_surface_config.setSpeed(getSettingInt("raftSurfaceSpeed"));
+            raft_surface_config.setLineWidth(getSettingInt("raftSurfaceLinewidth"));
             {
                 gcode.writeComment("LAYER:-2");
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 if (getSettingInt("supportExtruder") > 0)
                     gcodeLayer.setExtruder(getSettingInt("supportExtruder"));
                 gcode.setZ(getSettingInt("raftBaseThickness"));
                 gcode.setExtrusion(getSettingInt("raftBaseThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
-                gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raftBaseConfig);
+                gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftBaseLinewidth"), getSettingInt("raftLineSpacing"), getSettingInt("infillOverlap"), 0);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raftBaseConfig);
+                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_base_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftBaseThickness"));
             }
@@ -391,13 +398,13 @@ private:
             {
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness"));
                 gcode.setExtrusion(getSettingInt("raftInterfaceThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftInterfaceLinewidth"), getSettingInt("raftInterfaceLineSpacing"), getSettingInt("infillOverlap"), getSettingInt("raftSurfaceLayers") > 0 ? 45 : 90);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raftInterfaceConfig);
+                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
             }
@@ -406,13 +413,13 @@ private:
             {
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceThickness")*raftSurfaceLayer);
                 gcode.setExtrusion(getSettingInt("raftSurfaceThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftSurfaceLinewidth"), getSettingInt("raftSurfaceLineSpacing"), getSettingInt("infillOverlap"), 90 * raftSurfaceLayer);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raftSurfaceConfig);
+                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
             }
@@ -423,29 +430,46 @@ private:
             logProgress("export", layer_nr+1, totalLayers);
             if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
-            int extrusionWidth = getSettingInt("extrusionWidth");
+            int extrusion_width = getSettingInt("extrusionWidth");
             if (layer_nr == 0)
-                extrusionWidth = getSettingInt("layer0extrusionWidth");
-            if (static_cast<int>(layer_nr) < getSettingInt("initialSpeedupLayers"))
+                extrusion_width = getSettingInt("layer0extrusionWidth");
+            
+            storage.skirt_config.setSpeed(getSettingInt("skirtSpeed"));
+            storage.skirt_config.setLineWidth(extrusion_width);
+            
+            storage.support_config.setLineWidth(extrusion_width);
+            storage.support_config.setSpeed(getSettingInt("supportSpeed"));
+            for(SliceMeshStorage& mesh : storage.meshes)
             {
-                int n = getSettingInt("initialSpeedupLayers");
-                int initialLayerSpeed = getSettingInt("initialLayerSpeed");
-#define SPEED_SMOOTH(speed) \
-                std::min<int>((speed), (((speed)*layer_nr)/n + (initialLayerSpeed*(n-layer_nr)/n)))
-                skirtConfig.setData(getSettingInt("skirtSpeed"), extrusionWidth, "SKIRT");
-                inset0Config.setData(SPEED_SMOOTH(getSettingInt("inset0Speed")), extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(SPEED_SMOOTH(getSettingInt("insetXSpeed")), extrusionWidth, "WALL-INNER");
+                extrusion_width = mesh.settings->getSettingInt("extrusionWidth");
+                if (layer_nr == 0)
+                    extrusion_width = mesh.settings->getSettingInt("layer0extrusionWidth");
+
+                mesh.inset0_config.setLineWidth(extrusion_width);
+                mesh.inset0_config.setSpeed(mesh.settings->getSettingInt("inset0Speed"));
+                mesh.insetX_config.setLineWidth(extrusion_width);
+                mesh.insetX_config.setSpeed(mesh.settings->getSettingInt("insetXSpeed"));
                 for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
-                    fillConfig[idx].setData(SPEED_SMOOTH(getSettingInt("infillSpeed")), extrusionWidth * (idx + 1),  "FILL");
-                supportConfig.setData(SPEED_SMOOTH(getSettingInt("supportSpeed")), extrusionWidth, "SUPPORT");
-#undef SPEED_SMOOTH
-            }else{
-                skirtConfig.setData(getSettingInt("skirtSpeed"), extrusionWidth, "SKIRT");
-                inset0Config.setData(getSettingInt("inset0Speed"), extrusionWidth, "WALL-OUTER");
-                insetXConfig.setData(getSettingInt("insetXSpeed"), extrusionWidth, "WALL-INNER");
-                for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
-                    fillConfig[idx].setData(getSettingInt("infillSpeed"), extrusionWidth * (idx + 1), "FILL");
-                supportConfig.setData(getSettingInt("supportSpeed"), extrusionWidth, "SUPPORT");
+                {
+                    mesh.fill_config[idx].setLineWidth(extrusion_width * (idx + 1));
+                    mesh.fill_config[idx].setSpeed(getSettingInt("infillSpeed"));
+                }
+            }
+            
+            int initial_speedup_layers = getSettingInt("initialSpeedupLayers");
+            if (static_cast<int>(layer_nr) < initial_speedup_layers)
+            {
+                int initial_layer_speed = getSettingInt("initialLayerSpeed");
+                storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+                for(SliceMeshStorage& mesh : storage.meshes)
+                {
+                    mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+                    mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+                    for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
+                    {
+                        mesh.fill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+                    }
+                }
             }
 
             gcode.writeComment("LAYER:%d", layer_nr);
@@ -454,7 +478,7 @@ private:
             else
                 gcode.setExtrusion(getSettingInt("layerThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
-            GCodePlanner gcodeLayer(gcode, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
+            GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
             int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
             z += getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceLayers")*getSettingInt("raftSurfaceThickness");
             if (getSettingInt("raftBaseThickness") > 0 && getSettingInt("raftInterfaceThickness") > 0)
@@ -472,7 +496,7 @@ private:
             {
                 if (storage.skirt.size() > 0)
                     gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
-                gcodeLayer.addPolygonsByOptimizer(storage.skirt, &skirtConfig);
+                gcodeLayer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
             }
 
             bool printSupportFirst = (storage.support.generated && getSettingInt("supportExtruder") > 0 && getSettingInt("supportExtruder") == gcodeLayer.getExtruder());
@@ -482,7 +506,7 @@ private:
             if (storage.oozeShield.size() > 0)
             {
                 gcodeLayer.setAlwaysRetract(true);
-                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &skirtConfig);
+                gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config);
                 gcodeLayer.setAlwaysRetract(!getSettingInt("enableCombing"));
             }
 
@@ -593,10 +617,10 @@ private:
                     polygons.add(p);
                 }
             }
-            if (getSettingInt("spiralizeMode"))
-                inset0Config.spiralize = true;
+            if (mesh->settings->getSettingInt("spiralizeMode"))
+                mesh->inset0_config.spiralize = true;
             
-            gcodeLayer.addPolygonsByOptimizer(polygons, &inset0Config);
+            gcodeLayer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
             return;
         }
 
@@ -622,16 +646,16 @@ private:
                 if (getSettingInt("spiralizeMode"))
                 {
                     if (static_cast<int>(layer_nr) >= getSettingInt("downSkinCount"))
-                        inset0Config.spiralize = true;
+                        mesh->inset0_config.spiralize = true;
                     if (static_cast<int>(layer_nr) == getSettingInt("downSkinCount") && part->insets.size() > 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &mesh->insetX_config);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &mesh->inset0_config);
                     else
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &mesh->insetX_config);
                 }
             }
 
@@ -658,7 +682,7 @@ private:
                     {
                         generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                     }
-                    gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig[n]);
+                    gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[n]);
                 }
             }
 
@@ -695,7 +719,7 @@ private:
                     generateConcentricInfill(part->sparse_outline[0], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                 }
             }
-            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig[0]);
+            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[0]);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))
@@ -764,8 +788,8 @@ private:
             if (getSettingInt("enableCombing"))
                 gcodeLayer.setCombBoundary(&island);
             if (getSetting("supportType") == "SUPPORT_TYPE_GRID")
-                gcodeLayer.addPolygonsByOptimizer(island, &supportConfig);
-            gcodeLayer.addPolygonsByOptimizer(supportLines, &supportConfig);
+                gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
+            gcodeLayer.addPolygonsByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
         }
     }
@@ -777,10 +801,10 @@ private:
         
         int extrusionWidth = getSettingInt("extrusionWidth");
         //If we changed extruder, print the wipe/prime tower for this nozzle;
-        gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &supportConfig);
+        gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &storage.support_config);
         Polygons fillPolygons;
         generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layer_nr % 2));
-        gcodeLayer.addPolygonsByOptimizer(fillPolygons, &supportConfig);
+        gcodeLayer.addPolygonsByOptimizer(fillPolygons, &storage.support_config);
 
         //Make sure we wipe the old extruder on the wipe tower.
         gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prevExtruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
