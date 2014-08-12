@@ -11,7 +11,6 @@ GCodeExport::GCodeExport()
 : currentPosition(0,0,0)
 {
     extrusionAmount = 0;
-    extrusionPerMM = 0;
     minimalExtrusionBeforeRetraction = 0.0;
     extrusionAmountAtPreviousRetraction = -10000;
     extruderSwitchRetraction = 14.5;
@@ -76,17 +75,6 @@ void GCodeExport::setFilename(const char* filename)
 bool GCodeExport::isOpened()
 {
     return f != nullptr;
-}
-
-void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flow)
-{
-    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)//UltiGCode uses volume extrusion as E value, and thus does not need the filamentArea in the mix.
-    {
-        extrusionPerMM = INT2MM(layerThickness) * double(flow) / 100.0;
-    }else{
-        double filamentArea = M_PI * (INT2MM(filamentDiameter) / 2.0) * (INT2MM(filamentDiameter) / 2.0);
-        extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
-    }
 }
 
 void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction)
@@ -171,7 +159,7 @@ void GCodeExport::writeDelay(double timeAmount)
     totalPrintTime += timeAmount;
 }
 
-void GCodeExport::writeMove(Point p, int speed, int lineWidth)
+void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
 {
     if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
         return;
@@ -180,7 +168,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
     {
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
         float fspeed = speed * 60;
-        float rpm = (extrusionPerMM * double(lineWidth) / 1000.0) * speed * 60;
+        float rpm = extrusion_per_mm * speed * 60;
         const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
         rpm /= mm_per_rpm;
         if (rpm > 0)
@@ -189,7 +177,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             {
                 if (currentSpeed != int(rpm * 10))
                 {
-                    //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusionPerMM, lineWidth, speed);
+                    //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
                     fprintf(f, "M108 S%0.1f\n", rpm);
                     currentSpeed = int(rpm * 10);
                 }
@@ -202,7 +190,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 
             //Increase the extrusion amount to calculate the amount of filament used.
             Point diff = p - getPositionXY();
-            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
+            extrusionAmount += extrusion_per_mm * vSizeMM(diff);
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
@@ -215,12 +203,12 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
     }else{
         
         //Normal E handling.
-        if (lineWidth != 0)
+        if (extrusion_per_mm != 0)
         {
             Point diff = p - getPositionXY();
             if (isZHopped > 0)
             {
-                fprintf(f, "G1 Z%0.2f\n", float(currentPosition.z)/1000);
+                fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z));
                 isZHopped = false;
             }
             if (isRetracted)
@@ -238,7 +226,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     resetExtrusionValue();
                 isRetracted = false;
             }
-            extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
+            extrusionAmount += extrusion_per_mm * vSizeMM(diff);
             fprintf(f, "G1");
         }else{
             fprintf(f, "G0");
@@ -253,7 +241,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
         fprintf(f, " X%0.2f Y%0.2f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", INT2MM(zPos));
-        if (lineWidth != 0)
+        if (extrusion_per_mm != 0)
             fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusionAmount);
         fprintf(f, "\n");
     }

@@ -9,35 +9,6 @@
 
 namespace cura {
 
-//The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
-class GCodePathConfig
-{
-public:
-    int speed;
-    int lineWidth;
-    const char* name;
-    bool spiralize;
-    RetractionConfig* retraction_config;
-    
-    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), lineWidth(0), name(name), spiralize(false), retraction_config(retraction_config) {}
-    
-    void setSpeed(int speed)
-    {
-        this->speed = speed;
-    }
-    
-    void setLineWidth(int lineWidth)
-    {
-        this->lineWidth = lineWidth;
-    }
-    
-    void smoothSpeed(int min_speed, int layer_nr, int max_speed_layer)
-    {
-        speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
-    }
-};
-
 class GCodePath
 {
 public:

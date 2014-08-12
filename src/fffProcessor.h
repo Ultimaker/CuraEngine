@@ -367,12 +367,21 @@ private:
             GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
             raft_base_config.setSpeed(getSettingInt("raftBaseSpeed"));
             raft_base_config.setLineWidth(getSettingInt("raftBaseLinewidth"));
+            raft_base_config.setLayerHeight(getSettingInt("raftBaseThickness"));
+            raft_base_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
+            raft_base_config.setFlow(getSettingInt("filamentFlow"));
             GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
             raft_interface_config.setSpeed(getSettingInt("raftInterfaceSpeed"));
             raft_interface_config.setLineWidth(getSettingInt("raftInterfaceLinewidth"));
+            raft_interface_config.setLayerHeight(getSettingInt("raftBaseThickness"));
+            raft_interface_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
+            raft_interface_config.setFlow(getSettingInt("filamentFlow"));
             GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
             raft_surface_config.setSpeed(getSettingInt("raftSurfaceSpeed"));
             raft_surface_config.setLineWidth(getSettingInt("raftSurfaceLinewidth"));
+            raft_surface_config.setLayerHeight(getSettingInt("raftBaseThickness"));
+            raft_surface_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
+            raft_surface_config.setFlow(getSettingInt("filamentFlow"));
             {
                 gcode.writeComment("LAYER:-2");
                 gcode.writeComment("RAFT");
@@ -380,7 +389,6 @@ private:
                 if (getSettingInt("supportExtruder") > 0)
                     gcodeLayer.setExtruder(getSettingInt("supportExtruder"));
                 gcode.setZ(getSettingInt("raftBaseThickness"));
-                gcode.setExtrusion(getSettingInt("raftBaseThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
                 Polygons raftLines;
@@ -400,7 +408,6 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness"));
-                gcode.setExtrusion(getSettingInt("raftInterfaceThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftInterfaceLinewidth"), getSettingInt("raftInterfaceLineSpacing"), getSettingInt("infillOverlap"), getSettingInt("raftSurfaceLayers") > 0 ? 45 : 90);
@@ -415,7 +422,6 @@ private:
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceThickness")*raftSurfaceLayer);
-                gcode.setExtrusion(getSettingInt("raftSurfaceThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftSurfaceLinewidth"), getSettingInt("raftSurfaceLineSpacing"), getSettingInt("infillOverlap"), 90 * raftSurfaceLayer);
@@ -431,14 +437,24 @@ private:
             if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
             int extrusion_width = getSettingInt("extrusionWidth");
+            int layer_thickness = getSettingInt("layerThickness");
             if (layer_nr == 0)
+            {
                 extrusion_width = getSettingInt("layer0extrusionWidth");
+                layer_thickness = getSettingInt("initialLayerThickness");
+            }
             
             storage.skirt_config.setSpeed(getSettingInt("skirtSpeed"));
             storage.skirt_config.setLineWidth(extrusion_width);
+            storage.skirt_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
+            storage.skirt_config.setFlow(getSettingInt("filamentFlow"));
+            storage.skirt_config.setLayerHeight(layer_thickness);
             
             storage.support_config.setLineWidth(extrusion_width);
             storage.support_config.setSpeed(getSettingInt("supportSpeed"));
+            storage.support_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
+            storage.support_config.setFlow(getSettingInt("filamentFlow"));
+            storage.support_config.setLayerHeight(layer_thickness);
             for(SliceMeshStorage& mesh : storage.meshes)
             {
                 extrusion_width = mesh.settings->getSettingInt("extrusionWidth");
@@ -447,12 +463,23 @@ private:
 
                 mesh.inset0_config.setLineWidth(extrusion_width);
                 mesh.inset0_config.setSpeed(mesh.settings->getSettingInt("inset0Speed"));
+                mesh.inset0_config.setFilamentDiameter(mesh.settings->getSettingInt("filamentDiameter"));
+                mesh.inset0_config.setFlow(mesh.settings->getSettingInt("filamentFlow"));
+                mesh.inset0_config.setLayerHeight(layer_thickness);
+                
                 mesh.insetX_config.setLineWidth(extrusion_width);
                 mesh.insetX_config.setSpeed(mesh.settings->getSettingInt("insetXSpeed"));
+                mesh.insetX_config.setFilamentDiameter(mesh.settings->getSettingInt("filamentDiameter"));
+                mesh.insetX_config.setFlow(mesh.settings->getSettingInt("filamentFlow"));
+                mesh.insetX_config.setLayerHeight(layer_thickness);
+                
                 for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
                 {
                     mesh.fill_config[idx].setLineWidth(extrusion_width * (idx + 1));
-                    mesh.fill_config[idx].setSpeed(getSettingInt("infillSpeed"));
+                    mesh.fill_config[idx].setSpeed(mesh.settings->getSettingInt("infillSpeed"));
+                    mesh.fill_config[idx].setFilamentDiameter(mesh.settings->getSettingInt("filamentDiameter"));
+                    mesh.fill_config[idx].setFlow(mesh.settings->getSettingInt("filamentFlow"));
+                    mesh.fill_config[idx].setLayerHeight(layer_thickness);
                 }
             }
             
@@ -473,10 +500,6 @@ private:
             }
 
             gcode.writeComment("LAYER:%d", layer_nr);
-            if (layer_nr == 0)
-                gcode.setExtrusion(getSettingInt("initialLayerThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
-            else
-                gcode.setExtrusion(getSettingInt("layerThickness"), getSettingInt("filamentDiameter"), getSettingInt("filamentFlow"));
 
             GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
             int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");

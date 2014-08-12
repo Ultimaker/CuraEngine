@@ -65,8 +65,8 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                 if ((value - buffer) < dataSize)
                 {
                     processor->getSetting(buffer);
-                    if (object)
-                        object->setSetting(buffer, value);
+                    if (mesh)
+                        mesh->setSetting(buffer, value);
                     else
                         processor->setSetting(buffer, value);
                 }
@@ -146,6 +146,7 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                     socket.close();
                 delete object;
                 object = NULL;
+                mesh = NULL;
             }
             break;
         default:
