@@ -352,7 +352,6 @@ private:
         }else{
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
-            //TODO: gcode.writeRetraction();
             gcode.setZ(maxObjectHeight + 5000);
             gcode.writeMove(gcode.getPositionXY(), getSettingInt("moveSpeed"), 0);
             gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInt("moveSpeed"), 0);
@@ -562,6 +561,7 @@ private:
 
             gcodeLayer.writeGCode(getSettingInt("coolHeadLift") > 0, static_cast<int>(layer_nr) > 0 ? getSettingInt("layerThickness") : getSettingInt("initialLayerThickness"));
         }
+        gcode.writeRetraction(&storage.retraction_config, true);
 
         log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
         gcode.tellFileSize();

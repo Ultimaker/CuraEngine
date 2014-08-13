@@ -64,7 +64,7 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                 char* value = (buffer + strlen(buffer)) + 1;
                 if ((value - buffer) < dataSize)
                 {
-                    processor->getSetting(buffer);
+                    //processor->getSetting(buffer);
                     if (mesh)
                         mesh->setSetting(buffer, value);
                     else

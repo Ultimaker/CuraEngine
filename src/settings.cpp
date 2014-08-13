@@ -35,6 +35,7 @@ std::string SettingsBase::getSetting(std::string key)
         return parent->getSetting(key);
     
     cura::logError("Failed to find settings %s\n", key.c_str());
+    settings[key] = "";
     return "";
 }
 

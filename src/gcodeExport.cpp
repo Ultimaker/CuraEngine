@@ -10,7 +10,7 @@ namespace cura {
 GCodeExport::GCodeExport()
 : currentPosition(0,0,0)
 {
-    extrusionAmount = 0;
+    extrusion_amount = 0;
     minimalExtrusionBeforeRetraction = 0.0;
     extrusionAmountAtPreviousRetraction = -10000;
     extruderSwitchRetraction = 14.5;
@@ -108,7 +108,7 @@ int GCodeExport::getExtruderNr()
 double GCodeExport::getTotalFilamentUsed(int e)
 {
     if (e == extruderNr)
-        return totalFilament[e] + extrusionAmount;
+        return totalFilament[e] + extrusion_amount;
     return totalFilament[e];
 }
 
@@ -144,12 +144,12 @@ void GCodeExport::writeLine(const char* line, ...)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
+    if (extrusion_amount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
     {
         fprintf(f, "G92 %c0\n", extruderCharacter[extruderNr]);
-        totalFilament[extruderNr] += extrusionAmount;
-        extrusionAmountAtPreviousRetraction -= extrusionAmount;
-        extrusionAmount = 0.0;
+        totalFilament[extruderNr] += extrusion_amount;
+        extrusionAmountAtPreviousRetraction -= extrusion_amount;
+        extrusion_amount = 0.0;
     }
 }
 
@@ -190,7 +190,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
 
             //Increase the extrusion amount to calculate the amount of filament used.
             Point diff = p - getPositionXY();
-            extrusionAmount += extrusion_per_mm * vSizeMM(diff);
+            extrusion_amount += extrusion_per_mm * vSizeMM(diff);
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
@@ -203,7 +203,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
     }else{
         
         //Normal E handling.
-        if (extrusion_per_mm != 0)
+        if (extrusion_per_mm > 0.000001)
         {
             Point diff = p - getPositionXY();
             if (isZHopped > 0)
@@ -216,17 +216,17 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
                 if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     fprintf(f, "G11\n");
-                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), 25.0);
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
-                    fprintf(f, "G1 F%i %c%0.5f\n", retractionPrimeSpeed * 60, extruderCharacter[extruderNr], extrusionAmount);
+                    fprintf(f, "G1 F%i %c%0.5f\n", retractionPrimeSpeed * 60, extruderCharacter[extruderNr], extrusion_amount);
                     currentSpeed = retractionPrimeSpeed;
-                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), currentSpeed);
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), currentSpeed);
                 }
-                if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+                if (extrusion_amount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                     resetExtrusionValue();
                 isRetracted = false;
             }
-            extrusionAmount += extrusion_per_mm * vSizeMM(diff);
+            extrusion_amount += extrusion_per_mm * vSizeMM(diff);
             fprintf(f, "G1");
         }else{
             fprintf(f, "G0");
@@ -241,13 +241,13 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
         fprintf(f, " X%0.2f Y%0.2f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
         if (zPos != currentPosition.z)
             fprintf(f, " Z%0.2f", INT2MM(zPos));
-        if (extrusion_per_mm != 0)
-            fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusionAmount);
+        if (extrusion_per_mm > 0.000001)
+            fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusion_amount);
         fprintf(f, "\n");
     }
     
     currentPosition = Point3(p.X, p.Y, zPos);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), speed);
 }
 
 void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
@@ -256,30 +256,30 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     if (isRetracted)
         return;
-    if (!force && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction > config->amount)
+    if (!force && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction > extrusion_amount + config->amount)
         return;
     if (config->amount <= 0)
         return;
 
     if (config->primeAmount > 0)
-        extrusionAmount += config->primeAmount;
+        extrusion_amount += config->primeAmount;
     retractionPrimeSpeed = config->primeSpeed;
     
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
         fprintf(f, "G10\n");
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - 4.5), 25);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - 4.5), 25);
     }else{
-        fprintf(f, "G1 F%i %c%0.5f\n", config->speed * 60, extruderCharacter[extruderNr], extrusionAmount - config->amount);
+        fprintf(f, "G1 F%i %c%0.5f\n", config->speed * 60, extruderCharacter[extruderNr], extrusion_amount - config->amount);
         currentSpeed = config->speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - config->amount), currentSpeed);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - config->amount), currentSpeed);
     }
     if (config->zHop > 0)
     {
         fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + config->zHop));
         isZHopped = true;
     }
-    extrusionAmountAtPreviousRetraction = extrusionAmount;
+    extrusionAmountAtPreviousRetraction = extrusion_amount;
     isRetracted = true;
 }
 
@@ -300,7 +300,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         fprintf(f, "G10 S1\n");
     }else{
-        fprintf(f, "G1 F%i %c%0.5f\n", extruderSwitchRetractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
+        fprintf(f, "G1 F%i %c%0.5f\n", extruderSwitchRetractionSpeed * 60, extruderCharacter[extruderNr], extrusion_amount - extruderSwitchRetraction);
         currentSpeed = extruderSwitchRetractionSpeed;
     }
     extruderNr = newExtruder;
@@ -359,7 +359,6 @@ void GCodeExport::tellFileSize() {
 void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCode)
 {
     writeFanCommand(0);
-    //TODO: writeRetraction();
     setZ(maxObjectHeight + 5000);
     writeMove(getPositionXY(), moveSpeed, 0);
     writeCode(endCode);

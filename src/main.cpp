@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     logCopyright("\n");
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
-
+/*
     processor.setSetting("layerThickness", "100");
     processor.setSetting("initialLayerThickness", "300");
     processor.setSetting("filamentDiameter", "2890");
@@ -117,9 +117,12 @@ int main(int argc, char **argv)
     processor.setSetting("supportExtruder", "-1");
 
     processor.setSetting("retractionAmount", "4500");
-    processor.setSetting("retractionAmountPrime", "0");
-    processor.setSetting("retractionSpeed", "45");
+    processor.setSetting("retractionPrimeAmount", "0");
+    processor.setSetting("retractionSpeed", "25");
+    processor.setSetting("retractionPrimeSpeed", "25");
     processor.setSetting("retractionAmountExtruderSwitch", "14500");
+    processor.setSetting("retractionExtruderSwitchSpeed", "25");
+    processor.setSetting("retractionExtruderSwitchPrimeSpeed", "25");
     processor.setSetting("retractionMinimalDistance", "1500");
     processor.setSetting("minimalExtrusionBeforeRetraction", "100");
     processor.setSetting("retractionZHop", "0");
@@ -192,7 +195,7 @@ int main(int argc, char **argv)
         "G90                         ;absolute positioning\n");
     processor.setSetting("postSwitchExtruderCode", "");
     processor.setSetting("preSwitchExtruderCode", "");
-    
+*/
     CommandSocket* commandSocket = NULL;
 
     for(int argn = 1; argn < argc; argn++)

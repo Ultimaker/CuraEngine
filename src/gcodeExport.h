@@ -101,7 +101,7 @@ class GCodeExport
 {
 private:
     FILE* f;
-    double extrusionAmount;
+    double extrusion_amount;
     double extruderSwitchRetraction;
     int extruderSwitchRetractionSpeed;
     int extruderSwitchPrimeSpeed;
