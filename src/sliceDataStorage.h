@@ -5,7 +5,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
-#include "GCodePlanner.h"
+#include "gcodePlanner.h"
 
 namespace cura {
 
