@@ -6,7 +6,7 @@ BUILD_DIR = build
 SRC_DIR = src
 LIBS_DIR = libs
 
-BUILD_TYPE = RELEASE
+BUILD_TYPE = WEB
 
 VERSION ?= DEV
 CXX ?= g++
@@ -22,18 +22,23 @@ ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
 endif
 
-LDFLAGS += -Lbuild/ -lclipper
-
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
+
+ifeq ($(BUILD_TYPE), WEB)
+	SOURCES_RAW += ../$(LIBS_DIR)/clipper/clipper.cpp
+	EXECUTABLE = $(BUILD_DIR)/CuraEngine.html
+else
+	LDFLAGS +=
+	EXECUTABLE = $(BUILD_DIR)/CuraEngine
+endif
+
 SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
 
 OBJECTS_RAW = $(SOURCES_RAW:.cpp=.o)
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(OBJECTS_RAW))
 
 DIRS = $(sort $(dir $(OBJECTS)))
-
-EXECUTABLE = $(BUILD_DIR)/CuraEngine
 
 ifeq ($(OS),Windows_NT)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
