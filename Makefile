@@ -9,16 +9,13 @@ LIBS_DIR = libs
 BUILD_TYPE = WEB
 
 VERSION ?= DEV
-CXX ?= g++
 CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
 	CFLAGS+=-ggdb -Og -g
-endif
-ifeq ($(BUILD_TYPE),PROFILE)
+else ifeq ($(BUILD_TYPE),PROFILE)
 	CFLAGS+= -pg
-endif
-ifeq ($(BUILD_TYPE),RELEASE)
+else ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
 endif
 
@@ -26,10 +23,12 @@ SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
 
 ifeq ($(BUILD_TYPE), WEB)
+	CXX = emcc
 	SOURCES_RAW += ../$(LIBS_DIR)/clipper/clipper.cpp
 	EXECUTABLE = $(BUILD_DIR)/CuraEngine.html
 else
-	LDFLAGS +=
+	CXX = g++
+	LDFLAGS += -Lbuild/ -lclipper
 	EXECUTABLE = $(BUILD_DIR)/CuraEngine
 endif
 
