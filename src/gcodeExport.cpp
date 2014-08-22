@@ -216,6 +216,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
                 if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     fprintf(f, "G11\n");
+                    //Assume default UM2 retraction settings.
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
                     fprintf(f, "G1 F%i %c%0.5f\n", retractionPrimeSpeed * 60, extruderCharacter[extruderNr], extrusion_amount);
@@ -268,6 +269,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
         fprintf(f, "G10\n");
+        //Assume default UM2 retraction settings.
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - 4.5), 25);
     }else{
         fprintf(f, "G1 F%i %c%0.5f\n", config->speed * 60, extruderCharacter[extruderNr], extrusion_amount - config->amount);
@@ -287,6 +289,7 @@ void GCodeExport::switchExtruder(int newExtruder)
 {
     if (extruderNr == newExtruder)
         return;
+    
     if (flavor == GCODE_FLAVOR_BFB)
     {
         if (!isRetracted)

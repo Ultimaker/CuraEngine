@@ -67,6 +67,8 @@ void CommandSocket::handleIncommingData(fffProcessor* processor)
                     //processor->getSetting(buffer);
                     if (mesh)
                         mesh->setSetting(buffer, value);
+                    else if (object)
+                        object->setSetting(buffer, value);
                     else
                         processor->setSetting(buffer, value);
                 }

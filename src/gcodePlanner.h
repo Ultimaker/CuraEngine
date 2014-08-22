@@ -6,6 +6,7 @@
 #include "gcodeExport.h"
 #include "comb.h"
 #include "utils/polygon.h"
+#include "utils/logoutput.h"
 
 namespace cura {
 
