@@ -792,7 +792,7 @@ private:
             if (getSettingInt("supportLineDistance") > 0)
             {
                 int extrusionWidth = getSettingInt("extrusionWidth");
-                if (getSetting("supportType") == "SUPPORT_TYPE_GRID")
+                if (getSetting("supportType") == "GRID")
                 {
                     if (getSettingInt("supportLineDistance") > extrusionWidth * 4)
                     {
@@ -801,7 +801,7 @@ private:
                     }else{
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layer_nr & 1) ? 0 : 90);
                     }
-                }else if (getSetting("supportType") == "SUPPORT_TYPE_LINES")
+                }else if (getSetting("supportType") == "LINES")
                 {
                     generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
                 }
@@ -810,7 +810,7 @@ private:
             gcodeLayer.forceRetract();
             if (getSettingInt("enableCombing"))
                 gcodeLayer.setCombBoundary(&island);
-            if (getSetting("supportType") == "SUPPORT_TYPE_GRID")
+            if (getSetting("supportType") == "GRID")
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
             gcodeLayer.addPolygonsByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
