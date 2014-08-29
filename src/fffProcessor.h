@@ -803,7 +803,13 @@ private:
                     }
                 }else if (getSetting("supportType") == "LINES")
                 {
-                    generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
+                    if (layer_nr == 0)
+                    {
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
+                    }else{
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
+                    }
                 }
             }
 
