@@ -1,5 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "pathOrderOptimizer.h"
+#include "utils/logOutput.h"
 
 namespace cura {
 
@@ -81,23 +82,30 @@ void PathOrderOptimizer::optimize()
     for(unsigned int n=0; n<polyOrder.size(); n++)
     {
         int nr = polyOrder[n];
+        PolygonRef poly = polygons[nr];
         int best = -1;
         float bestDist = 0xFFFFFFFFFFFFFFFFLL;
-        for(unsigned int i=0;i<polygons[nr].size(); i++)
+        bool orientation = poly.orientation();
+        for(unsigned int i=0;i<poly.size(); i++)
         {
             float dist = vSize2f(polygons[nr][i] - p0);
-            if (dist < bestDist)
+            Point n0 = normal(poly[(i+poly.size()-1)%poly.size()] - poly[i], 10000);
+            Point n1 = normal(poly[i] - poly[(i + 1) % poly.size()], 10000);
+            float dot_score = dot(n0, n1) - dot(crossZ(n0), n1);
+            if (orientation)
+                dot_score = -dot_score;
+            if (dist + dot_score < bestDist)
             {
                 best = i;
                 bestDist = dist;
             }
         }
         polyStart[nr] = best;
-        if (polygons[nr].size() <= 2)
+        if (poly.size() <= 2)
         {
-            p0 = polygons[nr][(best + 1) % 2];
+            p0 = poly[(best + 1) % 2];
         }else{
-            p0 = polygons[nr][best];
+            p0 = poly[best];
         }
     }
 }
