@@ -1,6 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "pathOrderOptimizer.h"
-#include "utils/logOutput.h"
 
 namespace cura {
 
