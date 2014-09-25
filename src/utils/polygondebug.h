@@ -42,7 +42,7 @@ static inline void writeDebug(FILE* f, Polygons& polygons)
     fprintf(f, "</g>\n");
 }
 
-void closeDebug(FILE* f)
+static inline void closeDebug(FILE* f)
 {
     fprintf(f, "</svg>\n");
     fprintf(f, "</body></html>");
