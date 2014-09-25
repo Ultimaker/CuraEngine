@@ -149,7 +149,7 @@ SimpleModel* loadModelSTL(SimpleModel *m,const char* filename, FMatrix3x3& matri
 SimpleModel* loadModelFromFile(SimpleModel *m,const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
-    if (ext && strcmp(ext, ".stl") == 0)
+    if (ext && stringcasecompare(ext, ".stl") == 0)
     {
         return loadModelSTL(m,filename, matrix);
     }
