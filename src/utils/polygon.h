@@ -36,7 +36,7 @@ public:
         return polygon->size();
     }
 
-    Point operator[] (unsigned int index) const
+    Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*polygon)[index];
@@ -85,6 +85,29 @@ public:
         }
         return length;
     }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(Point p : *polygon)
+        {
+            ret.X = std::min(ret.X, p.X);
+            ret.Y = std::min(ret.Y, p.Y);
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(Point p : *polygon)
+        {
+            ret.X = std::max(ret.X, p.X);
+            ret.Y = std::max(ret.Y, p.Y);
+        }
+        return ret;
+    }
+
 
     double area() const
     {
@@ -309,6 +332,34 @@ public:
             }
         }
         return length;
+    }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::min(ret.X, p.X);
+                ret.Y = std::min(ret.Y, p.Y);
+            }
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::max(ret.X, p.X);
+                ret.Y = std::max(ret.Y, p.Y);
+            }
+        }
+        return ret;
     }
 
     bool inside(Point p)
