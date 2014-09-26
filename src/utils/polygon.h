@@ -180,6 +180,26 @@ public:
         return (crossings % 2) == 1;
     }
 
+    ClipperLib::Path::iterator begin()
+    {
+        return polygon->begin();
+    }
+
+    ClipperLib::Path::iterator end()
+    {
+        return polygon->end();
+    }
+
+    ClipperLib::Path::const_iterator begin() const
+    {
+        return polygon->begin();
+    }
+
+    ClipperLib::Path::const_iterator end() const
+    {
+        return polygon->end();
+    }
+
     friend class Polygons;
     friend class Polygon;
 };
