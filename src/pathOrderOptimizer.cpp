@@ -1,10 +1,18 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+#include <map>
+
 #include "pathOrderOptimizer.h"
 
 namespace cura {
 
+static uint32_t hashPoint(Point& p)
+{
+    return (p.X / 20000) ^ (p.Y / 20000) << 8;
+}
+
 void PathOrderOptimizer::optimize()
 {
+    std::map<uint32_t, std::vector<unsigned int>> location_to_polygon_map;
     std::vector<bool> picked;
     for(unsigned int i=0;i<polygons.size(); i++)
     {
@@ -22,6 +30,12 @@ void PathOrderOptimizer::optimize()
         }
         polyStart.push_back(best);
         picked.push_back(false);
+        
+        if (poly.size() == 2)
+        {
+            location_to_polygon_map[hashPoint(poly[0])].push_back(i);
+            location_to_polygon_map[hashPoint(poly[1])].push_back(i);
+        }
     }
 
     Point incommingPerpundicularNormal(0, 0);
@@ -30,37 +44,65 @@ void PathOrderOptimizer::optimize()
     {
         int best = -1;
         float bestDist = 0xFFFFFFFFFFFFFFFFLL;
-        for(unsigned int i=0;i<polygons.size(); i++)
+        
+        for(unsigned int i : location_to_polygon_map[hashPoint(p0)])
         {
             if (picked[i] || polygons[i].size() < 1)
                 continue;
-            if (polygons[i].size() == 2)
+
+            float dist = vSize2f(polygons[i][0] - p0);
+            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
+            if (dist < bestDist)
             {
-                float dist = vSize2f(polygons[i][0] - p0);
-                dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
-                if (dist < bestDist)
+                best = i;
+                bestDist = dist;
+                polyStart[i] = 0;
+            }
+            dist = vSize2f(polygons[i][1] - p0);
+            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
+            if (dist < bestDist)
+            {
+                best = i;
+                bestDist = dist;
+                polyStart[i] = 1;
+            }
+        }
+        
+        if (best == -1)
+        {
+            for(unsigned int i=0;i<polygons.size(); i++)
+            {
+                if (picked[i] || polygons[i].size() < 1)
+                    continue;
+                if (polygons[i].size() == 2)
                 {
-                    best = i;
-                    bestDist = dist;
-                    polyStart[i] = 0;
-                }
-                dist = vSize2f(polygons[i][1] - p0);
-                dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
-                if (dist < bestDist)
-                {
-                    best = i;
-                    bestDist = dist;
-                    polyStart[i] = 1;
-                }
-            }else{
-                float dist = vSize2f(polygons[i][polyStart[i]] - p0);
-                if (dist < bestDist)
-                {
-                    best = i;
-                    bestDist = dist;
+                    float dist = vSize2f(polygons[i][0] - p0);
+                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                        polyStart[i] = 0;
+                    }
+                    dist = vSize2f(polygons[i][1] - p0);
+                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                        polyStart[i] = 1;
+                    }
+                }else{
+                    float dist = vSize2f(polygons[i][polyStart[i]] - p0);
+                    if (dist < bestDist)
+                    {
+                        best = i;
+                        bestDist = dist;
+                    }
                 }
             }
         }
+        
         if (best > -1)
         {
             if (polygons[best].size() == 2)
