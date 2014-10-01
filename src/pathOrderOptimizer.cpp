@@ -5,7 +5,7 @@
 
 namespace cura {
 
-static uint32_t hashPoint(Point& p)
+static uint32_t hashPoint(const Point& p)
 {
     return (p.X / 20000) ^ (p.Y / 20000) << 8;
 }
