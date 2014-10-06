@@ -68,6 +68,7 @@ public:
     {
         if (!gcode.isOpened())
             return false;
+        gcode.writeComment("Generated with Cura_SteamEngine %s", VERSION);
 
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
