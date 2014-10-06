@@ -471,6 +471,7 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMi
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     this->retractionMinimalDistance = retractionMinimalDistance;
+    layer0Retract = false;
 }
 GCodePlanner::~GCodePlanner()
 {
@@ -614,6 +615,11 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
 
 void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 {
+	writeGCode(liftHeadIfNeeded, layerThickness, -3);
+}
+
+void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness, int layerNr)
+{
     GCodePathConfig* lastConfig = nullptr;
     int extruder = gcode.getExtruderNr();
 
@@ -626,7 +632,14 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             gcode.switchExtruder(extruder);
         }else if (path->retract)
         {
-            gcode.writeRetraction();
+        	if(layerNr == 0)
+        	{
+        		if(n != 0)
+        			gcode.writeRetraction();
+        	}else
+        	{
+        		gcode.writeRetraction();
+        	}
         }
         if (path->config != &travelConfig && lastConfig != path->config)
         {
@@ -707,7 +720,18 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }else{
             for(unsigned int i=0; i<path->points.size(); i++)
             {
-                gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+            	if(layer0Retract)
+            	{
+            		if(i != 0 && i == path->points.size() - 1 && path->config->lineWidth != 0)
+            		{
+            			gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+            			gcode.writeRetraction();
+            		}
+            		else
+            			gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+            	}
+            	else
+            		gcode.writeMove(path->points[i], speed, path->config->lineWidth);
             }
         }
     }
@@ -722,6 +746,11 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);
         gcode.writeDelay(extraTime);
     }
+}
+
+void GCodePlanner::setLayer0Retract(bool _layer0Retract)
+{
+	this->layer0Retract = _layer0Retract;
 }
 
 }//namespace cura

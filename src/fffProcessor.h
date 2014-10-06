@@ -460,6 +460,10 @@ private:
                 gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
 
             GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
+            if (layerNr == 0)
+            	gcodeLayer.setLayer0Retract(true);
+            else
+            	gcodeLayer.setLayer0Retract(false);
             int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
             z += config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
             if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
@@ -505,7 +509,7 @@ private:
             gcode.writeFanCommand(fanSpeed);
             gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
 
-            gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
+            gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness, layerNr);
         }
 
         cura::log("Wrote layers in %5.2fs.\n", timeKeeper.restart());

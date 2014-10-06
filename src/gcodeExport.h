@@ -157,6 +157,7 @@ private:
     bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
+    bool layer0Retract;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
@@ -229,6 +230,10 @@ public:
     void forceMinimalLayerTime(double minTime, int minimalSpeed);
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
+
+    void writeGCode(bool liftHeadIfNeeded, int layerThickness, int layerNr);
+
+    void setLayer0Retract(bool _layer0Retract);
 };
 
 }//namespace cura
