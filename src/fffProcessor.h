@@ -503,6 +503,7 @@ private:
                 fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
             }
             gcode.writeFanCommand(fanSpeed);
+            gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
 
             gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
         }
