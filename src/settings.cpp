@@ -13,8 +13,11 @@
 #define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
 #define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
 
+ConfigSettings *ConfigSettings::config = NULL;
+
 ConfigSettings::ConfigSettings()
 {
+    config = this;
     SETTING(layerThickness, 100);
     SETTING(initialLayerThickness, 300);
     SETTING(filamentDiameter, 2890);
@@ -64,6 +67,7 @@ ConfigSettings::ConfigSettings()
     SETTING2(objectPosition.X, posx, 102500);
     SETTING2(objectPosition.Y, posy, 102500);
     SETTING(objectSink, 0);
+    SETTING(autoCenter, 1);
 
     SETTING(raftMargin, 5000);
     SETTING(raftLineSpacing, 1000);
@@ -73,6 +77,7 @@ ConfigSettings::ConfigSettings()
     SETTING(raftInterfaceLinewidth, 0);
     SETTING(raftInterfaceLineSpacing, 0);
     SETTING(raftAirGap, 0);
+    SETTING(raftAirGapLayer0, 0);
     SETTING(raftBaseSpeed, 0);
     SETTING(raftFanSpeed, 0);
     SETTING(raftSurfaceThickness, 0);
@@ -89,15 +94,42 @@ ConfigSettings::ConfigSettings()
 
     SETTING(fixHorrible, 0);
     SETTING(spiralizeMode, 0);
+    SETTING(simpleMode, 0);
     SETTING(gcodeFlavor, GCODE_FLAVOR_REPRAP);
 
     memset(extruderOffset, 0, sizeof(extruderOffset));
+    SETTING(extruderOffset[0].X, 0); // No one says that extruder 0 can not have an offset!
+    SETTING(extruderOffset[0].Y, 0);
     SETTING(extruderOffset[1].X, 0);
     SETTING(extruderOffset[1].Y, 0);
     SETTING(extruderOffset[2].X, 0);
     SETTING(extruderOffset[2].Y, 0);
     SETTING(extruderOffset[3].X, 0);
     SETTING(extruderOffset[3].Y, 0);
+    SETTING(extruderOffset[4].X, 0);
+    SETTING(extruderOffset[4].Y, 0);
+    SETTING(extruderOffset[5].X, 0);
+    SETTING(extruderOffset[5].Y, 0);
+    SETTING(extruderOffset[6].X, 0);
+    SETTING(extruderOffset[6].Y, 0);
+    SETTING(extruderOffset[7].X, 0);
+    SETTING(extruderOffset[7].Y, 0);
+    SETTING(extruderOffset[8].X, 0);
+    SETTING(extruderOffset[8].Y, 0);
+    SETTING(extruderOffset[9].X, 0);
+    SETTING(extruderOffset[9].Y, 0);
+    SETTING(extruderOffset[10].X, 0);
+    SETTING(extruderOffset[10].Y, 0);
+    SETTING(extruderOffset[11].X, 0);
+    SETTING(extruderOffset[11].Y, 0);
+    SETTING(extruderOffset[12].X, 0);
+    SETTING(extruderOffset[12].Y, 0);
+    SETTING(extruderOffset[13].X, 0);
+    SETTING(extruderOffset[13].Y, 0);
+    SETTING(extruderOffset[14].X, 0);
+    SETTING(extruderOffset[14].Y, 0);
+    SETTING(extruderOffset[15].X, 0);
+    SETTING(extruderOffset[15].Y, 0);
 
     startCode =
         "M109 S210     ;Heatup to 210C\n"
@@ -142,6 +174,16 @@ bool ConfigSettings::setSetting(const char* key, const char* value)
         this->endCode = value;
         return true;
     }
+    if (stringcasecompare(key, "preSwitchExtruderCode") == 0)
+    {
+        this->preSwitchExtruderCode = value;
+        return true;
+    }
+    if (stringcasecompare(key, "postSwitchExtruderCode") == 0)
+    {
+        this->postSwitchExtruderCode = value;
+        return true;
+    }
     return false;
 }
 
@@ -157,6 +199,7 @@ bool ConfigSettings::readSettings(const char* path) {
     if(!config.good()) return false;
 
     while(config.good()) {
+        bool multilineContent = false;
         size_t pos = std::string::npos;
         std::getline(config, line);
         line_number += 1;
@@ -180,6 +223,7 @@ bool ConfigSettings::readSettings(const char* path) {
         // Are we about to read a multiline string?
         if(val == CONFIG_MULTILINE_SEPARATOR) {
             val = "";
+            multilineContent = true;
             bool done_multiline = false;
 
             while(config.good() && !done_multiline) {
@@ -215,7 +259,7 @@ bool ConfigSettings::readSettings(const char* path) {
         }
 
         // Fail if we don't get a key and val
-        if(key.length() == 0 || val.length() == 0) {
+        if(key.length() == 0 || (val.length() == 0 && !multilineContent)) {
             cura::logError("Config(%s): Line %zd: No key value pair found\n", path, line_number);
             return false;
         }

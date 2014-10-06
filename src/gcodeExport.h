@@ -35,6 +35,8 @@ private:
     int extruderNr;
     int currentFanSpeed;
     int flavor;
+    std::string preSwitchExtruderCode;
+    std::string postSwitchExtruderCode;
     
     double totalFilament[MAX_EXTRUDERS];
     double totalPrintTime;
@@ -48,6 +50,7 @@ public:
     void replaceTagInStart(const char* tag, const char* replaceValue);
     
     void setExtruderOffset(int id, Point p);
+    void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(int flavor);
     int getFlavor();
@@ -83,7 +86,7 @@ public:
     
     void writeMove(Point p, int speed, int lineWidth);
     
-    void writeRetraction();
+    void writeRetraction(bool force=false);
     
     void switchExtruder(int newExtruder);
     

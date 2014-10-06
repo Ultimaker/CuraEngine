@@ -33,6 +33,7 @@ public:
     int sliceZ;
     int printZ;
     vector<SliceLayerPart> parts;
+    Polygons openLines;
 };
 
 /******************/

@@ -31,23 +31,23 @@ public:
     PolygonRef(ClipperLib::Path& polygon)
     : polygon(&polygon)
     {}
-    
+
     unsigned int size() const
     {
         return polygon->size();
     }
-    
+
     Point operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*polygon)[index];
     }
-    
+
     void* data()
     {
         return polygon->data();
     }
-    
+
     void add(const Point p)
     {
         polygon->push_back(p);
@@ -58,7 +58,7 @@ public:
         POLY_ASSERT(index < size());
         polygon->erase(polygon->begin() + index);
     }
-    
+
     void clear()
     {
         polygon->clear();
@@ -68,7 +68,7 @@ public:
     {
         return ClipperLib::Orientation(*polygon);
     }
-    
+
     void reverse()
     {
         ClipperLib::ReversePath(*polygon);
@@ -86,7 +86,7 @@ public:
         }
         return length;
     }
-    
+
     double area() const
     {
         return ClipperLib::Area(*polygon);
@@ -100,7 +100,7 @@ public:
         {
             Point p1 = (*polygon)[n];
             double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
-            
+
             x += double(p0.X + p1.X) * second_factor;
             y += double(p0.Y + p1.Y) * second_factor;
             p0 = p1;
@@ -117,7 +117,7 @@ public:
         }
         return Point(x, y);
     }
-    
+
     Point closestPointTo(Point p)
     {
         Point ret = p;
@@ -157,7 +157,27 @@ public:
         }
         return (crossings % 2) == 1;
     }
-    
+
+    ClipperLib::Path::iterator begin()
+    {
+        return polygon->begin();
+    }
+
+    ClipperLib::Path::iterator end()
+    {
+        return polygon->end();
+    }
+
+    ClipperLib::Path::const_iterator begin() const
+    {
+        return polygon->begin();
+    }
+
+    ClipperLib::Path::const_iterator end() const
+    {
+        return polygon->end();
+    }
+
     friend class Polygons;
     friend class Polygon;
 };
@@ -187,7 +207,7 @@ public:
     {
         return polygons.size();
     }
-    
+
     PolygonRef operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size());
@@ -216,7 +236,7 @@ public:
         polygons.push_back(ClipperLib::Path());
         return PolygonRef(polygons[polygons.size()-1]);
     }
-    
+
     Polygons() {}
     Polygons(const Polygons& other) { polygons = other.polygons; }
     Polygons& operator=(const Polygons& other) { polygons = other.polygons; return *this; }
@@ -266,7 +286,7 @@ public:
             clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         else
             clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
-        
+
         _processPolyTreeNode(&resultPolyTree, ret);
         return ret;
     }
@@ -295,7 +315,7 @@ public:
         clipper.Execute(ClipperLib::ctUnion, ret.polygons);
         return ret;
     }
-    
+
     int64_t polygonLength() const
     {
         int64_t length = 0;
@@ -343,7 +363,7 @@ class AABB
 {
 public:
     Point min, max;
-    
+
     AABB()
     : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
@@ -353,7 +373,7 @@ public:
     {
         calculate(polys);
     }
-    
+
     void calculate(Polygons polys)
     {
         min = Point(POINT_MAX, POINT_MAX);
@@ -369,7 +389,7 @@ public:
             }
         }
     }
-    
+
     bool hit(const AABB& other) const
     {
         if (max.X < other.min.X) return false;
