@@ -15,6 +15,9 @@ void log(const char* fmt, ...);
 //Report engine progress to interface if any. Only if "enableProgressLogging()" has been called.
 void logProgress(const char* type, int value, int maxValue);
 
+//Add time stamp
+void logTimeStamp();
+
 }//namespace cura
 
 #endif//LOGOUTPUT_H
