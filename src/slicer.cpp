@@ -135,7 +135,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }else{
             if (reversed)
             {
-                if (openPolygonList[bestA].polygonLength() > openPolygonList[bestB].polygonLength())
+                if (openPolygonList[bestA].polygonLength() <= openPolygonList[bestB].polygonLength())
                 {
                     for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
                         openPolygonList[bestA].add(openPolygonList[bestB][n]);

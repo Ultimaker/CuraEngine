@@ -68,15 +68,20 @@ public:
     {
         if (!gcode.isOpened())
             return false;
+        gcode.writeComment("Generated with Cura_SteamEngine %s", VERSION);
 
+		int extraLayer = 0;
+        if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
+        	extraLayer = 2 + config.raftSurfaceLayers;
+        	
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
         preSetup();
-        if (!prepareModel(storage, files))
+        if (!prepareModel(storage, files, extraLayer))
             return false;
 
-        processSliceData(storage);
-        writeGCode(storage);
+        processSliceData(storage, extraLayer);
+        writeGCode(storage, extraLayer);
 
         cura::logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
         cura::log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
@@ -108,7 +113,7 @@ private:
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
     }
 
-    bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)
+    bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files, int extraLayer = 0)
     {
         timeKeeper.restart();
         SimpleModel* model = nullptr;
@@ -190,7 +195,7 @@ private:
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
                 //sendPolygonsToGui("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
-                sendPolygonsToGui("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+                sendPolygonsToGui("openoutline", layerNr + extraLayer, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
             }
         }
         cura::log("Sliced model in %5.3fs\n", timeKeeper.restart());
@@ -218,7 +223,7 @@ private:
         return true;
     }
 
-    void processSliceData(SliceDataStorage& storage)
+    void processSliceData(SliceDataStorage& storage, int extraLayer = 0)
     {
         const unsigned int totalLayers = storage.volumes[0].layers.size();
         
@@ -234,7 +239,7 @@ private:
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                     {
-                        sendPolygonsToGui("inset0", layerNr, layer->printZ, layer->parts[partNr].outline);
+                    	sendPolygonsToGui("inset0", layerNr + extraLayer, layer->printZ, layer->parts[partNr].outline);
                     }
                 }
             }
@@ -258,9 +263,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygonsToGui("inset0", layerNr, layer->printZ, layer->parts[partNr].insets[0]);
+                        sendPolygonsToGui("inset0", layerNr + extraLayer, layer->printZ, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygonsToGui("insetx", layerNr, layer->printZ, layer->parts[partNr].insets[inset]);
+                            sendPolygonsToGui("insetx", layerNr + extraLayer, layer->printZ, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
@@ -305,7 +310,7 @@ private:
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-                        sendPolygonsToGui("skin", layerNr, layer->printZ, layer->parts[partNr].skinOutline);
+                        sendPolygonsToGui("skin", layerNr + extraLayer, layer->printZ, layer->parts[partNr].skinOutline);
                 }
             }
             cura::logProgress("skin",layerNr+1,totalLayers);
@@ -332,7 +337,7 @@ private:
         sendPolygonsToGui("skirt", 0, config.initialLayerThickness, storage.skirt);
     }
 
-    void writeGCode(SliceDataStorage& storage)
+    void writeGCode(SliceDataStorage& storage, int extraLayer = 0)
     {
         if (fileNr == 1)
         {
@@ -459,6 +464,10 @@ private:
                 gcode.setExtrusion(config.layerThickness, config.filamentDiameter, config.filamentFlow);
 
             GCodePlanner gcodeLayer(gcode, config.moveSpeed, config.retractionMinimalDistance);
+            if (layerNr == 0)
+            	gcodeLayer.setLayer0Retract(true);
+            else
+            	gcodeLayer.setLayer0Retract(false);
             int32_t z = config.initialLayerThickness + layerNr * config.layerThickness;
             z += config.raftBaseThickness + config.raftInterfaceThickness + config.raftSurfaceLayers*config.raftSurfaceThickness;
             if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
@@ -467,7 +476,10 @@ private:
                 {
                     z += config.raftAirGapLayer0;
                 } else {
-                    z += config.raftAirGap;
+                	if (config.raftAirGap <= 0)
+                		z += config.raftAirGapLayer0;
+                	else
+                		z += config.raftAirGap;
                 }
             }
             gcode.setZ(z);
@@ -480,7 +492,7 @@ private:
             {
                 if (volumeCnt > 0)
                     volumeIdx = (volumeIdx + 1) % storage.volumes.size();
-                addVolumeLayerToGCode(storage, gcodeLayer, volumeIdx, layerNr);
+                addVolumeLayerToGCode(storage, gcodeLayer, volumeIdx, layerNr, extraLayer);
             }
             if (!printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layerNr);
@@ -502,8 +514,9 @@ private:
                 fanSpeed = fanSpeed * layerNr / config.fanFullOnLayerNr;
             }
             gcode.writeFanCommand(fanSpeed);
+            gcode.setFirstLineSection(config.initialLayerThickness, config.filamentDiameter, config.filamentFlow, config.layer0extrusionWidth);
 
-            gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness);
+            gcodeLayer.writeGCode(config.coolHeadLift > 0, static_cast<int>(layerNr) > 0 ? config.layerThickness : config.initialLayerThickness, layerNr);
         }
 
         cura::log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
@@ -515,7 +528,7 @@ private:
     }
 
     //Add a single layer from a single mesh-volume to the GCode
-    void addVolumeLayerToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int volumeIdx, int layerNr)
+    void addVolumeLayerToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int volumeIdx, int layerNr, int extraLayer = 0)
     {
         int prevExtruder = gcodeLayer.getExtruder();
         bool extruderChanged = gcodeLayer.setExtruder(volumeIdx);
@@ -534,7 +547,7 @@ private:
         {
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
-            sendPolygonsToGui("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
+            sendPolygonsToGui("oozeshield", layerNr + extraLayer, layer->printZ, storage.oozeShield[layerNr]);
             gcodeLayer.setAlwaysRetract(!config.enableCombing);
         }
 
@@ -661,7 +674,7 @@ private:
             }
 
             gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
-            //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
+            sendPolygonsToGui("infill", layerNr + extraLayer, layer->printZ, fillPolygons);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)
@@ -670,7 +683,7 @@ private:
         gcodeLayer.setCombBoundary(nullptr);
     }
 
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr, int extraLayer = 0)
     {
         if (!storage.support.generated)
             return;
@@ -699,7 +712,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-config.extrusionWidth * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(config.extrusionWidth * 3);
-        sendPolygonsToGui("support", layerNr, z, supportGenerator.polygons);
+        sendPolygonsToGui("support", layerNr + extraLayer, z, supportGenerator.polygons);
 
         vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
 
