@@ -472,7 +472,10 @@ private:
                 {
                     z += config.raftAirGapLayer0;
                 } else {
-                    z += config.raftAirGap;
+                	if (config.raftAirGap <= 0)
+                		z += config.raftAirGapLayer0;
+                	else
+                		z += config.raftAirGap;
                 }
             }
             gcode.setZ(z);
