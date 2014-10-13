@@ -12,6 +12,8 @@ static uint32_t hashPoint(const Point& p)
 
 void PathOrderOptimizer::optimize()
 {
+    const float incommingPerpundicularNormalScale = 0.0001f;
+    
     std::map<uint32_t, std::vector<unsigned int>> location_to_polygon_map;
     std::vector<bool> picked;
     for(unsigned int i=0;i<polygons.size(); i++)
@@ -51,7 +53,7 @@ void PathOrderOptimizer::optimize()
                 continue;
 
             float dist = vSize2f(polygons[i][0] - p0);
-            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
+            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * incommingPerpundicularNormalScale;
             if (dist < bestDist)
             {
                 best = i;
@@ -59,7 +61,7 @@ void PathOrderOptimizer::optimize()
                 polyStart[i] = 0;
             }
             dist = vSize2f(polygons[i][1] - p0);
-            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
+            dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * incommingPerpundicularNormalScale;
             if (dist < bestDist)
             {
                 best = i;
@@ -77,7 +79,7 @@ void PathOrderOptimizer::optimize()
                 if (polygons[i].size() == 2)
                 {
                     float dist = vSize2f(polygons[i][0] - p0);
-                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * 0.0001f;
+                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][1] - polygons[i][0], 1000))) * incommingPerpundicularNormalScale;
                     if (dist < bestDist)
                     {
                         best = i;
@@ -85,7 +87,7 @@ void PathOrderOptimizer::optimize()
                         polyStart[i] = 0;
                     }
                     dist = vSize2f(polygons[i][1] - p0);
-                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * 0.0001f;
+                    dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i][0] - polygons[i][1], 1000))) * incommingPerpundicularNormalScale;
                     if (dist < bestDist)
                     {
                         best = i;
@@ -120,33 +122,35 @@ void PathOrderOptimizer::optimize()
     }
     
     p0 = startPoint;
-    for(unsigned int n=0; n<polyOrder.size(); n++)
+    for(int nr : polyOrder)
     {
-        int nr = polyOrder[n];
         PolygonRef poly = polygons[nr];
-        int best = -1;
-        float bestDist = 0xFFFFFFFFFFFFFFFFLL;
-        bool orientation = poly.orientation();
-        for(unsigned int i=0;i<poly.size(); i++)
+        if (poly.size() > 2)
         {
-            float dist = vSize2f(polygons[nr][i] - p0);
-            Point n0 = normal(poly[(i+poly.size()-1)%poly.size()] - poly[i], 2000);
-            Point n1 = normal(poly[i] - poly[(i + 1) % poly.size()], 2000);
-            float dot_score = dot(n0, n1) - dot(crossZ(n0), n1);
-            if (orientation)
-                dot_score = -dot_score;
-            if (dist + dot_score < bestDist)
+            int best = -1;
+            float bestDist = 0xFFFFFFFFFFFFFFFFLL;
+            bool orientation = poly.orientation();
+            for(unsigned int i=0;i<poly.size(); i++)
             {
-                best = i;
-                bestDist = dist;
+                float dist = vSize2f(polygons[nr][i] - p0);
+                Point n0 = normal(poly[(i+poly.size()-1)%poly.size()] - poly[i], 2000);
+                Point n1 = normal(poly[i] - poly[(i + 1) % poly.size()], 2000);
+                float dot_score = dot(n0, n1) - dot(crossZ(n0), n1);
+                if (orientation)
+                    dot_score = -dot_score;
+                if (dist + dot_score < bestDist)
+                {
+                    best = i;
+                    bestDist = dist;
+                }
             }
+            polyStart[nr] = best;
         }
-        polyStart[nr] = best;
         if (poly.size() <= 2)
         {
-            p0 = poly[(best + 1) % 2];
+            p0 = poly[(polyStart[nr] + 1) % 2];
         }else{
-            p0 = poly[best];
+            p0 = poly[polyStart[nr]];
         }
     }
 }
