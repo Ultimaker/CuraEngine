@@ -62,7 +62,6 @@ public:
         vMax = model->max();
 
         Point3 vOffset((vMin.x + vMax.x) / 2, (vMin.y + vMax.y) / 2, vMin.z);
-        vOffset -= center;
         if(ConfigSettings::config->autoCenter != 1)
         {
             vOffset.x = 0;
@@ -70,6 +69,7 @@ public:
             if(ConfigSettings::config->autoCenter == 2)
                 vOffset.z = 0;
         }
+        vOffset -= center;
         for(unsigned int i=0; i<volumes.size(); i++)
             for(unsigned int n=0; n<volumes[i].points.size(); n++)
                 volumes[i].points[n].p -= vOffset;
