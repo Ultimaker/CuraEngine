@@ -362,21 +362,6 @@ void GCodeExport::writeTemperatureCommand(int extruder, int temperature, bool wa
     currentTemperature[extruder] = temperature;
 }
 
-int GCodeExport::getFileSize(){
-    return ftell(f);
-}
-void GCodeExport::tellFileSize() {
-    float fsize = ftell(f);
-    if(fsize > 1024*1024) {
-        fsize /= 1024.0*1024.0;
-        log("Wrote %5.1f MB.\n",fsize);
-    }
-    if(fsize > 1024) {
-        fsize /= 1024.0;
-        log("Wrote %5.1f kilobytes.\n",fsize);
-    }
-}
-
 void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCode)
 {
     writeFanCommand(0);

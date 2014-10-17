@@ -178,9 +178,6 @@ public:
     void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
     
     void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
-
-    int getFileSize();
-    void tellFileSize();
 };
 
 }
