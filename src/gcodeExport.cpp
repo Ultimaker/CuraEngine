@@ -19,7 +19,10 @@ GCodeExport::GCodeExport()
     
     totalPrintTime = 0.0;
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
+    {
         totalFilament[e] = 0.0;
+        currentTemperature[e] = 0;
+    }
     
     currentSpeed = 1;
     retractionPrimeSpeed = 1;
@@ -342,6 +345,21 @@ void GCodeExport::writeFanCommand(int speed)
             fprintf(f, "M107\n");
     }
     currentFanSpeed = speed;
+}
+
+void GCodeExport::writeTemperatureCommand(int extruder, int temperature, bool wait)
+{
+    if (!wait && currentTemperature[extruder] == temperature)
+        return;
+    
+    if (wait)
+        fprintf(f, "M109 ");
+    else
+        fprintf(f, "M104 ");
+    if (extruder != extruderNr)
+        fprintf(f, "T%d ", extruder);
+    fprintf(f, "S%d\n", temperature);
+    currentTemperature[extruder] = temperature;
 }
 
 int GCodeExport::getFileSize(){

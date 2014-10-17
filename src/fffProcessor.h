@@ -113,6 +113,8 @@ public:
         if (!gcode.isOpened())
             return;
         gcode.finalize(maxObjectHeight, getSettingInt("moveSpeed"), getSetting("endCode").c_str());
+        for(int e=0; e<MAX_EXTRUDERS; e++)
+            gcode.writeTemperatureCommand(e, 0, false);
     }
     
     double getTotalFilamentUsed(int e)
@@ -343,6 +345,10 @@ private:
 
         if (fileNr == 1)
         {
+            for(SliceMeshStorage& mesh : storage.meshes)
+                gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"));
+            for(SliceMeshStorage& mesh : storage.meshes)
+                gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
             gcode.writeCode(getSetting("startCode").c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {

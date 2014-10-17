@@ -110,6 +110,7 @@ private:
     Point3 currentPosition;
     Point extruderOffset[MAX_EXTRUDERS];
     char extruderCharacter[MAX_EXTRUDERS];
+    int currentTemperature[MAX_EXTRUDERS];
     int currentSpeed;
     int zPos;
     bool isRetracted;
@@ -173,6 +174,8 @@ public:
     void writeCode(const char* str);
     
     void writeFanCommand(int speed);
+    
+    void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
     
     void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
 
