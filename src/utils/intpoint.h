@@ -2,7 +2,7 @@
 #ifndef INT_POINT_H
 #define INT_POINT_H
 
-/*
+/**
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
 Integer points are used to avoid floating point rounding errors, and because ClipperLib uses them.
 */

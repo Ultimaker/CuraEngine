@@ -71,7 +71,7 @@ public:
         for(std::string filename : files)
         {
             log("Loading %s from disk...\n", filename.c_str());
-            
+
             FMatrix3x3 matrix;
             if (!loadMeshFromFile(model, filename.c_str(), matrix))
             {
@@ -107,7 +107,7 @@ public:
 
         return true;
     }
-    
+
     void finalize()
     {
         if (!gcode.isOpened())
@@ -116,7 +116,7 @@ public:
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
     }
-    
+
     double getTotalFilamentUsed(int e)
     {
         return gcode.getTotalFilamentUsed(e);
@@ -137,7 +137,7 @@ private:
             gcode.setExtruderOffset(n, Point(getSettingInt(stream.str() + ".X"), getSettingInt(stream.str() + ".Y")));
         }
         gcode.setSwitchExtruderCode(getSetting("preSwitchExtruderCode"), getSetting("postSwitchExtruderCode"));
-        
+
         if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP")
             gcode.setFlavor(GCODE_FLAVOR_REPRAP);
         else if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_ULTIGCODE")
@@ -158,7 +158,7 @@ private:
         storage.model_min = object->min();
         storage.model_max = object->max();
         storage.model_size = storage.model_max - storage.model_min;
-        
+
         log("Slicing model...\n");
         int initial_layer_thickness = object->getSettingInt("initialLayerThickness");
         int layer_thickness = object->getSettingInt("layerThickness");
@@ -209,7 +209,7 @@ private:
     void processSliceData(SliceDataStorage& storage)
     {
         const unsigned int totalLayers = storage.meshes[0].layers.size();
-        
+
         //carveMultipleVolumes(storage.meshes);
         generateMultipleVolumesOverlap(storage.meshes, getSettingInt("multiVolumeOverlap"));
         //dumpLayerparts(storage, "c:/models/output.html");
@@ -398,7 +398,7 @@ private:
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftBaseLinewidth"), getSettingInt("raftLineSpacing"), getSettingInt("infillOverlap"), 0);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_base_config);
+                gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftBaseThickness"));
             }
@@ -416,7 +416,7 @@ private:
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftInterfaceLinewidth"), getSettingInt("raftInterfaceLineSpacing"), getSettingInt("infillOverlap"), getSettingInt("raftSurfaceLayers") > 0 ? 45 : 90);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_interface_config);
+                gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
             }
@@ -430,7 +430,7 @@ private:
 
                 Polygons raftLines;
                 generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftSurfaceLinewidth"), getSettingInt("raftSurfaceLineSpacing"), getSettingInt("infillOverlap"), 90 * raftSurfaceLayer);
-                gcodeLayer.addPolygonsByOptimizer(raftLines, &raft_surface_config);
+                gcodeLayer.addLinesByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
             }
@@ -448,13 +448,13 @@ private:
                 extrusion_width = getSettingInt("layer0extrusionWidth");
                 layer_thickness = getSettingInt("initialLayerThickness");
             }
-            
+
             storage.skirt_config.setSpeed(getSettingInt("skirtSpeed"));
             storage.skirt_config.setLineWidth(extrusion_width);
             storage.skirt_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
             storage.skirt_config.setFlow(getSettingInt("filamentFlow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
-            
+
             storage.support_config.setLineWidth(extrusion_width);
             storage.support_config.setSpeed(getSettingInt("supportSpeed"));
             storage.support_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
@@ -471,13 +471,13 @@ private:
                 mesh.inset0_config.setFilamentDiameter(mesh.settings->getSettingInt("filamentDiameter"));
                 mesh.inset0_config.setFlow(mesh.settings->getSettingInt("filamentFlow"));
                 mesh.inset0_config.setLayerHeight(layer_thickness);
-                
+
                 mesh.insetX_config.setLineWidth(extrusion_width);
                 mesh.insetX_config.setSpeed(mesh.settings->getSettingInt("insetXSpeed"));
                 mesh.insetX_config.setFilamentDiameter(mesh.settings->getSettingInt("filamentDiameter"));
                 mesh.insetX_config.setFlow(mesh.settings->getSettingInt("filamentFlow"));
                 mesh.insetX_config.setLayerHeight(layer_thickness);
-                
+
                 for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
                 {
                     mesh.fill_config[idx].setLineWidth(extrusion_width * (idx + 1));
@@ -487,7 +487,7 @@ private:
                     mesh.fill_config[idx].setLayerHeight(layer_thickness);
                 }
             }
-            
+
             int initial_speedup_layers = getSettingInt("initialSpeedupLayers");
             if (static_cast<int>(layer_nr) < initial_speedup_layers)
             {
@@ -575,14 +575,14 @@ private:
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
     }
-    
+
     std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
     {
         std::vector<SliceMeshStorage*> ret;
         std::vector<SliceMeshStorage*> add_list;
         for(SliceMeshStorage& mesh : storage.meshes)
             add_list.push_back(&mesh);
-        
+
         int add_extruder_nr = current_extruder;
         while(add_list.size() > 0)
         {
@@ -647,7 +647,7 @@ private:
             }
             if (mesh->settings->getSettingInt("spiralizeMode"))
                 mesh->inset0_config.spiralize = true;
-            
+
             gcodeLayer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
             return;
         }
@@ -693,7 +693,7 @@ private:
             int extrusionWidth = getSettingInt("extrusionWidth");
             if (layer_nr == 0)
                 extrusionWidth = getSettingInt("layer0extrusionWidth");
-            
+
             //Add thicker (multiple layers) sparse infill.
             if (getSettingInt("sparseInfillLineDistance") > 0)
             {
@@ -710,7 +710,7 @@ private:
                     {
                         generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                     }
-                    gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[n]);
+                    gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[n]);
                 }
             }
 
@@ -747,7 +747,7 @@ private:
                     generateConcentricInfill(part->sparse_outline[0], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                 }
             }
-            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[0]);
+            gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[0]);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))
@@ -823,7 +823,7 @@ private:
                 gcodeLayer.setCombBoundary(&island);
             if (getSetting("supportType") == "GRID")
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
-            gcodeLayer.addPolygonsByOptimizer(supportLines, &storage.support_config);
+            gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
         }
     }
@@ -832,13 +832,13 @@ private:
     {
         if (getSettingInt("wipeTowerSize") < 1)
             return;
-        
+
         int extrusionWidth = getSettingInt("extrusionWidth");
         //If we changed extruder, print the wipe/prime tower for this nozzle;
         gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &storage.support_config);
         Polygons fillPolygons;
         generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layer_nr % 2));
-        gcodeLayer.addPolygonsByOptimizer(fillPolygons, &storage.support_config);
+        gcodeLayer.addLinesByOptimizer(fillPolygons, &storage.support_config);
 
         //Make sure we wipe the old extruder on the wipe tower.
         gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prevExtruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));

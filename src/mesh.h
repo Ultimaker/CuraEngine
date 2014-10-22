@@ -8,11 +8,11 @@ class MeshVertex
 public:
     Point3 p;
     std::vector<uint32_t> connected_faces;
-    
+
     MeshVertex(Point3 p) : p(p) {}
 };
 
-/* A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers */
+/*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers */
 class MeshFace
 {
 public:
@@ -28,13 +28,13 @@ class Mesh : public SettingsBase
 public:
     std::vector<MeshVertex> vertices;
     std::vector<MeshFace> faces;
-    
+
     Mesh(SettingsBase* parent);
 
     void addFace(Point3& v0, Point3& v1, Point3& v2);
     void clear();
     void finish();
-    
+
     Point3 min();
     Point3 max();
 

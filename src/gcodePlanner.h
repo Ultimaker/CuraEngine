@@ -27,11 +27,11 @@ class GCodePlanner
 {
 private:
     GCodeExport& gcode;
-    
+
     Point lastPosition;
     std::vector<GCodePath> paths;
     Comb* comb;
-    
+
     GCodePathConfig travelConfig;
     int extrudeSpeedFactor;
     int travelSpeedFactor;
@@ -47,7 +47,7 @@ private:
 public:
     GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance);
     ~GCodePlanner();
-    
+
     bool setExtruder(int extruder)
     {
         if (extruder == currentExtruder)
@@ -55,7 +55,7 @@ public:
         currentExtruder = extruder;
         return true;
     }
-    
+
     int getExtruder()
     {
         return currentExtruder;
@@ -70,17 +70,17 @@ public:
         else
             comb = nullptr;
     }
-    
+
     void setAlwaysRetract(bool alwaysRetract)
     {
         this->alwaysRetract = alwaysRetract;
     }
-    
+
     void forceRetract()
     {
         forceRetraction = true;
     }
-    
+
     void setExtrudeSpeedFactor(int speedFactor)
     {
         if (speedFactor < 1) speedFactor = 1;
@@ -99,19 +99,21 @@ public:
     {
         return this->travelSpeedFactor;
     }
-    
+
     void addTravel(Point p);
-    
+
     void addExtrusionMove(Point p, GCodePathConfig* config);
-    
+
     void moveInsideCombBoundary(int distance);
 
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config);
 
     void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config);
-    
+
+    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config);
+
     void forceMinimalLayerTime(double minTime, int minimalSpeed);
-    
+
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };
 

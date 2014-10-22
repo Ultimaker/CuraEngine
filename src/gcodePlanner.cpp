@@ -124,6 +124,18 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
     }
 }
+void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config)
+{
+    LineOrderOptimizer orderOptimizer(lastPosition);
+    for(unsigned int i=0;i<polygons.size();i++)
+        orderOptimizer.addPolygon(polygons[i]);
+    orderOptimizer.optimize();
+    for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
+    {
+        int nr = orderOptimizer.polyOrder[i];
+        addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
+    }
+}
 
 void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
 {
@@ -159,13 +171,13 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
             if (speed < minimalSpeed)
                 factor = double(minimalSpeed) / double(path->config->getSpeed());
         }
-        
+
         //Only slow down with the minimal time if that will be slower then a factor already set. First layer slowdown also sets the speed factor.
         if (factor * 100 < getExtrudeSpeedFactor())
             setExtrudeSpeedFactor(factor * 100);
         else
             factor = getExtrudeSpeedFactor() / 100.0;
-        
+
         if (minTime - (extrudeTime / factor) - travelTime > 0.1)
         {
             this->extraTime = minTime - (extrudeTime / factor) - travelTime;
@@ -198,12 +210,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             lastConfig = path->config;
         }
         int speed = path->config->getSpeed();
-        
+
         if (path->config->getExtrusionPerMM() != 0)// Only apply the extrudeSpeedFactor to extrusion moves
             speed = speed * extrudeSpeedFactor / 100;
         else
             speed = speed * travelSpeedFactor / 100;
-        
+
         if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->getLineWidth() * 2))
         {
             //Check for lots of small moves and combine them into one large line
@@ -226,7 +238,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                     int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
                     if (newLen > 0)
                         gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM() * oldLen / newLen);
-                    
+
                     p0 = paths[x+1].points[0];
                 }
                 gcode.writeMove(paths[i-1].points[0], speed, path->config->getExtrusionPerMM());
@@ -234,7 +246,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 continue;
             }
         }
-        
+
         bool spiralize = path->config->spiralize;
         if (spiralize)
         {
@@ -257,7 +269,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 totalLength += vSizeMM(p0 - p1);
                 p0 = p1;
             }
-            
+
             float length = 0.0;
             p0 = gcode.getPositionXY();
             for(unsigned int i=0; i<path->points.size(); i++)
@@ -275,7 +287,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             }
         }
     }
-    
+
     gcode.updateTotalPrintTime();
     if (liftHeadIfNeeded && extraTime > 0.0)
     {
