@@ -2,7 +2,7 @@
 #include <map>
 
 #include "pathOrderOptimizer.h"
-#include "utils/logOutput.h"
+#include "utils/logoutput.h"
 
 namespace cura {
 
