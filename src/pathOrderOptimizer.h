@@ -38,8 +38,9 @@ public:
 
     void optimize(); //!< sets #polyStart and #polyOrder
 
-private:
-    void checkIfLineIsBest(unsigned int i_line_polygon, int& best, float& bestDist, Point& prev_point, Point& incommingPerpundicularNormal);
+    private:
+        int getClosestPointInPolygon(Point prev, int i_polygon); //!< returns the index of the closest point
+
 
 };
 //! Line path order optimization class.

@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     logCopyright("\n");
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
-/*
+//*
     processor.setSetting("layerThickness", "100");
     processor.setSetting("initialLayerThickness", "300");
     processor.setSetting("filamentDiameter", "2890");
@@ -175,7 +175,7 @@ int main(int argc, char **argv)
         processor.setSetting(stream.str() + ".Y", "0");
     }
 
-    processor.setSetting("startCode", 
+    processor.setSetting("startCode",
         "M109 S210     ;Heatup to 210C\n"
         "G21           ;metric values\n"
         "G90           ;absolute positioning\n"
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
         "G90                         ;absolute positioning\n");
     processor.setSetting("postSwitchExtruderCode", "");
     processor.setSetting("preSwitchExtruderCode", "");
-*/
+//*/
     CommandSocket* commandSocket = NULL;
 
     for(int argn = 1; argn < argc; argn++)

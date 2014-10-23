@@ -114,6 +114,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
 
 void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config)
 {
+    //log("addPolygonsByOptimizer");
     PathOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
         orderOptimizer.addPolygon(polygons[i]);

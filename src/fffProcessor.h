@@ -408,7 +408,7 @@ private:
                 gcode.writeFanCommand(getSettingInt("raftFanSpeed"));
             }
 
-            {
+            { /// this code block is about something which is of yet unknown
                 gcode.writeComment("LAYER:-1");
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
@@ -703,19 +703,24 @@ private:
                     if (getSetting("infillPattern") == "INFILL_GRID")
                     {
                         generateGridInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                        gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_LINES")
                     {
                         generateLineInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                        gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                     {
                         generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
+                        gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[n]);
+                    } else {
+                        logError("infillPattern has unknown value.\n");
                     }
-                    gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[n]);
                 }
             }
 
             //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
             Polygons fillPolygons;
+            Polygons fillLines;
             for(Polygons outline : part->skinOutline.splitIntoParts())
             {
                 int bridge = -1;
@@ -723,11 +728,11 @@ private:
                     bridge = bridgeAngle(outline, &mesh->layers[layer_nr-1]);
                 if (bridge > -1)
                 {
-                    generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);
+                    generateLineInfill(outline, fillLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);
                 }else{
                     if (getSetting("skinPattern") == "SKIN_LINES")
                     {
-                        generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+                        generateLineInfill(outline, fillLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
                     }else if (getSetting("skinPattern") == "SKIN_CONCENTRIC")
                     {
                         generateConcentricInfill(outline.offset(-extrusionWidth/2.0), fillPolygons, extrusionWidth);
@@ -738,16 +743,19 @@ private:
             {
                 if (getSetting("infillPattern") == "INFILL_GRID")
                 {
-                    generateGridInfill(part->sparse_outline[0], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                    generateGridInfill(part->sparse_outline[0], fillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
                 } else if (getSetting("infillPattern") == "INFILL_LINES")
                 {
-                    generateLineInfill(part->sparse_outline[0], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                    generateLineInfill(part->sparse_outline[0], fillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
                 } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                 {
                     generateConcentricInfill(part->sparse_outline[0], fillPolygons, getSettingInt("sparseInfillLineDistance"));
+                }  else {
+                    logError("infillPattern has unknown value.\n");
                 }
             }
-            gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->fill_config[0]);
+            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->fill_config[0]);
+            gcodeLayer.addLinesByOptimizer(fillLines, &mesh->fill_config[0]);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))
