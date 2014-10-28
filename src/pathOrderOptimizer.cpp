@@ -132,13 +132,15 @@ void PathOrderOptimizer::optimize()
             bool orientation = poly.orientation();
             for(unsigned int i=0;i<poly.size(); i++)
             {
+                const int64_t dot_score_scale = 2000;
                 float dist = vSize2f(polygons[nr][i] - p0);
-                Point n0 = normal(poly[(i+poly.size()-1)%poly.size()] - poly[i], 2000);
-                Point n1 = normal(poly[i] - poly[(i + 1) % poly.size()], 2000);
+                Point n0 = normal(poly[(i+poly.size()-1)%poly.size()] - poly[i], dot_score_scale);
+                Point n1 = normal(poly[i] - poly[(i + 1) % poly.size()], dot_score_scale);
                 float dot_score = dot(n0, n1) - dot(crossZ(n0), n1);
                 if (orientation)
                     dot_score = -dot_score;
-                if (dist + dot_score < bestDist)
+                dist += dot_score;
+                if (dist < bestDist)
                 {
                     best = i;
                     bestDist = dist;
