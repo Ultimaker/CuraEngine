@@ -10,10 +10,10 @@ BUILD_TYPE = DEBUG
 
 VERSION ?= DEV
 CXX ?= g++
-CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
+CFLAGS += -c -Wall -Wextra -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
-	CFLAGS+=-ggdb -Og -g
+	CFLAGS+=-ggdb -Og -g -Wno-sign-compare -Wno-old-style-cast
 endif
 ifeq ($(BUILD_TYPE),PROFILE)
 	CFLAGS+= -pg
@@ -24,7 +24,7 @@ endif
 
 LDFLAGS += -L$(BUILD_DIR)/ -lclipper
 
-SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp commandSocket.cpp multiVolumes.cpp mesh.cpp gcodePlanner.cpp
+SOURCES_RAW = advancedSupport.cpp bridge.cpp comb.cpp gcodeExport.cpp halfEdgeMesh.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp commandSocket.cpp multiVolumes.cpp mesh.cpp gcodePlanner.cpp
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
 SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
 

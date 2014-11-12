@@ -61,12 +61,12 @@ public:
         return vSize2() <= len*len;
     }
 
-    int64_t vSize2()
+    int64_t vSize2() const
     {
         return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
     }
 
-    int32_t vSize()
+    int32_t vSize() const
     {
         return sqrt(vSize2());
     }

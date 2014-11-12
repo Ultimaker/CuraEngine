@@ -23,6 +23,13 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 
+#include "halfEdgeMesh.h"
+
+#include "advancedSupport.h"
+
+#include <iostream>
+
+
 namespace cura {
 
 //FusedFilamentFabrication processor.
@@ -96,8 +103,12 @@ public:
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
         preSetup();
+
+        SupportChecker::testSupportChecker(model);
+
         if (!prepareModel(storage, model))
             return false;
+
 
         processSliceData(storage);
         writeGCode(storage);
@@ -153,7 +164,7 @@ private:
         gcode.setRetractionSettings(getSettingInt("retractionAmountExtruderSwitch"), getSettingInt("retractionExtruderSwitchSpeed"), getSettingInt("retractionExtruderSwitchPrimeSpeed"), getSettingInt("minimalExtrusionBeforeRetraction"));
     }
 
-    bool prepareModel(SliceDataStorage& storage, PrintObject* object)
+    bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model
     {
         storage.model_min = object->min();
         storage.model_max = object->max();
@@ -183,7 +194,7 @@ private:
 
         log("Generating support map...\n");
         generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
-        object->clear();//Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
+        object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");
         for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)

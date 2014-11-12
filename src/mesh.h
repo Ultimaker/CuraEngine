@@ -16,14 +16,14 @@ public:
 class MeshFace
 {
 public:
-    int vertex_index[3];
-    int connected_face_index[3];
+    int vertex_index[3]; //!< counter-clockwise ordering
+    int connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
 };
 
-/* A Mesh is the most basic reprisentation of a 3D model. It contains all the faces as SimpleTriangles, with nothing fancy. */
+/*! A Mesh is the most basic representation of a 3D model. It contains all the faces as SimpleTriangles. */
 class Mesh : public SettingsBase
 {
-    //The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
+    //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
 public:
     std::vector<MeshVertex> vertices;
