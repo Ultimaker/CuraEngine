@@ -104,7 +104,7 @@ public:
         SliceDataStorage storage;
         preSetup();
 
-        SupportChecker::testSupportChecker(model);
+        /// SupportChecker::testSupportChecker(model);
 
         if (!prepareModel(storage, model))
             return false;
