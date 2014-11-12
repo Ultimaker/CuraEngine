@@ -6,7 +6,7 @@ BUILD_DIR = build
 SRC_DIR = src
 LIBS_DIR = libs
 
-BUILD_TYPE = DEBUG
+BUILD_TYPE = RELEASE
 
 VERSION ?= DEV
 CXX ?= g++

@@ -20,7 +20,9 @@ static uint32_t hashPoint(const Point& p)
 */
 void PathOrderOptimizer::optimize()
 {
-    bool picked [polygons.size()] {}; /// initialized as falses
+    bool picked[polygons.size()];
+    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    
     for(unsigned int i_polygon=0 ; i_polygon<polygons.size() ; i_polygon++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best = -1;
@@ -121,8 +123,9 @@ inline int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int i_
 void LineOrderOptimizer::optimize()
 {
     std::map<uint32_t, std::vector<unsigned int>> location_to_line_map;
-    //std::vector<bool> picked; /// TODO: change to array of constant size
-    bool picked [polygons.size()] {}; /// initialized as falses
+    bool picked[polygons.size()];
+    memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
+    
     for(unsigned int i_polygon=0 ; i_polygon<polygons.size() ; i_polygon++) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best = -1;
@@ -212,7 +215,7 @@ void LineOrderOptimizer::optimize()
             if (dist + dot_score < bestDist)
             {
                 best = i;
-                bestDist = dist;
+                bestDist = dist + dot_score;
             }
         }
         polyStart[nr] = best;
