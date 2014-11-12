@@ -13,6 +13,7 @@ CXX ?= g++
 CFLAGS += -c -Wall -Wextra -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
+	CXX = colorgcc
 	CFLAGS+=-ggdb -Og -g -Wno-sign-compare -Wno-old-style-cast
 endif
 ifeq ($(BUILD_TYPE),PROFILE)
