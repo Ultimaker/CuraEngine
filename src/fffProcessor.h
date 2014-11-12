@@ -106,6 +106,8 @@ public:
 
         /// SupportChecker::testSupportChecker(model);
 
+        grmbl
+
         if (!prepareModel(storage, model))
             return false;
 
