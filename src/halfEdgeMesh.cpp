@@ -34,7 +34,7 @@ Point3 HE_Mesh::getNormal(const HE_Face& face) const
     Point3 p0 = vertices[edges[face.edge_index[0]].from_vert_idx].p;
     Point3 p1 = vertices[edges[face.edge_index[0]].to_vert_idx].p;
     Point3 p2 = vertices[edges[face.edge_index[2]].from_vert_idx].p;
-    return (p1-p0).cross(p2-p0);
+    return FPoint3::cross(p1-p0, p2-p0).normalized().toPoint3();
 };
 
 HE_Vertex::HE_Vertex(Point3 p, int someEdge_idx)

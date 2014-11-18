@@ -13,7 +13,13 @@ namespace cura {
 
 
 
-
+/**
+* Finding out which faces, edges and vertices need support.
+*
+* Boolean lists show which indices of the faces/edges/vertices lists of the HE_Mesh need support.
+*
+* The normal of each face is computed and stored stored as well in the process.
+*/
 class SupportChecker
 {
     public:
@@ -37,8 +43,6 @@ class SupportChecker
 
 
         double maxAngle;
-        double cosMaxAngle;
-        double cosMaxAngleNormal; /// == sin maxAngle
 
         HE_Mesh mesh;
 
@@ -48,6 +52,13 @@ class SupportChecker
 
         std::vector<Point3> faceNormals;
 
+        static void testSupportChecker(PrintObject* model);
+
+        virtual ~SupportChecker();
+
+    protected:
+        double cosMaxAngle;
+        double cosMaxAngleNormal; /// == sin maxAngle
 
         SupportChecker(Mesh mmesh, double maxAngleI)
         : maxAngle(maxAngleI)
@@ -66,11 +77,6 @@ class SupportChecker
             faceNormals.resize(mesh.faces.size());
         };
 
-        virtual ~SupportChecker();
-
-        static void testSupportChecker(PrintObject* model);
-
-    protected:
         bool faceNeedsSupport(const HE_Mesh& mesh, int face_idx);
         bool edgeNeedsSupport(const HE_Mesh& mesh, int edge_idx);
         bool vertexNeedsSupport(const HE_Mesh& mesh, int vertex_idx);
@@ -106,9 +112,59 @@ class SupportChecker
         * \param edge the edge to check
         */
         inline bool edgeIsBelowFaces(const HE_Mesh& mesh, const HE_Edge& edge);
-        inline bool edgeIsBelowFacesDiagonal(const HE_Mesh& mesh, const HE_Edge& edge, const Point3& a, const Point3& dac); //!< Hlper function for the edge case in which a horizontal line through the plane is perfectly diagonal, in which case the denom parameter of edgeIsBelowFacesNonDiagonal is not finite.
+        inline bool edgeIsBelowFacesDiagonal(const HE_Mesh& mesh, const HE_Edge& edge, const Point3& a, const Point3& dac); //!< Helper function for the edge case in which a horizontal line through the plane is perfectly diagonal, in which case the denom parameter of edgeIsBelowFacesNonDiagonal is not finite.
+        inline bool edgeIsBelowSingleFaceDiagonal(const Point3& dab, const Point3& dac, double denom, short sign);
         inline bool edgeIsBelowFacesNonDiagonal(const HE_Mesh& mesh, const HE_Edge& edge, const Point3& a, const Point3& dac, double denom);
+        inline bool edgeIsBelowSingleFaceNonDiagonal(const Point3& dab, const Point3& dac, double denom);
 };
+
+
+class AdvSupportPoint
+{
+public:
+    Point3 p;
+    std::string fromType;
+    int idx;
+    AdvSupportPoint(Point3 p, std::string fromType, int ix)
+    : p(p)
+    , fromType(fromType)
+    , idx(ix)
+    {};
+};
+
+/**
+* Generating support points from a SupportChecker result.
+*
+* Generates points at regular intervals over all places which need support.
+* The points coincide with the junction points in a square grid.
+*
+*/
+class SupportPointsGenerator
+{
+public:
+    const SupportChecker& supportChecker;
+
+    int32_t vertexOffset;
+    int32_t edgeOffset;
+    int32_t faceOffset;
+    int32_t gridSize;
+
+    std::vector<AdvSupportPoint> supportPoints;
+
+
+    SupportPointsGenerator(const SupportChecker& supportChecker, int32_t vertexOffset, int32_t edgeOffset, int32_t faceOffset, int32_t gridSize);
+
+    static void testSupportPointsGenerator(PrintObject* model);
+
+protected:
+    //! Adds points for each intersection of the edge with the grid.
+    void addSupportPointsEdge(int edge_idx);
+    void addSupportPointsFace(int face_idx);
+private:
+
+};
+
+
 
 }//namespace cura
 

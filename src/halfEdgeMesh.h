@@ -20,6 +20,33 @@ class HE_Vertex;
 class HE_Face;
 class HE_Edge;
 
+/*!
+Half-edge mesh - a more elaborate data structure to store a mesh.
+
+Each edge is represented by (in general) two directed half-edges.
+The next and prev edge are the other edges within the face.
+The converse is the half-edge directed in the opposite direction, belonging to the face on the other side of the edge.
+
+Note that a correct model may have more than 2 faces connected to a single edge!
+The converse of a half-edge of such an edge belonging to face F is given by the half-edge belonging to face F2, connected to F via the outside; see ASCII art below:
+
+: horizontal slice through vertical edge connected to four faces :
+
+[inside] x|
+         x| <--+--- faces with half-edges being each others converse
+   xxxxxxx|   \|/
+   -------+-------
+      ^   |xxxxxxx
+      +-->|x
+      |   |x [inside]
+      |
+    faces with half-edges being each others converse
+
+As such we should keep in mind that when starting from some half-edge connected to a vertex, we cannot be guaranteed to be able to traverse all connected edges just by using the operations getNext() and getConverse()!
+Walking along the surface of a model means walking along the outside of the model (as opposed to the inside).
+
+
+*/
 class HE_Mesh
 {
     public:

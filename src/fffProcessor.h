@@ -104,9 +104,24 @@ public:
         SliceDataStorage storage;
         preSetup();
 
-        /// SupportChecker::testSupportChecker(model);
 
-        grmbl
+
+
+
+
+
+
+
+
+
+        SupportPointsGenerator::testSupportPointsGenerator(model);
+
+
+
+
+
+
+
 
         if (!prepareModel(storage, model))
             return false;

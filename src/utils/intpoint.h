@@ -15,6 +15,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <stdint.h>
 #include <cmath>
 
+#include <iostream> // auto-serialization / auto-toString()
+
 #define INT2MM(n) (double(n) / 1000.0)
 #define MM2INT(n) (int64_t((n) * 1000))
 
@@ -24,6 +26,15 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 //c++11 no longer defines M_PI, so add our own constant.
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#endif
+
+#ifdef __GNUC__
+#define DEPRECATED(func) func __attribute__ ((deprecated))
+#elif defined(_MSC_VER)
+#define DEPRECATED(func) __declspec(deprecated) func
+#else
+#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
+#define DEPRECATED(func) func
 #endif
 
 class Point3
@@ -42,6 +53,16 @@ public:
 
     bool operator==(const Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(const Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
+
+
+    template<class CharT, class TraitsT>
+    friend
+    std::basic_ostream<CharT, TraitsT>&
+    operator <<(std::basic_ostream<CharT, TraitsT>& os, const Point3& p)
+    {
+        return os << "(" << p.x << ", " << p.y << ", " << p.z << ")";
+    }
+
 
     int32_t max()
     {
@@ -71,13 +92,17 @@ public:
         return sqrt(vSize2());
     }
 
-    Point3 cross(const Point3& p)
+    /*! this function is deprecated because it can cause overflows for vectors which easily fit inside a printer. Use FPoint3.cross(a,b) instead. */
+    DEPRECATED(Point3 cross(const Point3& p))
     {
         return Point3(
-            y*p.z-z*p.y,
-            z*p.x-x*p.z,
+            y*p.z-z*p.y, /// dangerous for vectors longer than 4.6 cm !!!!!
+            z*p.x-x*p.z, /// can cause overflows
             x*p.y-y*p.x);
     }
+
+
+
 };
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */

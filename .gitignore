@@ -17,3 +17,5 @@ build/*
 *~
 NUL
 CuraEngine.layout
+documentation/html/*
+documentation/latex/*
