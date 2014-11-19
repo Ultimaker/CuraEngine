@@ -113,8 +113,8 @@ public:
 
 
 
-
-        SupportPointsGenerator::testSupportPointsGenerator(model);
+        SupportChecker::testSupportChecker(model);
+        //SupportPointsGenerator::testSupportPointsGenerator(model);
 
 
 

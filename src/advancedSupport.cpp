@@ -153,7 +153,7 @@ bool SupportChecker::edgeIsBelowFaces(const HE_Mesh& mesh, const HE_Edge& edge)
     }
 }
 
-double distanceWhichIsBasicallyZero = 10;
+double distanceWhichIsBasicallyZero = .01; /// cos of angle which still counts as vertical. 0 < a << 1
 
 bool SupportChecker::edgeIsBelowFacesDiagonal(const HE_Mesh& mesh, const HE_Edge& edge, const Point3& a, const Point3& dac)
 {
@@ -184,7 +184,7 @@ bool SupportChecker::edgeIsBelowSingleFaceDiagonal(const Point3& dab, const Poin
 
     double projectedZ_dab = dac.z * (dab.x + sign * dab.y) * denom;
 
-    if (dab.z < projectedZ_dab + distanceWhichIsBasicallyZero * vSize(ClipperLib::IntPoint(dab.x, dab.y)))
+    if (dab.z < projectedZ_dab + distanceWhichIsBasicallyZero * vSize(ClipperLib::IntPoint(dab.x, dab.y))) /// instead of dab.z/size < projZ_dab/size + dist
     {
         ADV_SUP_DEBUG_DO(
             if (debug_support_edges_only)
@@ -435,14 +435,14 @@ void SupportPointsGenerator::addSupportPointsFace(int face_idx)
     double dzdxMidMax = static_cast<double>(maxXv.z - midXv.z) / static_cast<double>(maxXv.x - midXv.x);
     double dydxMidMax = static_cast<double>(maxXv.y - midXv.y) / static_cast<double>(maxXv.x - midXv.x);
 
-    double dzdy = fabs((dzdxMinMid - dzdxMinMax) / (dydxMinMid - dydxMinMax));
+    double dzdy = (dzdxMinMid - dzdxMinMax) / (dydxMinMid - dydxMinMax);
 
     if (!std::isfinite(dzdy))
     {
-        dzdy = fabs((dzdxMidMax - dzdxMinMax) / (dydxMidMax - dydxMinMax)); /// hopefully less rounding problems
+        dzdy = (dzdxMidMax - dzdxMinMax) / (dydxMidMax - dydxMinMax); /// hopefully less rounding problems
         if (!std::isfinite(dzdy)) /// if still
         {
-            dzdy = fabs((dzdxMidMax - dzdxMidMax) / (dydxMidMax - dzdxMidMax)); /// hopefully less rounding problems
+            dzdy = (dzdxMidMax - dzdxMidMax) / (dydxMidMax - dzdxMidMax); /// hopefully less rounding problems
             if (!std::isfinite(dzdy))
             {
                 return; /// face has no area! all three sides have the same direction (?)
@@ -451,18 +451,18 @@ void SupportPointsGenerator::addSupportPointsFace(int face_idx)
     }
 
 
-    if (midXv.x - minXv.x != 0)
+    if (midXv.x - minXv.x != 0) /// if left side is present
     { /// generating points on grid for left half of triangle (between the leftmost point and the middle point)
         double dydxLowerY = dydxMinMax;
-        double dydxHigherY = dydxMinMid;
         double dzdxLowerY = dzdxMinMax;
+        double dydxHigherY = dydxMinMid;
         if (dydxLowerY > dydxHigherY)
         {
             std::swap(dydxLowerY, dydxHigherY);
             dzdxLowerY = dzdxMinMid;
         }
         //if (face_idx == 1 )
-        std::cerr << "!!!!!!> start: " << gridSize - minXv.x % gridSize <<", end: "<<  midXv.x - minXv.x  << std::endl;
+        ADV_SUP_DEBUG_DO(std::cerr << "!!!!!!> start: " << gridSize - minXv.x % gridSize <<", end: "<<  midXv.x - minXv.x  << std::endl; )
 
         for (int32_t dx = gridSize - minXv.x % gridSize ; minXv.x + dx <= midXv.x ; dx += gridSize)
         {
@@ -470,30 +470,19 @@ void SupportPointsGenerator::addSupportPointsFace(int face_idx)
             int32_t ymax = minXv.y + dx*dydxHigherY;
 
             //if (face_idx == 1 )
-            std::cerr << "!!!!!!> Y start: " << gridSize - ymin % gridSize <<", end: "<<  ymax - ymin  << std::endl;
+            ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!> Y start: " << gridSize - ymin % gridSize <<", end: "<<  ymax - ymin  << std::endl; )
 
             for (int32_t dy = gridSize - ymin % gridSize ; dy <= ymax - ymin ; dy += gridSize)
             {
                 Point3 p(minXv.x + dx, ymin+dy, minXv.z + dx * dzdxLowerY + dy * dzdy - faceOffset);
                 supportPoints.push_back(AdvSupportPoint(p, "face", face_idx) );
-                std::cerr << "==========>   added (" << p.x<<", "<<p.y<<", "<<p.z<<")" <<std::endl;
-                if (fabs(p.z) > 1e2)
-                {
-                    std::cerr << "TOO HIGH!!!" << std::endl;
-                    ADV_SUP_DEBUG_SHOW(minXv.z);
-                    ADV_SUP_DEBUG_SHOW(dx);
-                    ADV_SUP_DEBUG_SHOW(dzdxLowerY);
-                    ADV_SUP_DEBUG_SHOW(dy);
-                    ADV_SUP_DEBUG_SHOW(dzdy);
-                    ADV_SUP_DEBUG_SHOW(faceOffset);
-                    std::exit(EXIT_FAILURE);
-                }
+                ADV_SUP_DEBUG_DO( std::cerr << "==========>   added (" << p.x<<", "<<p.y<<", "<<p.z<<")" <<std::endl; )
             }
 
         }
     }
 
-    if (maxXv.x - midXv.x != 0)
+    if (maxXv.x - midXv.x != 0) /// if right side is present
     { /// generating points on grid for right half of triangle (between the middle point and the rightmost point)
         double dydxLowerY = dydxMinMax;
         double dydxHigherY = dydxMidMax;
@@ -504,11 +493,11 @@ void SupportPointsGenerator::addSupportPointsFace(int face_idx)
             dzdxLowerY = dzdxMidMax;
         }
 
-        std::cerr << "!!!!!!2> dydxLowerY: " << dydxLowerY <<", dydxHigherY: "<<  dydxHigherY << std::endl;
-        std::cerr << "!!!!!!2> minXv.y : " << minXv.y  <<", midXv.y: "<<  midXv.y << std::endl;
+        ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!2> dydxLowerY: " << dydxLowerY <<", dydxHigherY: "<<  dydxHigherY << std::endl; )
+        ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!2> minXv.y : " << minXv.y  <<", midXv.y: "<<  midXv.y << std::endl; )
 
         //if (face_idx == 0 )
-        std::cerr << "!!!!!!2> start: " << - maxXv.x % gridSize <<", end: "<<   midXv.x - maxXv.x  << std::endl;
+        ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!2> start: " << - maxXv.x % gridSize <<", end: "<<   midXv.x - maxXv.x  << std::endl; )
         /// from right to left:
         for (int32_t dx = - maxXv.x % gridSize; maxXv.x + dx >= midXv.x ; dx -= gridSize)
         {
@@ -516,24 +505,13 @@ void SupportPointsGenerator::addSupportPointsFace(int face_idx)
             int32_t ymax = maxXv.y + dx*dydxHigherY;
 
             //if (face_idx == 0 )
-            std::cerr << "!!!!!!2> Y start: " << gridSize - ymin % gridSize <<", end: "<<  ymax - ymin  << std::endl;
-            std::cerr << "!!!!!!2> ymin: " << ymin <<", ymax: "<<  ymax << std::endl;
+            ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!2> Y start: " << gridSize - ymin % gridSize <<", end: "<<  ymax - ymin  << std::endl; )
+            ADV_SUP_DEBUG_DO( std::cerr << "!!!!!!2> ymin: " << ymin <<", ymax: "<<  ymax << std::endl; )
             for (int32_t dy = gridSize - ymin % gridSize ; dy <= ymax - ymin ; dy += gridSize)
             {
                 Point3 p(maxXv.x + dx, ymin+dy, maxXv.z + dx * dzdxLowerY + dy * dzdy - faceOffset);
                 supportPoints.push_back(AdvSupportPoint(p, "face", face_idx) );
-                std::cerr << "==========>   added (" << p.x<<", "<<p.y<<", "<<p.z<<")" <<std::endl;
-                if (fabs(p.z) > 1e2)
-                {
-                    std::cerr << "TOO HIGH2!!!" << std::endl;
-                    ADV_SUP_DEBUG_SHOW(minXv.z);
-                    ADV_SUP_DEBUG_SHOW(dx);
-                    ADV_SUP_DEBUG_SHOW(dzdxLowerY);
-                    ADV_SUP_DEBUG_SHOW(dy);
-                    ADV_SUP_DEBUG_SHOW(dzdy);
-                    ADV_SUP_DEBUG_SHOW(faceOffset);
-                    std::exit(EXIT_FAILURE);
-                }
+                ADV_SUP_DEBUG_DO( std::cerr << "==========>   added (" << p.x<<", "<<p.y<<", "<<p.z<<")" <<std::endl; )
             }
         }
     }
@@ -554,7 +532,7 @@ void SupportPointsGenerator::testSupportPointsGenerator(PrintObject* model)
         }
 
         //HE_Mesh mesh(model->meshes[mi]);
-        SupportChecker supporter = SupportChecker::getSupportRequireds(model->meshes[mi], .785); // 45/180*M_PI
+        SupportChecker supporter = SupportChecker::getSupportRequireds(model->meshes[mi], .1);//.785); // 45/180*M_PI
 
 
         std::cerr << "faces badness:" << std::endl;

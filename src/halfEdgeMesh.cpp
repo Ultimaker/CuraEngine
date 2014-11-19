@@ -3,7 +3,7 @@
 
 
 /// enable/disable debug output
-#define HE_MESH_DEBUG 0
+#define HE_MESH_DEBUG 1
 
 #define HE_MESH_DEBUG_SHOW(x) do { std::cerr << #x << ": " << x << std::endl; } while (0)
 #define HE_MESH_DEBUG_PRINTLN(x) do { std::cerr <<  x << std::endl; } while (0)
@@ -17,7 +17,7 @@
 
 #include <iostream>
 
-#include "easylogging++.h"
+//#include "easylogging++.h"
 
 
 
@@ -53,6 +53,7 @@ HE_Face::HE_Face()
 
 HE_Mesh::HE_Mesh(Mesh& mesh)
 {
+
     for (int vIdx = 0 ; vIdx < mesh.vertices.size() ; vIdx++)
     {
         vertices.push_back(HE_Vertex(mesh.vertices[vIdx].p, -1));
@@ -91,9 +92,11 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
 
     }
 
+
     /// connect half-edges:
 
-    bool faceEdgeIsConnected[mesh.faces.size()][3] = {};
+    bool faceEdgeIsConnected[mesh.faces.size()][3] = {}; /// initialize all as false
+
 
     /// for each edge of each face : if it doesn't have a converse then find the converse in the edges of the opposite face
     for (int fIdx = 0 ; fIdx < mesh.faces.size() ; fIdx++)
@@ -102,12 +105,17 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
 
         for (int eIdx = 0; eIdx < 3; eIdx++)
         {
-
             if (!faceEdgeIsConnected[fIdx][eIdx])
             {
                 int edge_index = faces[fIdx].edge_index[eIdx];
                 HE_Edge& edge = edges[ edge_index ];
                 int face2 = face.connected_face_index[eIdx]; /// connected_face X is connected via vertex X and vertex X+1
+
+                if (face2 < 0)
+                {
+                    cura::logError("Incorrect model: disconnected faces. Support generation aborted.\n");
+                    exit(1); /// TODO: not exit, but continue without support!
+                }
 
                 for (int e2 = 0; e2 < 3; e2++)
                 {
@@ -124,9 +132,7 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
             }
         }
 
-
     }
-
 
     HE_MESH_DEBUG_DO(
         std::cerr <<  "============================" << std::endl;

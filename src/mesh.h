@@ -16,7 +16,7 @@ public:
 class MeshFace
 {
 public:
-    int vertex_index[3]; //!< counter-clockwise ordering
+    int vertex_index[3] = {-1}; //!< counter-clockwise ordering
     int connected_face_index[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
 };
 

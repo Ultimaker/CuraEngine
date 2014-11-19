@@ -36,12 +36,12 @@
 #include "fffProcessor.h"
 
 
-#define ELPP_CUSTOM_COUT std::cerr
-#include "easylogging++.h"
-_INITIALIZE_EASYLOGGINGPP
-#define _ELPP_STACKTRACE_ON_CRASH
+//#define ELPP_CUSTOM_COUT std::cerr
+//#include "easylogging++.h"
+//_INITIALIZE_EASYLOGGINGPP
+//#define _ELPP_STACKTRACE_ON_CRASH
 
-
+/*
 void customCrashLogging(int sig) {
     LOG(ERROR) << "Application crashed!";
     el::Helpers::logCrashReason(sig, true);
@@ -49,7 +49,7 @@ void customCrashLogging(int sig) {
     el::Helpers::crashAbort(sig); // FOLLOWING LINE IS ABSOLUTELY NEEDED AT THE END IN ORDER TO ABORT APPLICATION
     el::Loggers::flushAll();
 }
-
+*/
 
 void print_usage()
 {
@@ -73,11 +73,11 @@ int main(int argc, char **argv)
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
 
-    el::Helpers::setCrashHandler(customCrashLogging);
-    el::Configurations conf("LoggerConfig.conf");
-    el::Loggers::setDefaultConfigurations(conf,true); //Ensure all current (and future) loggers use the same settings
-    LOG(INFO) << "-----Application started-----" << std::endl;
-    el::Loggers::addFlag(el::LoggingFlag::AutoSpacing);
+//    el::Helpers::setCrashHandler(customCrashLogging);
+//    el::Configurations conf("LoggerConfig.conf");
+//    el::Loggers::setDefaultConfigurations(conf,true); //Ensure all current (and future) loggers use the same settings
+//    LOG(INFO) << "-----Application started-----" << std::endl;
+//    el::Loggers::addFlag(el::LoggingFlag::AutoSpacing);
 
 
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
@@ -311,6 +311,6 @@ int main(int argc, char **argv)
     processor.finalize();
 
 
-    el::Loggers::flushAll();
+//    el::Loggers::flushAll();
     return 0;
 }
