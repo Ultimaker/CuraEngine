@@ -36,12 +36,12 @@
 #include "fffProcessor.h"
 
 
-//#define ELPP_CUSTOM_COUT std::cerr
-//#include "easylogging++.h"
-//_INITIALIZE_EASYLOGGINGPP
-//#define _ELPP_STACKTRACE_ON_CRASH
-
 /*
+#define ELPP_CUSTOM_COUT std::cerr
+#include "easylogging++.h"
+_INITIALIZE_EASYLOGGINGPP
+#define _ELPP_STACKTRACE_ON_CRASH
+
 void customCrashLogging(int sig) {
     LOG(ERROR) << "Application crashed!";
     el::Helpers::logCrashReason(sig, true);

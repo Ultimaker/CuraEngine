@@ -14,7 +14,7 @@
 //     /|\ |   _
 //      |  |   [ front of face ]
 //      | \|/  "
-/// the face is always on the left hand side of the half-edge
+// the face is always on the left hand side of the half-edge
 
 class HE_Vertex;
 class HE_Face;
@@ -32,6 +32,7 @@ The converse of a half-edge of such an edge belonging to face F is given by the 
 
 : horizontal slice through vertical edge connected to four faces :
 
+\verbatim
 [inside] x|
          x| <--+--- faces with half-edges being each others converse
    xxxxxxx|   \|/
@@ -41,10 +42,10 @@ The converse of a half-edge of such an edge belonging to face F is given by the 
       |   |x [inside]
       |
     faces with half-edges being each others converse
+\endverbatim
 
 As such we should keep in mind that when starting from some half-edge connected to a vertex, we cannot be guaranteed to be able to traverse all connected edges just by using the operations getNext() and getConverse()!
 Walking along the surface of a model means walking along the outside of the model (as opposed to the inside).
-
 
 */
 class HE_Mesh

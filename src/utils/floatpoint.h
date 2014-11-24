@@ -18,7 +18,7 @@ public:
     float x,y,z;
     FPoint3() {}
     FPoint3(float _x, float _y, float _z): x(_x), y(_y), z(_z) {}
-    FPoint3(Point3& p): x(p.x*.001), y(p.y*.001), z(p.z*.001) {}
+    FPoint3(const Point3& p): x(p.x*.001), y(p.y*.001), z(p.z*.001) {}
 
     FPoint3 operator+(const FPoint3& p) const { return FPoint3(x+p.x, y+p.y, z+p.z); }
     FPoint3 operator-(const FPoint3& p) const { return FPoint3(x-p.x, y-p.y, z-p.z); }
@@ -27,6 +27,7 @@ public:
 
     FPoint3& operator += (const FPoint3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     FPoint3& operator -= (const FPoint3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
+    FPoint3& operator *= (const float f) { x *= f; y *= f; z *= f; return *this; }
 
     bool operator==(FPoint3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(FPoint3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
@@ -68,10 +69,11 @@ public:
 
     static FPoint3 cross(const Point3& a, const Point3& b)
     {
-        return FPoint3(
-            a.y*b.z-a.z*b.y,
-            a.z*b.x-a.x*b.z,
-            a.x*b.y-a.y*b.x);
+        return FPoint3(a).cross(FPoint3(b));
+//        FPoint3(
+//            a.y*b.z-a.z*b.y,
+//            a.z*b.x-a.x*b.z,
+//            a.x*b.y-a.y*b.x);
     }
 
     Point3 toPoint3()
@@ -79,6 +81,19 @@ public:
         return Point3(x*1000, y*1000, z*1000);
     }
 };
+
+
+//inline FPoint3 operator+(FPoint3 lhs, const FPoint3& rhs) {
+//  lhs += rhs;
+//  return lhs;
+//}
+inline float operator*(FPoint3 lhs, const FPoint3& rhs) {
+    return lhs.x*rhs.x + lhs.y*rhs.y + lhs.z*rhs.z;
+}
+//inline FPoint3 operator*(FPoint3 lhs, const float f) {
+//  lhs *= f;
+//  return lhs;
+//}
 
 class FMatrix3x3
 {

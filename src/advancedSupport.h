@@ -40,7 +40,7 @@ class SupportChecker
         */
         static SupportChecker getSupportRequireds(Mesh& mesh, double maxAngle);
 
-
+        Mesh* currentMesh; // TODO: remove
 
         double maxAngle;
 
@@ -58,7 +58,9 @@ class SupportChecker
 
     protected:
         double cosMaxAngle;
-        double cosMaxAngleNormal; /// == sin maxAngle
+        double cosMaxAngleNormal; // == sin maxAngle
+
+        bool edgeOnBoundaryNotBadWhenFullySupported = true; //!< don't classify an edge as bad in case one face is bad, but the other face is pointing upward
 
         SupportChecker(Mesh mmesh, double maxAngleI)
         : maxAngle(maxAngleI)
@@ -80,6 +82,8 @@ class SupportChecker
         bool faceNeedsSupport(const HE_Mesh& mesh, int face_idx);
         bool edgeNeedsSupport(const HE_Mesh& mesh, int edge_idx);
         bool vertexNeedsSupport(const HE_Mesh& mesh, int vertex_idx);
+
+
 
     private:
         /*!

@@ -112,9 +112,9 @@ public:
 
 
 
-
-        SupportChecker::testSupportChecker(model);
-        //SupportPointsGenerator::testSupportPointsGenerator(model);
+        std::cerr << "starting new Support Test..." << std::endl;
+        //SupportChecker::testSupportChecker(model);
+        SupportPointsGenerator::testSupportPointsGenerator(model);
 
 
 

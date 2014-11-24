@@ -2,8 +2,8 @@
 #include "utils/logoutput.h"
 
 
-/// enable/disable debug output
-#define HE_MESH_DEBUG 1
+// enable/disable debug output
+#define HE_MESH_DEBUG 0
 
 #define HE_MESH_DEBUG_SHOW(x) do { std::cerr << #x << ": " << x << std::endl; } while (0)
 #define HE_MESH_DEBUG_PRINTLN(x) do { std::cerr <<  x << std::endl; } while (0)
@@ -16,8 +16,6 @@
 
 
 #include <iostream>
-
-//#include "easylogging++.h"
 
 
 
@@ -63,13 +61,13 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
     {
         MeshFace& face = mesh.faces[fIdx];
         HE_Face heFace;
-        HE_Edge edge0(face.vertex_index[0], face.vertex_index[1], fIdx); /// vertices in face are ordered counter-clockwise
+        HE_Edge edge0(face.vertex_index[0], face.vertex_index[1], fIdx); // vertices in face are ordered counter-clockwise
         HE_Edge edge1(face.vertex_index[1], face.vertex_index[2], fIdx);
         HE_Edge edge2(face.vertex_index[2], face.vertex_index[0], fIdx);
 
         int newEdgeIndex = edges.size();
 
-        vertices[ face.vertex_index[0] ].someEdge_idx = newEdgeIndex+0; /// overwrites existing data, if present
+        vertices[ face.vertex_index[0] ].someEdge_idx = newEdgeIndex+0; // overwrites existing data, if present
         vertices[ face.vertex_index[1] ].someEdge_idx = newEdgeIndex+1;
         vertices[ face.vertex_index[2] ].someEdge_idx = newEdgeIndex+2;
 
@@ -93,12 +91,12 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
     }
 
 
-    /// connect half-edges:
+    // connect half-edges:
 
-    bool faceEdgeIsConnected[mesh.faces.size()][3] = {}; /// initialize all as false
+    bool faceEdgeIsConnected[mesh.faces.size()][3] = {}; // initialize all as false
 
 
-    /// for each edge of each face : if it doesn't have a converse then find the converse in the edges of the opposite face
+    // for each edge of each face : if it doesn't have a converse then find the converse in the edges of the opposite face
     for (int fIdx = 0 ; fIdx < mesh.faces.size() ; fIdx++)
     {
         MeshFace& face = mesh.faces[fIdx];
@@ -109,12 +107,12 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
             {
                 int edge_index = faces[fIdx].edge_index[eIdx];
                 HE_Edge& edge = edges[ edge_index ];
-                int face2 = face.connected_face_index[eIdx]; /// connected_face X is connected via vertex X and vertex X+1
+                int face2 = face.connected_face_index[eIdx]; // connected_face X is connected via vertex X and vertex X+1
 
                 if (face2 < 0)
                 {
                     cura::logError("Incorrect model: disconnected faces. Support generation aborted.\n");
-                    exit(1); /// TODO: not exit, but continue without support!
+                    exit(1); // TODO: not exit, but continue without support!
                 }
 
                 for (int e2 = 0; e2 < 3; e2++)
@@ -123,7 +121,7 @@ HE_Mesh::HE_Mesh(Mesh& mesh)
                     {
                         edges[ faces[face2].edge_index[e2] ].converse_edge_idx = edge_index;
                         edge.converse_edge_idx = faces[face2].edge_index[e2];
-                        faceEdgeIsConnected[face2][e2] = true; /// the other way around doesn't have to be set; we will not pass the same edge twice
+                        faceEdgeIsConnected[face2][e2] = true; // the other way around doesn't have to be set; we will not pass the same edge twice
                         break;
                     }
                     if (e2 == 2) std::cerr << "Couldn't find converse of edge " << std::to_string(edge_index) <<"!!!!!" << std::endl;
