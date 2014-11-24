@@ -155,6 +155,8 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
 // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
     FPoint3 n0 = FPoint3(vertices[notFaceVertexIdx].p - vertices[idx0].p).cross(v0);
 
+    if (n0.vSize() <= 0) cura::log("Warning! Face %i has zero area!", notFaceIdx);
+
     double smallestAngle = 1000; // more then 2 PI (impossible angle)
     int bestIdx = -1;
 
@@ -175,8 +177,12 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
         double angle = std::atan2(det, dot);
         if (angle < 0) angle += 2*M_PI; // 0 <= angle < 2* M_PI
 
-        if (angle == 0) cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
-        else if (angle < smallestAngle)
+        if (angle == 0)
+        {
+            cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
+            std::cerr<< n.vSize() <<"; "<<n1.vSize()<<";"<<n0.vSize() <<std::endl;
+        }
+        if (angle < smallestAngle)
         {
             smallestAngle = angle;
             bestIdx = candidateFace;
