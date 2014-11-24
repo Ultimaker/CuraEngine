@@ -20,7 +20,7 @@ void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
     int vi2 = findIndexOfVertex(v2);
     if (vi0 == vi1 || vi1 == vi2 || vi0 == vi2) return; // the face has two vertices which get assigned the same location. Don't add the face.
 
-    int idx = faces.size();
+    int idx = faces.size(); // index of face to be added
     faces.emplace_back();
     MeshFace& face = faces[idx];
     face.vertex_index[0] = vi0;
@@ -155,7 +155,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
 // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
     FPoint3 n0 = FPoint3(vertices[notFaceVertexIdx].p - vertices[idx0].p).cross(v0);
 
-    double largestAngle = -1; // less then 0 (impossible angle)
+    double smallestAngle = 1000; // more then 2 PI (impossible angle)
     int bestIdx = -1;
 
     for (int candidateFace : candidateFaces)
@@ -176,9 +176,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
         if (angle < 0) angle += 2*M_PI; // 0 <= angle < 2* M_PI
 
         if (angle == 0) cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
-        else if (angle > largestAngle)
+        else if (angle < smallestAngle)
         {
-            largestAngle = angle;
+            smallestAngle = angle;
             bestIdx = candidateFace;
         }
     }
