@@ -215,7 +215,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     fprintf(f, "M108 S%0.1f\n", rpm);
                     currentSpeed = int(rpm * 10);
                 }
-                fprintf(f, "M%d01\n", extruderNr);
+                fprintf(f, "M%d01\n", extruderNr + 1);
                 isRetracted = false;
             }
             //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
