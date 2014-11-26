@@ -53,6 +53,9 @@ else
 			LDFLAGS += --static -flto
 		endif
 	endif
+	ifeq ($(UNAME), OpenBSD)
+		LDFLAGS += -lm -lpthread
+	endif
 	ifeq ($(UNAME), Darwin)
 		OPEN_HTML=open
 		#For MacOS force to build
