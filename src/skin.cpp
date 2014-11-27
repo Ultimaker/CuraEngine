@@ -3,7 +3,17 @@
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
+Polygons& getSkinOutline(SliceLayerPart* part)
+{
+    return part->skinOutline;
+}
+
+Polygons& get5050Outline(SliceLayerPart* part)
+{
+    return part->up5050Outline;
+}
+
+void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap, bool skin)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -40,15 +50,17 @@ void generateSkins(int layerNr, SliceVolumeStorage& storage, int extrusionWidth,
             }
         }
         
-        part->skinOutline = upskin.unionPolygons(downskin);
+        Polygons& outline = skin ? getSkinOutline(part) : get5050Outline(part);
+
+        outline = upskin.unionPolygons(downskin);
 
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
-        for(unsigned int i=0; i<part->skinOutline.size(); i++)
+        for(unsigned int i=0; i<outline.size(); i++)
         {
-            double area = INT2MM(INT2MM(fabs(part->skinOutline[i].area())));
+            double area = INT2MM(INT2MM(fabs(outline[i].area())));
             if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
             {
-                part->skinOutline.remove(i);
+                outline.remove(i);
                 i -= 1;
             }
         }

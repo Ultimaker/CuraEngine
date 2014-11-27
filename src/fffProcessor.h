@@ -300,8 +300,26 @@ private:
                     int extrusionWidth = config.extrusionWidth;
                     if (layerNr == 0)
                         extrusionWidth = config.layer0extrusionWidth;
-                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap);
-                    generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount);
+                    generateSkins(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount, config.infillOverlap, true);
+                    // Only generate this, if it will output something
+                    if(config.up5050SkinCount != 0)
+                    {
+                        generateSkins(layerNr, storage.volumes[volumeIdx],
+                                      extrusionWidth, config.downSkinCount,
+                                      config.upSkinCount +
+                                          config.up5050SkinCount,
+                                      config.infillOverlap, false);
+                        // Only do 50-50, when we're not doing the outline
+                        for (SliceLayerPart& part : storage.volumes[volumeIdx]
+                                 .layers[layerNr]
+                                 .parts)
+                        {
+                            part.up5050Outline =
+                                part.up5050Outline.difference(part.skinOutline);
+                        }
+                    }
+
+                    generateSparse(layerNr, storage.volumes[volumeIdx], extrusionWidth, config.downSkinCount, config.upSkinCount+config.up5050SkinCount);
 
                     SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
                     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -627,6 +645,14 @@ private:
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
                 generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
             }
+            for(Polygons outline : part->up5050Outline.splitIntoParts())
+            {
+                int bridge = -1;
+                if (layerNr > 0)
+                    bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);       
+                generateLineInfill(outline, fillPolygons, extrusionWidth, config.sparseInfillLineDistance, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+            }
+            
             if (config.sparseInfillLineDistance > 0)
             {
                 switch (config.infillPattern)

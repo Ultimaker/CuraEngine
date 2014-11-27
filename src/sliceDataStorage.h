@@ -24,6 +24,7 @@ public:
     Polygons combBoundery;
     vector<Polygons> insets;
     Polygons skinOutline;
+    Polygons up5050Outline;
     Polygons sparseOutline;
 };
 
