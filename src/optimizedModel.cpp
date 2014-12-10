@@ -44,6 +44,7 @@ OptimizedVolume::OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
         }
         if (f.index[0] != f.index[1] && f.index[0] != f.index[2] && f.index[1] != f.index[2])
         {
+            /*
             //Check if there is a face with the same points
             bool duplicate = false;
             for(unsigned int _idx0 = 0; _idx0 < points[f.index[0]].faceIndexList.size(); _idx0++)
@@ -59,11 +60,12 @@ OptimizedVolume::OptimizedVolume(SimpleVolume* volume, OptimizedModel* model)
             }
             if (!duplicate)
             {
-                points[f.index[0]].faceIndexList.push_back(faces.size());
-                points[f.index[1]].faceIndexList.push_back(faces.size());
-                points[f.index[2]].faceIndexList.push_back(faces.size());
-                faces.push_back(f);
-            }
+            */
+            points[f.index[0]].faceIndexList.push_back(faces.size());
+            points[f.index[1]].faceIndexList.push_back(faces.size());
+            points[f.index[2]].faceIndexList.push_back(faces.size());
+            faces.push_back(f);
+            //}
         }
     }
     //fprintf(stdout, "\rAll faces are optimized in %5.1fs.\n",timeElapsed(t));
