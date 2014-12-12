@@ -190,7 +190,7 @@ private:
             {
                 //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
                 //sendPolygonsToGui("outline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].polygonList);
-                sendPolygonsToGui("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygonList);
+                sendPolygonsToGui("openoutline", layerNr, slicer->layers[layerNr].z, slicer->layers[layerNr].openPolygons);
             }
         }
         cura::log("Sliced model in %5.3fs\n", timeKeeper.restart());
