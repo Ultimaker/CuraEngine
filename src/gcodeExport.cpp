@@ -676,23 +676,91 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 gcode.writeMove(path->points[i], speed, path->config->lineWidth);
             }
         }else{
-            for(unsigned int i=0; i<path->points.size(); i++)
-            {
-                gcode.writeMove(path->points[i], speed, path->config->lineWidth);
-            }
+        	Point lastPoint;
+        	bool clip = false;
+
+        	if(strcmp(path->config->name,"WALL-OUTER") == 0 || strcmp(path->config->name,"WALL-INNER") == 0)
+        	{
+        		double currentDistance = 0.0;
+        		double targetDistance = path->config->clip;
+
+        		for(unsigned int p=path->points.size()-1; p>0; p--)
+        		{
+        			/**
+        			 * Calculate distance between 2 points
+        			 */
+        			currentDistance = vSize((path->points[p] - path->points[p-1]));
+
+        			/**
+        			 * If distance exceeds clip distance:
+        			 * - Stores last point to do a fast move after the clip
+        			 * - Sets the new last path point
+        			 */
+        			if(currentDistance > targetDistance)
+        			{
+        				Point temp;
+        				Point dir = (path->points[p] - path->points[p-1])/ currentDistance;
+
+        				temp = path->points[p-1] + dir*(currentDistance-targetDistance);
+
+        				lastPoint.X = path->points[p].X;
+        				lastPoint.Y = path->points[p].Y;
+
+        				path->points[p].X = temp.X;
+        				path->points[p].Y = temp.Y;
+        				clip = true;
+        				break;
+        			}
+        			else if(currentDistance == targetDistance)
+        			{
+        				//Pops up last point because it is at the limit distance
+        				path->points.pop_back();
+        				break;
+        			}
+        			else
+        			{
+        				//Pops last point and reduces distance remaining to target
+        				targetDistance = targetDistance - currentDistance;
+        				path->points.pop_back();
+        			}
+        		}
+
+        	}
+
+        	for(unsigned int i=0; i<path->points.size(); i++)
+        	{
+        		gcode.writeMove(path->points[i], speed, path->config->lineWidth);
+        	}
+
+        	/**
+        	 * If it is to clip, then do:
+        	 * - a retraction in INNER WALLS
+        	 * - a fast move in OUTER WALLS
+        	 */
+        	if(clip == true)
+        	{
+        		if(strcmp(path->config->name,"WALL-INNER") == 0)
+        		{
+        			gcode.writeRetraction();
+        		}
+        		if(strcmp(path->config->name,"WALL-OUTER") == 0 )
+        		{
+        			gcode.writeMove(lastPoint, speed, 0);
+        		}
+        	}
+        }
+
+        gcode.updateTotalPrintTime();
+        if (liftHeadIfNeeded && extraTime > 0.0)
+        {
+        	gcode.writeComment("Small layer, adding delay of %f", extraTime);
+        	gcode.writeRetraction(true);
+        	gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
+        	gcode.writeMove(gcode.getPositionXY(), travelConfig.speed, 0);
+        	gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);
+        	gcode.writeDelay(extraTime);
         }
     }
-    
-    gcode.updateTotalPrintTime();
-    if (liftHeadIfNeeded && extraTime > 0.0)
-    {
-        gcode.writeComment("Small layer, adding delay of %f", extraTime);
-        gcode.writeRetraction(true);
-        gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-        gcode.writeMove(gcode.getPositionXY(), travelConfig.speed, 0);
-        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.speed, 0);
-        gcode.writeDelay(extraTime);
-    }
-}
+ }
 
 }//namespace cura
