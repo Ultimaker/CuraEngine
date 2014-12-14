@@ -471,6 +471,7 @@ private:
                 }
             }
             gcode.setZ(z);
+            gcode.resetStartPosition();
 
             bool printSupportFirst = (storage.support.generated && config.supportExtruder > 0 && config.supportExtruder == gcodeLayer.getExtruder());
             if (printSupportFirst)
@@ -579,7 +580,7 @@ private:
         }
 
 
-        PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
+        PathOrderOptimizer partOrderOptimizer(gcode.getStartPositionXY());
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
             partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
