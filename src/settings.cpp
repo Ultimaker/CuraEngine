@@ -131,6 +131,7 @@ ConfigSettings::ConfigSettings()
     SETTING(extruderOffset[15].X, 0);
     SETTING(extruderOffset[15].Y, 0);
 
+    SETTING(stretchDistance, 600);
     startCode =
         "M109 S210     ;Heatup to 210C\n"
         "G21           ;metric values\n"
