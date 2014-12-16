@@ -156,6 +156,7 @@ public:
     int infillOverlap;
     int infillSpeed;
     int infillPattern;
+    int skinSpeed;
 
     //Support material
     int supportType;

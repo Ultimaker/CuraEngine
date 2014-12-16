@@ -25,7 +25,8 @@ private:
     GCodePathConfig skirtConfig;
     GCodePathConfig inset0Config;
     GCodePathConfig insetXConfig;
-    GCodePathConfig fillConfig;
+    GCodePathConfig infillConfig;
+    GCodePathConfig skinConfig;
     GCodePathConfig supportConfig;
 public:
     fffProcessor(ConfigSettings& config)
@@ -98,7 +99,8 @@ private:
         skirtConfig.setData(config.printSpeed, config.extrusionWidth, "SKIRT");
         inset0Config.setData(config.inset0Speed, config.extrusionWidth, "WALL-OUTER");
         insetXConfig.setData(config.insetXSpeed, config.extrusionWidth, "WALL-INNER");
-        fillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
+        infillConfig.setData(config.infillSpeed, config.extrusionWidth, "FILL");
+        skinConfig.setData(config.skinSpeed, config.extrusionWidth, "FILL");
         supportConfig.setData(config.printSpeed, config.extrusionWidth, "SUPPORT");
 
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
@@ -441,14 +443,16 @@ private:
                 skirtConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SKIRT");
                 inset0Config.setData(SPEED_SMOOTH(config.inset0Speed), extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(SPEED_SMOOTH(config.insetXSpeed), extrusionWidth, "WALL-INNER");
-                fillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  "FILL");
+                infillConfig.setData(SPEED_SMOOTH(config.infillSpeed), extrusionWidth,  "FILL");
+                skinConfig.setData(SPEED_SMOOTH(config.skinSpeed), extrusionWidth,  "SKIN");
                 supportConfig.setData(SPEED_SMOOTH(config.printSpeed), extrusionWidth, "SUPPORT");
 #undef SPEED_SMOOTH
             }else{
                 skirtConfig.setData(config.printSpeed, extrusionWidth, "SKIRT");
                 inset0Config.setData(config.inset0Speed, extrusionWidth, "WALL-OUTER");
                 insetXConfig.setData(config.insetXSpeed, extrusionWidth, "WALL-INNER");
-                fillConfig.setData(config.infillSpeed, extrusionWidth, "FILL");
+                infillConfig.setData(config.infillSpeed, extrusionWidth, "FILL");
+                skinConfig.setData(config.skinSpeed, extrusionWidth, "SKIN");
                 supportConfig.setData(config.printSpeed, extrusionWidth, "SUPPORT");
             }
 
@@ -596,6 +600,49 @@ private:
             else
                 gcodeLayer.setAlwaysRetract(true);
 
+            Polygons infillPolygons;
+            int fillAngle = 45;
+            if (layerNr & 1)
+                fillAngle += 90;
+            int extrusionWidth = config.extrusionWidth;
+            if (layerNr == 0)
+                extrusionWidth = config.layer0extrusionWidth;
+            if (config.sparseInfillLineDistance > 0)
+            {
+                switch (config.infillPattern)
+                {
+                    case INFILL_AUTOMATIC:
+                        generateAutomaticInfill(
+                            part->sparseOutline, infillPolygons, extrusionWidth,
+                            config.sparseInfillLineDistance,
+                            config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_GRID:
+                        generateGridInfill(part->sparseOutline, infillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_LINES:
+                        generateLineInfill(part->sparseOutline, infillPolygons,
+                                           extrusionWidth,
+                                           config.sparseInfillLineDistance,
+                                           config.infillOverlap, fillAngle);
+                        break;
+
+                    case INFILL_CONCENTRIC:
+                        generateConcentricInfill(
+                            part->sparseOutline, infillPolygons,
+                            config.sparseInfillLineDistance);
+                        break;
+                }
+            }
+
+            gcodeLayer.addPolygonsByOptimizer(infillPolygons, &infillConfig);
+            //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
+
             if (config.insetCount > 0)
             {
                 if (config.spiralizeMode)
@@ -613,56 +660,17 @@ private:
                         gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
                 }
             }
-
-            Polygons fillPolygons;
-            int fillAngle = 45;
-            if (layerNr & 1)
-                fillAngle += 90;
-            int extrusionWidth = config.extrusionWidth;
-            if (layerNr == 0)
-                extrusionWidth = config.layer0extrusionWidth;
+            
+            Polygons skinPolygons;
             for(Polygons outline : part->skinOutline.splitIntoParts())
             {
                 int bridge = -1;
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
-                generateLineInfill(outline, fillPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+                generateLineInfill(outline, skinPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
             }
-            if (config.sparseInfillLineDistance > 0)
-            {
-                switch (config.infillPattern)
-                {
-                    case INFILL_AUTOMATIC:
-                        generateAutomaticInfill(
-                            part->sparseOutline, fillPolygons, extrusionWidth,
-                            config.sparseInfillLineDistance,
-                            config.infillOverlap, fillAngle);
-                        break;
+            gcodeLayer.addPolygonsByOptimizer(skinPolygons, &skinConfig);
 
-                    case INFILL_GRID:
-                        generateGridInfill(part->sparseOutline, fillPolygons,
-                                           extrusionWidth,
-                                           config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
-                        break;
-
-                    case INFILL_LINES:
-                        generateLineInfill(part->sparseOutline, fillPolygons,
-                                           extrusionWidth,
-                                           config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
-                        break;
-
-                    case INFILL_CONCENTRIC:
-                        generateConcentricInfill(
-                            part->sparseOutline, fillPolygons,
-                            config.sparseInfillLineDistance);
-                        break;
-                }
-            }
-
-            gcodeLayer.addPolygonsByOptimizer(fillPolygons, &fillConfig);
-            //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!config.spiralizeMode || static_cast<int>(layerNr) < config.downSkinCount)
