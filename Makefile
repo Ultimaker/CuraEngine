@@ -23,7 +23,7 @@ SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
 
 ifeq ($(BUILD_TYPE), WEB)
-	CXX = emcc
+	CXX = $(EMSCRIPTEN)/emcc
 	SOURCES_RAW += ../$(LIBS_DIR)/clipper/clipper.cpp
 	EXECUTABLE = $(BUILD_DIR)/CuraEngine.html
 else
@@ -65,7 +65,15 @@ else
 	endif
 endif
 
-all: $(DIRS) $(SOURCES) $(EXECUTABLE)
+all: check-env $(DIRS) $(SOURCES) $(EXECUTABLE)
+
+check-env:
+ifndef EMSCRIPTEN
+	ifeq ($(BUILD_TYPE, WEB)
+		$(error EMSCRIPTEN is not set)
+	endif
+endif
+
 
 $(BUILD_DIR)/libclipper.a: $(LIBS_DIR)/clipper/clipper.cpp
 	$(CXX) $(CFLAGS) -o $(BUILD_DIR)/libclipper.a $(LIBS_DIR)/clipper/clipper.cpp
