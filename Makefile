@@ -17,6 +17,8 @@ else ifeq ($(BUILD_TYPE),PROFILE)
 	CFLAGS+= -pg
 else ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
+else ifeq ($(BUILD_TYPE),WEB)
+	CFLAGS+= -s ALLOW_MEMORY_GROWTH=1
 endif
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
