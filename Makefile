@@ -8,7 +8,7 @@ LIBS_DIR = libs
 
 BUILD_TYPE = WEB
 
-VERSION ?= DEV
+VERSION ?= DEV_$(BUILD_TYPE)
 CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
@@ -18,7 +18,10 @@ else ifeq ($(BUILD_TYPE),PROFILE)
 else ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
 else ifeq ($(BUILD_TYPE),WEB)
-	CFLAGS+= -s ALLOW_MEMORY_GROWTH=1
+	CFLAGS+= -O3 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 --memory-init-file 0 -s INVOKE_RUN=0 -s FORCE_ALIGNED_MEMORY=1 -s AGGRESSIVE_VARIABLE_ELIMINATION=1
+	#-s ALLOW_MEMORY_GROWTH=1
+	#TODO: Enable memory init file
+	#TODO: ENable closure compiler
 endif
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
@@ -28,6 +31,7 @@ ifeq ($(BUILD_TYPE), WEB)
 	CXX = $(EMSCRIPTEN)/emcc
 	SOURCES_RAW += ../$(LIBS_DIR)/clipper/clipper.cpp
 	EXECUTABLE = $(BUILD_DIR)/CuraEngine.html
+	LDFLAGS += -O3 --llvm-lto 3 --memory-init-file 0
 else
 	CXX = g++
 	LDFLAGS += -Lbuild/ -lclipper
