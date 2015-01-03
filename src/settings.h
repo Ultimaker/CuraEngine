@@ -128,6 +128,7 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
+    int bottomChamfer;
 
     //Retraction settings
     int retractionAmount;

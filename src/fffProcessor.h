@@ -254,7 +254,11 @@ private:
                 int extrusionWidth = config.extrusionWidth;
                 if (layerNr == 0)
                     extrusionWidth = config.layer0extrusionWidth;
-                generateInsets(layer, extrusionWidth, insetCount);
+
+                // add a chamfer to the bottom of the object to correct for bulging due to first layer squish
+                int shrink = std::max(0, config.bottomChamfer - layer->sliceZ);
+
+                generateInsets(layer, extrusionWidth, insetCount, shrink);
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
