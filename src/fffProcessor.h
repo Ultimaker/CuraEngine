@@ -540,7 +540,7 @@ private:
             gcodeLayer.setAlwaysRetract(true);
             gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layerNr], &skirtConfig);
             sendPolygonsToGui("oozeshield", layerNr, layer->printZ, storage.oozeShield[layerNr]);
-            gcodeLayer.setAlwaysRetract(!config.enableCombing);
+            gcodeLayer.setAlwaysRetract(config.enableCombing == COMBING_OFF);
         }
 
         if (config.simpleMode)
@@ -595,10 +595,14 @@ private:
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
 
-            if (config.enableCombing)
-                gcodeLayer.setCombBoundary(&part->combBoundery);
-            else
+            if (config.enableCombing == COMBING_OFF)
+            {
                 gcodeLayer.setAlwaysRetract(true);
+            }else
+            {
+                gcodeLayer.setCombBoundary(&part->combBoundery);
+                gcodeLayer.setAlwaysRetract(false);
+            }
 
             Polygons infillPolygons;
             int fillAngle = 45;
@@ -668,6 +672,11 @@ private:
                 if (layerNr > 0)
                     bridge = bridgeAngle(outline, &storage.volumes[volumeIdx].layers[layerNr-1]);
                 generateLineInfill(outline, skinPolygons, extrusionWidth, extrusionWidth, config.infillOverlap, (bridge > -1) ? bridge : fillAngle);
+            }
+            if (config.enableCombing == COMBING_NOSKIN)
+            {
+                gcodeLayer.setCombBoundary(nullptr);
+                gcodeLayer.setAlwaysRetract(true);
             }
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &skinConfig);
 
