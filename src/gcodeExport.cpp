@@ -520,11 +520,6 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
 {
     Point p0 = polygon[startIdx];
     addTravel(p0);
-    if (config->skin)
-    {
-        forceRetract();
-    }
-
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];

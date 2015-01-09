@@ -113,17 +113,15 @@ public:
     int lineWidth;
     const char* name;
     bool spiralize;
-    bool skin;
     
-    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false), skin(false) {}
+    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false) {}
     GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
     
-    void setData(int speed, int lineWidth, const char* name, bool skin=false)
+    void setData(int speed, int lineWidth, const char* name)
     {
         this->speed = speed;
         this->lineWidth = lineWidth;
         this->name = name;
-        this->skin = skin;
     }
 };
 
