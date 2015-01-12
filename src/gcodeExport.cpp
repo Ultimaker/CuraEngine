@@ -202,7 +202,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
                 isRetracted = true;
             }
         }
-        fprintf(f, "G1 X%0.2f Y%0.2f Z%0.2f F%0.1f\n", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y), INT2MM(zPos), fspeed);
+        fprintf(f, "G1 X%0.3f Y%0.3f Z%0.3f F%0.1f\n", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y), INT2MM(zPos), fspeed);
     }else{
         
         //Normal E handling.
@@ -211,7 +211,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
             Point diff = p - getPositionXY();
             if (isZHopped > 0)
             {
-                fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z));
+                fprintf(f, "G1 Z%0.3f\n", INT2MM(currentPosition.z));
                 isZHopped = false;
             }
             if (isRetracted)
@@ -242,9 +242,9 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
             currentSpeed = speed;
         }
 
-        fprintf(f, " X%0.2f Y%0.2f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
+        fprintf(f, " X%0.3f Y%0.3f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
         if (zPos != currentPosition.z)
-            fprintf(f, " Z%0.2f", INT2MM(zPos));
+            fprintf(f, " Z%0.3f", INT2MM(zPos));
         if (extrusion_per_mm > 0.000001)
             fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusion_amount);
         fprintf(f, "\n");
@@ -281,7 +281,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     if (config->zHop > 0)
     {
-        fprintf(f, "G1 Z%0.2f\n", INT2MM(currentPosition.z + config->zHop));
+        fprintf(f, "G1 Z%0.3f\n", INT2MM(currentPosition.z + config->zHop));
         isZHopped = true;
     }
     extrusionAmountAtPreviousRetraction = extrusion_amount;
