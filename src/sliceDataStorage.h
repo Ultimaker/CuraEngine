@@ -73,13 +73,14 @@ public:
     RetractionConfig retraction_config;
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
-    GCodePathConfig fill_config[MAX_SPARSE_COMBINE];
+    GCodePathConfig skin_config;
+    GCodePathConfig infill_config[MAX_SPARSE_COMBINE];
     
     SliceMeshStorage(SettingsBase* settings)
-    : settings(settings), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER")
+    : settings(settings), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
         for(int n=0; n<MAX_SPARSE_COMBINE; n++)
-            fill_config[n] = GCodePathConfig(&retraction_config, "FILL");
+            infill_config[n] = GCodePathConfig(&retraction_config, "FILL");
     }
 };
 

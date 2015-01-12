@@ -141,7 +141,7 @@ bool loadModelSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 bool loadMeshFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
-    if (ext && strcmp(ext, ".stl") == 0)
+    if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
         object->meshes.emplace_back(object);
         return loadModelSTL(&object->meshes[object->meshes.size()-1], filename, matrix);

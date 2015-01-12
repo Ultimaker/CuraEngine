@@ -121,6 +121,7 @@ int main(int argc, char **argv)
     processor.setSetting("skirtSpeed", "50");
     processor.setSetting("inset0Speed", "50");
     processor.setSetting("insetXSpeed", "50");
+    processor.setSetting("skinSpeed", "50");
     processor.setSetting("supportSpeed", "50");
     processor.setSetting("moveSpeed", "150");
     processor.setSetting("fanFullOnLayerNr", "2");

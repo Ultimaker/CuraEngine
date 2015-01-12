@@ -111,7 +111,7 @@ void GCodeExport::resetStartPosition()
 
 Point GCodeExport::getStartPositionXY()
 {
-    return startPosition.x, startPosition.y;
+    return Point(startPosition.x, startPosition.y);
 }
 
 int GCodeExport::getExtruderNr()

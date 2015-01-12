@@ -44,10 +44,10 @@ void generateSupportGrid(SupportStorage& storage, PrintObject* object, int suppo
             Point3 v1 = mesh.vertices[face.vertex_index[1]].p;
             Point3 v2 = mesh.vertices[face.vertex_index[2]].p;
             
-            Point3 normal = (v1 - v0).cross(v2 - v0);
-            int32_t normalSize = normal.vSize();
+            FPoint3 normal = FPoint3(v1 - v0).cross(FPoint3(v2 - v0));
+            double normalSize = normal.vSize();
             
-            double cosAngle = fabs(double(normal.z) / double(normalSize));
+            double cosAngle = fabs(normal.z / normalSize);
             
             v0.x = (v0.x - storage.gridOffset.X) / storage.gridScale;
             v0.y = (v0.y - storage.gridOffset.Y) / storage.gridScale;
