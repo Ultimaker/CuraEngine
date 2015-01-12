@@ -108,6 +108,7 @@ private:
     double minimalExtrusionBeforeRetraction;
     double extrusionAmountAtPreviousRetraction;
     Point3 currentPosition;
+    Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];
     char extruderCharacter[MAX_EXTRUDERS];
     int currentTemperature[MAX_EXTRUDERS];
@@ -149,6 +150,10 @@ public:
     Point getPositionXY();
     
     int getPositionZ();
+    
+    Point getStartPositionXY();
+    
+    void resetStartPosition();
 
     int getExtruderNr();
     

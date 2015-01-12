@@ -8,7 +8,7 @@
 namespace cura {
 
 GCodeExport::GCodeExport()
-: currentPosition(0,0,0)
+: currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusion_amount = 0;
     minimalExtrusionBeforeRetraction = 0.0;
@@ -101,6 +101,17 @@ Point GCodeExport::getPositionXY()
 int GCodeExport::getPositionZ()
 {
     return currentPosition.z;
+}
+
+void GCodeExport::resetStartPosition()
+{
+    startPosition.x = INT32_MIN;
+    startPosition.y = INT32_MIN;
+}
+
+Point GCodeExport::getStartPositionXY()
+{
+    return startPosition.x, startPosition.y;
 }
 
 int GCodeExport::getExtruderNr()
@@ -257,6 +268,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
     }
     
     currentPosition = Point3(p.X, p.Y, zPos);
+    startPosition = currentPosition;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), speed);
 }
 

@@ -524,6 +524,7 @@ private:
                 }
             }
             gcode.setZ(z);
+            gcode.resetStartPosition();
 
             if (layer_nr == 0)
             {
@@ -658,7 +659,7 @@ private:
         }
 
 
-        PathOrderOptimizer partOrderOptimizer(gcode.getPositionXY());
+        PathOrderOptimizer partOrderOptimizer(gcode.getStartPositionXY());
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
             partOrderOptimizer.addPolygon(layer->parts[partNr].insets[0][0]);
