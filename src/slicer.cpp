@@ -11,6 +11,8 @@ namespace cura {
 
 void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
+    Polygons openPolygonList;
+    
     for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
     {
         if (segmentList[startSegment].addedToPolygon)
@@ -261,19 +263,6 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         }
     }
 
-    /*
-    int q=0;
-    for(unsigned int i=0;i<openPolygonList.size();i++)
-    {
-        if (openPolygonList[i].size() < 2) continue;
-        if (!q) log("***\n");
-        log("S: %f %f\n", float(openPolygonList[i][0].X), float(openPolygonList[i][0].Y));
-        log("E: %f %f\n", float(openPolygonList[i][openPolygonList[i].size()-1].X), float(openPolygonList[i][openPolygonList[i].size()-1].Y));
-        q = 1;
-    }
-    */
-    //if (q) exit(1);
-
     if (keep_none_closed)
     {
         for(unsigned int n=0; n<openPolygonList.size(); n++)
@@ -282,8 +271,11 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                 polygonList.add(openPolygonList[n]);
         }
     }
-    //Clear the openPolygonList to save memory, the only reason to keep it after this is for debugging.
-    //openPolygonList.clear();
+    for(unsigned int i=0;i<openPolygonList.size();i++)
+    {
+        if (openPolygonList[i].size() > 0)
+            openPolygons.newPoly() = openPolygonList[i];
+    }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
     int snapDistance = MM2INT(1.0);

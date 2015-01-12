@@ -23,10 +23,6 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 
-#include "halfEdgeMesh.h"
-
-#include "advancedSupport.h"
-
 #include <iostream>
 
 
@@ -103,25 +99,6 @@ public:
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
         preSetup();
-
-
-
-
-
-
-
-
-
-        std::cerr << "starting new Support Test..." << std::endl;
-        //SupportChecker::testSupportChecker(model);
-        //SupportPointsGenerator::testSupportPointsGenerator(model);
-
-
-
-
-
-
-
 
         if (!prepareModel(storage, model))
             return false;
