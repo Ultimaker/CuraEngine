@@ -101,6 +101,16 @@ enum Infill_Pattern
     INFILL_CONCENTRIC = 3,
 };
 
+/**
+ * Where to use the combing feature
+ */
+enum Combing_Feature
+{
+    COMBING_OFF = 0,
+    COMBING_ALL = 1,
+    COMBING_NOSKIN = 2,
+};
+
 class _ConfigSettingIndex
 {
 public:
