@@ -372,6 +372,8 @@ void GCodeExport::writeFanCommand(int speed)
     {
         if (flavor == GCODE_FLAVOR_MAKERBOT)
             fprintf(f, "M126 T0 ; value = %d\n", speed * 255 / 100);
+        else if (flavor == GCODE_FLAVOR_MACH3)
+            fprintf(f, "M106 P%d\n", speed * 255 / 100);
         else
             fprintf(f, "M106 S%d\n", speed * 255 / 100);
     }
@@ -379,6 +381,8 @@ void GCodeExport::writeFanCommand(int speed)
     {
         if (flavor == GCODE_FLAVOR_MAKERBOT)
             fprintf(f, "M127 T0\n");
+        else if (flavor == GCODE_FLAVOR_MACH3)
+            fprintf(f, "M106 P%d\n", 0);
         else
             fprintf(f, "M107\n");
     }
