@@ -112,8 +112,8 @@ public:
         m[1][2] = 0.0;
         m[2][2] = 1.0;
     }
-
-    Point3 apply(FPoint3 p)
+    
+    Point3 apply(const FPoint3& p)
     {
         return Point3(
             MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0]),
