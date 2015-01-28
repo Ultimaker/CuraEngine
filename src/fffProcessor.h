@@ -213,6 +213,9 @@ private:
 
     void processSliceData(SliceDataStorage& storage)
     {
+        if (commandSocket)
+           commandSocket->beginSendSlicedObject();
+
         const unsigned int totalLayers = storage.meshes[0].layers.size();
 
         //carveMultipleVolumes(storage.meshes);
@@ -329,10 +332,16 @@ private:
         generateRaft(storage, getSettingInt("raftMargin"));
 
         sendPolygons(SkirtType, 0, storage.skirt);
+
+        if (commandSocket)
+            commandSocket->endSendSlicedObject();
     }
 
     void writeGCode(SliceDataStorage& storage)
     {
+        if (commandSocket)
+            commandSocket->beginGCode();
+
         //Setup the retraction parameters.
         storage.retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));
         storage.retraction_config.primeAmount = INT2MM(getSettingInt("retractionPrimeAmount"));
@@ -587,6 +596,11 @@ private:
 
         //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
         maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
+
+        if (commandSocket)
+            finalize();
+            gcode.close();
+            commandSocket->endGCode();
     }
 
     std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
