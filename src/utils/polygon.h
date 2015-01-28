@@ -17,6 +17,16 @@
 
 namespace cura {
 
+enum PolygonType
+{
+    NoneType,
+    Inset0Type,
+    InsetXType,
+    SkinType,
+    SupportType,
+    SkirtType
+};
+
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 

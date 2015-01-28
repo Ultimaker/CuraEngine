@@ -51,10 +51,10 @@ public:
         commandSocket = socket;
     }
 
-    void sendPolygons(const char* name, int layer_nr, Polygons& polygons)
+    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
     {
         if (commandSocket)
-            commandSocket->sendPolygons(name, layer_nr, polygons);
+            commandSocket->sendPolygons(type, layer_nr, polygons);
     }
 
     bool setTargetFile(const char* filename)
@@ -227,7 +227,7 @@ private:
                     SliceLayer* layer = &mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer->parts)
                     {
-                        sendPolygons("inset0", layer_nr, part.outline);
+                        sendPolygons(Inset0Type, layer_nr, part.outline);
                     }
                 }
             }
@@ -251,9 +251,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygons("inset0", layer_nr, layer->parts[partNr].insets[0]);
+                        sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0]);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygons("insetx", layer_nr, layer->parts[partNr].insets[inset]);
+                            sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset]);
                     }
                 }
             }
@@ -300,7 +300,7 @@ private:
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
-                        sendPolygons("skin", layer_nr, part.skinOutline);
+                        sendPolygons(SkinType, layer_nr, part.skinOutline);
                 }
             }
             logProgress("skin", layer_nr+1, totalLayers);
@@ -328,7 +328,7 @@ private:
         generateSkirt(storage, getSettingInt("skirtDistance"), getSettingInt("layer0extrusionWidth"), getSettingInt("skirtLineCount"), getSettingInt("skirtMinLength"), getSettingInt("initialLayerThickness"));
         generateRaft(storage, getSettingInt("raftMargin"));
 
-        sendPolygons("skirt", 0, storage.skirt);
+        sendPolygons(SkirtType, 0, storage.skirt);
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -804,7 +804,7 @@ private:
         //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
         supportGenerator.polygons = supportGenerator.polygons.offset(-getSettingInt("extrusionWidth") * 3);
         supportGenerator.polygons = supportGenerator.polygons.offset(getSettingInt("extrusionWidth") * 3);
-        sendPolygons("support", layer_nr, supportGenerator.polygons);
+        sendPolygons(SupportType, layer_nr, supportGenerator.polygons);
 
         std::vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
 
