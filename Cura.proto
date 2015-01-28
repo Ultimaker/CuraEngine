@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package Cura;
+
+// typeid 1
+message ObjectList {
+    repeated Object objects = 1;
+}
+
+message Object {
+    int64 id = 1;
+    bytes vertices = 2; //An array of 3 floats.
+    bytes normals = 3; //An array of 3 floats.
+    bytes indices = 4; //An array of ints.
+}
+
+// typeid 3
+message Progress {
+    float amount = 1;
+}
+
+// typeid 2
+message SlicedObjectList {
+    repeated SlicedObject objects = 1;
+}
+
+message SlicedObject {
+    int64 id = 1;
+
+    repeated Layer layers = 2;
+}
+
+message Layer {
+    int32 id = 1;
+    repeated Polygon polygons = 2;
+}
+
+message Polygon {
+    enum Type {
+        NoneType = 0;
+        Inset0Type = 1;
+        InsetXType = 2;
+        SkinType = 3;
+        SupportType = 4;
+        SkirtType = 5;
+    }
+    Type type = 1;
+    bytes points = 2;
+}
+
+// typeid 4
+message GCode {
+    string filename = 1;
+}
+
+// typeid 5
+message ObjectPrintTime {
+    int64 id = 1;
+    float time = 2;
+}
