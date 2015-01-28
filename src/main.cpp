@@ -155,8 +155,8 @@ int main(int argc, char **argv)
     processor.setSetting("enableOozeShield", "0");
     processor.setSetting("wipeTowerSize", "0");
     processor.setSetting("multiVolumeOverlap", "0");
-    processor.setSetting("position.X", "102500");
-    processor.setSetting("position.Y", "102500");
+    processor.setSetting("position.X", "0");
+    processor.setSetting("position.Y", "0");
     processor.setSetting("position.Z", "0");
     processor.setSetting("objectSink", "0");
     processor.setSetting("autoCenter", "1");
