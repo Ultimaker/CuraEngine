@@ -80,6 +80,14 @@ bool GCodeExport::isOpened()
     return f != nullptr;
 }
 
+void GCodeExport::close()
+{
+    if(f)
+    {
+        fclose(f);
+    }
+}
+
 void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction)
 {
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);

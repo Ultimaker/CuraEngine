@@ -142,6 +142,8 @@ public:
     void setFilename(const char* filename);
     
     bool isOpened();
+
+    void close();
     
     void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
     
