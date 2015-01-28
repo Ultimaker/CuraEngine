@@ -221,6 +221,8 @@ int main(int argc, char **argv)
     processor.setSetting("preSwitchExtruderCode", "");
 //*/
     CommandSocket* commandSocket = NULL;
+    std::string ip;
+    int port;
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -229,16 +231,17 @@ int main(int argc, char **argv)
         {
             if (str[1] == '-')
             {
-                //Long options
-                if (stringcasecompare(str, "--socket") == 0)
+                if (stringcasecompare(str, "--connect") == 0)
                 {
-                    argn++;
-                    commandSocket = new CommandSocket(atoi(argv[argn]));
-                    processor.setCommandSocket(commandSocket);
-                }else if (stringcasecompare(str, "--command-socket") == 0)
-                {
-                    commandSocket->handleIncommingData(&processor);
-                }else if (stringcasecompare(str, "--") == 0)
+                    commandSocket = new CommandSocket(&processor);
+
+                    std::string ip_port(argv[argn + 1]);
+                    ip = ip_port.substr(0, ip_port.find(':'));
+                    port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+
+                    argn += 1;
+                }
+                else if (stringcasecompare(str, "--") == 0)
                 {
                     try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
@@ -299,19 +302,25 @@ int main(int argc, char **argv)
             files.push_back(argv[argn]);
         }
     }
-    try {
-        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        if (files.size() > 0)
-            processor.processFiles(files);
-    }catch(...){
-        cura::logError("Unknown exception\n");
-        exit(1);
+
+    if(commandSocket)
+    {
+        commandSocket->connect(ip, port);
     }
-    //Finalize the processor, this adds the end.gcode. And reports statistics.
-    processor.finalize();
+    else
+    {
+        try {
+            //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+            // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+            if (files.size() > 0)
+                processor.processFiles(files);
+        }catch(...){
+            cura::logError("Unknown exception\n");
+            exit(1);
+        }
+        //Finalize the processor, this adds the end.gcode. And reports statistics.
+        processor.finalize();
+    }
 
-
-//    el::Loggers::flushAll();
     return 0;
 }
