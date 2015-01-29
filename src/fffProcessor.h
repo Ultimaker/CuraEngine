@@ -764,6 +764,7 @@ private:
         if (config.wipeTowerSize < 1)
             return;
         //If we changed extruder, print the wipe/prime tower for this nozzle;
+        gcodeLayer.setAlwaysRetract(true);
         gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &supportConfig);
         Polygons fillPolygons;
         generateLineInfill(storage.wipeTower, fillPolygons, config.extrusionWidth, config.extrusionWidth, config.infillOverlap, 45 + 90 * (layerNr % 2));
@@ -771,6 +772,7 @@ private:
 
         //Make sure we wipe the old extruder on the wipe tower.
         gcodeLayer.addTravel(storage.wipePoint - config.extruderOffset[prevExtruder].p() + config.extruderOffset[gcodeLayer.getExtruder()].p());
+        gcodeLayer.setAlwaysRetract(!config.enableCombing);
     }
 };
 

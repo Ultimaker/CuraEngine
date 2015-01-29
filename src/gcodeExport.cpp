@@ -195,9 +195,13 @@ void GCodeExport::writeLine(const char* line, ...)
 
 void GCodeExport::resetExtrusionValue()
 {
+    double zero = 0;
+
     if (extrusionAmount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
     {
-        fprintf(f, "G92 %c0\n", extruderCharacter[extruderNr]);
+        if (isRetracted)
+            zero = -retractionAmount;
+        fprintf(f, "G92 %c%0.5f\n", extruderCharacter[extruderNr], zero);
         totalFilament[extruderNr] += extrusionAmount;
         extrusionAmountAtPreviousRetraction -= extrusionAmount;
         extrusionAmount = 0.0;
@@ -270,9 +274,9 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
                     currentSpeed = retractionSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), currentSpeed);
                 }
+                isRetracted = false;
                 if (extrusionAmount > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                     resetExtrusionValue();
-                isRetracted = false;
             }
             extrusionAmount += extrusionPerMM * INT2MM(lineWidth) * vSizeMM(diff);
             fprintf(f, "G1");
@@ -341,11 +345,12 @@ void GCodeExport::switchExtruder(int newExtruder)
         fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - extruderSwitchRetraction);
         currentSpeed = retractionSpeed;
     }
-    if (retractionZHop > 0)
-        fprintf(f, "G1 Z%0.3f\n", INT2MM(currentPosition.z + retractionZHop));
     extruderNr = newExtruder;
     if (flavor == GCODE_FLAVOR_MACH3)
+    {
+        isRetracted = false;
         resetExtrusionValue();
+    }
     isRetracted = true;
     writeCode(preSwitchExtruderCode.c_str());
     if (flavor == GCODE_FLAVOR_MAKERBOT)
@@ -603,7 +608,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     for(unsigned int n=0; n<paths.size(); n++)
     {
         GCodePath* path = &paths[n];
-        if (extruder != path->extruder)
+        if (extruder != path->extruder && path->config != &travelConfig)
         {
             extruder = path->extruder;
             gcode.switchExtruder(extruder);
