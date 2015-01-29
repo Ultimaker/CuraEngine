@@ -19,3 +19,6 @@ NUL
 CuraEngine.layout
 documentation/html/*
 documentation/latex/*
+
+*kdev*
+*.kate-swp
