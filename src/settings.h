@@ -145,6 +145,7 @@ public:
     int retractionAmountExtruderSwitch;
     int retractionSpeed;
     int retractionMinimalDistance;
+    int retractionWipe;
     int minimalExtrusionBeforeRetraction;
     int retractionZHop;
 
