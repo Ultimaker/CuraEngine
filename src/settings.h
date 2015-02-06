@@ -1,3 +1,6 @@
+// Altered by Adrian Bowyer 6 February 2015
+// Code added to allow the user to position the wipe tower
+
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
@@ -151,6 +154,8 @@ public:
     int enableCombing;
     int enableOozeShield;
     int wipeTowerSize;
+    int wipeTowerX;
+    int wipeTowerY;
     int multiVolumeOverlap;
 
     int initialSpeedupLayers;

@@ -1,3 +1,6 @@
+// Altered by Adrian Bowyer 6 February 2015
+// Code added to allow the user to position the wipe tower
+
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
@@ -317,12 +320,12 @@ private:
         if (config.wipeTowerSize > 0)
         {
             PolygonRef p = storage.wipeTower.newPoly();
-            p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000));
-            p.add(Point(storage.modelMin.x - 3000, storage.modelMax.y + 3000 + config.wipeTowerSize));
-            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000 + config.wipeTowerSize));
-            p.add(Point(storage.modelMin.x - 3000 - config.wipeTowerSize, storage.modelMax.y + 3000));
+            p.add(Point(storage.modelMin.x - config.wipeTowerX, storage.modelMax.y + config.wipeTowerY));
+            p.add(Point(storage.modelMin.x - config.wipeTowerX, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY));
 
-            storage.wipePoint = Point(storage.modelMin.x - 3000 - config.wipeTowerSize / 2, storage.modelMax.y + 3000 + config.wipeTowerSize / 2);
+            storage.wipePoint = Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize / 2, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize / 2);
         }
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
