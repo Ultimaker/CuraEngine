@@ -320,12 +320,12 @@ private:
         if (config.wipeTowerSize > 0)
         {
             PolygonRef p = storage.wipeTower.newPoly();
-            p.add(Point(storage.modelMin.x - config.wipeTowerX, storage.modelMax.y + config.wipeTowerY));
-            p.add(Point(storage.modelMin.x - config.wipeTowerX, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
-            p.add(Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
-            p.add(Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY));
+            p.add(Point(storage.modelMin.x + config.wipeTowerX, storage.modelMax.y + config.wipeTowerY));
+            p.add(Point(storage.modelMin.x + config.wipeTowerX, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x + config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize));
+            p.add(Point(storage.modelMin.x + config.wipeTowerX - config.wipeTowerSize, storage.modelMax.y + config.wipeTowerY));
 
-            storage.wipePoint = Point(storage.modelMin.x - config.wipeTowerX - config.wipeTowerSize / 2, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize / 2);
+            storage.wipePoint = Point(storage.modelMin.x + config.wipeTowerX - config.wipeTowerSize / 2, storage.modelMax.y + config.wipeTowerY + config.wipeTowerSize / 2);
         }
 
         if (config.raftBaseThickness > 0 && config.raftInterfaceThickness > 0)
