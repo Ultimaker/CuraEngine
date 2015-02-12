@@ -58,3 +58,14 @@ message ObjectPrintTime {
     int64 id = 1;
     float time = 2;
 }
+
+// typeid 6
+message SettingList {
+    repeated Setting settings = 1;
+}
+
+message Setting {
+    string name = 1;
+
+    bytes value = 2;
+}
