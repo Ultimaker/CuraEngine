@@ -93,8 +93,6 @@ public:
         timeKeeper.restart();
         if (!model)
             return false;
-        if (!gcode.isOpened())
-            return false;
 
         TimeKeeper timeKeeperTotal;
         SliceDataStorage storage;
@@ -341,6 +339,9 @@ private:
     {
         if (commandSocket)
             commandSocket->beginGCode();
+
+        if (!gcode.isOpened())
+            return;
 
         //Setup the retraction parameters.
         storage.retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));

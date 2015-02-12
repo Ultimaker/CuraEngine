@@ -82,9 +82,10 @@ bool GCodeExport::isOpened()
 
 void GCodeExport::close()
 {
-    if(f)
+    if(f && f != stdout)
     {
         fclose(f);
+        f = nullptr;
     }
 }
 
