@@ -37,6 +37,8 @@ public:
     std::vector<long> objectIds;
 
     std::string tempGCodeFile;
+
+    std::shared_ptr<PrintObject> objectToSlice;
 };
 
 CommandSocket::CommandSocket(fffProcessor* processor)
@@ -60,6 +62,13 @@ void CommandSocket::connect(const std::string& ip, int port)
 
     while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error)
     {
+        if(d->objectToSlice)
+        {
+            //TODO: Support all-at-once/one-at-a-time printing
+            d->processor->processModel(d->objectToSlice.get());
+            d->objectToSlice.reset();
+        }
+
         Arcus::MessagePtr message = d->socket->takeNextMessage();
 
         Cura::SettingList* settingList = dynamic_cast<Cura::SettingList*>(message.get());
@@ -75,9 +84,12 @@ void CommandSocket::connect(const std::string& ip, int port)
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
-    }
 
-    logError("%s\n", d->socket->errorString().data());
+        if(!d->socket->errorString().empty()) {
+            logError("%s\n", d->socket->errorString().data());
+            d->socket->clearError();
+        }
+    }
 }
 
 void CommandSocket::handleObjectList(Cura::ObjectList* list)
@@ -86,11 +98,11 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
     d->object_count = 0;
     d->objectIds.clear();
 
-    auto printObject = new PrintObject{d->processor};
+    d->objectToSlice = std::make_shared<PrintObject>(d->processor);
     for(auto object : list->objects())
     {
-        printObject->meshes.emplace_back(printObject); //Construct a new mesh and put it into printObject's mesh list.
-        Mesh& mesh = printObject->meshes.back();
+        d->objectToSlice->meshes.emplace_back(d->objectToSlice.get()); //Construct a new mesh and put it into printObject's mesh list.
+        Mesh& mesh = d->objectToSlice->meshes.back();
 
         int bytesPerFace = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int faceCount = object.vertices().size() / bytesPerFace;
@@ -111,10 +123,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
         d->objectIds.push_back(object.id());
         mesh.finish();
     }
-    printObject->finalize();
-
-    //TODO: Support all-at-once/one-at-a-time printing
-    d->processor->processModel(printObject);
+    d->objectToSlice->finalize();
 }
 
 void CommandSocket::handleSettingList(Cura::SettingList* list)
