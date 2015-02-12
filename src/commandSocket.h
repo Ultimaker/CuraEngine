@@ -20,6 +20,7 @@ public:
     void connect(const std::string& ip, int port);
 
     void handleObjectList(Cura::ObjectList* list);
+    void handleSettingList(Cura::SettingList* list);
     
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons);

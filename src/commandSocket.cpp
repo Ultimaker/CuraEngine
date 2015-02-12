@@ -54,12 +54,19 @@ void CommandSocket::connect(const std::string& ip, int port)
     d->socket->registerMessageType(3, &Cura::Progress::default_instance());
     d->socket->registerMessageType(4, &Cura::GCode::default_instance());
     d->socket->registerMessageType(5, &Cura::ObjectPrintTime::default_instance());
+    d->socket->registerMessageType(6, &Cura::SettingList::default_instance());
 
     d->socket->connect(ip, port);
 
     while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error)
     {
         Arcus::MessagePtr message = d->socket->takeNextMessage();
+
+        Cura::SettingList* settingList = dynamic_cast<Cura::SettingList*>(message.get());
+        if(settingList)
+        {
+            handleSettingList(settingList);
+        }
 
         Cura::ObjectList* objectList = dynamic_cast<Cura::ObjectList*>(message.get());
         if(objectList)
@@ -108,8 +115,14 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
 
     //TODO: Support all-at-once/one-at-a-time printing
     d->processor->processModel(printObject);
+}
 
-    delete printObject;
+void CommandSocket::handleSettingList(Cura::SettingList* list)
+{
+    for(auto setting : list->settings())
+    {
+        d->processor->setSetting(setting.name(), setting.value());
+    }
 }
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
