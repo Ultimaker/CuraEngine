@@ -599,9 +599,11 @@ private:
         maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
 
         if (commandSocket)
+        {
             finalize();
             gcode.close();
             commandSocket->endGCode();
+        }
     }
 
     std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
