@@ -48,16 +48,16 @@ public:
 class SupportStorage
 {
 public:
-    bool generated;
-    int angle;
+    bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
+    int angle; //!< The minimal angle for a face to be classified as overhang
     bool everywhere;
-    int XYDistance;
-    int ZDistance;
+    int XYDistance; //!< Minimal horizontal distance of the support structure from the print.
+    int ZDistance; //!< Distance form the top/bottom of the support to the print.
     
     Point gridOffset;
     int32_t gridScale;
     int32_t gridWidth, gridHeight;
-    std::vector<SupportPoint>* grid;
+    std::vector<SupportPoint>* grid; //!< array(!) of vectors of support points .... ?!
     
    	SupportStorage(){grid = nullptr;}
     ~SupportStorage(){if(grid) delete [] grid;}

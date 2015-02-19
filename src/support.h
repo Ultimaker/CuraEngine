@@ -32,7 +32,7 @@ void generateSupportGrid(SupportStorage& storage, PrintObject* om, int supportAn
 class SupportPolyGenerator
 {
 public:
-    Polygons polygons;  //!< These are the resulting polygons that need to be filled to get proper support material.
+    Polygons polygons;  //!< These are the resulting polygons that need to be filled to get a proper support structure in a single layer.
 
 private:
     SupportStorage& storage;    //!< This is the reference to the SupportStorage data, which is filled by the generateSupportGrid at the first step of processing.
