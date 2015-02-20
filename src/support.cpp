@@ -17,6 +17,7 @@ int cmp_SupportPoint(const void* a, const void* b)
 
 void generateSupportGrid(SupportStorage& storage, PrintObject* object, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
 {
+    storage.areaSupport = false;
     storage.generated = false;
     if (supportAngle < 0)
         return;
@@ -164,28 +165,147 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
 SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
 : storage(storage), z(z), everywhere(storage.everywhere)
 {
+    std::cerr << "storage.generated = " << storage.generated << std::endl;
     if (!storage.generated)
         return;
     
-    cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
-    this->supportZDistance = storage.ZDistance;
-
-    done = new int[storage.gridWidth*storage.gridHeight];
-    memset(done, 0, sizeof(int) * storage.gridWidth*storage.gridHeight);
-    
-    for(int32_t y=1; y<storage.gridHeight; y++)
+    std::cerr << "storage.areaSupport = " << storage.areaSupport << std::endl;
+    if (storage.areaSupport)
     {
-        for(int32_t x=1; x<storage.gridWidth; x++)
+        polygons = storage.supportAreasPerLayer[z];
+    } else
+    {
+        cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
+        this->supportZDistance = storage.ZDistance;
+
+        done = new int[storage.gridWidth*storage.gridHeight];
+        memset(done, 0, sizeof(int) * storage.gridWidth*storage.gridHeight);
+        
+        for(int32_t y=1; y<storage.gridHeight; y++)
         {
-            if (!needSupportAt(Point(x, y)) || done[x + y * storage.gridWidth]) continue;
-            
-            lazyFill(Point(x, y));
+            for(int32_t x=1; x<storage.gridWidth; x++)
+            {
+                if (!needSupportAt(Point(x, y)) || done[x + y * storage.gridWidth]) continue;
+                
+                lazyFill(Point(x, y));
+            }
         }
+
+        delete[] done;
+        
+        polygons = polygons.offset(storage.XYDistance);
+    }
+}
+
+
+
+
+void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
+{
+    storage.support.angle = supportAngle;
+    storage.support.everywhere = supportEverywhere;
+    storage.support.XYDistance = supportXYDistance;
+    storage.support.ZDistance = supportZDistance;
+    storage.support.areaSupport = true;
+    
+    storage.support.generated = false;
+    if (supportAngle < 0)
+        return;
+    
+    
+    int layerThickness = object->getSettingInt("layerThickness");
+    
+    int layerZdistance = supportZDistance / layerThickness + 1; // support must always be 1 layer below overhang
+
+    double cosAngle = cos(double(90 - storage.support.angle) / 180.0 * M_PI) - 0.01;
+    int maxDistFromLowerLayer = cosAngle * layerThickness; // max dist which can be bridged
+    
+    int expansionsDist = maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
+    
+    int joinDist = 100; // largest distance between separate support parts which will be joined into one
+    
+    
+    // initialization
+    for (int l = 0; l < layer_count ; l++)
+        storage.support.supportAreasPerLayer.emplace_back();
+    
+    // compute basic overhang and put in right layer ([layerZdistance] layers down)
+    for (int l = layer_count - 1 ; l >= layerZdistance ; l--)
+    {
+    
+        Polygons supported;
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& lowerLayer = mesh.layers[l-1];
+            for (SliceLayerPart& part : lowerLayer.parts)
+                supported = supported.unionPolygons(part.outline);
+        }
+        supported = supported.offset(maxDistFromLowerLayer);
+        
+        Polygons basic_overhang;
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& thisLayer = mesh.layers[l];
+            for (SliceLayerPart& part : thisLayer.parts)
+                basic_overhang = supported.unionPolygons(part.outline);
+        }
+        basic_overhang = basic_overhang.difference(supported);
+        
+        Polygons overhang = basic_overhang.offset(expansionsDist);
+        overhang = overhang.intersection(supported);
+        storage.support.supportAreasPerLayer[l-layerZdistance] = basic_overhang;
+    }
+    /*
+    for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
+    {
+//         SliceLayer& sliceLayer = storage.layers[l];
+        Polygons& supportLayer_up = storage.support.supportAreasPerLayer[l+1];
+        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+        
+        // join overhangs downward
+        
+        Polygons joined = supportLayer.unionPolygons(supportLayer_up);
+        joined = joined.offset(joinDist);
+        joined = joined.offset(-joinDist);
+    
+        // inset using XYdistance
+        
+        Polygons insetted = supportLayer;
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& sliceLayer = mesh.layers[l];
+            for (SliceLayerPart& part : sliceLayer.parts)
+                insetted = insetted.difference(part.outline.offset(supportXYDistance));
+        }
+        storage.support.supportAreasPerLayer[l] = insetted;
+    }
+    
+    // do stuff for when not supportEverywhere
+    {
+        // ...
     }
 
-    delete[] done;
     
-    polygons = polygons.offset(storage.XYDistance);
+    // move up from model
+    for (int l = 0 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+    {
+//         SliceLayer& sliceLayer = storage.layers[l];
+        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+        
+        Polygons without_base = supportLayer;
+        for (int l2 = std::min(0, l-layerZdistance); l2 < l; l2++)
+            for (SliceMeshStorage& mesh : storage.meshes)
+                for (SliceLayerPart& part : mesh.layers[l2].parts)
+                    without_base = without_base.difference(part.outline);
+        
+        
+        storage.support.supportAreasPerLayer[l] = without_base;
+        
+    }
+    */
+    
+    storage.support.generated = true;
 }
+
 
 }//namespace cura

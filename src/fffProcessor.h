@@ -185,7 +185,14 @@ private:
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
         log("Generating support map...\n");
-        generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+        if (object->getSettingInt("areaSupportPolyGenerator") > 0)
+        {
+            generateSupportAreas(storage, object, layer_count, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+        } else 
+        {
+            generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+        }
+        
         object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");

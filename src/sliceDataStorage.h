@@ -49,7 +49,8 @@ class SupportStorage
 {
 public:
     bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
-    int angle; //!< The minimal angle for a face to be classified as overhang
+    bool areaSupport; //!< Whether we use the new area support generation instead of the grid support generation
+    int angle; //!< The minimal angle with the Z axis for a face to be classified as overhang
     bool everywhere;
     int XYDistance; //!< Minimal horizontal distance of the support structure from the print.
     int ZDistance; //!< Distance form the top/bottom of the support to the print.
@@ -59,7 +60,9 @@ public:
     int32_t gridWidth, gridHeight;
     std::vector<SupportPoint>* grid; //!< array(!) of vectors of support points .... ?!
     
-   	SupportStorage(){grid = nullptr;}
+    std::vector<Polygons> supportAreasPerLayer;
+
+    SupportStorage(){grid = nullptr;}
     ~SupportStorage(){if(grid) delete [] grid;}
 };
 /******************/
