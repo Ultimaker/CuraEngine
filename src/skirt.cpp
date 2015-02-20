@@ -11,7 +11,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     {
         int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
         
-        SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight);
+        SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight, 0);
         Polygons skirtPolygons(storage.wipeTower.offset(offsetDistance));
         for(SliceMeshStorage& mesh : storage.meshes)
         {

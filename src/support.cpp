@@ -162,17 +162,15 @@ void SupportPolyGenerator::lazyFill(Point startPoint)
     }
 }
     
-SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z)
+SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, int layer_nr)
 : storage(storage), z(z), everywhere(storage.everywhere)
 {
-    std::cerr << "storage.generated = " << storage.generated << std::endl;
     if (!storage.generated)
         return;
     
-    std::cerr << "storage.areaSupport = " << storage.areaSupport << std::endl;
     if (storage.areaSupport)
     {
-        polygons = storage.supportAreasPerLayer[z];
+        polygons = storage.supportAreasPerLayer[layer_nr];
     } else
     {
         cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
@@ -229,6 +227,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     for (int l = 0; l < layer_count ; l++)
         storage.support.supportAreasPerLayer.emplace_back();
     
+    std::cerr  << "compute basic overhang and put in right layer ([layerZdistance] layers down)" << std::endl;
     // compute basic overhang and put in right layer ([layerZdistance] layers down)
     for (int l = layer_count - 1 ; l >= layerZdistance ; l--)
     {
@@ -255,7 +254,8 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         overhang = overhang.intersection(supported);
         storage.support.supportAreasPerLayer[l-layerZdistance] = basic_overhang;
     }
-    /*
+    std::cerr  << "... finished computing basic overhang" << std::endl;
+    
     for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
     {
 //         SliceLayer& sliceLayer = storage.layers[l];
@@ -302,7 +302,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         storage.support.supportAreasPerLayer[l] = without_base;
         
     }
-    */
+    
     
     storage.support.generated = true;
 }

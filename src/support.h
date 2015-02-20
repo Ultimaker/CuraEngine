@@ -70,7 +70,7 @@ public:
         
         Note that this does not cut the object from the support material. The fffProcessor will apply the XY offset to the outline of the print and substract that from the given support polygons.
      */
-    SupportPolyGenerator(SupportStorage& storage, int32_t z);
+    SupportPolyGenerator(SupportStorage& storage, int32_t z, int layer_nr);
 };
 
 

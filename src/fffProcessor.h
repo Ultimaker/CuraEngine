@@ -818,7 +818,7 @@ private:
                 addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
         }
         int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
-        SupportPolyGenerator supportGenerator(storage.support, z);
+        SupportPolyGenerator supportGenerator(storage.support, z, layer_nr);
         for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
         {
             SliceLayer* layer = &storage.meshes[meshCnt].layers[layer_nr];

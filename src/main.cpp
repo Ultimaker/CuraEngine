@@ -133,8 +133,8 @@ int main(int argc, char **argv)
     processor.setSetting("infillPattern", "INFILL_GRID");
 
     processor.setSetting("supportType", "SUPPORT_TYPE_GRID");
-    //processor.setSetting("supportAngle", "60");
-    processor.setSetting("supportAngle", "-1");
+    processor.setSetting("supportAngle", "60");
+    //processor.setSetting("supportAngle", "-1");
     processor.setSetting("supportEverywhere", "0");
     processor.setSetting("supportLineDistance", "sparseInfillLineDistance");
     processor.setSetting("supportXYDistance", "700");
