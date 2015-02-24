@@ -102,8 +102,8 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 //*
-    processor.setSetting("layerThickness", "100");
-    processor.setSetting("initialLayerThickness", "300");
+    processor.setSetting("layerThickness", "1000");
+    processor.setSetting("initialLayerThickness", "1000");
     processor.setSetting("filamentDiameter", "2890");
     processor.setSetting("filamentFlow", "100");
     processor.setSetting("layer0extrusionWidth", "600");
@@ -111,7 +111,7 @@ int main(int argc, char **argv)
     processor.setSetting("insetCount", "2");
     processor.setSetting("downSkinCount", "6");
     processor.setSetting("upSkinCount", "6");
-    processor.setSetting("skinPattern", "SKIN_LINES");
+    processor.setSetting("skinPattern", "LINES");
     processor.setSetting("skirtDistance", "6000");
     processor.setSetting("skirtLineCount", "1");
     processor.setSetting("skirtMinLength", "0");
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     processor.setSetting("moveSpeed", "150");
     processor.setSetting("fanFullOnLayerNr", "2");
 
-    processor.setSetting("sparseInfillLineDistance", "100 * extrusionWidth / 20");
+    processor.setSetting("sparseInfillLineDistance", "100000");
     processor.setSetting("sparseInfillCombineCount", "1");
     processor.setSetting("infillOverlap", "15");
     processor.setSetting("infillSpeed", "50");
@@ -135,8 +135,8 @@ int main(int argc, char **argv)
     processor.setSetting("supportType", "GRID");
     processor.setSetting("supportAngle", "60");
     //processor.setSetting("supportAngle", "-1");
-    processor.setSetting("supportEverywhere", "1");
-    processor.setSetting("supportLineDistance", "sparseInfillLineDistance");
+    processor.setSetting("supportEverywhere", "0");
+    processor.setSetting("supportLineDistance", "100000");
     processor.setSetting("supportXYDistance", "1000");
     processor.setSetting("supportZDistance", "1000");
     processor.setSetting("supportExtruder", "-1");

@@ -222,90 +222,87 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
     int joinDist = 100; // largest distance between separate support parts which will be joined into one
     
+    // join model layers into polygons
+    std::vector<Polygons> joinedLayers;
+    for (int l = 0 ; l < layer_count ; l++)
+    {
+        joinedLayers.emplace_back();
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& layer = mesh.layers[l];
+            for (SliceLayerPart& part : layer.parts)
+                joinedLayers[l] = joinedLayers[l].unionPolygons(part.outline);
+        }
+    }
     
-    // initialization
+    
+    // initialization of supportAreasPerLayer
     for (int l = 0; l < layer_count ; l++)
         storage.support.supportAreasPerLayer.emplace_back();
     
-    std::cerr  << "compute basic overhang and put in right layer ([layerZdistance] layers down)" << std::endl;
-    // compute basic overhang and put in right layer ([layerZdistance] layers down)
+    // compute basic overhang and put in right layer ([layerZdistance] layers below)
     for (int l = layer_count - 1 ; l >= layerZdistance ; l--)
     {
-    
-        Polygons lowerLayer_total;
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            SliceLayer& lowerLayer = mesh.layers[l-1];
-            for (SliceLayerPart& part : lowerLayer.parts)
-                lowerLayer_total = lowerLayer_total.unionPolygons(part.outline);
-        }
-        lowerLayer_total = lowerLayer_total.offset(maxDistFromLowerLayer);
-        
-        
-        
-        Polygons thisLayer_total;
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            SliceLayer& thisLayer = mesh.layers[l];
-            for (SliceLayerPart& part : thisLayer.parts)
-                thisLayer_total = thisLayer_total.unionPolygons(part.outline);
-        }
-        
-        Polygons basic_overhang = thisLayer_total.difference(lowerLayer_total);
+        Polygons thisLayer =  joinedLayers[l];
+        Polygons supported =  joinedLayers[l-1].offset(maxDistFromLowerLayer);
+        Polygons basic_overhang = thisLayer.difference(supported);
         
         Polygons extension = basic_overhang.offset(expansionsDist);
-        extension = extension.intersection(lowerLayer_total);
-        extension = extension.intersection(thisLayer_total);
+        extension = extension.intersection(supported);
+        extension = extension.intersection(thisLayer);
         
         Polygons overhang =  basic_overhang.unionPolygons(extension);
         
         storage.support.supportAreasPerLayer[l-layerZdistance] = overhang;
     }
-    std::cerr  << "... finished computing basic overhang" << std::endl;
     
+    // join overhangs downward
     for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
     {
-//         SliceLayer& sliceLayer = storage.layers[l];
         Polygons& supportLayer_up = storage.support.supportAreasPerLayer[l+1];
         Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
-        
-        // join overhangs downward
         
         Polygons joined = supportLayer.unionPolygons(supportLayer_up);
         joined = joined.offset(joinDist);
         joined = joined.offset(-joinDist);
     
-        // inset using XYdistance
-        
-        Polygons insetted = joined;
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            SliceLayer& sliceLayer = mesh.layers[l];
-            for (SliceLayerPart& part : sliceLayer.parts)
-                insetted = insetted.difference(part.outline.offset(supportXYDistance));
-        }
+        // remove layer
+        Polygons insetted = joined.difference(joinedLayers[l]);
         storage.support.supportAreasPerLayer[l] = insetted;
     }
     
-    // do stuff for when not supportEverywhere
+    // do stuff for when support on buildplate only
+    if (!supportEverywhere)
     {
-        // ...
+        Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
+        for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+        {
+            Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+            
+            touching_buildplate = supportLayer.intersection(touching_buildplate);
+            
+            storage.support.supportAreasPerLayer[l] = touching_buildplate;
+        }
+    }
+    
+    // inset using XYdistance
+    for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
+    {
+        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+        Polygons insetted = supportLayer.difference(joinedLayers[l].offset(supportXYDistance));
+        storage.support.supportAreasPerLayer[l] = insetted;
     }
 
     
     // move up from model
     for (int l = 0 ; l < storage.support.supportAreasPerLayer.size() ; l++)
     {
-//         SliceLayer& sliceLayer = storage.layers[l];
         Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
         
         Polygons without_base = supportLayer;
         for (int l2 = std::max(0, l-layerZdistance); l2 < l; l2++)
-        {
-            for (SliceMeshStorage& mesh : storage.meshes)
-                for (SliceLayerPart& part : mesh.layers[l2].parts)
-                    without_base = without_base.difference(part.outline);
-        }
+            without_base = without_base.difference(joinedLayers[l2]);
+        
         
         storage.support.supportAreasPerLayer[l] = without_base;
         
