@@ -102,7 +102,7 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 //*
-    processor.setSetting("layerThickness", "1000");
+    processor.setSetting("layerThickness", "100");
     processor.setSetting("initialLayerThickness", "300");
     processor.setSetting("filamentDiameter", "2890");
     processor.setSetting("filamentFlow", "100");
@@ -132,16 +132,16 @@ int main(int argc, char **argv)
     processor.setSetting("infillSpeed", "50");
     processor.setSetting("infillPattern", "INFILL_GRID");
 
-    processor.setSetting("supportType", "LINES");
+    processor.setSetting("supportType", "GRID");
     processor.setSetting("supportAngle", "60");
     //processor.setSetting("supportAngle", "-1");
     processor.setSetting("supportEverywhere", "1");
     processor.setSetting("supportLineDistance", "sparseInfillLineDistance");
-    processor.setSetting("supportXYDistance", "10");
-    processor.setSetting("supportZDistance", "10");
+    processor.setSetting("supportXYDistance", "1000");
+    processor.setSetting("supportZDistance", "1000");
     processor.setSetting("supportExtruder", "-1");
     
-    processor.setSetting("areaSupportPolyGenerator", "0"); // TK
+    processor.setSetting("areaSupportPolyGenerator", "1"); // TK
 
     
     

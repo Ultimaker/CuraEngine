@@ -232,27 +232,34 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     for (int l = layer_count - 1 ; l >= layerZdistance ; l--)
     {
     
-        Polygons supported;
+        Polygons lowerLayer_total;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& lowerLayer = mesh.layers[l-1];
             for (SliceLayerPart& part : lowerLayer.parts)
-                supported = supported.unionPolygons(part.outline);
+                lowerLayer_total = lowerLayer_total.unionPolygons(part.outline);
         }
-        supported = supported.offset(maxDistFromLowerLayer);
+        lowerLayer_total = lowerLayer_total.offset(maxDistFromLowerLayer);
         
-        Polygons basic_overhang;
+        
+        
+        Polygons thisLayer_total;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& thisLayer = mesh.layers[l];
             for (SliceLayerPart& part : thisLayer.parts)
-                basic_overhang = supported.unionPolygons(part.outline);
+                thisLayer_total = thisLayer_total.unionPolygons(part.outline);
         }
-        basic_overhang = basic_overhang.difference(supported);
         
-        Polygons overhang = basic_overhang.offset(expansionsDist);
-        overhang = overhang.intersection(supported);
-        storage.support.supportAreasPerLayer[l-layerZdistance] = basic_overhang;
+        Polygons basic_overhang = thisLayer_total.difference(lowerLayer_total);
+        
+        Polygons extension = basic_overhang.offset(expansionsDist);
+        extension = extension.intersection(lowerLayer_total);
+        extension = extension.intersection(thisLayer_total);
+        
+        Polygons overhang =  basic_overhang.unionPolygons(extension);
+        
+        storage.support.supportAreasPerLayer[l-layerZdistance] = overhang;
     }
     std::cerr  << "... finished computing basic overhang" << std::endl;
     
@@ -270,7 +277,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
         // inset using XYdistance
         
-        Polygons insetted = supportLayer;
+        Polygons insetted = joined;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& sliceLayer = mesh.layers[l];
@@ -293,16 +300,17 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
         
         Polygons without_base = supportLayer;
-        for (int l2 = std::min(0, l-layerZdistance); l2 < l; l2++)
+        for (int l2 = std::max(0, l-layerZdistance); l2 < l; l2++)
+        {
             for (SliceMeshStorage& mesh : storage.meshes)
                 for (SliceLayerPart& part : mesh.layers[l2].parts)
                     without_base = without_base.difference(part.outline);
-        
+        }
         
         storage.support.supportAreasPerLayer[l] = without_base;
         
     }
-    
+    std::cerr<<"finished area support" <<std::endl;
     
     storage.support.generated = true;
 }

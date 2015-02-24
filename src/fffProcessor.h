@@ -184,12 +184,9 @@ private:
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
-        log("Generating support map...\n");
-        if (object->getSettingInt("areaSupportPolyGenerator") > 0)
+        if (object->getSettingInt("areaSupportPolyGenerator") == 0)
         {
-            generateSupportAreas(storage, object, layer_count, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
-        } else 
-        {
+            log("Generating support grid...\n");
             generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
         }
         
@@ -213,6 +210,12 @@ private:
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
+        
+        if (object->getSettingInt("areaSupportPolyGenerator") > 0)
+        {
+            log("Generating support areas...\n");
+            generateSupportAreas(storage, object, layer_count, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+        }
         return true;
     }
 
