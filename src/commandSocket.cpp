@@ -67,6 +67,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             //TODO: Support all-at-once/one-at-a-time printing
             d->processor->processModel(d->objectToSlice.get());
             d->objectToSlice.reset();
+            d->processor->resetFileNumber();
         }
 
         Arcus::MessagePtr message = d->socket->takeNextMessage();
