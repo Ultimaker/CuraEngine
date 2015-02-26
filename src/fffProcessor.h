@@ -342,9 +342,6 @@ private:
         generateRaft(storage, getSettingInt("raftMargin"));
 
         sendPolygons(SkirtType, 0, storage.skirt);
-
-        if (commandSocket)
-            commandSocket->endSendSlicedObject();
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -615,6 +612,7 @@ private:
         {
             finalize();
             gcode.close();
+            commandSocket->endSendSlicedObject();
             commandSocket->endGCode();
         }
     }
