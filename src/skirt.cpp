@@ -6,12 +6,32 @@ namespace cura {
 
 void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength, int initialLayerHeight)
 {
+    if (count == 0) return;
+    
     bool externalOnly = (distance > 0);
+    
+    SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight, 0);
+    { // get support polygons
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            if (mesh.layers.size() < 1) continue;
+            SliceLayer* layer = &mesh.layers[0];
+            for(unsigned int i=0; i<layer->parts.size(); i++)        
+                supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[i].outline);
+        }
+                
+        //Contract and expand the suppory polygons so small sections are removed
+        supportGenerator.polygons = supportGenerator.polygons.offset(-extrusionWidth).offset(extrusionWidth);
+        
+        // expand and contract to smooth the final polygon
+        if (count == 1)
+            supportGenerator.polygons = supportGenerator.polygons.offset(extrusionWidth * 5).offset(-extrusionWidth * 5);
+    }
+    
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
         
-        SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight, 0);
         Polygons skirtPolygons(storage.wipeTower.offset(offsetDistance));
         for(SliceMeshStorage& mesh : storage.meshes)
         {
@@ -27,13 +47,9 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
                 }
                 else
                     skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(offsetDistance, ClipperLib::jtRound));
-                supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[i].outline);
             }
         }
-        
-        //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
-        supportGenerator.polygons = supportGenerator.polygons.offset(-extrusionWidth * 3);
-        supportGenerator.polygons = supportGenerator.polygons.offset(extrusionWidth * 3);
+
         
         skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(offsetDistance, ClipperLib::jtRound));
 
