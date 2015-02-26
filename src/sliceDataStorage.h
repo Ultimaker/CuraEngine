@@ -63,7 +63,7 @@ public:
     std::vector<Polygons> supportAreasPerLayer;
 
     SupportStorage(){grid = nullptr;}
-    ~SupportStorage(){if(grid) delete [] grid;}
+    ~SupportStorage(){if(grid) delete [] grid; supportAreasPerLayer.clear(); }
 };
 /******************/
 

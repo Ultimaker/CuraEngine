@@ -188,6 +188,7 @@ private:
         {
             log("Generating support grid...\n");
             generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+            log("Generated support grid in %5.3fs\n", timeKeeper.restart());
         }
         
         object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
@@ -214,8 +215,10 @@ private:
         if (object->getSettingInt("areaSupportPolyGenerator") > 0)
         {
             log("Generating support areas...\n");
-            generateSupportAreas(storage, object, layer_count, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
+            generateSupportAreas(storage, object, layer_count, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"), object->getSettingInt("supportZDistanceBottom"), object->getSettingInt("supportZDistanceTop"), object->getSettingInt("supportJoinDistance"), static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0);
+            log("Generated support areas in %5.3fs\n", timeKeeper.restart());
         }
+        log("Finished prepareModel.\n");
         return true;
     }
 

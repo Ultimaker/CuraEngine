@@ -166,11 +166,14 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
 : storage(storage), z(z), everywhere(storage.everywhere)
 {
     if (!storage.generated)
+    {
+        log("No support generated.\n");
         return;
-    
+    }
     if (storage.areaSupport)
     {
         polygons = storage.supportAreasPerLayer[layer_nr];
+        if (layer_nr==0) log("skirt? raft? or just layer zero? n polygons = %i\n one layer up : %i\n", polygons.size(), storage.supportAreasPerLayer[1].size());
     } else
     {
         cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
@@ -198,7 +201,7 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
 
 
 
-void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance)
+void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance, int supportZDistanceBottom, int supportZDistanceTop, int supportJoinDistance, float backSupportBridge)
 {
     storage.support.angle = supportAngle;
     storage.support.everywhere = supportEverywhere;
@@ -210,17 +213,22 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     if (supportAngle < 0)
         return;
     
+    if (supportZDistanceBottom < 0) supportZDistanceBottom = supportZDistance;
+    if (supportZDistanceTop < 0)    supportZDistanceTop = supportZDistance;
+    
     
     int layerThickness = object->getSettingInt("layerThickness");
     
-    int layerZdistance = supportZDistance / layerThickness + 1; // support must always be 1 layer below overhang
+    int layerZdistanceTop       = supportZDistanceTop / layerThickness + 1; // support must always be 1 layer below overhang
+    int layerZdistanceBottom    = supportZDistanceBottom / layerThickness; 
 
-    double cosAngle = cos(double(90 - storage.support.angle) / 180.0 * M_PI) - 0.01;
-    int maxDistFromLowerLayer = cosAngle * layerThickness; // max dist which can be bridged
+    double tanAngle = tan(double(storage.support.angle) / 180.0 * M_PI) - 0.01;
+    int maxDistFromLowerLayer = tanAngle * layerThickness; // max dist which can be bridged
     
-    int expansionsDist = maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
+    int expansionsDist = backSupportBridge * maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
     
-    int joinDist = 100; // largest distance between separate support parts which will be joined into one
+    
+    std::cerr << "joinging model layers" << std::endl;
     
     // join model layers into polygons
     std::vector<Polygons> joinedLayers;
@@ -234,79 +242,180 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
                 joinedLayers[l] = joinedLayers[l].unionPolygons(part.outline);
         }
     }
-    
-    
+        
     // initialization of supportAreasPerLayer
     for (int l = 0; l < layer_count ; l++)
         storage.support.supportAreasPerLayer.emplace_back();
     
-    // compute basic overhang and put in right layer ([layerZdistance] layers below)
-    for (int l = layer_count - 1 ; l >= layerZdistance ; l--)
+    auto perFunction = [&]() 
     {
-        Polygons thisLayer =  joinedLayers[l];
-        Polygons supported =  joinedLayers[l-1].offset(maxDistFromLowerLayer);
-        Polygons basic_overhang = thisLayer.difference(supported);
         
-        Polygons extension = basic_overhang.offset(expansionsDist);
-        extension = extension.intersection(supported);
-        extension = extension.intersection(thisLayer);
-        
-        Polygons overhang =  basic_overhang.unionPolygons(extension);
-        
-        storage.support.supportAreasPerLayer[l-layerZdistance] = overhang;
-    }
-    
-    // join overhangs downward
-    for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
-    {
-        Polygons& supportLayer_up = storage.support.supportAreasPerLayer[l+1];
-        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
-        
-        Polygons joined = supportLayer.unionPolygons(supportLayer_up);
-        joined = joined.offset(joinDist);
-        joined = joined.offset(-joinDist);
-    
-        // remove layer
-        Polygons insetted = joined.difference(joinedLayers[l]);
-        storage.support.supportAreasPerLayer[l] = insetted;
-    }
-    
-    // do stuff for when support on buildplate only
-    if (!supportEverywhere)
-    {
-        Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
-        for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+        std::cerr << "computing basic overhang" << std::endl;
+        // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
+        for (int l = layer_count - 1 ; l >= std::max(1, layerZdistanceTop) ; l--)
         {
+            Polygons thisLayer =  joinedLayers[l];
+            Polygons supported =  joinedLayers[l-1].offset(maxDistFromLowerLayer);
+            Polygons basic_overhang = thisLayer.difference(supported);
+            
+            Polygons extension = basic_overhang.offset(expansionsDist);
+            extension = extension.intersection(supported);
+            extension = extension.intersection(thisLayer);
+            
+            Polygons overhang =  basic_overhang.unionPolygons(extension);
+            
+            storage.support.supportAreasPerLayer[l-layerZdistanceTop] = overhang;
+        }
+        
+        std::cerr << "join overhangs downward" << std::endl;
+        
+        // join overhangs downward
+        for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
+        {
+            Polygons& supportLayer_up = storage.support.supportAreasPerLayer[l+1];
             Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
             
-            touching_buildplate = supportLayer.intersection(touching_buildplate);
-            
-            storage.support.supportAreasPerLayer[l] = touching_buildplate;
+            Polygons joined = supportLayer.unionPolygons(supportLayer_up);
+            if (supportJoinDistance > 0)
+            {
+                joined = joined.offset(supportJoinDistance);
+                joined = joined.offset(-supportJoinDistance);
+            }
+        
+            // remove layer
+            Polygons insetted = joined.difference(joinedLayers[l]);
+            storage.support.supportAreasPerLayer[l] = insetted;
+            //std::cerr << "layer " << l << std::endl;
         }
-    }
-    
-    // inset using XYdistance
-    for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
-    {
-        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
-        Polygons insetted = supportLayer.difference(joinedLayers[l].offset(supportXYDistance));
-        storage.support.supportAreasPerLayer[l] = insetted;
-    }
+        
+        // do stuff for when support on buildplate only
+        if (!supportEverywhere)
+        {
+            std::cerr << "supporting on buildplate only" << std::endl;
+            Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
+            for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+            {
+                Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+                
+                touching_buildplate = supportLayer.intersection(touching_buildplate);
+                
+                storage.support.supportAreasPerLayer[l] = touching_buildplate;
+            }
+        }
+        
+        // inset using XYdistance
+        if (supportXYDistance > 0)
+        {
+            std::cerr << "inset using XY dist" << std::endl;
+            for (int l = storage.support.supportAreasPerLayer.size() - 2 ; l >= 0 ; l--)
+            {
+                Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+                Polygons insetted = supportLayer.difference(joinedLayers[l].offset(supportXYDistance));
+                storage.support.supportAreasPerLayer[l] = insetted;
+                //std::cerr << "layer " << l << std::endl;
+            }
+        }
 
-    
-    // move up from model
-    for (int l = 0 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+        
+        // move up from model
+        if (layerZdistanceBottom > 0)
+        {
+            std::cerr << "move up model" << std::endl;
+            for (int l = 0 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+            {
+                Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+                
+                Polygons without_base = supportLayer;
+                for (int l2 = std::max(0, l-layerZdistanceBottom); l2 < l; l2++)
+                    without_base = without_base.difference(joinedLayers[l2]);
+                
+                
+                storage.support.supportAreasPerLayer[l] = without_base;
+                //std::cerr << "layer " << l << std::endl;
+                
+            }
+        }
+    };
+        
+    auto perLayer = [&]() 
     {
-        Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+
+
+        std::cerr << "computing support" << std::endl;
         
-        Polygons without_base = supportLayer;
-        for (int l2 = std::max(0, l-layerZdistance); l2 < l; l2++)
-            without_base = without_base.difference(joinedLayers[l2]);
+        Polygons supportLayer_last;
+        for (int l = layer_count - 1 - layerZdistanceTop; l >= 0 ; l--)
+        {
+            // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
+            Polygons supportLayer_supportee =  joinedLayers[l+layerZdistanceTop];
+            Polygons supportLayer_supported =  joinedLayers[l-1+layerZdistanceTop].offset(maxDistFromLowerLayer);
+            Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
+            
+            Polygons support_extension = basic_overhang.offset(expansionsDist);
+            support_extension = support_extension.intersection(supportLayer_supported);
+            support_extension = support_extension.intersection(supportLayer_supportee);
+            
+            Polygons overhang =  basic_overhang.unionPolygons(support_extension);
+            
+            Polygons& supportLayer_this = overhang; 
+            
+            
+            
+            if (l+1 < layer_count)
+            { // join with support from layer up
+                Polygons& supportLayer_up = supportLayer_last;
+                
+                Polygons joined = supportLayer_this.unionPolygons(supportLayer_up);
+                if (supportJoinDistance > 0)
+                {
+                    joined = joined.offset(supportJoinDistance);
+                    joined = joined.offset(-supportJoinDistance);
+                }
+            
+                // remove layer
+                Polygons insetted = joined.difference(joinedLayers[l]);
+                supportLayer_this = insetted;                
+                
+            }
+            
+            
+            supportLayer_last = supportLayer_this;
+            
+            // inset using X/Y distance
+            if (supportLayer_this.size() > 0)
+                supportLayer_this = supportLayer_this.difference(joinedLayers[l].offset(supportXYDistance));
+            
+            // move up from model
+            if (layerZdistanceBottom > 0 && l >= layerZdistanceBottom)
+            {
+                supportLayer_this = supportLayer_this.difference(joinedLayers[l-layerZdistanceBottom]);
+            }
+            
+            storage.support.supportAreasPerLayer[l] = supportLayer_this;
+            
+        }
         
+        // do stuff for when support on buildplate only
+        if (!supportEverywhere)
+        {
+            std::cerr << "supporting on buildplate only" << std::endl;
+            Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
+            for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+            {
+                Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+                
+                touching_buildplate = supportLayer.intersection(touching_buildplate);
+                
+                storage.support.supportAreasPerLayer[l] = touching_buildplate;
+            }
+        }
         
-        storage.support.supportAreasPerLayer[l] = without_base;
-        
-    }
+    };
+    
+    perLayer();
+    //perFunction();
+    
+    joinedLayers.clear();
     std::cerr<<"finished area support" <<std::endl;
     
     storage.support.generated = true;
