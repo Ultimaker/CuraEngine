@@ -23,9 +23,6 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 
-#include <iostream>
-
-
 namespace cura {
 
 //FusedFilamentFabrication processor.
@@ -44,6 +41,11 @@ public:
         fileNr = 1;
         maxObjectHeight = 0;
         commandSocket = NULL;
+    }
+
+    void resetFileNumber()
+    {
+        fileNr = 1;
     }
 
     void setCommandSocket(CommandSocket* socket)
@@ -343,9 +345,6 @@ private:
         generateRaft(storage, getSettingInt("raftMargin"));
 
         sendPolygons(SkirtType, 0, storage.skirt);
-
-        if (commandSocket)
-            commandSocket->endSendSlicedObject();
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -377,6 +376,7 @@ private:
                 gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"));
             for(SliceMeshStorage& mesh : storage.meshes)
                 gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
+
             gcode.writeCode(getSetting("startCode").c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {
@@ -615,6 +615,7 @@ private:
         {
             finalize();
             gcode.close();
+            commandSocket->endSendSlicedObject();
             commandSocket->endGCode();
         }
     }
