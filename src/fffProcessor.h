@@ -826,15 +826,17 @@ private:
         }
         int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
         SupportPolyGenerator supportGenerator(storage.support, z, layer_nr);
-        for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
+        if (getSettingInt("areaSupportPolyGenerator") == 0)
         {
-            SliceLayer* layer = &storage.meshes[meshCnt].layers[layer_nr];
-            for(unsigned int n=0; n<layer->parts.size(); n++)
-                supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(getSettingInt("supportXYDistance")));
+            for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
+            {
+                SliceLayer* layer = &storage.meshes[meshCnt].layers[layer_nr];
+                for(unsigned int n=0; n<layer->parts.size(); n++)
+                    supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(getSettingInt("supportXYDistance")));
+            }
+            //Contract and expand the support polygons so small sections are removed and the final polygon is smoothed a bit.
+            supportGenerator.polygons = supportGenerator.polygons.offset(-getSettingInt("extrusionWidth") * 3).offset(getSettingInt("extrusionWidth") * 3);
         }
-        //Contract and expand the suppory polygons so small sections are removed and the final polygon is smoothed a bit.
-        supportGenerator.polygons = supportGenerator.polygons.offset(-getSettingInt("extrusionWidth") * 3);
-        supportGenerator.polygons = supportGenerator.polygons.offset(getSettingInt("extrusionWidth") * 3);
         sendPolygons(SupportType, layer_nr, supportGenerator.polygons);
 
         std::vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();

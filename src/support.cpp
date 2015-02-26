@@ -172,8 +172,7 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
     }
     if (storage.areaSupport)
     {
-        polygons = storage.supportAreasPerLayer[layer_nr];
-        if (layer_nr==0) log("skirt? raft? or just layer zero? n polygons = %i\n one layer up : %i\n", polygons.size(), storage.supportAreasPerLayer[1].size());
+        polygons = storage.supportAreasPerLayer[(layer_nr + storage.support_layer_distance -1) / storage.support_layer_distance];
     } else
     {
         cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
@@ -211,7 +210,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportZDistanceBottom = object->getSettingInt("supportZDistanceBottom");
     int supportZDistanceTop = object->getSettingInt("supportZDistanceTop");
     int supportJoinDistance = object->getSettingInt("supportJoinDistance");
-    //int supportSkipLayers = object->getSettingInt("supportSkipLayers");
+    int supportSkipLayers = object->getSettingInt("supportSkipLayers");
     float backSupportBridge = static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0;
         
     int layerThickness = object->getSettingInt("layerThickness");
@@ -222,24 +221,35 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     storage.support.ZDistance = supportZDistance;
     storage.support.areaSupport = true;
     
+    storage.support.support_layer_distance = supportSkipLayers + 1;
+    
     storage.support.generated = false;
     if (supportAngle < 0)
         return;
+    
+    
     
     // derived settings:
     
     if (supportZDistanceBottom < 0) supportZDistanceBottom = supportZDistance;
     if (supportZDistanceTop < 0)    supportZDistanceTop = supportZDistance;
     
+    int support_layer_distance = storage.support.support_layer_distance;
     
+    log("support_layer_distance=%i\n",support_layer_distance);
+    int supportLayerThickness = layerThickness * support_layer_distance;
     
-    int layerZdistanceTop       = supportZDistanceTop / layerThickness + 1; // support must always be 1 layer below overhang
-    int layerZdistanceBottom    = supportZDistanceBottom / layerThickness; 
+    int layerZdistanceTop       = supportZDistanceTop / supportLayerThickness + 1; // support must always be 1 layer below overhang
+    int layerZdistanceBottom    = supportZDistanceBottom / supportLayerThickness; 
 
     double tanAngle = tan(double(storage.support.angle) / 180.0 * M_PI) - 0.01;
-    int maxDistFromLowerLayer = tanAngle * layerThickness; // max dist which can be bridged
+    int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
     int expansionsDist = backSupportBridge * maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
+    
+    int support_layer_count = layer_count / support_layer_distance;
+    
+    
     
     // computation
     
@@ -247,26 +257,28 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
     // join model layers into polygons
     std::vector<Polygons> joinedLayers;
-    for (int l = 0 ; l < layer_count ; l++)
+    for (int l = 0 ; l < layer_count ; l+=support_layer_distance)
     {
         joinedLayers.emplace_back();
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[l];
             for (SliceLayerPart& part : layer.parts)
-                joinedLayers[l] = joinedLayers[l].unionPolygons(part.outline);
+                joinedLayers.back() = joinedLayers.back().unionPolygons(part.outline);
         }
     }
         
     // initialization of supportAreasPerLayer
-    for (int l = 0; l < layer_count ; l++)
+    for (int l = 0; l < layer_count ; l+=support_layer_distance)
         storage.support.supportAreasPerLayer.emplace_back();
 
 
     std::cerr << "computing support" << std::endl;
     
+    //auto roundToNearestDivisibleBy = [](int in, int divisor) { return in - in % divisor; };
+    
     Polygons supportLayer_last;
-    for (int l = layer_count - 1 - layerZdistanceTop; l >= 0 ; l--)
+    for (int l = support_layer_count - 1 - layerZdistanceTop; l >= 0 ; l--)
     {
         // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
         Polygons supportLayer_supportee =  joinedLayers[l+layerZdistanceTop];
@@ -283,7 +295,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
         
         
-        if (l+1 < layer_count)
+        if (l+1 < support_layer_count)
         { // join with support from layer up
             Polygons& supportLayer_up = supportLayer_last;
             

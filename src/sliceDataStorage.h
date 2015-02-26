@@ -54,6 +54,7 @@ public:
     bool everywhere;
     int XYDistance; //!< Minimal horizontal distance of the support structure from the print.
     int ZDistance; //!< Distance form the top/bottom of the support to the print.
+    int support_layer_distance; //!< the number of actual layers per computed support layer (for a speedup, we can reuse the same computed polygons of the support layer for different printing layers)
     
     Point gridOffset;
     int32_t gridScale;

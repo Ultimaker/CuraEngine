@@ -21,7 +21,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         }
                 
         //Contract and expand the suppory polygons so small sections are removed
-        supportGenerator.polygons = supportGenerator.polygons.offset(-extrusionWidth).offset(extrusionWidth);
+        supportGenerator.polygons = supportGenerator.polygons.offset(-extrusionWidth * 3).offset(extrusionWidth * 3);
         
         // expand and contract to smooth the final polygon
         if (count == 1 && distance > 0)
