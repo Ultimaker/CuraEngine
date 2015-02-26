@@ -206,6 +206,7 @@ void CommandSocket::endSendSlicedObject()
         d->socket->sendMessage(d->slicedObjectList);
         d->slicedObjects = 0;
         d->slicedObjectList.reset();
+        d->currentSlicedObject = nullptr;
     }
 }
 
