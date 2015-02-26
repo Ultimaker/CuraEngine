@@ -141,11 +141,13 @@ int main(int argc, char **argv)
     processor.setSetting("supportZDistance", "100");
     processor.setSetting("supportExtruder", "-1");
     
+    processor.setSetting("areaSupportPolyGenerator", "1"); // TK
     processor.setSetting("supportZDistanceBottom", "100");
     processor.setSetting("supportZDistanceTop", "100");
-    processor.setSetting("supportJoinDistance", "1000");
+    processor.setSetting("supportJoinDistance", "1000"); // distance between support blocks which will get merged 
     processor.setSetting("supportBridgeBack", "100"); // percentage of bridge between layer and overhang which should be supported
-    processor.setSetting("areaSupportPolyGenerator", "1"); // TK
+    //processor.setSetting("supportSkipLayers", "0"); // speedup, computing support based on every (supportSkipLayers+1) layers
+    
 
     
     

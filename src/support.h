@@ -75,7 +75,7 @@ public:
 
 
 
-void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count, int supportAngle, bool supportEverywhere, int supportXYDistance, int supportZDistance, int supportZDistanceBottom, int supportZDistanceTop, int supportJoinDistance, float backSupportBridge);
+void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count);
 
 
 
