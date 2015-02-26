@@ -102,8 +102,8 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 //*
-    processor.setSetting("layerThickness", "1000");
-    processor.setSetting("initialLayerThickness", "1000");
+    processor.setSetting("layerThickness", "150");
+    processor.setSetting("initialLayerThickness", "300");
     processor.setSetting("filamentDiameter", "2890");
     processor.setSetting("filamentFlow", "100");
     processor.setSetting("layer0extrusionWidth", "600");
@@ -126,25 +126,31 @@ int main(int argc, char **argv)
     processor.setSetting("moveSpeed", "150");
     processor.setSetting("fanFullOnLayerNr", "2");
 
-    processor.setSetting("sparseInfillLineDistance", "100000");
+    processor.setSetting("sparseInfillLineDistance", "500");
     processor.setSetting("sparseInfillCombineCount", "1");
     processor.setSetting("infillOverlap", "15");
     processor.setSetting("infillSpeed", "50");
     processor.setSetting("infillPattern", "INFILL_GRID");
 
-    processor.setSetting("supportType", "GRID");
+    processor.setSetting("supportType", "LINES");
     processor.setSetting("supportAngle", "60");
     //processor.setSetting("supportAngle", "-1");
     processor.setSetting("supportEverywhere", "0");
-    processor.setSetting("supportLineDistance", "100000");
-    processor.setSetting("supportXYDistance", "1000");
-    processor.setSetting("supportZDistance", "1000");
+    processor.setSetting("supportLineDistance", "2667");
+    processor.setSetting("supportXYDistance", "500");
+    processor.setSetting("supportZDistance", "100");
     processor.setSetting("supportExtruder", "-1");
     
+    processor.setSetting("supportZDistanceBottom", "100");
+    processor.setSetting("supportZDistanceTop", "100");
+    processor.setSetting("supportJoinDistance", "1000");
+    processor.setSetting("supportBridgeBack", "100"); // percentage of bridge between layer and overhang which should be supported
     processor.setSetting("areaSupportPolyGenerator", "1"); // TK
 
     
     
+    processor.setSetting("extruderOffset1.X", "18000");
+    processor.setSetting("extruderOffset1.Y", "0");
     
     processor.setSetting("retractionAmount", "4500");
     processor.setSetting("retractionPrimeAmount", "0");
@@ -161,8 +167,8 @@ int main(int argc, char **argv)
     processor.setSetting("enableOozeShield", "0");
     processor.setSetting("wipeTowerSize", "0");
     processor.setSetting("multiVolumeOverlap", "0");
-    processor.setSetting("position.X", "0");
-    processor.setSetting("position.Y", "0");
+    processor.setSetting("position.X", "115000"); // UM2
+    processor.setSetting("position.Y", "112500");
     processor.setSetting("position.Z", "0");
     processor.setSetting("objectSink", "0");
     processor.setSetting("autoCenter", "1");
