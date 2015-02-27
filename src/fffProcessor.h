@@ -604,65 +604,22 @@ private:
                 gcodeLayer.setAlwaysRetract(false);
             }
 
-            Polygons infillPolygons;
             int fillAngle = 45;
             if (layerNr & 1)
                 fillAngle += 90;
             int extrusionWidth = config.extrusionWidth;
             if (layerNr == 0)
                 extrusionWidth = config.layer0extrusionWidth;
-            if (config.sparseInfillLineDistance > 0)
+
+            // Add either infill or perimeter first depending on option
+            if (!config.perimeterBeforeInfill) 
             {
-                switch (config.infillPattern)
-                {
-                    case INFILL_AUTOMATIC:
-                        generateAutomaticInfill(
-                            part->sparseOutline, infillPolygons, extrusionWidth,
-                            config.sparseInfillLineDistance,
-                            config.infillOverlap, fillAngle);
-                        break;
-
-                    case INFILL_GRID:
-                        generateGridInfill(part->sparseOutline, infillPolygons,
-                                           extrusionWidth,
-                                           config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
-                        break;
-
-                    case INFILL_LINES:
-                        generateLineInfill(part->sparseOutline, infillPolygons,
-                                           extrusionWidth,
-                                           config.sparseInfillLineDistance,
-                                           config.infillOverlap, fillAngle);
-                        break;
-
-                    case INFILL_CONCENTRIC:
-                        generateConcentricInfill(
-                            part->sparseOutline, infillPolygons,
-                            config.sparseInfillLineDistance);
-                        break;
-                }
-            }
-
-            gcodeLayer.addPolygonsByOptimizer(infillPolygons, &infillConfig);
-            //sendPolygonsToGui("infill", layerNr, layer->z, fillPolygons);
-
-            if (config.insetCount > 0)
+                addInfillToGCode(part, gcodeLayer, layerNr, extrusionWidth, fillAngle);
+                addInsetToGCode(part, gcodeLayer, layerNr);
+            }else
             {
-                if (config.spiralizeMode)
-                {
-                    if (static_cast<int>(layerNr) >= config.downSkinCount)
-                        inset0Config.spiralize = true;
-                    if (static_cast<int>(layerNr) == config.downSkinCount && part->insets.size() > 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
-                }
-                for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
-                {
-                    if (insetNr == 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
-                    else
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
-                }
+                addInsetToGCode(part, gcodeLayer, layerNr);
+                addInfillToGCode(part, gcodeLayer, layerNr, extrusionWidth, fillAngle);
             }
             
             Polygons skinPolygons;
@@ -686,6 +643,66 @@ private:
                 gcodeLayer.moveInsideCombBoundary(config.extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);
+    }
+
+    void addInfillToGCode(SliceLayerPart* part, GCodePlanner& gcodeLayer, int layerNr, int extrusionWidth, int fillAngle)
+    {
+        Polygons infillPolygons;
+        if (config.sparseInfillLineDistance > 0)
+        {
+            switch (config.infillPattern)
+            {
+                case INFILL_AUTOMATIC:
+                    generateAutomaticInfill(
+                        part->sparseOutline, infillPolygons, extrusionWidth,
+                        config.sparseInfillLineDistance,
+                        config.infillOverlap, fillAngle);
+                    break;
+
+                case INFILL_GRID:
+                    generateGridInfill(part->sparseOutline, infillPolygons,
+                                       extrusionWidth,
+                                       config.sparseInfillLineDistance,
+                                       config.infillOverlap, fillAngle);
+                    break;
+
+                case INFILL_LINES:
+                    generateLineInfill(part->sparseOutline, infillPolygons,
+                                       extrusionWidth,
+                                       config.sparseInfillLineDistance,
+                                       config.infillOverlap, fillAngle);
+                    break;
+
+                case INFILL_CONCENTRIC:
+                    generateConcentricInfill(
+                        part->sparseOutline, infillPolygons,
+                        config.sparseInfillLineDistance);
+                    break;
+            }
+        }
+
+        gcodeLayer.addPolygonsByOptimizer(infillPolygons, &infillConfig);
+    }
+
+    void addInsetToGCode(SliceLayerPart* part, GCodePlanner& gcodeLayer, int layerNr)
+    {
+        if (config.insetCount > 0)
+        {
+            if (config.spiralizeMode)
+            {
+                if (static_cast<int>(layerNr) >= config.downSkinCount)
+                    inset0Config.spiralize = true;
+                if (static_cast<int>(layerNr) == config.downSkinCount && part->insets.size() > 0)
+                    gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
+            }
+            for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+            {
+                if (insetNr == 0)
+                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                else
+                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
+            }
+        }
     }
 
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layerNr)
