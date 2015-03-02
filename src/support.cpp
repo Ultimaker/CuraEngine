@@ -172,10 +172,7 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
     }
     if (storage.areaSupport)
     {
-        int support_layer = (layer_nr + storage.support_layer_distance -1) / storage.support_layer_distance;
-        if (support_layer >= storage.supportAreasPerLayer.size()) 
-            support_layer = storage.supportAreasPerLayer.size() + 1;
-        polygons = storage.supportAreasPerLayer[support_layer];
+        polygons = storage.supportAreasPerLayer[layer_nr];
     } else
     {
         cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
@@ -205,6 +202,7 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
 
 void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count)
 {
+    bool logStage = false; // whther to log at which stage of the support area generation we are (for debug)
     // given settings
     int supportAngle = object->getSettingInt("supportAngle");
     bool supportEverywhere = object->getSettingInt("supportEverywhere") > 0;
@@ -213,7 +211,6 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportZDistanceBottom = object->getSettingInt("supportZDistanceBottom");
     int supportZDistanceTop = object->getSettingInt("supportZDistanceTop");
     int supportJoinDistance = object->getSettingInt("supportJoinDistance");
-    int supportSkipLayers = object->getSettingInt("supportSkipLayers");
     float backSupportBridge = static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0;
         
     int layerThickness = object->getSettingInt("layerThickness");
@@ -224,7 +221,6 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     storage.support.ZDistance = supportZDistance;
     storage.support.areaSupport = true;
     
-    storage.support.support_layer_distance = supportSkipLayers + 1;
     
     storage.support.generated = false;
     if (supportAngle < 0)
@@ -237,10 +233,8 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     if (supportZDistanceBottom < 0) supportZDistanceBottom = supportZDistance;
     if (supportZDistanceTop < 0)    supportZDistanceTop = supportZDistance;
     
-    int support_layer_distance = storage.support.support_layer_distance;
     
-    log("support_layer_distance=%i\n",support_layer_distance);
-    int supportLayerThickness = layerThickness * support_layer_distance;
+    int supportLayerThickness = layerThickness;
     
     int layerZdistanceTop       = supportZDistanceTop / supportLayerThickness + 1; // support must always be 1 layer below overhang
     int layerZdistanceBottom    = supportZDistanceBottom / supportLayerThickness; 
@@ -250,17 +244,17 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
     int expansionsDist = backSupportBridge * maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
     
-    int support_layer_count = layer_count / support_layer_distance;
+    int support_layer_count = layer_count;
     
     
     
     // computation
     
-    std::cerr << "joinging model layers" << std::endl;
+    if (logStage) log("joining model layers\n");
     
     // join model layers into polygons
     std::vector<Polygons> joinedLayers;
-    for (int l = 0 ; l < layer_count ; l+=support_layer_distance)
+    for (int l = 0 ; l < layer_count ; l++)
     {
         joinedLayers.emplace_back();
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -272,11 +266,11 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     }
         
     // initialization of supportAreasPerLayer
-    for (int l = 0; l < layer_count ; l+=support_layer_distance)
+    for (int l = 0; l < layer_count ; l++)
         storage.support.supportAreasPerLayer.emplace_back();
 
 
-    std::cerr << "computing support" << std::endl;
+    if (logStage) log("computing support");
     
     //auto roundToNearestDivisibleBy = [](int in, int divisor) { return in - in % divisor; };
     
@@ -335,7 +329,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     // do stuff for when support on buildplate only
     if (!supportEverywhere)
     {
-        std::cerr << "supporting on buildplate only" << std::endl;
+        if (logStage) log("supporting on buildplate only");
         Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
         for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
         {
@@ -349,7 +343,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
 
     
     joinedLayers.clear();
-    std::cerr<<"finished area support" <<std::endl;
+    if (logStage) log("finished area support");
     
     storage.support.generated = true;
 }
