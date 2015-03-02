@@ -417,7 +417,6 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
         
         Point p0 = outline[polyNr][outline[polyNr].size()-1];
         Point lastPoint = p0;
-        firstBoundarySegment.push_back(p0);
         for(unsigned int i=0; i < outline[polyNr].size(); i++)
         {
             Point p1 = outline[polyNr][i];
@@ -432,10 +431,9 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
                 direction = -1; 
                 int scanline_idx0 = p0.X / lineSpacing; 
                 int scanline_idx1 = (p1.X + 1) / lineSpacing; 
-                
             }
             
-            if (isFirstBoundarySegment) firstBoundarySegment.push_back(p1);
+            if (isFirstBoundarySegment) firstBoundarySegment.push_back(p0);
             for(int scanline_idx = scanline_idx0; scanline_idx!=scanline_idx1+direction; scanline_idx+=direction)
             {
                 int x = scanline_idx * lineSpacing;
@@ -449,19 +447,19 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
                 if (scanline_idx % 2 == 0) isEvenScanSegment = true;
                 else isEvenScanSegment = false;
                 
-                if (last_isEvenScanSegment && !isEvenScanSegment)
+                if (last_isEvenScanSegment && !isEvenScanSegment && !isFirstBoundarySegment)
                     addLine(lastPoint, Point(x,y));
                 lastPoint = Point(x,y);
                 
                 if (isFirstBoundarySegment) 
                 {
-                    firstBoundarySegment.push_back(lastPoint);
-                    isFirstBoundarySegment = false;
+                    firstBoundarySegment.emplace_back(x,y);
                     firstBoundarySegmentEndsInEven = isEvenScanSegment;
+                    isFirstBoundarySegment = false;
                 }
                 
             }
-            if (isEvenScanSegment)
+            if (isEvenScanSegment && !isFirstBoundarySegment)
                 addLine(lastPoint, p1);
             lastPoint = p1;
             p0 = p1;
@@ -469,14 +467,14 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
         
         if (isEvenScanSegment)
         {
-            for (int i = 1; i < firstBoundarySegment.size(); i++)
+            for (int i = 1; i < firstBoundarySegment.size() ; i++)
             {
                 if (i < firstBoundarySegment.size() - 1 | !firstBoundarySegmentEndsInEven)
                     addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
             }   
         }
-        else if (firstBoundarySegmentEndsInEven)
-            addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[ firstBoundarySegment.size()-1]);
+        else if (!firstBoundarySegmentEndsInEven)
+            addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[firstBoundarySegment.size()-1]);
     } 
     
     auto compare_int64_t = [](const void* a, const void* b)
