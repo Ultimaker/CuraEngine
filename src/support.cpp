@@ -205,6 +205,11 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     bool logStage = false; // whther to log at which stage of the support area generation we are (for debug)
     // given settings
     int supportAngle = object->getSettingInt("supportAngle");
+    
+    storage.support.generated = false;
+    if (supportAngle < 0)
+        return;
+    
     bool supportEverywhere = object->getSettingInt("supportEverywhere") > 0;
     int supportXYDistance = object->getSettingInt("supportXYDistance");
     int supportZDistance = object->getSettingInt("supportZDistance");
@@ -212,6 +217,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportZDistanceTop = object->getSettingInt("supportZDistanceTop");
     int supportJoinDistance = object->getSettingInt("supportJoinDistance");
     float backSupportBridge = static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0;
+    int supportBottomStairDistance = object->getSettingInt("supportBottomStairDistance");
         
     int layerThickness = object->getSettingInt("layerThickness");
     
@@ -221,10 +227,6 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     storage.support.ZDistance = supportZDistance;
     storage.support.areaSupport = true;
     
-    
-    storage.support.generated = false;
-    if (supportAngle < 0)
-        return;
     
     
     
@@ -319,7 +321,9 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         // move up from model
         if (layerZdistanceBottom > 0 && l >= layerZdistanceBottom)
         {
-            supportLayer_this = supportLayer_this.difference(joinedLayers[l-layerZdistanceBottom]);
+            int stepHeight = supportBottomStairDistance / supportLayerThickness + 1;
+            int bottomLayer = ((l - layerZdistanceBottom) / stepHeight) * stepHeight;
+            supportLayer_this = supportLayer_this.difference(joinedLayers[bottomLayer]);
         }
         
         storage.support.supportAreasPerLayer[l] = supportLayer_this;
@@ -348,5 +352,153 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     storage.support.generated = true;
 }
 
+
+
+/*!
+ * adapted from generateLineInfill(.)
+ * 
+ * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
+ * idea:
+ * intersect a regular grid of 'scanlines' with the area inside [in_outline]
+ * sigzag:
+ * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
+ * 
+ * we call the areas between two consecutive scanlines a 'scansegment'
+ * 
+ * algorithm:
+ * 1) for each line segment of each polygon:
+ *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
+ *      (zigzag): add boundary segments to result
+ * 2) for each scanline:
+ *      sort the associated intersections 
+ *      and connect them using the even-odd rule
+ * 
+ * zigzag algorithm:
+ * while walking around (each) polygon
+ *  if polygon intersects with even scanline
+ *      start boundary segment (add each following segment to the [result])
+ *  when polygon intersects with a scanline again
+ *      stop boundary segment (stop adding segments to the [result])
+ *      if polygon intersects with even scanline again (instead of odd)
+ *          dont add the last line segment to the boundary
+ */
+void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
+{
+    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+    PointMatrix matrix(rotation);
+    
+    outline.applyMatrix(matrix);
+    
+    auto addLine = [&](Point from, Point to)
+    {            
+        PolygonRef p = result.newPoly();
+        p.add(matrix.unapply(from));
+        p.add(matrix.unapply(to));
+    };   
+        
+    AABB boundary(outline);
+    
+    int scanline_min_idx = boundary.min.X / lineSpacing;
+    int lineCount = (boundary.max.X + (lineSpacing - 1)) / lineSpacing - scanline_min_idx;
+    
+    std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
+    
+    for(int n=0; n<lineCount; n++)
+        cutList.push_back(std::vector<int64_t>());
+    for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
+    {
+        std::vector<Point> firstBoundarySegment;
+        
+        bool isFirstBoundarySegment = true;
+        bool firstBoundarySegmentEndsInEven;
+        
+        bool isEvenScanSegment = false; 
+        
+        
+        Point p0 = outline[polyNr][outline[polyNr].size()-1];
+        Point lastPoint = p0;
+        firstBoundarySegment.push_back(p0);
+        for(unsigned int i=0; i < outline[polyNr].size(); i++)
+        {
+            Point p1 = outline[polyNr][i];
+            int64_t xMin = p1.X, xMax = p0.X;
+            if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
+            
+            int scanline_idx0 = (p0.X + 1) / lineSpacing; 
+            int scanline_idx1 = p1.X / lineSpacing; 
+            int direction = 1;
+            if (p0.X > p1.X) 
+            { 
+                direction = -1; 
+                int scanline_idx0 = p0.X / lineSpacing; 
+                int scanline_idx1 = (p1.X + 1) / lineSpacing; 
+                
+            }
+            
+            if (isFirstBoundarySegment) firstBoundarySegment.push_back(p1);
+            for(int scanline_idx = scanline_idx0; scanline_idx!=scanline_idx1+direction; scanline_idx+=direction)
+            {
+                int x = scanline_idx * lineSpacing;
+                if (x < xMin) continue;
+                if (x >= xMax) continue;
+                int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
+                cutList[scanline_idx - scanline_min_idx].push_back(y);
+                
+                
+                bool last_isEvenScanSegment = isEvenScanSegment;
+                if (scanline_idx % 2 == 0) isEvenScanSegment = true;
+                else isEvenScanSegment = false;
+                
+                if (last_isEvenScanSegment && !isEvenScanSegment)
+                    addLine(lastPoint, Point(x,y));
+                lastPoint = Point(x,y);
+                
+                if (isFirstBoundarySegment) 
+                {
+                    firstBoundarySegment.push_back(lastPoint);
+                    isFirstBoundarySegment = false;
+                    firstBoundarySegmentEndsInEven = isEvenScanSegment;
+                }
+                
+            }
+            if (isEvenScanSegment)
+                addLine(lastPoint, p1);
+            lastPoint = p1;
+            p0 = p1;
+        }
+        
+        if (isEvenScanSegment)
+        {
+            for (int i = 1; i < firstBoundarySegment.size(); i++)
+            {
+                if (i < firstBoundarySegment.size() - 1 | !firstBoundarySegmentEndsInEven)
+                    addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+            }   
+        }
+        else if (firstBoundarySegmentEndsInEven)
+            addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[ firstBoundarySegment.size()-1]);
+    } 
+    
+    auto compare_int64_t = [](const void* a, const void* b)
+    {
+        int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
+        if (n < 0) return -1;
+        if (n > 0) return 1;
+        return 0;
+    };
+    
+    int scanline_idx = 0;
+    for(int64_t x = scanline_min_idx * lineSpacing; x < boundary.max.X; x += lineSpacing)
+    {
+        qsort(cutList[scanline_idx].data(), cutList[scanline_idx].size(), sizeof(int64_t), compare_int64_t);
+        for(unsigned int i = 0; i + 1 < cutList[scanline_idx].size(); i+=2)
+        {
+            if (cutList[scanline_idx][i+1] - cutList[scanline_idx][i] < extrusionWidth / 5)
+                continue;
+            addLine(Point(x, cutList[scanline_idx][i]), Point(x, cutList[scanline_idx][i+1]));
+        }
+        scanline_idx += 1;
+    }
+}
 
 }//namespace cura

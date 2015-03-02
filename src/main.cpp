@@ -146,6 +146,7 @@ int main(int argc, char **argv)
     processor.setSetting("supportZDistanceTop", "100");
     processor.setSetting("supportJoinDistance", "1000"); // distance between support blocks which will get merged 
     processor.setSetting("supportBridgeBack", "100"); // percentage of bridge between layer and overhang which should be supported
+    processor.setSetting("supportBottomStairDistance", "100"); // height of the steps with which the lines support rests on the model
     
     
     

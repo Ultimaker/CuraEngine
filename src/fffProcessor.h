@@ -874,13 +874,22 @@ private:
                     }else{
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
                     }
+                }else if (getSetting("supportType") == "ZIGZAG")
+                {
+                    if (layer_nr == 0)
+                    {
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
+                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
+                    }else{
+                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
+                    }
                 }
             }
 
             gcodeLayer.forceRetract();
             if (getSettingInt("enableCombing"))
                 gcodeLayer.setCombBoundary(&island);
-            if (getSetting("supportType") == "GRID")
+            if (getSetting("supportType") == "GRID" || ( getSetting("supportType") == "ZIGZAG" && layer_nr == 0 ) )
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
             gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
