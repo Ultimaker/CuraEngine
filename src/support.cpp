@@ -172,7 +172,10 @@ SupportPolyGenerator::SupportPolyGenerator(SupportStorage& storage, int32_t z, i
     }
     if (storage.areaSupport)
     {
-        polygons = storage.supportAreasPerLayer[(layer_nr + storage.support_layer_distance -1) / storage.support_layer_distance];
+        int support_layer = (layer_nr + storage.support_layer_distance -1) / storage.support_layer_distance;
+        if (support_layer >= storage.supportAreasPerLayer.size()) 
+            support_layer = storage.supportAreasPerLayer.size() + 1;
+        polygons = storage.supportAreasPerLayer[support_layer];
     } else
     {
         cosAngle = cos(double(90 - storage.angle) / 180.0 * M_PI) - 0.01;
