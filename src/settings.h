@@ -123,10 +123,14 @@ public:
     SettingsBase(SettingsBase* parent);
     
     void copySettings(SettingsBase& other);
+    
+    bool hasSetting(std::string key);
 
     void setSetting(std::string key, std::string value);
     int getSettingInt(std::string key);
     std::string getSetting(std::string key);
+    
+    void setDefaultSettings();
 };
 
 #endif//SETTINGS_H

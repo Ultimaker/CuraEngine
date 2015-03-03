@@ -372,10 +372,14 @@ private:
 
         if (fileNr == 1)
         {
+            
             for(SliceMeshStorage& mesh : storage.meshes)
-                gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"));
+                if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
+                    gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"));
             for(SliceMeshStorage& mesh : storage.meshes)
-                gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
+                if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
+                    gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
+            
 
             gcode.writeCode(getSetting("startCode").c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
