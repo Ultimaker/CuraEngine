@@ -1,6 +1,7 @@
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
+#include <sstream> // ostringstream
 #include "utils/logoutput.h"
 
 #include "settings.h"
@@ -16,7 +17,10 @@ SettingsBase::SettingsBase(SettingsBase* parent)
 
 void SettingsBase::setSetting(std::string key, std::string value)
 {
-    settings[key] = value;
+    if (SettingsBase::settingRegistry.settingExists(key))
+        settings[key] = value;
+    else
+        cura::logError("Ignoring unknown setting %s\n", key.c_str() );
 }
 
 int SettingsBase::getSettingInt(std::string key)
@@ -34,7 +38,10 @@ std::string SettingsBase::getSetting(std::string key)
     if (parent)
         return parent->getSetting(key);
     
-    cura::logError("Failed to find settings %s\n", key.c_str());
+    if (SettingsBase::settingRegistry.settingExists(key))
+        cura::logError("Failed to find setting %s\n", key.c_str());
+    else 
+        cura::logError("Unknown setting %s\n", key.c_str());
     settings[key] = "";
     return "";
 }
@@ -56,10 +63,149 @@ bool SettingsBase::hasSetting(std::string key)
     return false;
 }
 
+const SettingRegistry SettingsBase::settingRegistry; // define settingRegistry
+
+bool SettingRegistry::settingExists(std::string setting) const
+{
+    return knownSettings.find(setting) != knownSettings.end();
+}
+
+void SettingRegistry::registerSetting(std::string setting)
+{
+    knownSettings.insert(setting);
+}
+
+SettingRegistry::SettingRegistry()
+{
+    registerSetting("simpleMode");
+    registerSetting("spiralizeMode");
+    registerSetting("enableOozeShield");
+    registerSetting("autoCenter");
+    
+    registerSetting("initialSpeedupLayers");
+    registerSetting("minimalFeedrate");
+    registerSetting("preSwitchExtruderCode");
+    registerSetting("insetXSpeed");
+    registerSetting("retractionZHop");
+    registerSetting("extruderOffset[3].X");
+    registerSetting("extruderOffset[3].Y");
+    registerSetting("gcodeFlavor");
+    registerSetting("postSwitchExtruderCode");
+    registerSetting("retractionSpeed");
+    registerSetting("filamentFlow");
+    registerSetting("infillOverlap");
+    registerSetting("inset0Speed");
+    registerSetting("coolHeadLift");
+    registerSetting("extrusionWidth");
+    registerSetting("upSkinCount");
+    registerSetting("initialLayerSpeed");
+    registerSetting("minimalLayerTime");
+    registerSetting("infillSpeed");
+    registerSetting("fanSpeedMax");
+    registerSetting("enableCombing");
+    registerSetting("fanSpeedMin");
+    
+    registerSetting("raftAirGapLayer0");
+    registerSetting("raftBaseThickness");
+    registerSetting("raftBaseLinewidth");
+    registerSetting("raftBaseSpeed");
+    registerSetting("raftInterfaceThickness");
+    registerSetting("raftInterfaceLinewidth");
+    registerSetting("raftInterfaceLineSpacing");
+    registerSetting("raftInterfaceSpeed");
+    registerSetting("raftLineSpacing");
+    registerSetting("raftFanSpeed");
+    registerSetting("raftSurfaceLinewidth");
+    registerSetting("raftSurfaceLineSpacing");
+    registerSetting("raftSurfaceSpeed");
+    registerSetting("raftSurfaceLayers");
+    registerSetting("raftSurfaceThickness");
+    registerSetting("raftMargin");
+    registerSetting("raftAirGap");
+    
+    registerSetting("supportXYDistance");
+    registerSetting("supportExtruder");
+    registerSetting("supportType");
+    registerSetting("supportZDistance");
+    registerSetting("supportEverywhere");
+    registerSetting("supportAngle");
+    registerSetting("supportZDistanceBottom");
+    registerSetting("supportZDistanceTop");
+    registerSetting("supportJoinDistance");
+    registerSetting("supportBridgeBack");
+    registerSetting("supportSpeed");
+    registerSetting("supportSkipLayers");
+    registerSetting("areaSupportPolyGenerator");
+    
+    registerSetting("filamentDiameter");
+    registerSetting("fanFullOnLayerNr");
+    registerSetting("extruderOffset[1].X");
+    registerSetting("extruderOffset[1].Y");
+    registerSetting("layerThickness");
+    registerSetting("initialLayerThickness");
+    registerSetting("endCode");
+    registerSetting("skirtLineCount");
+    registerSetting("supportBottomStairDistance");
+    registerSetting("minimalExtrusionBeforeRetraction");
+    registerSetting("retractionMinimalDistance");
+    registerSetting("skirtMinLength");
+    registerSetting("objectSink");
+    registerSetting("retractionAmount");
+    registerSetting("skinSpeed");
+    registerSetting("skirtLineCount");
+    registerSetting("startCode");
+    registerSetting("skirtDistance");
+    registerSetting("extruderOffset[2].Y");
+    registerSetting("extruderOffset[2].X");
+    registerSetting("printSpeed");
+    registerSetting("fixHorrible");
+    registerSetting("layer0extrusionWidth");
+    registerSetting("moveSpeed");
+    registerSetting("supportLineDistance");
+    registerSetting("retractionAmountExtruderSwitch");
+    registerSetting("sparseInfillLineDistance");
+    registerSetting("insetCount");
+    registerSetting("downSkinCount");
+    registerSetting("multiVolumeOverlap");
+    registerSetting("position.X");
+    registerSetting("position.Y");
+    registerSetting("position.Z");
+    registerSetting("retractionPrimeAmount");
+    registerSetting("retractionPrimeSpeed");
+    registerSetting("skirtSpeed");
+    registerSetting("extruderNr");
+    registerSetting("sparseInfillCombineCount");
+    registerSetting("retractionExtruderSwitchPrimeSpeed");
+    registerSetting("retractionExtruderSwitchSpeed");
+    registerSetting("infillPattern");
+    registerSetting("skinPattern");
+    registerSetting("wipeTowerSize");
+    
+    
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+    {
+        std::ostringstream stream;
+        stream << "extruderOffset" << n;
+        registerSetting(stream.str() + ".X");
+        registerSetting(stream.str() + ".Y");
+    }
+}
+
 
 void SettingsBase::setDefaultSettings()
 {
-
+//     setSetting("simpleMode", "0");
+//     setSetting("spiralizeMode", "0");
+//     setSetting("enableOozeShield", "0");
+//     setSetting("wipeTowerSize", "0");
+//     setSetting("extruderNr", "0");
+//     
+//     
+    
+//     setSetting("", "");
+//     setSetting("", "");
+//     setSetting("", "");
+/*
     setSetting("layerThickness", "150");
     setSetting("initialLayerThickness", "300");
     setSetting("filamentDiameter", "2890");
@@ -190,4 +336,5 @@ void SettingsBase::setDefaultSettings()
         "G90                         ;absolute positioning\n");
     setSetting("postSwitchExtruderCode", "");
     setSetting("preSwitchExtruderCode", "");
+    */
 }

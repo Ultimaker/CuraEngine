@@ -113,9 +113,20 @@ enum Infill_Pattern
     INFILL_CONCENTRIC = 2,
 };
 
+class SettingRegistry
+{
+private:
+    std::set<std::string> knownSettings;
+    void registerSetting(std::string setting);
+public:
+    SettingRegistry();
+    bool settingExists(std::string setting) const;
+};
+
 class SettingsBase
 {
 private:
+    static const SettingRegistry settingRegistry;
     std::map<std::string, std::string> settings;
     SettingsBase* parent;
 public:
@@ -132,5 +143,6 @@ public:
     
     void setDefaultSettings();
 };
+
 
 #endif//SETTINGS_H

@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             files.push_back(argv[argn]);
         }
     }
-
+    
     if(commandSocket)
     {
         commandSocket->connect(ip, port);
