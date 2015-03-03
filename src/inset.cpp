@@ -4,7 +4,7 @@
 
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int offset, int insetCount)
+void generateInsets(SliceLayerPart* part, int offset, int insetCount, int shrink)
 {
     part->combBoundery = part->outline.offset(-offset);
     if (insetCount == 0)
@@ -16,7 +16,7 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        part->insets[i] = part->outline.offset(-offset * i - offset/2);
+        part->insets[i] = part->outline.offset(-offset * i - offset/2 - shrink);
         optimizePolygons(part->insets[i]);
         if (part->insets[i].size() < 1)
         {
@@ -26,11 +26,11 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     }
 }
 
-void generateInsets(SliceLayer* layer, int offset, int insetCount)
+void generateInsets(SliceLayer* layer, int offset, int insetCount, int shrink)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], offset, insetCount);
+        generateInsets(&layer->parts[partNr], offset, insetCount, shrink);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
