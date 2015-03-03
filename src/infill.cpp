@@ -85,14 +85,15 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
             int64_t xMin = p1.X, xMax = p0.X;
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
-            int scanline_idx0 = (p0.X + ((p0.X > 0)? 1 : 0)) / lineSpacing; 
-            int scanline_idx1 = (p1.X + ((p1.X < 0)? 1 : 0))/ lineSpacing; 
+            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : 0)) / lineSpacing; 
+            int scanline_idx1 = (p1.X + ((p1.X < 0)? -1 : 0))/ lineSpacing; 
             int direction = 1;
             if (p0.X > p1.X) 
             { 
                 direction = -1; 
-                int scanline_idx0 = (p0.X + ((p0.X < 0)? 1 : 0)) / lineSpacing; 
-                int scanline_idx1 = (p1.X + ((p1.X > 0)? 1 : 0))/ lineSpacing; 
+                int scanline_idx0 = (p0.X + ((p0.X < 0)? 0 : 1)) / lineSpacing; 
+                int scanline_idx1 = (p1.X + ((p1.X > 0)? 0 : 1))/ lineSpacing; 
+//                delete this? /\  .
             }
             
             for(int scanline_idx = scanline_idx0; scanline_idx!=scanline_idx1+direction; scanline_idx+=direction)
