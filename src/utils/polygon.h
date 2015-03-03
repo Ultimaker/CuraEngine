@@ -235,7 +235,7 @@ class Polygons
 private:
     ClipperLib::Paths polygons;
 public:
-    unsigned int size()
+    unsigned int size() const
     {
         return polygons.size();
     }
