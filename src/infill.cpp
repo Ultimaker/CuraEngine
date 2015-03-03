@@ -46,7 +46,10 @@ void generateGridInfill(const Polygons& in_outline, Polygons& result,
  */
 void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
 {
+    if (in_outline.size() == 0) return;
     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+    if (outline.size() == 0) return;
+    
     PointMatrix matrix(rotation);
     
     outline.applyMatrix(matrix);
@@ -66,16 +69,16 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     };
     
     
-    
     AABB boundary(outline);
     
     int scanline_min_idx = boundary.min.X / lineSpacing;
     int lineCount = (boundary.max.X + (lineSpacing - 1)) / lineSpacing - scanline_min_idx;
-    
+  
     std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
     
     for(int n=0; n<lineCount; n++)
         cutList.push_back(std::vector<int64_t>());
+    
     for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
     {
         Point p0 = outline[polyNr][outline[polyNr].size()-1];
