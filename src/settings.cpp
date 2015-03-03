@@ -44,6 +44,7 @@ ConfigSettings::ConfigSettings()
     SETTING(infillSpeed, 50);
     SETTING(infillPattern, INFILL_AUTOMATIC);
     SETTING(skinSpeed, 50);
+    SETTING(perimeterBeforeInfill, 0);
 
     SETTING(supportType, SUPPORT_TYPE_GRID);
     SETTING(supportAngle, -1);
