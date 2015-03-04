@@ -19,6 +19,7 @@ GCodeExport::GCodeExport()
     minimalExtrusionBeforeRetraction = 0.0;
     extrusionAmountAtPreviousRetraction = -10000;
     extruderSwitchRetraction = 14.5;
+    retractionWipe = 0;
     extruderNr = 0;
     currentFanSpeed = -1;
     
@@ -109,7 +110,7 @@ void GCodeExport::setExtrusion(int layerThickness, int filamentDiameter, int flo
         extrusionPerMM = INT2MM(layerThickness) / filamentArea * double(flow) / 100.0;
 }
 
-void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime)
+void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime, int retractionWipe)
 {
     this->retractionAmount = INT2MM(retractionAmount);
     this->retractionAmountPrime = INT2MM(retractionAmountPrime);
@@ -117,6 +118,7 @@ void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpee
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
     this->retractionZHop = zHop;
+    this->retractionWipe = retractionWipe;
 }
 
 void GCodeExport::setZ(int z)
@@ -293,7 +295,15 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
             fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusionAmount);
         fprintf(f, "\n");
     }
-    
+
+    //If wipe enabled remember path, but stop at 100 moves to keep memory usage low
+    if (retractionWipe > 0)
+    {
+        retractionWipePath.push_back(p);
+        if (retractionWipePath.size() > 100)
+            retractionWipePath.erase(retractionWipePath.begin());
+    }
+
     currentPosition = Point3(p.X, p.Y, zPos);
     startPosition = currentPosition;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount), speed);
@@ -301,6 +311,7 @@ void GCodeExport::writeMove(Point p, int speed, int lineWidth)
 
 void GCodeExport::writeRetraction(bool force)
 {
+    int initialSpeed = currentSpeed;
     if (flavor == GCODE_FLAVOR_BFB)//BitsFromBytes does automatic retraction.
         return;
     
@@ -313,6 +324,47 @@ void GCodeExport::writeRetraction(bool force)
             fprintf(f, "G1 F%i %c%0.5f\n", retractionSpeed * 60, extruderCharacter[extruderNr], extrusionAmount - retractionAmount);
             currentSpeed = retractionSpeed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
+        }
+        //This wipes the extruder back along the previous path after retracting.
+        if (retractionWipe > 0 && retractionWipePath.size() >= 2)
+        {
+            Point lastP = retractionWipePath.back();
+            int direction = -1;
+            unsigned int i = retractionWipePath.size() - 2;
+            int wipeLeft = retractionWipe;
+
+            while(wipeLeft)
+            {
+                Point p = retractionWipePath[i];
+                int len = vSize(lastP - p);
+
+                //Check if we're out of moves
+                if (direction > 0 && i == retractionWipePath.size() - 1)
+                    break;
+                //Reverse direction (once) to get wipe length if required.
+                else if (direction < 0 && i == 0)
+                    direction = 1;
+                i += direction;
+
+                //If move is longer than wipe remaining, calculate angle and move along path but stop short.
+                if (len > wipeLeft)
+                {
+                    PointMatrix matrix = PointMatrix(angle(p - lastP));
+                    p = lastP + matrix.unapply(Point(0, wipeLeft));
+                    len = wipeLeft;
+                }
+                wipeLeft -= len;
+                lastP = p;
+                fprintf(f, "G0 ");
+                if (currentSpeed != initialSpeed)
+                {
+                    currentSpeed = initialSpeed;
+                    fprintf(f,"F%i ", currentSpeed * 60);
+                }
+                fprintf(f,"X%0.3f Y%0.3f\n", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(p.X), INT2MM(p.Y), INT2MM(currentPosition.z), extrusionAmount - retractionAmount), currentSpeed);
+            }
+            retractionWipePath.clear();
         }
         if (retractionZHop > 0)
             fprintf(f, "G1 Z%0.3f\n", INT2MM(currentPosition.z + retractionZHop));
