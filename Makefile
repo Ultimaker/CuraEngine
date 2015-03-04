@@ -6,34 +6,44 @@ BUILD_DIR = build
 SRC_DIR = src
 LIBS_DIR = libs
 
-BUILD_TYPE = RELEASE
+BUILD_TYPE = WEB
 
-VERSION ?= DEV
-CXX ?= g++
+VERSION ?= DEV_$(BUILD_TYPE)
 CFLAGS += -c -Wall -Wextra -Wold-style-cast -Woverloaded-virtual -std=c++11 -DVERSION=\"$(VERSION)\" -isystem libs
 
 ifeq ($(BUILD_TYPE),DEBUG)
 	CFLAGS+=-ggdb -Og -g
-endif
-ifeq ($(BUILD_TYPE),PROFILE)
+else ifeq ($(BUILD_TYPE),PROFILE)
 	CFLAGS+= -pg
-endif
-ifeq ($(BUILD_TYPE),RELEASE)
+else ifeq ($(BUILD_TYPE),RELEASE)
 	CFLAGS+= -O3 -fomit-frame-pointer
+else ifeq ($(BUILD_TYPE),WEB)
+	CFLAGS+= -O3 --llvm-lto 3 -s NO_EXIT_RUNTIME=1 --memory-init-file 0 -s INVOKE_RUN=0 -s FORCE_ALIGNED_MEMORY=1 -s AGGRESSIVE_VARIABLE_ELIMINATION=1
+	#-s ALLOW_MEMORY_GROWTH=1
+	#TODO: Enable memory init file
+	#TODO: ENable closure compiler
 endif
-
-LDFLAGS += -Lbuild/ -lclipper
 
 SOURCES_RAW = bridge.cpp comb.cpp gcodeExport.cpp infill.cpp inset.cpp layerPart.cpp main.cpp optimizedModel.cpp pathOrderOptimizer.cpp polygonOptimizer.cpp raft.cpp settings.cpp skin.cpp skirt.cpp slicer.cpp support.cpp timeEstimate.cpp
 SOURCES_RAW += modelFile/modelFile.cpp utils/gettime.cpp utils/logoutput.cpp utils/socket.cpp
+
+ifeq ($(BUILD_TYPE), WEB)
+	CXX = $(EMSCRIPTEN)/emcc
+	SOURCES_RAW += ../$(LIBS_DIR)/clipper/clipper.cpp
+	EXECUTABLE = $(BUILD_DIR)/CuraEngine.html
+	LDFLAGS += -O3 --llvm-lto 3 --memory-init-file 0
+else
+	CXX = g++
+	LDFLAGS += -Lbuild/ -lclipper
+	EXECUTABLE = $(BUILD_DIR)/CuraEngine
+endif
+
 SOURCES = $(addprefix $(SRC_DIR)/,$(SOURCES_RAW))
 
 OBJECTS_RAW = $(SOURCES_RAW:.cpp=.o)
 OBJECTS = $(addprefix $(BUILD_DIR)/,$(OBJECTS_RAW))
 
 DIRS = $(sort $(dir $(OBJECTS)))
-
-EXECUTABLE = $(BUILD_DIR)/CuraEngine
 
 ifeq ($(OS),Windows_NT)
 	#For windows make it large address aware, which allows the process to use more then 2GB of memory.
@@ -64,7 +74,15 @@ else
 	endif
 endif
 
-all: $(DIRS) $(SOURCES) $(EXECUTABLE)
+all: check-env $(DIRS) $(SOURCES) $(EXECUTABLE)
+
+check-env:
+ifndef EMSCRIPTEN
+	ifeq ($(BUILD_TYPE, WEB)
+		$(error EMSCRIPTEN is not set)
+	endif
+endif
+
 
 $(BUILD_DIR)/libclipper.a: $(LIBS_DIR)/clipper/clipper.cpp
 	$(CXX) $(CFLAGS) -o $(BUILD_DIR)/libclipper.a $(LIBS_DIR)/clipper/clipper.cpp
