@@ -137,6 +137,10 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportSkipLayers");
     registerSetting("areaSupportPolyGenerator");
     
+    registerSetting("avoidOverlappingPerimeters");
+    
+    
+    
     registerSetting("filamentDiameter");
     registerSetting("fanFullOnLayerNr");
     registerSetting("extruderOffset[1].X");

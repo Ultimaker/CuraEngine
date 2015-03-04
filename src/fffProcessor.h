@@ -261,7 +261,7 @@ private:
                 int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                 if (layer_nr == 0)
                     extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
-                generateInsets(layer, extrusionWidth, insetCount);
+                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingInt("avoidOverlappingPerimeters") > 0);
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {

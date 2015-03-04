@@ -4,9 +4,9 @@
 
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int offset, int insetCount)
+void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {
-    part->combBoundery = part->outline.offset(-offset);
+    part->combBoundery = part->outline.offset(-extrusionWidth);
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);
@@ -16,7 +16,11 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        part->insets[i] = part->outline.offset(-offset * i - offset/2);
+        if (avoidOverlappingPerimeters)
+            part->insets[i] = part->outline.offset(-extrusionWidth * (i+1)).offset(extrusionWidth/2);
+        else
+            part->insets[i] = part->outline.offset(-extrusionWidth * i - extrusionWidth/2);
+            
         optimizePolygons(part->insets[i]);
         if (part->insets[i].size() < 1)
         {
@@ -26,11 +30,11 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     }
 }
 
-void generateInsets(SliceLayer* layer, int offset, int insetCount)
+void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], offset, insetCount);
+        generateInsets(&layer->parts[partNr], extrusionWidth, insetCount, avoidOverlappingPerimeters);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
