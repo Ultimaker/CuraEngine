@@ -383,8 +383,12 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
  *          dont add the last line segment to the boundary
  */
 void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
-{
-    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+{    
+//     if (in_outline.size() == 0) return;
+//     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
+    Polygons outline = in_outline; // .offset(extrusionWidth * infillOverlap / 100);
+    if (outline.size() == 0) return;
+    
     PointMatrix matrix(rotation);
     
     outline.applyMatrix(matrix);
@@ -421,24 +425,23 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
+            if (xMin == xMax) continue; 
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
-            int scanline_idx0 = (p0.X + 1) / lineSpacing; 
-            int scanline_idx1 = p1.X / lineSpacing; 
+            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
+            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
             int direction = 1;
             if (p0.X > p1.X) 
             { 
                 direction = -1; 
-                int scanline_idx0 = p0.X / lineSpacing; 
-                int scanline_idx1 = (p1.X + 1) / lineSpacing; 
-            }
+                scanline_idx1 += 1; // only consider the scanlines in between the scansegments
+            } else scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            
             
             if (isFirstBoundarySegment) firstBoundarySegment.push_back(p0);
-            for(int scanline_idx = scanline_idx0; scanline_idx!=scanline_idx1+direction; scanline_idx+=direction)
+            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
             {
                 int x = scanline_idx * lineSpacing;
-                if (x < xMin) continue;
-                if (x >= xMax) continue;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
                 cutList[scanline_idx - scanline_min_idx].push_back(y);
                 
@@ -465,7 +468,7 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
             p0 = p1;
         }
         
-        if (isEvenScanSegment)
+        if (isEvenScanSegment || isFirstBoundarySegment)
         {
             for (int i = 1; i < firstBoundarySegment.size() ; i++)
             {

@@ -33,7 +33,8 @@ void generateGridInfill(const Polygons& in_outline, Polygons& result,
  * idea:
  * intersect a regular grid of 'scanlines' with the area inside [in_outline]
  * 
- * we call the areas between two consecutive scanlines a 'scansegment'
+ * we call the areas between two consecutive scanlines a 'scansegment'.
+ * Scansegment x is the area between scanline x and scanline x+1
  * 
  * algorithm:
  * 1) for each line segment of each polygon:
@@ -86,24 +87,21 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
+            if (xMin == xMax) continue; 
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
-            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : 0)) / lineSpacing; 
-            int scanline_idx1 = (p1.X + ((p1.X < 0)? -1 : 0))/ lineSpacing; 
+            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
+            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
             int direction = 1;
             if (p0.X > p1.X) 
             { 
                 direction = -1; 
-                int scanline_idx0 = (p0.X + ((p0.X < 0)? 0 : 1)) / lineSpacing; 
-                int scanline_idx1 = (p1.X + ((p1.X > 0)? 0 : 1))/ lineSpacing; 
-//                delete this? /\  .
-            }
+                scanline_idx1 += 1; // only consider the scanlines in between the scansegments
+            } else scanline_idx0 += 1; // only consider the scanlines in between the scansegments
             
-            for(int scanline_idx = scanline_idx0; scanline_idx!=scanline_idx1+direction; scanline_idx+=direction)
+            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
             {
                 int x = scanline_idx * lineSpacing;
-                if (x < xMin) continue;
-                if (x >= xMax) continue;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
                 cutList[scanline_idx - scanline_min_idx].push_back(y);
             }
