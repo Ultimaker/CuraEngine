@@ -132,7 +132,7 @@ private:
 public:
     SettingsBase();
     SettingsBase(SettingsBase* parent);
-    
+
     void copySettings(SettingsBase& other);
     
     bool hasSetting(std::string key);

@@ -81,16 +81,15 @@ SettingRegistry::SettingRegistry()
     registerSetting("spiralizeMode");
     registerSetting("enableOozeShield");
     registerSetting("autoCenter");
+    registerSetting("fixHorrible");
     
     registerSetting("initialSpeedupLayers");
     registerSetting("minimalFeedrate");
-    registerSetting("preSwitchExtruderCode");
     registerSetting("insetXSpeed");
     registerSetting("retractionZHop");
     registerSetting("extruderOffset[3].X");
     registerSetting("extruderOffset[3].Y");
     registerSetting("gcodeFlavor");
-    registerSetting("postSwitchExtruderCode");
     registerSetting("retractionSpeed");
     registerSetting("filamentFlow");
     registerSetting("infillOverlap");
@@ -131,16 +130,20 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportAngle");
     registerSetting("supportZDistanceBottom");
     registerSetting("supportZDistanceTop");
+    registerSetting("supportSpeed");
+    
+    registerSetting("areaSupportPolyGenerator");
     registerSetting("supportJoinDistance");
     registerSetting("supportBridgeBack");
-    registerSetting("supportSpeed");
-    registerSetting("supportSkipLayers");
-    registerSetting("areaSupportPolyGenerator");
+    registerSetting("supportAreaSmoothing");
+    registerSetting("supportConnectZigZags");
     
     registerSetting("avoidOverlappingPerimeters");
     
     
     
+    registerSetting("preSwitchExtruderCode");
+    registerSetting("postSwitchExtruderCode");
     registerSetting("filamentDiameter");
     registerSetting("fanFullOnLayerNr");
     registerSetting("extruderOffset[1].X");
@@ -153,18 +156,15 @@ SettingRegistry::SettingRegistry()
     registerSetting("minimalExtrusionBeforeRetraction");
     registerSetting("retractionMinimalDistance");
     registerSetting("skirtMinLength");
-    registerSetting("objectSink");
     registerSetting("retractionAmount");
-    registerSetting("skinSpeed");
     registerSetting("skirtLineCount");
     registerSetting("startCode");
     registerSetting("skirtDistance");
     registerSetting("extruderOffset[2].Y");
     registerSetting("extruderOffset[2].X");
-    registerSetting("printSpeed");
-    registerSetting("fixHorrible");
     registerSetting("layer0extrusionWidth");
     registerSetting("moveSpeed");
+    registerSetting("skinSpeed");
     registerSetting("supportLineDistance");
     registerSetting("retractionAmountExtruderSwitch");
     registerSetting("sparseInfillLineDistance");
@@ -230,7 +230,6 @@ void SettingsBase::setDefaultSettings()
     setSetting("inset0Speed", "50");
     setSetting("insetXSpeed", "50");
     setSetting("skinSpeed", "50");
-    setSetting("supportSpeed", "50");
     setSetting("moveSpeed", "150");
     setSetting("fanFullOnLayerNr", "2");
 
@@ -279,7 +278,6 @@ void SettingsBase::setDefaultSettings()
     setSetting("position.X", "115000"); // UM2
     setSetting("position.Y", "112500");
     setSetting("position.Z", "0");
-    setSetting("objectSink", "0");
     setSetting("autoCenter", "1");
     setSetting("extruderNr", "0");
 
@@ -307,7 +305,6 @@ void SettingsBase::setDefaultSettings()
     setSetting("fanSpeedMin", "100");
     setSetting("fanSpeedMax", "100");
 
-    setSetting("fixHorrible", "0");
     setSetting("spiralizeMode", "0");
     setSetting("simpleMode", "0");
     setSetting("gcodeFlavor", "GCODE_FLAVOR_REPRAP");

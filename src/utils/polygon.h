@@ -308,6 +308,28 @@ public:
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
+    Polygons smooth(int remove_length) //!< removes points connected to small lines
+    {
+        Polygons ret;
+        for (unsigned int p = 0; p < size(); p++)
+        {
+            PolygonRef poly(polygons[p]);
+            ClipperLib::Path* new_poly = new ClipperLib::Path;
+            if (poly.size() > 0)
+                new_poly->push_back(poly[0]);
+            for (int l = 1; l < poly.size(); l++)
+            {
+                if (shorterThen(poly[l-1]-poly[l], remove_length))
+                {
+                    l++; // skip the next line piece (dont escalate the removal of edges)
+                    if (l < poly.size())
+                        new_poly->push_back(poly[l]);
+                } else new_poly->push_back(poly[l]);
+            }
+            ret.add(PolygonRef(*new_poly));
+        }
+        return ret;
+    }
     std::vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         std::vector<Polygons> ret;

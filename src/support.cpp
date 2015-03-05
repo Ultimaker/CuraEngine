@@ -218,8 +218,12 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportJoinDistance = object->getSettingInt("supportJoinDistance");
     float backSupportBridge = static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0;
     int supportBottomStairDistance = object->getSettingInt("supportBottomStairDistance");
+    int smoothing_distance = object->getSettingInt("supportAreaSmoothing"); 
+    
         
     int layerThickness = object->getSettingInt("layerThickness");
+    
+    
     
     storage.support.angle = supportAngle;
     storage.support.everywhere = supportEverywhere;
@@ -299,11 +303,14 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
             Polygons& supportLayer_up = supportLayer_last;
             
             Polygons joined = supportLayer_this.unionPolygons(supportLayer_up);
+            // join different parts
             if (supportJoinDistance > 0)
             {
                 joined = joined.offset(supportJoinDistance);
                 joined = joined.offset(-supportJoinDistance);
             }
+            if (smoothing_distance > 0)
+                joined = joined.smooth(smoothing_distance);
         
             // remove layer
             Polygons insetted = joined.difference(joinedLayers[l]);
@@ -382,7 +389,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
  *      if polygon intersects with even scanline again (instead of odd)
  *          dont add the last line segment to the boundary
  */
-void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
+void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation, bool connect_zigzags)
 {    
 //     if (in_outline.size() == 0) return;
 //     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100);
@@ -450,7 +457,7 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
                 if (scanline_idx % 2 == 0) isEvenScanSegment = true;
                 else isEvenScanSegment = false;
                 
-                if (last_isEvenScanSegment && !isEvenScanSegment && !isFirstBoundarySegment)
+                if (last_isEvenScanSegment && (connect_zigzags || !isEvenScanSegment) && !isFirstBoundarySegment)
                     addLine(lastPoint, Point(x,y));
                 lastPoint = Point(x,y);
                 
@@ -468,11 +475,11 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
             p0 = p1;
         }
         
-        if (isEvenScanSegment || isFirstBoundarySegment)
+        if (isEvenScanSegment || isFirstBoundarySegment || connect_zigzags)
         {
             for (int i = 1; i < firstBoundarySegment.size() ; i++)
             {
-                if (i < firstBoundarySegment.size() - 1 | !firstBoundarySegmentEndsInEven)
+                if (i < firstBoundarySegment.size() - 1 || !firstBoundarySegmentEndsInEven || connect_zigzags) // only add last element if connect_zigzags or boundary segment ends in uneven scanline
                     addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
             }   
         }

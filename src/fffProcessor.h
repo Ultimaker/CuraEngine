@@ -885,7 +885,7 @@ private:
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
                     }else{
-                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
+                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") == 1);
                     }
                 }
             }
