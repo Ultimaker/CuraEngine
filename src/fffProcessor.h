@@ -186,7 +186,7 @@ private:
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
-        if (object->getSettingInt("areaSupportPolyGenerator") == 0)
+        if (object->getSettingInt("areaSupportPolyGenerator") <= 0)
         {
             log("Generating support grid...\n");
             generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
@@ -885,7 +885,7 @@ private:
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
                     }else{
-                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") == 1);
+                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") >0);
                     }
                 }
             }
