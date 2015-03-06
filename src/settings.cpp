@@ -137,6 +137,9 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportBridgeBack");
     registerSetting("supportAreaSmoothing");
     registerSetting("supportConnectZigZags");
+    registerSetting("supportMinimalAreaSqrt");
+    registerSetting("supportTowerDiameter");
+    registerSetting("supportTowerRoofAngle");
     
     registerSetting("avoidOverlappingPerimeters");
     
