@@ -1,6 +1,9 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "support.h"
 
+#include <cmath> // sqrt
+#include <utility> // pair
+
 namespace cura {
 
 template<typename T> inline void swap(T& p0, T& p1)
@@ -220,8 +223,17 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportBottomStairDistance = object->getSettingInt("supportBottomStairDistance");
     int smoothing_distance = object->getSettingInt("supportAreaSmoothing"); 
     
+    int supportTowerDiameter = object->getSettingInt("supportTowerDiameter");
+    int supportMinAreaSqrt = object->getSettingInt("supportMinimalAreaSqrt");
+    int supportTowerRoofAngle = object->getSettingInt("supportTowerRoofAngle");
+    
+    //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
+    
+    int min_smoothing_area = 100*100;
+    int z_layer_distance_tower = 1;
         
     int layerThickness = object->getSettingInt("layerThickness");
+    int extrusionWidth = object->getSettingInt("extrusionWidth"); // TODO check for layer0extrusionWidth!
     
     
     
@@ -253,6 +265,9 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int support_layer_count = layer_count;
     
     
+    double tanTowerRoofAngle = tan(double(supportTowerRoofAngle) / 180.0 * M_PI);
+    int towerRoofExpansionDistance = layerThickness / tanTowerRoofAngle;
+    
     
     // computation
     
@@ -260,6 +275,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
     // join model layers into polygons
     std::vector<Polygons> joinedLayers;
+    std::vector<std::pair<int, std::vector<Polygons>>> overhang_points;
     for (int l = 0 ; l < layer_count ; l++)
     {
         joinedLayers.emplace_back();
@@ -267,7 +283,25 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         {
             SliceLayer& layer = mesh.layers[l];
             for (SliceLayerPart& part : layer.parts)
-                joinedLayers.back() = joinedLayers.back().unionPolygons(part.outline);
+            {
+                Polygons part_poly = part.outline.offset(-extrusionWidth/2);
+                
+                if (part.outline[0].area() < supportMinAreaSqrt * supportMinAreaSqrt) 
+                //    && part.outline[0].area() > extrusionWidth * extrusionWidth * 4) // compensate for outline offset 
+                {
+                    if (overhang_points.size() > 0 && overhang_points.back().first == l)
+                        overhang_points.back().second.push_back(part_poly);
+                    else 
+                    {
+                        std::vector<Polygons> small_part_polys;
+                        small_part_polys.push_back(part_poly);
+                        overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(l, small_part_polys));
+                    }
+                    
+                }
+                joinedLayers.back() = joinedLayers.back().unionPolygons(part_poly);
+                
+            }
         }
     }
         
@@ -279,10 +313,13 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     if (logStage) log("computing support");
     
     //auto roundToNearestDivisibleBy = [](int in, int divisor) { return in - in % divisor; };
-    
+    int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
+    std::vector<Polygons> towerRoofs;
     for (int l = support_layer_count - 1 - layerZdistanceTop; l >= 0 ; l--)
     {
+        
+        
         // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
         Polygons supportLayer_supportee =  joinedLayers[l+layerZdistanceTop];
         Polygons supportLayer_supported =  joinedLayers[l-1+layerZdistanceTop].offset(maxDistFromLowerLayer);
@@ -296,7 +333,43 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
         Polygons& supportLayer_this = overhang; 
         
-        
+        { // handle towers
+            // handle new tower roof tops
+            int layer_overhang_point =  l + z_layer_distance_tower;
+            if (overhang_points_pos >= 0 && layer_overhang_point < layer_count && 
+                overhang_points[overhang_points_pos].first == layer_overhang_point) 
+            {
+                std::vector<Polygons>& overhang_points_here = overhang_points[overhang_points_pos].second;
+                { // make sure we have the lowest point (make polys empty if they have small parts below)
+                    if (overhang_points_pos > 0 && overhang_points[overhang_points_pos - 1].first == layer_overhang_point - 1)
+                    {
+                        std::vector<Polygons>& overhang_points_below = overhang_points[overhang_points_pos - 1].second;
+                        for (Polygons& poly_here : overhang_points_here)
+                            for (Polygons& poly_below : overhang_points_below)
+                            {
+                                poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt*2));
+                            }
+                    }
+                }
+                for (Polygons& poly : overhang_points_here)
+                    if (poly.size() > 0)
+                        towerRoofs.push_back(poly);
+                overhang_points_pos--;
+            }
+            
+            // make tower roofs
+            //for (Polygons& tower_roof : towerRoofs)
+            for (int r = 0; r < towerRoofs.size(); r++)
+            {
+                supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
+                
+                Polygons& tower_roof = towerRoofs[r];
+                if (tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+                {
+                    towerRoofs[r] = tower_roof.offset(towerRoofExpansionDistance);
+                }
+            }
+        }
         
         if (l+1 < support_layer_count)
         { // join with support from layer up
@@ -310,7 +383,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
                 joined = joined.offset(-supportJoinDistance);
             }
             if (smoothing_distance > 0)
-                joined = joined.smooth(smoothing_distance);
+                joined = joined.smooth(smoothing_distance, min_smoothing_area);
         
             // remove layer
             Polygons insetted = joined.difference(joinedLayers[l]);
@@ -373,21 +446,34 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
  * we call the areas between two consecutive scanlines a 'scansegment'
  * 
  * algorithm:
- * 1) for each line segment of each polygon:
+ * 1. for each line segment of each polygon:
  *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
  *      (zigzag): add boundary segments to result
- * 2) for each scanline:
+ * 2. for each scanline:
  *      sort the associated intersections 
  *      and connect them using the even-odd rule
  * 
  * zigzag algorithm:
- * while walking around (each) polygon
+ * while walking around (each) polygon (1.)
  *  if polygon intersects with even scanline
  *      start boundary segment (add each following segment to the [result])
  *  when polygon intersects with a scanline again
  *      stop boundary segment (stop adding segments to the [result])
  *      if polygon intersects with even scanline again (instead of odd)
- *          dont add the last line segment to the boundary
+ *          dont add the last line segment to the boundary (unless [connect_zigzags])
+ * 
+ * 
+ *     <--
+ *     ___
+ *    |   |   |
+ *    |   |   |
+ *    |   |___|
+ *         -->
+ * 
+ *        ^ = even scanline
+ * 
+ * start boundary from even scanline! :D
+ * 
  */
 void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation, bool connect_zigzags)
 {    
@@ -419,6 +505,7 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
     for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
     {
         std::vector<Point> firstBoundarySegment;
+        std::vector<Point> unevenBoundarySegment; // stored cause for connected_zigzags a boundary segment which ends in an uneven scanline needs to be included
         
         bool isFirstBoundarySegment = true;
         bool firstBoundarySegmentEndsInEven;
@@ -457,8 +544,25 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
                 if (scanline_idx % 2 == 0) isEvenScanSegment = true;
                 else isEvenScanSegment = false;
                 
-                if (last_isEvenScanSegment && (connect_zigzags || !isEvenScanSegment) && !isFirstBoundarySegment)
-                    addLine(lastPoint, Point(x,y));
+                if (!isFirstBoundarySegment)
+                {
+                    if (last_isEvenScanSegment && (connect_zigzags || !isEvenScanSegment))
+                        addLine(lastPoint, Point(x,y));
+                    else if (connect_zigzags && !last_isEvenScanSegment && !isEvenScanSegment) // if we end an uneven boundary in an uneven segment
+                    { // add whole unevenBoundarySegment (including the just obtained point)
+                        for (int p = 1; p < unevenBoundarySegment.size(); p++)
+                        {
+                            addLine(unevenBoundarySegment[p-1], unevenBoundarySegment[p]);
+                        }
+                        addLine(unevenBoundarySegment[unevenBoundarySegment.size()-1], Point(x,y));
+                        unevenBoundarySegment.clear();
+                    } 
+                    if (connect_zigzags && last_isEvenScanSegment && !isEvenScanSegment)
+                        unevenBoundarySegment.push_back(Point(x,y));
+                    else 
+                        unevenBoundarySegment.clear();
+                        
+                }
                 lastPoint = Point(x,y);
                 
                 if (isFirstBoundarySegment) 
@@ -469,8 +573,14 @@ void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int ext
                 }
                 
             }
-            if (isEvenScanSegment && !isFirstBoundarySegment)
-                addLine(lastPoint, p1);
+            if (!isFirstBoundarySegment)
+            {
+                if (isEvenScanSegment)
+                    addLine(lastPoint, p1);
+                else if (connect_zigzags)
+                    unevenBoundarySegment.push_back(p1);
+            }
+            
             lastPoint = p1;
             p0 = p1;
         }

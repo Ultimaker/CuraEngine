@@ -308,13 +308,18 @@ public:
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
-    Polygons smooth(int remove_length) //!< removes points connected to small lines
+    Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
         for (unsigned int p = 0; p < size(); p++)
         {
             PolygonRef poly(polygons[p]);
             ClipperLib::Path* new_poly = new ClipperLib::Path;
+            if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
+            {
+                ret.add(poly);
+                continue;
+            }
             if (poly.size() > 0)
                 new_poly->push_back(poly[0]);
             for (int l = 1; l < poly.size(); l++)
