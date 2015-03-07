@@ -251,10 +251,21 @@ private:
                 if (config.spiralizeMode && static_cast<int>(layerNr) < config.downSkinCount && layerNr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &storage.volumes[volumeIdx].layers[layerNr];
-                int extrusionWidth = config.extrusionWidth;
-                if (layerNr == 0)
-                    extrusionWidth = config.layer0extrusionWidth;
-                generateInsets(layer, extrusionWidth, insetCount);
+                int extrusionWidth = layerNr == 0 ? config.layer0extrusionWidth  : config.extrusionWidth;
+                int layerThickness = layerNr == 0 ? config.initialLayerThickness : config.layerThickness;
+
+                // The outer layer bulges outwards a bit. Apply a correction to make outer dimensions accurate.
+                // Assume circular bulges with radius layerThickness/2 and a rectangular section of width x,
+                // the total area of the laid filament profile = radius^2 * PI + x * layerThickness,
+                // the assumed (ideal) filament profile has an area of layerThickness * extrusionWidth,
+                // equating the two areas give x = extrusionWidth - layerThickness * PI / 4
+                // the total width is (layerThickness + x) instead of the ideal layerWidth.
+                int realExtrusionWidth = layerThickness + extrusionWidth - layerThickness * (M_PI / 4);
+
+                // Apply a correction
+                int bulgeOffset = (realExtrusionWidth - extrusionWidth) / 2;
+
+                generateInsets(layer, extrusionWidth, bulgeOffset, insetCount);
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
