@@ -77,8 +77,6 @@ public:
 
 void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count);
 
-void generateZigZagSupport(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation, bool connect_zigzags);
-
 
 
 }//namespace cura
