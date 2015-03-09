@@ -742,6 +742,10 @@ private:
                     {
                         generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                    } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
+                    {
+                        generateZigZagInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle, false, false);
+                        gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else {
                         logError("infillPattern has unknown value.\n");
                     }
@@ -762,6 +766,9 @@ private:
                 } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                 {
                     generateConcentricInfill(part->sparse_outline[0], infillPolygons, getSettingInt("sparseInfillLineDistance"));
+                } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
+                {
+                    generateZigZagInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle, false, false);
                 }  else {
                     logError("infillPattern has unknown value.\n");
                 }
@@ -885,7 +892,7 @@ private:
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
                     }else{
-                        generateZigZagSupport(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") >0);
+                        generateZigZagInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") >0, true);
                     }
                 }
             }

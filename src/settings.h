@@ -24,7 +24,8 @@
 enum Support_Pattern
 {
     SUPPORT_TYPE_GRID = 0,
-    SUPPORT_TYPE_LINES = 1
+    SUPPORT_TYPE_LINES = 1,
+    SUPPORT_TYPE_ZIGZAG = 2
 };
 
 #ifndef DEFAULT_CONFIG_PATH
@@ -111,6 +112,7 @@ enum Infill_Pattern
     INFILL_GRID = 0,
     INFILL_LINES = 1,
     INFILL_CONCENTRIC = 2,
+    INFILL_ZIGZAG = 3,
 };
 
 class SettingRegistry
