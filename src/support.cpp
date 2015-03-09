@@ -284,22 +284,25 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
             SliceLayer& layer = mesh.layers[l];
             for (SliceLayerPart& part : layer.parts)
             {
-                Polygons part_poly = part.outline.offset(-extrusionWidth/2);
                 
                 if (part.outline[0].area() < supportMinAreaSqrt * supportMinAreaSqrt) 
                 //    && part.outline[0].area() > extrusionWidth * extrusionWidth * 4) // compensate for outline offset 
                 {
-                    if (overhang_points.size() > 0 && overhang_points.back().first == l)
-                        overhang_points.back().second.push_back(part_poly);
-                    else 
+                    Polygons part_poly = part.outline.offset(-extrusionWidth/2);
+                    if (part_poly.size() > 0)
                     {
-                        std::vector<Polygons> small_part_polys;
-                        small_part_polys.push_back(part_poly);
-                        overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(l, small_part_polys));
+                        if (overhang_points.size() > 0 && overhang_points.back().first == l)
+                            overhang_points.back().second.push_back(part_poly);
+                        else 
+                        {
+                            std::vector<Polygons> small_part_polys;
+                            small_part_polys.push_back(part_poly);
+                            overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(l, small_part_polys));
+                        }
                     }
                     
                 }
-                joinedLayers.back() = joinedLayers.back().unionPolygons(part_poly);
+                joinedLayers.back() = joinedLayers.back().unionPolygons(part.outline);
                 
             }
         }
