@@ -16,9 +16,13 @@ void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bo
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        if (avoidOverlappingPerimeters)
-            part->insets[i] = part->outline.offset(-extrusionWidth * (i+1)).offset(extrusionWidth/2);
-        else
+        if (avoidOverlappingPerimeters && i > 0)
+        {
+            Polygons inner_bounds = part->insets[i-1].offset(-extrusionWidth - extrusionWidth / 2);
+            Polygons nonOverlapping = inner_bounds.offset(extrusionWidth / 2);
+            Polygons simple_inset = part->insets[i-1].offset(-extrusionWidth);
+            part->insets[i] = nonOverlapping.intersection(simple_inset);
+        } else
             part->insets[i] = part->outline.offset(-extrusionWidth * i - extrusionWidth/2);
             
         optimizePolygons(part->insets[i]);

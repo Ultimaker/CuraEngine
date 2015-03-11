@@ -192,8 +192,10 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
  */
 void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation, bool connect_zigzags)
 {
-    if (in_outline.size() == 0) return;
-    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
+//     if (in_outline.size() == 0) return;
+//     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
+    Polygons empty;
+    Polygons outline = in_outline.difference(empty);
     if (outline.size() == 0) return;
     
     PointMatrix matrix(rotation);
@@ -311,7 +313,9 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
             addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[firstBoundarySegment.size()-1]);
     } 
     
-
+    if (cutList.size() == 0) return;
+    if (connect_zigzags && cutList.size() == 1 && cutList[0].size() <= 2) return;  // don't add connection if boundary already contains whole outline!
+    
     addLineInfill(result, matrix, scanline_min_idx, lineSpacing, boundary, cutList, extrusionWidth);
 }
 

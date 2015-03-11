@@ -312,7 +312,7 @@ private:
                         extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
                     generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"));
                     if (mesh.settings->getSettingInt("sparseInfillLineDistance") > 0)
-                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"));
+                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)

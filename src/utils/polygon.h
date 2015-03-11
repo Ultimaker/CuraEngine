@@ -190,6 +190,71 @@ public:
         return (crossings % 2) == 1;
     }
 
+    PolygonRef smooth(int remove_length)
+    {
+        PolygonRef thiss = *this;
+        ClipperLib::Path* poly = new ClipperLib::Path();
+        PolygonRef new_poly(*poly);
+        if (size() > 0)
+            poly->push_back(thiss[0]);
+        for (int l = 1; l < size(); l++)
+        {
+            if (shorterThen(thiss[l-1]-thiss[l], remove_length))
+            {
+                l++; // skip the next line piece (dont escalate the removal of edges)
+                if (l < size())
+                    poly->push_back(thiss[l]);
+            } else poly->push_back(thiss[l]);
+        }
+        return new_poly;
+    }
+
+    PolygonRef simplify(int allowed_error_distance_squared) //!< removes consecutive line segments with same orientation
+    {
+        PolygonRef thiss = *this;
+        ClipperLib::Path* poly = new ClipperLib::Path();
+        PolygonRef new_poly(*poly);
+        Point& last = thiss[size()-1];
+        for (int l = 0; l < size(); l++)
+        {
+            /*
+             *    /|
+             * c / | a
+             *  /__|
+             *  \ b|
+             * e \ | d
+             *    \|
+             * 
+             * b^2 = c^2 - a^2
+             * b^2 = e^2 - d^2
+             * 
+             * approximately: 
+             * a/d = c/e
+             * a/(a+d) = c/(c+e)
+             * a^2 / (a+d)^2 = c^2 / (c+e)^2
+             * a^2 = c^2 * (a+d)^2/ (c+e)^2
+             * 
+             */
+            if ( vSize2(thiss[l]-last) < allowed_error_distance_squared )
+                continue;
+            
+            Point& next = thiss[(l+1) % size()];
+            auto square = [](double in) { return in*in; };
+            int64_t a2 = vSize2(next-thiss[l]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[l]-last))*1000*1000);
+            
+            int64_t error2 = vSize2(next-thiss[l]) - a2;
+            if (error2 < allowed_error_distance_squared)
+            {
+                // don't add the point to the result
+            } else 
+            {
+                poly->push_back(thiss[l]);
+                last = thiss[l];
+            }
+        }
+        return new_poly;
+    }
+        
     ClipperLib::Path::iterator begin()
     {
         return polygon->begin();
@@ -209,6 +274,7 @@ public:
     {
         return polygon->end();
     }
+
 
     friend class Polygons;
     friend class Polygon;
@@ -314,24 +380,28 @@ public:
         for (unsigned int p = 0; p < size(); p++)
         {
             PolygonRef poly(polygons[p]);
-            ClipperLib::Path* new_poly = new ClipperLib::Path;
             if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
             {
                 ret.add(poly);
                 continue;
             }
-            if (poly.size() > 0)
-                new_poly->push_back(poly[0]);
-            for (int l = 1; l < poly.size(); l++)
-            {
-                if (shorterThen(poly[l-1]-poly[l], remove_length))
-                {
-                    l++; // skip the next line piece (dont escalate the removal of edges)
-                    if (l < poly.size())
-                        new_poly->push_back(poly[l]);
-                } else new_poly->push_back(poly[l]);
-            }
-            ret.add(PolygonRef(*new_poly));
+            
+            if (poly.size() == 0)
+                continue;
+            if (poly.size() == 2)
+                ret.add(poly);
+            else 
+                ret.add(poly.smooth(remove_length));
+
+        }
+        return ret;
+    }
+    Polygons simplify(int allowed_error_distance_squared) //!< removes points connected to small lines
+    {
+        Polygons ret;
+        for (unsigned int p = 0; p < size(); p++)
+        {
+            ret.add((*this)[p].simplify(allowed_error_distance_squared));
         }
         return ret;
     }

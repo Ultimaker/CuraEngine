@@ -273,7 +273,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     
     if (logStage) log("joining model layers\n");
     
-    // join model layers into polygons
+    // join model layers into polygons and store small areas which need tower support
     std::vector<Polygons> joinedLayers;
     std::vector<std::pair<int, std::vector<Polygons>>> overhang_points;
     for (int l = 0 ; l < layer_count ; l++)
@@ -334,7 +334,62 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
         Polygons overhang =  basic_overhang.unionPolygons(support_extension);
         
+        /* supported
+         * .................
+         *         ______________|
+         * _______|         ^^^^^ basic overhang
+         * 
+         *         ^^^^^^^^^      overhang extensions
+         *         ^^^^^^^^^^^^^^ overhang
+         */
+
+        
         Polygons& supportLayer_this = overhang; 
+        
+        
+        // handle straight walls
+        for (int p = 0; p < supportLayer_this.size(); p++)
+        {
+            PolygonRef poly = supportLayer_this[p];
+            poly = poly.simplify(2500);
+            if (poly.size() < 6) // might be a single wall
+            {
+                PolygonRef poly = supportLayer_this[p];
+                int best = -1;
+                int best_length2 = -1;
+                for (int i = 0; i < poly.size(); i++)
+                {
+                    int length2 = vSize2(poly[i] - poly[(i+1) % poly.size()]);
+                    if (length2 > best_length2)
+                    {
+                        best = i;
+                        best_length2 = length2;
+                    }
+                }
+                
+                if (best_length2 < supportMinAreaSqrt * supportMinAreaSqrt)
+                    break; // this is a small area, not a wall!
+                    
+                
+                // an estimate of the width of the area
+                int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
+                
+                // add square tower (strut) in the middle of the wall
+                if (width < supportMinAreaSqrt)
+                {
+                    Point mid = (poly[best] + poly[(best+1) % poly.size()] ) / 2;
+                    Polygons struts;
+                    PolygonRef strut = struts.newPoly();
+                    strut.add(mid + Point( supportTowerDiameter/2,  supportTowerDiameter/2));
+                    strut.add(mid + Point(-supportTowerDiameter/2,  supportTowerDiameter/2));
+                    strut.add(mid + Point(-supportTowerDiameter/2, -supportTowerDiameter/2));
+                    strut.add(mid + Point( supportTowerDiameter/2, -supportTowerDiameter/2));
+                    supportLayer_this = supportLayer_this.unionPolygons(struts);
+                }
+            }
+        }
+            
+        
         
         { // handle towers
             // handle new tower roof tops
@@ -373,6 +428,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
                 }
             }
         }
+        
         
         if (l+1 < support_layer_count)
         { // join with support from layer up

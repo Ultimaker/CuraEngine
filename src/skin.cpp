@@ -55,15 +55,26 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int avoidOverlappingPerimeters)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-
+        
         Polygons sparse = part->insets[part->insets.size() - 1].offset(-extrusionWidth/2);
+        
+        if (avoidOverlappingPerimeters)
+        {
+            for (int i = 0; i < part->insets.size() - 1; i++)
+            {
+                Polygons inBetween = part->insets[i].difference(part->insets[i+1]);
+                sparse = sparse.unionPolygons(inBetween.offset(-extrusionWidth/2-1)); // offset 1 more because the distance between two consecutive insets is exactly twice this offset, which results in rounding errors
+            }
+        } 
+            
+        
         Polygons downskin = sparse;
         Polygons upskin = sparse;
         
