@@ -346,12 +346,12 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
         Polygons& supportLayer_this = overhang; 
         
+        //supportLayer_this = supportLayer_this.simplify(0);
         
         // handle straight walls
         for (int p = 0; p < supportLayer_this.size(); p++)
         {
             PolygonRef poly = supportLayer_this[p];
-            poly = poly.simplify(2500);
             if (poly.size() < 6) // might be a single wall
             {
                 PolygonRef poly = supportLayer_this[p];

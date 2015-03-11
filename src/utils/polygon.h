@@ -190,11 +190,10 @@ public:
         return (crossings % 2) == 1;
     }
 
-    PolygonRef smooth(int remove_length)
+    void smooth(int remove_length, PolygonRef result)
     {
-        PolygonRef thiss = *this;
-        ClipperLib::Path* poly = new ClipperLib::Path();
-        PolygonRef new_poly(*poly);
+        PolygonRef& thiss = *this;
+        ClipperLib::Path* poly = result.polygon;
         if (size() > 0)
             poly->push_back(thiss[0]);
         for (int l = 1; l < size(); l++)
@@ -206,14 +205,20 @@ public:
                     poly->push_back(thiss[l]);
             } else poly->push_back(thiss[l]);
         }
-        return new_poly;
     }
 
-    PolygonRef simplify(int allowed_error_distance_squared) //!< removes consecutive line segments with same orientation
+    void simplify(int allowed_error_distance_squared, PolygonRef result) //!< removes consecutive line segments with same orientation
     {
-        PolygonRef thiss = *this;
-        ClipperLib::Path* poly = new ClipperLib::Path();
-        PolygonRef new_poly(*poly);
+        PolygonRef& thiss = *this;
+        ClipperLib::Path* poly = result.polygon;
+        
+        if (size() < 4)
+        {
+            for (int l = 0; l < size(); l++)
+                poly->push_back(thiss[l]);
+            return;
+        }
+        
         Point& last = thiss[size()-1];
         for (int l = 0; l < size(); l++)
         {
@@ -246,13 +251,23 @@ public:
             if (error2 < allowed_error_distance_squared)
             {
                 // don't add the point to the result
+                std::cerr << " error2 = " << error2 << std::endl;
+                std::cerr << " vSize2(thiss[l]-last)  " << vSize2(thiss[l]-last) << std::endl;
+                std::cerr << " vSize2(next-thiss[l]) " << vSize2(next-thiss[l]) << std::endl;
+                std::cerr << " vSize2(next-last) " << vSize2(next-last) << std::endl;
+                std::cerr << " (thiss[l]-last)  " << (thiss[l]-last) << std::endl;
+                std::cerr << " (next-thiss[l]) " << (next-thiss[l]) << std::endl;
+                std::cerr << " (next-last) " << (next-last) << std::endl;
+                std::cerr << " (next-last) " << (next-last) << std::endl;
+                std::cerr << " a2 " << a2 << std::endl;
+                std::cerr << "" << std::endl;
+                    
             } else 
             {
                 poly->push_back(thiss[l]);
                 last = thiss[l];
             }
         }
-        return new_poly;
     }
         
     ClipperLib::Path::iterator begin()
@@ -388,20 +403,22 @@ public:
             
             if (poly.size() == 0)
                 continue;
-            if (poly.size() == 2)
+            if (poly.size() < 4)
                 ret.add(poly);
             else 
-                ret.add(poly.smooth(remove_length));
+                poly.smooth(remove_length, ret.newPoly());
+            
 
         }
         return ret;
     }
-    Polygons simplify(int allowed_error_distance_squared) //!< removes points connected to small lines
+    Polygons simplify(int allowed_error_distance_squared) //!< removes points connected to similarly oriented lines
     {
         Polygons ret;
+        Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
         {
-            ret.add((*this)[p].simplify(allowed_error_distance_squared));
+            thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
         }
         return ret;
     }
