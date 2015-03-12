@@ -37,33 +37,15 @@ public:
 };
 
 /******************/
-class SupportPoint
-{
-public:
-    int32_t z;
-    double cosAngle;
-    
-    SupportPoint(int32_t z, double cosAngle) : z(z), cosAngle(cosAngle) {}
-};
 class SupportStorage
 {
 public:
     bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
-    bool areaSupport; //!< Whether we use the new area support generation instead of the grid support generation
-    int angle; //!< The minimal angle with the Z axis for a face to be classified as overhang
-    bool everywhere;
-    int XYDistance; //!< Minimal horizontal distance of the support structure from the print.
-    int ZDistance; //!< Distance form the top/bottom of the support to the print.
-    
-    Point gridOffset;
-    int32_t gridScale;
-    int32_t gridWidth, gridHeight;
-    std::vector<SupportPoint>* grid; //!< array(!) of vectors of support points .... ?!
-    
+        
     std::vector<Polygons> supportAreasPerLayer;
 
-    SupportStorage(){grid = nullptr;}
-    ~SupportStorage(){if(grid) delete [] grid; supportAreasPerLayer.clear(); }
+    SupportStorage(){}
+    ~SupportStorage(){supportAreasPerLayer.clear(); }
 };
 /******************/
 

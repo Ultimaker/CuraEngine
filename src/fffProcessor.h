@@ -186,13 +186,6 @@ private:
         }
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
-        if (object->getSettingInt("areaSupportPolyGenerator") <= 0)
-        {
-            log("Generating support grid...\n");
-            generateSupportGrid(storage.support, object, object->getSettingInt("supportAngle"), object->getSettingInt("supportEverywhere") > 0, object->getSettingInt("supportXYDistance"), object->getSettingInt("supportZDistance"));
-            log("Generated support grid in %5.3fs\n", timeKeeper.restart());
-        }
-        
         object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");
@@ -214,12 +207,11 @@ private:
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         
-        if (object->getSettingInt("areaSupportPolyGenerator") > 0)
-        {
-            log("Generating support areas...\n");
-            generateSupportAreas(storage, object, layer_count);
-            log("Generated support areas in %5.3fs\n", timeKeeper.restart());
-        }
+
+        log("Generating support areas...\n");
+        generateSupportAreas(storage, object, layer_count);
+        log("Generated support areas in %5.3fs\n", timeKeeper.restart());
+
         log("Finished prepareModel.\n");
         return true;
     }
@@ -835,22 +827,13 @@ private:
             if (gcodeLayer.setExtruder(getSettingInt("supportExtruder")))
                 addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
         }
-        int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
-        SupportPolyGenerator supportGenerator(storage.support, z, layer_nr);
-        if (getSettingInt("areaSupportPolyGenerator") == 0)
-        {
-            for(unsigned int meshCnt = 0; meshCnt < storage.meshes.size(); meshCnt++)
-            {
-                SliceLayer* layer = &storage.meshes[meshCnt].layers[layer_nr];
-                for(unsigned int n=0; n<layer->parts.size(); n++)
-                    supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[n].outline.offset(getSettingInt("supportXYDistance")));
-            }
-            //Contract and expand the support polygons so small sections are removed and the final polygon is smoothed a bit.
-            supportGenerator.polygons = supportGenerator.polygons.offset(-getSettingInt("extrusionWidth") * 3).offset(getSettingInt("extrusionWidth") * 3);
-        }
-        sendPolygons(SupportType, layer_nr, supportGenerator.polygons);
+        Polygons support;
+        if (storage.support.generated) 
+            support = storage.support.supportAreasPerLayer[layer_nr];
+        
+        sendPolygons(SupportType, layer_nr, support);
 
-        std::vector<Polygons> supportIslands = supportGenerator.polygons.splitIntoParts();
+        std::vector<Polygons> supportIslands = support.splitIntoParts();
 
         PathOrderOptimizer islandOrderOptimizer(gcode.getPositionXY());
         for(unsigned int n=0; n<supportIslands.size(); n++)

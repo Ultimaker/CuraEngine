@@ -132,7 +132,6 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportZDistanceTop");
     registerSetting("supportSpeed");
     
-    registerSetting("areaSupportPolyGenerator");
     registerSetting("supportJoinDistance");
     registerSetting("supportAreaSmoothing");
     registerSetting("supportConnectZigZags");
@@ -250,7 +249,6 @@ void SettingsBase::setDefaultSettings()
     setSetting("supportZDistance", "100");
     setSetting("supportExtruder", "-1");
     
-    setSetting("areaSupportPolyGenerator", "1"); // TK
     setSetting("supportZDistanceBottom", "100");
     setSetting("supportZDistanceTop", "100");
     setSetting("supportJoinDistance", "1000"); // distance between support blocks which will get merged 

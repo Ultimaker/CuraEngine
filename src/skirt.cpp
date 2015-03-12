@@ -10,22 +10,21 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     
     bool externalOnly = (distance > 0);
     
-    SupportPolyGenerator supportGenerator(storage.support, initialLayerHeight, 0);
+    Polygons support;
+    if (storage.support.generated) 
+        support = storage.support.supportAreasPerLayer[0];
     { // get support polygons
         for(SliceMeshStorage& mesh : storage.meshes)
         {
             if (mesh.layers.size() < 1) continue;
             SliceLayer* layer = &mesh.layers[0];
             for(unsigned int i=0; i<layer->parts.size(); i++)        
-                supportGenerator.polygons = supportGenerator.polygons.difference(layer->parts[i].outline);
+                support = support.difference(layer->parts[i].outline);
         }
-                
-        //Contract and expand the suppory polygons so small sections are removed
-        //supportGenerator.polygons = supportGenerator.polygons.offset(-extrusionWidth * 3).offset(extrusionWidth * 3);
         
         // expand and contract to smooth the final polygon
         if (count == 1 && distance > 0)
-            supportGenerator.polygons = supportGenerator.polygons.offset(extrusionWidth * 5).offset(-extrusionWidth * 5);
+            support = support.offset(extrusionWidth * 5).offset(-extrusionWidth * 5);
     }
     
     for(int skirtNr=0; skirtNr<count;skirtNr++)
@@ -51,7 +50,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         }
 
         
-        skirtPolygons = skirtPolygons.unionPolygons(supportGenerator.polygons.offset(offsetDistance, ClipperLib::jtRound));
+        skirtPolygons = skirtPolygons.unionPolygons(support.offset(offsetDistance, ClipperLib::jtRound));
 
         //Remove small inner skirt holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
         for(unsigned int n=0; n<skirtPolygons.size(); n++)
