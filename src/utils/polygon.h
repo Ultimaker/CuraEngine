@@ -233,7 +233,7 @@ public:
              * b^2 = c^2 - a^2
              * b^2 = e^2 - d^2
              * 
-             * approximately: 
+             * approximately: (this is asymptotically true for d -> 0)
              * a/d = c/e
              * a/(a+d) = c/(c+e)
              * a^2 / (a+d)^2 = c^2 / (c+e)^2
@@ -251,16 +251,16 @@ public:
             if (error2 < allowed_error_distance_squared)
             {
                 // don't add the point to the result
-                std::cerr << " error2 = " << error2 << std::endl;
-                std::cerr << " vSize2(thiss[l]-last)  " << vSize2(thiss[l]-last) << std::endl;
-                std::cerr << " vSize2(next-thiss[l]) " << vSize2(next-thiss[l]) << std::endl;
-                std::cerr << " vSize2(next-last) " << vSize2(next-last) << std::endl;
-                std::cerr << " (thiss[l]-last)  " << (thiss[l]-last) << std::endl;
-                std::cerr << " (next-thiss[l]) " << (next-thiss[l]) << std::endl;
-                std::cerr << " (next-last) " << (next-last) << std::endl;
-                std::cerr << " (next-last) " << (next-last) << std::endl;
-                std::cerr << " a2 " << a2 << std::endl;
-                std::cerr << "" << std::endl;
+//                 std::cerr << " error2 = " << error2 << std::endl;
+//                 std::cerr << " vSize2(thiss[l]-last)  " << vSize2(thiss[l]-last) << std::endl;
+//                 std::cerr << " vSize2(next-thiss[l]) " << vSize2(next-thiss[l]) << std::endl;
+//                 std::cerr << " vSize2(next-last) " << vSize2(next-last) << std::endl;
+//                 std::cerr << " (thiss[l]-last)  " << (thiss[l]-last) << std::endl;
+//                 std::cerr << " (next-thiss[l]) " << (next-thiss[l]) << std::endl;
+//                 std::cerr << " (next-last) " << (next-last) << std::endl;
+//                 std::cerr << " (next-last) " << (next-last) << std::endl;
+//                 std::cerr << " a2 " << a2 << std::endl;
+//                 std::cerr << "" << std::endl;
                     
             } else 
             {

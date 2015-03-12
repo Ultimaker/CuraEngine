@@ -134,7 +134,6 @@ SettingRegistry::SettingRegistry()
     
     registerSetting("areaSupportPolyGenerator");
     registerSetting("supportJoinDistance");
-    registerSetting("supportBridgeBack");
     registerSetting("supportAreaSmoothing");
     registerSetting("supportConnectZigZags");
     registerSetting("supportMinimalAreaSqrt");
@@ -255,7 +254,6 @@ void SettingsBase::setDefaultSettings()
     setSetting("supportZDistanceBottom", "100");
     setSetting("supportZDistanceTop", "100");
     setSetting("supportJoinDistance", "1000"); // distance between support blocks which will get merged 
-    setSetting("supportBridgeBack", "100"); // percentage of bridge between layer and overhang which should be supported
     setSetting("supportBottomStairDistance", "100"); // height of the steps with which the lines support rests on the model
     
     

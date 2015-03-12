@@ -219,7 +219,6 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     int supportZDistanceBottom = object->getSettingInt("supportZDistanceBottom");
     int supportZDistanceTop = object->getSettingInt("supportZDistanceTop");
     int supportJoinDistance = object->getSettingInt("supportJoinDistance");
-    float backSupportBridge = static_cast<float>(object->getSettingInt("supportBridgeBack"))/100.0;
     int supportBottomStairDistance = object->getSettingInt("supportBottomStairDistance");
     int smoothing_distance = object->getSettingInt("supportAreaSmoothing"); 
     
@@ -259,8 +258,6 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
 
     double tanAngle = tan(double(storage.support.angle) / 180.0 * M_PI) - 0.01;
     int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
-    
-    int expansionsDist = backSupportBridge * maxDistFromLowerLayer; // dist to expand overhang back toward model, effectively supporting stuff between the overhang and the perimeter of the lower layer
     
     int support_layer_count = layer_count;
     
@@ -328,7 +325,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         Polygons supportLayer_supported =  joinedLayers[l-1+layerZdistanceTop].offset(maxDistFromLowerLayer);
         Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
         
-        Polygons support_extension = basic_overhang.offset(expansionsDist);
+        Polygons support_extension = basic_overhang.offset(maxDistFromLowerLayer);
         support_extension = support_extension.intersection(supportLayer_supported);
         support_extension = support_extension.intersection(supportLayer_supportee);
         
@@ -346,52 +343,56 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
         Polygons& supportLayer_this = overhang; 
         
-        //supportLayer_this = supportLayer_this.simplify(0);
+        supportLayer_this = supportLayer_this.simplify(2500);
         
         // handle straight walls
-        for (int p = 0; p < supportLayer_this.size(); p++)
+        if (supportMinAreaSqrt > 0)
         {
-            PolygonRef poly = supportLayer_this[p];
-            if (poly.size() < 6) // might be a single wall
+            for (int p = 0; p < supportLayer_this.size(); p++)
             {
                 PolygonRef poly = supportLayer_this[p];
-                int best = -1;
-                int best_length2 = -1;
-                for (int i = 0; i < poly.size(); i++)
+                if (poly.size() < 6) // might be a single wall
                 {
-                    int length2 = vSize2(poly[i] - poly[(i+1) % poly.size()]);
-                    if (length2 > best_length2)
+                    PolygonRef poly = supportLayer_this[p];
+                    int best = -1;
+                    int best_length2 = -1;
+                    for (int i = 0; i < poly.size(); i++)
                     {
-                        best = i;
-                        best_length2 = length2;
+                        int length2 = vSize2(poly[i] - poly[(i+1) % poly.size()]);
+                        if (length2 > best_length2)
+                        {
+                            best = i;
+                            best_length2 = length2;
+                        }
                     }
-                }
-                
-                if (best_length2 < supportMinAreaSqrt * supportMinAreaSqrt)
-                    break; // this is a small area, not a wall!
                     
-                
-                // an estimate of the width of the area
-                int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
-                
-                // add square tower (strut) in the middle of the wall
-                if (width < supportMinAreaSqrt)
-                {
-                    Point mid = (poly[best] + poly[(best+1) % poly.size()] ) / 2;
-                    Polygons struts;
-                    PolygonRef strut = struts.newPoly();
-                    strut.add(mid + Point( supportTowerDiameter/2,  supportTowerDiameter/2));
-                    strut.add(mid + Point(-supportTowerDiameter/2,  supportTowerDiameter/2));
-                    strut.add(mid + Point(-supportTowerDiameter/2, -supportTowerDiameter/2));
-                    strut.add(mid + Point( supportTowerDiameter/2, -supportTowerDiameter/2));
-                    supportLayer_this = supportLayer_this.unionPolygons(struts);
+                    if (best_length2 < supportMinAreaSqrt * supportMinAreaSqrt)
+                        break; // this is a small area, not a wall!
+                        
+                    
+                    // an estimate of the width of the area
+                    int width = sqrt( poly.area() * poly.area() / best_length2 ); // sqrt (a^2 / l^2) instead of a / sqrt(l^2)
+                    
+                    // add square tower (strut) in the middle of the wall
+                    if (width < supportMinAreaSqrt)
+                    {
+                        Point mid = (poly[best] + poly[(best+1) % poly.size()] ) / 2;
+                        Polygons struts;
+                        PolygonRef strut = struts.newPoly();
+                        strut.add(mid + Point( supportTowerDiameter/2,  supportTowerDiameter/2));
+                        strut.add(mid + Point(-supportTowerDiameter/2,  supportTowerDiameter/2));
+                        strut.add(mid + Point(-supportTowerDiameter/2, -supportTowerDiameter/2));
+                        strut.add(mid + Point( supportTowerDiameter/2, -supportTowerDiameter/2));
+                        supportLayer_this = supportLayer_this.unionPolygons(struts);
+                    }
                 }
             }
         }
-            
+                
         
-        
-        { // handle towers
+        // handle towers
+        if (supportMinAreaSqrt > 0)
+        { 
             // handle new tower roof tops
             int layer_overhang_point =  l + z_layer_distance_tower;
             if (overhang_points_pos >= 0 && layer_overhang_point < layer_count && 

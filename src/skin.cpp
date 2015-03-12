@@ -3,7 +3,7 @@
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap, int avoidOverlappingPerimeters)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -13,14 +13,8 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
         
         Polygons upskin = part->insets[part->insets.size() - 1].offset(-extrusionWidth/2);
         Polygons downskin = upskin;
+
         
-        if (part->insets.size() > 1)
-        {
-            //Add thin wall filling by taking the area between the insets.
-            Polygons thinWalls = part->insets[0].offset(-extrusionWidth / 2 - extrusionWidth * infillOverlap / 100).difference(part->insets[1].offset(extrusionWidth * 6 / 10));
-            upskin.add(thinWalls);
-            downskin.add(thinWalls);
-        }
         if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
@@ -40,8 +34,23 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
             }
         }
         
-        part->skinOutline = upskin.unionPolygons(downskin);
-
+        Polygons skin = upskin.unionPolygons(downskin);
+                
+            
+        if (avoidOverlappingPerimeters) //Add thin wall filling by taking the area between the insets.
+        {
+            for (int i = 0; i < part->insets.size() - 1; i++)
+            {
+                Polygons inBetween = part->insets[i].difference(part->insets[i+1]).offset(-extrusionWidth/2-1); // offset 1 more because the distance between two consecutive insets is exactly twice this offset, which results in rounding errors
+                inBetween = inBetween.offset(extrusionWidth * infillOverlap / 100 + 1);
+                skin.add(inBetween);
+//                 upskin.add(inBetween);
+//                 downskin.add(inBetween);
+            }
+        } 
+        
+        part->skinOutline = skin;
+            
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
         {
@@ -64,16 +73,7 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
         SliceLayerPart* part = &layer->parts[partNr];
         
         Polygons sparse = part->insets[part->insets.size() - 1].offset(-extrusionWidth/2);
-        
-        if (avoidOverlappingPerimeters)
-        {
-            for (int i = 0; i < part->insets.size() - 1; i++)
-            {
-                Polygons inBetween = part->insets[i].difference(part->insets[i+1]);
-                sparse = sparse.unionPolygons(inBetween.offset(-extrusionWidth/2-1)); // offset 1 more because the distance between two consecutive insets is exactly twice this offset, which results in rounding errors
-            }
-        } 
-            
+
         
         Polygons downskin = sparse;
         Polygons upskin = sparse;

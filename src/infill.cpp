@@ -20,9 +20,9 @@ void generateGridInfill(const Polygons& in_outline, Polygons& result,
                         int extrusionWidth, int lineSpacing, int infillOverlap,
                         double rotation)
 {
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing * 2,
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation);
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing * 2,
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation + 90);
 }
 
@@ -192,10 +192,10 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
  */
 void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation, bool connect_zigzags)
 {
-    if (in_outline.size() == 0) return;
-    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
-//     Polygons empty;
-//     Polygons outline = in_outline.difference(empty); // copy
+//     if (in_outline.size() == 0) return;
+//     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
+    Polygons empty;
+    Polygons outline = in_outline.difference(empty); // copy
     if (outline.size() == 0) return;
     
     PointMatrix matrix(rotation);

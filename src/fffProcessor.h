@@ -310,7 +310,7 @@ private:
                     int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                     if (layer_nr == 0)
                         extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
-                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"));
+                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
                     if (mesh.settings->getSettingInt("sparseInfillLineDistance") > 0)
                         generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
 
@@ -732,7 +732,7 @@ private:
                     Polygons fillPolygons;
                     if (getSetting("infillPattern") == "INFILL_GRID")
                     {
-                        generateGridInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                        generateGridInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_LINES")
                     {
@@ -759,7 +759,7 @@ private:
             {
                 if (getSetting("infillPattern") == "INFILL_GRID")
                 {
-                    generateGridInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                    generateGridInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
                 } else if (getSetting("infillPattern") == "INFILL_LINES")
                 {
                     generateLineInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
@@ -871,8 +871,7 @@ private:
                 {
                     if (getSettingInt("supportLineDistance") > extrusionWidth * 4)
                     {
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 0);
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 90);
+                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 0);
                     }else{
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layer_nr & 1) ? 0 : 90);
                     }
@@ -880,8 +879,7 @@ private:
                 {
                     if (layer_nr == 0)
                     {
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
+                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                     }else{
                         generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
                     }
@@ -889,8 +887,7 @@ private:
                 {
                     if (layer_nr == 0)
                     {
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 90);
+                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                     }else{
                         generateZigZagInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") >0, true);
                     }
