@@ -126,7 +126,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportExtruder");
     registerSetting("supportType");
     registerSetting("supportZDistance");
-    registerSetting("supportEverywhere");
+    registerSetting("supportOnBuildplateOnly");
     registerSetting("supportAngle");
     registerSetting("supportZDistanceBottom");
     registerSetting("supportZDistanceTop");
@@ -243,7 +243,7 @@ void SettingsBase::setDefaultSettings()
     setSetting("supportType", "LINES");
     setSetting("supportAngle", "60");
     //setSetting("supportAngle", "-1");
-    setSetting("supportEverywhere", "0");
+    setSetting("supportOnBuildplateOnly", "0");
     setSetting("supportLineDistance", "2667");
     setSetting("supportXYDistance", "500");
     setSetting("supportZDistance", "100");
