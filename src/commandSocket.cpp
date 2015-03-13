@@ -3,6 +3,7 @@
 #include "fffProcessor.h"
 
 #include <thread>
+#include <cinttypes>
 
 #include <Arcus/Socket.h>
 
@@ -34,7 +35,7 @@ public:
     std::shared_ptr<Cura::SlicedObjectList> slicedObjectList;
     Cura::SlicedObject* currentSlicedObject;
     int slicedObjects;
-    std::vector<long> objectIds;
+    std::vector<int64_t> objectIds;
 
     std::string tempGCodeFile;
 
@@ -224,6 +225,7 @@ void CommandSocket::beginGCode()
 void CommandSocket::endGCode()
 {
     auto message = std::make_shared<Cura::GCode>();
+    message->set_id(d->objectIds[0]);
     message->set_filename(d->tempGCodeFile);
     d->socket->sendMessage(message);
 }
