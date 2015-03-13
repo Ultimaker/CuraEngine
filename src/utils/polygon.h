@@ -383,9 +383,10 @@ public:
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
-        ClipperLib::ClipperOffset clipper(2.0, 10.0);
+        double miterLimit = 1.2;
+        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
         clipper.AddPaths(polygons, joinType, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = 2.0;
+        clipper.MiterLimit = miterLimit;
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
