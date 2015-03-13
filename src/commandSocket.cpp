@@ -7,6 +7,10 @@
 
 #include <Arcus/Socket.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 namespace cura {
 
 #define BYTES_PER_FLOAT 4
@@ -218,7 +222,19 @@ void CommandSocket::beginGCode()
 #ifdef __GNUC__
 #warning This is a very very ugly hack
 #endif
+
+#ifndef _WIN32
     d->tempGCodeFile = tmpnam(nullptr);
+#else
+    char* tempdir = new char[MAX_PATH + 1];
+    GetTempPath(MAX_PATH + 1, tempdir);
+    char* filename = new char[MAX_PATH];
+    GetTempFileName(tempdir, "", 0, filename);
+    d->tempGCodeFile = filename;
+    delete[] tempdir;
+    delete[] filename;
+#endif
+
     d->processor->setTargetFile(d->tempGCodeFile.c_str());
 }
 
