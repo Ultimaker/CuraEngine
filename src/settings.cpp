@@ -77,11 +77,16 @@ void SettingRegistry::registerSetting(std::string setting)
 
 SettingRegistry::SettingRegistry()
 {
+    registerSetting("neith");
+    
     registerSetting("simpleMode");
     registerSetting("spiralizeMode");
     registerSetting("enableOozeShield");
     registerSetting("autoCenter");
     registerSetting("fixHorrible");
+    
+    registerSetting("bedTemperature"); // in 1/100th degrees
+    registerSetting("printTemperature"); // in 1/100th degrees
     
     registerSetting("initialSpeedupLayers");
     registerSetting("minimalFeedrate");

@@ -22,6 +22,7 @@
 #include "gcodePlanner.h"
 #include "gcodeExport.h"
 #include "commandSocket.h"
+#include "Weaver.h"
 
 namespace cura {
 
@@ -97,15 +98,26 @@ public:
             return false;
 
         TimeKeeper timeKeeperTotal;
-        SliceDataStorage storage;
-        preSetup();
+        
+        if (model->getSettingInt("neith"))
+        {
+            log("starting Neith Weaver...\n");
+            
+            Weaver w(this);
+            w.weave(model);
+            
+        } else 
+        {
+            SliceDataStorage storage;
+            preSetup();
 
-        if (!prepareModel(storage, model))
-            return false;
+            if (!prepareModel(storage, model))
+                return false;
 
 
-        processSliceData(storage);
-        writeGCode(storage);
+            processSliceData(storage);
+            writeGCode(storage);
+        }
 
         logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
@@ -372,7 +384,9 @@ private:
                 if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
                     gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
             
-
+            if (hasSetting("bedTemperature") && getSettingInt("bedTemperature") > 0)
+                gcode.writeLine("M190 S%d ;Bed temperature", static_cast<double>(getSettingInt("bedTemperature"))/100);
+            
             gcode.writeCode(getSetting("startCode").c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {

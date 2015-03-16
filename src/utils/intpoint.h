@@ -47,6 +47,7 @@ public:
     Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
     Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
+    Point3 operator*(const int32_t i) const { return Point3(x*i, y*i, z*i); }
 
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     Point3& operator -= (const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
@@ -101,9 +102,16 @@ public:
             x*p.y-y*p.x);
     }
 
-
+    int64_t dot(const Point3& p)
+    {
+        return x*p.x + y*p.y + z*p.z;
+    }
 
 };
+
+inline Point3 operator*(const int64_t i, const Point3& rhs) {
+    return rhs * i;
+}
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
@@ -120,6 +128,7 @@ INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
 INLINE Point operator*(const Point& p0, const int32_t i) { return Point(p0.X*i, p0.Y*i); }
+INLINE Point operator*(const int32_t i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }

@@ -36,6 +36,7 @@ set(engine_SRCS
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
+    src/Weaver.cpp
 
     src/modelFile/modelFile.cpp
 
