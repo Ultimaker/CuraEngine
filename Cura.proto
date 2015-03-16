@@ -50,7 +50,8 @@ message Polygon {
 
 // typeid 4
 message GCode {
-    string filename = 1;
+    int64 id = 1;
+    string filename = 2;
 }
 
 // typeid 5

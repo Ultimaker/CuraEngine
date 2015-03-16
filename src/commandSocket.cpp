@@ -3,8 +3,13 @@
 #include "fffProcessor.h"
 
 #include <thread>
+#include <cinttypes>
 
 #include <Arcus/Socket.h>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 namespace cura {
 
@@ -34,7 +39,7 @@ public:
     std::shared_ptr<Cura::SlicedObjectList> slicedObjectList;
     Cura::SlicedObject* currentSlicedObject;
     int slicedObjects;
-    std::vector<long> objectIds;
+    std::vector<int64_t> objectIds;
 
     std::string tempGCodeFile;
 
@@ -217,13 +222,26 @@ void CommandSocket::beginGCode()
 #ifdef __GNUC__
 #warning This is a very very ugly hack
 #endif
+
+#ifndef _WIN32
     d->tempGCodeFile = tmpnam(nullptr);
+#else
+    char* tempdir = new char[MAX_PATH + 1];
+    GetTempPath(MAX_PATH + 1, tempdir);
+    char* filename = new char[MAX_PATH];
+    GetTempFileName(tempdir, "", 0, filename);
+    d->tempGCodeFile = filename;
+    delete[] tempdir;
+    delete[] filename;
+#endif
+
     d->processor->setTargetFile(d->tempGCodeFile.c_str());
 }
 
 void CommandSocket::endGCode()
 {
     auto message = std::make_shared<Cura::GCode>();
+    message->set_id(d->objectIds[0]);
     message->set_filename(d->tempGCodeFile);
     d->socket->sendMessage(message);
 }
