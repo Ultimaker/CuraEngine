@@ -48,6 +48,7 @@ public:
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
     Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
     Point3 operator*(const int32_t i) const { return Point3(x*i, y*i, z*i); }
+    Point3 operator*(const double d) const { return Point3(d*x, d*y, d*z); }
 
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     Point3& operator -= (const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
@@ -92,7 +93,14 @@ public:
     {
         return sqrt(vSize2());
     }
-
+    
+    double vSizeMM() const
+    {
+        double fx = INT2MM(x);
+        double fy = INT2MM(y);
+        double fz = INT2MM(z);
+        return sqrt(fx*fx+fy*fy+fz*fz);
+    }
     /*! this function is deprecated because it can cause overflows for vectors which easily fit inside a printer. Use FPoint3.cross(a,b) instead. */
     DEPRECATED(Point3 cross(const Point3& p))
     {
@@ -109,8 +117,12 @@ public:
 
 };
 
-inline Point3 operator*(const int64_t i, const Point3& rhs) {
+inline Point3 operator*(const int32_t i, const Point3& rhs) {
     return rhs * i;
+}
+
+inline Point3 operator*(const double d, const Point3& rhs) {
+    return rhs * d;
 }
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
@@ -234,5 +246,23 @@ public:
         return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
     }
 };
+
+
+inline Point3 operator+(const Point3& p3, const Point& p2) {
+    return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
+}
+
+inline Point operator+(const Point& p2, const Point3& p3) {
+    return Point(p3.x + p2.X, p3.y + p2.Y);
+}
+
+
+inline Point3 operator-(const Point3& p3, const Point& p2) {
+    return Point3(p3.x - p2.X, p3.y - p2.Y, p3.z);
+}
+
+inline Point operator-(const Point& p2, const Point3& p3) {
+    return Point(p2.X - p3.x, p2.Y - p3.y);
+}
 
 #endif//INT_POINT_H
