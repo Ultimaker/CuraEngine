@@ -51,6 +51,14 @@ public:
         POLY_ASSERT(index < size());
         return (*polygon)[index];
     }
+    ClipperLib::Path::iterator begin() 
+    {
+        return polygon->begin();
+    }
+    ClipperLib::Path::iterator end() 
+    {
+        return polygon->end();
+    }
 
     void* data()
     {
@@ -269,17 +277,6 @@ public:
             }
         }
     }
-        
-    ClipperLib::Path::iterator begin()
-    {
-        return polygon->begin();
-    }
-
-    ClipperLib::Path::iterator end()
-    {
-        return polygon->end();
-    }
-
     ClipperLib::Path::const_iterator begin() const
     {
         return polygon->begin();
@@ -325,6 +322,14 @@ public:
     {
         POLY_ASSERT(index < size());
         return PolygonRef(polygons[index]);
+    }
+    ClipperLib::Paths::iterator begin()
+    {
+        return polygons.begin();
+    }
+    ClipperLib::Paths::iterator end()
+    {
+        return polygons.end();
     }
     void remove(unsigned int index)
     {
@@ -437,6 +442,60 @@ public:
         _processPolyTreeNode(&resultPolyTree, ret);
         return ret;
     }
+    /*!
+     * Removes the same polygons from this set (and also empty polygons).
+     * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
+     */
+    Polygons remove(Polygons& to_be_removed, int same_distance = 0)
+    {
+        Polygons result;
+        for (int inset_poly_idx = 0; inset_poly_idx < size(); inset_poly_idx++)
+        {
+            PolygonRef inset_poly = (*this)[inset_poly_idx];
+            bool should_be_removed = false;
+            if (inset_poly.size() > 0) 
+            for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+            {
+                PolygonRef hole = to_be_removed[hole_poly_idx];
+                if (hole.size() != inset_poly.size() || hole.size() == 0) continue;
+                
+                // find closest point, supposing this point aligns the two shapes in the best way
+                int closest_point_idx = 0;
+                int smallestDist2 = -1;
+                for (int hole_point_idx = 0; hole_point_idx < hole.size(); hole_point_idx++)
+                {
+                    int dist2 = vSize2(hole[hole_point_idx] - inset_poly[0]);
+                    if (dist2 < smallestDist2 || smallestDist2 < 0)
+                    {
+                        smallestDist2 = dist2;
+                        closest_point_idx = hole_point_idx;
+                    }
+                }
+                bool inset_poly_is_hole = true;
+                // compare the two polygons on all points
+                if (smallestDist2 > same_distance * same_distance) continue;
+                for (int point_idx = 0; point_idx < hole.size(); point_idx++)
+                {
+                    int dist2 = vSize2(hole[(closest_point_idx + point_idx) % hole.size()] - inset_poly[point_idx]);
+                    if (dist2 > same_distance * same_distance)
+                    {
+                        inset_poly_is_hole = false;
+                        break;
+                    }
+                }
+                if (inset_poly_is_hole)
+                {
+                    should_be_removed = true;
+                    break;
+                }
+            }
+            if (!should_be_removed)
+                result.add(inset_poly);
+            
+        }
+        return result;
+    }
+            
 private:
     void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Polygons>& ret) const
     {
