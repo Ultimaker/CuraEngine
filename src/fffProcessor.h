@@ -31,7 +31,7 @@ class fffProcessor : public SettingsBase
 {
 private:
     int maxObjectHeight;
-    int fileNr;
+    int fileNr; //!< used for sequential printing of objects
     GCodeExport gcode;
     TimeKeeper timeKeeper;
     CommandSocket* commandSocket;
@@ -102,9 +102,14 @@ public:
         if (model->getSettingInt("neith"))
         {
             log("starting Neith Weaver...\n");
-            
+                        
             Weaver w(this);
             w.weave(model);
+            
+            log("starting Neith Gcode generation...\n");
+            preSetup();
+            w.writeGCode(gcode, commandSocket, maxObjectHeight);
+            log("finished Neith Gcode generation...\n");
             
         } else 
         {

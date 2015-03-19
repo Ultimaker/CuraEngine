@@ -102,6 +102,10 @@ void GCodeExport::setZ(int z)
     this->zPos = z;
 }
 
+Point3 GCodeExport::getPosition()
+{
+    return currentPosition;
+}
 Point GCodeExport::getPositionXY()
 {
     return Point(currentPosition.x, currentPosition.y);
@@ -190,7 +194,16 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
 {
-    if (currentPosition.x == p.X && currentPosition.y == p.Y && currentPosition.z == zPos)
+    writeMove(p.X, p.Y, zPos, speed, extrusion_per_mm);
+}
+
+void GCodeExport::writeMove(Point3 p, int speed, double extrusion_per_mm)
+{
+    writeMove(p.x, p.y, p.z, speed, extrusion_per_mm);
+}
+void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per_mm)
+{
+    if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
 
     if (flavor == GCODE_FLAVOR_BFB)
@@ -218,8 +231,9 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
             fspeed *= (rpm / (roundf(rpm * 100) / 100));
 
             //Increase the extrusion amount to calculate the amount of filament used.
-            Point diff = p - getPositionXY();
-            extrusion_amount += extrusion_per_mm * vSizeMM(diff);
+            Point3 diff = Point3(x,y,z) - getPosition();
+            
+            extrusion_amount += extrusion_per_mm * diff.vSizeMM();
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
             if (!isRetracted)
@@ -228,13 +242,13 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
                 isRetracted = true;
             }
         }
-        fprintf(f, "G1 X%0.3f Y%0.3f Z%0.3f F%0.1f\r\n", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y), INT2MM(zPos), fspeed);
+        fprintf(f, "G1 X%0.3f Y%0.3f Z%0.3f F%0.1f\r\n", INT2MM(x - extruderOffset[extruderNr].X), INT2MM(y - extruderOffset[extruderNr].Y), INT2MM(z), fspeed);
     }else{
         
         //Normal E handling.
         if (extrusion_per_mm > 0.000001)
         {
-            Point diff = p - getPositionXY();
+            Point3 diff = Point3(x,y,z) - getPosition();
             if (isZHopped > 0)
             {
                 fprintf(f, "G1 Z%0.3f\n", INT2MM(currentPosition.z));
@@ -256,7 +270,7 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
                     resetExtrusionValue();
                 isRetracted = false;
             }
-            extrusion_amount += extrusion_per_mm * vSizeMM(diff);
+            extrusion_amount += extrusion_per_mm * diff.vSizeMM();
             fprintf(f, "G1");
         }else{
             fprintf(f, "G0");
@@ -268,15 +282,15 @@ void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
             currentSpeed = speed;
         }
 
-        fprintf(f, " X%0.3f Y%0.3f", INT2MM(p.X - extruderOffset[extruderNr].X), INT2MM(p.Y - extruderOffset[extruderNr].Y));
-        if (zPos != currentPosition.z)
-            fprintf(f, " Z%0.3f", INT2MM(zPos));
+        fprintf(f, " X%0.3f Y%0.3f", INT2MM(x - extruderOffset[extruderNr].X), INT2MM(y - extruderOffset[extruderNr].Y));
+        if (z != currentPosition.z)
+            fprintf(f, " Z%0.3f", INT2MM(z));
         if (extrusion_per_mm > 0.000001)
             fprintf(f, " %c%0.5f", extruderCharacter[extruderNr], extrusion_amount);
         fprintf(f, "\n");
     }
     
-    currentPosition = Point3(p.X, p.Y, zPos);
+    currentPosition = Point3(x, y, z);
     startPosition = currentPosition;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), speed);
 }
@@ -395,9 +409,10 @@ void GCodeExport::writeTemperatureCommand(int extruder, int temperature, bool wa
 
 void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCode)
 {
+    std::cerr << "maxObjectHeight : " << maxObjectHeight << std::endl;
     writeFanCommand(0);
     setZ(maxObjectHeight + 5000);
-    writeMove(getPositionXY(), moveSpeed, 0);
+    writeMove(Point3(0,0,maxObjectHeight + 5000) + getPositionXY(), moveSpeed, 0);
     writeCode(endCode);
     log("Print time: %d\n", int(getTotalPrintTime()));
     log("Filament: %d\n", int(getTotalFilamentUsed(0)));

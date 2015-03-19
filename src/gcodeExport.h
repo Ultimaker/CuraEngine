@@ -149,6 +149,8 @@ public:
     
     void setZ(int z);
     
+    Point3 getPosition();
+    
     Point getPositionXY();
     
     int getPositionZ();
@@ -174,6 +176,10 @@ public:
     
     void writeMove(Point p, int speed, double extrusion_per_mm);
     
+    void writeMove(Point3 p, int speed, double extrusion_per_mm);
+private:
+    void writeMove(int x, int y, int z, int speed, double extrusion_per_mm);
+public:
     void writeRetraction(RetractionConfig* config, bool force=false);
     
     void switchExtruder(int newExtruder);
