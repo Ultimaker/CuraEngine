@@ -89,8 +89,15 @@ SettingRegistry::SettingRegistry()
     registerSetting("printTemperature"); // in 1/100th degrees
     
     registerSetting("initialSpeedupLayers");
-    registerSetting("minimalFeedrate");
+    registerSetting("initialLayerSpeed");
+    registerSetting("inset0Speed");
     registerSetting("insetXSpeed");
+    registerSetting("infillSpeed");
+    registerSetting("moveSpeed");
+    registerSetting("skinSpeed");
+    registerSetting("skirtSpeed");
+    
+    registerSetting("minimalFeedrate");
     registerSetting("retractionZHop");
     registerSetting("extruderOffset[3].X");
     registerSetting("extruderOffset[3].Y");
@@ -98,15 +105,13 @@ SettingRegistry::SettingRegistry()
     registerSetting("retractionSpeed");
     registerSetting("filamentFlow");
     registerSetting("infillOverlap");
-    registerSetting("inset0Speed");
     registerSetting("coolHeadLift");
     registerSetting("extrusionWidth");
     registerSetting("upSkinCount");
-    registerSetting("initialLayerSpeed");
     registerSetting("minimalLayerTime");
-    registerSetting("infillSpeed");
+    registerSetting("enableCombing")
+    ;
     registerSetting("fanSpeedMax");
-    registerSetting("enableCombing");
     registerSetting("fanSpeedMin");
     
     registerSetting("raftAirGapLayer0");
@@ -169,8 +174,6 @@ SettingRegistry::SettingRegistry()
     registerSetting("extruderOffset[2].Y");
     registerSetting("extruderOffset[2].X");
     registerSetting("layer0extrusionWidth");
-    registerSetting("moveSpeed");
-    registerSetting("skinSpeed");
     registerSetting("supportLineDistance");
     registerSetting("retractionAmountExtruderSwitch");
     registerSetting("sparseInfillLineDistance");
@@ -182,7 +185,6 @@ SettingRegistry::SettingRegistry()
     registerSetting("position.Z");
     registerSetting("retractionPrimeAmount");
     registerSetting("retractionPrimeSpeed");
-    registerSetting("skirtSpeed");
     registerSetting("extruderNr");
     registerSetting("sparseInfillCombineCount");
     registerSetting("retractionExtruderSwitchPrimeSpeed");
