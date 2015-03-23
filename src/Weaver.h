@@ -42,8 +42,6 @@ private:
     int extrusionWidth;
     int flowConnection;// = getSettingInt("wireframeFlowConnection");
     int flowFlat; // = getSettingInt("wireframeFlowFlat");
-    double filament_area; // = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-    double lineArea; // = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
     double extrusion_per_mm_connection; // = lineArea / filament_area * double(flowConnection) / 100.0;
     double extrusion_per_mm_flat; // = lineArea / filament_area * double(flowFlat) / 100.0;
     int nozzle_outer_diameter; // = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
@@ -52,64 +50,26 @@ private:
     int nozzle_clearance; // = getSettingInt("wireframeNozzleClearance");    // at least line width
     int nozzle_top_diameter; // = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     int moveSpeed; // = 40;
-    int bottomSpeed; // =  getSettingInt("wireframePrintspeedBottom");
-    int upSpeed; // = getSettingInt("wireframePrintspeedUp");
-    int downSpeed; // = getSettingInt("wireframePrintspeedDown");
-    int flatSpeed; // = getSettingInt("wireframePrintspeedFlat");
+    int speedBottom; // =  getSettingInt("wireframePrintspeedBottom");
+    int speedUp; // = getSettingInt("wireframePrintspeedUp");
+    int speedDown; // = getSettingInt("wireframePrintspeedDown");
+    int speedFlat; // = getSettingInt("wireframePrintspeedFlat");
     int connectionHeight; // = getSettingInt("wireframeConnectionHeight"); 
     int roof_inset; // = getSettingInt("wireframeRoofInset"); 
-    double wait_at_each_top_point; // = getSettingInt("wireframeFlatDelay")/100.0;
-    double wait_at_bottom; // = getSettingInt("wireframeBottomDelay")/100.0;
-    double top_pause; // = getSettingInt("wireframeTopDelay")/100.0;
+    double flat_delay; // = getSettingInt("wireframeFlatDelay")/100.0;
+    double bottom_delay; // = getSettingInt("wireframeBottomDelay")/100.0;
+    double top_delay; // = getSettingInt("wireframeTopDelay")/100.0;
     int up_dist_half_speed; // = getSettingInt("wireframeUpDistHalfSpeed");
     int top_jump_dist; // = getSettingInt("wireframeTopJump");
     int fall_down; // = getSettingInt("wireframeFallDown");
     int drag_along; // = getSettingInt("wireframeDragAlong");
-    int straighten_strategy; // = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
+    int strategy; // = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
     double go_back_to_last_top; // = false;
     int straight_first_when_going_down; // = getSettingInt("wireframeStraightBeforeDown"); // %
-    int roof_connection_heighten_dist; // = getSettingInt("wireframeRoofFallDown");
+    int roof_fall_down; // = getSettingInt("wireframeRoofFallDown");
     int roof_drag_along; // = getSettingInt("wireframeRoofDragAlong");
-    double roof_bottom_wait; // = getSettingInt("wireframeRoofOuterDelay")/100.0;
+    double roof_outer_delay; // = getSettingInt("wireframeRoofOuterDelay")/100.0;
     
-    
-    void debugShowAllSettings() 
-    {
-        DEBUG_SHOW(initial_layer_thickness);
-        DEBUG_SHOW(connectionHeight);
-        DEBUG_SHOW(filament_diameter);
-        DEBUG_SHOW(extrusionWidth);
-        DEBUG_SHOW(flowConnection);// = getSettingInt("wireframeFlowConnection"));
-        DEBUG_SHOW(flowFlat); // = getSettingInt("wireframeFlowFlat"));
-        DEBUG_SHOW(filament_area); // = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0));
-        DEBUG_SHOW(lineArea); // = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0));
-        DEBUG_SHOW(extrusion_per_mm_connection); // = lineArea / filament_area * double(flowConnection) / 100.0);
-        DEBUG_SHOW(extrusion_per_mm_flat); // = lineArea / filament_area * double(flowFlat) / 100.0);
-        DEBUG_SHOW(nozzle_outer_diameter); // = getSettingInt("machineNozzleTipOuterDiameter")); // ___       ___   .
-        DEBUG_SHOW(nozzle_head_distance); // = getSettingInt("machineNozzleHeadDistance"));      //    |     |      .
-        DEBUG_SHOW(nozzle_expansion_angle); // = getSettingInt("machineNozzleExpansionAngle"));  //     \_U_/       .
-        DEBUG_SHOW(nozzle_clearance); // = getSettingInt("wireframeNozzleClearance"));    // at least line width
-        DEBUG_SHOW(nozzle_top_diameter); // = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance);
-        DEBUG_SHOW(moveSpeed); // = 40);
-        DEBUG_SHOW(bottomSpeed); // =  getSettingInt("wireframePrintspeedBottom"));
-        DEBUG_SHOW(upSpeed); // = getSettingInt("wireframePrintspeedUp"));
-        DEBUG_SHOW(downSpeed); // = getSettingInt("wireframePrintspeedDown"));
-        DEBUG_SHOW(flatSpeed); // = getSettingInt("wireframePrintspeedFlat"));
-        DEBUG_SHOW(roof_inset); // = getSettingInt("wireframeRoofInset")); 
-        DEBUG_SHOW(wait_at_each_top_point); // = getSettingInt("wireframeFlatDelay")/100.0);
-        DEBUG_SHOW(wait_at_bottom); // = getSettingInt("wireframeBottomDelay")/100.0);
-        DEBUG_SHOW(top_pause); // = getSettingInt("wireframeTopDelay")/100.0);
-        DEBUG_SHOW(up_dist_half_speed); // = getSettingInt("wireframeUpDistHalfSpeed"));
-        DEBUG_SHOW(top_jump_dist); // = getSettingInt("wireframeTopJump"));
-        DEBUG_SHOW(fall_down); // = getSettingInt("wireframeFallDown"));
-        DEBUG_SHOW(drag_along); // = getSettingInt("wireframeDragAlong"));
-        DEBUG_SHOW(straighten_strategy); // = getSettingInt("wireframeStrategy")); //  HIGHER_BEND_NO_STRAIGHTEN); // RETRACT_TO_STRAIGHTEN); // MOVE_TO_STRAIGHTEN); // 
-        DEBUG_SHOW(go_back_to_last_top); // = false);
-        DEBUG_SHOW(straight_first_when_going_down); // = getSettingInt("wireframeStraightBeforeDown")); // %
-        DEBUG_SHOW(roof_connection_heighten_dist); // = getSettingInt("wireframeRoofFallDown"));
-        DEBUG_SHOW(roof_drag_along); // = getSettingInt("wireframeRoofDragAlong"));
-        DEBUG_SHOW(roof_bottom_wait); // = getSettingInt("wireframeRoofOuterDelay")/100.0);
-    }
     
     
 public:
@@ -130,8 +90,8 @@ public:
         
         
         
-        filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-        lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
+        double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
+        double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
         
         extrusion_per_mm_connection = lineArea / filament_area * double(flowConnection) / 100.0;
         extrusion_per_mm_flat = lineArea / filament_area * double(flowFlat) / 100.0;
@@ -144,19 +104,19 @@ public:
         
         
         moveSpeed = 40;
-        bottomSpeed =  getSettingInt("wireframePrintspeedBottom");
-        upSpeed = getSettingInt("wireframePrintspeedUp");
-        downSpeed = getSettingInt("wireframePrintspeedDown");
-        flatSpeed = getSettingInt("wireframePrintspeedFlat");
+        speedBottom =  getSettingInt("wireframePrintspeedBottom");
+        speedUp = getSettingInt("wireframePrintspeedUp");
+        speedDown = getSettingInt("wireframePrintspeedDown");
+        speedFlat = getSettingInt("wireframePrintspeedFlat");
     
         
         
         
         
         
-        wait_at_each_top_point = getSettingInt("wireframeFlatDelay")/100.0;
-        wait_at_bottom = getSettingInt("wireframeBottomDelay")/100.0;
-        top_pause = getSettingInt("wireframeTopDelay")/100.0;
+        flat_delay = getSettingInt("wireframeFlatDelay")/100.0;
+        bottom_delay = getSettingInt("wireframeBottomDelay")/100.0;
+        top_delay = getSettingInt("wireframeTopDelay")/100.0;
         
         up_dist_half_speed = getSettingInt("wireframeUpDistHalfSpeed");
         
@@ -171,7 +131,7 @@ public:
         
         
         
-        straighten_strategy = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
+        strategy = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
         
         
         go_back_to_last_top = false;
@@ -179,11 +139,10 @@ public:
         
         
         
-        roof_connection_heighten_dist = getSettingInt("wireframeRoofFallDown");
+        roof_fall_down = getSettingInt("wireframeRoofFallDown");
         roof_drag_along = getSettingInt("wireframeRoofDragAlong");
-        roof_bottom_wait = getSettingInt("wireframeRoofOuterDelay")/100.0;
+        roof_outer_delay = getSettingInt("wireframeRoofOuterDelay")/100.0;
         
-        debugShowAllSettings();
     };
 
     
@@ -202,6 +161,10 @@ private:
     static void getOuterPolygons(Polygons& in, Polygons& result);
     
     void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result);
+    
+    template<class WireConnection_>
+    void fillHorizontal(Polygons& outlines, int z, std::vector<WireConnection_>& result);
+    
     static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
     static Point getClosestOnLine(Point from, Point p0, Point p1);
