@@ -15,7 +15,7 @@ void Weaver::weave(PrintObject* object)
     //bool succeeded = prepareModel(storage, model);
 
     int initial_layer_thickness = object->getSettingInt("initialLayerThickness");
-    int layer_thickness = nozzle_head_distance; // object->getSettingInt("layerThickness");
+    int layer_thickness = connectionHeight; // object->getSettingInt("layerThickness");
     DEBUG_SHOW(nozzle_top_diameter);
     int layer_count = (maxz - initial_layer_thickness) / layer_thickness + 1;
 
@@ -74,6 +74,7 @@ void Weaver::weave(PrintObject* object)
         
         
         WireLayer& roof_layer = wireFrame.layers.back();
+        int z = roof_layer.z1;
         Polygons roofs = roof_layer.supported;
         std::vector<Polygons> roof_parts = roofs.splitIntoParts();
         
@@ -94,50 +95,16 @@ void Weaver::weave(PrintObject* object)
             simple_inset = simple_inset.unionPolygons(holes);
             inset1 = simple_inset.remove(holes); // only keep inseets and inset-hole interactions (not pure holes!)
             
-//             connect(inset0, );
+            if (inset1.size() == 0) break;
+            
+            roof_layer.roof_insets.emplace_back();
+            
+            connect(inset0, z, inset1, z, roof_layer.roof_insets.back());
             
         }
     }
     
     
-    
-    /*
-    
-    DEBUG_PRINTLN("writing wireframe to CSV file!");
-    
-    std::ofstream bsCSV("bs.csv");
-
-    int z0 = slicerList[0]->layers[starting_l].z;
-    for (PolygonRef bottom_part : wireFrame.bottom)
-    {
-        bsCSV << bottom_part[bottom_part.size()-1].X << ", "<< bottom_part[bottom_part.size()-1].Y <<", " << z0 << std::endl;
-        for (int p = 0; p < bottom_part.size(); p++)
-        {
-            bsCSV << bottom_part[p].X << ", "<< bottom_part[p].Y <<", " << z0 << std::endl;
-        }
-    }
-    
-    for (WireLayer& layer : wireFrame.layers)
-    {
-        for (WireLayerPart& part : layer.parts)
-        {
-            std::vector<WeaveConnectionSegment>& connection = part.connection;
-            for (WeaveConnectionSegment e : connection)
-            {
-                bsCSV << e.from.x << ", " << e.from.y << ", " << e.from.z << std::endl;
-                bsCSV << e.to.x << ", " << e.to.y << ", " << e.to.z << std::endl;
-                
-            }
-            PolygonRef part_top = layer.top[part.top_index];
-            bsCSV << part_top[part_top.size()-1].X << ", "<< part_top[part_top.size()-1].Y <<", " << part.z1 << std::endl;
-            for (int p = 0; p < part_top.size(); p++)
-            {
-                bsCSV << part_top[p].X << ", "<< part_top[p].Y <<", " << part.z1 << std::endl;
-            }
-        }
-    }
-    bsCSV.close();
-    */
 }
 
 Polygons Weaver::getOuterPolygons(Polygons& in)
@@ -154,7 +121,7 @@ void Weaver::getOuterPolygons(Polygons& in, Polygons& result)
     // TODO: remove parts inside of other parts
 }
 
-void Weaver::connect(Polygons& parts1, int z0, Polygons& parts2, int z1, WireConnection& result)
+void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result)
 {
     // TODO: convert polygons (with outset + difference) such that after printing the first polygon, we can't be in the way of the printed stuff
     // something like:
@@ -166,24 +133,27 @@ void Weaver::connect(Polygons& parts1, int z0, Polygons& parts2, int z1, WireCon
     //
     // unify different parts if gap is too small
     
-    if (parts1.size() < 1)
+    if (parts0.size() < 1)
     {
         DEBUG_PRINTLN("lower layer has zero parts!");
         return;
     }
+    
+    result.z0 = z0;
+    result.z1 = z1;
             
     Polygons& top_parts = result.supported;
-    std::vector<WireLayerPart>& parts = result.connections;
+    std::vector<WireConnectionPart>& parts = result.connections;
         
-    for (int prt = 0 ; prt < parts2.size(); prt++)
+    for (int prt = 0 ; prt < parts1.size(); prt++)
     {
         
-        const PolygonRef upperPart = parts2[prt];
+        const PolygonRef upperPart = parts1[prt];
         
         
         PolygonRef part_top = top_parts.newPoly();
-        parts.emplace_back(z0, z1, top_parts.size() - 1);
-        WireLayerPart& part = parts.back();
+        parts.emplace_back(top_parts.size() - 1);
+        WireConnectionPart& part = parts.back();
         std::vector<WireConnectionSegment>& connection = part.connection;
         
         GivenDistPoint next_upper;
@@ -203,7 +173,7 @@ void Weaver::connect(Polygons& parts1, int z0, Polygons& parts2, int z1, WireCon
             
             part_top.add(upper_point);
             
-            ClosestPolygonPoint lowerPolyPoint = findClosest(upper_point, parts1);
+            ClosestPolygonPoint lowerPolyPoint = findClosest(upper_point, parts0);
             Point& lower = lowerPolyPoint.p;
             
             Point3 lower3 = Point3(lower.X, lower.Y, z0);
@@ -432,54 +402,48 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
     }
     
     
-    int initial_layer_thickness = getSettingInt("initialLayerThickness");
-    int layer_thickness = nozzle_head_distance; // object->getSettingInt("layerThickness");
+
     
-    int filament_diameter = getSettingInt("filamentDiameter");
-    int flow = getSettingInt("filamentFlow");
-    double filament_area = M_PI * (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-    double extrusion_per_mm_connection = 0.1; //INT2MM(line_width) * INT2MM(layer_thickness) / filament_area * double(flow) / 100.0;
-    double extrusion_per_mm_flat = 0.13; //INT2MM(line_width) * INT2MM(layer_thickness) / filament_area * double(flow) / 100.0;
+    DEBUG_SHOW(extrusion_per_mm_connection);
+    DEBUG_SHOW(extrusion_per_mm_flat);
     
-    RetractionConfig retraction_config;
-    retraction_config.amount = 500; //INT2MM(getSettingInt("retractionAmount"));
-    retraction_config.primeAmount = 400;//INT2MM(getSettingInt("retractionPrimeAmount"));
-    retraction_config.speed = getSettingInt("retractionSpeed");
-    retraction_config.primeSpeed = getSettingInt("retractionPrimeSpeed");
-    retraction_config.zHop = 0; //getSettingInt("retractionZHop");
-    
-    int bottomSpeed = 5;
+
+    /*
+    // move to straighten settings
+    int speed = 3; //getSettingInt("wireframePrintspeed");
+    int bottomSpeed = speed;
     int moveSpeed = 40;
-    int upSpeed = 3;
-    int downSpeed = 3;
-    int flatSpeed = 3;
+    int upSpeed = speed;
+    int downSpeed = speed;
+    int flatSpeed = speed;
+    */
+    /*
+    // heighten bend settings
+    int speed = 5; 
+    int bottomSpeed = speed;
+    int moveSpeed = 40;
+    int upSpeed = speed;
+    int downSpeed = speed;
+    int flatSpeed = speed;
+    */
     
-    double wait_at_each_top_point = 0.1;
-    
-    double wait_at_bottom = 0.0;
-    int up_dist_half_speed = 300;
-    
-    const int MOVE_TO_STRAIGHTEN = 0;
-    double top_pause = 0.0;
-    int top_jump_dist = 600;
-    
-    
-    const int RETRACT_TO_STRAIGHTEN = 1;
+
+    RetractionConfig retraction_config;
+    retraction_config.amount = 500; //INT2MM(getSettingInt("retractionAmount"))
+    retraction_config.primeAmount = 0;//INT2MM(getSettingInt("retractionPrime
+    retraction_config.speed = 20; // 40;
+    retraction_config.primeSpeed = 15; // 30;
+    retraction_config.zHop = 0; //getSettingInt("retractionZHop");
+
     double top_retract_pause = 2.0;
     int retract_hop_dist = 1000;
-    bool reserve_diagonal_direction = false;
     bool after_retract_hop = false;
     bool go_horizontal_first = true;
     bool lower_retract_start = true;
     
-    int straighten_strategy = MOVE_TO_STRAIGHTEN;
     
     
-    double go_back_to_last_top = true;
-    int straight_first_when_going_down = 40; // %
-    
-    
-    auto go_down = [&](WireConnectionSegment& segment, WireLayer& layer, WireLayerPart& part, int segment_idx) 
+    auto go_down = [&](WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) 
     { 
         if (go_back_to_last_top)
             gcode.writeMove(segment.from, downSpeed, 0);
@@ -489,15 +453,15 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
         } else 
         {
             Point3& to = segment.to;
-            Point3& from = segment.from;
+            Point3 from = gcode.getPosition();// segment.from;
             Point3 vec = to - from;
             Point3 in_between = from + vec * straight_first_when_going_down / 100;
 //                 Point in_between2D(in_between.x, in_between.y);
             Point3 up(in_between.x, in_between.y, from.z);
-            gcode.writeMove(up, downSpeed, extrusion_per_mm_connection);
-            int64_t orr_length = vec.vSize();/*
-            int64_t new_length = (up - from).vSize() + (to - up).vSize() + 5;
+            /* int64_t new_length = (up - from).vSize() + (to - up).vSize() + 5;
             double enlargement = new_length / orr_length;*/
+            gcode.writeMove(up, downSpeed, extrusion_per_mm_connection);
+            int64_t orr_length = vec.vSize();
             gcode.writeMove(to, downSpeed, 0);
         }
         gcode.writeDelay(wait_at_bottom);
@@ -508,19 +472,7 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
         }
     };
         
-    auto down_dir = [&](WireConnectionSegment& segment, WireLayer& layer, WireLayerPart& part, int segment_idx)
-    {
-        if (reserve_diagonal_direction)
-        {
-            gcode.writeMove(segment.to, moveSpeed, 0);
-            gcode.writeMove(segment.from, downSpeed, extrusion_per_mm_connection);
-            gcode.writeMove(Point3(segment.to.x, segment.to.y, segment.from.z), downSpeed, 0); // same z! 
-            gcode.writeMove(segment.to, downSpeed, 0);
-        } else 
-            go_down(segment, layer, part, segment_idx);
-    };
-        
-    auto move_to_straighten = [&](WireConnectionSegment& segment, WireLayer& layer, WireLayerPart& part, int segment_idx)
+    auto move_to_straighten = [&](WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
     {
         gcode.writeMove(segment.to, upSpeed, extrusion_per_mm_connection);
         Point3 next_vector;
@@ -543,7 +495,7 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
         gcode.writeMove(current_pos + next_dir_2D, upSpeed, 0);
     };
     auto retract_to_straighten = [&](WireConnectionSegment& segment)
-    {
+         {
         Point3& to = segment.to;
         if (lower_retract_start)
         {
@@ -563,13 +515,37 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
             gcode.writeRetraction(&retraction_config, true);
             gcode.writeMove(to + Point3(0, 0, retract_hop_dist), flatSpeed, 0);
             gcode.writeDelay(top_retract_pause);
-            if (after_retract_hop)
+            if (after_retract_hop)    
                 gcode.writeMove(to + Point3(0, 0, retract_hop_dist*3), flatSpeed, 0);
-        }
+         }
     };
-    auto handle_segment = [&](WireConnectionSegment& segment, WireLayer& layer, WireLayerPart& part, int segment_idx) 
+
+    auto higher_bend = [&](WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
     {
-    if (straighten_strategy == MOVE_TO_STRAIGHTEN)
+        Point3 to = segment.to + Point3(0, 0, fall_down);
+        Point3 vector = segment.to - segment.from;
+        Point3 dir = vector * drag_along / vector.vSize();
+        
+        Point3 next_vector;
+        if (segment_idx + 1 < part.connection.size())
+        {
+            WireConnectionSegment& next_segment = part.connection[segment_idx+1];
+            next_vector = next_segment.to - next_segment.from;
+        } else
+        {
+            next_vector = (segment.to - layer.supported[part.top_index][0]) * -1;
+        }
+        Point next_dir_2D(next_vector.x, next_vector.y);
+        int64_t next_dir_2D_size = vSize(next_dir_2D);
+        if (next_dir_2D_size > 0)
+            next_dir_2D = next_dir_2D * drag_along / next_dir_2D_size;
+        Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
+        
+        gcode.writeMove(to - next_dir + dir, upSpeed, extrusion_per_mm_connection);
+    };
+    auto handle_segment = [&](WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) 
+    {
+        if (straighten_strategy == MOVE_TO_STRAIGHTEN)
         {
             if (segment.dir == ExtrusionDirection::UP)
             {
@@ -582,17 +558,65 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
             {
                 retract_to_straighten(segment);
             } else 
+                go_down(segment, layer, part, segment_idx);   
+        } else if (straighten_strategy == HIGHER_BEND_NO_STRAIGHTEN)
+        {
+            if (segment.dir == ExtrusionDirection::UP)
             {
-                down_dir(segment, layer, part, segment_idx);
-            }
+                higher_bend(segment, layer, part, segment_idx);
+            } else 
+                go_down(segment, layer, part, segment_idx);   
         }
+
+    };
+    
+    
+    
+
+    auto handle_roof_segment = [&](WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx)
+    {
+        if (segment.dir == ExtrusionDirection::UP)
+        {
+            Point3 to = segment.to + Point3(0, 0, roof_connection_heighten_dist);
+            
+            Point3 vector = segment.to - segment.from;
+            Point3 dir = vector * roof_drag_along / vector.vSize();
+            
+            Point3 next_vector;
+            if (segment_idx + 1 < part.connection.size())
+            {
+                WireConnectionSegment& next_segment = part.connection[segment_idx+1];
+                next_vector = next_segment.to - next_segment.from;
+            } else
+            {
+                next_vector = (segment.to - inset.supported[part.top_index][0]) * -1;
+            }
+            Point next_dir_2D(next_vector.x, next_vector.y);
+            next_dir_2D = next_dir_2D * roof_drag_along / vSize(next_dir_2D);
+            Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
+            
+            Point3 detoured = to - next_dir + dir;
+            
+            gcode.writeMove(detoured, upSpeed, extrusion_per_mm_connection);
+        } else 
+        {
+            gcode.writeMove(segment.to, upSpeed, extrusion_per_mm_connection);
+            gcode.writeDelay(roof_bottom_wait);
+        }
+ 
     };
     
     
     
     
+    
+    
+    
+    
+    
+    
     // roofs:
-    int roof_inset = nozzle_head_distance; // 45 degrees
+    int roof_inset = connectionHeight; // 45 degrees
     
     
 //             for(SliceMeshStorage& mesh : storage.meshes)
@@ -658,7 +682,7 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
         
         for (int part_nr = 0; part_nr < layer.connections.size(); part_nr++)
         {
-            WireLayerPart& part = layer.connections[part_nr];
+            WireConnectionPart& part = layer.connections[part_nr];
             
             if (part.connection.size() == 0) continue;
             if (layer.supported[part.top_index].size() == 0) continue;
@@ -674,8 +698,8 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
                 handle_segment(segment, layer, part, segment_idx);
             }
             
-            gcode.writeComment("TYPE:SKIRT"); // top
-            int new_z = initial_layer_thickness + layer_thickness * (layer_nr + 1);
+            gcode.writeComment("TYPE:WALL-OUTER"); // top
+            int new_z = initial_layer_thickness + connectionHeight * (layer_nr + 1);
             gcode.setZ(new_z);
             maxObjectHeight = std::max(maxObjectHeight, new_z);
             PolygonRef top_part = layer.supported[part.top_index];
@@ -684,6 +708,38 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
                 gcode.writeMove(top_part[poly_point], flatSpeed, extrusion_per_mm_flat);
                 gcode.writeDelay(wait_at_each_top_point);
             }
+            
+            // roofs:
+            gcode.writeComment("TYPE:FILL");
+            for (int inset_idx = 0; inset_idx < layer.roof_insets.size(); inset_idx++)
+            {
+                WireRoofPart& inset = layer.roof_insets[inset_idx];
+                
+                
+                for (int inset_part_nr = 0; inset_part_nr < inset.connections.size(); inset_part_nr++)
+                {
+                    WireConnectionPart& inset_part = inset.connections[inset_part_nr];
+                    
+                    gcode.writeComment("TYPE:SUPPORT"); // connection
+                    if (inset_part.connection.size() == 0) continue;
+                    gcode.writeMove(inset_part.connection[0].from, moveSpeed, 0);
+                    gcode.writeDelay(roof_bottom_wait);
+                    for (int segment_idx = 0; segment_idx < inset_part.connection.size(); segment_idx++)
+                    {
+                        WireConnectionSegment& segment = inset_part.connection[segment_idx];
+                        handle_roof_segment(segment, inset, inset_part, segment_idx);
+                    }
+                    
+                    gcode.writeComment("TYPE:WALL-INNER"); // top
+                    PolygonRef inner_part = inset.supported[inset_part.top_index];
+                    for (int poly_point = 0; poly_point < inner_part.size(); poly_point++)
+                    {
+                        gcode.writeMove(inner_part[poly_point], flatSpeed, extrusion_per_mm_flat);
+                        gcode.writeDelay(wait_at_each_top_point);
+                    }
+                }
+            }
+            
         }
         
      
@@ -691,6 +747,8 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
     }
     
     gcode.setZ(maxObjectHeight);
+    
+    gcode.writeDelay(0.3);
     
     gcode.writeFanCommand(0);
 
@@ -712,3 +770,42 @@ void Weaver::writeGCode(GCodeExport& gcode, CommandSocket* commandSocket, int& m
     
 }
 
+
+    
+    /*
+    
+    DEBUG_PRINTLN("writing wireframe to CSV file!");
+    
+    std::ofstream bsCSV("bs.csv");
+
+    int z0 = slicerList[0]->layers[starting_l].z;
+    for (PolygonRef bottom_part : wireFrame.bottom)
+    {
+        bsCSV << bottom_part[bottom_part.size()-1].X << ", "<< bottom_part[bottom_part.size()-1].Y <<", " << z0 << std::endl;
+        for (int p = 0; p < bottom_part.size(); p++)
+        {
+            bsCSV << bottom_part[p].X << ", "<< bottom_part[p].Y <<", " << z0 << std::endl;
+        }
+    }
+    
+    for (WireLayer& layer : wireFrame.layers)
+    {
+        for (WireLayerPart& part : layer.parts)
+        {
+            std::vector<WeaveConnectionSegment>& connection = part.connection;
+            for (WeaveConnectionSegment e : connection)
+            {
+                bsCSV << e.from.x << ", " << e.from.y << ", " << e.from.z << std::endl;
+                bsCSV << e.to.x << ", " << e.to.y << ", " << e.to.z << std::endl;
+                
+            }
+            PolygonRef part_top = layer.top[part.top_index];
+            bsCSV << part_top[part_top.size()-1].X << ", "<< part_top[part_top.size()-1].Y <<", " << part.z1 << std::endl;
+            for (int p = 0; p < part_top.size(); p++)
+            {
+                bsCSV << part_top[p].X << ", "<< part_top[p].Y <<", " << part.z1 << std::endl;
+            }
+        }
+    }
+    bsCSV.close();
+    */

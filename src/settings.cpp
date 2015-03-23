@@ -194,6 +194,35 @@ SettingRegistry::SettingRegistry()
     registerSetting("wipeTowerSize");
     
     
+    
+    
+    registerSetting("machineNozzleTipOuterDiameter");
+    registerSetting("machineNozzleHeadDistance");
+    registerSetting("machineNozzleExpansionAngle");
+    
+    registerSetting("wireframeFlowConnection");
+    registerSetting("wireframeFlowFlat");
+    registerSetting("wireframePrintspeedBottom");
+    registerSetting("wireframePrintspeedUp");
+    registerSetting("wireframePrintspeedDown");
+    registerSetting("wireframePrintspeedFlat");
+    registerSetting("wireframeNozzleClearance");
+    registerSetting("wireframeConnectionHeight");
+    registerSetting("wireframeRoofInset");
+    registerSetting("wireframeFlatDelay");
+    registerSetting("wireframeBottomDelay");
+    registerSetting("wireframeTopDelay");
+    registerSetting("wireframeUpDistHalfSpeed");
+    registerSetting("wireframeTopJump");
+    registerSetting("wireframeFallDown");
+    registerSetting("wireframeDragAlong");
+    registerSetting("wireframeStrategy");
+    registerSetting("wireframeStraightBeforeDown");
+    registerSetting("wireframeRoofFallDown");
+    registerSetting("wireframeRoofDragAlong");
+    registerSetting("wireframeRoofOuterDelay");
+    
+    
     for(int n=0; n<MAX_EXTRUDERS; n++)
     {
         std::ostringstream stream;
