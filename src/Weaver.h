@@ -82,6 +82,11 @@ private:
     
     void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result);
     
+    void chainify_polygons(Polygons& parts1, int z, Polygons& top_parts);
+    void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result);
+
+    
+    
     template<class WireConnection_>
     void fillHorizontal(Polygons& outlines, int z, std::vector<WireConnection_>& result);
     

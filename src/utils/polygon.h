@@ -6,6 +6,8 @@
 #include <float.h>
 #include <clipper/clipper.hpp>
 
+#include <algorithm>    // std::reverse
+
 #include "intpoint.h"
 
 //#define CHECK_POLY_ACCESS
@@ -353,6 +355,10 @@ public:
     {
         polygons.push_back(ClipperLib::Path());
         return PolygonRef(polygons[polygons.size()-1]);
+    }
+    PolygonRef back()
+    {
+        return polygons[polygons.size()-1];
     }
 
     Polygons() {}

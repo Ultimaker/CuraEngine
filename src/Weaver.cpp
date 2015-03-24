@@ -46,11 +46,11 @@ void Weaver::weave(PrintObject* object)
     }
     
     
-    
+    std::cerr<< " chainifying layers..." << std::endl;
     for (cura::Slicer* slicer : slicerList)
         wireFrame.bottom.add(getOuterPolygons(slicer->layers[starting_l].polygonList));
     
-    Polygons lower_top_parts = wireFrame.bottom;
+    wireFrame.z_bottom = slicerList[0]->layers[starting_l].z;
     
     for (int l = starting_l + 1; l < layer_count; l++)
     {
@@ -61,10 +61,55 @@ void Weaver::weave(PrintObject* object)
 
         wireFrame.layers.emplace_back();
         WireLayer& layer = wireFrame.layers.back();
-        connect(lower_top_parts, slicerList[0]->layers[l-1].z, parts2, slicerList[0]->layers[l].z, layer);
-        lower_top_parts = layer.supported;
+        
+        layer.z0 = slicerList[0]->layers[l-1].z;
+        layer.z1 = slicerList[0]->layers[l].z;
+        
+        chainify_polygons(parts2, layer.z1, layer.supported);
+        
+    }
+    
+//     std::cerr<< "finding roof parts..." << std::endl;
+//     
+//     Polygons* lower_top_parts = &wireFrame.bottom;
+//     
+//     int last_z = wireFrame.z_bottom;
+//     for (int l = 0; l < wireFrame.layers.size(); l++)
+//     {
+//         DEBUG_PRINTLN(" layer : " << l);
+//         WireLayer& layer = wireFrame.layers[l];
+//         
+//         connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
+//         //connect(lower_top_parts, slicerList[0]->layers[l-1].z, parts2, slicerList[0]->layers[l].z, layer);
+//         lower_top_parts = &layer.supported;
+//         
+//         last_z = layer.z1;
+//         
+    }
+    
+    std::cerr<< "connecting layers..." << std::endl;
+    
+    Polygons* lower_top_parts = &wireFrame.bottom;
+    
+    int last_z = wireFrame.z_bottom;
+    for (int l = 0; l < wireFrame.layers.size(); l++)
+    {
+        DEBUG_PRINTLN(" layer : " << l);
+        WireLayer& layer = wireFrame.layers[l];
+        
+        connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
+        lower_top_parts = &layer.supported;
+        
+        last_z = layer.z1;
+        
     }
 
+//     std::vector<WireLayer>& layers = wireFrame.layers;
+//     for (int l = starting_l + 1; l < layer_count; l++)
+//     {
+//         Polygons& supported = layers[l].supported;
+//         Polygons& 
+//     }
     { // roofs:
         // TODO: introduce separate top roof layer
         // TODO: compute roofs for all layers!
@@ -91,14 +136,16 @@ void Weaver::fillHorizontal(Polygons& roofs, int z, std::vector<WireConnection_>
         for (int hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
         {
             holes.add(roof_part[hole_idx]);
+            holes.back().reverse();
         }
     
     Polygons inset1;
+    
     for (Polygons inset0 = roof_outlines; inset0.size() > 0; inset0 = inset1)
     {
         Polygons simple_inset = inset0.offset(-roof_inset);
         simple_inset = simple_inset.unionPolygons(holes);
-        inset1 = simple_inset.remove(holes); // only keep inseets and inset-hole interactions (not pure holes!)
+        inset1 = simple_inset.remove(holes); // only keep insets and inset-hole interactions (not pure holes!)
         
         if (inset1.size() == 0) break;
         
@@ -123,6 +170,7 @@ void Weaver::getOuterPolygons(Polygons& in, Polygons& result)
     // TODO: remove parts inside of other parts
 }
 
+
 void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result)
 {
     // TODO: convert polygons (with outset + difference) such that after printing the first polygon, we can't be in the way of the printed stuff
@@ -135,17 +183,14 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
     //
     // unify different parts if gap is too small
     
-    if (parts0.size() < 1)
-    {
-        DEBUG_PRINTLN("lower layer has zero parts!");
-        return;
-    }
-    
-    result.z0 = z0;
-    result.z1 = z1;
-            
-    Polygons& top_parts = result.supported;
-    std::vector<WireConnectionPart>& parts = result.connections;
+    Polygons& supported = result.supported;
+    chainify_polygons(parts1, z1, supported);
+    connect_polygons(parts0, z0, supported, z1, result);
+}
+
+
+void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts)
+{
         
     for (int prt = 0 ; prt < parts1.size(); prt++)
     {
@@ -154,9 +199,6 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
         
         
         PolygonRef part_top = top_parts.newPoly();
-        parts.emplace_back(top_parts.size() - 1);
-        WireConnectionPart& part = parts.back();
-        std::vector<WireConnectionSegment>& connection = part.connection;
         
         GivenDistPoint next_upper;
         bool found = true;
@@ -165,8 +207,7 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
         bool firstIter = true;
         for (Point upper_point = upperPart[0]; found; upper_point = next_upper.p)
         {
-            
-            found = getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, z1, idx, next_upper);
+            found = getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, z, idx, next_upper);
             
             if (!found) 
             {
@@ -174,8 +215,47 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
             }
             
             part_top.add(upper_point);
+           
+            last_upper = Point3(upper_point.X, upper_point.Y, z);
             
-            ClosestPolygonPoint lowerPolyPoint = findClosest(upper_point, parts0);
+            
+            idx = next_upper.pos;
+            
+            firstIter = false;
+        }
+    }
+}
+void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result)
+{
+ 
+    if (supporting.size() < 1)
+    {
+        DEBUG_PRINTLN("lower layer has zero parts!");
+        return;
+    }
+    
+    result.z0 = z0;
+    result.z1 = z1;
+    
+    std::vector<WireConnectionPart>& parts = result.connections;
+        
+    for (int prt = 0 ; prt < supported.size(); prt++)
+    {
+        
+        const PolygonRef upperPart = supported[prt];
+        
+        
+        parts.emplace_back(supported.size() - 1);
+        WireConnectionPart& part = parts.back();
+        std::vector<WireConnectionSegment>& connection = part.connection;
+        
+        Point3 last_upper;
+        bool firstIter = true;
+        
+        for (const Point& upper_point : upperPart)
+        {
+            
+            ClosestPolygonPoint lowerPolyPoint = findClosest(upper_point, supporting);
             Point& lower = lowerPolyPoint.p;
             
             Point3 lower3 = Point3(lower.X, lower.Y, z0);
@@ -186,14 +266,10 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
             
             connection.emplace_back<>(lower3 , upper3, ExtrusionDirection::UP);
             last_upper = upper3;
-
-            
-            idx = next_upper.pos;
             
             firstIter = false;
         }
     }
-
 }
 
 ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)

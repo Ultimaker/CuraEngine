@@ -44,13 +44,15 @@ struct WireRoofPart : WireConnection
 
 struct WireLayer : WireConnection
 {
-    // [supported] are the polygons on the next layer which are (to be) connected
+    // [supported] are the outline polygons on the next layer which are (to be) connected,
+    //             as well as the polygons supported by roofs (holes and boundaries of roofs)
     // [connections] are the vertical connections
     std::vector<WireRoofPart> roof_insets; //!< connections between consecutive insets of the roof polygons
 };
 struct WireFrame
 {
     Polygons bottom;
+    int z_bottom;
     std::vector<WireRoofPart> bottom_insets; //!< connections between consecutive insets of the bottom polygons
     std::vector<WireLayer> layers;
 };

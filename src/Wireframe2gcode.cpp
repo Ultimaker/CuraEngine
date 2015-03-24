@@ -226,7 +226,7 @@ void Wireframe2gcode::go_down(WireConnectionSegment& segment, WireLayer& layer, 
 
 
     
-void Wireframe2gcode::move_to_straighten(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
+void Wireframe2gcode::strategy_knot(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
 {
     gcode.writeMove(segment.to, speedUp, extrusion_per_mm_connection);
     Point3 next_vector;
@@ -248,7 +248,7 @@ void Wireframe2gcode::move_to_straighten(WireConnectionSegment& segment, WireLay
     gcode.writeDelay(top_delay);
     gcode.writeMove(current_pos + next_dir_2D, speedUp, 0);
 };
-void Wireframe2gcode::retract_to_straighten(WireConnectionSegment& segment)
+void Wireframe2gcode::strategy_retract(WireConnectionSegment& segment)
 {
     
     RetractionConfig retraction_config;
@@ -289,28 +289,34 @@ void Wireframe2gcode::retract_to_straighten(WireConnectionSegment& segment)
         }
 };
 
-void Wireframe2gcode::higher_bend(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
+void Wireframe2gcode::strategy_compensate(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
 {
     Point3 to = segment.to + Point3(0, 0, fall_down);
     Point3 vector = segment.to - segment.from;
     Point3 dir = vector * drag_along / vector.vSize();
     
-    Point3 next_vector;
+    Point3 next_point;
     if (segment_idx + 1 < part.connection.size())
     {
         WireConnectionSegment& next_segment = part.connection[segment_idx+1];
-        next_vector = next_segment.to - next_segment.from;
+        next_point = next_segment.to;
     } else
     {
-        next_vector = (segment.to - layer.supported[part.top_index][0]) * -1;
+        next_point = Point3(0,0,segment.to.z) + layer.supported[part.top_index][0];
     }
+    Point3 next_vector = next_point - segment.to;
     Point next_dir_2D(next_vector.x, next_vector.y);
     int64_t next_dir_2D_size = vSize(next_dir_2D);
     if (next_dir_2D_size > 0)
         next_dir_2D = next_dir_2D * drag_along / next_dir_2D_size;
     Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
     
-    gcode.writeMove(to - next_dir + dir, speedUp, extrusion_per_mm_connection);
+    Point3 newTop = to - next_dir + dir;
+    
+    int64_t orrLength = (to - segment.from).vSize() + next_vector.vSize() + 1; // + 1 in order to avoid division by zero
+    int64_t newLength = (newTop - segment.from).vSize() + (next_point - newTop).vSize() + 1; // + 1 in order to avoid division by zero
+    
+    gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
 };
 void Wireframe2gcode::handle_segment(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) 
 {
@@ -318,21 +324,21 @@ void Wireframe2gcode::handle_segment(WireConnectionSegment& segment, WireLayer& 
     {
         if (segment.dir == ExtrusionDirection::UP)
         {
-            move_to_straighten(segment, layer, part, segment_idx);
+            strategy_knot(segment, layer, part, segment_idx);
         } else 
             go_down(segment, layer, part, segment_idx);
     } else if (strategy == STRATEGY_RETRACT)
     {
         if (segment.dir == ExtrusionDirection::UP)
         {
-            retract_to_straighten(segment);
+            strategy_retract(segment);
         } else 
             go_down(segment, layer, part, segment_idx);   
     } else if (strategy == STRATEGY_COMPENSATE)
     {
         if (segment.dir == ExtrusionDirection::UP)
         {
-            higher_bend(segment, layer, part, segment_idx);
+            strategy_compensate(segment, layer, part, segment_idx);
         } else 
             go_down(segment, layer, part, segment_idx);   
     }
@@ -431,12 +437,8 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     flowConnection = getSettingInt("wireframeFlowConnection");
     flowFlat = getSettingInt("wireframeFlowFlat");
     
-    
-    
-    
     double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
     double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
-    
     extrusion_per_mm_connection = lineArea / filament_area * double(flowConnection) / 100.0;
     extrusion_per_mm_flat = lineArea / filament_area * double(flowFlat) / 100.0;
     
@@ -446,42 +448,27 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     nozzle_clearance = getSettingInt("wireframeNozzleClearance");    // at least line width
     nozzle_top_diameter = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     
-    
     moveSpeed = 40;
     speedBottom =  getSettingInt("wireframePrintspeedBottom");
     speedUp = getSettingInt("wireframePrintspeedUp");
     speedDown = getSettingInt("wireframePrintspeedDown");
     speedFlat = getSettingInt("wireframePrintspeedFlat");
 
-    
-    
-    
-    
-    
     flat_delay = getSettingInt("wireframeFlatDelay")/100.0;
     bottom_delay = getSettingInt("wireframeBottomDelay")/100.0;
     top_delay = getSettingInt("wireframeTopDelay")/100.0;
     
     up_dist_half_speed = getSettingInt("wireframeUpDistHalfSpeed");
     
-    
     top_jump_dist = getSettingInt("wireframeTopJump");
-    
-    
-    
     
     fall_down = getSettingInt("wireframeFallDown");
     drag_along = getSettingInt("wireframeDragAlong");
     
-    
-    
     strategy = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
-    
     
     go_back_to_last_top = false;
     straight_first_when_going_down = getSettingInt("wireframeStraightBeforeDown"); // %
-    
-    
     
     roof_fall_down = getSettingInt("wireframeRoofFallDown");
     roof_drag_along = getSettingInt("wireframeRoofDragAlong");

@@ -76,10 +76,11 @@ private:
         , std::function<void (Wireframe2gcode& thiss, Point& p)> flatHandler);
     
     void go_down(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) ;
-    void move_to_straighten(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
-    void retract_to_straighten(WireConnectionSegment& segment);
-    void higher_bend(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
-    void handle_segment(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) ;
+    void strategy_knot(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    void strategy_retract(WireConnectionSegment& segment);
+    void strategy_compensate(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    void handle_segment(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    
     void handle_roof_segment(WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx);
 
 };
