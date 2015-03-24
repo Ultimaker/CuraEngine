@@ -23,6 +23,7 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 #include "Weaver.h"
+#include "Wireframe2gcode.h"
 
 namespace cura {
 
@@ -108,7 +109,8 @@ public:
             
             log("starting Neith Gcode generation...\n");
             preSetup();
-            w.writeGCode(gcode, commandSocket, maxObjectHeight);
+            Wireframe2gcode gcoder(w, gcode, this);
+            gcoder.writeGCode(commandSocket, maxObjectHeight);
             log("finished Neith Gcode generation...\n");
             
         } else 

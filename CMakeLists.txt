@@ -37,6 +37,7 @@ set(engine_SRCS
     src/support.cpp
     src/timeEstimate.cpp
     src/Weaver.cpp
+    src/Wireframe2gcode.cpp
 
     src/modelFile/modelFile.cpp
 
