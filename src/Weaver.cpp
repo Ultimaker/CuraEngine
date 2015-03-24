@@ -69,30 +69,25 @@ void Weaver::weave(PrintObject* object)
         
     }
     
-//     std::cerr<< "finding roof parts..." << std::endl;
-//     
-//     Polygons* lower_top_parts = &wireFrame.bottom;
-//     
-//     int last_z = wireFrame.z_bottom;
-//     for (int l = 0; l < wireFrame.layers.size(); l++)
-//     {
-//         DEBUG_PRINTLN(" layer : " << l);
-//         WireLayer& layer = wireFrame.layers[l];
-//         
-//         connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
-//         //connect(lower_top_parts, slicerList[0]->layers[l-1].z, parts2, slicerList[0]->layers[l].z, layer);
-//         lower_top_parts = &layer.supported;
-//         
-//         last_z = layer.z1;
-//         
+    std::cerr<< "finding roof parts..." << std::endl;
+    
+    Polygons* lower_top_parts = &wireFrame.bottom;
+    
+    for (int l = 0; l < wireFrame.layers.size(); l++)
+    {
+        DEBUG_PRINTLN(" layer : " << l);
+        WireLayer& layer = wireFrame.layers[l];
+        
+        createRoofs(*lower_top_parts, layer, wireFrame.layers[l+1], layer.z1, layer);
+        lower_top_parts = &layer.supported;
+        
+        
     }
     
     std::cerr<< "connecting layers..." << std::endl;
     
-    Polygons* lower_top_parts = &wireFrame.bottom;
-    
     int last_z = wireFrame.z_bottom;
-    for (int l = 0; l < wireFrame.layers.size(); l++)
+    for (int l = 0; l < wireFrame.layers.size()-1; l++) // use top of every layer but the last
     {
         DEBUG_PRINTLN(" layer : " << l);
         WireLayer& layer = wireFrame.layers[l];
@@ -123,6 +118,12 @@ void Weaver::weave(PrintObject* object)
     
 }
 
+
+void Weaver::createRoofs(Polygons lower_top_parts, WireLayer layer, std::vector< WireLayer >::reference arg3, int z1, WireLayer layer)
+{
+    
+}
+    
 template<class WireConnection_>
 void Weaver::fillHorizontal(Polygons& roofs, int z, std::vector<WireConnection_>& result)
 {
@@ -271,6 +272,17 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)
 {
