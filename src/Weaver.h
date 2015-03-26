@@ -90,6 +90,7 @@ private:
     
     template<class WireConnection_>
     void fillRoofs(Polygons& outlines, int z, std::vector<WireConnection_>& result);
+    template<class WireConnection_>
     void fillFloors(Polygons& outlines, int z, std::vector<WireConnection_>& result);
     
     static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);

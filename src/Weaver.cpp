@@ -175,7 +175,7 @@ void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& res
         
     }
 }
-    
+     
 template<class WireConnection_>
 void Weaver::fillFloors(Polygons& roofs, int z, std::vector<WireConnection_>& result)
 {
