@@ -485,7 +485,8 @@ void Wireframe2gcode::writeFill(std::vector<WireRoofPart>& fill_insets
             {
                 if (poly_point >= skippeds.size())
                     DEBUG_SHOW("PROBLEM:" << poly_point);
-                flatHandler(*this, inner_part[poly_point], skippeds[poly_point]);
+                flatHandler(*this, inner_part[poly_point], 
+                            skippeds[poly_point] && (poly_point == 0 || skippeds[poly_point-1]) ); // skip segment only if BOTH endpoints coincide with already put down line...
             }
         }
     }

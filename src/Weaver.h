@@ -80,16 +80,17 @@ private:
     static Polygons getOuterPolygons(Polygons& in);
     static void getOuterPolygons(Polygons& in, Polygons& result);
     
-    void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result);
+    void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result, bool include_last);
     
-    void chainify_polygons(Polygons& parts1, int z, Polygons& top_parts);
+    void chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, bool include_last);
     void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result);
 
     
-    void createRoofs(Polygons& lower_top_parts, WireLayer& layer, WireLayer& layer_above, int z1);
+    void createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& layer_above, int z1);
     
     template<class WireConnection_>
-    void fillRoofs(Polygons& outlines, int z, std::vector<WireConnection_>& result);
+    void fillRoofs(Polygons& outlines, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported);
+    
     template<class WireConnection_>
     void fillFloors(Polygons& outlines, int z, std::vector<WireConnection_>& result);
     

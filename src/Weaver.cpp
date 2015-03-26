@@ -47,58 +47,65 @@ void Weaver::weave(PrintObject* object)
     
     
     std::cerr<< " chainifying layers..." << std::endl;
-    for (cura::Slicer* slicer : slicerList)
-        wireFrame.bottom.add(getOuterPolygons(slicer->layers[starting_l].polygonList));
-    
-    wireFrame.z_bottom = slicerList[0]->layers[starting_l].z;
-    
-    for (int l = starting_l + 1; l < layer_count; l++)
     {
-        DEBUG_PRINTLN(" layer : " << l);
-        Polygons parts1;
         for (cura::Slicer* slicer : slicerList)
-            parts1.add(getOuterPolygons(slicer->layers[l].polygonList));
+            wireFrame.bottom.add(getOuterPolygons(slicer->layers[starting_l].polygonList));
+        
+        wireFrame.z_bottom = slicerList[0]->layers[starting_l].z;
+        
+        for (int l = starting_l + 1; l < layer_count; l++)
+        {
+            DEBUG_PRINTLN(" layer : " << l);
+            Polygons parts1;
+            for (cura::Slicer* slicer : slicerList)
+                parts1.add(getOuterPolygons(slicer->layers[l].polygonList));
 
-        wireFrame.layers.emplace_back();
-        WireLayer& layer = wireFrame.layers.back();
-        
-        layer.z0 = slicerList[0]->layers[l-1].z;
-        layer.z1 = slicerList[0]->layers[l].z;
-        
-        chainify_polygons(parts1, layer.z1, layer.supported);
-        
+            wireFrame.layers.emplace_back();
+            WireLayer& layer = wireFrame.layers.back();
+            
+            layer.z0 = slicerList[0]->layers[l-1].z;
+            layer.z1 = slicerList[0]->layers[l].z;
+            
+            chainify_polygons(parts1, layer.z1, layer.supported, false);
+            
+        }
     }
     
-//     std::cerr<< "finding roof parts..." << std::endl;
-//     
-//     Polygons* lower_top_parts = &wireFrame.bottom;
-//     
-//     for (int l = 0; l < wireFrame.layers.size(); l++)
-//     {
-//         DEBUG_PRINTLN(" layer : " << l);
-//         WireLayer& layer = wireFrame.layers[l];
-//         
-//         createRoofs(*lower_top_parts, layer, wireFrame.layers[l+1], layer.z1);
-//         lower_top_parts = &layer.supported;
-//         
-//         
-//     }
+    std::cerr<< "finding roof parts..." << std::endl;
+    {
+        Polygons* lower_top_parts = &wireFrame.bottom;
+        
+        for (int l = 0; l < wireFrame.layers.size(); l++)
+        {
+            DEBUG_PRINTLN(" layer : " << l);
+            WireLayer& layer = wireFrame.layers[l];
+            
+            Polygons empty;
+            Polygons& layer_above = (l+1 < wireFrame.layers.size())? wireFrame.layers[l+1].supported : empty;
+            
+            createRoofs(*lower_top_parts, layer, layer_above, layer.z1);
+            lower_top_parts = &layer.supported;
+            
+            
+        }
+    }
     
     
     std::cerr<< "connecting layers..." << std::endl;
-    
-    Polygons* lower_top_parts = &wireFrame.bottom;
-    int last_z = wireFrame.z_bottom;
-    for (int l = 0; l < wireFrame.layers.size(); l++) // use top of every layer but the last
     {
-        DEBUG_PRINTLN(" layer : " << l);
-        WireLayer& layer = wireFrame.layers[l];
-        
-        connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
-        lower_top_parts = &layer.supported;
-        
-        last_z = layer.z1;
-        
+        Polygons* lower_top_parts = &wireFrame.bottom;
+        int last_z = wireFrame.z_bottom;
+        for (int l = 0; l < wireFrame.layers.size(); l++) // use top of every layer but the last
+        {
+            DEBUG_PRINTLN(" layer : " << l);
+            WireLayer& layer = wireFrame.layers[l];
+            
+            connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
+            lower_top_parts = &layer.supported;
+            
+            last_z = layer.z1;
+            
+        }
     }
 
 //     std::vector<WireLayer>& layers = wireFrame.layers;
@@ -107,43 +114,49 @@ void Weaver::weave(PrintObject* object)
 //         Polygons& supported = layers[l].supported;
 //         Polygons& 
 //     }
+
+    if (false)
     { // roofs:
         // TODO: introduce separate top roof layer
         // TODO: compute roofs for all layers!
         
         WireLayer& top_layer = wireFrame.layers.back();
-        fillRoofs(top_layer.supported, top_layer.z1, top_layer.roof_insets);
+        Polygons to_be_supported; // empty for the top layer
+        fillRoofs(top_layer.supported, top_layer.z1, top_layer.roof_insets, to_be_supported);
     }
     
     // bottom:
-    fillRoofs(wireFrame.bottom, wireFrame.layers.front().z0, wireFrame.bottom_insets);
+    if (false)
+    {
+        Polygons to_be_supported; // empty for the bottom layer cause the order of insets doesn't really matter (in a sense everything is to be supported)
+        fillRoofs(wireFrame.bottom, wireFrame.layers.front().z0, wireFrame.bottom_insets, to_be_supported);
+    }
     
 }
 
 
-void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, WireLayer& layer_above, int z1)
+void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& layer_above, int z1)
 {
     int64_t bridgable_dist = connectionHeight;
     
     Polygons& polys_below = lower_top_parts;
     Polygons& polys_here = layer.supported;
-    Polygons& polys_above = layer_above.supported;
+    Polygons& polys_above = layer_above;
     
-    //Polygons roofs = polys_here.offset(-bridgable_dist).difference(polys_above);
-    Polygons roofs = polys_here.difference(polys_above.offset(bridgable_dist));
+    Polygons to_be_supported =  polys_above.offset(bridgable_dist);
+    fillRoofs(polys_here, z1, layer.roof_insets, to_be_supported);
+    
+    Polygons roof_outlines  = polys_here.difference(polys_above.offset(bridgable_dist));
+    if (false)
+    layer.supported.add(roof_outlines);
+    
     
     Polygons floors = polys_above.offset(-bridgable_dist).difference(polys_here);
-    /*
-    Polygons roofs = polys_below.offset(-bridgable_dist).difference(polys_here);
-    
-    Polygons floors = polys_here.difference(polys_below.offset(bridgable_dist));
-    */
-    Polygons roofs_and_floors = roofs.unionPolygons(floors);
     
 }
     
 template<class WireConnection_>
-void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& result)
+void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported)
 {
     std::vector<Polygons> roof_parts = roofs.splitIntoParts();
     
@@ -159,19 +172,25 @@ void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& res
         }
     }
     
+    Polygons walk_along = holes.unionPolygons(to_be_supported);
+    
+    
+    roof_outlines = roof_outlines.unionPolygons(to_be_supported);
+    roof_outlines = roof_outlines.remove(to_be_supported);
+    
     Polygons inset1;
     
     for (Polygons inset0 = roof_outlines; inset0.size() > 0; inset0 = inset1)
     {
         Polygons simple_inset = inset0.offset(-roof_inset);
-        simple_inset = simple_inset.unionPolygons(holes);
-        inset1 = simple_inset.remove(holes); // only keep insets and inset-hole interactions (not pure holes!)
+        simple_inset = simple_inset.unionPolygons(walk_along);
+        inset1 = simple_inset.remove(walk_along); // only keep insets and inset-walk_along interactions (not pure walk_alongs!)
         
         if (inset1.size() == 0) break;
         
         result.emplace_back();
         
-        connect(inset0, z, inset1, z, result.back());
+        connect(inset0, z, inset1, z, result.back(), true);
         
     }
 }
@@ -205,7 +224,7 @@ void Weaver::fillFloors(Polygons& roofs, int z, std::vector<WireConnection_>& re
         
         result.emplace_back();
         
-        connect(inset0, z, inset1, z, result.back());
+        connect(inset0, z, inset1, z, result.back(), true);
         
     }
 }
@@ -225,7 +244,7 @@ void Weaver::getOuterPolygons(Polygons& in, Polygons& result)
 }
 
 
-void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result)
+void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result, bool include_last)
 {
     // TODO: convert polygons (with outset + difference) such that after printing the first polygon, we can't be in the way of the printed stuff
     // something like:
@@ -238,12 +257,12 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
     // unify different parts if gap is too small
     
     Polygons& supported = result.supported;
-    chainify_polygons(parts1, z1, supported);
+    chainify_polygons(parts1, z1, supported, include_last);
     connect_polygons(parts0, z0, supported, z1, result);
 }
 
 
-void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts)
+void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, bool include_last)
 {
         
     for (int prt = 0 ; prt < parts1.size(); prt++)
@@ -265,6 +284,10 @@ void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts)
             
             if (!found) 
             {
+                if (include_last)
+                {
+                    part_top.add(upper_point);
+                }   
                 break;
             }
             
