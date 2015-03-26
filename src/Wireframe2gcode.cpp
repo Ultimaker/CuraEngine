@@ -159,7 +159,6 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
        
             if (part.connection.size() == 0) continue;
             if (layer.supported[part.top_index].size() == 0) continue;
-            // TODO: retraction
             
             gcode.writeComment("TYPE:SUPPORT"); // connection
             
@@ -190,8 +189,9 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         gcode.writeRetraction(&standard_retraction_config);
         std::function<void (Wireframe2gcode& thiss, WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds)>
             handle_roof = &Wireframe2gcode::handle_roof_segment;
-        writeFill(layer.roof_insets, handle_roof,
-                [this](Wireframe2gcode& thiss, Point& p, bool skipped) { 
+        writeFill(layer.roof_insets, 
+                  handle_roof,
+                [this](Wireframe2gcode& thiss, Point& p, bool skipped) { // handle flat segments
                     if (skipped)
                     {
                         gcode.writeMove(p, moveSpeed, 0);
@@ -485,8 +485,8 @@ void Wireframe2gcode::writeFill(std::vector<WireRoofPart>& fill_insets
             {
                 if (poly_point >= skippeds.size())
                     DEBUG_SHOW("PROBLEM:" << poly_point);
-                flatHandler(*this, inner_part[poly_point], 
-                            skippeds[poly_point] && (poly_point == 0 || skippeds[poly_point-1]) ); // skip segment only if BOTH endpoints coincide with already put down line...
+                bool skip = skippeds[poly_point] && ((poly_point == 0)? skippeds[skippeds.size()-1] : skippeds[poly_point-1]);
+                flatHandler(*this, inner_part[poly_point], skip ); // skip segment only if BOTH endpoints coincide with already put down line...
             }
         }
     }

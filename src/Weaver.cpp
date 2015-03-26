@@ -126,7 +126,6 @@ void Weaver::weave(PrintObject* object)
     }
     
     // bottom:
-    if (false)
     {
         Polygons to_be_supported; // empty for the bottom layer cause the order of insets doesn't really matter (in a sense everything is to be supported)
         fillRoofs(wireFrame.bottom, wireFrame.layers.front().z0, wireFrame.bottom_insets, to_be_supported);
@@ -143,31 +142,38 @@ void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& 
     Polygons& polys_here = layer.supported;
     Polygons& polys_above = layer_above;
     
-    Polygons to_be_supported =  polys_above.offset(bridgable_dist);
-    fillRoofs(polys_here, z1, layer.roof_insets, to_be_supported);
+    { // roofs
+        Polygons to_be_supported =  polys_above.offset(bridgable_dist);
+        fillRoofs(polys_here, z1, layer.roof_insets, to_be_supported);
+        
+        Polygons roof_outlines  = polys_here.difference(to_be_supported);
+        layer.supported.add(roof_outlines);
+    }
     
-    Polygons roof_outlines  = polys_here.difference(polys_above.offset(bridgable_dist));
-    if (false)
-    layer.supported.add(roof_outlines);
     
-    
-    Polygons floors = polys_above.offset(-bridgable_dist).difference(polys_here);
+    { // floors
+        Polygons to_be_supported =  polys_above.offset(-bridgable_dist);
+        fillFloors(polys_here, z1, layer.roof_insets, to_be_supported);
+        
+        Polygons floor_outlines = polys_above.offset(-bridgable_dist).difference(polys_here);
+        layer.supported.add(floor_outlines);
+    }
     
 }
     
 template<class WireConnection_>
-void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported)
+void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported)
 {
-    std::vector<Polygons> roof_parts = roofs.splitIntoParts();
+    std::vector<Polygons> supporting_parts = supporting.splitIntoParts();
     
-    Polygons roof_outlines;
+    Polygons supporting_outlines;
     Polygons holes;
-    for (Polygons& roof_part : roof_parts)
+    for (Polygons& supporting_part : supporting_parts)
     {
-        roof_outlines.add(roof_part[0]);
-        for (int hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
+        supporting_outlines.add(supporting_part[0]);
+        for (int hole_idx = 1; hole_idx < supporting_part.size(); hole_idx++)
         {
-            holes.add(roof_part[hole_idx]);
+            holes.add(supporting_part[hole_idx]);
             holes.back().reverse();
         }
     }
@@ -175,12 +181,12 @@ void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& res
     Polygons walk_along = holes.unionPolygons(to_be_supported);
     
     
-    roof_outlines = roof_outlines.unionPolygons(to_be_supported);
-    roof_outlines = roof_outlines.remove(to_be_supported);
+    supporting_outlines = supporting_outlines.unionPolygons(to_be_supported);
+    supporting_outlines = supporting_outlines.remove(to_be_supported);
     
     Polygons inset1;
     
-    for (Polygons inset0 = roof_outlines; inset0.size() > 0; inset0 = inset1)
+    for (Polygons inset0 = supporting_outlines; inset0.size() > 0; inset0 = inset1)
     {
         Polygons simple_inset = inset0.offset(-roof_inset);
         simple_inset = simple_inset.unionPolygons(walk_along);
@@ -195,40 +201,47 @@ void Weaver::fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& res
     }
 }
      
-template<class WireConnection_>
-void Weaver::fillFloors(Polygons& roofs, int z, std::vector<WireConnection_>& result)
-{
-    std::vector<Polygons> roof_parts = roofs.splitIntoParts();
     
-    Polygons roof_outlines;
+template<class WireConnection_>
+void Weaver::fillFloors(Polygons& supporting, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported)
+{
+    std::vector<Polygons> to_be_supported_parts = to_be_supported.splitIntoParts();
+    
+    Polygons to_be_supported_outline;
     Polygons holes;
-    for (Polygons& roof_part : roof_parts)
+    for (Polygons& to_be_supported_part : to_be_supported_parts)
     {
-        roof_outlines.add(roof_part[0]);
-        for (int hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
+        to_be_supported_outline.add(to_be_supported_part[0]);
+        for (int hole_idx = 1; hole_idx < to_be_supported_part.size(); hole_idx++)
         {
-            holes.add(roof_part[hole_idx]);
+            holes.add(to_be_supported_part[hole_idx]);
             holes.back().reverse();
         }
     }
     
-    Polygons inset1;
+    Polygons walk_along = holes.unionPolygons(to_be_supported);
     
-    for (Polygons inset0 = roof_outlines; inset0.size() > 0; inset0 = inset1)
+    Polygons supporting_ = supporting;
+    supporting_ = supporting_.intersection(to_be_supported);
+    supporting_ = supporting_.remove(to_be_supported);
+    
+    Polygons outset1;
+    
+    for (Polygons outset0 = supporting_; outset0.size() > 0; outset0 = outset1)
     {
-        Polygons simple_inset = inset0.offset(-roof_inset);
-        simple_inset = simple_inset.unionPolygons(holes);
-        inset1 = simple_inset.remove(holes); // only keep insets and inset-hole interactions (not pure holes!)
+        Polygons simple_outset = outset0.offset(roof_inset);
+        simple_outset = simple_outset.intersection(walk_along);
+        outset1 = simple_outset.remove(walk_along); // only keep insets and inset-walk_along interactions (not pure walk_alongs!)
         
-        if (inset1.size() == 0) break;
+        if (outset1.size() == 0) break;
         
         result.emplace_back();
         
-        connect(inset0, z, inset1, z, result.back(), true);
+        connect(outset0, z, outset1, z, result.back(), true);
         
     }
 }
-
+     
 Polygons Weaver::getOuterPolygons(Polygons& in)
 {
     Polygons result;
