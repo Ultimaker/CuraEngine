@@ -86,10 +86,11 @@ private:
     void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result);
 
     
-    void createRoofs(Polygons lower_top_parts, WireLayer layer, std::vector< WireLayer >::reference arg3, int z1, WireLayer layer);
+    void createRoofs(Polygons& lower_top_parts, WireLayer& layer, WireLayer& layer_above, int z1);
     
     template<class WireConnection_>
-    void fillHorizontal(Polygons& outlines, int z, std::vector<WireConnection_>& result);
+    void fillRoofs(Polygons& outlines, int z, std::vector<WireConnection_>& result);
+    void fillFloors(Polygons& outlines, int z, std::vector<WireConnection_>& result);
     
     static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);

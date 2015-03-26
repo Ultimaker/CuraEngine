@@ -105,13 +105,39 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         }
     }
     
+    
+    
     // bottom:
     writeFill(wireFrame.bottom_insets, 
-              [this](Wireframe2gcode& thiss, WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx) { gcode.writeMove(segment.to, speedBottom, extrusion_per_mm_connection); }
-              , 
-              [this](Wireframe2gcode& thiss, Point& p) { gcode.writeMove(p, speedBottom, extrusion_per_mm_flat); }
-             );
-    
+              [this](Wireframe2gcode& thiss, WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds) { 
+                    WireConnectionSegment& segment = part.connection[segment_idx]; 
+                    WireConnectionSegment* next_segment = nullptr;
+                    if (segment_idx + 1 < part.connection.size())
+                        next_segment = &part.connection[segment_idx+1];
+                    
+                    if ((segment.to - segment.from).vSize2() < extrusionWidth * extrusionWidth) // this is the case when an inset overlaps with a hole 
+                    {
+                        skippeds.push_back(true);
+                        if (next_segment)
+                            gcode.writeMove(next_segment->to, moveSpeed, 0); 
+                    } else 
+                    {
+                        skippeds.push_back(false);
+                        gcode.writeMove(segment.to, speedBottom, extrusion_per_mm_connection); 
+                        if (next_segment)
+                            gcode.writeMove(next_segment->to, speedBottom, extrusion_per_mm_connection); 
+                    }
+                }   
+            , 
+              [this](Wireframe2gcode& thiss, Point& p, bool skipped) { 
+                    if (skipped)
+                        gcode.writeMove(p, moveSpeed, 0); 
+                    else 
+                        gcode.writeMove(p, speedBottom, extrusion_per_mm_flat); 
+                  
+                  
+                }
+            );
     
     for (int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
@@ -130,19 +156,22 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         for (int part_nr = 0; part_nr < layer.connections.size(); part_nr++)
         {
             WireConnectionPart& part = layer.connections[part_nr];
-            
+       
             if (part.connection.size() == 0) continue;
             if (layer.supported[part.top_index].size() == 0) continue;
             // TODO: retraction
             
             gcode.writeComment("TYPE:SUPPORT"); // connection
-            Point point_same_height(part.connection[0].from.x, part.connection[0].from.y);
+            
+            Point3 point_same_height(part.connection[0].from.x, part.connection[0].from.y, gcode.getPositionZ()+100);
+            gcode.writeRetraction(&standard_retraction_config);
             gcode.writeMove(point_same_height, moveSpeed, 0);
+            
+            
             gcode.writeMove(part.connection[0].from, moveSpeed, 0);
-            for (int segment_idx = 0; segment_idx < part.connection.size(); segment_idx++)
+            for (int segment_idx = 0; segment_idx < part.connection.size(); segment_idx+=2)
             {
-                WireConnectionSegment& segment = part.connection[segment_idx];
-                handle_segment(segment, layer, part, segment_idx);
+                handle_segment(layer, part, segment_idx);
             }
             
             gcode.writeComment("TYPE:WALL-OUTER"); // top
@@ -155,22 +184,31 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
                 gcode.writeMove(top_part[poly_point], speedFlat, extrusion_per_mm_flat);
                 gcode.writeDelay(flat_delay);
             }
-            
-            // roofs:
-            std::function<void (Wireframe2gcode& thiss, WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx)>
-                handle_roof = &Wireframe2gcode::handle_roof_segment;
-            writeFill(layer.roof_insets, handle_roof,
-                    [this](Wireframe2gcode& thiss, Point& p) { 
+        }
+        
+        // roofs:
+        gcode.writeRetraction(&standard_retraction_config);
+        std::function<void (Wireframe2gcode& thiss, WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds)>
+            handle_roof = &Wireframe2gcode::handle_roof_segment;
+        writeFill(layer.roof_insets, handle_roof,
+                [this](Wireframe2gcode& thiss, Point& p, bool skipped) { 
+                    if (skipped)
+                    {
+                        gcode.writeMove(p, moveSpeed, 0);
+                    } else 
+                    {   
                         gcode.writeMove(p, speedFlat, extrusion_per_mm_flat);
                         gcode.writeDelay(flat_delay);
-                    });
-        }
+                    }
+                });
         
      
         
     }
     
     gcode.setZ(maxObjectHeight);
+    
+    gcode.writeRetraction(&standard_retraction_config);
     
     gcode.writeDelay(0.3);
     
@@ -195,8 +233,9 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
 }
 
     
-void Wireframe2gcode::go_down(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) 
+void Wireframe2gcode::go_down(WireLayer& layer, WireConnectionPart& part, int segment_idx) 
 { 
+    WireConnectionSegment& segment = part.connection[segment_idx];
     if (go_back_to_last_top)
         gcode.writeMove(segment.from, speedDown, 0);
     if (straight_first_when_going_down <= 0)
@@ -226,8 +265,9 @@ void Wireframe2gcode::go_down(WireConnectionSegment& segment, WireLayer& layer, 
 
 
     
-void Wireframe2gcode::strategy_knot(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
+void Wireframe2gcode::strategy_knot(WireLayer& layer, WireConnectionPart& part, int segment_idx)
 {
+    WireConnectionSegment& segment = part.connection[segment_idx];
     gcode.writeMove(segment.to, speedUp, extrusion_per_mm_connection);
     Point3 next_vector;
     if (segment_idx + 1 < part.connection.size())
@@ -272,7 +312,7 @@ void Wireframe2gcode::strategy_retract(WireConnectionSegment& segment)
         Point3 lowering = vec * retract_hop_dist / 2 / vec.vSize();
         Point3 lower = to - lowering;
         gcode.writeMove(lower, speedUp, extrusion_per_mm_connection);
-        gcode.writeRetraction(&retraction_config, true);
+        gcode.writeRetraction(&retraction_config);
         gcode.writeMove(to + lowering, speedUp, 0);
         gcode.writeDelay(top_retract_pause);
         if (after_retract_hop)
@@ -281,7 +321,7 @@ void Wireframe2gcode::strategy_retract(WireConnectionSegment& segment)
     } else 
     {
         gcode.writeMove(to, speedUp, extrusion_per_mm_connection);
-        gcode.writeRetraction(&retraction_config, true);
+        gcode.writeRetraction(&retraction_config);
         gcode.writeMove(to + Point3(0, 0, retract_hop_dist), speedFlat, 0);
         gcode.writeDelay(top_retract_pause);
         if (after_retract_hop)    
@@ -289,8 +329,9 @@ void Wireframe2gcode::strategy_retract(WireConnectionSegment& segment)
         }
 };
 
-void Wireframe2gcode::strategy_compensate(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx)
+void Wireframe2gcode::strategy_compensate(WireLayer& layer, WireConnectionPart& part, int segment_idx)
 {
+    WireConnectionSegment& segment = part.connection[segment_idx];
     Point3 to = segment.to + Point3(0, 0, fall_down);
     Point3 vector = segment.to - segment.from;
     Point3 dir = vector * drag_along / vector.vSize();
@@ -318,29 +359,40 @@ void Wireframe2gcode::strategy_compensate(WireConnectionSegment& segment, WireLa
     
     gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
 };
-void Wireframe2gcode::handle_segment(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) 
+void Wireframe2gcode::handle_segment(WireLayer& layer, WireConnectionPart& part, int segment_idx) 
 {
+    WireConnectionSegment& segment = part.connection[segment_idx];
+    WireConnectionSegment* next_segment = nullptr;
+    if (segment_idx + 1 < part.connection.size())
+        next_segment = &part.connection[segment_idx+1];
+    
     if (strategy == STRATEGY_KNOT)
     {
-        if (segment.dir == ExtrusionDirection::UP)
+        //if (segment.dir == ExtrusionDirection::UP)
         {
-            strategy_knot(segment, layer, part, segment_idx);
-        } else 
-            go_down(segment, layer, part, segment_idx);
+            strategy_knot(layer, part, segment_idx);
+        } 
+        //else 
+        if (next_segment)
+            go_down(layer, part, segment_idx + 1);
     } else if (strategy == STRATEGY_RETRACT)
     {
-        if (segment.dir == ExtrusionDirection::UP)
+        //if (segment.dir == ExtrusionDirection::UP)
         {
             strategy_retract(segment);
-        } else 
-            go_down(segment, layer, part, segment_idx);   
+        } 
+        //else 
+        if (next_segment)
+            go_down(layer, part, segment_idx + 1);
     } else if (strategy == STRATEGY_COMPENSATE)
     {
-        if (segment.dir == ExtrusionDirection::UP)
+        //if (segment.dir == ExtrusionDirection::UP)
         {
-            strategy_compensate(segment, layer, part, segment_idx);
-        } else 
-            go_down(segment, layer, part, segment_idx);   
+            strategy_compensate(layer, part, segment_idx);
+        } 
+        //else 
+        if (next_segment)
+            go_down(layer, part, segment_idx + 1);
     }
 
 };
@@ -348,13 +400,25 @@ void Wireframe2gcode::handle_segment(WireConnectionSegment& segment, WireLayer& 
 
 
 
-void Wireframe2gcode::handle_roof_segment(WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx)
+void Wireframe2gcode::handle_roof_segment(WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds)
 {
-    if (segment.dir == ExtrusionDirection::UP)
+    WireConnectionSegment& segment = part.connection[segment_idx];
+    WireConnectionSegment* next_segment = nullptr;
+    if (segment_idx + 1 < part.connection.size())
+        next_segment = &part.connection[segment_idx+1];
+    //if (segment.dir == ExtrusionDirection::UP)
+    if ((segment.to - segment.from).vSize2() < extrusionWidth * extrusionWidth) // when an inset overlaps with a hole in the roof
     {
+        skippeds.push_back(true);
+        if (next_segment)
+            gcode.writeMove(next_segment->to, moveSpeed, 0);
+    } 
+    else {
+        skippeds.push_back(false);
         Point3 to = segment.to + Point3(0, 0, roof_fall_down);
         
         Point3 vector = segment.to - segment.from;
+        if (vector.vSize2() == 0) return;
         Point3 dir = vector * roof_drag_along / vector.vSize();
         
         Point3 next_vector;
@@ -367,25 +431,30 @@ void Wireframe2gcode::handle_roof_segment(WireConnectionSegment& segment, WireRo
             next_vector = (segment.to - inset.supported[part.top_index][0]) * -1;
         }
         Point next_dir_2D(next_vector.x, next_vector.y);
-        next_dir_2D = next_dir_2D * roof_drag_along / vSize(next_dir_2D);
-        Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
+        Point3 detoured = to + dir;
+        if (vSize2(next_dir_2D) > 0) 
+        {
+            next_dir_2D = next_dir_2D * roof_drag_along / vSize(next_dir_2D);
+            Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
+            detoured -= next_dir;
+        }
         
-        Point3 detoured = to - next_dir + dir;
         
         gcode.writeMove(detoured, speedUp, extrusion_per_mm_connection);
-    } else 
-    {
-        gcode.writeMove(segment.to, speedUp, extrusion_per_mm_connection);
-        gcode.writeDelay(roof_outer_delay);
-    }
+        if (next_segment)
+        {
+            gcode.writeMove(next_segment->to, speedUp, extrusion_per_mm_connection);
+            gcode.writeDelay(roof_outer_delay);
+        }
+    } 
 
 };
 
 
 
 void Wireframe2gcode::writeFill(std::vector<WireRoofPart>& fill_insets
-    , std::function<void (Wireframe2gcode& thiss, WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx)> connectionHandler
-    , std::function<void (Wireframe2gcode& thiss, Point& p)> flatHandler)
+    , std::function<void (Wireframe2gcode& thiss, WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds)> connectionHandler
+    , std::function<void (Wireframe2gcode& thiss, Point& p, bool skipped)> flatHandler)
 {
     
     // bottom:
@@ -399,20 +468,24 @@ void Wireframe2gcode::writeFill(std::vector<WireRoofPart>& fill_insets
         {
             WireConnectionPart& inset_part = inset.connections[inset_part_nr];
             
+            std::vector<bool> skippeds;
+            
             gcode.writeComment("TYPE:SUPPORT"); // connection
             if (inset_part.connection.size() == 0) continue;
+            gcode.writeRetraction(&standard_retraction_config);
             gcode.writeMove(inset_part.connection[0].from, moveSpeed, 0);
-            for (int segment_idx = 0; segment_idx < inset_part.connection.size(); segment_idx++)
+            for (int segment_idx = 0; segment_idx < inset_part.connection.size(); segment_idx+=2)
             {
-                WireConnectionSegment& segment = inset_part.connection[segment_idx];
-                connectionHandler(*this, segment, inset, inset_part, segment_idx);
+                connectionHandler(*this, inset, inset_part, segment_idx, skippeds);
             }
             
             gcode.writeComment("TYPE:WALL-INNER"); // top
             PolygonRef inner_part = inset.supported[inset_part.top_index];
             for (int poly_point = 0; poly_point < inner_part.size(); poly_point++)
             {
-                flatHandler(*this, inner_part[poly_point]);
+                if (poly_point >= skippeds.size())
+                    DEBUG_SHOW("PROBLEM:" << poly_point);
+                flatHandler(*this, inner_part[poly_point], skippeds[poly_point]);
             }
         }
     }
@@ -474,6 +547,14 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     roof_drag_along = getSettingInt("wireframeRoofDragAlong");
     roof_outer_delay = getSettingInt("wireframeRoofOuterDelay")/100.0;
     
+    
+    standard_retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));
+    standard_retraction_config.primeAmount = INT2MM(getSettingInt("retractionPrimeAmount"));
+    standard_retraction_config.speed = getSettingInt("retractionSpeed");
+    standard_retraction_config.primeSpeed = getSettingInt("retractionPrimeSpeed");
+    standard_retraction_config.zHop = getSettingInt("retractionZHop");
+
+
 }
 
 

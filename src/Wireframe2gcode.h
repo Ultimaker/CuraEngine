@@ -58,7 +58,7 @@ private:
     int roof_drag_along; // = getSettingInt("wireframeRoofDragAlong");
     double roof_outer_delay; // = getSettingInt("wireframeRoofOuterDelay")/100.0;
     
-    
+    RetractionConfig standard_retraction_config;
     
 public:
     GCodeExport& gcode;
@@ -72,16 +72,16 @@ private:
     WireFrame wireFrame;
     
     void writeFill(std::vector<WireRoofPart>& fill_insets
-        , std::function<void (Wireframe2gcode& thiss, WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx)> connectionHandler
-        , std::function<void (Wireframe2gcode& thiss, Point& p)> flatHandler);
+        , std::function<void (Wireframe2gcode& thiss, WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds)> connectionHandler
+        , std::function<void (Wireframe2gcode& thiss, Point& p, bool skipped)> flatHandler);
     
-    void go_down(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx) ;
-    void strategy_knot(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    void go_down(WireLayer& layer, WireConnectionPart& part, int segment_idx) ;
+    void strategy_knot(WireLayer& layer, WireConnectionPart& part, int segment_idx);
     void strategy_retract(WireConnectionSegment& segment);
-    void strategy_compensate(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
-    void handle_segment(WireConnectionSegment& segment, WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    void strategy_compensate(WireLayer& layer, WireConnectionPart& part, int segment_idx);
+    void handle_segment(WireLayer& layer, WireConnectionPart& part, int segment_idx);
     
-    void handle_roof_segment(WireConnectionSegment& segment, WireRoofPart& inset, WireConnectionPart& part, int segment_idx);
+    void handle_roof_segment(WireRoofPart& inset, WireConnectionPart& part, int segment_idx, std::vector<bool>& skippeds);
 
 };
 

@@ -391,6 +391,15 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
         return ret;
     }
+    Polygons xorPolygons(const Polygons& other) const
+    {
+        Polygons ret;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
+        clipper.Execute(ClipperLib::ctXor, ret.polygons);
+        return ret;
+    }
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
