@@ -695,12 +695,25 @@ private:
                 if (static_cast<int>(layerNr) == config.downSkinCount && part->insets.size() > 0)
                     gcodeLayer.addPolygonsByOptimizer(part->insets[0], &insetXConfig);
             }
-            for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+            if (!config.enableReverseInsetOrder)
             {
-                if (insetNr == 0)
-                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
-                else
-                    gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
+                for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+                {
+                    if (insetNr == 0)
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                    else
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
+                }
+            }
+            else
+            {
+                for(unsigned int insetNr=0; insetNr<part->insets.size(); insetNr++)
+                {
+                    if (insetNr == 0)
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &inset0Config);
+                    else
+                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &insetXConfig);
+                }
             }
         }
     }

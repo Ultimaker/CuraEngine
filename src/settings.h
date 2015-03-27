@@ -138,6 +138,7 @@ public:
     int skirtDistance;
     int skirtLineCount;
     int skirtMinLength;
+    int enableReverseInsetOrder;
 
     //Retraction settings
     int retractionAmount;
