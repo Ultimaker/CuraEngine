@@ -238,7 +238,10 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                     Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
                     int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
                     if (newLen > 0)
-                        gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM() * oldLen / newLen);
+                        if (oldLen > 10)
+                            gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM() * oldLen / newLen);
+                        else 
+                            gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM() * oldLen / newLen);
 
                     p0 = paths[x+1].points[0];
                 }
