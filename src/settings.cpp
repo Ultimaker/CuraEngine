@@ -77,17 +77,42 @@ void SettingRegistry::registerSetting(std::string setting)
 
 SettingRegistry::SettingRegistry()
 {
+    // mode
     registerSetting("neith");
-    
     registerSetting("simpleMode");
     registerSetting("spiralizeMode");
     registerSetting("enableOozeShield");
     registerSetting("autoCenter");
     registerSetting("fixHorrible");
+    registerSetting("avoidOverlappingPerimeters");
     
+    // machine settings
     registerSetting("bedTemperature"); // in 1/100th degrees
     registerSetting("printTemperature"); // in 1/100th degrees
+    registerSetting("filamentDiameter");
     
+    registerSetting("gcodeFlavor");
+    registerSetting("startCode");
+    registerSetting("endCode");
+    
+    registerSetting("extrusionWidth");
+    registerSetting("fanSpeedMax");
+    registerSetting("fanSpeedMin");
+    registerSetting("fanFullOnLayerNr");
+    
+    registerSetting("filamentFlow");
+    registerSetting("minimalFeedrate");
+    registerSetting("minimalLayerTime");
+        
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+    {
+        std::ostringstream stream;
+        stream << "extruderOffset" << n;
+        registerSetting(stream.str() + ".X");
+        registerSetting(stream.str() + ".Y");
+    }
+    
+    // speeds
     registerSetting("initialSpeedupLayers");
     registerSetting("initialLayerSpeed");
     registerSetting("inset0Speed");
@@ -97,23 +122,56 @@ SettingRegistry::SettingRegistry()
     registerSetting("skinSpeed");
     registerSetting("skirtSpeed");
     
-    registerSetting("minimalFeedrate");
-    registerSetting("retractionZHop");
-    registerSetting("extruderOffset[3].X");
-    registerSetting("extruderOffset[3].Y");
-    registerSetting("gcodeFlavor");
-    registerSetting("retractionSpeed");
-    registerSetting("filamentFlow");
+    // uncategorized
     registerSetting("infillOverlap");
     registerSetting("coolHeadLift");
-    registerSetting("extrusionWidth");
     registerSetting("upSkinCount");
-    registerSetting("minimalLayerTime");
-    registerSetting("enableCombing")
-    ;
-    registerSetting("fanSpeedMax");
-    registerSetting("fanSpeedMin");
+    registerSetting("enableCombing");
     
+    
+    registerSetting("layerThickness");
+    registerSetting("initialLayerThickness");
+    registerSetting("layer0extrusionWidth");
+    
+
+    // infill
+    registerSetting("sparseInfillLineDistance");
+    registerSetting("sparseInfillCombineCount");
+    registerSetting("infillPattern");
+    
+    registerSetting("insetCount");
+    registerSetting("downSkinCount");
+    registerSetting("position.X");
+    registerSetting("position.Y");
+    registerSetting("position.Z");
+    registerSetting("extruderNr");
+    registerSetting("skinPattern");
+    registerSetting("wipeTowerSize");
+
+    // retraction
+    registerSetting("retractionSpeed");
+    registerSetting("minimalExtrusionBeforeRetraction");
+    registerSetting("retractionMinimalDistance");
+    registerSetting("retractionAmount");
+    registerSetting("retractionPrimeAmount");
+    registerSetting("retractionPrimeSpeed");
+    registerSetting("retractionZHop");
+    
+    // dual extrusion
+    registerSetting("multiVolumeOverlap");
+    registerSetting("preSwitchExtruderCode");
+    registerSetting("postSwitchExtruderCode");
+    registerSetting("retractionExtruderSwitchPrimeSpeed");
+    registerSetting("retractionExtruderSwitchSpeed");
+    registerSetting("retractionAmountExtruderSwitch");
+    
+    // skirt / brim
+    registerSetting("skirtLineCount");
+    registerSetting("skirtMinLength");
+    registerSetting("skirtLineCount");
+    registerSetting("skirtDistance");
+    
+    // raft
     registerSetting("raftAirGapLayer0");
     registerSetting("raftBaseThickness");
     registerSetting("raftBaseLinewidth");
@@ -132,6 +190,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("raftMargin");
     registerSetting("raftAirGap");
     
+    // support
     registerSetting("supportXYDistance");
     registerSetting("supportExtruder");
     registerSetting("supportType");
@@ -141,7 +200,9 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportZDistanceBottom");
     registerSetting("supportZDistanceTop");
     registerSetting("supportSpeed");
+    registerSetting("supportLineDistance");
     
+    registerSetting("supportBottomStairDistance");
     registerSetting("supportJoinDistance");
     registerSetting("supportAreaSmoothing");
     registerSetting("supportConnectZigZags");
@@ -149,57 +210,13 @@ SettingRegistry::SettingRegistry()
     registerSetting("supportTowerDiameter");
     registerSetting("supportTowerRoofAngle");
     
-    registerSetting("avoidOverlappingPerimeters");
     
-    
-    
-    registerSetting("preSwitchExtruderCode");
-    registerSetting("postSwitchExtruderCode");
-    registerSetting("filamentDiameter");
-    registerSetting("fanFullOnLayerNr");
-    registerSetting("extruderOffset[1].X");
-    registerSetting("extruderOffset[1].Y");
-    registerSetting("layerThickness");
-    registerSetting("initialLayerThickness");
-    registerSetting("endCode");
-    registerSetting("skirtLineCount");
-    registerSetting("supportBottomStairDistance");
-    registerSetting("minimalExtrusionBeforeRetraction");
-    registerSetting("retractionMinimalDistance");
-    registerSetting("skirtMinLength");
-    registerSetting("retractionAmount");
-    registerSetting("skirtLineCount");
-    registerSetting("startCode");
-    registerSetting("skirtDistance");
-    registerSetting("extruderOffset[2].Y");
-    registerSetting("extruderOffset[2].X");
-    registerSetting("layer0extrusionWidth");
-    registerSetting("supportLineDistance");
-    registerSetting("retractionAmountExtruderSwitch");
-    registerSetting("sparseInfillLineDistance");
-    registerSetting("insetCount");
-    registerSetting("downSkinCount");
-    registerSetting("multiVolumeOverlap");
-    registerSetting("position.X");
-    registerSetting("position.Y");
-    registerSetting("position.Z");
-    registerSetting("retractionPrimeAmount");
-    registerSetting("retractionPrimeSpeed");
-    registerSetting("extruderNr");
-    registerSetting("sparseInfillCombineCount");
-    registerSetting("retractionExtruderSwitchPrimeSpeed");
-    registerSetting("retractionExtruderSwitchSpeed");
-    registerSetting("infillPattern");
-    registerSetting("skinPattern");
-    registerSetting("wipeTowerSize");
-    
-    
-    
-    
+    // machine settings for wireframe 
     registerSetting("machineNozzleTipOuterDiameter");
     registerSetting("machineNozzleHeadDistance");
     registerSetting("machineNozzleExpansionAngle");
     
+    // wireframe 
     registerSetting("wireframeFlowConnection");
     registerSetting("wireframeFlowFlat");
     registerSetting("wireframePrintspeedBottom");
@@ -222,14 +239,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("wireframeRoofDragAlong");
     registerSetting("wireframeRoofOuterDelay");
     
-    
-    for(int n=0; n<MAX_EXTRUDERS; n++)
-    {
-        std::ostringstream stream;
-        stream << "extruderOffset" << n;
-        registerSetting(stream.str() + ".X");
-        registerSetting(stream.str() + ".Y");
-    }
+
 }
 
 
