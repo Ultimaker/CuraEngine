@@ -133,6 +133,8 @@ SettingRegistry::SettingRegistry()
     registerSetting("initialLayerThickness");
     registerSetting("layer0extrusionWidth");
     
+    registerSetting("XYcompensation");
+    
 
     // infill
     registerSetting("sparseInfillLineDistance");

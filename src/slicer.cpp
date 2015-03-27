@@ -298,6 +298,12 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     optimizePolygons(polygonList);
+    
+    int xyCompensation = mesh->getSettingInt("XYcompensation");
+    if (xyCompensation != 0)
+    {
+        polygonList = polygonList.offset(xyCompensation);
+    }
 }
 
 
