@@ -81,6 +81,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     
     //maxObjectHeight = 100000; //wireFrame.layers.back().parts[0].z1; // TODO: allow for serial printing
     
+    
             
     unsigned int totalLayers = wireFrame.layers.size();
     gcode.writeComment("Layer count: %d", totalLayers);    
@@ -332,7 +333,7 @@ void Wireframe2gcode::strategy_retract(WireConnectionSegment& segment)
 void Wireframe2gcode::strategy_compensate(WireLayer& layer, WireConnectionPart& part, int segment_idx)
 {
     WireConnectionSegment& segment = part.connection[segment_idx];
-    Point3 to = segment.to + Point3(0, 0, fall_down);
+    Point3 to = segment.to + Point3(0, 0, fall_down*(segment.to - segment.from).vSize() / connectionHeight);
     Point3 vector = segment.to - segment.from;
     Point3 dir = vector * drag_along / vector.vSize();
     
@@ -354,7 +355,7 @@ void Wireframe2gcode::strategy_compensate(WireLayer& layer, WireConnectionPart& 
     
     Point3 newTop = to - next_dir + dir;
     
-    int64_t orrLength = (to - segment.from).vSize() + next_vector.vSize() + 1; // + 1 in order to avoid division by zero
+    int64_t orrLength = (segment.to - segment.from).vSize() + next_vector.vSize() + 1; // + 1 in order to avoid division by zero
     int64_t newLength = (newTop - segment.from).vSize() + (next_point - newTop).vSize() + 1; // + 1 in order to avoid division by zero
     
     gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
@@ -410,10 +411,15 @@ void Wireframe2gcode::handle_roof_segment(WireRoofPart& inset, WireConnectionPar
     if ((segment.to - segment.from).vSize2() < extrusionWidth * extrusionWidth) // when an inset overlaps with a hole in the roof
     {
         skippeds.push_back(true);
-        if (next_segment)
-            gcode.writeMove(next_segment->to, moveSpeed, 0);
+//         if (next_segment)
+//             gcode.writeMove(next_segment->to, moveSpeed, 0);
     } 
     else {
+        if (skippeds.size() > 0 && skippeds.back())
+        {
+            gcode.writeRetraction(&standard_retraction_config);
+            gcode.writeMove(segment.from, moveSpeed, 0);
+        }
         skippeds.push_back(false);
         Point3 to = segment.to + Point3(0, 0, roof_fall_down);
         
@@ -485,7 +491,9 @@ void Wireframe2gcode::writeFill(std::vector<WireRoofPart>& fill_insets
             {
                 if (poly_point >= skippeds.size())
                     DEBUG_SHOW("PROBLEM:" << poly_point);
-                bool skip = skippeds[poly_point] && ((poly_point == 0)? skippeds[skippeds.size()-1] : skippeds[poly_point-1]);
+                bool skip = skippeds[poly_point] && skippeds[(poly_point+1)%skippeds.size()] ;
+                bool skip_next = skippeds[(poly_point+1)%skippeds.size()] &&  skippeds[(poly_point+2)%skippeds.size()];
+                if (skip && skip_next) continue;
                 flatHandler(*this, inner_part[poly_point], skip ); // skip segment only if BOTH endpoints coincide with already put down line...
             }
         }

@@ -126,6 +126,7 @@ void Weaver::weave(PrintObject* object)
     }
     
     // bottom:
+    //if (false)
     {
         Polygons to_be_supported; // empty for the bottom layer cause the order of insets doesn't really matter (in a sense everything is to be supported)
         fillRoofs(wireFrame.bottom, wireFrame.layers.front().z0, wireFrame.bottom_insets, to_be_supported);
@@ -142,7 +143,9 @@ void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& 
     Polygons& polys_here = layer.supported;
     Polygons& polys_above = layer_above;
     
+    if (false)
     { // roofs
+    DEBUG_SHOW(__LINE__);
         Polygons to_be_supported =  polys_above.offset(bridgable_dist);
         fillRoofs(polys_here, z1, layer.roof_insets, to_be_supported);
         
@@ -150,14 +153,16 @@ void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& 
         layer.supported.add(roof_outlines);
     }
     
-    
+    if (false)
     { // floors
+    DEBUG_SHOW(__LINE__);
         Polygons to_be_supported =  polys_above.offset(-bridgable_dist);
         fillFloors(polys_here, z1, layer.roof_insets, to_be_supported);
         
         Polygons floor_outlines = polys_above.offset(-bridgable_dist).difference(polys_here);
         layer.supported.add(floor_outlines);
     }
+    DEBUG_SHOW(__LINE__);
     
 }
     
@@ -166,6 +171,7 @@ void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>
 {
     std::vector<Polygons> supporting_parts = supporting.splitIntoParts();
     
+    DEBUG_SHOW(__LINE__);
     Polygons supporting_outlines;
     Polygons holes;
     for (Polygons& supporting_part : supporting_parts)
@@ -180,6 +186,7 @@ void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>
     
     Polygons walk_along = holes.unionPolygons(to_be_supported);
     
+    DEBUG_SHOW(__LINE__);
     
     supporting_outlines = supporting_outlines.unionPolygons(to_be_supported);
     supporting_outlines = supporting_outlines.remove(to_be_supported);
@@ -188,6 +195,7 @@ void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>
     
     for (Polygons inset0 = supporting_outlines; inset0.size() > 0; inset0 = inset1)
     {
+    DEBUG_SHOW(inset1.size());
         Polygons simple_inset = inset0.offset(-roof_inset);
         simple_inset = simple_inset.unionPolygons(walk_along);
         inset1 = simple_inset.remove(walk_along); // only keep insets and inset-walk_along interactions (not pure walk_alongs!)
@@ -219,19 +227,23 @@ void Weaver::fillFloors(Polygons& supporting, int z, std::vector<WireConnection_
         }
     }
     
-    Polygons walk_along = holes.unionPolygons(to_be_supported);
+    Polygons walk_along = holes; // .unionPolygons(to_be_supported);
     
     Polygons supporting_ = supporting;
     supporting_ = supporting_.intersection(to_be_supported);
     supporting_ = supporting_.remove(to_be_supported);
+    supporting_ = supporting_.difference(walk_along);
+    supporting_ = supporting_.remove(walk_along);
     
     Polygons outset1;
     
     for (Polygons outset0 = supporting_; outset0.size() > 0; outset0 = outset1)
     {
         Polygons simple_outset = outset0.offset(roof_inset);
-        simple_outset = simple_outset.intersection(walk_along);
+        simple_outset = simple_outset.difference(walk_along);
+        simple_outset = simple_outset.intersection(to_be_supported);
         outset1 = simple_outset.remove(walk_along); // only keep insets and inset-walk_along interactions (not pure walk_alongs!)
+        outset1 = outset1.remove(to_be_supported);
         
         if (outset1.size() == 0) break;
         
@@ -376,7 +388,12 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
 ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)
 {
 
+    Polygon emptyPoly;
+    ClosestPolygonPoint none(from, -1, emptyPoly);
+    
+    if (polygons.size() == 0) return none;
     PolygonRef aPolygon = polygons[0];
+    if (aPolygon.size() == 0) return none;
     Point aPoint = aPolygon[0];
 
     ClosestPolygonPoint best(aPoint, 0, aPolygon);
