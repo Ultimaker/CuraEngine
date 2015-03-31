@@ -786,6 +786,10 @@ private:
                     {
                         generateLineInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                    } else if (getSetting("infillPattern") == "INFILL_TRIANGLES")
+                    {
+                        generateTriangleInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
+                        gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                     {
                         generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
@@ -811,6 +815,9 @@ private:
                 } else if (getSetting("infillPattern") == "INFILL_LINES")
                 {
                     generateLineInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                } else if (getSetting("infillPattern") == "INFILL_TRIANGLES")
+                {
+                    generateTriangleInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
                 } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                 {
                     generateConcentricInfill(part->sparse_outline[0], infillPolygons, getSettingInt("sparseInfillLineDistance"));

@@ -26,6 +26,18 @@ void generateGridInfill(const Polygons& in_outline, Polygons& result,
                        infillOverlap, rotation + 90);
 }
 
+void generateTriangleInfill(const Polygons& in_outline, Polygons& result,
+                        int extrusionWidth, int lineSpacing, int infillOverlap,
+                        double rotation)
+{
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+                       infillOverlap, rotation);
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+                       infillOverlap, rotation + 60);
+    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+                       infillOverlap, rotation + 120);
+}
+
 void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, int lineSpacing, AABB boundary, std::vector<std::vector<int64_t> > cutList, int extrusionWidth)
 {
     auto addLine = [&](Point from, Point to)
