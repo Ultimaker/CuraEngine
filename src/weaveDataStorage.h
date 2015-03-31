@@ -42,6 +42,9 @@ struct WeaveConnection
     std::vector<WeaveConnectionPart> connections; //!< for each polygon in [supported] the connection // \\ // \\ // \\ // \\.
     Polygons supported; //!< polygons to be supported by connections (from other polygons)
 };
+
+// Horizontal Fills:
+
 typedef std::vector<WeaveConnectionSegment> WeaveInsetPart; //!< Polygon with extra information on each point
 struct WeaveRoofPart : WeaveConnection
 {
@@ -50,12 +53,20 @@ struct WeaveRoofPart : WeaveConnection
     std::vector<WeaveInsetPart> supported_withMoves; //!< optimized inset polygons, with some parts of the polygons replaced by moves
 };
 
+struct WeaveRoof
+{
+    std::vector<WeaveRoofPart> roof_insets; //!< connections between consecutive insets of the roof polygons
+    Polygons roof_outlines; //!< the area within which the horitonal connections are generated
+};
+
+// Layers
+
 struct WeaveLayer : WeaveConnection
 {
     // [supported] are the outline polygons on the next layer which are (to be) connected,
     //             as well as the polygons supported by roofs (holes and boundaries of roofs)
     // [connections] are the vertical connections
-    std::vector<WeaveRoofPart> roof_insets; //!< connections between consecutive insets of the roof polygons
+    WeaveRoof roofs; //!< parts which are filled horizontally (both roofs and floors...)
 };
 struct WireFrame
 {
@@ -65,6 +76,7 @@ struct WireFrame
     std::vector<WeaveLayer> layers;
 };
     
+
 }//namespace cura
 
 #endif//WEAVE_DATA_STORAGE_H

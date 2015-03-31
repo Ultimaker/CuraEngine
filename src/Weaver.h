@@ -89,19 +89,18 @@ private:
     void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WeaveConnection& result);
 
     
-    void createRoofs(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1, Polygons& supported_by_roofs);
+    void createRoofs(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1);
     
-    template<class WireConnection_>
-    void fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported);
+    void fillRoofs(Polygons& roofs, int z, std::vector<WeaveRoofPart>& result, Polygons& to_be_supported);
     
-    template<class WireConnection_>
-    void fillFloors(Polygons& floors, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported);
+    void fillFloors(Polygons& floors, int z, std::vector<WeaveRoofPart>& result, Polygons& to_be_supported);
+    void connections2moves(WeaveRoofPart& inset);
     
     static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
     static Point getClosestOnLine(Point from, Point p0, Point p1);
 
-    static bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int z_polygon, int start_idx, GivenDistPoint& result);
+    static bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, GivenDistPoint& result);
 
 
 };

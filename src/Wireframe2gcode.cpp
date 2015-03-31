@@ -109,7 +109,8 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     
     
     // bottom:
-    writeFill(wireFrame.bottom_insets, 
+    Polygons empty_outlines;
+    writeFill(wireFrame.bottom_insets, empty_outlines, 
               [this](Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx) { 
                     WeaveConnectionSegment& segment = part.connection.segments[segment_idx]; 
                     if (segment.segmentType == WeaveSegmentType::MOVE) // this is the case when an inset overlaps with a hole 
@@ -131,6 +132,8 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     
     for (int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
+        if (layer_nr != 4) continue; // TODO remove this line!
+        
         logProgress("export", layer_nr+1, totalLayers);  
         if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
         
@@ -187,10 +190,11 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         }
         
         // roofs:
+        gcode.setZ(layer.z1);
         gcode.writeRetraction(&standard_retraction_config);
         std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx)>
             handle_roof = &Wireframe2gcode::handle_roof_segment;
-        writeFill(layer.roof_insets, 
+        writeFill(layer.roofs.roof_insets, layer.roofs.roof_outlines,
                   handle_roof,
                 [this](Wireframe2gcode& thiss, WeaveConnectionSegment& segment) { // handle flat segments
                     if (segment.segmentType == WeaveSegmentType::MOVE)
@@ -455,7 +459,7 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
 
 
 
-void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets
+void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& roof_outlines
     , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx)> connectionHandler
     , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler)
 {
@@ -494,9 +498,24 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
                 if (segment.segmentType == WeaveSegmentType::DOWN) continue;
-                flatHandler(*this, segment); // skip segment only if BOTH endpoints coincide with already put down line...
+                flatHandler(*this, segment); 
             }
         }
+        
+        
+        gcode.writeComment("TYPE:WALL-OUTER"); // outer perimeter of the flat parts
+        for (PolygonRef poly : roof_outlines)
+        {
+            gcode.writeRetraction(&standard_retraction_config);
+            gcode.writeMove(poly[poly.size() - 1], moveSpeed, 0);
+            for (Point& p : poly)
+            {
+                Point3 to(p.X, p.Y, gcode.getPositionZ());
+                WeaveConnectionSegment segment(to, WeaveSegmentType::FLAT);
+                flatHandler(*this, segment); 
+            }
+        }
+        
     }
 }
 

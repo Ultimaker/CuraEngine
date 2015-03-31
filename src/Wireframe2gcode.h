@@ -71,7 +71,7 @@ public:
 private:
     WireFrame wireFrame;
     
-    void writeFill(std::vector<WeaveRoofPart>& fill_insets
+    void writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& outlines
         , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx)> connectionHandler
         , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
     
