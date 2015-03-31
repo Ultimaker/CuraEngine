@@ -12,49 +12,57 @@
 namespace cura {
 
     
-ENUM( ExtrusionDirection, UP, DOWN);
+ENUM( WeaveSegmentType, UP, DOWN, FLAT, MOVE);
 
-struct WireConnectionSegment
+
+struct WeaveConnectionSegment
+{
+    Point3 to;
+    WeaveSegmentType segmentType;
+    WeaveConnectionSegment(Point3 to, WeaveSegmentType dir) : to(to), segmentType(dir) {};
+};
+
+struct PolyLine3
 {
     Point3 from;
-    Point3 to;
-    ExtrusionDirection dir;
-    WireConnectionSegment(Point3 from, Point3 to, ExtrusionDirection dir) : from(from), to(to), dir(dir) {};
+    std::vector<WeaveConnectionSegment> segments;
 };
 
-struct WireConnectionPart
+struct WeaveConnectionPart
 {
-    std::vector<WireConnectionSegment> connection;
-    int top_index;// index of corresponding top polygon in layer.top  (! last point in polygon is first point to start printing it!)
-    WireConnectionPart(int top_idx) : top_index(top_idx) {};
+    PolyLine3 connection;
+    int supported_index;//!< index of corresponding supported polygon in WeaveConnection.supported (! last point in polygon is first point to start printing it!)
+    WeaveConnectionPart(int top_idx) : supported_index(top_idx) {};
 };
 
-struct WireConnection
+struct WeaveConnection
 {
     int z0;//!< height of the supporting polygons (of the prev layer, roof inset, etc.)
     int z1;//!< height of the [supported] polygons
-    std::vector<WireConnectionPart> connections; //!< for each polygon in [supported] the connection // \\ // \\ // \\ // \\.
+    std::vector<WeaveConnectionPart> connections; //!< for each polygon in [supported] the connection // \\ // \\ // \\ // \\.
     Polygons supported; //!< polygons to be supported by connections (from other polygons)
 };
-struct WireRoofPart : WireConnection
+typedef std::vector<WeaveConnectionSegment> WeaveInsetPart; //!< Polygon with extra information on each point
+struct WeaveRoofPart : WeaveConnection
 {
     // [supported] is an insets of the roof polygons (or of previous insets of it)
     // [connections] are the connections between two consecutive roof polygon insets
+    std::vector<WeaveInsetPart> supported_withMoves; //!< optimized inset polygons, with some parts of the polygons replaced by moves
 };
 
-struct WireLayer : WireConnection
+struct WeaveLayer : WeaveConnection
 {
     // [supported] are the outline polygons on the next layer which are (to be) connected,
     //             as well as the polygons supported by roofs (holes and boundaries of roofs)
     // [connections] are the vertical connections
-    std::vector<WireRoofPart> roof_insets; //!< connections between consecutive insets of the roof polygons
+    std::vector<WeaveRoofPart> roof_insets; //!< connections between consecutive insets of the roof polygons
 };
 struct WireFrame
 {
     Polygons bottom;
     int z_bottom;
-    std::vector<WireRoofPart> bottom_insets; //!< connections between consecutive insets of the bottom polygons
-    std::vector<WireLayer> layers;
+    std::vector<WeaveRoofPart> bottom_insets; //!< connections between consecutive insets of the bottom polygons
+    std::vector<WeaveLayer> layers;
 };
     
 }//namespace cura

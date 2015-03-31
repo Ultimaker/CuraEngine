@@ -464,48 +464,49 @@ public:
     Polygons remove(Polygons& to_be_removed, int same_distance = 0)
     {
         Polygons result;
-        for (int inset_poly_idx = 0; inset_poly_idx < size(); inset_poly_idx++)
+        for (int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
         {
-            PolygonRef inset_poly = (*this)[inset_poly_idx];
+            PolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
-            if (inset_poly.size() > 0) 
-            for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+            if (poly_keep.size() > 0) 
+//             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+            for (PolygonRef poly_rem : to_be_removed)
             {
-                PolygonRef hole = to_be_removed[hole_poly_idx];
-                if (hole.size() != inset_poly.size() || hole.size() == 0) continue;
+//                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
+                if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0) continue;
                 
                 // find closest point, supposing this point aligns the two shapes in the best way
                 int closest_point_idx = 0;
                 int smallestDist2 = -1;
-                for (int hole_point_idx = 0; hole_point_idx < hole.size(); hole_point_idx++)
+                for (int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                 {
-                    int dist2 = vSize2(hole[hole_point_idx] - inset_poly[0]);
+                    int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                     if (dist2 < smallestDist2 || smallestDist2 < 0)
                     {
                         smallestDist2 = dist2;
-                        closest_point_idx = hole_point_idx;
+                        closest_point_idx = point_rem_idx;
                     }
                 }
-                bool inset_poly_is_hole = true;
+                bool poly_rem_is_poly_keep = true;
                 // compare the two polygons on all points
                 if (smallestDist2 > same_distance * same_distance) continue;
-                for (int point_idx = 0; point_idx < hole.size(); point_idx++)
+                for (int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
-                    int dist2 = vSize2(hole[(closest_point_idx + point_idx) % hole.size()] - inset_poly[point_idx]);
+                    int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
                     if (dist2 > same_distance * same_distance)
                     {
-                        inset_poly_is_hole = false;
+                        poly_rem_is_poly_keep = false;
                         break;
                     }
                 }
-                if (inset_poly_is_hole)
+                if (poly_rem_is_poly_keep)
                 {
                     should_be_removed = true;
                     break;
                 }
             }
             if (!should_be_removed)
-                result.add(inset_poly);
+                result.add(poly_keep);
             
         }
         return result;

@@ -61,7 +61,7 @@ void Weaver::weave(PrintObject* object)
                 parts1.add(getOuterPolygons(slicer->layers[l].polygonList));
 
             wireFrame.layers.emplace_back();
-            WireLayer& layer = wireFrame.layers.back();
+            WeaveLayer& layer = wireFrame.layers.back();
             
             layer.z0 = slicerList[0]->layers[l-1].z;
             layer.z1 = slicerList[0]->layers[l].z;
@@ -71,25 +71,30 @@ void Weaver::weave(PrintObject* object)
         }
     }
     
+    std::vector<Polygons> supported_by_roofs;
     std::cerr<< "finding roof parts..." << std::endl;
     {
+        
         Polygons* lower_top_parts = &wireFrame.bottom;
         
         for (int l = 0; l < wireFrame.layers.size(); l++)
         {
             DEBUG_PRINTLN(" layer : " << l);
-            WireLayer& layer = wireFrame.layers[l];
+            WeaveLayer& layer = wireFrame.layers[l];
             
             Polygons empty;
             Polygons& layer_above = (l+1 < wireFrame.layers.size())? wireFrame.layers[l+1].supported : empty;
             
-            createRoofs(*lower_top_parts, layer, layer_above, layer.z1);
+            supported_by_roofs.emplace_back();
+            
+            createRoofs(*lower_top_parts, layer, layer_above, layer.z1, supported_by_roofs.back());
             lower_top_parts = &layer.supported;
             
             
         }
     }
-    
+    // at this point layer.supported still only contains the polygons to be connected
+    // when connecting layers, we further add the supporting polygons created by the roofs
     
     std::cerr<< "connecting layers..." << std::endl;
     {
@@ -98,9 +103,10 @@ void Weaver::weave(PrintObject* object)
         for (int l = 0; l < wireFrame.layers.size(); l++) // use top of every layer but the last
         {
             DEBUG_PRINTLN(" layer : " << l);
-            WireLayer& layer = wireFrame.layers[l];
+            WeaveLayer& layer = wireFrame.layers[l];
             
             connect_polygons(*lower_top_parts, last_z, layer.supported, layer.z1, layer);
+            layer.supported.add(supported_by_roofs[l]);
             lower_top_parts = &layer.supported;
             
             last_z = layer.z1;
@@ -120,14 +126,14 @@ void Weaver::weave(PrintObject* object)
         // TODO: introduce separate top roof layer
         // TODO: compute roofs for all layers!
         
-        WireLayer& top_layer = wireFrame.layers.back();
+        WeaveLayer& top_layer = wireFrame.layers.back();
         Polygons to_be_supported; // empty for the top layer
         fillRoofs(top_layer.supported, top_layer.z1, top_layer.roof_insets, to_be_supported);
     }
     
-    // bottom:
+    
     //if (false)
-    {
+    { // bottom:
         Polygons to_be_supported; // empty for the bottom layer cause the order of insets doesn't really matter (in a sense everything is to be supported)
         fillRoofs(wireFrame.bottom, wireFrame.layers.front().z0, wireFrame.bottom_insets, to_be_supported);
     }
@@ -135,7 +141,7 @@ void Weaver::weave(PrintObject* object)
 }
 
 
-void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& layer_above, int z1)
+void Weaver::createRoofs(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1, Polygons& supported_by_roofs)
 {
     int64_t bridgable_dist = connectionHeight;
     
@@ -143,26 +149,73 @@ void Weaver::createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& 
     Polygons& polys_here = layer.supported;
     Polygons& polys_above = layer_above;
     
-    if (false)
+    //if (false)
     { // roofs
-    DEBUG_SHOW(__LINE__);
         Polygons to_be_supported =  polys_above.offset(bridgable_dist);
         fillRoofs(polys_here, z1, layer.roof_insets, to_be_supported);
         
         Polygons roof_outlines  = polys_here.difference(to_be_supported);
-        layer.supported.add(roof_outlines);
+        supported_by_roofs.add(roof_outlines);
     }
     
-    if (false)
+    //if (false)
     { // floors
-    DEBUG_SHOW(__LINE__);
         Polygons to_be_supported =  polys_above.offset(-bridgable_dist);
         fillFloors(polys_here, z1, layer.roof_insets, to_be_supported);
         
         Polygons floor_outlines = polys_above.offset(-bridgable_dist).difference(polys_here);
-        layer.supported.add(floor_outlines);
+        supported_by_roofs.add(floor_outlines);
+        //lower_top_parts.add(floor_outlines);
     }
-    DEBUG_SHOW(__LINE__);
+    
+    //if (false)
+    {// optimize away doubly printed regions (boundaries of holes in of layer etc.)
+        
+        for (WeaveRoofPart& inset : layer.roof_insets)
+        {
+            bool last_skipped = false;
+            for (WeaveConnectionPart& part : inset.connections)
+            {
+                std::vector<WeaveConnectionSegment>& segments = part.connection.segments;
+                for (int idx = 0; idx < part.connection.segments.size(); idx += 2)
+                {
+                    WeaveConnectionSegment& segment = segments[idx];
+                    assert(segment.segmentType == WeaveSegmentType::UP);
+                    Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
+                    bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+                    if (skipped)
+                    {
+                        int begin = idx;
+                        for (; idx < segments.size(); idx += 2)
+                        {
+                            WeaveConnectionSegment& segment = segments[idx];
+                            assert(segments[idx].segmentType == WeaveSegmentType::UP);
+                            Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
+                            bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+                            if (!skipped) 
+                                break;
+                        }
+                        int end = idx - 1;
+                        if (idx >= segments.size())
+                            segments.erase(segments.begin() + begin, segments.end());
+                        else 
+                        {
+                            segments.erase(segments.begin() + begin, segments.begin() + end);
+                            if (begin < segments.size()) 
+                            {
+                                segments[begin].segmentType = WeaveSegmentType::MOVE;
+                            }
+                            idx = begin + 1;
+                            if (idx < segments.size())
+                            {
+                                assert(segments[idx].segmentType == WeaveSegmentType::UP);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     
 }
     
@@ -171,7 +224,6 @@ void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>
 {
     std::vector<Polygons> supporting_parts = supporting.splitIntoParts();
     
-    DEBUG_SHOW(__LINE__);
     Polygons supporting_outlines;
     Polygons holes;
     for (Polygons& supporting_part : supporting_parts)
@@ -183,29 +235,31 @@ void Weaver::fillRoofs(Polygons& supporting, int z, std::vector<WireConnection_>
             holes.back().reverse();
         }
     }
-    
+
     Polygons walk_along = holes.unionPolygons(to_be_supported);
-    
-    DEBUG_SHOW(__LINE__);
-    
+
     supporting_outlines = supporting_outlines.unionPolygons(to_be_supported);
     supporting_outlines = supporting_outlines.remove(to_be_supported);
     
     Polygons inset1;
     
+    Polygons last_supported = supporting_outlines;
+    
     for (Polygons inset0 = supporting_outlines; inset0.size() > 0; inset0 = inset1)
     {
-    DEBUG_SHOW(inset1.size());
-        Polygons simple_inset = inset0.offset(-roof_inset);
+        Polygons simple_inset = inset0.offset(-roof_inset, ClipperLib::jtRound);
+
         simple_inset = simple_inset.unionPolygons(walk_along);
         inset1 = simple_inset.remove(walk_along); // only keep insets and inset-walk_along interactions (not pure walk_alongs!)
-        
+
         if (inset1.size() == 0) break;
         
         result.emplace_back();
         
-        connect(inset0, z, inset1, z, result.back(), true);
-        
+        connect(last_supported, z, inset1, z, result.back(), true);
+
+        last_supported = result.back().supported.intersection(supporting_outlines);
+            
     }
 }
      
@@ -237,6 +291,7 @@ void Weaver::fillFloors(Polygons& supporting, int z, std::vector<WireConnection_
     
     Polygons outset1;
     
+    Polygons last_supported = supporting_;
     for (Polygons outset0 = supporting_; outset0.size() > 0; outset0 = outset1)
     {
         Polygons simple_outset = outset0.offset(roof_inset);
@@ -249,7 +304,9 @@ void Weaver::fillFloors(Polygons& supporting, int z, std::vector<WireConnection_
         
         result.emplace_back();
         
-        connect(outset0, z, outset1, z, result.back(), true);
+        connect(last_supported, z, outset1, z, result.back(), true);
+        
+        last_supported = result.back().supported.unionPolygons(supporting_);
         
     }
 }
@@ -269,7 +326,7 @@ void Weaver::getOuterPolygons(Polygons& in, Polygons& result)
 }
 
 
-void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result, bool include_last)
+void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveConnection& result, bool include_last)
 {
     // TODO: convert polygons (with outset + difference) such that after printing the first polygon, we can't be in the way of the printed stuff
     // something like:
@@ -282,12 +339,26 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireCon
     // unify different parts if gap is too small
     
     Polygons& supported = result.supported;
+//     //DEBUG_PRINTLN("before");
+//     for (PolygonRef poly : parts1)
+//     {
+//         //DEBUG_PRINTLN("new poly");
+//         for (Point& p : poly)
+//             DEBUG_PRINTLN(p);
+//     }
     chainify_polygons(parts1, z1, supported, include_last);
     connect_polygons(parts0, z0, supported, z1, result);
+//     //DEBUG_PRINTLN("after");
+//     for (PolygonRef poly : supported)
+//     {
+//         //DEBUG_PRINTLN("new poly");
+//         for (Point& p : poly)
+//             DEBUG_PRINTLN(p);
+//     }
 }
 
 
-void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, bool include_last)
+void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& result, bool include_last)
 {
         
     for (int prt = 0 ; prt < parts1.size(); prt++)
@@ -296,7 +367,7 @@ void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, boo
         const PolygonRef upperPart = parts1[prt];
         
         
-        PolygonRef part_top = top_parts.newPoly();
+        PolygonRef part_top = result.newPoly();
         
         GivenDistPoint next_upper;
         bool found = true;
@@ -327,7 +398,7 @@ void Weaver::chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, boo
         }
     }
 }
-void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result)
+void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WeaveConnection& result)
 {
  
     if (supporting.size() < 1)
@@ -339,7 +410,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
     result.z0 = z0;
     result.z1 = z1;
     
-    std::vector<WireConnectionPart>& parts = result.connections;
+    std::vector<WeaveConnectionPart>& parts = result.connections;
         
     for (int prt = 0 ; prt < supported.size(); prt++)
     {
@@ -348,8 +419,8 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
         
         
         parts.emplace_back(prt);
-        WireConnectionPart& part = parts.back();
-        std::vector<WireConnectionSegment>& connection = part.connection;
+        WeaveConnectionPart& part = parts.back();
+        PolyLine3& connection = part.connection;
         
         Point3 last_upper;
         bool firstIter = true;
@@ -363,10 +434,13 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
             Point3 lower3 = Point3(lower.X, lower.Y, z0);
             Point3 upper3 = Point3(upper_point.X, upper_point.Y, z1);
             
-            if (!firstIter)
-                connection.emplace_back<>(last_upper, lower3, ExtrusionDirection::DOWN);
             
-            connection.emplace_back<>(lower3 , upper3, ExtrusionDirection::UP);
+            if (firstIter)
+                connection.from = lower3;
+            else
+                connection.segments.emplace_back<>(lower3, WeaveSegmentType::DOWN);
+            
+            connection.segments.emplace_back<>(upper3, WeaveSegmentType::UP);
             last_upper = upper3;
             
             firstIter = false;

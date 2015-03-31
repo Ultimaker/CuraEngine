@@ -40,6 +40,7 @@ private:
     
     int initial_layer_thickness;
     int connectionHeight; // = getSettingInt("wireframeConnectionHeight"); 
+    int extrusionWidth;
     
     int roof_inset; // = getSettingInt("wireframeRoofInset"); 
     
@@ -57,6 +58,8 @@ public:
         
         initial_layer_thickness = getSettingInt("initialLayerThickness");
         connectionHeight = getSettingInt("wireframeConnectionHeight"); 
+        
+        extrusionWidth = getSettingInt("extrusionWidth");
         
         roof_inset = getSettingInt("wireframeRoofInset"); 
         nozzle_outer_diameter = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
@@ -80,13 +83,13 @@ private:
     static Polygons getOuterPolygons(Polygons& in);
     static void getOuterPolygons(Polygons& in, Polygons& result);
     
-    void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WireConnection& result, bool include_last);
+    void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveConnection& result, bool include_last);
     
     void chainify_polygons(Polygons& parts1, int z, Polygons& top_parts, bool include_last);
-    void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WireConnection& result);
+    void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WeaveConnection& result);
 
     
-    void createRoofs(Polygons& lower_top_parts, WireLayer& layer, Polygons& layer_above, int z1);
+    void createRoofs(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1, Polygons& supported_by_roofs);
     
     template<class WireConnection_>
     void fillRoofs(Polygons& roofs, int z, std::vector<WireConnection_>& result, Polygons& to_be_supported);
