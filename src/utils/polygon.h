@@ -288,6 +288,10 @@ public:
     {
         return polygon->end();
     }
+    ClipperLib::Path::reference back() const
+    {
+        return polygon->back();
+    }
 
 
     friend class Polygons;
