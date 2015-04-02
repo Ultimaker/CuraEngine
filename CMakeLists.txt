@@ -26,7 +26,6 @@ set(engine_SRCS
     src/main.cpp
     src/mesh.cpp
     src/multiVolumes.cpp
-    src/optimizedModel.cpp
     src/pathOrderOptimizer.cpp
     src/polygonOptimizer.cpp
     src/raft.cpp
