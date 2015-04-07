@@ -7,7 +7,6 @@
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
 #include "modelFile/modelFile.h"
-#include "optimizedModel.h"
 #include "slicer.h"
 #include "support.h"
 #include "multiVolumes.h"

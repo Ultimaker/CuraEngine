@@ -18,7 +18,6 @@
 
 #include "modelFile/modelFile.h"
 #include "settings.h"
-#include "optimizedModel.h"
 #include "multiVolumes.h"
 #include "polygonOptimizer.h"
 #include "slicer.h"
