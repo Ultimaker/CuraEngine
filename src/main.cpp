@@ -102,7 +102,6 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
-    processor.setDefaultSettings();
 
     CommandSocket* commandSocket = NULL;
     std::string ip;
