@@ -34,22 +34,6 @@
 #include "gcodeExport.h"
 #include "fffProcessor.h"
 
-
-/*
-#define ELPP_CUSTOM_COUT std::cerr
-#include "easylogging++.h"
-_INITIALIZE_EASYLOGGINGPP
-#define _ELPP_STACKTRACE_ON_CRASH
-
-void customCrashLogging(int sig) {
-    LOG(ERROR) << "Application crashed!";
-    el::Helpers::logCrashReason(sig, true);
-    el::Loggers::flushAll();
-    el::Helpers::crashAbort(sig); // FOLLOWING LINE IS ABSOLUTELY NEEDED AT THE END IN ORDER TO ABORT APPLICATION
-    el::Loggers::flushAll();
-}
-*/
-
 void print_usage()
 {
     cura::logError("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-c <config file>] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
@@ -71,13 +55,6 @@ int main(int argc, char **argv)
     //Lower the process priority on linux and mac. On windows this is done on process creation from the GUI.
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
-
-//    el::Helpers::setCrashHandler(customCrashLogging);
-//    el::Configurations conf("LoggerConfig.conf");
-//    el::Loggers::setDefaultConfigurations(conf,true); //Ensure all current (and future) loggers use the same settings
-//    LOG(INFO) << "-----Application started-----" << std::endl;
-//    el::Loggers::addFlag(el::LoggingFlag::AutoSpacing);
-
 
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
     signal(SIGFPE, signal_FPE);

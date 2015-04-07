@@ -207,7 +207,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
         if (path->config != &travelConfig && lastConfig != path->config)
         {
-            gcode.writeComment("TYPE:%s", path->config->name);
+            gcode.writeTypeComment(path->config->name);
             lastConfig = path->config;
         }
         int speed = path->config->getSpeed();
@@ -238,11 +238,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                     Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
                     int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
                     if (newLen > 0)
+                    {
                         if (oldLen > 0)
                             gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM() * oldLen / newLen);
                         else 
                             gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM() * oldLen / newLen);
-
+                    }
                     p0 = paths[x+1].points[0];
                 }
                 gcode.writeMove(paths[i-1].points[0], speed, path->config->getExtrusionPerMM());
@@ -295,7 +296,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     gcode.updateTotalPrintTime();
     if (liftHeadIfNeeded && extraTime > 0.0)
     {
-        gcode.writeComment("Small layer, adding delay of %f", extraTime);
+        gcode.writeComment("Small layer, adding delay");
         if (lastConfig)
             gcode.writeRetraction(lastConfig->retraction_config, true);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));

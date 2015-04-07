@@ -20,7 +20,7 @@ struct ClosestPolygonPoint
     Point p;
     PolygonRef poly;
     int pos;
-    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  p(p), pos(pos), poly(poly) {};
+    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  p(p), poly(poly), pos(pos) {};
     ClosestPolygonPoint(PolygonRef poly) : poly(poly) {};
 };
 

@@ -73,10 +73,12 @@ void AreaSupport::handleTowers(
             {
                 std::vector<Polygons>& overhang_points_below = overhang_points[overhang_points_pos - 1].second;
                 for (Polygons& poly_here : overhang_points_here)
+                {
                     for (Polygons& poly_below : overhang_points_below)
                     {
                         poly_here = poly_here.difference(poly_below.offset(supportMinAreaSqrt*2));
                     }
+                }
             }
         }
         for (Polygons& poly : overhang_points_here)
@@ -87,7 +89,7 @@ void AreaSupport::handleTowers(
     
     // make tower roofs
     //for (Polygons& tower_roof : towerRoofs)
-    for (int r = 0; r < towerRoofs.size(); r++)
+    for (unsigned int r = 0; r < towerRoofs.size(); r++)
     {
         supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
         
@@ -96,7 +98,7 @@ void AreaSupport::handleTowers(
         {
             towerRoofs[r] = tower_roof.offset(towerRoofExpansionDistance);
         }
-            }
+    }
 }
 
 void AreaSupport::handleWallStruts(
@@ -105,7 +107,7 @@ void AreaSupport::handleWallStruts(
     int supportTowerDiameter
     )
 {
-    for (int p = 0; p < supportLayer_this.size(); p++)
+    for (unsigned int p = 0; p < supportLayer_this.size(); p++)
     {
         PolygonRef poly = supportLayer_this[p];
         if (poly.size() < 6) // might be a single wall
@@ -113,7 +115,7 @@ void AreaSupport::handleWallStruts(
             PolygonRef poly = supportLayer_this[p];
             int best = -1;
             int best_length2 = -1;
-            for (int i = 0; i < poly.size(); i++)
+            for (unsigned int i = 0; i < poly.size(); i++)
             {
                 int length2 = vSize2(poly[i] - poly[(i+1) % poly.size()]);
                 if (length2 > best_length2)
@@ -304,7 +306,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     {
         if (logStage) log("supporting on buildplate only");
         Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
-        for (int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+        for (unsigned int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
         {
             Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
             

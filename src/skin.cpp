@@ -39,7 +39,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
             
         if (avoidOverlappingPerimeters) //Add thin wall filling by taking the area between the insets.
         {
-            for (int i = 0; i < part->insets.size() - 1; i++)
+            for (unsigned int i = 0; i < part->insets.size() - 1; i++)
             {
                 Polygons inBetween = part->insets[i].difference(part->insets[i+1]).offset(-extrusionWidth/2-1); // offset 1 more because the distance between two consecutive insets is exactly twice this offset, which results in rounding errors
                 inBetween = inBetween.offset(extrusionWidth * infillOverlap / 100 + 1);

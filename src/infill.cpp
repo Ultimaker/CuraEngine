@@ -278,7 +278,7 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
                         addLine(lastPoint, Point(x,y));
                     else if (connect_zigzags && !last_isEvenScanSegment && !isEvenScanSegment) // if we end an uneven boundary in an uneven segment
                     { // add whole unevenBoundarySegment (including the just obtained point)
-                        for (int p = 1; p < unevenBoundarySegment.size(); p++)
+                        for (unsigned int p = 1; p < unevenBoundarySegment.size(); p++)
                         {
                             addLine(unevenBoundarySegment[p-1], unevenBoundarySegment[p]);
                         }

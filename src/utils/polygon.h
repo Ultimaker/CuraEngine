@@ -206,7 +206,7 @@ public:
         ClipperLib::Path* poly = result.polygon;
         if (size() > 0)
             poly->push_back(thiss[0]);
-        for (int l = 1; l < size(); l++)
+        for (unsigned int l = 1; l < size(); l++)
         {
             if (shorterThen(thiss[l-1]-thiss[l], remove_length))
             {
@@ -224,13 +224,13 @@ public:
         
         if (size() < 4)
         {
-            for (int l = 0; l < size(); l++)
+            for (unsigned int l = 0; l < size(); l++)
                 poly->push_back(thiss[l]);
             return;
         }
         
         Point& last = thiss[size()-1];
-        for (int l = 0; l < size(); l++)
+        for (unsigned int l = 0; l < size(); l++)
         {
             /*
              *    /|
@@ -468,7 +468,7 @@ public:
     Polygons remove(Polygons& to_be_removed, int same_distance = 0)
     {
         Polygons result;
-        for (int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
+        for (unsigned int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
         {
             PolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
@@ -482,7 +482,7 @@ public:
                 // find closest point, supposing this point aligns the two shapes in the best way
                 int closest_point_idx = 0;
                 int smallestDist2 = -1;
-                for (int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                 {
                     int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                     if (dist2 < smallestDist2 || smallestDist2 < 0)
@@ -493,8 +493,9 @@ public:
                 }
                 bool poly_rem_is_poly_keep = true;
                 // compare the two polygons on all points
-                if (smallestDist2 > same_distance * same_distance) continue;
-                for (int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                if (smallestDist2 > same_distance * same_distance)
+                    continue;
+                for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
                     int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
                     if (dist2 > same_distance * same_distance)
