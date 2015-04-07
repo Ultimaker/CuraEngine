@@ -82,6 +82,9 @@ private:
     void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx);
     
     void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx);
+    
+    void writeMoveWithRetract(Point3 to);
+    void writeMoveWithRetract(Point to);
 
 };
 

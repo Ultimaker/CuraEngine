@@ -12,7 +12,7 @@
 namespace cura {
 
     
-ENUM( WeaveSegmentType, UP, DOWN, FLAT, MOVE);
+ENUM( WeaveSegmentType, UP, DOWN, FLAT, MOVE, DOWN_AND_FLAT); // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
 
 
 struct WeaveConnectionSegment
@@ -70,9 +70,9 @@ struct WeaveLayer : WeaveConnection
 };
 struct WireFrame
 {
-    Polygons bottom;
+    WeaveRoof bottom_infill;
+    Polygons bottom_outline;
     int z_bottom;
-    std::vector<WeaveRoofPart> bottom_insets; //!< connections between consecutive insets of the bottom polygons
     std::vector<WeaveLayer> layers;
 };
     
