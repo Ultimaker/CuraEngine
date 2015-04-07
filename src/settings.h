@@ -143,7 +143,6 @@ public:
     int getSettingInt(std::string key);
     std::string getSetting(std::string key);
     
-    void setDefaultSettings();
 };
 
 
