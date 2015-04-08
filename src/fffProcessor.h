@@ -72,6 +72,11 @@ public:
         }
         return false;
     }
+    
+    void setTargetStream(std::ostream* stream)
+    {
+        gcode.setOutputStream(stream);
+    }
 
     bool processFiles(const std::vector<std::string> &files)
     {
@@ -655,6 +660,8 @@ private:
             gcode.writeFanCommand(fanSpeed);
 
             gcodeLayer.writeGCode(getSettingInt("coolHeadLift") > 0, static_cast<int>(layer_nr) > 0 ? getSettingInt("layerThickness") : getSettingInt("initialLayerThickness"));
+            if (commandSocket)
+                commandSocket->sendGCodeLayer();
         }
         gcode.writeRetraction(&storage.retraction_config, true);
 
@@ -667,8 +674,8 @@ private:
         if (commandSocket)
         {
             finalize();
+            commandSocket->sendGCodeLayer();
             commandSocket->endSendSlicedObject();
-            commandSocket->endGCode();
         }
     }
 

@@ -42,6 +42,7 @@ public:
     std::vector<int64_t> objectIds;
 
     std::string tempGCodeFile;
+    std::ostringstream gcode_output_stream;
 
     std::shared_ptr<PrintObject> objectToSlice;
 };
@@ -59,7 +60,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
     d->socket->registerMessageType(2, &Cura::SlicedObjectList::default_instance());
     d->socket->registerMessageType(3, &Cura::Progress::default_instance());
-    d->socket->registerMessageType(4, &Cura::GCode::default_instance());
+    d->socket->registerMessageType(4, &Cura::GCodeLayer::default_instance());
     d->socket->registerMessageType(5, &Cura::ObjectPrintTime::default_instance());
     d->socket->registerMessageType(6, &Cura::SettingList::default_instance());
 
@@ -217,33 +218,17 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::beginGCode()
 {
-    //TODO: This is a massive hack to work around the fact that GCodeExport can only deal with
-    //FILE* at the moment. We really should rewrite that, but effort...
-#ifdef __GNUC__
-#warning This is a very very ugly hack
-#endif
-
-#ifndef _WIN32
-    d->tempGCodeFile = tmpnam(nullptr);
-#else
-    char* tempdir = new char[MAX_PATH + 1];
-    GetTempPath(MAX_PATH + 1, tempdir);
-    char* filename = new char[MAX_PATH];
-    GetTempFileName(tempdir, "", 0, filename);
-    d->tempGCodeFile = filename;
-    delete[] tempdir;
-    delete[] filename;
-#endif
-
-    d->processor->setTargetFile(d->tempGCodeFile.c_str());
+    d->processor->setTargetStream(&d->gcode_output_stream);
 }
 
-void CommandSocket::endGCode()
+void CommandSocket::sendGCodeLayer()
 {
-    auto message = std::make_shared<Cura::GCode>();
+    auto message = std::make_shared<Cura::GCodeLayer>();
     message->set_id(d->objectIds[0]);
-    message->set_filename(d->tempGCodeFile);
+    message->set_data(d->gcode_output_stream.str());
     d->socket->sendMessage(message);
+    
+    d->gcode_output_stream.str("");
 }
 
 }//namespace cura

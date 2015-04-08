@@ -32,7 +32,7 @@ public:
     void endSendSlicedObject();
 
     void beginGCode();
-    void endGCode();
+    void sendGCodeLayer();
 
 private:
     class Private;
