@@ -25,14 +25,14 @@ void Weaver::weave(PrintObject* object)
 
     for(Mesh& mesh : object->meshes)
     {
-        int fix_horrible = true; // mesh.getSettingInt("fixHorrible");
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, false, false); // fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+        int fix_horrible = mesh.getSettingInt("fixHorrible");
+        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
         slicerList.push_back(slicer);
     }
 
     
     int starting_l;
-    { // checking / verifying  (TODO: remove this code if error has never been seen!)
+    { // find first non-empty layer
         for (starting_l = 0; starting_l < layer_count; starting_l++)
         {
             Polygons parts;
