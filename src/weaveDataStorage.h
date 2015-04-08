@@ -38,8 +38,8 @@ struct WeaveConnectionPart
 struct WeaveConnection
 {
     int z0;//!< height of the supporting polygons (of the prev layer, roof inset, etc.)
-    int z1;//!< height of the [supported] polygons
-    std::vector<WeaveConnectionPart> connections; //!< for each polygon in [supported] the connection // \\ // \\ // \\ // \\.
+    int z1;//!< height of the \p supported polygons
+    std::vector<WeaveConnectionPart> connections; //!< for each polygon in \p supported the connection.
     Polygons supported; //!< polygons to be supported by connections (from other polygons)
 };
 

@@ -26,47 +26,11 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     maxObjectHeight = wireFrame.layers.back().z1;
     
     
-
-
-    /*
-    // move to straighten settings
-    int speed = 3; //getSettingInt("wireframePrintspeed");
-    int bottomSpeed = speed;
-    int moveSpeed = 40;
-    int upSpeed = speed;
-    int downSpeed = speed;
-    int flatSpeed = speed;
-    */
-    /*
-    // heighten bend settings
-    int speed = 5; 
-    int bottomSpeed = speed;
-    int moveSpeed = 40;
-    int upSpeed = speed;
-    int downSpeed = speed;
-    int flatSpeed = speed;
-    */
-    
-
-    
-
-    
-    
-    
-    
-    
-    
     
     // roofs:
-    int roof_inset = connectionHeight; // 45 degrees
+    int roof_inset = connectionHeight; // 45 degrees TODO move hard coded value to settings
     
     
-//             for(SliceMeshStorage& mesh : storage.meshes)
-//                 if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
-//                     gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"));
-//             for(SliceMeshStorage& mesh : storage.meshes)
-//                 if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
-//                     gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
     { // starting Gcode
         if (hasSetting("printTemperature") && getSettingInt("printTemperature") > 0)
             gcode.writeTemperatureCommand(getSettingInt("extruderNr"), getSettingInt("printTemperature"));
@@ -81,8 +45,6 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         }
     }
     
-    //maxObjectHeight = 100000; //wireFrame.layers.back().parts[0].z1; // TODO: allow for serial printing
-    
     
             
     unsigned int totalLayers = wireFrame.layers.size();
@@ -91,12 +53,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     
     gcode.writeComment("LAYER:%d", 0);
     gcode.writeComment("TYPE:SKIRT");
-//     Point& begin = wireFrame.bottom[0][0];
-//     Point3 begin3D (begin.X, begin.Y, initial_layer_thickness);
-//     gcode.writeMove(begin3D, moveSpeed, 0);
-//     
     gcode.setZ(initial_layer_thickness);
-//     gcode.writeComment("%i", __LINE__);
     
     for (PolygonRef bottom_part : wireFrame.bottom_infill.roof_outlines)
     {
@@ -137,7 +94,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     for (int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
         
-        logProgress("export", layer_nr+1, totalLayers);  
+        logProgress("export", layer_nr+1, totalLayers); // abuse the progress system of the normal mode of CuraEngine
         if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
@@ -154,7 +111,6 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
             WeaveConnectionPart& part = layer.connections[part_nr];
        
             if (part.connection.segments.size() == 0) continue;
-            //if (layer.supported[part.supported_index].size() == 0) continue;
             
             gcode.writeComment("TYPE:SUPPORT"); // connection
             {
@@ -259,7 +215,7 @@ void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, int 
         Point3 from = gcode.getPosition();// segment.from;
         Point3 vec = to - from;
         Point3 in_between = from + vec * straight_first_when_going_down / 100;
-//                 Point in_between2D(in_between.x, in_between.y);
+        
         Point3 up(in_between.x, in_between.y, from.z);
         int64_t new_length = (up - from).vSize() + (to - up).vSize() + 5;
         int64_t orr_length = vec.vSize();
@@ -288,7 +244,6 @@ void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part
         next_vector = next_segment.to - segment.to;
     } else
     {
-//         next_vector = (segment.to - layer.supported[part.supported_index][0]) * -1; // subtracting Point3 - Point2 results in a Point3 (other way around doesn't)
         next_vector = part.connection.segments[0].to - segment.to;
     }
     Point next_dir_2D(next_vector.x, next_vector.y);
@@ -359,7 +314,6 @@ void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart
         next_point = next_segment.to;
     } else
     {
-        //next_point = Point3(0,0,segment.to.z) + layer.supported[part.supported_index][0];
         next_point = part.connection.segments[0].to;
     }
     Point3 next_vector = next_point - segment.to;
@@ -419,7 +373,6 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
     WeaveConnectionSegment* next_segment = nullptr;
     if (segment_idx + 1 < part.connection.segments.size())
         next_segment = &part.connection.segments[segment_idx+1];
-    //if (segment.dir == ExtrusionDirection::UP)
     switch(segment.segmentType)
     {
         case WeaveSegmentType::MOVE:
@@ -472,9 +425,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
     , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx)> connectionHandler
     , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler)
 {
-    
-//     DEBUG_PRINTLN("writeFill");
-    
+        
     // bottom:
     gcode.writeComment("TYPE:FILL");
     for (int inset_idx = 0; inset_idx < fill_insets.size(); inset_idx++)
@@ -500,7 +451,6 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
             writeMoveWithRetract(first_extrusion_from);
             for (int segment_idx = first_segment_idx; segment_idx < segments.size(); segment_idx++)
             {
-//                 DEBUG_PRINTLN(segments[segment_idx].to.x <<", "<< segments[segment_idx].to.y<<", "<< segments[segment_idx].to.z);
                 connectionHandler(*this, inset, inset_part, segment_idx);
             }
             
@@ -509,7 +459,6 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
                 if (segment.segmentType == WeaveSegmentType::DOWN) continue;
-//                 DEBUG_PRINTLN(segments[segment_idx].to.x <<", "<< segments[segment_idx].to.y<<", "<< segments[segment_idx].to.z);
                 flatHandler(*this, segment); 
             }
         }

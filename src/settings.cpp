@@ -88,7 +88,7 @@ SettingRegistry::SettingRegistry()
     
     // machine settings
     registerSetting("bedTemperature"); // in 1/100th degrees
-    registerSetting("printTemperature"); // in 1/100th degrees
+    registerSetting("printTemperature"); 
     registerSetting("filamentDiameter");
     
     registerSetting("gcodeFlavor");
