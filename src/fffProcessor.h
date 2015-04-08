@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <sstream>
+#include <fstream>
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
@@ -35,6 +36,7 @@ private:
     GCodeExport gcode;
     TimeKeeper timeKeeper;
     CommandSocket* commandSocket;
+    std::ofstream output_file;
 
 public:
     fffProcessor()
@@ -59,13 +61,16 @@ public:
         if (commandSocket)
             commandSocket->sendPolygons(type, layer_nr, polygons);
     }
-
+    
     bool setTargetFile(const char* filename)
     {
-        gcode.setFilename(filename);
-        if (gcode.isOpened())
-            gcode.writeComment("Generated with Cura_SteamEngine %s", VERSION);
-        return gcode.isOpened();
+        output_file.open(filename);
+        if (output_file.is_open())
+        {
+            gcode.setOutputStream(&output_file);
+            return true;
+        }
+        return false;
     }
 
     bool processFiles(const std::vector<std::string> &files)
@@ -133,8 +138,6 @@ public:
 
     void finalize()
     {
-        if (!gcode.isOpened())
-            return;
         gcode.finalize(maxObjectHeight, getSettingInt("moveSpeed"), getSetting("endCode").c_str());
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
@@ -397,9 +400,6 @@ private:
         if (commandSocket)
             commandSocket->beginGCode();
 
-        if (!gcode.isOpened())
-            return;
-
         //Setup the retraction parameters.
         storage.retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));
         storage.retraction_config.primeAmount = INT2MM(getSettingInt("retractionPrimeAmount"));
@@ -417,6 +417,8 @@ private:
 
         if (fileNr == 1)
         {
+            if (hasSetting("bedTemperature") && getSettingInt("bedTemperature") > 0)
+                gcode.writeBedTemperatureCommand(getSettingInt("bedTemperature"), true);
             
             for(SliceMeshStorage& mesh : storage.meshes)
                 if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
@@ -425,14 +427,14 @@ private:
                 if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInt("printTemperature") > 0)
                     gcode.writeTemperatureCommand(mesh.settings->getSettingInt("extruderNr"), mesh.settings->getSettingInt("printTemperature"), true);
             
-            if (hasSetting("bedTemperature") && getSettingInt("bedTemperature") > 0)
-                gcode.writeLine("M190 S%d ;Bed temperature", static_cast<double>(getSettingInt("bedTemperature"))/100);
-            
             gcode.writeCode(getSetting("startCode").c_str());
+            gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {
                 gcode.writeComment("enable auto-retraction");
-                gcode.writeLine("M227 S%d P%d", getSettingInt("retractionAmount") * 2560 / 1000, getSettingInt("retractionAmount") * 2560 / 1000);
+                std::ostringstream tmp;
+                tmp << "M227 S" << (getSettingInt("retractionAmount") * 2560 / 1000) << " P" << (getSettingInt("retractionAmount") * 2560 / 1000);
+                gcode.writeLine(tmp.str().c_str());
             }
         }else{
             gcode.writeFanCommand(0);
@@ -444,7 +446,7 @@ private:
         fileNr++;
 
         unsigned int totalLayers = storage.meshes[0].layers.size();
-        gcode.writeComment("Layer count: %d", totalLayers);
+        //gcode.writeComment("Layer count: %d", totalLayers);
 
         if (getSettingInt("raftBaseThickness") > 0 && getSettingInt("raftInterfaceThickness") > 0)
         {
@@ -467,7 +469,7 @@ private:
             raft_surface_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
             raft_surface_config.setFlow(getSettingInt("filamentFlow"));
             {
-                gcode.writeComment("LAYER:-2");
+                gcode.writeLayerComment(-2);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 if (getSettingInt("supportExtruder") > 0)
@@ -488,7 +490,7 @@ private:
             }
 
             { /// this code block is about something which is of yet unknown
-                gcode.writeComment("LAYER:-1");
+                gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness"));
@@ -502,7 +504,7 @@ private:
 
             for (int raftSurfaceLayer=1; raftSurfaceLayer<=getSettingInt("raftSurfaceLayers"); raftSurfaceLayer++)
             {
-                gcode.writeComment("LAYER:-1");
+                gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceThickness")*raftSurfaceLayer);
@@ -590,7 +592,7 @@ private:
                 }
             }
 
-            gcode.writeComment("LAYER:%d", layer_nr);
+            gcode.writeLayerComment(layer_nr);
 
             GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInt("moveSpeed"), getSettingInt("retractionMinimalDistance"));
             int32_t z = getSettingInt("initialLayerThickness") + layer_nr * getSettingInt("layerThickness");
@@ -665,7 +667,6 @@ private:
         if (commandSocket)
         {
             finalize();
-            gcode.close();
             commandSocket->endSendSlicedObject();
             commandSocket->endGCode();
         }

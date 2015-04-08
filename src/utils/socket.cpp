@@ -43,7 +43,7 @@ void ClientSocket::connectTo(std::string host, int port)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
-    // TODO: Check this: C style cast replaced by reinterpret_cast!!
+
     if (connect(sockfd, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0)
     {
         printf("Connect to %s:%d failed\n", host.c_str(), port);

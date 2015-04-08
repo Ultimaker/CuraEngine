@@ -100,7 +100,7 @@ private:
 class GCodeExport
 {
 private:
-    FILE* f;
+    std::ostream* output_stream;
     double extrusion_amount;
     double extruderSwitchRetraction;
     int extruderSwitchRetractionSpeed;
@@ -129,8 +129,9 @@ private:
 public:
     
     GCodeExport();
-    
     ~GCodeExport();
+    
+    void setOutputStream(std::ostream* stream);
     
     void setExtruderOffset(int id, Point p);
     Point getExtruderOffset(int id);
@@ -138,13 +139,7 @@ public:
     
     void setFlavor(GCode_Flavor flavor);
     int getFlavor();
-    
-    void setFilename(const char* filename);
-    
-    bool isOpened();
-
-    void close();
-    
+        
     void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
     
     void setZ(int z);
@@ -166,9 +161,11 @@ public:
     double getTotalPrintTime();
     void updateTotalPrintTime();
     
-    void writeComment(const char* comment, ...);
-
-    void writeLine(const char* line, ...);
+    void writeComment(std::string comment);
+    void writeTypeComment(const char* type);
+    void writeLayerComment(int layer_nr);
+    
+    void writeLine(const char* line);
     
     void resetExtrusionValue();
     
@@ -189,6 +186,7 @@ public:
     void writeFanCommand(int speed);
     
     void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
+    void writeBedTemperatureCommand(int temperature, bool wait = false);
     
     void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
 };
