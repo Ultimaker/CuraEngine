@@ -49,9 +49,9 @@ message Polygon {
 }
 
 // typeid 4
-message GCode {
+message GCodeLayer {
     int64 id = 1;
-    string filename = 2;
+    bytes data = 2;
 }
 
 // typeid 5

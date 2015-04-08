@@ -227,8 +227,8 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
 
+        commandSocket->sendGCodeLayer();
         commandSocket->endSendSlicedObject();
-        commandSocket->endGCode();
     }
 }
 
