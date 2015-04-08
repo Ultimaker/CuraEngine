@@ -14,7 +14,9 @@
 
 using namespace cura;
 
-
+/*!
+ * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
+ */
 struct ClosestPolygonPoint
 {
     Point p;
@@ -24,12 +26,18 @@ struct ClosestPolygonPoint
     ClosestPolygonPoint(PolygonRef poly) : poly(poly) {};
 };
 
+/*!
+ * A point within a polygon and the index of which segment in the polygon the point lies on.
+ */
 struct GivenDistPoint
 {
     Point p;
     int pos;
 };
 
+/*!
+ * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
+ */
 class Weaver : public SettingsBase
 {
     friend class Wireframe2gcode;
@@ -39,16 +47,15 @@ private:
     static const int RETRACT_TO_STRAIGHTEN = 2;
     
     int initial_layer_thickness;
-    int connectionHeight; // = getSettingInt("wireframeConnectionHeight"); 
+    int connectionHeight; 
     int extrusionWidth;
     
-    int roof_inset; // = getSettingInt("wireframeRoofInset"); 
+    int roof_inset; 
     
-    int nozzle_outer_diameter; // = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
-    //int nozzle_head_distance;  = getSettingInt("machineNozzleHeadDistance");      //    |     |      .
-    int nozzle_expansion_angle; // = getSettingInt("machineNozzleExpansionAngle");  //     \_U_/       .
-    int nozzle_clearance; // = getSettingInt("wireframeNozzleClearance");    // at least line width
-    int nozzle_top_diameter; // = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
+    int nozzle_outer_diameter; 
+    int nozzle_expansion_angle; 
+    int nozzle_clearance; 
+    int nozzle_top_diameter;
    
     
 public:
@@ -78,18 +85,13 @@ private:
     WireFrame wireFrame;
     
     
-    
-    
-    static Polygons getOuterPolygons(Polygons& in);
-    static void getOuterPolygons(Polygons& in, Polygons& result);
-    
     void connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveConnection& result, bool include_last);
     
-    void chainify_polygons(Polygons& parts1, int z, Point start_close_to, Polygons& result, bool include_last);
+    void chainify_polygons(Polygons& parts1, Point start_close_to, Polygons& result, bool include_last);
     void connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WeaveConnection& result);
 
     
-    void createRoofs(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1);
+    void createHorizontalFill(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1);
     
     void fillRoofs(Polygons& supporting, Polygons& to_be_supported, int direction, int z, WeaveRoof& roofs);
     void fillFloors(Polygons& supporting, Polygons& to_be_supported, int direction, int z, WeaveRoof& roofs);
