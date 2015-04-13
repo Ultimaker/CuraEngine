@@ -206,14 +206,14 @@ public:
         ClipperLib::Path* poly = result.polygon;
         if (size() > 0)
             poly->push_back(thiss[0]);
-        for (unsigned int l = 1; l < size(); l++)
+        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
-            if (shorterThen(thiss[l-1]-thiss[l], remove_length))
+            if (shorterThen(thiss[poly_idx-1]-thiss[poly_idx], remove_length))
             {
-                l++; // skip the next line piece (dont escalate the removal of edges)
-                if (l < size())
-                    poly->push_back(thiss[l]);
-            } else poly->push_back(thiss[l]);
+                poly_idx++; // skip the next line piece (dont escalate the removal of edges)
+                if (poly_idx < size())
+                    poly->push_back(thiss[poly_idx]);
+            } else poly->push_back(thiss[poly_idx]);
         }
     }
 
@@ -224,13 +224,13 @@ public:
         
         if (size() < 4)
         {
-            for (unsigned int l = 0; l < size(); l++)
-                poly->push_back(thiss[l]);
+            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+                poly->push_back(thiss[poly_idx]);
             return;
         }
         
         Point& last = thiss[size()-1];
-        for (unsigned int l = 0; l < size(); l++)
+        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
         {
             /*
              *    /|
@@ -250,32 +250,21 @@ public:
              * a^2 = c^2 * (a+d)^2/ (c+e)^2
              * 
              */
-            if ( vSize2(thiss[l]-last) < allowed_error_distance_squared )
+            if ( vSize2(thiss[poly_idx]-last) < allowed_error_distance_squared )
                 continue;
             
-            Point& next = thiss[(l+1) % size()];
+            Point& next = thiss[(poly_idx+1) % size()];
             auto square = [](double in) { return in*in; };
-            int64_t a2 = vSize2(next-thiss[l]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[l]-last))*1000*1000);
+            int64_t a2 = vSize2(next-thiss[poly_idx]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[poly_idx]-last))*1000*1000);
             
-            int64_t error2 = vSize2(next-thiss[l]) - a2;
+            int64_t error2 = vSize2(next-thiss[poly_idx]) - a2;
             if (error2 < allowed_error_distance_squared)
             {
                 // don't add the point to the result
-//                 std::cerr << " error2 = " << error2 << std::endl;
-//                 std::cerr << " vSize2(thiss[l]-last)  " << vSize2(thiss[l]-last) << std::endl;
-//                 std::cerr << " vSize2(next-thiss[l]) " << vSize2(next-thiss[l]) << std::endl;
-//                 std::cerr << " vSize2(next-last) " << vSize2(next-last) << std::endl;
-//                 std::cerr << " (thiss[l]-last)  " << (thiss[l]-last) << std::endl;
-//                 std::cerr << " (next-thiss[l]) " << (next-thiss[l]) << std::endl;
-//                 std::cerr << " (next-last) " << (next-last) << std::endl;
-//                 std::cerr << " (next-last) " << (next-last) << std::endl;
-//                 std::cerr << " a2 " << a2 << std::endl;
-//                 std::cerr << "" << std::endl;
-                    
             } else 
             {
-                poly->push_back(thiss[l]);
-                last = thiss[l];
+                poly->push_back(thiss[poly_idx]);
+                last = thiss[poly_idx];
             }
         }
     }

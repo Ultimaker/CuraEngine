@@ -15,12 +15,12 @@ void AreaSupport::joinMeshesAndDetectOverhangPoints(
     int extrusionWidth
                   )
 {
-    for (int l = 0 ; l < layer_count ; l++)
+    for (int layer_idx = 0 ; layer_idx < layer_count ; layer_idx++)
     {
         joinedLayers.emplace_back();
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            SliceLayer& layer = mesh.layers[l];
+            SliceLayer& layer = mesh.layers[layer_idx];
             for (SliceLayerPart& part : layer.parts)
             {
                 
@@ -29,13 +29,13 @@ void AreaSupport::joinMeshesAndDetectOverhangPoints(
                     Polygons part_poly = part.outline.offset(-extrusionWidth/2);
                     if (part_poly.size() > 0)
                     {
-                        if (overhang_points.size() > 0 && overhang_points.back().first == l)
+                        if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
                             overhang_points.back().second.push_back(part_poly);
                         else 
                         {
                             std::vector<Polygons> small_part_polys;
                             small_part_polys.push_back(part_poly);
-                            overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(l, small_part_polys));
+                            overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
                         }
                     }
                     
@@ -214,7 +214,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
         
     
     // initialization of supportAreasPerLayer
-    for (int l = 0; l < layer_count ; l++)
+    for (int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
         storage.support.supportAreasPerLayer.emplace_back();
 
 
@@ -306,13 +306,13 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     {
         if (logStage) log("supporting on buildplate only");
         Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
-        for (unsigned int l = 1 ; l < storage.support.supportAreasPerLayer.size() ; l++)
+        for (unsigned int layer_idx = 1 ; layer_idx < storage.support.supportAreasPerLayer.size() ; layer_idx++)
         {
-            Polygons& supportLayer = storage.support.supportAreasPerLayer[l];
+            Polygons& supportLayer = storage.support.supportAreasPerLayer[layer_idx];
             
             touching_buildplate = supportLayer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
             
-            storage.support.supportAreasPerLayer[l] = touching_buildplate;
+            storage.support.supportAreasPerLayer[layer_idx] = touching_buildplate;
         }
     }
 

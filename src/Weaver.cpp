@@ -13,7 +13,7 @@ using namespace cura;
  * This is the main function for Neith / Weaving / WirePrinting / Webbed printing.
  * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
  */
-void Weaver::weave(PrintObject* object)
+void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
 {
     int maxz = object->max().z;
 
@@ -25,26 +25,26 @@ void Weaver::weave(PrintObject* object)
 
     for(Mesh& mesh : object->meshes)
     {
-        int fix_horrible = true; // mesh.getSettingInt("fixHorrible");
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, false, false); // fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+        int fix_horrible = mesh.getSettingInt("fixHorrible");
+        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
         slicerList.push_back(slicer);
     }
 
     
-    int starting_l;
-    { // checking / verifying  (TODO: remove this code if error has never been seen!)
-        for (starting_l = 0; starting_l < layer_count; starting_l++)
+    int starting_layer_idx;
+    { // find first non-empty layer
+        for (starting_layer_idx = 0; starting_layer_idx < layer_count; starting_layer_idx++)
         {
             Polygons parts;
             for (cura::Slicer* slicer : slicerList)
-                parts.add(slicer->layers[starting_l].polygonList);
+                parts.add(slicer->layers[starting_layer_idx].polygonList);  
             
             if (parts.size() > 0)
                 break;
         }
-        if (starting_l > 0)
+        if (starting_layer_idx > 0)
         {
-            logError("First %i layers are empty!\n", starting_l);
+            logError("First %i layers are empty!\n", starting_layer_idx);
         }
     }
     
@@ -53,9 +53,12 @@ void Weaver::weave(PrintObject* object)
     {
         int starting_z = -1;
         for (cura::Slicer* slicer : slicerList)
-            wireFrame.bottom_outline.add(slicer->layers[starting_l].polygonList);
+            wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
         
-        wireFrame.z_bottom = slicerList[0]->layers[starting_l].z;
+        if (commandSocket)
+            commandSocket->sendPolygons(Inset0Type, 0, wireFrame.bottom_outline);
+        
+        wireFrame.z_bottom = slicerList[0]->layers[starting_layer_idx].z;
         
         Point starting_point_in_layer;
         if (wireFrame.bottom_outline.size() > 0)
@@ -63,7 +66,7 @@ void Weaver::weave(PrintObject* object)
         else 
             starting_point_in_layer = (Point(0,0) + object->max() + object->min()) / 2;
         
-        for (int layer_idx = starting_l + 1; layer_idx < layer_count; layer_idx++)
+        for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
         {
             logProgress("inset", layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
             
@@ -71,9 +74,13 @@ void Weaver::weave(PrintObject* object)
             for (cura::Slicer* slicer : slicerList)
                 parts1.add(slicer->layers[layer_idx].polygonList);
 
+            
             Polygons chainified;
 
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
+            
+            if (commandSocket)
+                commandSocket->sendPolygons(Inset0Type, layer_idx - starting_layer_idx, chainified);
             
             if (chainified.size() > 0)
             {
