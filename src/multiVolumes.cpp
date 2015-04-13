@@ -39,10 +39,10 @@ void generateMultipleVolumesOverlap(std::vector<SliceMeshStorage> &volumes, int 
             SliceLayer* layer1 = &volumes[volIdx].layers[layerNr];
             for(unsigned int p1 = 0; p1 < layer1->parts.size(); p1++)
             {
-                fullLayer = fullLayer.unionPolygons(layer1->parts[p1].outline.offset(20));
+                fullLayer = fullLayer.unionPolygons(layer1->parts[p1].outline.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
             }
         }
-        fullLayer = fullLayer.offset(-20);
+        fullLayer = fullLayer.offset(-20); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
         
         for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
         {

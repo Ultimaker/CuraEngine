@@ -30,7 +30,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         {
             gcode.writeComment("enable auto-retraction");
             std::ostringstream tmp;
-            tmp << "M227 S" << (getSettingInt("retractionAmount") * 2560 / 1000) << " P" << (getSettingInt("retractionAmount") * 2560 / 1000);
+            tmp << "M227 S" << (getSettingInt("retractionAmount") * 2560 / 1000) << " P" << (getSettingInt("retractionAmount") * 2560 / 1000);  // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
             gcode.writeLine(tmp.str().c_str());
         }
     }

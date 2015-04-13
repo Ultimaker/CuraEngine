@@ -5,27 +5,35 @@ namespace cura {
 
     
     
-void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value, int extrusionWidth, bool avoidOverlappingPerimeters)
+void generateConcentricInfill(Polygons outline, Polygons& result, Polygons* in_between, int inset_value, int extrusionWidth, bool avoidOverlappingPerimeters)
 {
-    std::function<Polygons(Polygons outline)> inset_avoid = 
-        [=](Polygons outline) {
-            return outline.offset(- (inset_value + extrusionWidth / 2) ).offset(extrusionWidth / 2);
-        };
-    std::function<Polygons(Polygons outline)> inset_plain = 
-        [=](Polygons outline) {
-            return outline.offset(-inset_value);
-        };
-            
-    std::function<Polygons(Polygons outline)> inset = (avoidOverlappingPerimeters)? inset_avoid : inset_plain;
-    
-    while(outline.size() > 0)
+    if (avoidOverlappingPerimeters)
     {
-        for (uint polyNr = 0; polyNr < outline.size(); polyNr++)
+        while(outline.size() > 0)
         {
-            PolygonRef r = outline[polyNr];
-            result.add(r);
-        }
-        outline = inset(outline);
+            for (uint polyNr = 0; polyNr < outline.size(); polyNr++)
+            {
+                PolygonRef r = outline[polyNr];
+                result.add(r);
+            }
+            Polygons next_outline = outline.offset(- (inset_value + extrusionWidth / 2) ).offset(extrusionWidth / 2);
+            if (in_between) 
+            {
+                in_between->add(outline.offset(-extrusionWidth/2).difference(next_outline.offset(extrusionWidth/2)));
+            }
+            outline = next_outline;
+        } 
+    } else 
+    {
+        while(outline.size() > 0)
+        {
+            for (uint polyNr = 0; polyNr < outline.size(); polyNr++)
+            {
+                PolygonRef r = outline[polyNr];
+                result.add(r);
+            }
+            outline = outline.offset(-inset_value);
+        } 
     }
 }
 

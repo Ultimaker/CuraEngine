@@ -338,14 +338,14 @@ private:
                 {
                     for(SliceLayerPart& part : mesh.layers[layer_nr].parts)
                     {
-                        oozeShield = oozeShield.unionPolygons(part.outline.offset(MM2INT(2.0)));
+                        oozeShield = oozeShield.unionPolygons(part.outline.offset(MM2INT(2.0))); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
                     }
                 }
                 storage.oozeShield.push_back(oozeShield);
             }
 
             for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
-                storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0));
+                storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
             int offsetAngle = tan(60.0*M_PI/180) * getSettingInt("layerThickness");//Allow for a 60deg angle in the oozeShield.
             for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
                 storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
@@ -799,7 +799,7 @@ private:
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                     {
-                        generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                        generateConcentricInfill(part->sparse_outline[n], fillPolygons, nullptr, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
                     {
@@ -827,7 +827,7 @@ private:
                     generateTriangleInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
                 } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                 {
-                    generateConcentricInfill(part->sparse_outline[0], infillPolygons, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                    generateConcentricInfill(part->sparse_outline[0], infillPolygons, nullptr, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
                 } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
                 {
                     generateZigZagInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle, false, false);
@@ -872,7 +872,16 @@ private:
                         generateLineInfill(outline, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
                     }else if (getSetting("skinPattern") == "SKIN_CONCENTRIC")
                     {
-                        generateConcentricInfill(outline.offset(-extrusionWidth/2.0), skinPolygons, extrusionWidth, extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                        Polygons in_outline;
+                        if ( getSettingInt("avoidOverlappingPerimeters") )
+                            in_outline = outline.offset(-extrusionWidth).offset(extrusionWidth / 2.0);
+                        else
+                            in_outline = outline.offset(-extrusionWidth/2.0);
+                        
+                        Polygons in_between;
+                        generateConcentricInfill(in_outline, skinPolygons, &in_between, extrusionWidth, extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                        
+                        generateLineInfill(in_between, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
                     }
                 }
             }
