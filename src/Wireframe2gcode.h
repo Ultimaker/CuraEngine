@@ -72,16 +72,16 @@ private:
     WireFrame wireFrame;
     
     void writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& outlines
-        , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx)> connectionHandler
+        , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx)> connectionHandler
         , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
     
-    void go_down(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx) ;
-    void strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx);
-    void strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx);
-    void strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx);
-    void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, int segment_idx);
+    void go_down(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx) ;
+    void strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx);
+    void strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx);
+    void strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx);
+    void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx);
     
-    void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, int segment_idx);
+    void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx);
     
     void writeMoveWithRetract(Point3 to);
     void writeMoveWithRetract(Point to);

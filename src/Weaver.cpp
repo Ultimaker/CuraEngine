@@ -102,7 +102,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         
-        for (int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
+        for (uint layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
             logProgress("skin", layer_idx+1, wireFrame.layers.size()); // abuse the progress system of the normal mode of CuraEngine
             
@@ -122,7 +122,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         int last_z = wireFrame.z_bottom;
-        for (int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++) // use top of every layer but the last
+        for (uint layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++) // use top of every layer but the last
         {
             WeaveLayer& layer = wireFrame.layers[layer_idx];
             
@@ -213,7 +213,7 @@ void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int dire
         for (Polygons& roof_part : roof_parts)
         {
             roof_outlines.add(roof_part[0]);
-            for (int hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
+            for (uint hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
             {
                 roof_holes.add(roof_part[hole_idx]);
                 roof_holes.back().reverse();
@@ -290,7 +290,7 @@ void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int dir
     for (Polygons& floor_part : floor_parts)
     {
         floor_outlines.add(floor_part[0]);
-        for (int hole_idx = 1; hole_idx < floor_part.size(); hole_idx++)
+        for (uint hole_idx = 1; hole_idx < floor_part.size(); hole_idx++)
         {
             floor_holes.add(floor_part[hole_idx]);
             //floor_holes.back().reverse();
@@ -334,11 +334,10 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
     bool include_half_of_last_down = true;
     
     
-    bool last_skipped = false;
     for (WeaveConnectionPart& part : inset.connections)
     {
         std::vector<WeaveConnectionSegment>& segments = part.connection.segments;
-        for (int idx = 0; idx < part.connection.segments.size(); idx += 2)
+        for (uint idx = 0; idx < part.connection.segments.size(); idx += 2)
         {
             WeaveConnectionSegment& segment = segments[idx];
             assert(segment.segmentType == WeaveSegmentType::UP);
@@ -346,7 +345,7 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
             bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
             if (skipped)
             {
-                int begin = idx;
+                uint begin = idx;
                 for (; idx < segments.size(); idx += 2)
                 {
                     WeaveConnectionSegment& segment = segments[idx];
@@ -415,7 +414,7 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
 {
     
         
-    for (int prt = 0 ; prt < parts1.size(); prt++)
+    for (uint prt = 0 ; prt < parts1.size(); prt++)
     {
         const PolygonRef upperPart = parts1[prt];
         
@@ -468,7 +467,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
     
     std::vector<WeaveConnectionPart>& parts = result.connections;
         
-    for (int prt = 0 ; prt < supported.size(); prt++)
+    for (uint prt = 0 ; prt < supported.size(); prt++)
     {
         
         const PolygonRef upperPart = supported[prt];
@@ -532,7 +531,7 @@ ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)
 
     int64_t closestDist = vSize2(from - best.p);
     
-    for (int ply = 0; ply < polygons.size(); ply++)
+    for (uint ply = 0; ply < polygons.size(); ply++)
     {
         PolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
@@ -560,11 +559,11 @@ ClosestPolygonPoint Weaver::findClosest(Point from, PolygonRef polygon)
     int64_t closestDist = vSize2(from - best);
     int bestPos = 0;
 //
-    for (int p = 0; p<polygon.size(); p++)
+    for (uint p = 0; p<polygon.size(); p++)
     {
         Point& p1 = polygon[p];
 
-        int p2_idx = p+1;
+        uint p2_idx = p+1;
         if (p2_idx >= polygon.size()) p2_idx = 0;
         Point& p2 = polygon[p2_idx];
 
@@ -638,7 +637,7 @@ bool Weaver::getNextPointWithDistance(Point from, int64_t dist, const PolygonRef
     
     Point prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
     
-    for (int prev_idx = start_idx; prev_idx < poly.size(); prev_idx++) 
+    for (uint prev_idx = start_idx; prev_idx < poly.size(); prev_idx++) 
     {
         int next_idx = (prev_idx + 1 + poly_start_idx) % poly.size(); // last checked segment is between last point in poly and poly[0]...
         Point& next_poly_point = poly[next_idx];

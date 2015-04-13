@@ -206,7 +206,7 @@ public:
         ClipperLib::Path* poly = result.polygon;
         if (size() > 0)
             poly->push_back(thiss[0]);
-        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+        for (uint poly_idx = 1; poly_idx < size(); poly_idx++)
         {
             if (shorterThen(thiss[poly_idx-1]-thiss[poly_idx], remove_length))
             {
@@ -224,13 +224,13 @@ public:
         
         if (size() < 4)
         {
-            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+            for (uint poly_idx = 0; poly_idx < size(); poly_idx++)
                 poly->push_back(thiss[poly_idx]);
             return;
         }
         
         Point& last = thiss[size()-1];
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+        for (uint poly_idx = 0; poly_idx < size(); poly_idx++)
         {
             /*
              *    /|
@@ -406,7 +406,7 @@ public:
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
-        for (unsigned int p = 0; p < size(); p++)
+        for (uint p = 0; p < size(); p++)
         {
             PolygonRef poly(polygons[p]);
             if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
@@ -430,7 +430,7 @@ public:
     {
         Polygons ret;
         Polygons& thiss = *this;
-        for (unsigned int p = 0; p < size(); p++)
+        for (uint p = 0; p < size(); p++)
         {
             thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
         }
@@ -457,7 +457,7 @@ public:
     Polygons remove(Polygons& to_be_removed, int same_distance = 0)
     {
         Polygons result;
-        for (unsigned int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
+        for (uint poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
         {
             PolygonRef poly_keep = (*this)[poly_keep_idx];
             bool should_be_removed = false;
@@ -471,7 +471,7 @@ public:
                 // find closest point, supposing this point aligns the two shapes in the best way
                 int closest_point_idx = 0;
                 int smallestDist2 = -1;
-                for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                for (uint point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
                 {
                     int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
                     if (dist2 < smallestDist2 || smallestDist2 < 0)
@@ -484,7 +484,7 @@ public:
                 // compare the two polygons on all points
                 if (smallestDist2 > same_distance * same_distance)
                     continue;
-                for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                for (uint point_idx = 0; point_idx < poly_rem.size(); point_idx++)
                 {
                     int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
                     if (dist2 > same_distance * same_distance)

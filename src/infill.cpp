@@ -7,7 +7,7 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int inset_valu
 {
     while(outline.size() > 0)
     {
-        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
+        for (uint polyNr = 0; polyNr < outline.size(); polyNr++)
         {
             PolygonRef r = outline[polyNr];
             result.add(r);
@@ -95,14 +95,7 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     PointMatrix matrix(rotation);
     
     outline.applyMatrix(matrix);
-    
-    auto addLine = [&](Point from, Point to)
-    {            
-        PolygonRef p = result.newPoly();
-        p.add(matrix.unapply(from));
-        p.add(matrix.unapply(to));
-    };
-    
+
     
     AABB boundary(outline);
     
@@ -278,7 +271,7 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
                         addLine(lastPoint, Point(x,y));
                     else if (connect_zigzags && !last_isEvenScanSegment && !isEvenScanSegment) // if we end an uneven boundary in an uneven segment
                     { // add whole unevenBoundarySegment (including the just obtained point)
-                        for (unsigned int p = 1; p < unevenBoundarySegment.size(); p++)
+                        for (uint p = 1; p < unevenBoundarySegment.size(); p++)
                         {
                             addLine(unevenBoundarySegment[p-1], unevenBoundarySegment[p]);
                         }
@@ -315,7 +308,7 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
         
         if (isEvenScanSegment || isFirstBoundarySegment || connect_zigzags)
         {
-            for (int i = 1; i < firstBoundarySegment.size() ; i++)
+            for (uint i = 1; i < firstBoundarySegment.size() ; i++)
             {
                 if (i < firstBoundarySegment.size() - 1 || !firstBoundarySegmentEndsInEven || connect_zigzags) // only add last element if connect_zigzags or boundary segment ends in uneven scanline
                     addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
@@ -404,7 +397,7 @@ void generateZigZagInfill_noEndPieces(const Polygons& in_outline, Polygons& resu
                 {
                     if (last_isEvenScanSegment && !isEvenScanSegment)
                     { // add whole boundarySegment (including the just obtained point)
-                        for (int p = 1; p < boundarySegment.size(); p++)
+                        for (uint p = 1; p < boundarySegment.size(); p++)
                         {
                             addLine(boundarySegment[p-1], boundarySegment[p]);
                         }
@@ -438,7 +431,7 @@ void generateZigZagInfill_noEndPieces(const Polygons& in_outline, Polygons& resu
         
         if (!isFirstBoundarySegment && isEvenScanSegment && !firstBoundarySegmentEndsInEven)
         {
-            for (int i = 1; i < firstBoundarySegment.size() ; i++)
+            for (uint i = 1; i < firstBoundarySegment.size() ; i++)
                 addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
         }
     } 
