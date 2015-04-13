@@ -39,6 +39,7 @@ GCodeExport::~GCodeExport()
 void GCodeExport::setOutputStream(std::ostream* stream)
 {
     output_stream = stream;
+    *output_stream << std::fixed;
 }
 
 void GCodeExport::setExtruderOffset(int id, Point p)
