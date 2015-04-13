@@ -114,7 +114,7 @@ public:
             log("starting Neith Weaver...\n");
                         
             Weaver w(this);
-            w.weave(model);
+            w.weave(model, commandSocket);
             
             log("starting Neith Gcode generation...\n");
             preSetup();

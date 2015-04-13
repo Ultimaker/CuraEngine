@@ -78,7 +78,7 @@ public:
     };
 
     
-    void weave(PrintObject* object);
+    void weave(PrintObject* object, CommandSocket* commandSocket);
     
 
 private:
