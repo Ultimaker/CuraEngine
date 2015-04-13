@@ -1,10 +1,23 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "infill.h"
-
+#include "functional"
 namespace cura {
 
-void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
+    
+    
+void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value, int extrusionWidth, bool avoidOverlappingPerimeters)
 {
+    std::function<Polygons(Polygons outline)> inset_avoid = 
+        [=](Polygons outline) {
+            return outline.offset(- (inset_value + extrusionWidth / 2) ).offset(extrusionWidth / 2);
+        };
+    std::function<Polygons(Polygons outline)> inset_plain = 
+        [=](Polygons outline) {
+            return outline.offset(-inset_value);
+        };
+            
+    std::function<Polygons(Polygons outline)> inset = (avoidOverlappingPerimeters)? inset_avoid : inset_plain;
+    
     while(outline.size() > 0)
     {
         for (uint polyNr = 0; polyNr < outline.size(); polyNr++)
@@ -12,7 +25,7 @@ void generateConcentricInfill(Polygons outline, Polygons& result, int inset_valu
             PolygonRef r = outline[polyNr];
             result.add(r);
         }
-        outline = outline.offset(-inset_value);
+        outline = inset(outline);
     }
 }
 
@@ -70,9 +83,10 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
 }
 
 /*!
- * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
+ * generate lines within the area of \p in_outline, at regular intervals of \p lineSpacing
+ * 
  * idea:
- * intersect a regular grid of 'scanlines' with the area inside [in_outline]
+ * intersect a regular grid of 'scanlines' with the area inside \p in_outline
  * 
  * we call the areas between two consecutive scanlines a 'scansegment'.
  * Scansegment x is the area between scanline x and scanline x+1
@@ -107,14 +121,17 @@ void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrus
     for(int n=0; n<lineCount; n++)
         cutList.push_back(std::vector<int64_t>());
     
-    for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
+    for(unsigned int poly_idx=0; poly_idx < outline.size(); poly_idx++)
     {
-        Point p0 = outline[polyNr][outline[polyNr].size()-1];
-        for(unsigned int i=0; i < outline[polyNr].size(); i++)
+        Point p0 = outline[poly_idx][outline[poly_idx].size()-1];
+        for(unsigned int i=0; i < outline[poly_idx].size(); i++)
         {
-            Point p1 = outline[polyNr][i];
+            Point p1 = outline[poly_idx][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) continue; 
+            if (xMin == xMax) {
+                p0 = p1;
+                continue; 
+            }
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
@@ -240,7 +257,11 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) continue; 
+            if (xMin == xMax) {
+                lastPoint = p1;
+                p0 = p1;
+                continue; 
+            }
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
@@ -367,7 +388,10 @@ void generateZigZagInfill_noEndPieces(const Polygons& in_outline, Polygons& resu
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) continue; 
+            if (xMin == xMax) {
+                p0 = p1;
+                continue; 
+            }
             if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
