@@ -126,6 +126,11 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
+        for(auto setting : object.settings())
+        {
+            mesh.setSetting(setting.name(), setting.value());
+        }
+
         d->object_count++;
         d->objectIds.push_back(object.id());
         mesh.finish();
