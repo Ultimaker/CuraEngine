@@ -161,8 +161,13 @@ SettingRegistry::SettingRegistry()
     
     // dual extrusion
     registerSetting("multiVolumeOverlap");
-    registerSetting("preSwitchExtruderCode");
-    registerSetting("postSwitchExtruderCode");
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+    {
+        std::ostringstream stream;
+        stream << n;
+        registerSetting("preSwitchExtruderCode" + stream.str());
+        registerSetting("postSwitchExtruderCode" + stream.str());
+    }
     registerSetting("retractionExtruderSwitchPrimeSpeed");
     registerSetting("retractionExtruderSwitchSpeed");
     registerSetting("retractionAmountExtruderSwitch");
@@ -240,9 +245,4 @@ SettingRegistry::SettingRegistry()
     registerSetting("wireframeRoofFallDown");
     registerSetting("wireframeRoofDragAlong");
     registerSetting("wireframeRoofOuterDelay");
-    
-
 }
-
-
-
