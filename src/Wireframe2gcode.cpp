@@ -439,13 +439,8 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
                 connectionHandler(*this, inset, inset_part, segment_idx);
             }
             
-<<<<<<< HEAD
-            gcode.writeComment("TYPE:WALL-INNER"); // top
-            for (unsigned int segment_idx = 0; segment_idx < segments.size(); segment_idx++)
-=======
             gcode.writeTypeComment("WALL-INNER"); // top
-            for (uint segment_idx = 0; segment_idx < segments.size(); segment_idx++)
->>>>>>> 2d8ce2173a843423219b202d7b46e7e38152c1a9
+            for (unsigned int segment_idx = 0; segment_idx < segments.size(); segment_idx++)
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
 
