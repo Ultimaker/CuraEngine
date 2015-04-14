@@ -138,7 +138,7 @@ public:
     void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(GCode_Flavor flavor);
-    int getFlavor();
+    GCode_Flavor getFlavor();
         
     void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
     

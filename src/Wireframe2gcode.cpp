@@ -100,7 +100,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
        
             if (part.connection.segments.size() == 0) continue;
             
-            gcode.writeComment("TYPE:SUPPORT"); // connection
+            gcode.writeTypeComment("SUPPORT"); // connection
             {
                 if (vSize2(gcode.getPositionXY() - part.connection.from) > connectionHeight)
                 {
@@ -116,7 +116,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
             
             
             
-            gcode.writeComment("TYPE:WALL-OUTER"); // top
+            gcode.writeTypeComment("WALL-OUTER"); // top
             {
                 for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
@@ -412,7 +412,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
 {
         
     // bottom:
-    gcode.writeComment("TYPE:FILL");
+    gcode.writeTypeComment("FILL");
     for (unsigned int inset_idx = 0; inset_idx < fill_insets.size(); inset_idx++)
     {
         WeaveRoofPart& inset = fill_insets[inset_idx];
@@ -423,7 +423,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
             WeaveConnectionPart& inset_part = inset.connections[inset_part_nr];
             std::vector<WeaveConnectionSegment>& segments = inset_part.connection.segments;
             
-            gcode.writeComment("TYPE:SUPPORT"); // connection
+            gcode.writeTypeComment("SUPPORT"); // connection
             if (segments.size() == 0) continue;
             Point3 first_extrusion_from = inset_part.connection.from;
             unsigned int first_segment_idx;
@@ -439,8 +439,13 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
                 connectionHandler(*this, inset, inset_part, segment_idx);
             }
             
+<<<<<<< HEAD
             gcode.writeComment("TYPE:WALL-INNER"); // top
             for (unsigned int segment_idx = 0; segment_idx < segments.size(); segment_idx++)
+=======
+            gcode.writeTypeComment("WALL-INNER"); // top
+            for (uint segment_idx = 0; segment_idx < segments.size(); segment_idx++)
+>>>>>>> 2d8ce2173a843423219b202d7b46e7e38152c1a9
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
 
@@ -453,8 +458,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
         
     }
     
-    gcode.writeComment("TYPE:WALL-OUTER"); // outer perimeter of the flat parts
-    //if (false)
+    gcode.writeTypeComment("WALL-OUTER"); // outer perimeter of the flat parts
     for (PolygonRef poly : roof_outlines)
     {
         writeMoveWithRetract(poly[poly.size() - 1]);

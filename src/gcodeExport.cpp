@@ -68,7 +68,7 @@ void GCodeExport::setFlavor(GCode_Flavor flavor)
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruderCharacter[n] = 'E';
 }
-int GCodeExport::getFlavor()
+GCode_Flavor GCodeExport::getFlavor()
 {
     return this->flavor;
 }
