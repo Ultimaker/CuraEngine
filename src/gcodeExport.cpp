@@ -52,10 +52,10 @@ Point GCodeExport::getExtruderOffset(int id)
     return extruderOffset[id];
 }
 
-void GCodeExport::setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
+void GCodeExport::setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
 {
-    this->preSwitchExtruderCode = preSwitchExtruderCode;
-    this->postSwitchExtruderCode = postSwitchExtruderCode;
+    this->preSwitchExtruderCode[id] = preSwitchExtruderCode;
+    this->postSwitchExtruderCode[id] = postSwitchExtruderCode;
 }
 
 void GCodeExport::setFlavor(GCode_Flavor flavor)
@@ -333,12 +333,12 @@ void GCodeExport::switchExtruder(int newExtruder)
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
     isRetracted = true;
-    writeCode(preSwitchExtruderCode.c_str());
+    writeCode(preSwitchExtruderCode[extruderNr].c_str());
     if (flavor == GCODE_FLAVOR_MAKERBOT)
         *output_stream << "M135 T" << extruderNr << "\n";
     else
         *output_stream << "T" << extruderNr << "\n";
-    writeCode(postSwitchExtruderCode.c_str());
+    writeCode(postSwitchExtruderCode[extruderNr].c_str());
 }
 
 void GCodeExport::writeCode(const char* str)

@@ -167,7 +167,12 @@ private:
             stream << "extruderOffset" << n;
             gcode.setExtruderOffset(n, Point(getSettingInt(stream.str() + ".X"), getSettingInt(stream.str() + ".Y")));
         }
-        gcode.setSwitchExtruderCode(getSetting("preSwitchExtruderCode"), getSetting("postSwitchExtruderCode"));
+        for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
+        {
+            std::ostringstream stream;
+            stream << n;
+            gcode.setSwitchExtruderCode(n, getSetting("preSwitchExtruderCode" + stream.str()), getSetting("postSwitchExtruderCode" + stream.str()));
+        }
 
         if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP")
             gcode.setFlavor(GCODE_FLAVOR_REPRAP);

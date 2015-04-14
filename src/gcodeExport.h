@@ -120,8 +120,8 @@ private:
     int extruderNr;
     int currentFanSpeed;
     GCode_Flavor flavor;
-    std::string preSwitchExtruderCode;
-    std::string postSwitchExtruderCode;
+    std::string preSwitchExtruderCode[MAX_EXTRUDERS];
+    std::string postSwitchExtruderCode[MAX_EXTRUDERS];
     
     double totalFilament[MAX_EXTRUDERS];
     double totalPrintTime;
@@ -135,7 +135,7 @@ public:
     
     void setExtruderOffset(int id, Point p);
     Point getExtruderOffset(int id);
-    void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
+    void setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(GCode_Flavor flavor);
     GCode_Flavor getFlavor();
