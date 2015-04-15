@@ -199,6 +199,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("raftAirGap");
     
     // support
+    registerSetting("supportExtrusionWidth");
     registerSetting("supportXYDistance");
     registerSetting("supportExtruder");
     registerSetting("supportType");
