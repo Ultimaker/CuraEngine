@@ -547,7 +547,7 @@ private:
             storage.skirt_config.setFlow(getSettingInt("filamentFlow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
 
-            storage.support_config.setLineWidth(extrusion_width);
+            storage.support_config.setLineWidth(getSettingInt("supportExtrusionWidth"));
             storage.support_config.setSpeed(getSettingInt("supportSpeed"));
             storage.support_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
             storage.support_config.setFlow(getSettingInt("filamentFlow"));
