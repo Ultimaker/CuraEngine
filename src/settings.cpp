@@ -149,6 +149,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("extruderNr");
     registerSetting("skinPattern");
     registerSetting("wipeTowerSize");
+    registerSetting("wipeTowerDistance");
 
     // retraction
     registerSetting("retractionSpeed");

@@ -391,12 +391,13 @@ private:
         {
             PolygonRef p = storage.wipeTower.newPoly();
             int tower_size = getSettingInt("wipeTowerSize");
-            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000));
-            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000 + tower_size));
-            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000 + tower_size));
-            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000));
+            int tower_distance = getSettingInt("wipeTowerDistance");
+            p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance));
+            p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance + tower_size));
+            p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
+            p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance));
 
-            storage.wipePoint = Point(storage.model_min.x - 3000 - tower_size / 2, storage.model_max.y + 3000 + tower_size / 2);
+            storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
         generateSkirt(storage, getSettingInt("skirtDistance"), getSettingInt("layer0extrusionWidth"), getSettingInt("skirtLineCount"), getSettingInt("skirtMinLength"), getSettingInt("initialLayerThickness"));
