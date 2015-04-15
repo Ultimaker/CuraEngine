@@ -326,7 +326,7 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         *output_stream << "G10 S1\n";
     }else{
-        *output_stream << "G1 F" << (extruderSwitchRetractionSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << (extrusion_amount - extruderSwitchRetraction);
+        *output_stream << "G1 F" << (extruderSwitchRetractionSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << (extrusion_amount - extruderSwitchRetraction) << "\n";
         currentSpeed = extruderSwitchRetractionSpeed;
     }
     extruderNr = newExtruder;
