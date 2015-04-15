@@ -241,7 +241,7 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
                     //Assume default UM2 retraction settings.
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
-                    *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
+                    *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
                     currentSpeed = retractionPrimeSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), currentSpeed);
                 }
