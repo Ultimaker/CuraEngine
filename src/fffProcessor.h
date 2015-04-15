@@ -977,13 +977,28 @@ private:
         if (getSettingInt("wipeTowerSize") < 1)
             return;
 
-        int extrusionWidth = getSettingInt("extrusionWidth");
+        int64_t offset = -getSettingInt("extrusionWidth");
+        if (layer_nr > 0)
+            offset *= 2;
+        
         //If we changed extruder, print the wipe/prime tower for this nozzle;
-        gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &storage.support_config);
-        Polygons fillPolygons;
-        generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layer_nr % 2));
-        gcodeLayer.addLinesByOptimizer(fillPolygons, &storage.support_config);
-
+        std::vector<Polygons> insets;
+        if ((layer_nr % 2) == 1)
+            insets.push_back(storage.wipeTower.offset(offset / 2));
+        else
+            insets.push_back(storage.wipeTower);
+        while(true)
+        {
+            Polygons new_inset = insets[insets.size() - 1].offset(offset);
+            if (new_inset.size() < 1)
+                break;
+            insets.push_back(new_inset);
+        }
+        for(unsigned int n=0; n<insets.size(); n++)
+        {
+            gcodeLayer.addPolygonsByOptimizer(insets[insets.size() - 1 - n], &storage.skirt_config);
+        }
+        
         //Make sure we wipe the old extruder on the wipe tower.
         gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prevExtruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
     }
