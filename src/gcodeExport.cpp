@@ -339,6 +339,9 @@ void GCodeExport::switchExtruder(int newExtruder)
     else
         *output_stream << "T" << extruderNr << "\n";
     writeCode(postSwitchExtruderCode[extruderNr].c_str());
+    
+    //Invalidate the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    currentPosition.z = -1;
 }
 
 void GCodeExport::writeCode(const char* str)
