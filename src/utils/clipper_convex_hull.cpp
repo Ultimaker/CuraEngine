@@ -81,18 +81,6 @@ int findConvexHullInplace(Path & pointset)
 
     cInt miny = points[0].Y;
     cInt maxy = points[num-1].Y;
-    //
-    //
-    // (2) make a pass, find the min and max x.
-    //
-    //
-    cInt minx = points[0].X;
-    cInt maxx = minx;
-    for(int i =1; i < num; i++)
-    {
-        minx = std::min(minx, points[i].X);
-        maxx = std::max(maxx, points[i].X);
-    }
 
     cInt ULx, URx, DLy, DRy;
     cInt DLx, DRx;
