@@ -408,6 +408,8 @@ private:
 
     void writeGCode(SliceDataStorage& storage)
     {
+        gcode.resetTotalPrintTime();
+        
         if (commandSocket)
             commandSocket->beginGCode();
 

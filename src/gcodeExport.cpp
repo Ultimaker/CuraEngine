@@ -128,6 +128,12 @@ double GCodeExport::getTotalPrintTime()
     return totalPrintTime;
 }
 
+void GCodeExport::resetTotalPrintTime()
+{
+    totalPrintTime = 0;
+    estimateCalculator.reset();
+}
+
 void GCodeExport::updateTotalPrintTime()
 {
     totalPrintTime += estimateCalculator.calculate();
@@ -340,8 +346,8 @@ void GCodeExport::switchExtruder(int newExtruder)
         *output_stream << "T" << extruderNr << "\n";
     writeCode(postSwitchExtruderCode[extruderNr].c_str());
     
-    //Invalidate the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
-    currentPosition.z = -1;
+    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    currentPosition.z += 1;
 }
 
 void GCodeExport::writeCode(const char* str)

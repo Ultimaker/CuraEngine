@@ -160,6 +160,7 @@ public:
 
     double getTotalPrintTime();
     void updateTotalPrintTime();
+    void resetTotalPrintTime();
     
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
