@@ -89,7 +89,7 @@ void AreaSupport::handleTowers(
     
     // make tower roofs
     //for (Polygons& tower_roof : towerRoofs)
-    for (uint r = 0; r < towerRoofs.size(); r++)
+    for (unsigned int r = 0; r < towerRoofs.size(); r++)
     {
         supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
         
@@ -107,7 +107,7 @@ void AreaSupport::handleWallStruts(
     int supportTowerDiameter
     )
 {
-    for (uint p = 0; p < supportLayer_this.size(); p++)
+    for (unsigned int p = 0; p < supportLayer_this.size(); p++)
     {
         PolygonRef poly = supportLayer_this[p];
         if (poly.size() < 6) // might be a single wall
@@ -115,7 +115,7 @@ void AreaSupport::handleWallStruts(
             PolygonRef poly = supportLayer_this[p];
             int best = -1;
             int best_length2 = -1;
-            for (uint i = 0; i < poly.size(); i++)
+            for (unsigned int i = 0; i < poly.size(); i++)
             {
                 int length2 = vSize2(poly[i] - poly[(i+1) % poly.size()]);
                 if (length2 > best_length2)
@@ -306,7 +306,7 @@ void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int la
     {
         if (logStage) log("supporting on buildplate only");
         Polygons touching_buildplate = storage.support.supportAreasPerLayer[0];
-        for (uint layer_idx = 1 ; layer_idx < storage.support.supportAreasPerLayer.size() ; layer_idx++)
+        for (unsigned int layer_idx = 1 ; layer_idx < storage.support.supportAreasPerLayer.size() ; layer_idx++)
         {
             Polygons& supportLayer = storage.support.supportAreasPerLayer[layer_idx];
             

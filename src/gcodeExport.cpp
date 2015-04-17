@@ -52,10 +52,10 @@ Point GCodeExport::getExtruderOffset(int id)
     return extruderOffset[id];
 }
 
-void GCodeExport::setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
+void GCodeExport::setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode)
 {
-    this->preSwitchExtruderCode = preSwitchExtruderCode;
-    this->postSwitchExtruderCode = postSwitchExtruderCode;
+    this->preSwitchExtruderCode[id] = preSwitchExtruderCode;
+    this->postSwitchExtruderCode[id] = postSwitchExtruderCode;
 }
 
 void GCodeExport::setFlavor(GCode_Flavor flavor)
@@ -126,6 +126,12 @@ double GCodeExport::getTotalFilamentUsed(int e)
 double GCodeExport::getTotalPrintTime()
 {
     return totalPrintTime;
+}
+
+void GCodeExport::resetTotalPrintTime()
+{
+    totalPrintTime = 0;
+    estimateCalculator.reset();
 }
 
 void GCodeExport::updateTotalPrintTime()
@@ -241,7 +247,7 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
                     //Assume default UM2 retraction settings.
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
-                    *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
+                    *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
                     currentSpeed = retractionPrimeSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), currentSpeed);
                 }
@@ -326,19 +332,22 @@ void GCodeExport::switchExtruder(int newExtruder)
     {
         *output_stream << "G10 S1\n";
     }else{
-        *output_stream << "G1 F" << (extruderSwitchRetractionSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << (extrusion_amount - extruderSwitchRetraction);
+        *output_stream << "G1 F" << (extruderSwitchRetractionSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << (extrusion_amount - extruderSwitchRetraction) << "\n";
         currentSpeed = extruderSwitchRetractionSpeed;
     }
     extruderNr = newExtruder;
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
     isRetracted = true;
-    writeCode(preSwitchExtruderCode.c_str());
+    writeCode(preSwitchExtruderCode[extruderNr].c_str());
     if (flavor == GCODE_FLAVOR_MAKERBOT)
         *output_stream << "M135 T" << extruderNr << "\n";
     else
         *output_stream << "T" << extruderNr << "\n";
-    writeCode(postSwitchExtruderCode.c_str());
+    writeCode(postSwitchExtruderCode[extruderNr].c_str());
+    
+    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    currentPosition.z += 1;
 }
 
 void GCodeExport::writeCode(const char* str)

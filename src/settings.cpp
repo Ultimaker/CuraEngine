@@ -149,6 +149,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("extruderNr");
     registerSetting("skinPattern");
     registerSetting("wipeTowerSize");
+    registerSetting("wipeTowerDistance");
 
     // retraction
     registerSetting("retractionSpeed");
@@ -161,8 +162,13 @@ SettingRegistry::SettingRegistry()
     
     // dual extrusion
     registerSetting("multiVolumeOverlap");
-    registerSetting("preSwitchExtruderCode");
-    registerSetting("postSwitchExtruderCode");
+    for(int n=0; n<MAX_EXTRUDERS; n++)
+    {
+        std::ostringstream stream;
+        stream << n;
+        registerSetting("preSwitchExtruderCode" + stream.str());
+        registerSetting("postSwitchExtruderCode" + stream.str());
+    }
     registerSetting("retractionExtruderSwitchPrimeSpeed");
     registerSetting("retractionExtruderSwitchSpeed");
     registerSetting("retractionAmountExtruderSwitch");
@@ -193,6 +199,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("raftAirGap");
     
     // support
+    registerSetting("supportExtrusionWidth");
     registerSetting("supportXYDistance");
     registerSetting("supportExtruder");
     registerSetting("supportType");
@@ -240,9 +247,4 @@ SettingRegistry::SettingRegistry()
     registerSetting("wireframeRoofFallDown");
     registerSetting("wireframeRoofDragAlong");
     registerSetting("wireframeRoofOuterDelay");
-    
-
 }
-
-
-

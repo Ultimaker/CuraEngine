@@ -66,6 +66,14 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         if (skirtNr + 1 >= count && lenght > 0 && lenght < minLength)
             count++;
     }
+    
+    //Add a skirt under the wipetower to make it stick better.
+    Polygons wipe_tower = storage.wipeTower.offset(-extrusionWidth / 2);
+    while(wipe_tower.size() > 0)
+    {
+        storage.skirt.add(wipe_tower);
+        wipe_tower = wipe_tower.offset(-extrusionWidth);
+    }
 }
 
 }//namespace cura

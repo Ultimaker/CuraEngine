@@ -63,6 +63,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     d->socket->registerMessageType(4, &Cura::GCodeLayer::default_instance());
     d->socket->registerMessageType(5, &Cura::ObjectPrintTime::default_instance());
     d->socket->registerMessageType(6, &Cura::SettingList::default_instance());
+    d->socket->registerMessageType(7, &Cura::GCodePrefix::default_instance());
 
     d->socket->connect(ip, port);
 
@@ -124,6 +125,11 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
             verts[1] = matrix.apply(floatVerts[1]);
             verts[2] = matrix.apply(floatVerts[2]);
             mesh.addFace(verts[0], verts[1], verts[2]);
+        }
+
+        for(auto setting : object.settings())
+        {
+            mesh.setSetting(setting.name(), setting.value());
         }
 
         d->object_count++;
@@ -229,6 +235,13 @@ void CommandSocket::sendGCodeLayer()
     d->socket->sendMessage(message);
     
     d->gcode_output_stream.str("");
+}
+
+void CommandSocket::sendGCodePrefix(std::string prefix)
+{
+    auto message = std::make_shared<Cura::GCodePrefix>();
+    message->set_data(prefix);
+    d->socket->sendMessage(message);
 }
 
 }//namespace cura

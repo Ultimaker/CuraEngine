@@ -12,6 +12,7 @@ message Object {
     bytes vertices = 2; //An array of 3 floats.
     bytes normals = 3; //An array of 3 floats.
     bytes indices = 4; //An array of ints.
+    repeated Setting settings = 5; // Setting override per object, overruling the global settings.
 }
 
 // typeid 3
@@ -69,4 +70,9 @@ message Setting {
     string name = 1;
 
     bytes value = 2;
+}
+
+// typeid 7
+message GCodePrefix {
+    bytes data = 2;
 }

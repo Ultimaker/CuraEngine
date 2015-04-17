@@ -167,7 +167,12 @@ private:
             stream << "extruderOffset" << n;
             gcode.setExtruderOffset(n, Point(getSettingInt(stream.str() + ".X"), getSettingInt(stream.str() + ".Y")));
         }
-        gcode.setSwitchExtruderCode(getSetting("preSwitchExtruderCode"), getSetting("postSwitchExtruderCode"));
+        for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
+        {
+            std::ostringstream stream;
+            stream << n;
+            gcode.setSwitchExtruderCode(n, getSetting("preSwitchExtruderCode" + stream.str()), getSetting("postSwitchExtruderCode" + stream.str()));
+        }
 
         if (getSetting("gcodeFlavor") == "GCODE_FLAVOR_REPRAP")
             gcode.setFlavor(GCODE_FLAVOR_REPRAP);
@@ -386,12 +391,13 @@ private:
         {
             PolygonRef p = storage.wipeTower.newPoly();
             int tower_size = getSettingInt("wipeTowerSize");
-            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000));
-            p.add(Point(storage.model_min.x - 3000, storage.model_max.y + 3000 + tower_size));
-            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000 + tower_size));
-            p.add(Point(storage.model_min.x - 3000 - tower_size, storage.model_max.y + 3000));
+            int tower_distance = getSettingInt("wipeTowerDistance");
+            p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance));
+            p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance + tower_size));
+            p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
+            p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance));
 
-            storage.wipePoint = Point(storage.model_min.x - 3000 - tower_size / 2, storage.model_max.y + 3000 + tower_size / 2);
+            storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
         generateSkirt(storage, getSettingInt("skirtDistance"), getSettingInt("layer0extrusionWidth"), getSettingInt("skirtLineCount"), getSettingInt("skirtMinLength"), getSettingInt("initialLayerThickness"));
@@ -402,6 +408,8 @@ private:
 
     void writeGCode(SliceDataStorage& storage)
     {
+        gcode.resetTotalPrintTime();
+        
         if (commandSocket)
             commandSocket->beginGCode();
 
@@ -541,7 +549,7 @@ private:
             storage.skirt_config.setFlow(getSettingInt("filamentFlow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
 
-            storage.support_config.setLineWidth(extrusion_width);
+            storage.support_config.setLineWidth(getSettingInt("supportExtrusionWidth"));
             storage.support_config.setSpeed(getSettingInt("supportSpeed"));
             storage.support_config.setFilamentDiameter(getSettingInt("filamentDiameter"));
             storage.support_config.setFlow(getSettingInt("filamentFlow"));
@@ -676,6 +684,15 @@ private:
             finalize();
             commandSocket->sendGCodeLayer();
             commandSocket->endSendSlicedObject();
+            if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+            {
+                std::ostringstream prefix;
+                prefix << ";FLAVOR:UltiGCode\n";
+                prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
+                prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+                prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+                commandSocket->sendGCodePrefix(prefix.str());
+            }
         }
     }
 
@@ -972,13 +989,28 @@ private:
         if (getSettingInt("wipeTowerSize") < 1)
             return;
 
-        int extrusionWidth = getSettingInt("extrusionWidth");
+        int64_t offset = -getSettingInt("extrusionWidth");
+        if (layer_nr > 0)
+            offset *= 2;
+        
         //If we changed extruder, print the wipe/prime tower for this nozzle;
-        gcodeLayer.addPolygonsByOptimizer(storage.wipeTower, &storage.support_config);
-        Polygons fillPolygons;
-        generateLineInfill(storage.wipeTower, fillPolygons, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), 45 + 90 * (layer_nr % 2));
-        gcodeLayer.addLinesByOptimizer(fillPolygons, &storage.support_config);
-
+        std::vector<Polygons> insets;
+        if ((layer_nr % 2) == 1)
+            insets.push_back(storage.wipeTower.offset(offset / 2));
+        else
+            insets.push_back(storage.wipeTower);
+        while(true)
+        {
+            Polygons new_inset = insets[insets.size() - 1].offset(offset);
+            if (new_inset.size() < 1)
+                break;
+            insets.push_back(new_inset);
+        }
+        for(unsigned int n=0; n<insets.size(); n++)
+        {
+            gcodeLayer.addPolygonsByOptimizer(insets[insets.size() - 1 - n], &storage.skirt_config);
+        }
+        
         //Make sure we wipe the old extruder on the wipe tower.
         gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prevExtruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
     }

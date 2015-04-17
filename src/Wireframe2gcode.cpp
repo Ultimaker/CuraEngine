@@ -58,7 +58,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     // bottom:
     Polygons empty_outlines;
     writeFill(wireFrame.bottom_infill.roof_insets, empty_outlines, 
-              [this](Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx) { 
+              [this](Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx) { 
                     WeaveConnectionSegment& segment = part.connection.segments[segment_idx]; 
                     if (segment.segmentType == WeaveSegmentType::MOVE || segment.segmentType == WeaveSegmentType::DOWN_AND_FLAT) // this is the case when an inset overlaps with a hole 
                     {
@@ -79,7 +79,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
                 }
             );
     
-    for (uint layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
+    for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
         
         logProgress("export", layer_nr+1, totalLayers); // abuse the progress system of the normal mode of CuraEngine
@@ -94,7 +94,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
             fanSpeed = getSettingInt("fanSpeedMin");
         gcode.writeFanCommand(fanSpeed);
         
-        for (uint part_nr = 0; part_nr < layer.connections.size(); part_nr++)
+        for (unsigned int part_nr = 0; part_nr < layer.connections.size(); part_nr++)
         {
             WeaveConnectionPart& part = layer.connections[part_nr];
        
@@ -108,7 +108,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
                     writeMoveWithRetract(point_same_height);
                 }
                 writeMoveWithRetract(part.connection.from);
-                for (uint segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
+                for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
                     handle_segment(layer, part, segment_idx);
                 }
@@ -118,7 +118,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
             
             gcode.writeTypeComment("WALL-OUTER"); // top
             {
-                for (uint segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
+                for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
                     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
                     if (segment.segmentType == WeaveSegmentType::DOWN) continue;
@@ -136,7 +136,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         
         // roofs:
         gcode.setZ(layer.z1);
-        std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx)>
+        std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)>
             handle_roof = &Wireframe2gcode::handle_roof_segment;
         writeFill(layer.roofs.roof_insets, layer.roofs.roof_outlines,
                   handle_roof,
@@ -181,7 +181,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
 }
 
     
-void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx) 
+void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
 { 
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -214,7 +214,7 @@ void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, uint
 
 
     
-void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx)
+void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     gcode.writeMove(segment.to, speedUp, extrusion_per_mm_connection);
@@ -237,7 +237,7 @@ void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part
     gcode.writeDelay(top_delay);
     gcode.writeMove(current_pos + next_dir_2D, speedUp, 0);
 };
-void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx)
+void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -281,7 +281,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
         }
 };
 
-void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx)
+void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -312,7 +312,7 @@ void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart
     
     gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
 };
-void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, uint segment_idx) 
+void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     
@@ -348,7 +348,7 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
 
 
 
-void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx)
+void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
     Point3 from = (segment_idx == 0)? part.connection.from : part.connection.segments[segment_idx - 1].to;
@@ -407,18 +407,18 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
 
 
 void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& roof_outlines
-    , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, uint segment_idx)> connectionHandler
+    , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
     , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler)
 {
         
     // bottom:
     gcode.writeTypeComment("FILL");
-    for (uint inset_idx = 0; inset_idx < fill_insets.size(); inset_idx++)
+    for (unsigned int inset_idx = 0; inset_idx < fill_insets.size(); inset_idx++)
     {
         WeaveRoofPart& inset = fill_insets[inset_idx];
         
         
-        for (uint inset_part_nr = 0; inset_part_nr < inset.connections.size(); inset_part_nr++)
+        for (unsigned int inset_part_nr = 0; inset_part_nr < inset.connections.size(); inset_part_nr++)
         {
             WeaveConnectionPart& inset_part = inset.connections[inset_part_nr];
             std::vector<WeaveConnectionSegment>& segments = inset_part.connection.segments;
@@ -434,13 +434,13 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygon
             if (first_segment_idx == segments.size())
                 continue;
             writeMoveWithRetract(first_extrusion_from);
-            for (uint segment_idx = first_segment_idx; segment_idx < segments.size(); segment_idx++)
+            for (unsigned int segment_idx = first_segment_idx; segment_idx < segments.size(); segment_idx++)
             {
                 connectionHandler(*this, inset, inset_part, segment_idx);
             }
             
             gcode.writeTypeComment("WALL-INNER"); // top
-            for (uint segment_idx = 0; segment_idx < segments.size(); segment_idx++)
+            for (unsigned int segment_idx = 0; segment_idx < segments.size(); segment_idx++)
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
 
