@@ -18,7 +18,7 @@
 // No case has been found in testing which causes an internal error. It's
 // possible that this could occur if 64-bit multplies and adds overflow.
 //
-int FindConvexHullInplace( ClipperLib::Path  & points);
+int findConvexHullInplace(ClipperLib::Path  & points);
 
 
 //
@@ -32,13 +32,11 @@ int FindConvexHullInplace( ClipperLib::Path  & points);
 //     - 3 or more points forming a convex polygon in CCW order.
 //
 //
-inline ClipperLib::Path FindConvexHull( ClipperLib::Path const & points )
+inline ClipperLib::Path findConvexHull(ClipperLib::Path const & points)
 {
     ClipperLib::Path result = points;
-    FindConvexHullInplace( result );
+    findConvexHullInplace(result);
     return result;
 }
-
-
 
 #endif
