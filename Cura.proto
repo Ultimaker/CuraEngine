@@ -71,3 +71,8 @@ message Setting {
 
     bytes value = 2;
 }
+
+// typeid 7
+message GCodePrefix {
+    bytes data = 2;
+}

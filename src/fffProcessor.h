@@ -682,6 +682,15 @@ private:
             finalize();
             commandSocket->sendGCodeLayer();
             commandSocket->endSendSlicedObject();
+            if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+            {
+                std::ostringstream prefix;
+                prefix << ";FLAVOR:UltiGCode\n";
+                prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
+                prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+                prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+                commandSocket->sendGCodePrefix(prefix.str());
+            }
         }
     }
 

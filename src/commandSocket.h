@@ -33,6 +33,7 @@ public:
 
     void beginGCode();
     void sendGCodeLayer();
+    void sendGCodePrefix(std::string prefix);
 
 private:
     class Private;
