@@ -65,4 +65,40 @@ Polygon convexHull(PolygonRef poly)
         ret.add(p);
     return ret;
 }
+
+
+void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
+{
+    int distance = (inward)? -extrusionWidth : extrusionWidth;
+    if (!avoidOverlappingPerimeters)
+    {
+        result = poly.offset(distance);
+        return;
+    } else
+    {
+        result = poly.offset(distance*3/2).offset(-distance/2);
+        if (in_between)
+            in_between->add(poly.offset(distance/2).difference(result.offset(-distance/2)));
+    }
+}
+
+
+void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool avoidOverlappingPerimeters)
+{
+    int direction = (distance > 0)? 1 : -1;
+    if (!avoidOverlappingPerimeters)
+    {
+        result = poly.offset(distance);
+        return;
+    } else
+    {
+        result = poly.offset(distance + direction*extrusionWidth/2).offset(-direction * extrusionWidth/2);
+    }
+}
+
+void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
+{
+    result = poly.offset(extrusionWidth/2).offset(-extrusionWidth).offset(extrusionWidth/2);
+}
+
 }//namespace cura

@@ -86,6 +86,11 @@ SettingRegistry::SettingRegistry()
     registerSetting("fixHorrible");
     registerSetting("avoidOverlappingPerimeters");
     
+    // basics:
+    registerSetting("position.X");
+    registerSetting("position.Y");
+    registerSetting("position.Z");
+    
     // machine settings
     registerSetting("bedTemperature"); // in 1/100th degrees
     registerSetting("printTemperature"); 
@@ -123,15 +128,16 @@ SettingRegistry::SettingRegistry()
     registerSetting("skirtSpeed");
     
     // uncategorized
-    registerSetting("infillOverlap");
     registerSetting("coolHeadLift");
-    registerSetting("upSkinCount");
     registerSetting("enableCombing");
     
+    registerSetting("wipeTowerSize");
+    registerSetting("wipeTowerDistance");
     
     registerSetting("layerThickness");
     registerSetting("initialLayerThickness");
     registerSetting("layer0extrusionWidth");
+    
     
     registerSetting("XYcompensation");
     
@@ -140,16 +146,14 @@ SettingRegistry::SettingRegistry()
     registerSetting("sparseInfillLineDistance");
     registerSetting("sparseInfillCombineCount");
     registerSetting("infillPattern");
+    registerSetting("infillOverlap");
     
+    // skin
     registerSetting("insetCount");
     registerSetting("downSkinCount");
-    registerSetting("position.X");
-    registerSetting("position.Y");
-    registerSetting("position.Z");
-    registerSetting("extruderNr");
     registerSetting("skinPattern");
-    registerSetting("wipeTowerSize");
-    registerSetting("wipeTowerDistance");
+    registerSetting("upSkinCount");
+    registerSetting("skinPerimeterCount");
 
     // retraction
     registerSetting("retractionSpeed");
@@ -172,6 +176,8 @@ SettingRegistry::SettingRegistry()
     registerSetting("retractionExtruderSwitchPrimeSpeed");
     registerSetting("retractionExtruderSwitchSpeed");
     registerSetting("retractionAmountExtruderSwitch");
+    
+    registerSetting("extruderNr");
     
     // skirt / brim
     registerSetting("skirtLineCount");

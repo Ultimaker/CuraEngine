@@ -6,9 +6,9 @@
 
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int offset, int insetCount, bool avoidOverlappingPerimeters);
+void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters);
 
-void generateInsets(SliceLayer* layer, int offset, int insetCount, bool avoidOverlappingPerimeters);
+void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters);
 
 }//namespace cura
 
