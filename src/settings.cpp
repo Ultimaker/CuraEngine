@@ -104,6 +104,7 @@ SettingRegistry::SettingRegistry()
     registerSetting("fanSpeedMax");
     registerSetting("fanSpeedMin");
     registerSetting("fanFullOnLayerNr");
+    registerSetting("minimalLayerTimeFanSpeedMin");
     
     registerSetting("filamentFlow");
     registerSetting("minimalFeedrate");

@@ -148,36 +148,36 @@ void AreaSupport::handleWallStruts(
     }
 }
 
-void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count)
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count)
 {
     bool logStage = false; // whther to log at which stage of the support area generation we are (for debug)
     // given settings
-    int supportAngle = object->getSettingInt("supportAngle");
+    int supportAngle = object->settings->getSettingInt("supportAngle");
     
     storage.support.generated = false;
     if (supportAngle < 0)
         return;
     
-    bool supportOnBuildplateOnly = object->getSettingInt("supportOnBuildplateOnly") > 0;
-    int supportXYDistance = object->getSettingInt("supportXYDistance");
-    int supportZDistance = object->getSettingInt("supportZDistance");
-    int supportZDistanceBottom = object->getSettingInt("supportZDistanceBottom");
-    int supportZDistanceTop = object->getSettingInt("supportZDistanceTop");
-    int supportJoinDistance = object->getSettingInt("supportJoinDistance");
-    int supportBottomStairDistance = object->getSettingInt("supportBottomStairDistance");
-    int smoothing_distance = object->getSettingInt("supportAreaSmoothing"); 
+    bool supportOnBuildplateOnly = object->settings->getSettingInt("supportOnBuildplateOnly") > 0;
+    int supportXYDistance = object->settings->getSettingInt("supportXYDistance");
+    int supportZDistance = object->settings->getSettingInt("supportZDistance");
+    int supportZDistanceBottom = object->settings->getSettingInt("supportZDistanceBottom");
+    int supportZDistanceTop = object->settings->getSettingInt("supportZDistanceTop");
+    int supportJoinDistance = object->settings->getSettingInt("supportJoinDistance");
+    int supportBottomStairDistance = object->settings->getSettingInt("supportBottomStairDistance");
+    int smoothing_distance = object->settings->getSettingInt("supportAreaSmoothing"); 
     
-    int supportTowerDiameter = object->getSettingInt("supportTowerDiameter");
-    int supportMinAreaSqrt = object->getSettingInt("supportMinimalAreaSqrt");
-    int supportTowerRoofAngle = object->getSettingInt("supportTowerRoofAngle");
+    int supportTowerDiameter = object->settings->getSettingInt("supportTowerDiameter");
+    int supportMinAreaSqrt = object->settings->getSettingInt("supportMinimalAreaSqrt");
+    int supportTowerRoofAngle = object->settings->getSettingInt("supportTowerRoofAngle");
     
     //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
     
     int min_smoothing_area = 100*100;
     int z_layer_distance_tower = 1;
         
-    int layerThickness = object->getSettingInt("layerThickness");
-    int extrusionWidth = object->getSettingInt("extrusionWidth"); // TODO check for layer0extrusionWidth!
+    int layerThickness = object->settings->getSettingInt("layerThickness");
+    int extrusionWidth = object->settings->getSettingInt("extrusionWidth"); // TODO check for layer0extrusionWidth!
     
     
 

@@ -138,25 +138,9 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
-void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
+void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed, double travelTime, double extrudeTime)
 {
-    Point p0 = gcode.getPositionXY();
-    double travelTime = 0.0;
-    double extrudeTime = 0.0;
-    for(unsigned int n=0; n<paths.size(); n++)
-    {
-        GCodePath* path = &paths[n];
-        for(unsigned int i=0; i<path->points.size(); i++)
-        {
-            double thisTime = vSizeMM(p0 - path->points[i]) / double(path->config->getSpeed());
-            if (path->config->getExtrusionPerMM() != 0)
-                extrudeTime += thisTime;
-            else
-                travelTime += thisTime;
-            p0 = path->points[i];
-        }
-    }
-    double totalTime = extrudeTime + travelTime;
+    double totalTime = travelTime + extrudeTime; 
     if (totalTime < minTime && extrudeTime > 0.0)
     {
         double minExtrudeTime = minTime - travelTime;
@@ -186,6 +170,24 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed)
         this->totalPrintTime = (extrudeTime / factor) + travelTime;
     }else{
         this->totalPrintTime = totalTime;
+    }
+}
+
+void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
+{
+    Point p0 = gcode.getPositionXY();
+    for(unsigned int n=0; n<paths.size(); n++)
+    {
+        GCodePath* path = &paths[n];
+        for(unsigned int i=0; i<path->points.size(); i++)
+        {
+            double thisTime = vSizeMM(p0 - path->points[i]) / double(path->config->getSpeed());
+            if (path->config->getExtrusionPerMM() != 0)
+                extrudeTime += thisTime;
+            else
+                travelTime += thisTime;
+            p0 = path->points[i];
+        }
     }
 }
 

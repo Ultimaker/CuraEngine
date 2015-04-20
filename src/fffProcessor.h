@@ -216,7 +216,7 @@ private:
             */
         }
         
-        { // remove empty first layers
+        if (false) { // remove empty first layers
             int n_empty_first_layers = 0;
             for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
             { 
@@ -245,6 +245,10 @@ private:
                 {
                     std::vector<SlicerLayer>& layers = slicer->layers;
                     layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
+                    for (SlicerLayer& layer : layers)
+                    {
+                        layer.z -= n_empty_first_layers * layer_thickness;
+                    }
                 }
                 layer_count -= n_empty_first_layers;
             }
@@ -274,11 +278,6 @@ private:
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
         
-
-        log("Generating support areas...\n");
-        generateSupportAreas(storage, object, layer_count);
-        log("Generated support areas in %5.3fs\n", timeKeeper.restart());
-
         log("Finished prepareModel.\n");
         return true;
     }
@@ -288,7 +287,8 @@ private:
         if (commandSocket)
            commandSocket->beginSendSlicedObject();
 
-        const unsigned int totalLayers = storage.meshes[0].layers.size();
+        // const 
+        unsigned int totalLayers = storage.meshes[0].layers.size();
 
         //carveMultipleVolumes(storage.meshes);
         generateMultipleVolumesOverlap(storage.meshes, getSettingInt("multiVolumeOverlap"));
@@ -335,6 +335,46 @@ private:
             logProgress("inset",layer_nr+1,totalLayers);
             if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layer_nr) / float(totalLayers));
         }
+        
+   
+        { // remove empty first layers
+            int n_empty_first_layers = 0;
+            for (int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
+            { 
+                bool layer_is_empty = true;
+                for (SliceMeshStorage& mesh : storage.meshes)
+                {
+                    if (mesh.layers[layer_idx].parts.size() > 0)
+                    {
+                        layer_is_empty = false;
+                        break;
+                    }
+                }
+                
+                if (layer_is_empty) 
+                {
+                    n_empty_first_layers++;
+                } else
+                {
+                    break;
+                }
+            }
+            
+            if (n_empty_first_layers > 0)
+            {
+                for (SliceMeshStorage& mesh : storage.meshes)
+                {
+                    std::vector<SliceLayer>& layers = mesh.layers;
+                    layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
+                    for (SliceLayer& layer : layers)
+                    {
+                        layer.printZ -= n_empty_first_layers * getSettingInt("layerThickness");
+                    }
+                }
+                totalLayers -= n_empty_first_layers;
+            }
+        }
+              
         if (getSettingInt("enableOozeShield"))
         {
             for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
@@ -358,7 +398,16 @@ private:
             for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
                 storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-offsetAngle));
         }
-        log("Generated inset in %5.3fs\n", timeKeeper.restart());
+        log("Generated inset in %5.3fs\n", timeKeeper.restart());  
+             
+        log("Generating support areas...\n");
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            generateSupportAreas(storage, &mesh, totalLayers);
+        }
+        log("Generated support areas in %5.3fs\n", timeKeeper.restart());
+        
+
 
         for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         {
@@ -653,23 +702,35 @@ private:
             if (!printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layer_nr);
 
-            //Finish the layer by applying speed corrections for minimal layer times
-            gcodeLayer.forceMinimalLayerTime(getSettingInt("minimalLayerTime"), getSettingInt("minimalFeedrate"));
+            { //Finish the layer by applying speed corrections for minimal layer times and determine the fanSpeed
+                double travelTime;
+                double extrudeTime;
+                gcodeLayer.getTimes(travelTime, extrudeTime);
+                gcodeLayer.forceMinimalLayerTime(getSettingInt("minimalLayerTime"), getSettingInt("minimalFeedrate"), travelTime, extrudeTime);
 
-            int fanSpeed = getSettingInt("fanSpeedMin");
-            if (gcodeLayer.getExtrudeSpeedFactor() <= 50)
-            {
-                fanSpeed = getSettingInt("fanSpeedMax");
-            }else{
-                int n = gcodeLayer.getExtrudeSpeedFactor() - 50;
-                fanSpeed = getSettingInt("fanSpeedMin") * n / 50 + getSettingInt("fanSpeedMax") * (50 - n) / 50;
+                // interpolate fan speed (for fanFullOnLayerNr and for minimalLayerTimeFanSpeedMin)
+                int fanSpeed = getSettingInt("fanSpeedMin");
+                double totalLayerTime = travelTime + extrudeTime;
+                if (totalLayerTime < getSettingInt("minimalLayerTime"))
+                {
+                    fanSpeed = getSettingInt("fanSpeedMax");
+                }
+                else if (totalLayerTime < getSettingInt("minimalLayerTimeFanSpeedMin"))
+                { 
+                    // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
+                    double minTime = (getSettingInt("minimalLayerTime"));
+                    double maxTime = (getSettingInt("minimalLayerTimeFanSpeedMin"));
+                    int fanSpeedMin = getSettingInt("fanSpeedMin");
+                    int fanSpeedMax = getSettingInt("fanSpeedMax");
+                    fanSpeed = fanSpeedMax - (fanSpeedMax-fanSpeedMin) * (totalLayerTime - minTime) / (maxTime - minTime);
+                }
+                if (static_cast<int>(layer_nr) < getSettingInt("fanFullOnLayerNr"))
+                {
+                    //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
+                    fanSpeed = fanSpeed * layer_nr / getSettingInt("fanFullOnLayerNr");
+                }
+                gcode.writeFanCommand(fanSpeed);
             }
-            if (static_cast<int>(layer_nr) < getSettingInt("fanFullOnLayerNr"))
-            {
-                //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
-                fanSpeed = fanSpeed * layer_nr / getSettingInt("fanFullOnLayerNr");
-            }
-            gcode.writeFanCommand(fanSpeed);
 
             gcodeLayer.writeGCode(getSettingInt("coolHeadLift") > 0, static_cast<int>(layer_nr) > 0 ? getSettingInt("layerThickness") : getSettingInt("initialLayerThickness"));
             if (commandSocket)

@@ -61,7 +61,7 @@ public:
  * 
  * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
  */
-void generateSupportAreas(SliceDataStorage& storage, PrintObject* object, int layer_count);
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count);
 
 }//namespace cura
 

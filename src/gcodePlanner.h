@@ -112,7 +112,9 @@ public:
 
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config);
 
-    void forceMinimalLayerTime(double minTime, int minimalSpeed);
+    void forceMinimalLayerTime(double minTime, int minimalSpeed, double travelTime, double extrusionTime);
+    
+    void getTimes(double& travelTime, double& extrudeTime);
 
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };
