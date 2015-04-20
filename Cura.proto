@@ -59,6 +59,7 @@ message GCodeLayer {
 message ObjectPrintTime {
     int64 id = 1;
     float time = 2;
+    float material_amount = 3;
 }
 
 // typeid 6

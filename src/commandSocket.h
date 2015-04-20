@@ -25,7 +25,7 @@ public:
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons);
     void sendProgress(float amount);
-    void sendPrintTimeForObject(int index, float print_time);
+    void sendPrintTime();
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
 
     void beginSendSlicedObject();
