@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "inset.h"
 #include "polygonOptimizer.h"
-
+#include "utils/polygonUtils.h"
 namespace cura {
 
 void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
@@ -16,14 +16,13 @@ void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bo
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        if (avoidOverlappingPerimeters && i > 0)
+        if (i == 0)
         {
-            Polygons inner_bounds = part->insets[i-1].offset(-extrusionWidth - extrusionWidth / 2);
-            Polygons nonOverlapping = inner_bounds.offset(extrusionWidth / 2);
-            Polygons simple_inset = part->insets[i-1].offset(-extrusionWidth);
-            part->insets[i] = nonOverlapping.intersection(simple_inset);
+            offsetSafe(part->outline, - extrusionWidth/2, extrusionWidth, part->insets[i], avoidOverlappingPerimeters);
         } else
-            part->insets[i] = part->outline.offset(-extrusionWidth * i - extrusionWidth/2);
+        {
+            offsetExtrusionWidth(part->insets[i-1], true, extrusionWidth, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+        }
             
         optimizePolygons(part->insets[i]);
         if (part->insets[i].size() < 1)
@@ -33,6 +32,7 @@ void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bo
         }
     }
 }
+
 
 void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {

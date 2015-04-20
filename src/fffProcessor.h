@@ -24,6 +24,7 @@
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
+#include "utils/polygonUtils.h"
 
 namespace cura {
 
@@ -319,7 +320,7 @@ private:
                 int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                 if (layer_nr == 0)
                     extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
-                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingInt("avoidOverlappingPerimeters") > 0);
+                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
@@ -368,7 +369,7 @@ private:
                     int extrusionWidth = mesh.settings->getSettingInt("extrusionWidth");
                     if (layer_nr == 0)
                         extrusionWidth = mesh.settings->getSettingInt("layer0extrusionWidth");
-                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("infillOverlap"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
+                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("skinPerimeterCount"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
                     if (mesh.settings->getSettingInt("sparseInfillLineDistance") > 0)
                         generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingInt("downSkinCount"), mesh.settings->getSettingInt("upSkinCount"), mesh.settings->getSettingInt("avoidOverlappingPerimeters"));
 
@@ -491,7 +492,8 @@ private:
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftBaseLinewidth"), getSettingInt("raftLineSpacing"), getSettingInt("infillOverlap"), 0);
+                int offset_from_poly_outline = 0;
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInt("raftBaseLinewidth"), getSettingInt("raftLineSpacing"), getSettingInt("infillOverlap"), 0);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftBaseThickness"));
@@ -509,7 +511,8 @@ private:
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness"));
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftInterfaceLinewidth"), getSettingInt("raftInterfaceLineSpacing"), getSettingInt("infillOverlap"), getSettingInt("raftSurfaceLayers") > 0 ? 45 : 90);
+                int offset_from_poly_outline = 0;
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInt("raftInterfaceLinewidth"), getSettingInt("raftInterfaceLineSpacing"), getSettingInt("infillOverlap"), getSettingInt("raftSurfaceLayers") > 0 ? 45 : 90);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
@@ -523,7 +526,8 @@ private:
                 gcode.setZ(getSettingInt("raftBaseThickness") + getSettingInt("raftInterfaceThickness") + getSettingInt("raftSurfaceThickness")*raftSurfaceLayer);
 
                 Polygons raftLines;
-                generateLineInfill(storage.raftOutline, raftLines, getSettingInt("raftSurfaceLinewidth"), getSettingInt("raftSurfaceLineSpacing"), getSettingInt("infillOverlap"), 90 * raftSurfaceLayer);
+                int offset_from_poly_outline = 0;
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInt("raftSurfaceLinewidth"), getSettingInt("raftSurfaceLineSpacing"), getSettingInt("infillOverlap"), 90 * raftSurfaceLayer);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInt("raftInterfaceThickness"));
@@ -804,19 +808,19 @@ private:
                     Polygons fillPolygons;
                     if (getSetting("infillPattern") == "INFILL_GRID")
                     {
-                        generateGridInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
+                        generateGridInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_LINES")
                     {
-                        generateLineInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                        generateLineInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_TRIANGLES")
                     {
-                        generateTriangleInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
+                        generateTriangleInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                     {
-                        generateConcentricInfill(part->sparse_outline[n], fillPolygons, nullptr, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                        generateConcentricInfill(part->sparse_outline[n], fillPolygons, getSettingInt("sparseInfillLineDistance"));
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                     } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
                     {
@@ -835,16 +839,16 @@ private:
             {
                 if (getSetting("infillPattern") == "INFILL_GRID")
                 {
-                    generateGridInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
+                    generateGridInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 2, getSettingInt("infillOverlap"), fillAngle);
                 } else if (getSetting("infillPattern") == "INFILL_LINES")
                 {
-                    generateLineInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
+                    generateLineInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle);
                 } else if (getSetting("infillPattern") == "INFILL_TRIANGLES")
                 {
-                    generateTriangleInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
+                    generateTriangleInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance") * 3, getSettingInt("infillOverlap"), 0);
                 } else if (getSetting("infillPattern") == "INFILL_CONCENTRIC")
                 {
-                    generateConcentricInfill(part->sparse_outline[0], infillPolygons, nullptr, getSettingInt("sparseInfillLineDistance"), extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                    generateConcentricInfill(part->sparse_outline[0], infillPolygons, getSettingInt("sparseInfillLineDistance"));
                 } else if (getSetting("infillPattern") == "INFILL_ZIGZAG")
                 {
                     generateZigZagInfill(part->sparse_outline[0], infillLines, extrusionWidth, getSettingInt("sparseInfillLineDistance"), getSettingInt("infillOverlap"), fillAngle, false, false);
@@ -882,28 +886,37 @@ private:
                     bridge = bridgeAngle(outline, &mesh->layers[layer_nr-1]);
                 if (bridge > -1)
                 {
-                    generateLineInfill(outline, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);
+                    generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), bridge);
                 }else{
                     if (getSetting("skinPattern") == "SKIN_LINES")
                     {
-                        generateLineInfill(outline, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+                        for (Polygons& skin_perimeter : part->skinInsets)
+                            gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config);
+                        if (part->skinInsets.size() > 0)
+                        {
+                            generateLineInfill(part->skinInsets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+                        } 
+                        else
+                        {
+                            generateLineInfill(part->skinOutline, 0, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+                        }
                     }else if (getSetting("skinPattern") == "SKIN_CONCENTRIC")
                     {
                         Polygons in_outline;
-                        if ( getSettingInt("avoidOverlappingPerimeters") )
-                            in_outline = outline.offset(-extrusionWidth).offset(extrusionWidth / 2.0);
-                        else
-                            in_outline = outline.offset(-extrusionWidth/2.0);
+                        offsetSafe(outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingInt("avoidOverlappingPerimeters"));
                         
-                        Polygons in_between;
-                        generateConcentricInfill(in_outline, skinPolygons, &in_between, extrusionWidth, extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
+                        generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingInt("avoidOverlappingPerimeters"));
                         
-                        generateLineInfill(in_between, skinLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
                     }
                 }
             }
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
             gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
+            
+            
+            Polygons gapLines; // gaps between perimeters etc.
+            generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+            gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingInt("spiralizeMode") || static_cast<int>(layer_nr) < getSettingInt("downSkinCount"))
@@ -949,25 +962,28 @@ private:
                 int extrusionWidth = getSettingInt("extrusionWidth");
                 if (getSetting("supportType") == "GRID")
                 {
+                    int offset_from_outline = 0;
                     if (getSettingInt("supportLineDistance") > extrusionWidth * 4)
                     {
-                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 0);
+                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, getSettingInt("supportLineDistance")*2, getSettingInt("infillOverlap"), 0);
                     }else{
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layer_nr & 1) ? 0 : 90);
+                        generateLineInfill(island, offset_from_outline, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), (layer_nr & 1) ? 0 : 90);
                     }
                 }else if (getSetting("supportType") == "LINES")
                 {
+                    int offset_from_outline = 0;
                     if (layer_nr == 0)
                     {
-                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
+                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                     }else{
-                        generateLineInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
+                        generateLineInfill(island, offset_from_outline, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0);
                     }
                 }else if (getSetting("supportType") == "ZIGZAG")
                 {
+                    int offset_from_outline = 0;
                     if (layer_nr == 0)
                     {
-                        generateGridInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
+                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap") + 150, 0);
                     }else{
                         generateZigZagInfill(island, supportLines, extrusionWidth, getSettingInt("supportLineDistance"), getSettingInt("infillOverlap"), 0, getSettingInt("supportConnectZigZags") >0, true);
                     }

@@ -1,61 +1,60 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "infill.h"
 #include "functional"
+#include "utils/polygonUtils.h"
 namespace cura {
 
     
-    
-void generateConcentricInfill(Polygons outline, Polygons& result, Polygons* in_between, int inset_value, int extrusionWidth, bool avoidOverlappingPerimeters)
+      
+void generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int extrusionWidth, bool avoidOverlappingPerimeters)
 {
-    if (avoidOverlappingPerimeters)
+    while(outline.size() > 0)
     {
-        while(outline.size() > 0)
+        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
         {
-            for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-            {
-                PolygonRef r = outline[polyNr];
-                result.add(r);
-            }
-            Polygons next_outline = outline.offset(- (inset_value + extrusionWidth / 2) ).offset(extrusionWidth / 2);
-            if (in_between) 
-            {
-                in_between->add(outline.offset(-extrusionWidth/2).difference(next_outline.offset(extrusionWidth/2)));
-            }
-            outline = next_outline;
-        } 
-    } else 
-    {
-        while(outline.size() > 0)
-        {
-            for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-            {
-                PolygonRef r = outline[polyNr];
-                result.add(r);
-            }
-            outline = outline.offset(-inset_value);
-        } 
-    }
+            PolygonRef r = outline[polyNr];
+            result.add(r);
+        }
+        Polygons next_outline;
+        offsetExtrusionWidth(outline, true, extrusionWidth, next_outline, in_between, avoidOverlappingPerimeters);
+        outline = next_outline;
+    } 
+
 }
 
-void generateGridInfill(const Polygons& in_outline, Polygons& result,
+void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
+{
+    while(outline.size() > 0)
+    {
+        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
+        {
+            PolygonRef r = outline[polyNr];
+            result.add(r);
+        }
+        outline = outline.offset(-inset_value);
+    } 
+}
+
+
+void generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
                         int extrusionWidth, int lineSpacing, int infillOverlap,
                         double rotation)
 {
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation);
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation + 90);
 }
 
-void generateTriangleInfill(const Polygons& in_outline, Polygons& result,
+void generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
                         int extrusionWidth, int lineSpacing, int infillOverlap,
                         double rotation)
 {
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation);
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation + 60);
-    generateLineInfill(in_outline, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
                        infillOverlap, rotation + 120);
 }
 
@@ -108,10 +107,10 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
  *      and connect them using the even-odd rule
  * 
  */
-void generateLineInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
+void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, int infillOverlap, double rotation)
 {
     if (in_outline.size() == 0) return;
-    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
+    Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 + outlineOffset);
     if (outline.size() == 0) return;
     
     PointMatrix matrix(rotation);

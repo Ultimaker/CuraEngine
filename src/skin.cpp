@@ -1,9 +1,22 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "skin.h"
+#include "polygonOptimizer.h"
+#include "utils/polygonUtils.h"
 
 namespace cura {
 
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int infillOverlap, int avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, int avoidOverlappingPerimeters)
+{
+    generateSkinAreas(layerNr, storage, extrusionWidth, downSkinCount, upSkinCount);
+
+    SliceLayer* layer = &storage.layers[layerNr];
+    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    {
+        SliceLayerPart* part = &layer->parts[partNr];
+        generateSkinInsets(part, extrusionWidth, insetCount, avoidOverlappingPerimeters);
+    }
+}
+void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -11,7 +24,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     {
         SliceLayerPart* part = &layer->parts[partNr];
         
-        Polygons upskin = part->insets[part->insets.size() - 1].offset(-extrusionWidth/2);
+        Polygons upskin = part->insets.back().offset(-extrusionWidth/2);
         Polygons downskin = upskin;
 
         
@@ -36,20 +49,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
         
         Polygons skin = upskin.unionPolygons(downskin);
                 
-            
-        if (avoidOverlappingPerimeters) //Add thin wall filling by taking the area between the insets.
-        {
-            for (unsigned int i = 0; i < part->insets.size() - 1; i++)
-            {
-                Polygons inBetween = part->insets[i].difference(part->insets[i+1]).offset(-extrusionWidth/2-1); // offset 1 more because the distance between two consecutive insets is exactly twice this offset, which results in rounding errors
-                inBetween = inBetween.offset(extrusionWidth * infillOverlap / 100 + 1);
-                skin.add(inBetween);
-//                 upskin.add(inBetween);
-//                 downskin.add(inBetween);
-            }
-        } 
-        
-        part->skinOutline = skin;
+        part->skinOutline = part->skinOutline.unionPolygons(skin);
             
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
         for(unsigned int i=0; i<part->skinOutline.size(); i++)
@@ -64,6 +64,36 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     }
 }
 
+
+void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
+{
+    if (insetCount == 0)
+    {
+        return;
+    }
+    
+    for(int i=0; i<insetCount; i++)
+    {
+        part->skinInsets.push_back(Polygons());
+        if (i == 0)
+        {
+            offsetSafe(part->skinOutline, - extrusionWidth/2, extrusionWidth, part->skinInsets[0], avoidOverlappingPerimeters);
+            Polygons in_between = part->skinOutline.difference(part->skinInsets[0].offset(extrusionWidth/2)); 
+            part->perimeterGaps.add(in_between);
+        } else
+        {
+            offsetExtrusionWidth(part->skinInsets[i-1], true, extrusionWidth, part->skinInsets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+        }
+            
+        optimizePolygons(part->skinInsets[i]);
+        if (part->skinInsets[i].size() < 1)
+        {
+            part->skinInsets.pop_back();
+            break;
+        }
+    }
+}
+
 void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int avoidOverlappingPerimeters)
 {
     SliceLayer* layer = &storage.layers[layerNr];
@@ -72,7 +102,7 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
     {
         SliceLayerPart* part = &layer->parts[partNr];
         
-        Polygons sparse = part->insets[part->insets.size() - 1].offset(-extrusionWidth/2);
+        Polygons sparse = part->insets.back().offset(-extrusionWidth/2);
 
         
         Polygons downskin = sparse;

@@ -44,6 +44,9 @@ LayerParts are generated after the Slicer step.
 
 To generate the LayerParts Clipper is used. A Clipper union with extended results gives a list of Polygons with holes in them. Each polygon is a LayerPart, and the holes are added to this LayerPart.
 
+Polygons
+--------
+Holes are polygons in counter-clockwise (or at-least, in the other direction) and the polygons are guaranteed to be "even-odd", so every crossing of polygon lines will switch from "fill" to "empty".
 
 Insets
 ------

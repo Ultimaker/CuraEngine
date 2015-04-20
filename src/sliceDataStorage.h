@@ -21,7 +21,9 @@ public:
     Polygons combBoundery;  //!< The combBoundery is generated from the online. It's the area in which the nozzle tries to stay during traveling.
     std::vector<Polygons> insets;       //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     Polygons skinOutline;               //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
+    std::vector<Polygons> skinInsets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
     std::vector<Polygons> sparse_outline; //!< The sparse_outline are the areas which need to be filled with sparse (0-99%) infill. The sparse_outline is an array to support thicker layers of sparse infill. sparse_outline[n] is sparse outline of (n+1) layers thick. 
+    Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 
 /*!
