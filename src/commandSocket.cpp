@@ -132,10 +132,10 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
             mesh.setSetting(setting.name(), setting.value());
         }
 
-        d->object_count++;
         d->objectIds.push_back(object.id());
         mesh.finish();
     }
+    d->object_count++;
     d->objectToSlice->finalize();
 }
 

@@ -1085,7 +1085,7 @@ private:
         }
         for(unsigned int n=0; n<insets.size(); n++)
         {
-            gcodeLayer.addPolygonsByOptimizer(insets[insets.size() - 1 - n], &storage.skirt_config);
+            gcodeLayer.addPolygonsByOptimizer(insets[insets.size() - 1 - n], &storage.meshes[0].insetX_config);
         }
         
         //Make sure we wipe the old extruder on the wipe tower.
