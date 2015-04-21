@@ -1,3 +1,5 @@
+#ifndef MACROS_H
+#define MACROS_H
 
 #include <string.h>
 
@@ -55,3 +57,5 @@ if(isspace(str[i])) continue; \
 strings.push_back(temp.str()); \
 os << enumName << "::" << strings[static_cast<int>(value)]; \
 return os;}
+
+#endif // MACROS_H
