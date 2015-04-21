@@ -210,7 +210,7 @@ void Wireframe2gcode::go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsi
         
         gcode.writeMove(Point3(0,0,up_dist_half_speed) + gcode.getPosition(), speedUp / 2, extrusion_per_mm_connection * 2);
     }
-};
+}
 
 
     
@@ -236,7 +236,8 @@ void Wireframe2gcode::strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part
     gcode.writeMove(current_pos - next_dir, speedUp, 0);
     gcode.writeDelay(top_delay);
     gcode.writeMove(current_pos + next_dir_2D, speedUp, 0);
-};
+}
+
 void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
@@ -279,7 +280,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
         if (after_retract_hop)    
             gcode.writeMove(to + Point3(0, 0, retract_hop_dist*3), speedFlat, 0);
         }
-};
+}
 
 void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx)
 {
@@ -311,7 +312,7 @@ void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart
     int64_t newLength = (newTop - from).vSize() + (next_point - newTop).vSize() + 1; // + 1 in order to avoid division by zero
     
     gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
-};
+}
 void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
 {
     WeaveConnectionSegment& segment = part.connection.segments[segment_idx];
@@ -343,7 +344,7 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
             logError("Down and flat move in non-horizontal connection!");
             break;
     }
-};
+}
 
 
 
@@ -365,34 +366,34 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
             }
             break;
         case WeaveSegmentType::UP:
-        {
-            Point3 to = segment.to + Point3(0, 0, roof_fall_down);
-            
-            Point3 vector = segment.to - from;
-            if (vector.vSize2() == 0) return;
-            Point3 dir = vector * roof_drag_along / vector.vSize();
-            
-            Point3 next_vector;
-            if (next_segment)
             {
-                next_vector = next_segment->to - segment.to;
-            } else
-            {
-                next_vector = part.connection.segments[0].to - segment.to;
-            }
-            Point next_dir_2D(next_vector.x, next_vector.y);
-            Point3 detoured = to + dir;
-            if (vSize2(next_dir_2D) > 0) 
-            {
-                next_dir_2D = next_dir_2D * roof_drag_along / vSize(next_dir_2D);
-                Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
-                detoured -= next_dir;
-            }
-            
-            gcode.writeMove(detoured, speedUp, extrusion_per_mm_connection);
+                Point3 to = segment.to + Point3(0, 0, roof_fall_down);
+                
+                Point3 vector = segment.to - from;
+                if (vector.vSize2() == 0) return;
+                Point3 dir = vector * roof_drag_along / vector.vSize();
+                
+                Point3 next_vector;
+                if (next_segment)
+                {
+                    next_vector = next_segment->to - segment.to;
+                } else
+                {
+                    next_vector = part.connection.segments[0].to - segment.to;
+                }
+                Point next_dir_2D(next_vector.x, next_vector.y);
+                Point3 detoured = to + dir;
+                if (vSize2(next_dir_2D) > 0) 
+                {
+                    next_dir_2D = next_dir_2D * roof_drag_along / vSize(next_dir_2D);
+                    Point3 next_dir (next_dir_2D.X, next_dir_2D.Y, 0);
+                    detoured -= next_dir;
+                }
+                
+                gcode.writeMove(detoured, speedUp, extrusion_per_mm_connection);
 
-        }
-        break;
+            }
+            break;
         case WeaveSegmentType::DOWN:
             gcode.writeMove(segment.to, speedDown, extrusion_per_mm_connection);
             gcode.writeDelay(roof_outer_delay);
@@ -402,7 +403,7 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
             break;
     }
 
-};
+}
 
 
 

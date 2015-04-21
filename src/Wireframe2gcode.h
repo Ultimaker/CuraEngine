@@ -14,7 +14,7 @@
 #include "utils/polygon.h"
 #include "Weaver.h"
 
-#include "MACROS.h"
+#include "debug.h"
 
 using namespace cura;
 

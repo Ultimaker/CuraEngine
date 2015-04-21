@@ -220,7 +220,6 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
 
     if (logStage) log("computing support");
     
-    //auto roundToNearestDivisibleBy = [](int in, int divisor) { return in - in % divisor; };
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;

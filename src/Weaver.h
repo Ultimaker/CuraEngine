@@ -10,7 +10,7 @@
 
 #include "utils/polygon.h"
 
-#include "MACROS.h"
+#include "debug.h"
 
 using namespace cura;
 

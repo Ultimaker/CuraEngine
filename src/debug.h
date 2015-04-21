@@ -1,5 +1,5 @@
-#ifndef MACROS_H
-#define MACROS_H
+#ifndef DEBUG_H
+#define DEBUG_H
 
 #include <string.h>
 
@@ -58,4 +58,4 @@ strings.push_back(temp.str()); \
 os << enumName << "::" << strings[static_cast<int>(value)]; \
 return os;}
 
-#endif // MACROS_H
+#endif // DEBUG_H

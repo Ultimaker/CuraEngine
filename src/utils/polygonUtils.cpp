@@ -3,19 +3,19 @@
 
 #include <list>
 
-#include "../MACROS.h"
+#include "../debug.h"
 namespace cura {
 
 
-    
-    static bool convex3(int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2 )
-    {
-        return (y1-y0)*(x1-x2) > (x0-x1)*(y2-y1);
-    }
-    static bool convex3(Point const& p0, Point const &p1, Point const & p2 )
-    {
-        return convex3( p0.X, p0.Y, p1.X, p1.Y, p2.X, p2.Y );
-    }
+
+static bool convex3(int64_t x0, int64_t y0, int64_t x1, int64_t y1, int64_t x2, int64_t y2 )
+{
+    return (y1-y0)*(x1-x2) > (x0-x1)*(y2-y1);
+}
+static bool convex3(Point const& p0, Point const &p1, Point const & p2 )
+{
+    return convex3( p0.X, p0.Y, p1.X, p1.Y, p2.X, p2.Y );
+}
 
 Polygon convexHull(PolygonRef poly)
 {

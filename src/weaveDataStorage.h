@@ -7,7 +7,7 @@
 #include "mesh.h"
 #include "gcodePlanner.h"
 
-#include "MACROS.h"
+#include "debug.h"
 
 namespace cura {
 
