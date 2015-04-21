@@ -55,5 +55,3 @@ if(isspace(str[i])) continue; \
 strings.push_back(temp.str()); \
 os << enumName << "::" << strings[static_cast<int>(value)]; \
 return os;}
-
-

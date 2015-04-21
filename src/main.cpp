@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     CommandSocket* commandSocket = NULL;
     std::string ip;
-    int port;
+    int port = 49674;
 
     for(int argn = 1; argn < argc; argn++)
     {
@@ -95,8 +95,11 @@ int main(int argc, char **argv)
                     commandSocket = new CommandSocket(&processor);
 
                     std::string ip_port(argv[argn + 1]);
-                    ip = ip_port.substr(0, ip_port.find(':'));
-                    port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+                    if (ip_port.find(':') != ip_port.end())
+                    {
+                        ip = ip_port.substr(0, ip_port.find(':'));
+                        port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+                    }
 
                     argn += 1;
                 }
