@@ -95,7 +95,7 @@ int main(int argc, char **argv)
                     commandSocket = new CommandSocket(&processor);
 
                     std::string ip_port(argv[argn + 1]);
-                    if (ip_port.find(':') != ip_port.end())
+                    if (ip_port.find(':') != std::string::npos)
                     {
                         ip = ip_port.substr(0, ip_port.find(':'));
                         port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
