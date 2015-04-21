@@ -75,6 +75,8 @@ void CommandSocket::connect(const std::string& ip, int port)
             d->processor->processModel(d->objectToSlice.get());
             d->objectToSlice.reset();
             d->processor->resetFileNumber();
+
+            sendPrintTime();
         }
 
         Arcus::MessagePtr message = d->socket->takeNextMessage();
@@ -182,11 +184,11 @@ void CommandSocket::sendProgress(float amount)
     d->socket->sendMessage(message);
 }
 
-void CommandSocket::sendPrintTimeForObject(int index, float print_time)
+void CommandSocket::sendPrintTime()
 {
     auto message = std::make_shared<Cura::ObjectPrintTime>();
-    message->set_id(index);
-    message->set_time(print_time);
+    message->set_time(d->processor->getTotalPrintTime());
+    message->set_material_amount(d->processor->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
 }
 
