@@ -451,6 +451,22 @@ public:
         return ret;
     }
     /*!
+     * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
+     */
+    void removeSmallAreas(double minAreaSize)
+    {               
+        Polygons& thiss = *this;
+        for(unsigned int i=0; i<size(); i++)
+        {
+            double area = INT2MM(INT2MM(fabs(thiss[i].area())));
+            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
+            {
+                remove(i);
+                i -= 1;
+            }
+        }
+    }
+    /*!
      * Removes the same polygons from this set (and also empty polygons).
      * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
      */

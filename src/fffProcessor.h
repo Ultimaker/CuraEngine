@@ -976,7 +976,9 @@ private:
             
             
             Polygons gapLines; // gaps between perimeters etc.
-            generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, getSettingInt("infillOverlap"), fillAngle);
+            double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+            part->perimeterGaps.removeSmallAreas(minAreaSize);
+            generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, 0, fillAngle);
             gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.

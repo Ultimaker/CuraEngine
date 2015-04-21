@@ -51,16 +51,9 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
                 
         part->skinOutline = part->skinOutline.unionPolygons(skin);
             
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3;
-        for(unsigned int i=0; i<part->skinOutline.size(); i++)
-        {
-            double area = INT2MM(INT2MM(fabs(part->skinOutline[i].area())));
-            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
-            {
-                part->skinOutline.remove(i);
-                i -= 1;
-            }
-        }
+        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+        
+        part->skinOutline.removeSmallAreas(minAreaSize);
     }
 }
 
