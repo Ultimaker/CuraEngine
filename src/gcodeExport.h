@@ -119,7 +119,7 @@ private:
     int retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
-    GCode_Flavor flavor;
+    EGCodeFlavor flavor;
     std::string preSwitchExtruderCode[MAX_EXTRUDERS];
     std::string postSwitchExtruderCode[MAX_EXTRUDERS];
     
@@ -137,8 +137,8 @@ public:
     Point getExtruderOffset(int id);
     void setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
-    void setFlavor(GCode_Flavor flavor);
-    GCode_Flavor getFlavor();
+    void setFlavor(EGCodeFlavor flavor);
+    EGCodeFlavor getFlavor();
         
     void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
     

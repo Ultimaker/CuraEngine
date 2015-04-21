@@ -18,11 +18,11 @@ It's also the first step that stores the result in the "data storage" so all oth
 
 namespace cura {
 
-void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unionAllType)
+void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes)
 {
     storageLayer.openLines = layer->openPolygons;
 
-    if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_B)
+    if (union_all_remove_holes)
     {
         for(unsigned int i=0; i<layer->polygonList.size(); i++)
         {
@@ -32,31 +32,23 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, int unio
     }
     
     std::vector<Polygons> result;
-    if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_C)
-        result = layer->polygonList.offset(1000).splitIntoParts(unionAllType);
-    else
-        result = layer->polygonList.splitIntoParts(unionAllType);
+    result = layer->polygonList.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.push_back(SliceLayerPart());
-        if (unionAllType & FIX_HORRIBLE_UNION_ALL_TYPE_C)
-        {
-            storageLayer.parts[i].outline.add(result[i][0]);
-            storageLayer.parts[i].outline = storageLayer.parts[i].outline.offset(-1000);
-        }else
-            storageLayer.parts[i].outline = result[i];
+        storageLayer.parts[i].outline = result[i];
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
 
-void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, int unionAllType)
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
     for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
     {
         storage.layers.push_back(SliceLayer());
         storage.layers[layerNr].sliceZ = slicer->layers[layerNr].z;
         storage.layers[layerNr].printZ = slicer->layers[layerNr].z;
-        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], unionAllType);
+        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], union_layers, union_all_remove_holes);
     }
 }
 

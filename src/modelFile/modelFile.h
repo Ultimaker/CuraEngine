@@ -68,9 +68,9 @@ public:
         Point3 object_max = max();
         Point3 object_size = object_max - object_min;
         Point3 object_offset = Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
-        object_offset.x += getSettingInt("position.X");
-        object_offset.y += getSettingInt("position.Y");
-        object_offset.z += getSettingInt("position.Z");
+        object_offset.x += getSettingInMicrons("position.X");
+        object_offset.y += getSettingInMicrons("position.Y");
+        object_offset.z += getSettingInMicrons("position.Z");
         offset(object_offset);
     }
 };

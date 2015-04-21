@@ -5,11 +5,18 @@
 #include "utils/logoutput.h"
 
 #include "settings.h"
+#include "settingRegistry.h"
+
+//c++11 no longer defines M_PI, so add our own constant.
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 SettingsBase::SettingsBase()
 : parent(NULL)
 {
 }
+
 SettingsBase::SettingsBase(SettingsBase* parent)
 : parent(parent)
 {
@@ -17,241 +24,144 @@ SettingsBase::SettingsBase(SettingsBase* parent)
 
 void SettingsBase::setSetting(std::string key, std::string value)
 {
-    if (SettingsBase::settingRegistry.settingExists(key))
-        settings[key] = value;
-    else
-        cura::logError("Ignoring unknown setting %s\n", key.c_str() );
-}
-
-int SettingsBase::getSettingInt(std::string key)
-{
-    std::string value = getSetting(key);
-    return atoi(value.c_str());
-}
-
-std::string SettingsBase::getSetting(std::string key)
-{
-    if (settings.find(key) != settings.end())
+    if (SettingRegistry::getInstance()->settingExists(key))
     {
-        return settings[key];
+        setting_values[key] = value;
+    }
+    else
+    {
+        cura::logError("Ignoring unknown setting %s\n", key.c_str() );
+    }
+}
+
+std::string SettingsBase::getSettingString(std::string key)
+{
+    if (setting_values.find(key) != setting_values.end())
+    {
+        return setting_values[key];
     }
     if (parent)
-        return parent->getSetting(key);
+    {
+        return parent->getSettingString(key);
+    }
     
-    if (SettingsBase::settingRegistry.settingExists(key))
-        cura::logError("Failed to find setting %s\n", key.c_str());
-    else 
+    if (SettingRegistry::getInstance()->settingExists(key))
+    {
+        cura::logError("Using default for: %s\n", key.c_str());
+        setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
+    }
+    else
+    {
         cura::logError("Unknown setting %s\n", key.c_str());
-    settings[key] = "";
-    return "";
-}
-
-void SettingsBase::copySettings(SettingsBase& other)
-{
-    settings = other.settings;
+        setting_values[key] = "";
+    }
+    return setting_values[key];
 }
 
 bool SettingsBase::hasSetting(std::string key)
 {
-    if (settings.find(key) != settings.end())
+    if (setting_values.find(key) != setting_values.end())
     {
         return true;
     }
     if (parent)
+    {
         return parent->hasSetting(key);
+    }
     
     return false;
 }
 
-const SettingRegistry SettingsBase::settingRegistry; // define settingRegistry
-
-bool SettingRegistry::settingExists(std::string setting) const
+int SettingsBase::getSettingAsIndex(std::string key)
 {
-    return knownSettings.find(setting) != knownSettings.end();
+    std::string value = getSettingString(key);
+    return atoi(value.c_str());
 }
 
-void SettingRegistry::registerSetting(std::string setting)
+int SettingsBase::getSettingAsCount(std::string key)
 {
-    knownSettings.insert(setting);
+    std::string value = getSettingString(key);
+    return atoi(value.c_str());
 }
 
-SettingRegistry::SettingRegistry()
+int SettingsBase::getSettingInMicrons(std::string key)
 {
-    // mode
-    registerSetting("neith");
-    registerSetting("simpleMode");
-    registerSetting("spiralizeMode");
-    registerSetting("enableOozeShield");
-    registerSetting("autoCenter");
-    registerSetting("fixHorrible");
-    registerSetting("avoidOverlappingPerimeters");
-    
-    // basics:
-    registerSetting("position.X");
-    registerSetting("position.Y");
-    registerSetting("position.Z");
-    
-    // machine settings
-    registerSetting("bedTemperature"); // in 1/100th degrees
-    registerSetting("printTemperature"); 
-    registerSetting("filamentDiameter");
-    
-    registerSetting("gcodeFlavor");
-    registerSetting("startCode");
-    registerSetting("endCode");
-    
-    registerSetting("extrusionWidth");
-    registerSetting("fanSpeedMax");
-    registerSetting("fanSpeedMin");
-    registerSetting("fanFullOnLayerNr");
-    registerSetting("minimalLayerTimeFanSpeedMin");
-    
-    registerSetting("filamentFlow");
-    registerSetting("minimalFeedrate");
-    registerSetting("minimalLayerTime");
-        
-    for(int n=0; n<MAX_EXTRUDERS; n++)
-    {
-        std::ostringstream stream;
-        stream << "extruderOffset" << n;
-        registerSetting(stream.str() + ".X");
-        registerSetting(stream.str() + ".Y");
-    }
-    
-    // speeds
-    registerSetting("initialSpeedupLayers");
-    registerSetting("initialLayerSpeed");
-    registerSetting("inset0Speed");
-    registerSetting("insetXSpeed");
-    registerSetting("infillSpeed");
-    registerSetting("moveSpeed");
-    registerSetting("skinSpeed");
-    registerSetting("skirtSpeed");
-    
-    // uncategorized
-    registerSetting("coolHeadLift");
-    registerSetting("enableCombing");
-    
-    registerSetting("wipeTowerSize");
-    registerSetting("wipeTowerDistance");
-    
-    registerSetting("layerThickness");
-    registerSetting("initialLayerThickness");
-    registerSetting("layer0extrusionWidth");
-    
-    
-    registerSetting("XYcompensation");
-    
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) * 1000.0;
+}
 
-    // infill
-    registerSetting("sparseInfillLineDistance");
-    registerSetting("sparseInfillCombineCount");
-    registerSetting("infillPattern");
-    registerSetting("infillOverlap");
-    
-    // skin
-    registerSetting("insetCount");
-    registerSetting("downSkinCount");
-    registerSetting("skinPattern");
-    registerSetting("upSkinCount");
-    registerSetting("skinPerimeterCount");
+double SettingsBase::getSettingInAngleRadians(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) / 180.0 * M_PI;
+}
 
-    // retraction
-    registerSetting("retractionSpeed");
-    registerSetting("minimalExtrusionBeforeRetraction");
-    registerSetting("retractionMinimalDistance");
-    registerSetting("retractionAmount");
-    registerSetting("retractionPrimeAmount");
-    registerSetting("retractionPrimeSpeed");
-    registerSetting("retractionZHop");
-    
-    // dual extrusion
-    registerSetting("multiVolumeOverlap");
-    for(int n=0; n<MAX_EXTRUDERS; n++)
-    {
-        std::ostringstream stream;
-        stream << n;
-        registerSetting("preSwitchExtruderCode" + stream.str());
-        registerSetting("postSwitchExtruderCode" + stream.str());
-    }
-    registerSetting("retractionExtruderSwitchPrimeSpeed");
-    registerSetting("retractionExtruderSwitchSpeed");
-    registerSetting("retractionAmountExtruderSwitch");
-    
-    registerSetting("extruderNr");
-    
-    // skirt / brim
-    registerSetting("skirtLineCount");
-    registerSetting("skirtMinLength");
-    registerSetting("skirtLineCount");
-    registerSetting("skirtDistance");
-    
-    // raft
-    registerSetting("raftAirGapLayer0");
-    registerSetting("raftBaseThickness");
-    registerSetting("raftBaseLinewidth");
-    registerSetting("raftBaseSpeed");
-    registerSetting("raftInterfaceThickness");
-    registerSetting("raftInterfaceLinewidth");
-    registerSetting("raftInterfaceLineSpacing");
-    registerSetting("raftInterfaceSpeed");
-    registerSetting("raftLineSpacing");
-    registerSetting("raftFanSpeed");
-    registerSetting("raftSurfaceLinewidth");
-    registerSetting("raftSurfaceLineSpacing");
-    registerSetting("raftSurfaceSpeed");
-    registerSetting("raftSurfaceLayers");
-    registerSetting("raftSurfaceThickness");
-    registerSetting("raftMargin");
-    registerSetting("raftAirGap");
-    
-    // support
-    registerSetting("supportExtrusionWidth");
-    registerSetting("supportXYDistance");
-    registerSetting("supportExtruder");
-    registerSetting("supportType");
-    registerSetting("supportZDistance");
-    registerSetting("supportOnBuildplateOnly");
-    registerSetting("supportAngle");
-    registerSetting("supportZDistanceBottom");
-    registerSetting("supportZDistanceTop");
-    registerSetting("supportSpeed");
-    registerSetting("supportLineDistance");
-    
-    registerSetting("supportBottomStairDistance");
-    registerSetting("supportJoinDistance");
-    registerSetting("supportAreaSmoothing");
-    registerSetting("supportConnectZigZags");
-    registerSetting("supportMinimalAreaSqrt");
-    registerSetting("supportTowerDiameter");
-    registerSetting("supportTowerRoofAngle");
-    
-    
-    // machine settings for wireframe 
-    registerSetting("machineNozzleTipOuterDiameter");
-    registerSetting("machineNozzleHeadDistance");
-    registerSetting("machineNozzleExpansionAngle");
-    
-    // wireframe 
-    registerSetting("wireframeFlowConnection");
-    registerSetting("wireframeFlowFlat");
-    registerSetting("wireframePrintspeedBottom");
-    registerSetting("wireframePrintspeedUp");
-    registerSetting("wireframePrintspeedDown");
-    registerSetting("wireframePrintspeedFlat");
-    registerSetting("wireframeNozzleClearance");
-    registerSetting("wireframeConnectionHeight");
-    registerSetting("wireframeRoofInset");
-    registerSetting("wireframeFlatDelay");
-    registerSetting("wireframeBottomDelay");
-    registerSetting("wireframeTopDelay");
-    registerSetting("wireframeUpDistHalfSpeed");
-    registerSetting("wireframeTopJump");
-    registerSetting("wireframeFallDown");
-    registerSetting("wireframeDragAlong");
-    registerSetting("wireframeStrategy");
-    registerSetting("wireframeStraightBeforeDown");
-    registerSetting("wireframeRoofFallDown");
-    registerSetting("wireframeRoofDragAlong");
-    registerSetting("wireframeRoofOuterDelay");
+bool SettingsBase::getSettingBoolean(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "on")
+        return true;
+    if (value == "yes")
+        return true;
+    if (value == "true")
+        return true;
+    return atoi(value.c_str()) != 0;
+}
+
+double SettingsBase::getSettingInDegreeCelsius(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str());
+}
+
+double SettingsBase::getSettingInMillimetersPerSecond(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(1.0, atof(value.c_str()));
+}
+
+double SettingsBase::getSettingInPercentage(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
+double SettingsBase::getSettingInSeconds(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
+EGCodeFlavor SettingsBase::getSettingInGCodeFlavor(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "GCODE_FLAVOR_REPRAP")
+        return GCODE_FLAVOR_REPRAP;
+    else if (value == "GCODE_FLAVOR_ULTIGCODE")
+        return GCODE_FLAVOR_ULTIGCODE;
+    else if (value == "GCODE_FLAVOR_MAKERBOT")
+        return GCODE_FLAVOR_MAKERBOT;
+    else if (value == "GCODE_FLAVOR_BFB")
+        return GCODE_FLAVOR_BFB;
+    else if (value == "GCODE_FLAVOR_MACH3")
+        return GCODE_FLAVOR_MACH3;
+    else if (value == "GCODE_FLAVOR_REPRAP_VOLUMATRIC")
+        return GCODE_FLAVOR_REPRAP_VOLUMATRIC;
+    return GCODE_FLAVOR_REPRAP;
+}
+
+EFillMethod SettingsBase::getSettingInFillMethod(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Lines")
+        return Fill_Lines;
+    if (value == "Grid")
+        return Fill_Grid;
+    if (value == "Triangles")
+        return Fill_Triangles;
+    if (value == "Concentric")
+        return Fill_Concentric;
+    if (value == "ZigZag")
+        return Fill_ZigZag;
+    return Fill_None;
 }

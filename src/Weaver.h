@@ -53,7 +53,7 @@ private:
     int roof_inset; 
     
     int nozzle_outer_diameter; 
-    int nozzle_expansion_angle; 
+    double nozzle_expansion_angle; 
     int nozzle_clearance; 
     int nozzle_top_diameter;
    
@@ -63,21 +63,18 @@ public:
     Weaver(SettingsBase* settings_base) : SettingsBase(settings_base) 
     {
         
-        initial_layer_thickness = getSettingInt("initialLayerThickness");
-        connectionHeight = getSettingInt("wireframeConnectionHeight"); 
+        initial_layer_thickness = getSettingInMicrons("initialLayerThickness");
+        connectionHeight = getSettingInMicrons("wireframeConnectionHeight"); 
         
-        extrusionWidth = getSettingInt("extrusionWidth");
+        extrusionWidth = getSettingInMicrons("extrusionWidth");
         
-        roof_inset = getSettingInt("wireframeRoofInset"); 
-        nozzle_outer_diameter = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
-        nozzle_expansion_angle = getSettingInt("machineNozzleExpansionAngle");  //     \_U_/       .
-        nozzle_clearance = getSettingInt("wireframeNozzleClearance");    // at least line width
-        nozzle_top_diameter = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
-     
-        
-    };
+        roof_inset = getSettingInMicrons("wireframeRoofInset"); 
+        nozzle_outer_diameter = getSettingInMicrons("machineNozzleTipOuterDiameter");      // ___       ___   .
+        nozzle_expansion_angle = getSettingInAngleRadians("machineNozzleExpansionAngle");  //     \_U_/       .
+        nozzle_clearance = getSettingInMicrons("wireframeNozzleClearance");                // at least line width
+        nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
+    }
 
-    
     void weave(PrintObject* object, CommandSocket* commandSocket);
     
 

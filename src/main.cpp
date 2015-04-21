@@ -18,6 +18,7 @@
 
 #include "modelFile/modelFile.h"
 #include "settings.h"
+#include "settingRegistry.h"
 #include "multiVolumes.h"
 #include "polygonOptimizer.h"
 #include "slicer.h"
@@ -164,6 +165,8 @@ int main(int argc, char **argv)
             files.push_back(argv[argn]);
         }
     }
+    
+    SettingRegistry::getInstance()->loadJSON("fdmprinter.json");
     
     if(commandSocket)
     {

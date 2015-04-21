@@ -58,7 +58,7 @@ void GCodeExport::setSwitchExtruderCode(int id, std::string preSwitchExtruderCod
     this->postSwitchExtruderCode[id] = postSwitchExtruderCode;
 }
 
-void GCodeExport::setFlavor(GCode_Flavor flavor)
+void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor = flavor;
     if (flavor == GCODE_FLAVOR_MACH3)
@@ -68,7 +68,8 @@ void GCodeExport::setFlavor(GCode_Flavor flavor)
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruderCharacter[n] = 'E';
 }
-GCode_Flavor GCodeExport::getFlavor()
+
+EGCodeFlavor GCodeExport::getFlavor()
 {
     return this->flavor;
 }
