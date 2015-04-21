@@ -251,7 +251,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         
         Polygons& supportLayer_this = overhang; 
         
-        supportLayer_this = supportLayer_this.simplify(2500);
+        supportLayer_this = supportLayer_this.simplify(50); // TODO: hardcoded value!
         
         if (supportMinAreaSqrt > 0)
         {

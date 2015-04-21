@@ -229,8 +229,9 @@ public:
             return;
         }
         
-        Point& last = thiss[size()-1];
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+        Point& last = thiss[0];
+        result.add(last);
+        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
             /*
              *    /|
@@ -251,8 +252,9 @@ public:
              * 
              */
             if ( vSize2(thiss[poly_idx]-last) < allowed_error_distance_squared )
+            {
                 continue;
-            
+            }
             Point& next = thiss[(poly_idx+1) % size()];
             auto square = [](double in) { return in*in; };
             int64_t a2 = vSize2(next-thiss[poly_idx]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[poly_idx]-last))*1000*1000);
@@ -266,6 +268,15 @@ public:
                 poly->push_back(thiss[poly_idx]);
                 last = thiss[poly_idx];
             }
+        }
+        
+        if (result.size() < 3)
+        {
+            poly->clear();
+        
+            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+                poly->push_back(thiss[poly_idx]);
+            return;
         }
     }
     ClipperLib::Path::const_iterator begin() const
@@ -426,8 +437,9 @@ public:
         }
         return ret;
     }
-    Polygons simplify(int allowed_error_distance_squared) //!< removes points connected to similarly oriented lines
+    Polygons simplify(int allowed_error_distance) //!< removes points connected to similarly oriented lines
     {
+        int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         Polygons ret;
         Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
@@ -436,6 +448,10 @@ public:
         }
         return ret;
     }
+    /*!
+     * Split up the polygons into groups according to the even-odd rule.
+     * Each polygons in the result has an outline as first polygon, whereas the rest are holes.
+     */
     std::vector<Polygons> splitIntoParts(bool unionAll = false) const
     {
         std::vector<Polygons> ret;
