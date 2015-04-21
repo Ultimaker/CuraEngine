@@ -10,31 +10,11 @@
 #define VERSION "DEV"
 #endif
 
-#define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
-#define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
-#define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
-#define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
-#define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
-
-/**
- * Type of support material.
- * Grid is a X/Y grid with an outline, which is very strong, provides good support. But in some cases is hard to remove.
- * Lines give a row of lines which break off one at a time, making them easier to remove, but they do not support as good as the grid support.
+/*!
+ * Different flavors of GCode. Some machines require different types of GCode.
+ * The GCode flavor definition handles this as a big setting to make major or minor modifications to the GCode.
  */
-enum Support_Pattern
-{
-    SUPPORT_TYPE_GRID = 0,
-    SUPPORT_TYPE_LINES = 1,
-    SUPPORT_TYPE_ZIGZAG = 2
-};
-
-#ifndef DEFAULT_CONFIG_PATH
-#define DEFAULT_CONFIG_PATH "default.cfg"
-#endif
-
-#define CONFIG_MULTILINE_SEPARATOR "\"\"\""
-
-enum GCode_Flavor
+enum EGCodeFlavor
 {
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
@@ -90,59 +70,60 @@ enum GCode_Flavor
     GCODE_FLAVOR_REPRAP_VOLUMATRIC = 5,
 };
 
+/*!
+ * In Cura different infill methods are available.
+ * This enum defines which fill patterns are available to get a uniform naming troughout the engine.
+ * The different methods are used for top/bottom, support and sparse infill.
+ */
+enum EFillMethod
+{
+    Fill_Lines,
+    Fill_Grid,
+    Fill_Triangles,
+    Fill_Concentric,
+    Fill_ZigZag,
+    Fill_None
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of sparse layers that can be combined into a single sparse extrusion.
 #define MAX_SPARSE_COMBINE 8
 
-/**
- * Type of skin pattern.
+/*!
+ * Base class for every object that can hold settings.
+ * The SettingBase object can hold multiple key-value pairs that define settings.
+ * The settings that are set on a SettingBase are checked against the SettingRegistry to ensure keys are valid.
+ * Different conversion functions are available for settings to increase code clarity and in the future make
+ * unit conversions possible.
  */
-enum Skin_Pattern
-{
-    SKIN_LINES = 0,
-    SKIN_CONCENTRIC = 1,
-};
-
-/**
- * Type of infill pattern.
- */
-enum Infill_Pattern
-{
-    INFILL_GRID = 0,
-    INFILL_LINES = 1,
-    INFILL_CONCENTRIC = 2,
-    INFILL_ZIGZAG = 3,
-};
-
-class SettingRegistry
-{
-private:
-    std::set<std::string> knownSettings;
-    void registerSetting(std::string setting);
-public:
-    SettingRegistry();
-    bool settingExists(std::string setting) const;
-};
-
 class SettingsBase
 {
 private:
-    static const SettingRegistry settingRegistry;
-    std::map<std::string, std::string> settings;
+    std::map<std::string, std::string> setting_values;
     SettingsBase* parent;
 public:
     SettingsBase();
     SettingsBase(SettingsBase* parent);
 
-    void copySettings(SettingsBase& other);
-    
     bool hasSetting(std::string key);
 
     void setSetting(std::string key, std::string value);
-    int getSettingInt(std::string key);
-    std::string getSetting(std::string key);
     
+    std::string getSettingString(std::string key);
+    int getSettingAsIndex(std::string key);
+    int getSettingAsCount(std::string key);
+    
+    double getSettingInAngleRadians(std::string key);
+    int getSettingInMicrons(std::string key);
+    bool getSettingBoolean(std::string key);
+    double getSettingInDegreeCelsius(std::string key);
+    double getSettingInMillimetersPerSecond(std::string key);
+    double getSettingInPercentage(std::string key);
+    double getSettingInSeconds(std::string key);
+    
+    EGCodeFlavor getSettingInGCodeFlavor(std::string key);
+    EFillMethod getSettingInFillMethod(std::string key);
 };
 
 

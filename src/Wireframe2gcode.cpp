@@ -20,17 +20,17 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
     maxObjectHeight = wireFrame.layers.back().z1;
     
     { // starting Gcode
-        if (hasSetting("bedTemperature") && getSettingInt("bedTemperature") > 0)
-            gcode.writeBedTemperatureCommand(getSettingInt("bedTemperature"), true);
-        if (hasSetting("printTemperature") && getSettingInt("printTemperature") > 0)
-            gcode.writeTemperatureCommand(getSettingInt("extruderNr"), getSettingInt("printTemperature"));
+        if (hasSetting("bedTemperature") && getSettingInDegreeCelsius("bedTemperature") > 0)
+            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("bedTemperature"), true);
+        if (hasSetting("printTemperature") && getSettingInDegreeCelsius("printTemperature") > 0)
+            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("printTemperature"));
         
-        gcode.writeCode(getSetting("startCode").c_str());
+        gcode.writeCode(getSettingString("startCode").c_str());
         if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
         {
             gcode.writeComment("enable auto-retraction");
             std::ostringstream tmp;
-            tmp << "M227 S" << (getSettingInt("retractionAmount") * 2560 / 1000) << " P" << (getSettingInt("retractionAmount") * 2560 / 1000);  // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+            tmp << "M227 S" << (getSettingInMicrons("retractionAmount") * 2560 / 1000) << " P" << (getSettingInMicrons("retractionAmount") * 2560 / 1000);  // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
             gcode.writeLine(tmp.str().c_str());
         }
     }
@@ -89,9 +89,9 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         
         gcode.writeLayerComment(layer_nr+1);
         
-        int fanSpeed = getSettingInt("fanSpeedMax");
+        int fanSpeed = getSettingInPercentage("fanSpeedMax");
         if (layer_nr == 0)
-            fanSpeed = getSettingInt("fanSpeedMin");
+            fanSpeed = getSettingInPercentage("fanSpeedMin");
         gcode.writeFanCommand(fanSpeed);
         
         for (unsigned int part_nr = 0; part_nr < layer.connections.size(); part_nr++)
@@ -171,7 +171,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
 
     if (commandSocket)
     {
-        gcode.finalize(maxObjectHeight, getSettingInt("moveSpeed"), getSetting("endCode").c_str());
+        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("moveSpeed"), getSettingString("machine_end_gcode").c_str());
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
 
@@ -489,59 +489,65 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 , gcode(gcode)
 {
     wireFrame = weaver.wireFrame;
-    initial_layer_thickness = getSettingInt("initialLayerThickness");
-    connectionHeight = getSettingInt("wireframeConnectionHeight"); 
-    roof_inset = getSettingInt("wireframeRoofInset"); 
+    initial_layer_thickness = getSettingInMicrons("initialLayerThickness");
+    connectionHeight = getSettingInMicrons("wireframeConnectionHeight"); 
+    roof_inset = getSettingInMicrons("wireframeRoofInset"); 
     
-    filament_diameter = getSettingInt("filamentDiameter");
-    extrusionWidth = getSettingInt("extrusionWidth");
+    filament_diameter = getSettingInMicrons("filamentDiameter");
+    extrusionWidth = getSettingInMicrons("extrusionWidth");
     
-    flowConnection = getSettingInt("wireframeFlowConnection");
-    flowFlat = getSettingInt("wireframeFlowFlat");
+    flowConnection = getSettingInPercentage("wireframeFlowConnection");
+    flowFlat = getSettingInPercentage("wireframeFlowFlat");
     
     double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
     double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
     extrusion_per_mm_connection = lineArea / filament_area * double(flowConnection) / 100.0;
     extrusion_per_mm_flat = lineArea / filament_area * double(flowFlat) / 100.0;
     
-    nozzle_outer_diameter = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
-    nozzle_head_distance = getSettingInt("machineNozzleHeadDistance");      //    |     |      .
-    nozzle_expansion_angle = getSettingInt("machineNozzleExpansionAngle");  //     \_U_/       .
-    nozzle_clearance = getSettingInt("wireframeNozzleClearance");    // at least line width
-    nozzle_top_diameter = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
+    nozzle_outer_diameter = getSettingInMicrons("machineNozzleTipOuterDiameter"); // ___       ___   .
+    nozzle_head_distance = getSettingInMicrons("machineNozzleHeadDistance");      //    |     |      .
+    nozzle_expansion_angle = getSettingInAngleRadians("machineNozzleExpansionAngle");  //     \_U_/       .
+    nozzle_clearance = getSettingInMicrons("wireframeNozzleClearance");    // at least line width
+    nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     
     moveSpeed = 40;
-    speedBottom =  getSettingInt("wireframePrintspeedBottom");
-    speedUp = getSettingInt("wireframePrintspeedUp");
-    speedDown = getSettingInt("wireframePrintspeedDown");
-    speedFlat = getSettingInt("wireframePrintspeedFlat");
+    speedBottom =  getSettingInMillimetersPerSecond("wireframePrintspeedBottom");
+    speedUp = getSettingInMillimetersPerSecond("wireframePrintspeedUp");
+    speedDown = getSettingInMillimetersPerSecond("wireframePrintspeedDown");
+    speedFlat = getSettingInMillimetersPerSecond("wireframePrintspeedFlat");
 
-    flat_delay = getSettingInt("wireframeFlatDelay")/100.0;
-    bottom_delay = getSettingInt("wireframeBottomDelay")/100.0;
-    top_delay = getSettingInt("wireframeTopDelay")/100.0;
+    flat_delay = getSettingInSeconds("wireframeFlatDelay");
+    bottom_delay = getSettingInSeconds("wireframeBottomDelay");
+    top_delay = getSettingInSeconds("wireframeTopDelay");
     
-    up_dist_half_speed = getSettingInt("wireframeUpDistHalfSpeed");
+    up_dist_half_speed = getSettingInMicrons("wireframeUpDistHalfSpeed");
     
-    top_jump_dist = getSettingInt("wireframeTopJump");
+    top_jump_dist = getSettingInMicrons("wireframeTopJump");
     
-    fall_down = getSettingInt("wireframeFallDown");
-    drag_along = getSettingInt("wireframeDragAlong");
+    fall_down = getSettingInMicrons("wireframeFallDown");
+    drag_along = getSettingInMicrons("wireframeDragAlong");
     
-    strategy = getSettingInt("wireframeStrategy"); //  HIGHER_BEND_NO_STRAIGHTEN; // RETRACT_TO_STRAIGHTEN; // MOVE_TO_STRAIGHTEN; // 
+    strategy = STRATEGY_COMPENSATE;
+    if (getSettingString("wireframe_strategy") == "Compensate")
+        strategy = STRATEGY_COMPENSATE;
+    if (getSettingString("wireframe_strategy") == "Knot")
+        strategy = STRATEGY_KNOT;
+    if (getSettingString("wireframe_strategy") == "Retract")
+        strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;
-    straight_first_when_going_down = getSettingInt("wireframeStraightBeforeDown"); // %
+    straight_first_when_going_down = getSettingInPercentage("wireframeStraightBeforeDown");
     
-    roof_fall_down = getSettingInt("wireframeRoofFallDown");
-    roof_drag_along = getSettingInt("wireframeRoofDragAlong");
-    roof_outer_delay = getSettingInt("wireframeRoofOuterDelay")/100.0;
+    roof_fall_down = getSettingInMicrons("wireframeRoofFallDown");
+    roof_drag_along = getSettingInMicrons("wireframeRoofDragAlong");
+    roof_outer_delay = getSettingInSeconds("wireframeRoofOuterDelay");
     
     
-    standard_retraction_config.amount = INT2MM(getSettingInt("retractionAmount"));
-    standard_retraction_config.primeAmount = INT2MM(getSettingInt("retractionPrimeAmount"));
-    standard_retraction_config.speed = getSettingInt("retractionSpeed");
-    standard_retraction_config.primeSpeed = getSettingInt("retractionPrimeSpeed");
-    standard_retraction_config.zHop = getSettingInt("retractionZHop");
+    standard_retraction_config.amount = INT2MM(getSettingInMicrons("retractionAmount"));
+    standard_retraction_config.primeAmount = INT2MM(getSettingInMicrons("retractionPrimeAmount"));
+    standard_retraction_config.speed = getSettingInMillimetersPerSecond("retractionSpeed");
+    standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retractionPrimeSpeed");
+    standard_retraction_config.zHop = getSettingInMicrons("retractionZHop");
 
 
 }

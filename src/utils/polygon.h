@@ -414,6 +414,7 @@ public:
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
+    
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
@@ -437,6 +438,7 @@ public:
         }
         return ret;
     }
+    
     Polygons simplify(int allowed_error_distance) //!< removes points connected to similarly oriented lines
     {
         int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;

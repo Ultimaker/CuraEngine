@@ -152,32 +152,32 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
 {
     bool logStage = false; // whther to log at which stage of the support area generation we are (for debug)
     // given settings
-    int supportAngle = object->settings->getSettingInt("supportAngle");
+    double supportAngle = object->settings->getSettingInAngleRadians("supportAngle");
     
     storage.support.generated = false;
     if (supportAngle < 0)
         return;
     
-    bool supportOnBuildplateOnly = object->settings->getSettingInt("supportOnBuildplateOnly") > 0;
-    int supportXYDistance = object->settings->getSettingInt("supportXYDistance");
-    int supportZDistance = object->settings->getSettingInt("supportZDistance");
-    int supportZDistanceBottom = object->settings->getSettingInt("supportZDistanceBottom");
-    int supportZDistanceTop = object->settings->getSettingInt("supportZDistanceTop");
-    int supportJoinDistance = object->settings->getSettingInt("supportJoinDistance");
-    int supportBottomStairDistance = object->settings->getSettingInt("supportBottomStairDistance");
-    int smoothing_distance = object->settings->getSettingInt("supportAreaSmoothing"); 
+    bool supportOnBuildplateOnly = object->settings->getSettingBoolean("supportOnBuildplateOnly");
+    int supportXYDistance = object->settings->getSettingInMicrons("supportXYDistance");
+    int supportZDistance = object->settings->getSettingInMicrons("supportZDistance");
+    int supportZDistanceBottom = object->settings->getSettingInMicrons("supportZDistanceBottom");
+    int supportZDistanceTop = object->settings->getSettingInMicrons("supportZDistanceTop");
+    int supportJoinDistance = object->settings->getSettingInMicrons("supportJoinDistance");
+    int supportBottomStairDistance = object->settings->getSettingInMicrons("supportBottomStairDistance");
+    int smoothing_distance = object->settings->getSettingInMicrons("supportAreaSmoothing"); 
     
-    int supportTowerDiameter = object->settings->getSettingInt("supportTowerDiameter");
-    int supportMinAreaSqrt = object->settings->getSettingInt("supportMinimalAreaSqrt");
-    int supportTowerRoofAngle = object->settings->getSettingInt("supportTowerRoofAngle");
+    int supportTowerDiameter = object->settings->getSettingInMicrons("supportTowerDiameter");
+    int supportMinAreaSqrt = object->settings->getSettingInMicrons("supportMinimalAreaSqrt");
+    double supportTowerRoofAngle = object->settings->getSettingInAngleRadians("supportTowerRoofAngle");
     
     //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
     
     int min_smoothing_area = 100*100;
     int z_layer_distance_tower = 1;
         
-    int layerThickness = object->settings->getSettingInt("layerThickness");
-    int extrusionWidth = object->settings->getSettingInt("extrusionWidth"); // TODO check for layer0extrusionWidth!
+    int layerThickness = object->settings->getSettingInMicrons("layerThickness");
+    int extrusionWidth = object->settings->getSettingInMicrons("extrusionWidth"); // TODO check for layer0extrusionWidth!
     
     
 
@@ -193,13 +193,13 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     int layerZdistanceTop       = supportZDistanceTop / supportLayerThickness + 1; // support must always be 1 layer below overhang
     int layerZdistanceBottom    = supportZDistanceBottom / supportLayerThickness; 
 
-    double tanAngle = tan(double(supportAngle) / 180.0 * M_PI) - 0.01;
+    double tanAngle = tan(supportAngle) - 0.01;
     int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
     int support_layer_count = layer_count;
     
     
-    double tanTowerRoofAngle = tan(double(supportTowerRoofAngle) / 180.0 * M_PI);
+    double tanTowerRoofAngle = tan(supportTowerRoofAngle);
     int towerRoofExpansionDistance = layerThickness / tanTowerRoofAngle;
     
     

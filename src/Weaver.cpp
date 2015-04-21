@@ -25,8 +25,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
 
     for(Mesh& mesh : object->meshes)
     {
-        int fix_horrible = mesh.getSettingInt("fixHorrible");
-        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, fix_horrible & FIX_HORRIBLE_KEEP_NONE_CLOSED, fix_horrible & FIX_HORRIBLE_EXTENSIVE_STITCHING);
+        cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
     }
 

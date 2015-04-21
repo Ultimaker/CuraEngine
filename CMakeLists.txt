@@ -32,6 +32,7 @@ set(engine_SRCS
     src/pathOrderOptimizer.cpp
     src/polygonOptimizer.cpp
     src/raft.cpp
+    src/settingRegistry.cpp
     src/settings.cpp
     src/skin.cpp
     src/skirt.cpp
