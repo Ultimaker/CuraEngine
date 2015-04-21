@@ -55,5 +55,3 @@ if(isspace(str[i])) continue; \
 strings.push_back(temp.str()); \
 os << enumName << "::" << strings[static_cast<int>(value)]; \
 return os;}
-
-#ERROR: TIM, FIX THIS SHIT. No header protection. Filename in all caps. "MACROS.h"... really?
