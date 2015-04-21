@@ -187,7 +187,7 @@ private:
 
         log("Slicing model...\n");
         int initial_layer_thickness = object->getSettingInMicrons("initialLayerThickness");
-        int layer_thickness = object->getSettingInMicrons("layerThickness");
+        int layer_thickness = object->getSettingInMicrons("layer_height");
         int layer_count = (storage.model_max.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
         std::vector<Slicer*> slicerList;
         for(Mesh& mesh : object->meshes)
@@ -261,7 +261,7 @@ private:
                 meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raftBaseThickness") + meshStorage.settings->getSettingInMicrons("raftInterfaceThickness");
 
                 if (commandSocket)
-                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("initialLayerThickness") : meshStorage.settings->getSettingInMicrons("layerThickness"));
+                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("initialLayerThickness") : meshStorage.settings->getSettingInMicrons("layer_height"));
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -356,7 +356,7 @@ private:
                     layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
                     for (SliceLayer& layer : layers)
                     {
-                        layer.printZ -= n_empty_first_layers * getSettingInMicrons("layerThickness");
+                        layer.printZ -= n_empty_first_layers * getSettingInMicrons("layer_height");
                     }
                 }
                 totalLayers -= n_empty_first_layers;
@@ -380,7 +380,7 @@ private:
 
             for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
                 storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
-            int offsetAngle = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layerThickness");//Allow for a 60deg angle in the oozeShield.
+            int offsetAngle = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
             for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
                 storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
             for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
@@ -577,7 +577,7 @@ private:
             if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
             int extrusion_width = getSettingInMicrons("extrusionWidth");
-            int layer_thickness = getSettingInMicrons("layerThickness");
+            int layer_thickness = getSettingInMicrons("layer_height");
             if (layer_nr == 0)
             {
                 extrusion_width = getSettingInMicrons("layer0extrusionWidth");
@@ -649,7 +649,7 @@ private:
             gcode.writeLayerComment(layer_nr);
 
             GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("moveSpeed"), getSettingInMicrons("retractionMinimalDistance"));
-            int32_t z = getSettingInMicrons("initialLayerThickness") + layer_nr * getSettingInMicrons("layerThickness");
+            int32_t z = getSettingInMicrons("initialLayerThickness") + layer_nr * getSettingInMicrons("layer_height");
             z += getSettingInMicrons("raftBaseThickness") + getSettingInMicrons("raftInterfaceThickness") + getSettingAsCount("raftSurfaceLayers")*getSettingInMicrons("raftSurfaceThickness");
             if (getSettingInMicrons("raftBaseThickness") > 0 && getSettingInMicrons("raftInterfaceThickness") > 0)
             {
@@ -720,7 +720,7 @@ private:
                 gcode.writeFanCommand(fanSpeed);
             }
 
-            gcodeLayer.writeGCode(getSettingBoolean("coolHeadLift"), static_cast<int>(layer_nr) > 0 ? getSettingInMicrons("layerThickness") : getSettingInMicrons("initialLayerThickness"));
+            gcodeLayer.writeGCode(getSettingBoolean("coolHeadLift"), static_cast<int>(layer_nr) > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("initialLayerThickness"));
             if (commandSocket)
                 commandSocket->sendGCodeLayer();
         }
