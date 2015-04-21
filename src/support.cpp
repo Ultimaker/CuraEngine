@@ -176,7 +176,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     int min_smoothing_area = 100*100;
     int z_layer_distance_tower = 1;
         
-    int layerThickness = object->settings->getSettingInMicrons("layerThickness");
+    int layerThickness = object->settings->getSettingInMicrons("layer_height");
     int extrusionWidth = object->settings->getSettingInMicrons("extrusionWidth"); // TODO check for layer0extrusionWidth!
     
     
