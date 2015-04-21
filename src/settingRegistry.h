@@ -2,6 +2,7 @@
 #define SETTING_REGISTRY_H
 
 #include <vector>
+#include <list>
 #include <map>
 
 #include "rapidjson/document.h"
@@ -18,7 +19,7 @@ class SettingCategory
 private:
     std::string label;
     std::string key;
-    std::vector<SettingConfig> children;
+    std::list<SettingConfig> children;
 public:
     SettingCategory(std::string key, std::string label);
     
@@ -39,7 +40,7 @@ private:
     std::string default_value;
     std::string unit;
     SettingConfig* parent;
-    std::vector<SettingConfig> children;
+    std::list<SettingConfig> children;
 public:
     SettingConfig(std::string key, std::string label, SettingConfig* parent);
 
@@ -93,7 +94,7 @@ private:
     static SettingRegistry instance;
 
     std::map<std::string, SettingConfig*> settings;
-    std::vector<SettingCategory> categories;
+    std::list<SettingCategory> categories;
 public:
     static SettingRegistry* getInstance() { return &instance; }
     
