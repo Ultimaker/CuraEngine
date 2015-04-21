@@ -9,20 +9,7 @@ namespace cura {
 
 class AreaSupport {
 public:
-            
-    /*!
-    * Generate support polygons over all layers.
-    * 
-    * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
-    * 
-    * \param storage data storage containing the input layer outline data and containing the output support storage per layer
-    * \param object The object for which to generate support areas
-    * \param layer_count total number of layers
-    */
-    void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count);
-    
-private:
-    
+
     /*!
      * Joins the layerpart outlines of all meshes and collects the overhang points (small areas).
      * \param storage input layer outline information
@@ -79,6 +66,19 @@ private:
         int supportTowerDiameter
     );
 };
+
+        
+/*!
+* Generate support polygons over all layers.
+* 
+* This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
+* 
+* \param storage data storage containing the input layer outline data and containing the output support storage per layer
+* \param object The object for which to generate support areas
+* \param layer_count total number of layers
+*/
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count);
+
 
 }//namespace cura
 
