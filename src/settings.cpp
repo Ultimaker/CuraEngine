@@ -132,7 +132,7 @@ double SettingsBase::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
-EGCodeFlavor SettingsBase::getSettingInGCodeFlavor(std::string key)
+EGCodeFlavor SettingsBase::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "GCODE_FLAVOR_REPRAP")
@@ -150,7 +150,7 @@ EGCodeFlavor SettingsBase::getSettingInGCodeFlavor(std::string key)
     return GCODE_FLAVOR_REPRAP;
 }
 
-EFillMethod SettingsBase::getSettingInFillMethod(std::string key)
+EFillMethod SettingsBase::getSettingAsFillMethod(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Lines")
@@ -166,7 +166,7 @@ EFillMethod SettingsBase::getSettingInFillMethod(std::string key)
     return Fill_None;
 }
 
-EPlatformAdhesion SettingsBase::getSettingInPlatformAdhesion(std::string key)
+EPlatformAdhesion SettingsBase::getSettingAsPlatformAdhesion(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Brim")
@@ -174,4 +174,14 @@ EPlatformAdhesion SettingsBase::getSettingInPlatformAdhesion(std::string key)
     if (value == "Raft")
         return Adhesion_Raft;
     return Adhesion_None;
+}
+
+ESupportType SettingsBase::getSettingAsSupportType(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Everywhere")
+        return Support_Everywhere;
+    if (value == "Touching Buildplate")
+        return Support_PlatformOnly;
+    return Support_None;
 }

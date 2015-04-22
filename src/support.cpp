@@ -21,13 +21,14 @@ namespace cura
 void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count)
 {
     // given settings
-    double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
+    ESupportType support_type = object->settings->getSettingAsSupportType("support_type");
     
     storage.support.generated = false;
-    if (supportAngle < 0)
+    if (support_type == Support_None)
         return;
-    
-    bool supportOnBuildplateOnly = object->settings->getSettingBoolean("supportOnBuildplateOnly");
+
+    double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
+    bool supportOnBuildplateOnly = support_type == Support_PlatformOnly;
     int supportXYDistance = object->settings->getSettingInMicrons("support_xy_distance");
     int supportZDistance = object->settings->getSettingInMicrons("support_z_distance");
     int supportZDistanceBottom = object->settings->getSettingInMicrons("support_bottom_distance");

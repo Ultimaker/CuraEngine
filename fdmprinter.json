@@ -115,6 +115,14 @@
                                             "default": 0.4,
                                             "type": "float",
                                             "visible": false
+                                        },
+                                        "support_line_width": {
+                                            "label": "Support line width",
+                                            "description": "Width of the printed support structures lines.",
+                                            "unit": "mm",
+                                            "default": 0.4,
+                                            "type": "float",
+                                            "visible": false
                                         }
                                     }
                                 }

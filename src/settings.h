@@ -95,6 +95,16 @@ enum EPlatformAdhesion
     Adhesion_Raft
 };
 
+/*!
+ * Type of support material to generate
+ */
+enum ESupportType
+{
+    Support_None,
+    Support_PlatformOnly,
+    Support_Everywhere
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of sparse layers that can be combined into a single sparse extrusion.
@@ -132,9 +142,10 @@ public:
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
     
-    EGCodeFlavor getSettingInGCodeFlavor(std::string key);
-    EFillMethod getSettingInFillMethod(std::string key);
-    EPlatformAdhesion getSettingInPlatformAdhesion(std::string key);
+    EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
+    EFillMethod getSettingAsFillMethod(std::string key);
+    EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
+    ESupportType getSettingAsSupportType(std::string key);
 };
 
 
