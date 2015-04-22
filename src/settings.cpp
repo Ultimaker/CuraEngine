@@ -165,3 +165,13 @@ EFillMethod SettingsBase::getSettingInFillMethod(std::string key)
         return Fill_ZigZag;
     return Fill_None;
 }
+
+EPlatformAdhesion SettingsBase::getSettingInPlatformAdhesion(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Brim")
+        return Adhesion_Brim;
+    if (value == "Raft")
+        return Adhesion_Raft;
+    return Adhesion_None;
+}
