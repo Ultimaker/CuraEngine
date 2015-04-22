@@ -1,5 +1,6 @@
 #include "settingRegistry.h"
 
+#include <sstream>
 #include "utils/logoutput.h"
 
 #include "rapidjson/rapidjson.h"
