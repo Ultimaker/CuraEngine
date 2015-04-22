@@ -21,24 +21,24 @@ namespace cura
 void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count)
 {
     // given settings
-    double supportAngle = object->settings->getSettingInAngleRadians("supportAngle");
+    double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
     
     storage.support.generated = false;
     if (supportAngle < 0)
         return;
     
     bool supportOnBuildplateOnly = object->settings->getSettingBoolean("supportOnBuildplateOnly");
-    int supportXYDistance = object->settings->getSettingInMicrons("supportXYDistance");
-    int supportZDistance = object->settings->getSettingInMicrons("supportZDistance");
-    int supportZDistanceBottom = object->settings->getSettingInMicrons("supportZDistanceBottom");
-    int supportZDistanceTop = object->settings->getSettingInMicrons("supportZDistanceTop");
-    int supportJoinDistance = object->settings->getSettingInMicrons("supportJoinDistance");
+    int supportXYDistance = object->settings->getSettingInMicrons("support_xy_distance");
+    int supportZDistance = object->settings->getSettingInMicrons("support_z_distance");
+    int supportZDistanceBottom = object->settings->getSettingInMicrons("support_bottom_distance");
+    int supportZDistanceTop = object->settings->getSettingInMicrons("support_top_distance");
+    int supportJoinDistance = object->settings->getSettingInMicrons("support_join_distance");
     int supportBottomStairDistance = object->settings->getSettingInMicrons("supportBottomStairDistance");
-    int smoothing_distance = object->settings->getSettingInMicrons("supportAreaSmoothing"); 
+    int smoothing_distance = object->settings->getSettingInMicrons("support_area_smoothing"); 
     
-    int supportTowerDiameter = object->settings->getSettingInMicrons("supportTowerDiameter");
-    int supportMinAreaSqrt = object->settings->getSettingInMicrons("supportMinimalAreaSqrt");
-    double supportTowerRoofAngle = object->settings->getSettingInAngleRadians("supportTowerRoofAngle");
+    int supportTowerDiameter = object->settings->getSettingInMicrons("support_tower_diameter");
+    int supportMinAreaSqrt = object->settings->getSettingInMicrons("support_minimal_diameter");
+    double supportTowerRoofAngle = object->settings->getSettingInAngleRadians("support_tower_roof_angle");
     
     //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
     

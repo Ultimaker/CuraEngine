@@ -490,37 +490,37 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 {
     wireFrame = weaver.wireFrame;
     initial_layer_thickness = getSettingInMicrons("layer_height_0");
-    connectionHeight = getSettingInMicrons("wireframeConnectionHeight"); 
-    roof_inset = getSettingInMicrons("wireframeRoofInset"); 
+    connectionHeight = getSettingInMicrons("wireframe_height"); 
+    roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
     
     filament_diameter = getSettingInMicrons("material_diameter");
     extrusionWidth = getSettingInMicrons("wall_line_width_x");
     
-    flowConnection = getSettingInPercentage("wireframeFlowConnection");
-    flowFlat = getSettingInPercentage("wireframeFlowFlat");
+    flowConnection = getSettingInPercentage("wireframe_flow_connection");
+    flowFlat = getSettingInPercentage("wireframe_flow_flat");
     
     double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
     double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
     extrusion_per_mm_connection = lineArea / filament_area * double(flowConnection) / 100.0;
     extrusion_per_mm_flat = lineArea / filament_area * double(flowFlat) / 100.0;
     
-    nozzle_outer_diameter = getSettingInMicrons("machineNozzleTipOuterDiameter"); // ___       ___   .
-    nozzle_head_distance = getSettingInMicrons("machineNozzleHeadDistance");      //    |     |      .
-    nozzle_expansion_angle = getSettingInAngleRadians("machineNozzleExpansionAngle");  //     \_U_/       .
-    nozzle_clearance = getSettingInMicrons("wireframeNozzleClearance");    // at least line width
+    nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter"); // ___       ___   .
+    nozzle_head_distance = getSettingInMicrons("machine_nozzle_head_distance");      //    |     |      .
+    nozzle_expansion_angle = getSettingInAngleRadians("machine_nozzle_expansion_angle");  //     \_U_/       .
+    nozzle_clearance = getSettingInMicrons("wireframe_nozzle_clearance");    // at least line width
     nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     
     moveSpeed = 40;
-    speedBottom =  getSettingInMillimetersPerSecond("wireframePrintspeedBottom");
-    speedUp = getSettingInMillimetersPerSecond("wireframePrintspeedUp");
-    speedDown = getSettingInMillimetersPerSecond("wireframePrintspeedDown");
-    speedFlat = getSettingInMillimetersPerSecond("wireframePrintspeedFlat");
+    speedBottom =  getSettingInMillimetersPerSecond("wireframe_printspeed_bottom");
+    speedUp = getSettingInMillimetersPerSecond("wireframe_printspeed_up");
+    speedDown = getSettingInMillimetersPerSecond("wireframe_printspeed_down");
+    speedFlat = getSettingInMillimetersPerSecond("wireframe_printspeed_flat");
 
     flat_delay = getSettingInSeconds("wireframe_flat_delay");
     bottom_delay = getSettingInSeconds("wireframe_bottom_delay");
     top_delay = getSettingInSeconds("wireframe_top_delay");
     
-    up_dist_half_speed = getSettingInMicrons("wireframeUpDistHalfSpeed");
+    up_dist_half_speed = getSettingInMicrons("wireframe_up_half_speed");
     
     top_jump_dist = getSettingInMicrons("wireframe_top_jump");
     
@@ -536,7 +536,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
         strategy = STRATEGY_RETRACT;
     
     go_back_to_last_top = false;
-    straight_first_when_going_down = getSettingInPercentage("wireframeStraightBeforeDown");
+    straight_first_when_going_down = getSettingInPercentage("wireframe_straight_before_down");
     
     roof_fall_down = getSettingInMicrons("wireframe_roof_fall_down");
     roof_drag_along = getSettingInMicrons("wireframe_roof_drag_along");
@@ -544,7 +544,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     
     standard_retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
-    standard_retraction_config.primeAmount = INT2MM(getSettingInMicrons("retractionPrimeAmount"));
+    standard_retraction_config.primeAmount = INT2MM(getSettingInMicrons("retraction_extra_prime_amount"));
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");

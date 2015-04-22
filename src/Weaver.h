@@ -64,14 +64,14 @@ public:
     {
         
         initial_layer_thickness = getSettingInMicrons("layer_height_0");
-        connectionHeight = getSettingInMicrons("wireframeConnectionHeight"); 
+        connectionHeight = getSettingInMicrons("wireframe_height"); 
         
         extrusionWidth = getSettingInMicrons("wall_line_width_x");
         
-        roof_inset = getSettingInMicrons("wireframeRoofInset"); 
-        nozzle_outer_diameter = getSettingInMicrons("machineNozzleTipOuterDiameter");      // ___       ___   .
-        nozzle_expansion_angle = getSettingInAngleRadians("machineNozzleExpansionAngle");  //     \_U_/       .
-        nozzle_clearance = getSettingInMicrons("wireframeNozzleClearance");                // at least line width
+        roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
+        nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter");      // ___       ___   .
+        nozzle_expansion_angle = getSettingInAngleRadians("machine_nozzle_expansion_angle");  //     \_U_/       .
+        nozzle_clearance = getSettingInMicrons("wireframe_nozzle_clearance");                // at least line width
         nozzle_top_diameter = tan(nozzle_expansion_angle) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
     }
 

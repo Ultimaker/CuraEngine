@@ -281,7 +281,7 @@ private:
         unsigned int totalLayers = storage.meshes[0].layers.size();
 
         //carveMultipleVolumes(storage.meshes);
-        generateMultipleVolumesOverlap(storage.meshes, getSettingInMicrons("multiVolumeOverlap"));
+        generateMultipleVolumesOverlap(storage.meshes, getSettingInMicrons("multiple_mesh_overlap"));
         //dumpLayerparts(storage, "c:/models/output.html");
         if (getSettingBoolean("magic_polygon_mode"))
         {
@@ -308,7 +308,7 @@ private:
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
                 int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
+                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
@@ -363,7 +363,7 @@ private:
             }
         }
               
-        if (getSettingBoolean("enableOozeShield"))
+        if (getSettingBoolean("ooze_shield_enabled"))
         {
             for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
             {
@@ -404,9 +404,9 @@ private:
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
                     int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skinPerimeterCount"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
-                    if (mesh.settings->getSettingInMicrons("sparseInfillLineDistance") > 0)
-                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
+                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skin_outline_count"), mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+                    if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
+                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
@@ -423,11 +423,11 @@ private:
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
-        if (getSettingInMicrons("wipeTowerSize") > 0)
+        if (getSettingInMicrons("wipe_tower_distance") > 0)
         {
             PolygonRef p = storage.wipeTower.newPoly();
-            int tower_size = getSettingInMicrons("wipeTowerSize");
-            int tower_distance = getSettingInMicrons("wipeTowerDistance");
+            int tower_size = getSettingInMicrons("wipe_tower_size");
+            int tower_distance = getSettingInMicrons("wipe_tower_distance");
             p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance));
             p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance + tower_size));
             p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
@@ -555,11 +555,11 @@ private:
                 gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
-                gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingInMicrons("raftSurfaceThickness")*raftSurfaceLayer);
+                gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftSurfaceLinewidth"), getSettingInMicrons("raftSurfaceLineSpacing"), getSettingInPercentage("fill_overlap"), 90 * raftSurfaceLayer);
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_surface_line_width"), getSettingInMicrons("raft_surface_line_spacing"), getSettingInPercentage("fill_overlap"), 90 * raftSurfaceLayer);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raft_interface_thickness"));
@@ -583,7 +583,7 @@ private:
             storage.skirt_config.setFlow(getSettingInPercentage("material_flow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
 
-            storage.support_config.setLineWidth(getSettingInMicrons("supportExtrusionWidth"));
+            storage.support_config.setLineWidth(getSettingInMicrons("support_line_width"));
             storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support"));
             storage.support_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             storage.support_config.setFlow(getSettingInPercentage("material_flow"));
@@ -644,9 +644,9 @@ private:
             {
                 if (layer_nr == 0)
                 {
-                    z += getSettingInMicrons("raftAirGapLayer0");
+                    z += getSettingInMicrons("raft_airgap_layer_0");
                 } else {
-                    z += getSettingInMicrons("raftAirGap");
+                    z += getSettingInMicrons("raft_airgap");
                 }
             }
             gcode.setZ(z);
@@ -837,7 +837,7 @@ private:
             int extrusionWidth = getSettingInMicrons("infill_line_width");
 
             //Add thicker (multiple layers) sparse infill.
-            int sparse_infill_line_distance = getSettingInMicrons("sparseInfillLineDistance");
+            int sparse_infill_line_distance = getSettingInMicrons("infill_line_distance");
             double infill_overlap = getSettingInPercentage("fill_overlap");
             if (sparse_infill_line_distance > 0)
             {
@@ -950,10 +950,9 @@ private:
                     case Fill_Concentric:
                         {
                             Polygons in_outline;
-                            offsetSafe(outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("avoidOverlappingPerimeters"));
+                            offsetSafe(outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
                             
-                            generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("avoidOverlappingPerimeters"));
-                            
+                            generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
                         }
                         break;
                     default:
@@ -1031,7 +1030,7 @@ private:
             if (support_line_distance > 0)
             {
                 int extrusionWidth = getSettingInMicrons("wall_line_width_x");
-                switch(getSettingInFillMethod("supportType"))
+                switch(getSettingInFillMethod("support_pattern"))
                 {
                 case Fill_Grid:
                     {
@@ -1062,7 +1061,7 @@ private:
                         {
                             generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, infill_overlap + 150, 0);
                         }else{
-                            generateZigZagInfill(island, supportLines, extrusionWidth, support_line_distance, infill_overlap, 0, getSettingBoolean("supportConnectZigZags"), true);
+                            generateZigZagInfill(island, supportLines, extrusionWidth, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
                         }
                     }
                     break;
@@ -1075,7 +1074,7 @@ private:
             gcodeLayer.forceRetract();
             if (getSettingBoolean("retraction_combing"))
                 gcodeLayer.setCombBoundary(&island);
-            if (getSettingInFillMethod("supportType") == Fill_Grid || ( getSettingInFillMethod("supportType") == Fill_ZigZag && layer_nr == 0 ) )
+            if (getSettingInFillMethod("support_pattern") == Fill_Grid || ( getSettingInFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
             gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
@@ -1084,7 +1083,7 @@ private:
 
     void addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder)
     {
-        if (getSettingInMicrons("wipeTowerSize") < 1)
+        if (getSettingInMicrons("wipe_tower_size") < 1)
             return;
 
         int64_t offset = -getSettingInMicrons("wall_line_width_x");
