@@ -63,10 +63,10 @@ public:
     Weaver(SettingsBase* settings_base) : SettingsBase(settings_base) 
     {
         
-        initial_layer_thickness = getSettingInMicrons("initialLayerThickness");
+        initial_layer_thickness = getSettingInMicrons("layer_height_0");
         connectionHeight = getSettingInMicrons("wireframeConnectionHeight"); 
         
-        extrusionWidth = getSettingInMicrons("extrusionWidth");
+        extrusionWidth = getSettingInMicrons("wall_line_width_x");
         
         roof_inset = getSettingInMicrons("wireframeRoofInset"); 
         nozzle_outer_diameter = getSettingInMicrons("machineNozzleTipOuterDiameter");      // ___       ___   .

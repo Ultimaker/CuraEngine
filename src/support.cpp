@@ -46,7 +46,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     int z_layer_distance_tower = 1; // start tower directly below overhang point
         
     int layerThickness = object->settings->getSettingInMicrons("layer_height");
-    int extrusionWidth = object->settings->getSettingInMicrons("extrusionWidth"); // TODO check for layer0extrusionWidth!
+    int extrusionWidth = object->settings->getSettingInMicrons("wall_line_width_x"); // TODO check for layer0extrusionWidth!
     
     
 

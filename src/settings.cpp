@@ -47,13 +47,13 @@ std::string SettingsBase::getSettingString(std::string key)
     
     if (SettingRegistry::getInstance()->settingExists(key))
     {
-        cura::logError("Using default for: %s\n", key.c_str());
         setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
+        cura::logError("Using default for: %s = %s\n", key.c_str(), setting_values[key].c_str());
     }
     else
     {
-        cura::logError("Unknown setting %s\n", key.c_str());
         setting_values[key] = "";
+        cura::logError("Unknown setting %s\n", key.c_str());
     }
     return setting_values[key];
 }
