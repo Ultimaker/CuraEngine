@@ -1,4 +1,4 @@
-#include "utils/logOutput.h"
+#include "utils/logoutput.h"
 
 #include "settingRegistry.h"
 #include "rapidjson/rapidjson.h"
