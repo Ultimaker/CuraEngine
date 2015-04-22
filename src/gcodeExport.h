@@ -3,7 +3,7 @@
 #define GCODEEXPORT_H
 
 #include <stdio.h>
-#include <queue> // for extrusionAmountAtPreviousRetractions
+#include <deque> // for extrusionAmountAtPreviousRetractions
 
 #include "settings.h"
 #include "utils/intpoint.h"
@@ -14,7 +14,7 @@ namespace cura {
 class RetractionConfig
 {
 public:
-    double amount;
+    double amount; //!< The amount
     int speed;
     int primeSpeed;
     double primeAmount;
@@ -108,7 +108,7 @@ private:
     int extruderSwitchPrimeSpeed;
     double minimal_extrusion_before_retraction;
     double extrusion_amount_at_previous_retraction;
-    std::queue<double> extrusion_amount_at_previous_n_retractions;
+    std::deque<double> extrusion_amount_at_previous_n_retractions;
     Point3 currentPosition;
     Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];

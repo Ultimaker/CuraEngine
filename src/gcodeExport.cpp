@@ -167,6 +167,8 @@ void GCodeExport::resetExtrusionValue()
         *output_stream << "G92 " << extruderCharacter[extruderNr] << "0\n";
         totalFilament[extruderNr] += extrusion_amount;
         extrusion_amount_at_previous_retraction -= extrusion_amount;
+        for (unsigned int i = 0; i < extrusion_amount_at_previous_n_retractions.size(); i++)
+            extrusion_amount_at_previous_n_retractions[i] -= extrusion_amount;
         extrusion_amount = 0.0;
     }
 }
@@ -289,6 +291,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     if (!force && extrusion_amount < extrusion_amount_at_previous_retraction + minimal_extrusion_before_retraction - config->amount) // TODO: why subtract the retraction amount?!
         return;
+    // TODO: remove extrusion_amount_at_previous_retraction
     int retraction_count_max = 5; // TODO: add setting!
     int extrusion_amount_min = config->amount; // TODO: add setting! also: think of better name for setting!
     if (!force && retraction_count_max > 0 && extrusion_amount_at_previous_n_retractions.size() == retraction_count_max && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + extrusion_amount_min) // TODO: subtract the retraction amount??
@@ -316,10 +319,10 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         isZHopped = true;
     }
     extrusion_amount_at_previous_retraction = extrusion_amount;
-    extrusion_amount_at_previous_n_retractions.push(extrusion_amount);
+    extrusion_amount_at_previous_n_retractions.push_front(extrusion_amount);
     if (extrusion_amount_at_previous_n_retractions.size() == retraction_count_max + 1)
     {
-        extrusion_amount_at_previous_n_retractions.pop();
+        extrusion_amount_at_previous_n_retractions.pop_back();
     }
     isRetracted = true;
 }

@@ -8,7 +8,8 @@
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 
-namespace cura {
+namespace cura 
+{
 
 class GCodePath
 {
