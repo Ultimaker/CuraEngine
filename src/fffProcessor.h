@@ -110,7 +110,7 @@ public:
 
         TimeKeeper timeKeeperTotal;
         
-        if (model->getSettingBoolean("neith"))
+        if (model->getSettingBoolean("wireframe"))
         {
             log("starting Neith Weaver...\n");
                         
@@ -144,7 +144,7 @@ public:
 
     void finalize()
     {
-        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("moveSpeed"), getSettingString("machine_end_gcode").c_str());
+        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
     }
@@ -165,18 +165,18 @@ private:
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
-            stream << "extruderOffset" << n;
-            gcode.setExtruderOffset(n, Point(getSettingInMicrons(stream.str() + ".X"), getSettingInMicrons(stream.str() + ".Y")));
+            stream << "machine_extruder_offset" << n;
+            gcode.setExtruderOffset(n, Point(getSettingInMicrons(stream.str() + "_x"), getSettingInMicrons(stream.str() + "_y")));
         }
         for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
             stream << n;
-            gcode.setSwitchExtruderCode(n, getSettingString("preSwitchExtruderCode" + stream.str()), getSettingString("postSwitchExtruderCode" + stream.str()));
+            gcode.setSwitchExtruderCode(n, getSettingString("machine_pre_extruder_switch_code" + stream.str()), getSettingString("machine_post_extruder_switch_code" + stream.str()));
         }
 
         gcode.setFlavor(getSettingInGCodeFlavor("machine_gcode_flavor"));
-        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("minimalExtrusionBeforeRetraction"));
+        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_minimal_extrusion"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model
@@ -186,7 +186,7 @@ private:
         storage.model_size = storage.model_max - storage.model_min;
 
         log("Slicing model...\n");
-        int initial_layer_thickness = object->getSettingInMicrons("initialLayerThickness");
+        int initial_layer_thickness = object->getSettingInMicrons("layer_height_0");
         int layer_thickness = object->getSettingInMicrons("layer_height");
         int layer_count = (storage.model_max.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
         std::vector<Slicer*> slicerList;
@@ -261,7 +261,7 @@ private:
                 meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raftBaseThickness") + meshStorage.settings->getSettingInMicrons("raftInterfaceThickness");
 
                 if (commandSocket)
-                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("initialLayerThickness") : meshStorage.settings->getSettingInMicrons("layer_height"));
+                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -302,12 +302,10 @@ private:
             for(SliceMeshStorage& mesh : storage.meshes)
             {
                 int insetCount = mesh.settings->getSettingAsCount("insetCount");
-                if (mesh.settings->getSettingBoolean("spiralizeMode") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("downSkinCount") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("downSkinCount") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
-                int extrusionWidth = mesh.settings->getSettingInMicrons("extrusionWidth");
-                if (layer_nr == 0)
-                    extrusionWidth = mesh.settings->getSettingInMicrons("layer0extrusionWidth");
+                int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
                 generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -399,16 +397,14 @@ private:
 
         for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         {
-            if (!getSettingBoolean("spiralizeMode") || static_cast<int>(layer_nr) < getSettingAsCount("downSkinCount"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
-                    int extrusionWidth = mesh.settings->getSettingInMicrons("extrusionWidth");
-                    if (layer_nr == 0)
-                        extrusionWidth = mesh.settings->getSettingInMicrons("layer0extrusionWidth");
-                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("downSkinCount"), mesh.settings->getSettingAsCount("upSkinCount"), mesh.settings->getSettingAsCount("skinPerimeterCount"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
+                    int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
+                    generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skinPerimeterCount"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
                     if (mesh.settings->getSettingInMicrons("sparseInfillLineDistance") > 0)
-                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("downSkinCount"), mesh.settings->getSettingAsCount("upSkinCount"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
+                        generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingBoolean("avoidOverlappingPerimeters"));
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
@@ -421,7 +417,7 @@ private:
         for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
         {
             for(SliceMeshStorage& mesh : storage.meshes)
-                combineSparseLayers(layer_nr, mesh, mesh.settings->getSettingAsCount("sparseInfillCombineCount"));
+                combineSparseLayers(layer_nr, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
@@ -438,8 +434,8 @@ private:
             storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
-        generateSkirt(storage, getSettingInMicrons("skirtDistance"), getSettingInMicrons("layer0extrusionWidth"), getSettingAsCount("skirtLineCount"), getSettingInMicrons("skirtMinLength"), getSettingInMicrons("initialLayerThickness"));
-        generateRaft(storage, getSettingInMicrons("raftMargin"));
+        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"), getSettingInMicrons("layer_height_0"));
+        generateRaft(storage, getSettingInMicrons("raft_margin"));
 
         sendPolygons(SkirtType, 0, storage.skirt);
     }
@@ -452,18 +448,18 @@ private:
             commandSocket->beginGCode();
 
         //Setup the retraction parameters.
-        storage.retraction_config.amount = INT2MM(getSettingInMicrons("retractionAmount"));
+        storage.retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
         storage.retraction_config.primeAmount = INT2MM(getSettingInMicrons("retractionPrimeAmount"));
-        storage.retraction_config.speed = getSettingInMillimetersPerSecond("retractionSpeed");
+        storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_speed");
         storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retractionPrimeSpeed");
-        storage.retraction_config.zHop = getSettingInMicrons("retractionZHop");
+        storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
         for(SliceMeshStorage& mesh : storage.meshes)
         {
-            mesh.retraction_config.amount = INT2MM(mesh.settings->getSettingInMicrons("retractionAmount"));
+            mesh.retraction_config.amount = INT2MM(mesh.settings->getSettingInMicrons("retraction_amount"));
             mesh.retraction_config.primeAmount = INT2MM(mesh.settings->getSettingInMicrons("retractionPrimeAmount"));
-            mesh.retraction_config.speed = mesh.settings->getSettingInMillimetersPerSecond("retractionSpeed");
+            mesh.retraction_config.speed = mesh.settings->getSettingInMillimetersPerSecond("retraction_speed");
             mesh.retraction_config.primeSpeed = mesh.settings->getSettingInMillimetersPerSecond("retractionPrimeSpeed");
-            mesh.retraction_config.zHop = mesh.settings->getSettingInMicrons("retractionZHop");
+            mesh.retraction_config.zHop = mesh.settings->getSettingInMicrons("retraction_hop");
         }
 
         if (fileNr == 1)
@@ -472,11 +468,11 @@ private:
                 gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("bedTemperature"), true);
             
             for(SliceMeshStorage& mesh : storage.meshes)
-                if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInDegreeCelsius("printTemperature") > 0)
-                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("printTemperature"));
+                if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"));
             for(SliceMeshStorage& mesh : storage.meshes)
-                if (mesh.settings->hasSetting("printTemperature") && mesh.settings->getSettingInDegreeCelsius("printTemperature") > 0)
-                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("printTemperature"), true);
+                if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"), true);
             
             gcode.writeCode(getSettingString("machine_start_gcode").c_str());
             gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
@@ -491,8 +487,8 @@ private:
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
             gcode.setZ(maxObjectHeight + 5000);
-            gcode.writeMove(gcode.getPositionXY(), getSettingInMillimetersPerSecond("moveSpeed"), 0);
-            gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInMillimetersPerSecond("moveSpeed"), 0);
+            gcode.writeMove(gcode.getPositionXY(), getSettingInMillimetersPerSecond("speed_travel"), 0);
+            gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInMillimetersPerSecond("speed_travel"), 0);
         }
         fileNr++;
 
@@ -505,32 +501,32 @@ private:
             raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raftBaseSpeed"));
             raft_base_config.setLineWidth(getSettingInMicrons("raftBaseLinewidth"));
             raft_base_config.setLayerHeight(getSettingInMicrons("raftBaseThickness"));
-            raft_base_config.setFilamentDiameter(getSettingInMicrons("filamentDiameter"));
-            raft_base_config.setFlow(getSettingInPercentage("filamentFlow"));
+            raft_base_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+            raft_base_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
             raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raftInterfaceSpeed"));
             raft_interface_config.setLineWidth(getSettingInMicrons("raftInterfaceLinewidth"));
             raft_interface_config.setLayerHeight(getSettingInMicrons("raftBaseThickness"));
-            raft_interface_config.setFilamentDiameter(getSettingInMicrons("filamentDiameter"));
-            raft_interface_config.setFlow(getSettingInPercentage("filamentFlow"));
+            raft_interface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+            raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
             raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raftSurfaceSpeed"));
             raft_surface_config.setLineWidth(getSettingInMicrons("raftSurfaceLinewidth"));
             raft_surface_config.setLayerHeight(getSettingInMicrons("raftBaseThickness"));
-            raft_surface_config.setFilamentDiameter(getSettingInMicrons("filamentDiameter"));
-            raft_surface_config.setFlow(getSettingInPercentage("filamentFlow"));
+            raft_surface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+            raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
             {
                 gcode.writeLayerComment(-2);
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("moveSpeed"), getSettingInMicrons("retractionMinimalDistance"));
-                if (getSettingAsIndex("supportExtruder") > 0)
-                    gcodeLayer.setExtruder(getSettingAsIndex("supportExtruder"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
+                if (getSettingAsIndex("support_extruder_nr") > 0)
+                    gcodeLayer.setExtruder(getSettingAsIndex("support_extruder_nr"));
                 gcode.setZ(getSettingInMicrons("raftBaseThickness"));
                 gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftBaseLinewidth"), getSettingInMicrons("raftLineSpacing"), getSettingInPercentage("infillOverlap"), 0);
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftBaseLinewidth"), getSettingInMicrons("raftLineSpacing"), getSettingInPercentage("fill_overlap"), 0);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raftBaseThickness"));
@@ -544,12 +540,12 @@ private:
             { /// this code block is about something which is of yet unknown
                 gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("moveSpeed"), getSettingInMicrons("retractionMinimalDistance"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retractionMinimalDistance"));
                 gcode.setZ(getSettingInMicrons("raftBaseThickness") + getSettingInMicrons("raftInterfaceThickness"));
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftInterfaceLinewidth"), getSettingInMicrons("raftInterfaceLineSpacing"), getSettingInPercentage("infillOverlap"), getSettingAsCount("raftSurfaceLayers") > 0 ? 45 : 90);
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftInterfaceLinewidth"), getSettingInMicrons("raftInterfaceLineSpacing"), getSettingInPercentage("fill_overlap"), getSettingAsCount("raftSurfaceLayers") > 0 ? 45 : 90);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raftInterfaceThickness"));
@@ -559,12 +555,12 @@ private:
             {
                 gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
-                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("moveSpeed"), getSettingInMicrons("retractionMinimalDistance"));
+                GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retractionMinimalDistance"));
                 gcode.setZ(getSettingInMicrons("raftBaseThickness") + getSettingInMicrons("raftInterfaceThickness") + getSettingInMicrons("raftSurfaceThickness")*raftSurfaceLayer);
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftSurfaceLinewidth"), getSettingInMicrons("raftSurfaceLineSpacing"), getSettingInPercentage("infillOverlap"), 90 * raftSurfaceLayer);
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftSurfaceLinewidth"), getSettingInMicrons("raftSurfaceLineSpacing"), getSettingInPercentage("fill_overlap"), 90 * raftSurfaceLayer);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raftInterfaceThickness"));
@@ -576,63 +572,57 @@ private:
             logProgress("export", layer_nr+1, totalLayers);
             if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
-            int extrusion_width = getSettingInMicrons("extrusionWidth");
             int layer_thickness = getSettingInMicrons("layer_height");
             if (layer_nr == 0)
             {
-                extrusion_width = getSettingInMicrons("layer0extrusionWidth");
-                layer_thickness = getSettingInMicrons("initialLayerThickness");
+                layer_thickness = getSettingInMicrons("layer_height_0");
             }
 
-            storage.skirt_config.setSpeed(getSettingInMillimetersPerSecond("skirtSpeed"));
-            storage.skirt_config.setLineWidth(extrusion_width);
-            storage.skirt_config.setFilamentDiameter(getSettingInMicrons("filamentDiameter"));
-            storage.skirt_config.setFlow(getSettingInPercentage("filamentFlow"));
+            storage.skirt_config.setSpeed(getSettingInMillimetersPerSecond("skirt_speed"));
+            storage.skirt_config.setLineWidth(getSettingInMicrons("skirt_line_width"));
+            storage.skirt_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+            storage.skirt_config.setFlow(getSettingInPercentage("material_flow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
 
             storage.support_config.setLineWidth(getSettingInMicrons("supportExtrusionWidth"));
-            storage.support_config.setSpeed(getSettingInMillimetersPerSecond("supportSpeed"));
-            storage.support_config.setFilamentDiameter(getSettingInMicrons("filamentDiameter"));
-            storage.support_config.setFlow(getSettingInPercentage("filamentFlow"));
+            storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support"));
+            storage.support_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+            storage.support_config.setFlow(getSettingInPercentage("material_flow"));
             storage.support_config.setLayerHeight(layer_thickness);
             for(SliceMeshStorage& mesh : storage.meshes)
             {
-                extrusion_width = mesh.settings->getSettingInMicrons("extrusionWidth");
-                if (layer_nr == 0)
-                    extrusion_width = mesh.settings->getSettingInMicrons("layer0extrusionWidth");
-
-                mesh.inset0_config.setLineWidth(extrusion_width);
-                mesh.inset0_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("inset0Speed"));
-                mesh.inset0_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("filamentDiameter"));
-                mesh.inset0_config.setFlow(mesh.settings->getSettingInPercentage("filamentFlow"));
+                mesh.inset0_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_0"));
+                mesh.inset0_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_0"));
+                mesh.inset0_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
+                mesh.inset0_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.inset0_config.setLayerHeight(layer_thickness);
 
-                mesh.insetX_config.setLineWidth(extrusion_width);
-                mesh.insetX_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("insetXSpeed"));
-                mesh.insetX_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("filamentDiameter"));
-                mesh.insetX_config.setFlow(mesh.settings->getSettingInPercentage("filamentFlow"));
+                mesh.insetX_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_x"));
+                mesh.insetX_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_x"));
+                mesh.insetX_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
+                mesh.insetX_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.insetX_config.setLayerHeight(layer_thickness);
 
-                mesh.skin_config.setLineWidth(extrusion_width);
-                mesh.skin_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("skinSpeed"));
-                mesh.skin_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("filamentDiameter"));
-                mesh.skin_config.setFlow(mesh.settings->getSettingInPercentage("filamentFlow"));
+                mesh.skin_config.setLineWidth(mesh.settings->getSettingInMicrons("skin_line_width"));
+                mesh.skin_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_topbottom"));
+                mesh.skin_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
+                mesh.skin_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.skin_config.setLayerHeight(layer_thickness);
 
                 for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
                 {
-                    mesh.infill_config[idx].setLineWidth(extrusion_width * (idx + 1));
-                    mesh.infill_config[idx].setSpeed(mesh.settings->getSettingInMillimetersPerSecond("infillSpeed"));
-                    mesh.infill_config[idx].setFilamentDiameter(mesh.settings->getSettingInMicrons("filamentDiameter"));
-                    mesh.infill_config[idx].setFlow(mesh.settings->getSettingInPercentage("filamentFlow"));
+                    mesh.infill_config[idx].setLineWidth(mesh.settings->getSettingInMicrons("infill_line_width") * (idx + 1));
+                    mesh.infill_config[idx].setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_infill"));
+                    mesh.infill_config[idx].setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
+                    mesh.infill_config[idx].setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                     mesh.infill_config[idx].setLayerHeight(layer_thickness);
                 }
             }
 
-            int initial_speedup_layers = getSettingAsCount("initialSpeedupLayers");
+            int initial_speedup_layers = getSettingAsCount("speed_slowdown_layers");
             if (static_cast<int>(layer_nr) < initial_speedup_layers)
             {
-                int initial_layer_speed = getSettingInMillimetersPerSecond("initialLayerSpeed");
+                int initial_layer_speed = getSettingInMillimetersPerSecond("speed_layer_0");
                 storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
@@ -648,8 +638,8 @@ private:
 
             gcode.writeLayerComment(layer_nr);
 
-            GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("moveSpeed"), getSettingInMicrons("retractionMinimalDistance"));
-            int32_t z = getSettingInMicrons("initialLayerThickness") + layer_nr * getSettingInMicrons("layer_height");
+            GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retractionMinimalDistance"));
+            int32_t z = getSettingInMicrons("layer_height_0") + layer_nr * getSettingInMicrons("layer_height");
             z += getSettingInMicrons("raftBaseThickness") + getSettingInMicrons("raftInterfaceThickness") + getSettingAsCount("raftSurfaceLayers")*getSettingInMicrons("raftSurfaceThickness");
             if (getSettingInMicrons("raftBaseThickness") > 0 && getSettingInMicrons("raftInterfaceThickness") > 0)
             {
@@ -670,7 +660,7 @@ private:
                 gcodeLayer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
             }
 
-            bool printSupportFirst = (storage.support.generated && getSettingAsIndex("supportExtruder") > 0 && getSettingAsIndex("supportExtruder") == gcodeLayer.getExtruder());
+            bool printSupportFirst = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcodeLayer.getExtruder());
             if (printSupportFirst)
                 addSupportToGCode(storage, gcodeLayer, layer_nr);
 
@@ -678,7 +668,7 @@ private:
             {
                 gcodeLayer.setAlwaysRetract(true);
                 gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config);
-                gcodeLayer.setAlwaysRetract(!getSettingBoolean("enableCombing"));
+                gcodeLayer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
             }
 
             //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
@@ -694,33 +684,33 @@ private:
                 double travelTime;
                 double extrudeTime;
                 gcodeLayer.getTimes(travelTime, extrudeTime);
-                gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("minimalLayerTime"), getSettingInMillimetersPerSecond("minimalFeedrate"), travelTime, extrudeTime);
+                gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("cool_min_layer_time"), getSettingInMillimetersPerSecond("cool_min_speed"), travelTime, extrudeTime);
 
-                // interpolate fan speed (for fanFullOnLayerNr and for minimalLayerTimeFanSpeedMin)
-                int fanSpeed = getSettingInPercentage("fanSpeedMin");
+                // interpolate fan speed (for cool_fan_full_layer and for minimalLayerTimeFanSpeedMin)
+                int fanSpeed = getSettingInPercentage("cool_fan_speed_min");
                 double totalLayerTime = travelTime + extrudeTime;
-                if (totalLayerTime < getSettingInSeconds("minimalLayerTime"))
+                if (totalLayerTime < getSettingInSeconds("cool_min_layer_time"))
                 {
-                    fanSpeed = getSettingInPercentage("fanSpeedMax");
+                    fanSpeed = getSettingInPercentage("cool_fan_speed_max");
                 }
                 else if (totalLayerTime < getSettingInSeconds("minimalLayerTimeFanSpeedMin"))
                 { 
                     // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-                    double minTime = (getSettingInSeconds("minimalLayerTime"));
+                    double minTime = (getSettingInSeconds("cool_min_layer_time"));
                     double maxTime = (getSettingInSeconds("minimalLayerTimeFanSpeedMin"));
-                    int fanSpeedMin = getSettingInPercentage("fanSpeedMin");
-                    int fanSpeedMax = getSettingInPercentage("fanSpeedMax");
+                    int fanSpeedMin = getSettingInPercentage("cool_fan_speed_min");
+                    int fanSpeedMax = getSettingInPercentage("cool_fan_speed_max");
                     fanSpeed = fanSpeedMax - (fanSpeedMax-fanSpeedMin) * (totalLayerTime - minTime) / (maxTime - minTime);
                 }
-                if (static_cast<int>(layer_nr) < getSettingAsCount("fanFullOnLayerNr"))
+                if (static_cast<int>(layer_nr) < getSettingAsCount("cool_fan_full_layer"))
                 {
-                    //Slow down the fan on the layers below the [fanFullOnLayerNr], where layer 0 is speed 0.
-                    fanSpeed = fanSpeed * layer_nr / getSettingAsCount("fanFullOnLayerNr");
+                    //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
+                    fanSpeed = fanSpeed * layer_nr / getSettingAsCount("cool_fan_full_layer");
                 }
                 gcode.writeFanCommand(fanSpeed);
             }
 
-            gcodeLayer.writeGCode(getSettingBoolean("coolHeadLift"), static_cast<int>(layer_nr) > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("initialLayerThickness"));
+            gcodeLayer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
             if (commandSocket)
                 commandSocket->sendGCodeLayer();
         }
@@ -778,7 +768,7 @@ private:
     void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
     {
         int prevExtruder = gcodeLayer.getExtruder();
-        bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingAsIndex("extruderNr"));
+        bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
 
         if (extruder_changed)
             addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
@@ -818,7 +808,7 @@ private:
                     polygons.add(p);
                 }
             }
-            if (mesh->settings->getSettingBoolean("spiralizeMode"))
+            if (mesh->settings->getSettingBoolean("magic_spiralize"))
                 mesh->inset0_config.spiralize = true;
 
             gcodeLayer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
@@ -837,7 +827,7 @@ private:
         {
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
 
-            if (getSettingBoolean("enableCombing"))
+            if (getSettingBoolean("retraction_combing"))
                 gcodeLayer.setCombBoundary(&part->combBoundery);
             else
                 gcodeLayer.setAlwaysRetract(true);
@@ -845,13 +835,11 @@ private:
             int fillAngle = 45;
             if (layer_nr & 1)
                 fillAngle += 90;
-            int extrusionWidth = getSettingInMicrons("extrusionWidth");
-            if (layer_nr == 0)
-                extrusionWidth = getSettingInMicrons("layer0extrusionWidth");
+            int extrusionWidth = getSettingInMicrons("infill_line_width");
 
             //Add thicker (multiple layers) sparse infill.
             int sparse_infill_line_distance = getSettingInMicrons("sparseInfillLineDistance");
-            double infill_overlap = getSettingInPercentage("infillOverlap");
+            double infill_overlap = getSettingInPercentage("fill_overlap");
             if (sparse_infill_line_distance > 0)
             {
                 //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
@@ -919,7 +907,7 @@ private:
 
             if (getSettingAsCount("insetCount") > 0)
             {
-                if (getSettingBoolean("spiralizeMode"))
+                if (getSettingBoolean("magic_spiralize"))
                 {
                     if (static_cast<int>(layer_nr) >= getSettingAsCount("downSkinCount"))
                         mesh->inset0_config.spiralize = true;
@@ -946,7 +934,7 @@ private:
                 {
                     generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
                 }else{
-                    switch(getSettingInFillMethod("skinPattern"))
+                    switch(getSettingInFillMethod("top_bottom_pattern"))
                     {
                     case Fill_Lines:
                         for (Polygons& skin_perimeter : part->skinInsets)
@@ -969,6 +957,9 @@ private:
                             
                         }
                         break;
+                    default:
+                        logError("Unknown fill method for skin\n");
+                        break;
                     }
                 }
             }
@@ -983,7 +974,7 @@ private:
             gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-            if (!getSettingBoolean("spiralizeMode") || static_cast<int>(layer_nr) < getSettingAsCount("downSkinCount"))
+            if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("downSkinCount"))
                 gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);
@@ -995,10 +986,10 @@ private:
             return;
         
         
-        if (getSettingAsIndex("supportExtruder") > -1)
+        if (getSettingAsIndex("support_extruder_nr") > -1)
         {
             int prevExtruder = gcodeLayer.getExtruder();
-            if (gcodeLayer.setExtruder(getSettingAsIndex("supportExtruder")))
+            if (gcodeLayer.setExtruder(getSettingAsIndex("support_extruder_nr")))
                 addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
         }
         Polygons support;
@@ -1022,10 +1013,10 @@ private:
 
             Polygons supportLines;
             int support_line_distance = getSettingInMicrons("supportLineDistance");
-            double infill_overlap = getSettingInPercentage("infillOverlap");
+            double infill_overlap = getSettingInPercentage("fill_overlap");
             if (support_line_distance > 0)
             {
-                int extrusionWidth = getSettingInMicrons("extrusionWidth");
+                int extrusionWidth = getSettingInMicrons("wall_line_width_x");
                 switch(getSettingInFillMethod("supportType"))
                 {
                 case Fill_Grid:
@@ -1061,11 +1052,14 @@ private:
                         }
                     }
                     break;
+                default:
+                    logError("Unknown fill method for support\n");
+                    break;
                 }
             }
 
             gcodeLayer.forceRetract();
-            if (getSettingBoolean("enableCombing"))
+            if (getSettingBoolean("retraction_combing"))
                 gcodeLayer.setCombBoundary(&island);
             if (getSettingInFillMethod("supportType") == Fill_Grid || ( getSettingInFillMethod("supportType") == Fill_ZigZag && layer_nr == 0 ) )
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
@@ -1079,7 +1073,7 @@ private:
         if (getSettingInMicrons("wipeTowerSize") < 1)
             return;
 
-        int64_t offset = -getSettingInMicrons("extrusionWidth");
+        int64_t offset = -getSettingInMicrons("wall_line_width_x");
         if (layer_nr > 0)
             offset *= 2;
         

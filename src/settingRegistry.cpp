@@ -1,3 +1,4 @@
+#include <sstream>
 #include "utils/logOutput.h"
 
 #include "settingRegistry.h"
@@ -91,9 +92,22 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         {
             config->setType(data["type"].GetString());
         }
-        if (data.HasMember("default") && data["default"].IsString())
+        if (data.HasMember("default"))
         {
-            config->setDefault(data["default"].GetString());
+            if (data["default"].IsString())
+            {
+                config->setDefault(data["default"].GetString());
+            }
+            else if (data["default"].IsTrue())
+            {
+                config->setDefault("true");
+            }
+            else if (data["default"].IsNumber())
+            {
+                std::ostringstream ss;
+                ss << data["default"].GetDouble();
+                config->setDefault(ss.str());
+            }
         }
         if (data.HasMember("unit") && data["unit"].IsString())
         {
@@ -104,8 +118,6 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         if (settingExists(config->getKey()))
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
-        }else{
-            cura::log("Setting: %s\n", config->getKey().c_str());
         }
         settings[config->getKey()] = config;
 
