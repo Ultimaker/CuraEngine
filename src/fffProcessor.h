@@ -436,7 +436,7 @@ private:
             storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
-        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"), getSettingInMicrons("layer_height_0"));
+        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
         generateRaft(storage, getSettingInMicrons("raft_margin"));
 
         sendPolygons(SkirtType, 0, storage.skirt);
