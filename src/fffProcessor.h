@@ -177,7 +177,7 @@ private:
                 gcode.setSwitchExtruderCode(n, getSettingString("machine_pre_extruder_switch_code" + stream.str()), getSettingString("machine_post_extruder_switch_code" + stream.str()));
         }
 
-        gcode.setFlavor(getSettingInGCodeFlavor("machine_gcode_flavor"));
+        gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
         gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_minimal_extrusion"));
     }
 
@@ -257,7 +257,7 @@ private:
             createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
             delete slicerList[meshIdx];
 
-            bool has_raft = meshStorage.settings->getSettingInPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+            bool has_raft = meshStorage.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
             //Add the raft offset to each layer.
             for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
             {
@@ -438,7 +438,7 @@ private:
             storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
-        switch(getSettingInPlatformAdhesion("adhesion_type"))
+        switch(getSettingAsPlatformAdhesion("adhesion_type"))
         {
         case Adhesion_None:
             generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
@@ -497,7 +497,9 @@ private:
                 tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
                 gcode.writeLine(tmp.str().c_str());
             }
-        }else{
+        }
+        else
+        {
             gcode.writeFanCommand(0);
             gcode.resetExtrusionValue();
             gcode.setZ(maxObjectHeight + 5000);
@@ -509,7 +511,7 @@ private:
         unsigned int totalLayers = storage.meshes[0].layers.size();
         //gcode.writeComment("Layer count: %d", totalLayers);
 
-        bool has_raft = getSettingInPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+        bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
         if (has_raft)
         {
             GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
@@ -858,7 +860,7 @@ private:
                 for(unsigned int n=1; n<part->sparse_outline.size(); n++)
                 {
                     Polygons fillPolygons;
-                    switch(getSettingInFillMethod("fill_pattern"))
+                    switch(getSettingAsFillMethod("fill_pattern"))
                     {
                     case Fill_Grid:
                         generateGridInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
@@ -892,7 +894,7 @@ private:
             Polygons infillLines;
             if (sparse_infill_line_distance > 0 && part->sparse_outline.size() > 0)
             {
-                switch(getSettingInFillMethod("fill_pattern"))
+                switch(getSettingAsFillMethod("fill_pattern"))
                 {
                 case Fill_Grid:
                     generateGridInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
@@ -946,7 +948,7 @@ private:
                 {
                     generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
                 }else{
-                    switch(getSettingInFillMethod("top_bottom_pattern"))
+                    switch(getSettingAsFillMethod("top_bottom_pattern"))
                     {
                     case Fill_Lines:
                         for (Polygons& skin_perimeter : part->skinInsets)
@@ -1043,7 +1045,7 @@ private:
             if (support_line_distance > 0)
             {
                 int extrusionWidth = getSettingInMicrons("wall_line_width_x");
-                switch(getSettingInFillMethod("support_pattern"))
+                switch(getSettingAsFillMethod("support_pattern"))
                 {
                 case Fill_Grid:
                     {
@@ -1087,7 +1089,7 @@ private:
             gcodeLayer.forceRetract();
             if (getSettingBoolean("retraction_combing"))
                 gcodeLayer.setCombBoundary(&island);
-            if (getSettingInFillMethod("support_pattern") == Fill_Grid || ( getSettingInFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
+            if (getSettingAsFillMethod("support_pattern") == Fill_Grid || ( getSettingAsFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
             gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
