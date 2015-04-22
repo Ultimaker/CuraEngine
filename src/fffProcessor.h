@@ -975,12 +975,27 @@ private:
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
             gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
             
-            
-            Polygons gapLines; // gaps between perimeters etc.
-            double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
-            part->perimeterGaps.removeSmallAreas(minAreaSize);
-            generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, 0, fillAngle);
-            gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
+            { // handle gaps between perimeters etc.
+                Polygons gapLines; 
+                if (layer_nr > 0 && layer_nr < mesh->layers.size()) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
+                {
+                    Polygons outlines_above;
+                    for (SliceLayerPart& part_above : mesh->layers[layer_nr+1].parts)
+                    {
+                        outlines_above.add(part_above.outline);
+                    }
+                    Polygons outlines_below;
+                    for (SliceLayerPart& part_below : mesh->layers[layer_nr-1].parts)
+                    {
+                        outlines_below.add(part_below.outline);
+                    }
+                    part->perimeterGaps = part->perimeterGaps.unionPolygons(outlines_above.xorPolygons(outlines_below));
+                }
+                double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+                part->perimeterGaps.removeSmallAreas(minAreaSize);
+                generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+                gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
+            }
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingBoolean("spiralizeMode") || static_cast<int>(layer_nr) < getSettingAsCount("downSkinCount"))
