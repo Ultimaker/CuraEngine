@@ -3,7 +3,8 @@
 #include "polygonOptimizer.h"
 #include "utils/polygonUtils.h"
 
-namespace cura {
+namespace cura 
+{
 
 void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, int avoidOverlappingPerimeters)
 {
