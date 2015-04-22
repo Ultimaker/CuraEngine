@@ -31,6 +31,10 @@ bool SettingRegistry::loadJSON(std::string filename)
     
     {
         FILE* f = fopen(filename.c_str(), "rb");
+        if (!f)
+        {
+            return false;
+        }
         char read_buffer[4096];
         rapidjson::FileReadStream reader_stream(f, read_buffer, sizeof(read_buffer));
         json_document.ParseStream(reader_stream);

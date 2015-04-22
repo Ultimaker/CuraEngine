@@ -464,8 +464,8 @@ private:
 
         if (fileNr == 1)
         {
-            if (hasSetting("bedTemperature") && getSettingInDegreeCelsius("bedTemperature") > 0)
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("bedTemperature"), true);
+            if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
             
             for(SliceMeshStorage& mesh : storage.meshes)
                 if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
