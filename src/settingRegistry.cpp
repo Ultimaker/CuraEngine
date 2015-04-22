@@ -1,7 +1,8 @@
-#include <sstream>
-#include "utils/logOutput.h"
-
 #include "settingRegistry.h"
+
+#include <sstream>
+#include "utils/logoutput.h"
+
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
 #include "rapidjson/filereadstream.h"

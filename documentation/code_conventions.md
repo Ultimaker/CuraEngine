@@ -76,24 +76,14 @@ int member; //!< inline doxygen comment on the entry to the left
 
 Files
 --------
-For a file foo.h (lowerCamelCase):
+For a file Foo.h (UpperCamelCase):
 ~~~~~~~~~~~~~~~{.cpp}
 #ifndef FOO_H
 #define FOO_H
-// some functions etc.
+// [content]
 #endif//FOO_H
 ~~~~~~~~~~~~~~~
 
-For a file containing only a single class e.g. `Bar`, the filename should be the same the classname, e.g Bar.h (UpperCamelCase).
-~~~~~~~~~~~~~~~{.cpp}
-#ifndef BAR_H
-#define BAR_H
-class Bar 
-{
-    // ...
-};
-#endif//BAR_H
-~~~~~~~~~~~~~~~
 
 Other
 ----
@@ -103,7 +93,8 @@ Other
 #include on
 #include top
 
-enum class EnumExample {
+enum class EnumExample 
+{
     ELEM0 = 0,
     ELEM1 = 1
 }
