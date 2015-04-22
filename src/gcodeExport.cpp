@@ -11,8 +11,8 @@ GCodeExport::GCodeExport()
 : output_stream(&std::cout), currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusion_amount = 0;
-    minimalExtrusionBeforeRetraction = 0.0;
-    extrusionAmountAtPreviousRetraction = -10000;
+    minimal_extrusion_before_retraction = 0.0;
+    extrusion_amount_at_previous_retraction = -10000;
     extruderSwitchRetraction = 14.5;
     extruderNr = 0;
     currentFanSpeed = -1;
@@ -79,7 +79,7 @@ void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extrud
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->extruderSwitchRetractionSpeed = extruderSwitchRetractionSpeed;
     this->extruderSwitchPrimeSpeed = extruderSwitchPrimeSpeed;
-    this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
+    this->minimal_extrusion_before_retraction = INT2MM(minimalExtrusionBeforeRetraction);
 }
 
 void GCodeExport::setZ(int z)
@@ -166,7 +166,7 @@ void GCodeExport::resetExtrusionValue()
     {
         *output_stream << "G92 " << extruderCharacter[extruderNr] << "0\n";
         totalFilament[extruderNr] += extrusion_amount;
-        extrusionAmountAtPreviousRetraction -= extrusion_amount;
+        extrusion_amount_at_previous_retraction -= extrusion_amount;
         extrusion_amount = 0.0;
     }
 }
@@ -287,11 +287,11 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     if (isRetracted)
         return;
-    if (!force && extrusion_amount < extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction - config->amount) // TODO: why subtract the retraction amount?!
+    if (!force && extrusion_amount < extrusion_amount_at_previous_retraction + minimal_extrusion_before_retraction - config->amount) // TODO: why subtract the retraction amount?!
         return;
     int retraction_count_max = 5; // TODO: add setting!
     int extrusion_amount_min = config->amount; // TODO: add setting! also: think of better name for setting!
-    if (!force && extrusionAmountAtPreviousRetractions.size() == retraction_count_max && extrusion_amount < extrusionAmountAtPreviousRetractions.back() + extrusion_amount_min) // TODO: subtract the retraction amount??
+    if (!force && retraction_count_max > 0 && extrusion_amount_at_previous_n_retractions.size() == retraction_count_max && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + extrusion_amount_min) // TODO: subtract the retraction amount??
         return;
     if (config->amount <= 0)
         return;
@@ -315,16 +315,12 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + config->zHop) << "\n";
         isZHopped = true;
     }
-    extrusionAmountAtPreviousRetraction = extrusion_amount;
-    extrusionAmountAtPreviousRetractions.emplace<double>(extrusion_amount);
-    if (extrusionAmountAtPreviousRetractions.size() == retraction_count_max + 1)
+    extrusion_amount_at_previous_retraction = extrusion_amount;
+    extrusion_amount_at_previous_n_retractions.push(extrusion_amount);
+    if (extrusion_amount_at_previous_n_retractions.size() == retraction_count_max + 1)
     {
-        extrusionAmountAtPreviousRetractions.pop();
+        extrusion_amount_at_previous_n_retractions.pop();
     }
-//     while (extrusionAmountAtPreviousRetractions.back() + extrusion_amount_min > extrusion_amount)
-//     {
-//         extrusionAmountAtPreviousRetractions.pop();
-//     }
     isRetracted = true;
 }
 

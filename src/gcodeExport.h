@@ -106,9 +106,9 @@ private:
     double extruderSwitchRetraction;
     int extruderSwitchRetractionSpeed;
     int extruderSwitchPrimeSpeed;
-    double minimalExtrusionBeforeRetraction;
-    double extrusionAmountAtPreviousRetraction;
-    std::queue<double> extrusionAmountAtPreviousRetractions;
+    double minimal_extrusion_before_retraction;
+    double extrusion_amount_at_previous_retraction;
+    std::queue<double> extrusion_amount_at_previous_n_retractions;
     Point3 currentPosition;
     Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];

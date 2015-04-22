@@ -310,7 +310,8 @@ private:
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
                 int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-                generateInsets(layer, extrusionWidth, insetCount, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+                int inset_count = insetCount + layer_nr % 2; // TODO: add setting to enable/disable this!
+                generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
@@ -993,7 +994,7 @@ private:
                     {
                         outlines_below.add(part_below.outline);
                     }
-                    part->perimeterGaps = part->perimeterGaps.unionPolygons(outlines_above.xorPolygons(outlines_below));
+                    part->perimeterGaps = part->perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
                 }
                 double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
                 part->perimeterGaps.removeSmallAreas(minAreaSize);
