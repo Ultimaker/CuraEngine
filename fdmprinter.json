@@ -91,6 +91,30 @@
                                             "default": 0.4,
                                             "type": "float",
                                             "visible": false
+                                        },
+                                        "skirt_line_width": {
+                                            "label": "Skirt line width",
+                                            "description": "Width of a single skirt line.",
+                                            "unit": "mm",
+                                            "default": 0.4,
+                                            "type": "float",
+                                            "visible": false
+                                        },
+                                        "skin_line_width": {
+                                            "label": "Top/bottom line width",
+                                            "description": "Width of a single top/bottom printed line. Which are used to fill up the top/bottom areas of a print.",
+                                            "unit": "mm",
+                                            "default": 0.4,
+                                            "type": "float",
+                                            "visible": false
+                                        },
+                                        "infill_line_width": {
+                                            "label": "Infill line width",
+                                            "description": "Width of the inner infill printed lines.",
+                                            "unit": "mm",
+                                            "default": 0.4,
+                                            "type": "float",
+                                            "visible": false
                                         }
                                     }
                                 }
@@ -714,7 +738,23 @@
                     "active_if": {
                         "setting": "support_enable",
                         "value": true
-                    }
+                    },
+					
+					"children": {
+						"support_line_distance": {
+							"label": "Line distance",
+							"description": "Distance between the printed support lines.",
+							"unit": "mm",
+							"type": "float",
+							"default": 2.66,
+							"visible": false,
+							"active_if": {
+								"setting": "support_enable",
+								"value": true
+							},
+							"inherit_function": "(support_line_width * 100) / parent_value"
+						}
+					}
                 }
             }
         },

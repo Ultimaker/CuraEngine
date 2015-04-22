@@ -257,10 +257,12 @@ private:
             createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
             delete slicerList[meshIdx];
 
+            bool has_raft = meshStorage.settings->getSettingInPlatformAdhesion("adhesion_type") == Adhesion_Raft;
             //Add the raft offset to each layer.
             for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
             {
-                meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness");
+                if (has_raft)
+                    meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
 
                 if (commandSocket)
                     commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
@@ -436,8 +438,18 @@ private:
             storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
-        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
-        generateRaft(storage, getSettingInMicrons("raft_margin"));
+        switch(getSettingInPlatformAdhesion("adhesion_type"))
+        {
+        case Adhesion_None:
+            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            break;
+        case Adhesion_Brim:
+            generateSkirt(storage, 0, getSettingInMicrons("skirt_line_width"), getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            break;
+        case Adhesion_Raft:
+            generateRaft(storage, getSettingInMicrons("raft_margin"));
+            break;
+        }
 
         sendPolygons(SkirtType, 0, storage.skirt);
     }
@@ -497,7 +509,8 @@ private:
         unsigned int totalLayers = storage.meshes[0].layers.size();
         //gcode.writeComment("Layer count: %d", totalLayers);
 
-        if (getSettingInMicrons("raft_base_thickness") > 0 && getSettingInMicrons("raft_interface_thickness") > 0)
+        bool has_raft = getSettingInPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+        if (has_raft)
         {
             GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
             raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
@@ -639,9 +652,9 @@ private:
 
             GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
             int32_t z = getSettingInMicrons("layer_height_0") + layer_nr * getSettingInMicrons("layer_height");
-            z += getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers")*getSettingInMicrons("raft_surface_thickness");
-            if (getSettingInMicrons("raft_base_thickness") > 0 && getSettingInMicrons("raft_interface_thickness") > 0)
+            if (has_raft)
             {
+                z += getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers")*getSettingInMicrons("raft_surface_thickness");
                 if (layer_nr == 0)
                 {
                     z += getSettingInMicrons("raft_airgap_layer_0");
@@ -1025,7 +1038,7 @@ private:
             Polygons& island = supportIslands[islandOrderOptimizer.polyOrder[n]];
 
             Polygons supportLines;
-            int support_line_distance = getSettingInMicrons("supportLineDistance");
+            int support_line_distance = getSettingInMicrons("support_line_distance");
             double infill_overlap = getSettingInPercentage("fill_overlap");
             if (support_line_distance > 0)
             {

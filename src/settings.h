@@ -85,6 +85,16 @@ enum EFillMethod
     Fill_None
 };
 
+/*!
+ * Type of platform adheasion
+ */
+enum EPlatformAdhesion
+{
+    Adhesion_None,
+    Adhesion_Brim,
+    Adhesion_Raft
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of sparse layers that can be combined into a single sparse extrusion.
@@ -124,6 +134,7 @@ public:
     
     EGCodeFlavor getSettingInGCodeFlavor(std::string key);
     EFillMethod getSettingInFillMethod(std::string key);
+    EPlatformAdhesion getSettingInPlatformAdhesion(std::string key);
 };
 
 

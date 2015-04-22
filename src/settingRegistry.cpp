@@ -5,6 +5,7 @@
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
+#include "rapidjson/error/en.h"
 #include "rapidjson/filereadstream.h"
 
 SettingRegistry SettingRegistry::instance; // define settingRegistry
@@ -39,6 +40,11 @@ bool SettingRegistry::loadJSON(std::string filename)
         rapidjson::FileReadStream reader_stream(f, read_buffer, sizeof(read_buffer));
         json_document.ParseStream(reader_stream);
         fclose(f);
+        if (json_document.HasParseError())
+        {
+            cura::logError("Error(offset %u): %s\n", (unsigned)json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
+            return false;
+        }
     }
 
     if (!json_document.IsObject())
