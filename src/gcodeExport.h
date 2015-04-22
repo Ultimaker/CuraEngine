@@ -3,6 +3,7 @@
 #define GCODEEXPORT_H
 
 #include <stdio.h>
+#include <queue> // for extrusionAmountAtPreviousRetractions
 
 #include "settings.h"
 #include "utils/intpoint.h"
@@ -107,6 +108,7 @@ private:
     int extruderSwitchPrimeSpeed;
     double minimalExtrusionBeforeRetraction;
     double extrusionAmountAtPreviousRetraction;
+    std::queue<double> extrusionAmountAtPreviousRetractions;
     Point3 currentPosition;
     Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];

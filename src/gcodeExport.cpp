@@ -287,7 +287,11 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     if (isRetracted)
         return;
-    if (!force && extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction > extrusion_amount + config->amount)
+    if (!force && extrusion_amount < extrusionAmountAtPreviousRetraction + minimalExtrusionBeforeRetraction - config->amount) // TODO: why subtract the retraction amount?!
+        return;
+    int retraction_count_max = 5; // TODO: add setting!
+    int extrusion_amount_min = config->amount; // TODO: add setting! also: think of better name for setting!
+    if (!force && extrusionAmountAtPreviousRetractions.size() == retraction_count_max && extrusion_amount < extrusionAmountAtPreviousRetractions.back() + extrusion_amount_min) // TODO: subtract the retraction amount??
         return;
     if (config->amount <= 0)
         return;
@@ -300,7 +304,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - 4.5), 25);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - 4.5), 25); // TODO: hardcoded values!
     }else{
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount - config->amount << "\n";
         currentSpeed = config->speed;
@@ -312,6 +316,15 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         isZHopped = true;
     }
     extrusionAmountAtPreviousRetraction = extrusion_amount;
+    extrusionAmountAtPreviousRetractions.emplace<double>(extrusion_amount);
+    if (extrusionAmountAtPreviousRetractions.size() == retraction_count_max + 1)
+    {
+        extrusionAmountAtPreviousRetractions.pop();
+    }
+//     while (extrusionAmountAtPreviousRetractions.back() + extrusion_amount_min > extrusion_amount)
+//     {
+//         extrusionAmountAtPreviousRetractions.pop();
+//     }
     isRetracted = true;
 }
 
