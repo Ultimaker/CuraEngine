@@ -441,7 +441,16 @@
                             ],
                             "default": "Grid",
                             "inherit_function": "'Lines' if parent_value > 25 else 'Grid'"
-                        }
+                        },
+						"infill_line_distance": {
+							"label": "Line distance",
+							"description": "Distance between the printed infill lines.",
+							"unit": "mm",
+							"type": "float",
+							"default": 2.0,
+							"visible": false,
+							"inherit_function": "(infill_line_width * 100) / parent_value"
+						}
                     }
                 },
                 "fill_overlap": {
