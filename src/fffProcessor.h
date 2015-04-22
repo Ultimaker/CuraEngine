@@ -482,7 +482,7 @@ private:
             {
                 gcode.writeComment("enable auto-retraction");
                 std::ostringstream tmp;
-                tmp << "M227 S" << (getSettingInMicrons("retractionAmount") * 2560 / 1000) << " P" << (getSettingInMicrons("retractionAmount") * 2560 / 1000);
+                tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
                 gcode.writeLine(tmp.str().c_str());
             }
         }else{
@@ -500,20 +500,20 @@ private:
         if (getSettingInMicrons("raft_base_thickness") > 0 && getSettingInMicrons("raft_interface_thickness") > 0)
         {
             GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
-            raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raftBaseSpeed"));
-            raft_base_config.setLineWidth(getSettingInMicrons("raftBaseLinewidth"));
+            raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
+            raft_base_config.setLineWidth(getSettingInMicrons("raft_base_linewidth"));
             raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_base_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_base_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
-            raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raftInterfaceSpeed"));
-            raft_interface_config.setLineWidth(getSettingInMicrons("raftInterfaceLinewidth"));
+            raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
+            raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_linewidth"));
             raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_interface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
-            raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raftSurfaceSpeed"));
-            raft_surface_config.setLineWidth(getSettingInMicrons("raftSurfaceLinewidth"));
+            raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
+            raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
             raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_surface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
@@ -544,7 +544,7 @@ private:
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raftInterfaceLinewidth"), getSettingInMicrons("raftInterfaceLineSpacing"), getSettingInPercentage("fill_overlap"), getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_interface_line_width"), getSettingInMicrons("raft_interface_line_spacing"), getSettingInPercentage("fill_overlap"), getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raft_interface_thickness"));
