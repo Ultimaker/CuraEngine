@@ -218,9 +218,28 @@
                             "description": "The speed at which the filament is retracted. A higher retraction speed works better, but a very high retraction speed can lead to filament grinding.",
                             "unit": "mm/s",
                             "type": "float",
-                            "default": 40.0,
+                            "default": 25.0,
                             "visible": false,
-                            "inherit": false
+                            "inherit": false,
+							
+							"children": {
+								"retraction_retract_speed": {
+									"label": "Retraction Retract Speed",
+									"description": "The speed at which the filament is retracted. A higher retraction speed works better, but a very high retraction speed can lead to filament grinding.",
+									"unit": "mm/s",
+									"type": "float",
+									"default": 25.0,
+									"visible": false
+								},
+								"retraction_prime_speed": {
+									"label": "Retraction Prime Speed",
+									"description": "The speed at which the filament is pushed back after retraction.",
+									"unit": "mm/s",
+									"type": "float",
+									"default": 25.0,
+									"visible": false
+								}
+							}
                         },
                         "retraction_amount": {
                             "label": "Retraction Distance",
@@ -869,7 +888,7 @@
                     "default": false,
                     "visible": false
                 },
-                "wireframe": {
+                "wireframe_enabled": {
                     "label": "Wireframe Printing",
                     "description": "Print only the outside surface with a sparse webbed structure, printing 'in thin air'. This is realized by horizontally printing the contours of the model at given Z intervals which are connected via upward and diagonally downward lines.",
                     "type": "boolean",

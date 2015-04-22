@@ -107,6 +107,10 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
             {
                 config->setDefault("true");
             }
+            else if (data["default"].IsFalse())
+            {
+                config->setDefault("false");
+            }
             else if (data["default"].IsNumber())
             {
                 std::ostringstream ss;

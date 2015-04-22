@@ -25,7 +25,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         if (hasSetting("material_print_temperature") && getSettingInDegreeCelsius("material_print_temperature") > 0)
             gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
         
-        gcode.writeCode(getSettingString("startCode").c_str());
+        gcode.writeCode(getSettingString("machine_start_gcode").c_str());
         if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
         {
             gcode.writeComment("enable auto-retraction");
@@ -89,9 +89,9 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHei
         
         gcode.writeLayerComment(layer_nr+1);
         
-        int fanSpeed = getSettingInPercentage("fanSpeedMax");
+        int fanSpeed = getSettingInPercentage("cool_fan_speed_max");
         if (layer_nr == 0)
-            fanSpeed = getSettingInPercentage("fanSpeedMin");
+            fanSpeed = getSettingInPercentage("cool_fan_speed_min");
         gcode.writeFanCommand(fanSpeed);
         
         for (unsigned int part_nr = 0; part_nr < layer.connections.size(); part_nr++)
@@ -516,16 +516,16 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     speedDown = getSettingInMillimetersPerSecond("wireframePrintspeedDown");
     speedFlat = getSettingInMillimetersPerSecond("wireframePrintspeedFlat");
 
-    flat_delay = getSettingInSeconds("wireframeFlatDelay");
-    bottom_delay = getSettingInSeconds("wireframeBottomDelay");
-    top_delay = getSettingInSeconds("wireframeTopDelay");
+    flat_delay = getSettingInSeconds("wireframe_flat_delay");
+    bottom_delay = getSettingInSeconds("wireframe_bottom_delay");
+    top_delay = getSettingInSeconds("wireframe_top_delay");
     
     up_dist_half_speed = getSettingInMicrons("wireframeUpDistHalfSpeed");
     
-    top_jump_dist = getSettingInMicrons("wireframeTopJump");
+    top_jump_dist = getSettingInMicrons("wireframe_top_jump");
     
-    fall_down = getSettingInMicrons("wireframeFallDown");
-    drag_along = getSettingInMicrons("wireframeDragAlong");
+    fall_down = getSettingInMicrons("wireframe_fall_down");
+    drag_along = getSettingInMicrons("wireframe_drag_along");
     
     strategy = STRATEGY_COMPENSATE;
     if (getSettingString("wireframe_strategy") == "Compensate")
@@ -538,15 +538,15 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     go_back_to_last_top = false;
     straight_first_when_going_down = getSettingInPercentage("wireframeStraightBeforeDown");
     
-    roof_fall_down = getSettingInMicrons("wireframeRoofFallDown");
-    roof_drag_along = getSettingInMicrons("wireframeRoofDragAlong");
-    roof_outer_delay = getSettingInSeconds("wireframeRoofOuterDelay");
+    roof_fall_down = getSettingInMicrons("wireframe_roof_fall_down");
+    roof_drag_along = getSettingInMicrons("wireframe_roof_drag_along");
+    roof_outer_delay = getSettingInSeconds("wireframe_roof_outer_delay");
     
     
     standard_retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
     standard_retraction_config.primeAmount = INT2MM(getSettingInMicrons("retractionPrimeAmount"));
-    standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_speed");
-    standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retractionPrimeSpeed");
+    standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
+    standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
 
 
