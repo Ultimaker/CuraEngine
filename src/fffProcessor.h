@@ -301,7 +301,7 @@ private:
         {
             for(SliceMeshStorage& mesh : storage.meshes)
             {
-                int insetCount = mesh.settings->getSettingAsCount("insetCount");
+                int insetCount = mesh.settings->getSettingAsCount("wall_line_count");
                 if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("downSkinCount") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
@@ -846,7 +846,7 @@ private:
                 for(unsigned int n=1; n<part->sparse_outline.size(); n++)
                 {
                     Polygons fillPolygons;
-                    switch(getSettingInFillMethod("infillPattern"))
+                    switch(getSettingInFillMethod("fill_pattern"))
                     {
                     case Fill_Grid:
                         generateGridInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
@@ -869,7 +869,7 @@ private:
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     default:
-                        logError("infillPattern has unknown value.\n");
+                        logError("fill_pattern has unknown value.\n");
                         break;
                     }
                 }
@@ -880,7 +880,7 @@ private:
             Polygons infillLines;
             if (sparse_infill_line_distance > 0 && part->sparse_outline.size() > 0)
             {
-                switch(getSettingInFillMethod("infillPattern"))
+                switch(getSettingInFillMethod("fill_pattern"))
                 {
                 case Fill_Grid:
                     generateGridInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
@@ -898,20 +898,20 @@ private:
                     generateZigZagInfill(part->sparse_outline[0], infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
                     break;
                 default:
-                    logError("infillPattern has unknown value.\n");
+                    logError("fill_pattern has unknown value.\n");
                     break;
                 }
             }
             gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
             gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]);
 
-            if (getSettingAsCount("insetCount") > 0)
+            if (getSettingAsCount("wall_line_count") > 0)
             {
                 if (getSettingBoolean("magic_spiralize"))
                 {
-                    if (static_cast<int>(layer_nr) >= getSettingAsCount("downSkinCount"))
+                    if (static_cast<int>(layer_nr) >= getSettingAsCount("bottom_layers"))
                         mesh->inset0_config.spiralize = true;
-                    if (static_cast<int>(layer_nr) == getSettingAsCount("downSkinCount") && part->insets.size() > 0)
+                    if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part->insets.size() > 0)
                         gcodeLayer.addPolygonsByOptimizer(part->insets[0], &mesh->insetX_config);
                 }
                 for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
@@ -968,7 +968,7 @@ private:
             
             { // handle gaps between perimeters etc.
                 Polygons gapLines; 
-                if (layer_nr > 0 && layer_nr < int(mesh->layers.size())) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
+                if (layer_nr > 0 && layer_nr < static_cast<int>(mesh->layers.size())) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
                 {
                     Polygons outlines_above;
                     for (SliceLayerPart& part_above : mesh->layers[layer_nr+1].parts)
@@ -989,7 +989,7 @@ private:
             }
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-            if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("downSkinCount"))
+            if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
                 gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
         }
         gcodeLayer.setCombBoundary(nullptr);

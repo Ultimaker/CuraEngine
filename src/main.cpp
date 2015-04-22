@@ -166,7 +166,8 @@ int main(int argc, char **argv)
         }
     }
     
-    SettingRegistry::getInstance()->loadJSON("fdmprinter.json");
+    if (SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
+        logError("Failed to load json file: fdmprinter.json\n");
     
     if(commandSocket)
     {
