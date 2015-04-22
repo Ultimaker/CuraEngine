@@ -16,8 +16,12 @@
 
 #include "debug.h"
 
-using namespace cura;
+namespace cura
+{
 
+/*!
+ * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
+ */
 class Wireframe2gcode : public SettingsBase
 {
 private:
@@ -58,10 +62,10 @@ private:
     int roof_drag_along; // = getSettingInt("wireframeRoofDragAlong");
     double roof_outer_delay; // = getSettingInt("wireframeRoofOuterDelay")/100.0;
     
-    RetractionConfig standard_retraction_config;
+    RetractionConfig standard_retraction_config; //!< The standard retraction settings used for moves between parts etc.
     
 public:
-    GCodeExport& gcode;
+    GCodeExport& gcode; //!< Where the result is 'stored'
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
@@ -75,17 +79,77 @@ private:
         , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
         , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
     
-    void go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) ;
+    /*!
+     * Function for writing the gcode for a diagonally down movement of a connection.
+     * 
+     * \param layer The layer in which the segment is
+     * \param part The part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
+    void go_down(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    
+    /*!
+     * Function for writing the gcode of an upward move of a connection, which does a couple of small moves at the top.
+     * 
+     * \param layer The layer in which the segment is
+     * \param part The part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
     void strategy_knot(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    
+    /*!
+     * Function for writing the gcode of an upward move of a connection, which does a retract at the top.
+     * 
+     * \param layer The layer in which the segment is
+     * \param part The part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
     void strategy_retract(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    
+    /*!
+     * Function for writing the gcode of an upward move of a connection, which goes Wireframe2gcode::fall_down further up 
+     * and Wireframe2gcode::drag_along back from the direction it will go to next.
+     * 
+     * \param layer The layer in which the segment is
+     * \param part The part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
     void strategy_compensate(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
+    
+    /*!
+     * Function writing the gcode of a segment in the connection between two layers.
+     * 
+     * \param layer The layer in which the segment is
+     * \param part The part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
     void handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx);
     
+    /*!
+     * Function for writing the gcode of a segment in the connection between two roof insets / floor outsets.
+     * 
+     * \param inset The inset in which the segment is
+     * \param part the part in which the segment is
+     * \param segment_idx The index of the segment in the \p part
+     */
     void handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx);
     
+    /*!
+     * Write a move action to gcode, inserting a retraction if neccesary.
+     * 
+     * \param to The 3D destination of the move
+     */
     void writeMoveWithRetract(Point3 to);
+    
+    /*!
+     * Write a move action to gcode, inserting a retraction if neccesary.
+     * 
+     * \param to The 2D destination of the move
+     */
     void writeMoveWithRetract(Point to);
 
 };
+
+}//namespace cura
 
 #endif//WIREFRAME2GCODE_H

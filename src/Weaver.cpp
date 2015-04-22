@@ -9,10 +9,7 @@
 using namespace cura;
 
 
-/*!
- * This is the main function for Neith / Weaving / WirePrinting / Webbed printing.
- * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
- */
+
 void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
 {
     int maxz = object->max().z;
@@ -150,9 +147,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
 }
 
 
-/*!
- * Creates the roofs and floors which are laid down horizontally.
- */
+
 void Weaver::createHorizontalFill(Polygons& lower_top_parts, WeaveLayer& layer, Polygons& layer_above, int z1)
 {
     int64_t bridgable_dist = connectionHeight;
@@ -180,18 +175,7 @@ void Weaver::createHorizontalFill(Polygons& lower_top_parts, WeaveLayer& layer, 
     
 }
     
-/*!
- * Fill roofs starting from the outlines of \p supporting.
- * The area to be filled in is difference( \p to_be_supported , \p supporting ).
- * 
- * The basic algorithm performs insets on \p supported until the whole area of \p to_be_supported is filled.
- * In order to not fill holes in the roof, the hole-areas are unioned with the insets, which results in connections where the UP move has close to zero length;
- * pieces of the area between two consecutive insets have close to zero distance at these points.
- * These parts of the horizontal infills are converted into moves by the function \p connections2moves.
- * 
- * Note that the new inset is computed from the last inset, while the connections are between the last chainified inset and the new chainified inset.
- * 
- */
+
 void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int direction, int z, WeaveRoof& horizontals)
 {
     std::vector<WeaveRoofPart>& insets = horizontals.roof_insets;
@@ -255,19 +239,7 @@ void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int dire
     
     horizontals.roof_outlines.add(roofs); // TODO just add the new lines, not the lines of the roofs which are already supported ==> make outlines into a connection from which we only print the top, not the connection
 } 
-/*!
- * Fill floors starting from the outlines of \p supporting.
- * The area to be filled in is \p floors = difference( \p to_be_supported , \p supporting ).
- * 
- * The basic algorithm performs outsets until the whole area of [to_be_supported] is filled.
- * In order to not fill too much, the outsets are intersected with the [floors] area, which results in connections where the UP move has close to zero length.
- * These parts of the horizontal infills are converted into moves by the function [connections2moves].
- * 
- * The first supporting polygons are \p supporting while the supporting polygons in consecutive iterations are sub-areas of \p floors.
- * 
- * Note that the new outset is computed from the last outset, while the connections are between the last chainified outset and the new (chainified) outset.
- * 
- */
+
 void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int direction, int z, WeaveRoof& horizontals)
 {
     std::vector<WeaveRoofPart>& outsets = horizontals.roof_insets;
@@ -322,10 +294,7 @@ void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int dir
     horizontals.roof_outlines.add(floors);
 }
 
-/*!
- * Filter out parts of connections with small distances; replace by moves.
- * 
- */
+
 void Weaver::connections2moves(WeaveRoofPart& inset)
 {
     
@@ -373,11 +342,6 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
     }
 }
 
-/*!
- * Connect two polygons, chainify the second and generate connections from it, supporting on the first polygon.
- * 
- * \param include_last Whether the last full link should be included in the chainified \p parts1 if the last link would be shorter than the normal link size.
- */
 void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveConnection& result, bool include_last)
 {
     // TODO: convert polygons (with outset + difference) such that after printing the first polygon, we can't be in the way of the printed stuff
@@ -404,11 +368,7 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveCo
 
 }
 
-/*!
- * Convert polygons, such that they consist of segments/links of uniform size, namely \p nozzle_top_diameter.
- * \param include_last governs whether the last segment is smaller or grater than the \p nozzle_top_diameter.
- * If true, the last segment may be smaller.
- */
+
 void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons& result, bool include_last)
 {
     
@@ -447,11 +407,7 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
     }
 }
 
-/*!
- * The main weaving function.
- * Generate connections between two polygons.
- * The connections consist of triangles of which the first 
- */
+
 void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported, int z1, WeaveConnection& result)
 {
  
@@ -512,9 +468,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
 
 
 
-/*!
- * Find the point closest to \p from in all polygons in \p polygons.
- */
+
 ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)
 {
 
@@ -547,9 +501,7 @@ ClosestPolygonPoint Weaver::findClosest(Point from, Polygons& polygons)
     return best;
 }
 
-/*!
- * Find the point closest to \p from in the polygon \p polygon.
- */
+
 ClosestPolygonPoint Weaver::findClosest(Point from, PolygonRef polygon)
 {
     Point aPoint = polygon[0];
@@ -579,9 +531,7 @@ ClosestPolygonPoint Weaver::findClosest(Point from, PolygonRef polygon)
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-/*!
- * Find the point closest to \p from on the line from \p p0 to \p p1
- */
+
 Point Weaver::getClosestOnLine(Point from, Point p0, Point p1)
 {
     Point direction = p1 - p0;
@@ -624,13 +574,7 @@ Point Weaver::getClosestOnLine(Point from, Point p0, Point p1)
 
 
 
-/*!
- * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
- * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
- * \param start_idx is the index of the prev poly point on the poly.
- * 
- * The point \p from and the polygon \p poly are assumed to lie on the same plane.
- */
+
 bool Weaver::getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
 {
     
