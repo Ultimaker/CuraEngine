@@ -707,18 +707,18 @@ private:
                 gcodeLayer.getTimes(travelTime, extrudeTime);
                 gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("cool_min_layer_time"), getSettingInMillimetersPerSecond("cool_min_speed"), travelTime, extrudeTime);
 
-                // interpolate fan speed (for cool_fan_full_layer and for minimalLayerTimeFanSpeedMin)
+                // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
                 int fanSpeed = getSettingInPercentage("cool_fan_speed_min");
                 double totalLayerTime = travelTime + extrudeTime;
                 if (totalLayerTime < getSettingInSeconds("cool_min_layer_time"))
                 {
                     fanSpeed = getSettingInPercentage("cool_fan_speed_max");
                 }
-                else if (totalLayerTime < getSettingInSeconds("minimalLayerTimeFanSpeedMin"))
+                else if (totalLayerTime < getSettingInSeconds("cool_min_layer_time_fan_speed_max"))
                 { 
                     // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
                     double minTime = (getSettingInSeconds("cool_min_layer_time"));
-                    double maxTime = (getSettingInSeconds("minimalLayerTimeFanSpeedMin"));
+                    double maxTime = (getSettingInSeconds("cool_min_layer_time_fan_speed_max"));
                     int fanSpeedMin = getSettingInPercentage("cool_fan_speed_min");
                     int fanSpeedMax = getSettingInPercentage("cool_fan_speed_max");
                     fanSpeed = fanSpeedMax - (fanSpeedMax-fanSpeedMin) * (totalLayerTime - minTime) / (maxTime - minTime);

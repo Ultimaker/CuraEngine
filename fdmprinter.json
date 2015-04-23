@@ -219,6 +219,26 @@
                     ],
                     "default": "Lines",
                     "visible": false
+                },
+                "skin_outline_count": {
+                    "label": "Skin Perimeter Line Count",
+                    "description": "Number of lines around skin regions. Using one or two skin perimeter lines can greatly improve on roofs which would start in the middle of infill cells.",
+                    "default": 0,
+                    "type": "int",
+                    "visible": false,
+                    "active_if": {
+                        "setting": "top_bottom_pattern",
+                        "value": "Lines"
+                    }
+                },
+                "xy_offset": {
+                    "label": "Horizontal expansion",
+                    "description": "Amount of offset applied all polygons in each layer. Positive values can compensate for too big holes; negative values can compensate for too small holes.",  
+                    "unit": "mm",
+                    "type": "float",
+                    "default": 0.0,
+                    "visible": false
+                
                 }
             }
         },
@@ -279,25 +299,25 @@
                             "default": 25.0,
                             "visible": false,
                             "inherit": false,
-							
-							"children": {
-								"retraction_retract_speed": {
-									"label": "Retraction Retract Speed",
-									"description": "The speed at which the filament is retracted. A higher retraction speed works better, but a very high retraction speed can lead to filament grinding.",
-									"unit": "mm/s",
-									"type": "float",
-									"default": 25.0,
-									"visible": false
-								},
-								"retraction_prime_speed": {
-									"label": "Retraction Prime Speed",
-									"description": "The speed at which the filament is pushed back after retraction.",
-									"unit": "mm/s",
-									"type": "float",
-									"default": 25.0,
-									"visible": false
-								}
-							}
+                            
+                            "children": {
+                                "retraction_retract_speed": {
+                                    "label": "Retraction Retract Speed",
+                                    "description": "The speed at which the filament is retracted. A higher retraction speed works better, but a very high retraction speed can lead to filament grinding.",
+                                    "unit": "mm/s",
+                                    "type": "float",
+                                    "default": 25.0,
+                                    "visible": false
+                                },
+                                "retraction_prime_speed": {
+                                    "label": "Retraction Prime Speed",
+                                    "description": "The speed at which the filament is pushed back after retraction.",
+                                    "unit": "mm/s",
+                                    "type": "float",
+                                    "default": 25.0,
+                                    "visible": false
+                                }
+                            }
                         },
                         "retraction_amount": {
                             "label": "Retraction Distance",
@@ -326,7 +346,7 @@
                             "inherit": false
                         },
                         "retraction_minimal_extrusion": {
-                            "label": "Minimal Retraction Before Extrusion",
+                            "label": "Minimal Extrusion Before Retraction",
                             "description": "The minimum amount of extrusion that needs to happen between retractions.  If a retraction should happen before this minimum is reached, it will be ignored. This avoids retracting repeatedly on the same piece of filament as that can flatten the filament and cause grinding issues.",
                             "unit": "mm",
                             "type": "float",
@@ -583,6 +603,14 @@
                     "unit": "sec",
                     "type": "float",
                     "default": 5.0,
+                    "visible": false
+                },
+                "cool_min_layer_time_fan_speed_max": {
+                    "label": "Minimal Layer Time Full Fan Speed",
+                    "description": "The minimum time spent in a layer which will cause the fan to be at minmum speed. The fan speed increases linearly from maximal fan speed for layers taking minimal layer time to minimal fan speed for layers taking the time specified here.",
+                    "unit": "sec",
+                    "type": "float",
+                    "default": 10.0,
                     "visible": false
                 },
                 "cool_min_speed": {
