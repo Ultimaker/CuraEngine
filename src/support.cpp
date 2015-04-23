@@ -34,7 +34,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     int supportZDistanceBottom = object->settings->getSettingInMicrons("support_bottom_distance");
     int supportZDistanceTop = object->settings->getSettingInMicrons("support_top_distance");
     int supportJoinDistance = object->settings->getSettingInMicrons("support_join_distance");
-    int supportBottomStairDistance = object->settings->getSettingInMicrons("supportBottomStairDistance");
+    int support_bottom_stair_step_height = object->settings->getSettingInMicrons("support_bottom_stair_step_height");
     int smoothing_distance = object->settings->getSettingInMicrons("support_area_smoothing"); 
     
     int supportTowerDiameter = object->settings->getSettingInMicrons("support_tower_diameter");
@@ -157,7 +157,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
         {
-            int stepHeight = supportBottomStairDistance / supportLayerThickness + 1;
+            int stepHeight = support_bottom_stair_step_height / supportLayerThickness + 1;
             int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
             supportLayer_this = supportLayer_this.difference(joinedLayers[bottomLayer]);
         }

@@ -649,8 +649,8 @@
                     "default": true
                 },
                 "support_type": {
-                    "label": "Type",
-                    "description": "Where we want support structures. We can restrict the support structures such that they won't sit on the model, which can cause scarring.",
+                    "label": "Placement",
+                    "description": "Where to place support structures. The placement can be restricted such that the support structures won't rest on the model, which could otherwise cause scarring.",
                     "type": "enum",
                     "options": [
                         "None",
@@ -718,6 +718,18 @@
                             "type": "float",
                             "visible": false
                         }
+                    }
+                },
+                "support_bottom_stair_step_height": {
+                    "label": "Stair Step Height",
+                    "description": "The height of the steps of the stair-like bottom of support resting on the model. Small steps can cause the support to be hard to remove from the top of the model.",
+                    "unit": "mm",
+                    "type": "float",
+                    "default": 0.5,
+                    "visible": false,
+                    "active_if": {
+                        "setting": "support_type",
+                        "value": "Everywhere"
                     }
                 },
                 "support_join_distance": {
