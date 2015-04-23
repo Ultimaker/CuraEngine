@@ -353,6 +353,7 @@ private:
             
             if (n_empty_first_layers > 0)
             {
+                log("Removing %d layers because they are empty\n", n_empty_first_layers);
                 for (SliceMeshStorage& mesh : storage.meshes)
                 {
                     std::vector<SliceLayer>& layers = mesh.layers;
@@ -364,6 +365,11 @@ private:
                 }
                 totalLayers -= n_empty_first_layers;
             }
+        }
+        if (totalLayers < 1)
+        {
+            log("Stopping process because there are no layers.\n");
+            return;
         }
               
         if (getSettingBoolean("ooze_shield_enabled"))
