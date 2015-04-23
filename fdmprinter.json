@@ -209,6 +209,13 @@
                         }
                     }
                 },
+                "wall_overlap_avoid_enabled": {
+                    "label": "Avoid Overlapping Walls",
+                    "description": "Remove parts of a wall which share an overlap which would result in overextrusion in some places. These overlaps occur in thin pieces in a model and sharp corners.",
+                    "type": "boolean",
+                    "default": true,
+                    "visible": false
+                },
                 "top_bottom_pattern": {
                     "label": "Bottom/Top Pattern",
                     "description": "Pattern of the top/bottom solid fill. This normally is done with lines to get the best possible finish, but in some cases a concentric fill gives a nicer end result.",
