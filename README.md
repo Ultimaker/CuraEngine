@@ -24,16 +24,15 @@ How to Install
 
 In order to compile CuraEngine, either use CMake or start a project in your preferred IDE. 
 CMake compilation:
-1. Move to the CuraEngine directory and execute the following commands
+1. Navigate to the CuraEngine directory and execute the following commands
 2. $ mkdir build && cd build
 3. $ cmake ..
 4. $ make
 
 Project files generation:
-1. Move to the CuraEngine directory and execute the following commands
+1. Navigate to the CuraEngine directory and execute the following commands
 2. cmake . -G "CodeBlocks - Unix Makefiles"
 3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
-
 
 Installing Protobuf
 -------------------
@@ -47,6 +46,17 @@ Installing Protobuf
 7. $ make install     # Requires superused priviliges.
 8. (In case the shared library cannot be loaded, you can try "sudo ldconfig" on Linux systems)
 
+Running
+=======
+Other than running CuraEngine from a frontend, such as PluggableCura, one can run CuraEngine from the command line.
+An example run for an UM2 machine looks as follows:
+* Navigate to the CuraEngine directory and execute the following
+```
+./build/CuraEngine -v -s machine_start_gcode=";FLAVOR:UltiGCode
+;TIME:10000000
+;MATERIAL:2000
+;MATERIAL2:0" -s mesh_position_x=115.0 -s mesh_position_y=112.5 -s mesh_position_z=0 -s material_diameter=1.128 -o "output/test.gcode" "/path/to/model.stl"
+```
 
 Internals
 =========
