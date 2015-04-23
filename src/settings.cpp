@@ -135,17 +135,17 @@ double SettingsBase::getSettingInSeconds(std::string key)
 EGCodeFlavor SettingsBase::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "GCODE_FLAVOR_REPRAP")
+    if (value == "RepRap")
         return GCODE_FLAVOR_REPRAP;
-    else if (value == "GCODE_FLAVOR_ULTIGCODE")
+    else if (value == "UltiGCode")
         return GCODE_FLAVOR_ULTIGCODE;
-    else if (value == "GCODE_FLAVOR_MAKERBOT")
+    else if (value == "Makerbot")
         return GCODE_FLAVOR_MAKERBOT;
-    else if (value == "GCODE_FLAVOR_BFB")
+    else if (value == "BFB")
         return GCODE_FLAVOR_BFB;
-    else if (value == "GCODE_FLAVOR_MACH3")
+    else if (value == "MACH3")
         return GCODE_FLAVOR_MACH3;
-    else if (value == "GCODE_FLAVOR_REPRAP_VOLUMATRIC")
+    else if (value == "RepRap (Volumatric)")
         return GCODE_FLAVOR_REPRAP_VOLUMATRIC;
     return GCODE_FLAVOR_REPRAP;
 }

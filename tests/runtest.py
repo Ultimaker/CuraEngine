@@ -21,6 +21,7 @@ def main(engine, model_path):
 				print("Slicing took: %f" % (time.time() - t))
 
 if __name__ == '__main__':
-	if len(sys.argv) > 1:
+	model_path = 'tests'
+	if len(sys.argv) > 2:
 		model_path = sys.argv[2]
 	main(sys.argv[1], model_path)
