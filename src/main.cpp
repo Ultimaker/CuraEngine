@@ -57,8 +57,10 @@ int main(int argc, char **argv)
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
 
+#ifndef DEBUG
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
     signal(SIGFPE, signal_FPE);
+#endif
 
     fffProcessor processor;
     std::vector<std::string> files;
@@ -175,15 +177,19 @@ int main(int argc, char **argv)
     }
     else
     {
+#ifndef DEBUG
         try {
+#endif
             //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
             // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
             if (files.size() > 0)
                 processor.processFiles(files);
+#ifndef DEBUG
         }catch(...){
             cura::logError("Unknown exception\n");
             exit(1);
         }
+#endif
         //Finalize the processor, this adds the end.gcode. And reports statistics.
         processor.finalize();
     }
