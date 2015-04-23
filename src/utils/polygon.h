@@ -110,11 +110,6 @@ public:
         x = x / 6 / area;
         y = y / 6 / area;
 
-        if (x < 0)
-        {
-            x = -x;
-            y = -y;
-        }
         return Point(x, y);
     }
 
