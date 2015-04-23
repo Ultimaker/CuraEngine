@@ -101,6 +101,7 @@ public:
     bool settingExists(std::string key) const;
     const SettingConfig* getSettingConfig(std::string key);
     
+    bool settingsLoaded();
     bool loadJSON(std::string filename);
 private:
     SettingRegistry();
