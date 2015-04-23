@@ -81,7 +81,11 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
-
+    if (!SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
+    {
+        logError("ERROR: Failed to load json file: fdmprinter.json\n");
+    }
+    
     CommandSocket* commandSocket = NULL;
     std::string ip;
     int port = 49674;
@@ -167,9 +171,6 @@ int main(int argc, char **argv)
             files.push_back(argv[argn]);
         }
     }
-    
-    if (!SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
-        logError("ERROR: Failed to load json file: fdmprinter.json\n");
     
     if(commandSocket)
     {
