@@ -56,6 +56,10 @@ bool SettingRegistry::loadJSON(std::string filename)
         return false;
     }
 
+    categories.emplace_back("machine_settings", "Machine Settings");
+    SettingCategory* category_machine_settings = &categories.back();
+    _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
+    
     for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
     {
         if (!category_iterator->value.IsObject())
@@ -77,6 +81,7 @@ bool SettingRegistry::loadJSON(std::string filename)
         _addSettingsToCategory(category, category_iterator->value["settings"], NULL);
     }
     
+    
     return true;
 }
 
@@ -85,17 +90,23 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
     for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object.MemberBegin(); setting_iterator != json_object.MemberEnd(); ++setting_iterator)
     {
         const rapidjson::Value& data = setting_iterator->value;
+        
+        std::string label;
         if (!setting_iterator->value.HasMember("label") || !data["label"].IsString())
         {
-            continue;
+            label = "N/A";
+        }
+        else
+        {
+            label = data["label"].GetString();
         }
 
         /// Create the new setting config object.
         SettingConfig* config;
         if (parent)
-            config = parent->addChild(setting_iterator->name.GetString(), data["label"].GetString());
+            config = parent->addChild(setting_iterator->name.GetString(), label);
         else
-            config = category->addChild(setting_iterator->name.GetString(), data["label"].GetString());
+            config = category->addChild(setting_iterator->name.GetString(), label);
         
         
         /// Fill the setting config object with data we have in the json file.

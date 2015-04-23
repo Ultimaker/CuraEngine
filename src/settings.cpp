@@ -53,7 +53,7 @@ std::string SettingsBase::getSettingString(std::string key)
     else
     {
         setting_values[key] = "";
-        cura::logError("Unknown setting %s\n", key.c_str());
+        cura::logError("Unregistered setting %s\n", key.c_str());
     }
     return setting_values[key];
 }
