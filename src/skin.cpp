@@ -136,6 +136,7 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
         }
         
         Polygons result = upskin.unionPolygons(downskin);
+        // TODO: why code duplication? Why not just use part->skinOutline (with some offset) ?!
 
         double minAreaSize = 3.0;//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
         for(unsigned int i=0; i<result.size(); i++)
