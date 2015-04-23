@@ -175,6 +175,8 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed, doubl
 
 void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
 {
+    travelTime = 0.0;
+    extrudeTime = 0.0;
     Point p0 = gcode.getPositionXY();
     for(unsigned int n=0; n<paths.size(); n++)
     {
