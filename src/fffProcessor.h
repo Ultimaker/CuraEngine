@@ -988,7 +988,7 @@ private:
             
             { // handle gaps between perimeters etc.
                 Polygons gapLines; 
-                if (layer_nr > 0 && layer_nr < static_cast<int>(mesh->layers.size())) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
+                if (layer_nr > 0 && layer_nr < static_cast<int>(mesh->layers.size() - 1)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
                 {
                     Polygons outlines_above;
                     for (SliceLayerPart& part_above : mesh->layers[layer_nr+1].parts)
