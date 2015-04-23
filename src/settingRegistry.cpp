@@ -60,6 +60,37 @@ bool SettingRegistry::loadJSON(std::string filename)
     SettingCategory* category_machine_settings = &categories.back();
     _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
     
+    categories.emplace_back("mesh_settings", "TEMPORARY");
+    SettingCategory* category_mesh_settings = &categories.back();
+    {
+        SettingConfig* config = category_mesh_settings->addChild("mesh_position_x", "mesh_position_x");
+        config->setDefault("0");
+        if (settingExists(config->getKey()))
+        {
+            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
+        }
+        settings[config->getKey()] = config;
+    }
+    {
+        SettingConfig* config = category_mesh_settings->addChild("mesh_position_y", "mesh_position_y");
+        config->setDefault("0");
+        if (settingExists(config->getKey()))
+        {
+            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
+        }
+        settings[config->getKey()] = config;
+    }
+    {
+        SettingConfig* config = category_mesh_settings->addChild("mesh_position_z", "mesh_position_z");
+        config->setDefault("0");
+        if (settingExists(config->getKey()))
+        {
+            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
+        }
+        settings[config->getKey()] = config;
+    }
+    
+    
     for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
     {
         if (!category_iterator->value.IsObject())
