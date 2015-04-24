@@ -424,7 +424,12 @@ private:
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
-                        sendPolygons(SkinType, layer_nr, part.skinOutline);
+                    {
+                        for (SkinPart& skin_part : part.skin_parts)
+                        {
+                            sendPolygons(SkinType, layer_nr, skin_part.outline);
+                        }
+                    }
                 }
             }
             logProgress("skin", layer_nr+1, totalLayers);
@@ -951,33 +956,33 @@ private:
 
             Polygons skinPolygons;
             Polygons skinLines;
-            for(Polygons outline : part->skinOutline.splitIntoParts())
+            for(SkinPart& skin_part : part->skin_parts)
             {
                 int bridge = -1;
                 if (layer_nr > 0)
-                    bridge = bridgeAngle(outline, &mesh->layers[layer_nr-1]);
+                    bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
                 if (bridge > -1)
                 {
-                    generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
+                    generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
                 }else{
                     switch(getSettingAsFillMethod("top_bottom_pattern"))
                     {
                     case Fill_Lines:
-                        for (Polygons& skin_perimeter : part->skinInsets)
-                            gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config);
-                        if (part->skinInsets.size() > 0)
+                        for (Polygons& skin_perimeter : skin_part.insets)
+                            gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
+                        if (skin_part.insets.size() > 0)
                         {
-                            generateLineInfill(part->skinInsets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                            generateLineInfill(skin_part.insets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
                         } 
                         else
                         {
-                            generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                            generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
                         }
                         break;
                     case Fill_Concentric:
                         {
                             Polygons in_outline;
-                            offsetSafe(outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
+                            offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
                             
                             generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
                         }
