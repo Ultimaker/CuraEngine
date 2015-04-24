@@ -50,11 +50,15 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         }
         
         Polygons skin = upskin.unionPolygons(downskin);
-
+          
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
         skin.removeSmallAreas(minAreaSize);
-                
-        part->skinOutline = part->skinOutline.unionPolygons(skin);
+        
+        for (Polygons& skin_area_part : skin.splitIntoParts())
+        {
+            part->skin_parts.emplace_back();
+            part->skin_parts.back().outline = skin_area_part;
+        }
     }
 }
 
@@ -66,24 +70,27 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
         return;
     }
     
-    for(int i=0; i<insetCount; i++)
+    for (SkinPart& skin_part : part->skin_parts)
     {
-        part->skinInsets.push_back(Polygons());
-        if (i == 0)
+        for(int i=0; i<insetCount; i++)
         {
-            offsetSafe(part->skinOutline, - extrusionWidth/2, extrusionWidth, part->skinInsets[0], avoidOverlappingPerimeters);
-            Polygons in_between = part->skinOutline.difference(part->skinInsets[0].offset(extrusionWidth/2)); 
-            part->perimeterGaps.add(in_between);
-        } else
-        {
-            offsetExtrusionWidth(part->skinInsets[i-1], true, extrusionWidth, part->skinInsets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
-        }
-            
-        optimizePolygons(part->skinInsets[i]);
-        if (part->skinInsets[i].size() < 1)
-        {
-            part->skinInsets.pop_back();
-            break;
+            skin_part.insets.push_back(Polygons());
+            if (i == 0)
+            {
+                offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters);
+                Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
+                skin_part.perimeterGaps.add(in_between);
+            } else
+            {
+                offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &skin_part.perimeterGaps, avoidOverlappingPerimeters);
+            }
+                
+            optimizePolygons(skin_part.insets[i]);
+            if (skin_part.insets[i].size() < 1)
+            {
+                skin_part.insets.pop_back();
+                break;
+            }
         }
     }
 }
@@ -100,7 +107,10 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
         {
             if (part.boundaryBox.hit(part2.boundaryBox))
             {
-                sparse = sparse.difference(part2.skinOutline);
+                for(SkinPart& skin_part : part2.skin_parts)
+                {
+                    sparse = sparse.difference(skin_part.outline);
+                }
             }
         }
         sparse.removeSmallAreas(3.0);//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
