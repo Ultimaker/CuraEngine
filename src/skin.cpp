@@ -78,10 +78,10 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             {
                 offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters);
                 Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
-                part->perimeterGaps.add(in_between);
+                skin_part.perimeterGaps.add(in_between);
             } else
             {
-                offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+                offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &skin_part.perimeterGaps, avoidOverlappingPerimeters);
             }
                 
             optimizePolygons(skin_part.insets[i]);

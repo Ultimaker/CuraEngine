@@ -19,6 +19,7 @@ class SkinPart
 public:
     Polygons outline;               //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
+    Polygons perimeterGaps;         //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)

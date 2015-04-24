@@ -30,7 +30,8 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
     else
     {
-        cura::logError("Ignoring unknown setting %s\n", key.c_str() );
+        cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
+        setting_values[key] = value; // Handy when programmers are in the process of introducing a new setting
     }
 }
 

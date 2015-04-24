@@ -934,7 +934,7 @@ private:
                 }
             }
             gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
-            gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]);
+            gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
 
             if (getSettingAsCount("wall_line_count") > 0)
             {
@@ -969,10 +969,13 @@ private:
                     {
                     case Fill_Lines:
                         for (Polygons& skin_perimeter : skin_part.insets)
+                        {
                             gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
+                        }
                         if (skin_part.insets.size() > 0)
                         {
                             generateLineInfill(skin_part.insets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                            generateLineInfill(skin_part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
                         } 
                         else
                         {
