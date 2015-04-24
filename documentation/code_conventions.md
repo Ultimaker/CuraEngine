@@ -26,13 +26,22 @@ Naming conventions
 
 class UpperCamelCase
 {
+private:
     MemberVariableObject with_underscores;
+public:
+    MemberVariableObject with_underscores;
+
+public:
+    UpperCamelCase();
+    ~UpperCamelCase();
     
     // start with input variable(s) and end with output variable(s)
     void lowerCamelCaseFunctions(ParamObject& also_with_underscores)
     {
         LocalObject under_scores;
     }
+private:
+    void putFunctionsAndVariablesInSeperatePublicPrivateBlocks();
 };
 ~~~~~~~~~~~~~~~
 
@@ -40,7 +49,7 @@ Ordering
 ----
 ~~~~~~~~~~~~~~~{.cpp}
 class Example
-{   
+{
     // start with input variable(s) and end with output parameter(s) 
     void function1(ParamObject& input_variable, int setting_parameter, ParamObject2& return_parameter)
     {
@@ -88,10 +97,16 @@ For a file Foo.h (UpperCamelCase):
 Other
 ----
 ~~~~~~~~~~~~~~~{.cpp}
-#include all
-#include includes
-#include on
-#include top
+#include <all>
+#include <includes>
+#include <on>
+#include <top>
+
+#include <first_system_includes>
+
+#include <then_library_includes>
+
+#include "finally_local_includes"
 
 enum class EnumExample 
 {
