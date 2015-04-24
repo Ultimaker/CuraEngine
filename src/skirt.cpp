@@ -34,7 +34,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     int overshoot = 0; // distance by which to expand and contract the skirt to approximate the convex hull of the first layer
     if (count == 1 && distance > 0)
     {
-        overshoot = (extrusionWidth + distance) * 10;
+        overshoot = 100000; // 10 cm 
     } 
     
     
