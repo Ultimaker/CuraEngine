@@ -310,7 +310,7 @@ private:
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
                 int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-                int inset_count = insetCount + layer_nr % 2; // TODO: add setting to enable/disable this!
+                int inset_count = insetCount; //  + layer_nr % 2; // TODO: add setting to enable/disable this!
                 generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -415,7 +415,12 @@ private:
                     int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
                     generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skin_outline_count"), mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
                     if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
+                    {
                         generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+                        generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
+                        // TODO: introduce separate settings for the number of top and bottom layers of gaps?
+                        // TODO: separate setting for using gaps on all layers! (for models with thin walls)
+                    }
 
                     SliceLayer& layer = mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer.parts)
@@ -983,30 +988,13 @@ private:
                     }
                 }
             }
+            
+            // handle gaps between perimeters etc.
+            generateLineInfill(part->perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+            
+            
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
             gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
-            
-            { // handle gaps between perimeters etc.
-                Polygons gapLines; 
-                if (layer_nr > 0 && layer_nr < static_cast<int>(mesh->layers.size() - 1)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
-                {
-                    Polygons outlines_above;
-                    for (SliceLayerPart& part_above : mesh->layers[layer_nr+1].parts)
-                    {
-                        outlines_above.add(part_above.outline);
-                    }
-                    Polygons outlines_below;
-                    for (SliceLayerPart& part_below : mesh->layers[layer_nr-1].parts)
-                    {
-                        outlines_below.add(part_below.outline);
-                    }
-                    part->perimeterGaps = part->perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
-                }
-                double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
-                part->perimeterGaps.removeSmallAreas(minAreaSize);
-                generateLineInfill(part->perimeterGaps, 0, gapLines, extrusionWidth, extrusionWidth, 0, fillAngle);
-                gcodeLayer.addLinesByOptimizer(gapLines, &mesh->skin_config);
-            }
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))

@@ -8,6 +8,17 @@ namespace cura
 {
 
 /*!
+ * Generate the gap areas which occur between consecutive insets.
+ * 
+ * \param layerNr The index of the layer for which to generate the gaps.
+ * \param storage The storage where the layer outline information (input) is stored and where the gap areas (output) are stored.
+ * \param extrusionWidth extrusionWidth
+ * \param downSkinCount The number of layers of bottom gaps
+ * \param upSkinCount The number of layers of top gaps
+ */
+void generatePerimeterGaps(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
+
+/*!
  * Generate the skin areas and its insets.
  * 
  * \param layerNr The index of the layer for which to generate the skins.

@@ -182,4 +182,31 @@ void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount)
     }
 }
 
+
+void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+{
+    SliceLayer& layer = storage.layers[layer_nr];
+    
+    for (SliceLayerPart& part : layer.parts) 
+    { // handle gaps between perimeters etc.
+        if (downSkinCount > 0 && upSkinCount > 0 && // note: if both are zero or less, then all gaps will be used
+            layer_nr >= downSkinCount && layer_nr < static_cast<int>(storage.layers.size() - upSkinCount)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
+        {
+            Polygons outlines_above;
+            for (SliceLayerPart& part_above : storage.layers[layer_nr + upSkinCount].parts)
+            {
+                outlines_above.add(part_above.outline);
+            }
+            Polygons outlines_below;
+            for (SliceLayerPart& part_below : storage.layers[layer_nr - downSkinCount].parts)
+            {
+                outlines_below.add(part_below.outline);
+            }
+            part.perimeterGaps = part.perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
+        }
+        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+        part.perimeterGaps.removeSmallAreas(minAreaSize);
+    }
+}
+
 }//namespace cura
