@@ -178,7 +178,7 @@ private:
         }
 
         gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_minimal_extrusion"));
+        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_extrusion_window"), getSettingInMicrons("retraction_count_max"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model

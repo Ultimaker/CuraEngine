@@ -359,14 +359,22 @@
                             "visible": false,
                             "inherit": false
                         },
-                        "retraction_minimal_extrusion": {
-                            "label": "Minimal Extrusion Before Retraction",
-                            "description": "The minimum amount of extrusion that needs to happen between retractions.  If a retraction should happen before this minimum is reached, it will be ignored. This avoids retracting repeatedly on the same piece of filament as that can flatten the filament and cause grinding issues.",
-                            "unit": "mm",
-                            "type": "float",
-                            "default": 0.02,
+                        "retraction_count_max": {
+                            "label": "Maximal Retraction Count",
+                            "description": "This settings limits the number of retractions occuring within the Minimal Extrusion Distance Window. Further retractions within this window will be ignored. This avoids retracting repeatedly on the same piece of filament as that can flatten the filament and cause grinding issues.",
+                            "default": 6,
+                            "type": "int",
                             "visible": false,
                             "inherit": false
+                        },
+                        "retraction_extrusion_window": {
+                            "label": "Minimal Extrusion Distance Window",
+                            "description": "The window in which the Maximal Retraction Count is enforced. This window should be approximately the size of the Retraction distance, so that effectively the number of times a retraction passes the same patch of material is limited.",
+                            "unit": "mm",
+                            "type": "float",
+                            "default": 4.5,
+                            "visible": false,
+                            "inherit_function": "retraction_amount"
                         },
                         "retraction_hop": {
                             "label": "Z Hop when Retracting",
