@@ -966,7 +966,7 @@ private:
                         } 
                         else
                         {
-                            generateLineInfill(part->skinOutline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                            generateLineInfill(outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
                         }
                         break;
                     case Fill_Concentric:

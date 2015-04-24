@@ -164,6 +164,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         
         storage.support.supportAreasPerLayer[layer_idx] = supportLayer_this;
         
+        logProgress("support", support_layer_count - layer_idx, support_layer_count);
     }
     
     // do stuff for when support on buildplate only

@@ -9,45 +9,51 @@
 
 namespace cura {
 
-static inline FILE* openDebug(const char* filename)
+class PolygonDebug
 {
-    FILE* f = fopen(filename, "w");
-    fprintf(f, "<!DOCTYPE html><html><body>\n");
+private:
+    FILE* f;
+public:
     
-    fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", 1024 * 16, 1024 * 16);
-    fprintf(f, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
-    fprintf(f, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
-    fprintf(f, "</marker>");
-    return f;
-}
-
-static inline void writeDebug(FILE* f, Polygons& polygons)
-{
-    fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
-    fprintf(f, "<path marker-mid='url(#MidMarker)' d=\"");
-    for(unsigned int j=0; j<polygons.size(); j++)
+    PolygonDebug(const char* filename)
     {
-        PolygonRef p = polygons[j];
-        for(unsigned int n=0; n<p.size(); n++)
-        {
-            if (n == 0)
-                fprintf(f, "M");
-            else
-                fprintf(f, "L");
-            fprintf(f, "%f,%f ", float(p[n].X)/DEBUG_SCALE, float(p[n].Y)/DEBUG_SCALE);
-        }
-        fprintf(f, "Z\n");
+        f = fopen(filename, "w");
+        fprintf(f, "<!DOCTYPE html><html><body>\n");
+        
+        fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", 1024 * 16, 1024 * 16);
+        fprintf(f, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
+        fprintf(f, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
+        fprintf(f, "</marker>");
     }
-    fprintf(f, "\"/>");
-    fprintf(f, "</g>\n");
-}
 
-static inline void closeDebug(FILE* f)
-{
-    fprintf(f, "</svg>\n");
-    fprintf(f, "</body></html>");
-    fclose(f);
-}
+    ~PolygonDebug()
+    {
+        fprintf(f, "</svg>\n");
+        fprintf(f, "</body></html>");
+        fclose(f);
+    }
+
+    void write(Polygons& polygons)
+    {
+        fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
+        fprintf(f, "<path marker-mid='url(#MidMarker)' d=\"");
+        for(unsigned int j=0; j<polygons.size(); j++)
+        {
+            PolygonRef p = polygons[j];
+            for(unsigned int n=0; n<p.size(); n++)
+            {
+                if (n == 0)
+                    fprintf(f, "M");
+                else
+                    fprintf(f, "L");
+                fprintf(f, "%f,%f ", float(p[n].X)/DEBUG_SCALE, float(p[n].Y)/DEBUG_SCALE);
+            }
+            fprintf(f, "Z\n");
+        }
+        fprintf(f, "\"/>");
+        fprintf(f, "</g>\n");
+    }
+};
 
 }
 

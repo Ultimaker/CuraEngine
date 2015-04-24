@@ -43,12 +43,14 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 
 void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
-    for(unsigned int layerNr = 0; layerNr < slicer->layers.size(); layerNr++)
+    for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         storage.layers.push_back(SliceLayer());
-        storage.layers[layerNr].sliceZ = slicer->layers[layerNr].z;
-        storage.layers[layerNr].printZ = slicer->layers[layerNr].z;
-        createLayerWithParts(storage.layers[layerNr], &slicer->layers[layerNr], union_layers, union_all_remove_holes);
+        storage.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
+        storage.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
+        createLayerWithParts(storage.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
+        
+        logProgress("layerparts", layer_nr + 1, slicer->layers.size());
     }
 }
 
