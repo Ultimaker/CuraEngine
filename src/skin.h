@@ -29,7 +29,7 @@ void generatePerimeterGaps(int layerNr, SliceMeshStorage& storage, int extrusion
  * \param insetCount The number of perimeters to surround the skin
  * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
  */
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, int avoidOverlappingPerimeters);
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters);
 
 /*!
  * Generate the skin areas (outlines)
@@ -54,7 +54,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
 void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters);
 
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int avoidOverlappingPerimeters);
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
 void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount);
 
 }//namespace cura

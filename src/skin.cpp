@@ -6,7 +6,7 @@
 namespace cura 
 {
 
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, int avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters)
 {
     generateSkinAreas(layerNr, storage, extrusionWidth, downSkinCount, upSkinCount);
 
@@ -17,6 +17,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
         generateSkinInsets(part, extrusionWidth, insetCount, avoidOverlappingPerimeters);
     }
 }
+
 void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
@@ -32,29 +33,28 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
             SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
-            for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
+            for(SliceLayerPart& part2 : layer2->parts)
             {
-                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
-                    downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
+                if (part->boundaryBox.hit(part2.boundaryBox))
+                    downskin = downskin.difference(part2.insets.back());
             }
         }
         if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
         {
             SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
-            for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
+            for(SliceLayerPart& part2 : layer2->parts)
             {
-                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
-                    upskin = upskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
+                if (part->boundaryBox.hit(part2.boundaryBox))
+                    upskin = upskin.difference(part2.insets.back());
             }
         }
         
         Polygons skin = upskin.unionPolygons(downskin);
+
+        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+        skin.removeSmallAreas(minAreaSize);
                 
         part->skinOutline = part->skinOutline.unionPolygons(skin);
-            
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
-        
-        part->skinOutline.removeSmallAreas(minAreaSize);
     }
 }
 
@@ -88,68 +88,24 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int avoidOverlappingPerimeters)
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
-    SliceLayer* layer = &storage.layers[layerNr];
+    SliceLayer& layer = storage.layers[layerNr];
 
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for(SliceLayerPart& part : layer.parts)
     {
-        SliceLayerPart* part = &layer->parts[partNr];
-        
-        Polygons sparse = part->insets.back().offset(-extrusionWidth/2);
+        Polygons sparse = part.insets.back().offset(-extrusionWidth);
 
-        
-        Polygons downskin = sparse;
-        Polygons upskin = sparse;
-        
-        if (static_cast<int>(layerNr - downSkinCount) >= 0)
+        for(SliceLayerPart& part2 : layer.parts)
         {
-            SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
-            for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
+            if (part.boundaryBox.hit(part2.boundaryBox))
             {
-                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
-                {
-                    if (layer2->parts[partNr2].insets.size() > 1)
-                    {
-                        downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 2]);
-                    }else{
-                        downskin = downskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
-                    }
-                }
+                sparse = sparse.difference(part2.skinOutline);
             }
         }
-        if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
-        {
-            SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
-            for(unsigned int partNr2=0; partNr2<layer2->parts.size(); partNr2++)
-            {
-                if (part->boundaryBox.hit(layer2->parts[partNr2].boundaryBox))
-                {
-                    if (layer2->parts[partNr2].insets.size() > 1)
-                    {
-                        upskin = upskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 2]);
-                    }else{
-                        upskin = upskin.difference(layer2->parts[partNr2].insets[layer2->parts[partNr2].insets.size() - 1]);
-                    }
-                }
-            }
-        }
+        sparse.removeSmallAreas(3.0);//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
         
-        Polygons result = upskin.unionPolygons(downskin);
-        // TODO: why code duplication? Why not just use part->skinOutline (with some offset) ?!
-
-        double minAreaSize = 3.0;//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
-        for(unsigned int i=0; i<result.size(); i++)
-        {
-            double area = INT2MM(INT2MM(fabs(result[i].area())));
-            if (area < minAreaSize) /* Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill" */
-            {
-                result.remove(i);
-                i -= 1;
-            }
-        }
-        
-        part->sparse_outline.push_back(sparse.difference(result));
+        part.sparse_outline.push_back(sparse.offset(extrusionWidth / 2));
     }
 }
 
@@ -195,12 +151,18 @@ void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusio
             Polygons outlines_above;
             for (SliceLayerPart& part_above : storage.layers[layer_nr + upSkinCount].parts)
             {
-                outlines_above.add(part_above.outline);
+                if (part.boundaryBox.hit(part_above.boundaryBox))
+                {
+                    outlines_above.add(part_above.outline);
+                }
             }
             Polygons outlines_below;
             for (SliceLayerPart& part_below : storage.layers[layer_nr - downSkinCount].parts)
             {
-                outlines_below.add(part_below.outline);
+                if (part.boundaryBox.hit(part_below.boundaryBox))
+                {
+                    outlines_below.add(part_below.outline);
+                }
             }
             part.perimeterGaps = part.perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
         }
