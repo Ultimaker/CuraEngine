@@ -26,6 +26,11 @@ SettingRegistry::SettingRegistry()
 {
 }
 
+bool SettingRegistry::settingsLoaded()
+{
+    return settings.size() > 0;
+}
+
 bool SettingRegistry::loadJSON(std::string filename)
 {
     rapidjson::Document json_document;
