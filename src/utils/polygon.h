@@ -129,9 +129,18 @@ public:
         return ret;
     }
     
-    //Check if we are inside the polygon. We do this by tracing from the point towards the negative X direction,
+    //Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
     //  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
-    bool inside(Point p)
+    // Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
+    // outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
+    // The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
+    // A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
+    // When both have the same Y, no intersections are counted but there is a special test to see if the point falls
+    // exactly on the line.
+    //
+    // Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
+    //
+    bool inside(Point p, bool border_result=false)
     {
         if (polygon->size() < 1)
             return false;
@@ -141,12 +150,45 @@ public:
         for(unsigned int n=0; n<polygon->size(); n++)
         {
             Point p1 = (*polygon)[n];
-            
-            if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
+            // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
+            if ( std::max(p0.X, p1.X) >= p.X )
             {
-                int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
-                if (x >= p.X)
-                    crossings ++;
+                int64_t pdY = p1.Y-p0.Y;
+                if (pdY < 0)      // p0->p1 is 'falling'
+                {
+                    if ( p1.Y <= p.Y && p0.Y > p.Y )    // candidate
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X-p.X)*pdY;
+                        if (dx == 0)                    // includes p == p1
+                            return border_result;
+                        if (dx > 0)
+                            crossings ++;
+                    }
+                }
+                else if (p.Y >= p0.Y)
+                {
+                    if (p.Y < p1.Y)    // candidate for p0->p1 'rising' and includes p.Y
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X-p0.X)*pdY;
+                        if (dx == 0)                // includes p == p0
+                            return border_result;
+                        if (dx > 0)
+                            crossings ++;
+                    }
+                    else if (p.Y == p1.Y)
+                    {
+                        // some special cases here, points on border:
+                        //  - p1 exactly matches p (might otherwise be missed)
+                        //  - p0->p1 exactly horizontal, and includes p.
+                        //    (we already tested std::max(p0.X,p1.X) >= p.X )
+                        if (p.X == p1.X ||
+                              pdY==0 && std::min(p0.X,p1.X) <= p.X )
+                            return border_result;
+                        // otherwise, count no crossings
+                    }
+                }
             }
             p0 = p1;
         }
@@ -175,7 +217,7 @@ public:
 
     friend class Polygons;
     friend class Polygon;
-};
+}; // class PolygonRef
 
 class Polygon : public PolygonRef
 {
