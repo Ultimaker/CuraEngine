@@ -7,13 +7,11 @@
 
 using namespace cura;
 
-int main(int argc, char **argv)
-{
-    
-}
 
-
-int test_poly_inside(int argc, char **argv)
+/*!
+ * Test whether polygon.inside(point) returns correct results.
+ */
+int test_poly_inside()
 {
     Polygon poly;
     poly.add(Point(0,0));
@@ -22,5 +20,11 @@ int test_poly_inside(int argc, char **argv)
     poly.add(Point(50,50));
     poly.add(Point(0,100));
     
-    std::cerr << poly.inside(Point(0,50)) << std::endl;
+    std::cerr << poly.inside(Point(76,75)) << std::endl;
+}
+
+
+int main(int argc, char **argv)
+{
+    test_poly_inside();
 }
