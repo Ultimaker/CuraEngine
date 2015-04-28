@@ -149,14 +149,13 @@ public:
         }
 
         double area = Area(*polygon);
+        if (area < 0) 
+        {
+            area *= -1;
+        }
         x = x / 6 / area;
         y = y / 6 / area;
 
-        if (x < 0)
-        {
-            x = -x;
-            y = -y;
-        }
         return Point(x, y);
     }
 
