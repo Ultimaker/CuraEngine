@@ -11,21 +11,24 @@
 using namespace cura;
 
 
-// #include "utils/polygon.h"
+#include "utils/polygon.h"
 /*!
  * Test whether polygon.inside(point) returns correct results.
  */
-// void test_poly_inside()
-// {
-//     Polygon poly;
+void test_poly_inside()
+{
+    Polygon poly;
 //     poly.add(Point(0,0));
 //     poly.add(Point(100,0));
 //     poly.add(Point(100,100));
 //     poly.add(Point(50,50));
 //     poly.add(Point(0,100));
-//     
-//     std::cerr << poly.inside(Point(76,75)) << std::endl;
-// }
+    poly.add(Point(2000,2000)); // (2000,2000), (1000,1000), ( 1100, 100)
+    poly.add(Point(1000,1000));
+    poly.add(Point(1100,100));
+    
+    std::cerr << poly.inside(Point(-2000,1000)) << std::endl;
+}
 
 /*
 struct LocationItem
@@ -69,5 +72,5 @@ void test_BucketGrid2D()
 
 int main(int argc, char **argv)
 {
-    
+    test_poly_inside();
 }

@@ -3,16 +3,11 @@
 
 #include "pathOrderOptimizer.h"
 #include "utils/logoutput.h"
+#include "utils/BucketGrid2D.h"
 
 #define INLINE static inline
 
 namespace cura {
-
-static uint32_t hashPoint(const Point& p)
-{
-    return (p.X / 20000) ^ (p.Y / 20000) << 8;
-}
-
 
 
 /**
@@ -122,7 +117,8 @@ inline int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int i_
 */
 void LineOrderOptimizer::optimize()
 {
-    std::map<uint32_t, std::vector<unsigned int>> location_to_line_map;
+    int gridSize = 5000; // the size of the cells in the hash grid.
+    BucketGrid2D<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
@@ -141,12 +137,11 @@ void LineOrderOptimizer::optimize()
             }
         }
         polyStart.push_back(best);
-        //picked.push_back(false); /// initialize all picked values as false
 
         assert(poly.size() == 2);
 
-        location_to_line_map[hashPoint(poly[0])].push_back(i_polygon);
-        location_to_line_map[hashPoint(poly[1])].push_back(i_polygon);
+        line_bucket_grid.insert(poly[0], i_polygon);
+        line_bucket_grid.insert(poly[1], i_polygon);
 
     }
 
@@ -158,7 +153,7 @@ void LineOrderOptimizer::optimize()
         int best = -1;
         float bestDist = std::numeric_limits<float>::infinity();
 
-        for(unsigned int i_close_line_polygon : location_to_line_map[hashPoint(prev_point)]) /// check if single-line-polygon is close to last point
+        for(unsigned int i_close_line_polygon :  line_bucket_grid.findNearbyObjects(prev_point)) /// check if single-line-polygon is close to last point
         {
             if (picked[i_close_line_polygon] || polygons[i_close_line_polygon].size() < 1)
                 continue;

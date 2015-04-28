@@ -6,7 +6,6 @@
 #include "intpoint.h"
 #include <unordered_map>
 
-
 namespace cura
 {
 
@@ -115,12 +114,6 @@ private:
 
 
 public:
-    
-    void debug()
-    {
-        for (auto i : point2object)
-            std::cerr<< i.first << " : " << i.second << " bucket " << point2object.bucket(i.first) << std::endl;
-    }
     /*!
      * The constructor for a bucket grid.
      * 
@@ -151,6 +144,21 @@ public:
             }
         }
     };
+    
+    /*!
+     * Find all objects with a point in a grid cell at a distance of one cell from the cell of \p p.
+     * 
+     * \warning Objects may occur multiple times in the output!
+     * 
+     * \param p The point for which to find close points.
+     * \return All objects close to \p p.
+     */
+    std::vector<T> findNearbyObjects(Point& p)
+    {
+        std::vector<T> ret;
+        findNearbyObjects(p, ret);
+        return ret;
+    }
 
     /*!
      * Find the nearest object to a given lcoation \p p, if there is any in a neighboring cell in the grid.
