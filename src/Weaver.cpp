@@ -6,9 +6,8 @@
 
 #include "weaveDataStorage.h"
 
-using namespace cura;
-
-
+namespace cura 
+{
 
 void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
 {
@@ -654,5 +653,5 @@ bool Weaver::getNextPointWithDistance(Point from, int64_t dist, const PolygonRef
 
 
 
-
+} // namespace cura
     

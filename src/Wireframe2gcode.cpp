@@ -5,10 +5,9 @@
 
 #include "weaveDataStorage.h"
 
-using namespace cura;
 
-
-
+namespace cura 
+{
 
 
 void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHeight)
@@ -553,4 +552,4 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 }
 
 
-    
+} // namespace cura    
