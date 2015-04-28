@@ -52,7 +52,7 @@ Other than running CuraEngine from a frontend, such as PluggableCura, one can ru
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
-./build/CuraEngine -v -s machine_start_gcode=";FLAVOR:UltiGCode
+./build/CuraEngine -v -j fdmprinter.json -s machine_start_gcode=";FLAVOR:UltiGCode
 ;TIME:10000000
 ;MATERIAL:2000
 ;MATERIAL2:0" -s mesh_position_x=115.0 -s mesh_position_y=112.5 -s mesh_position_z=0 -s material_diameter=1.128 -o "output/test.gcode" "/path/to/model.stl"

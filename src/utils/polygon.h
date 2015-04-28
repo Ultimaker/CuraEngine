@@ -176,24 +176,45 @@ public:
         return ret;
     }
     
-    //Check if we are inside the polygon. We do this by tracing from the point towards the negative X direction,
-    //  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+    /*!
+     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
+     *  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+     * 
+     * When the point is exactly on the border, the output is not determined.
+     */
     bool inside(Point p)
     {
         if (polygon->size() < 1)
             return false;
         
         int crossings = 0;
-        Point p0 = (*polygon)[polygon->size()-1];
+        Point p0 =  back();
         for(unsigned int n=0; n<polygon->size(); n++)
         {
             Point p1 = (*polygon)[n];
             
-            if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
+            if ((p0.Y >= p.Y && p1.Y <= p.Y) || (p1.Y >= p.Y && p0.Y <= p.Y))
             {
-                int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
-                if (x >= p.X)
+                if (p0.X >= p.X && p1.X >= p.X) // x will be in positive direction
+                {
                     crossings ++;
+                }
+                else if (p0.X <= p.X && p1.X <= p.X) // x will be in negative direction
+                {
+                    continue;
+                }
+                else if (p1.Y == p0.Y) // point is on border or we don't cross this line segment
+                {
+                    continue;
+                }
+                else // x might be either in positive or in negative direction; compute x!
+                {
+                    int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
+                    if (x >= p.X)
+                    {
+                        crossings ++;
+                    }
+                }
             }
             p0 = p1;
         }

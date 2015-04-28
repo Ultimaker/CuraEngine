@@ -55,7 +55,7 @@
                             "description": "The layer thickness of the bottom layer. A thicker bottom layer makes sticking to the bed easier.",
                             "unit": "mm",
                             "type": "float",
-                            "default": 0.3,
+                            "default": 0.2,
                             "min_value": 0.06,
                             "max_value": 2.0,
                             "visible": false
@@ -153,6 +153,13 @@
                                     }
                                 }
                             }
+                        },
+                        "alternate_extra_perimeter": {
+                            "label": "Alternate Extra Wall",
+                            "description": "Make an extra wall at every second layer, so that infill will be caught between an extra wall above and one below. This results in a better cohesion between infill and walls, but might have an impact on the surface quality.",
+                            "type": "boolean",
+                            "default": false,
+                            "visible": false
                         },
                         "top_bottom_thickness": {
                             "label": "Bottom/Top Thickness",
@@ -352,14 +359,22 @@
                             "visible": false,
                             "inherit": false
                         },
-                        "retraction_minimal_extrusion": {
-                            "label": "Minimal Extrusion Before Retraction",
-                            "description": "The minimum amount of extrusion that needs to happen between retractions.  If a retraction should happen before this minimum is reached, it will be ignored. This avoids retracting repeatedly on the same piece of filament as that can flatten the filament and cause grinding issues.",
-                            "unit": "mm",
-                            "type": "float",
-                            "default": 0.02,
+                        "retraction_count_max": {
+                            "label": "Maximal Retraction Count",
+                            "description": "This settings limits the number of retractions occuring within the Minimal Extrusion Distance Window. Further retractions within this window will be ignored. This avoids retracting repeatedly on the same piece of filament as that can flatten the filament and cause grinding issues.",
+                            "default": 6,
+                            "type": "int",
                             "visible": false,
                             "inherit": false
+                        },
+                        "retraction_extrusion_window": {
+                            "label": "Minimal Extrusion Distance Window",
+                            "description": "The window in which the Maximal Retraction Count is enforced. This window should be approximately the size of the Retraction distance, so that effectively the number of times a retraction passes the same patch of material is limited.",
+                            "unit": "mm",
+                            "type": "float",
+                            "default": 4.5,
+                            "visible": false,
+                            "inherit_function": "retraction_amount"
                         },
                         "retraction_hop": {
                             "label": "Z Hop when Retracting",

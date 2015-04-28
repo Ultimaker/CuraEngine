@@ -11,8 +11,7 @@ GCodeExport::GCodeExport()
 : output_stream(&std::cout), currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusion_amount = 0;
-    minimal_extrusion_before_retraction = 0.0;
-    extrusion_amount_at_previous_retraction = -10000;
+    retraction_extrusion_window = 0.0;
     extruderSwitchRetraction = 14.5;
     extruderNr = 0;
     currentFanSpeed = -1;
@@ -74,12 +73,13 @@ EGCodeFlavor GCodeExport::getFlavor()
     return this->flavor;
 }
 
-void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction)
+void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int retraction_extrusion_window, int retraction_count_max)
 {
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->extruderSwitchRetractionSpeed = extruderSwitchRetractionSpeed;
     this->extruderSwitchPrimeSpeed = extruderSwitchPrimeSpeed;
-    this->minimal_extrusion_before_retraction = INT2MM(minimalExtrusionBeforeRetraction);
+    this->retraction_extrusion_window = INT2MM(retraction_extrusion_window);
+    this->retraction_count_max = INT2MM(retraction_count_max);
 }
 
 void GCodeExport::setZ(int z)
@@ -166,7 +166,6 @@ void GCodeExport::resetExtrusionValue()
     {
         *output_stream << "G92 " << extruderCharacter[extruderNr] << "0\n";
         totalFilament[extruderNr] += extrusion_amount;
-        extrusion_amount_at_previous_retraction -= extrusion_amount;
         for (unsigned int i = 0; i < extrusion_amount_at_previous_n_retractions.size(); i++)
             extrusion_amount_at_previous_n_retractions[i] -= extrusion_amount;
         extrusion_amount = 0.0;
@@ -289,14 +288,11 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     if (isRetracted)
         return;
-    if (!force && extrusion_amount < extrusion_amount_at_previous_retraction + minimal_extrusion_before_retraction - config->amount) // TODO: why subtract the retraction amount?!
-        return;
-    // TODO: remove extrusion_amount_at_previous_retraction
-    int retraction_count_max = 5; // TODO: add setting!
-    int extrusion_amount_min = config->amount; // TODO: add setting! also: think of better name for setting!
-    if (!force && retraction_count_max > 0 && extrusion_amount_at_previous_n_retractions.size() == retraction_count_max && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + extrusion_amount_min) // TODO: subtract the retraction amount??
-        return;
     if (config->amount <= 0)
+        return;
+    
+    if (!force && retraction_count_max > 0 && extrusion_amount_at_previous_n_retractions.size() == retraction_count_max - 1 
+        && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + retraction_extrusion_window) 
         return;
 
     if (config->primeAmount > 0)
@@ -307,7 +303,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - 4.5), 25); // TODO: hardcoded values!
+        double retraction_distance = 4.5;
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount - retraction_distance), 25); // TODO: hardcoded values!
     }else{
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount - config->amount << "\n";
         currentSpeed = config->speed;
@@ -318,9 +315,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + config->zHop) << "\n";
         isZHopped = true;
     }
-    extrusion_amount_at_previous_retraction = extrusion_amount;
     extrusion_amount_at_previous_n_retractions.push_front(extrusion_amount);
-    if (extrusion_amount_at_previous_n_retractions.size() == retraction_count_max + 1)
+    if (extrusion_amount_at_previous_n_retractions.size() == retraction_count_max)
     {
         extrusion_amount_at_previous_n_retractions.pop_back();
     }

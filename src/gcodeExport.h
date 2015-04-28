@@ -106,8 +106,8 @@ private:
     double extruderSwitchRetraction;
     int extruderSwitchRetractionSpeed;
     int extruderSwitchPrimeSpeed;
-    double minimal_extrusion_before_retraction;
-    double extrusion_amount_at_previous_retraction;
+    double retraction_extrusion_window;
+    double retraction_count_max;
     std::deque<double> extrusion_amount_at_previous_n_retractions;
     Point3 currentPosition;
     Point3 startPosition;
@@ -142,7 +142,7 @@ public:
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor();
         
-    void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction);
+    void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
     
     void setZ(int z);
     

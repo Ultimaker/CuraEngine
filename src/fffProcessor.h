@@ -178,7 +178,7 @@ private:
         }
 
         gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_minimal_extrusion"));
+        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_extrusion_window"), getSettingInMicrons("retraction_count_max"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model
@@ -310,7 +310,9 @@ private:
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
                 int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-                int inset_count = insetCount; //  + layer_nr % 2; // TODO: add setting to enable/disable this!
+                int inset_count = insetCount; 
+                if (mesh.settings->getSettingBoolean("alternate_extra_perimeter"))
+                    inset_count += layer_nr % 2; 
                 generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -417,9 +419,11 @@ private:
                     if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
                     {
                         generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
-                        generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
+                        //generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
+                        generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
                         // TODO: introduce separate settings for the number of top and bottom layers of gaps?
                         // TODO: separate setting for using gaps on all layers! (for models with thin walls)
+                        // TODO: OR: just standard on all layers!
                     }
 
                     SliceLayer& layer = mesh.layers[layer_nr];
