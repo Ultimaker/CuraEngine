@@ -1,7 +1,11 @@
 /** Copyright (C) 2015 Tim Kuipers- Released under terms of the AGPLv3 License */
 #ifndef BUCKET_GRID_2D_H
 #define BUCKET_GRID_2D_H
+
 #include "logoutput.h"
+#include "intpoint.h"
+#include <unordered_map>
+
 
 namespace cura
 {
@@ -111,6 +115,12 @@ private:
 
 
 public:
+    
+    void debug()
+    {
+        for (auto i : point2object)
+            std::cerr<< i.first << " : " << i.second << " bucket " << point2object.bucket(i.first) << std::endl;
+    }
     /*!
      * The constructor for a bucket grid.
      * 
@@ -122,6 +132,8 @@ public:
     /*!
      * Find all objects with a point in a grid cell at a distance of one cell from the cell of \p p.
      * 
+     * \warning Objects may occur multiple times in the output!
+     * 
      * \param p The point for which to find close points.
      * \param ret Ouput parameter: all objects close to \p p.
      */
@@ -131,9 +143,11 @@ public:
         {
             for (int y = -1; y <= 1; y++)
             {
-                int i = point2object.bucket(getRelativeForHash(p, Point(x,y)));
-                for ( auto local_it = point2object.begin(i); local_it!= point2object.end(i); ++local_it )
+                int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y))); // when the hash is not a hash of a present item, the bucket_idx returned may be one already encountered
+                for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
+                {
                     ret.push_back(local_it->second);
+                }
             }
         }
     };
@@ -148,19 +162,18 @@ public:
     bool findNearestObject(Point& p, T& nearby)
     {
         bool found = false;
-        
-        int32_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
+        int64_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
             {
-                int i = point2object.bucket(getRelativeForHash(p, Point(x,y)));
-                for ( auto local_it = point2object.begin(i); local_it!= point2object.end(i); ++local_it )
+                int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y)));
+                for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
                 {
-                    found = true;
                     int32_t dist2 = vSize2(local_it->first - p);
                     if (dist2 < bestDist2)
                     {
+                        found = true;
                         nearby = local_it->second;
                         bestDist2 = dist2;
                     }
@@ -181,8 +194,8 @@ public:
     {
         typedef typename Map::iterator iter;
         std::pair<iter, bool> emplaced = point2object.emplace(p, t);
-        if (! emplaced.second)
-            logError("Error! BucketGrid2D couldn't insert object!");
+//         if (! emplaced.second)
+//             logError("Error! BucketGrid2D couldn't insert object!");
     };
 
 
