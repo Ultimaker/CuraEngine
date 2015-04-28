@@ -53,3 +53,6 @@ protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 
 add_executable(CuraEngine ${engine_SRCS} ${engine_PB_SRCS})
 target_link_libraries(CuraEngine clipper Arcus)
+if (UNIX)
+    target_link_libraries(CuraEngine pthread)
+endif()
