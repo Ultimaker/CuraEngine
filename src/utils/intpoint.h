@@ -127,6 +127,7 @@ inline Point3 operator*(const double d, const Point3& rhs) {
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
+
 class IntPoint {
 public:
     int X, Y;
@@ -146,8 +147,8 @@ INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
 INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
 
-INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
-INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
+//INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
+//INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
 
 INLINE int64_t vSize2(const Point& p0)
 {
