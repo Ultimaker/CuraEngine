@@ -17,17 +17,51 @@ using namespace cura;
  */
 void test_poly_inside()
 {
-    Polygon poly;
-//     poly.add(Point(0,0));
-//     poly.add(Point(100,0));
-//     poly.add(Point(100,100));
-//     poly.add(Point(50,50));
-//     poly.add(Point(0,100));
-    poly.add(Point(2000,2000)); // (2000,2000), (1000,1000), ( 1100, 100)
-    poly.add(Point(1000,1000));
-    poly.add(Point(1100,100));
-    
-    std::cerr << poly.inside(Point(-2000,1000)) << std::endl;
+    {
+        Polygon poly;
+        poly.add(Point(2000,2000));  //     /
+        poly.add(Point(1000,1000));  //   / /
+        poly.add(Point(1100,100));   //   |/
+        
+        assert (!poly.inside(Point(-2000,1000)));
+        assert (poly.inside(Point(1010,1000)));
+        assert (!poly.inside(Point(5000,1000)));
+        assert (poly.inside(Point(1111,1100)));
+        assert (!poly.inside(Point(2001,2001)));
+        assert (poly.inside(Point(1999,1998)));
+    }
+    {
+        Polygon poly;
+        poly.add(Point(0,0));
+        poly.add(Point(100,0));    //
+        poly.add(Point(100,100));  //  |\  /|
+        poly.add(Point(50,50));    //  | \/ |
+        poly.add(Point(0,100));    //  |____|
+        
+        assert (poly.inside(Point(60,50)));
+        assert (!poly.inside(Point(50,60)));
+        assert (poly.inside(Point(60,40)));
+        assert (poly.inside(Point(50,40)));
+        assert (!poly.inside(Point(-1,100)));
+        assert (!poly.inside(Point(-10,-10)));
+        
+    }
+    {
+        Polygon poly;
+        poly.add(Point(   0,2000));  //   |\    .
+        poly.add(Point(   0,   0));  //   | >   .
+        poly.add(Point(1000,1000));  //   |/
+        
+        assert (poly.inside(Point(500,1000)));
+        assert (poly.inside(Point(200,500)));
+        assert (poly.inside(Point(200,1500)));
+        assert (poly.inside(Point(800,1000)));
+        assert (!poly.inside(Point(-10,1000)));
+        assert (!poly.inside(Point(1100,1000)));
+        assert (!poly.inside(Point(600,500)));
+        assert (!poly.inside(Point(600,1500)));
+        assert (!poly.inside(Point(2000,1000)));
+    }
 }
 
 /*
