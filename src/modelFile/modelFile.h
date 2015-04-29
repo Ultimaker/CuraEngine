@@ -64,6 +64,7 @@ public:
 
     void finalize()
     {
+        // If a mesh position was given, put the mesh at this position in 3D space.
         if (hasSetting("mesh_position_x") || hasSetting("mesh_position_y") || hasSetting("mesh_position_z"))
         {
             Point3 object_min = min();
@@ -76,6 +77,17 @@ public:
                 object_offset.y += getSettingInMicrons("mesh_position_y");
             if (hasSetting("mesh_position_z"))
                 object_offset.z += getSettingInMicrons("mesh_position_z");
+            offset(object_offset);
+        }
+
+        //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
+        if (hasSetting("machine_center_is_zero") && !getSettingBoolean("machine_center_is_zero"))
+        {
+            Point3 object_offset = Point3(0, 0, 0);
+            if (hasSetting("machine_width"))
+                object_offset.x = getSettingInMicrons("machine_width") / 2;
+            if (hasSetting("machine_depth"))
+                object_offset.y = getSettingInMicrons("machine_depth") / 2;
             offset(object_offset);
         }
     }
