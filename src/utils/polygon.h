@@ -7,6 +7,7 @@
 #include <clipper/clipper.hpp>
 
 #include <algorithm>    // std::reverse
+#include <cmath> // fabs
 
 #include "intpoint.h"
 
@@ -148,11 +149,8 @@ public:
             p0 = p1;
         }
 
-        double area = Area(*polygon);
-        if (area < 0) 
-        {
-            area *= -1;
-        }
+        double area = std::fabs(Area(*polygon));
+        
         x = x / 6 / area;
         y = y / 6 / area;
 
