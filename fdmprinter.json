@@ -223,6 +223,22 @@
                     "default": true,
                     "visible": false
                 },
+                "fill_perimeter_gaps":{
+                    "label": "Fill Gaps Between Walls",
+                    "description": "Fill the gaps created by walls where they would otherwise be overlapping. This will also fill thin walls. Optionally only the gaps occurring within the top and bottom skin can be filled.",
+                    "type": "enum",
+                    "options": [
+                        "Nowhere",
+                        "Everywhere",
+                        "Skin"
+                    ],
+                    "default": "Everywhere",
+                    "visible": false,
+                    "active_if": {
+                        "setting": "wall_overlap_avoid_enabled",
+                        "value": true
+                    }
+                },
                 "top_bottom_pattern": {
                     "label": "Bottom/Top Pattern",
                     "description": "Pattern of the top/bottom solid fill. This normally is done with lines to get the best possible finish, but in some cases a concentric fill gives a nicer end result.",

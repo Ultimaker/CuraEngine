@@ -419,11 +419,14 @@ private:
                     if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
                     {
                         generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
-                        //generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
-                        generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
-                        // TODO: introduce separate settings for the number of top and bottom layers of gaps?
-                        // TODO: separate setting for using gaps on all layers! (for models with thin walls)
-                        // TODO: OR: just standard on all layers!
+                        if (mesh.settings->getSettingString("fill_perimeter_gaps") == "Skin")
+                        {
+                            generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
+                        }
+                        else if (mesh.settings->getSettingString("fill_perimeter_gaps") == "Everywhere")
+                        {
+                            generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
+                        }
                     }
 
                     SliceLayer& layer = mesh.layers[layer_nr];
@@ -979,7 +982,10 @@ private:
                         if (skin_part.insets.size() > 0)
                         {
                             generateLineInfill(skin_part.insets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
-                            generateLineInfill(skin_part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+                            if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                            {
+                                generateLineInfill(skin_part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+                            }
                         } 
                         else
                         {
@@ -990,8 +996,10 @@ private:
                         {
                             Polygons in_outline;
                             offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
-                            
-                            generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
+                            if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                            {
+                                generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
+                            }
                         }
                         break;
                     default:
@@ -1002,7 +1010,10 @@ private:
             }
             
             // handle gaps between perimeters etc.
-            generateLineInfill(part->perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+            if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+            {
+                generateLineInfill(part->perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+            }
             
             
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
