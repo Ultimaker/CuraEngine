@@ -30,6 +30,7 @@ private:
     int filament_diameter;
     int flow;
     int layer_thickness;
+    double extrusion_volume_per_mm;
     double extrusion_per_mm;
 public:
     const char* name;
@@ -73,8 +74,11 @@ public:
         speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
     
-    double getExtrusionPerMM()
+    //volumatric extrusion means the E values in the final GCode are cubic mm. Else they are in mm filament.
+    double getExtrusionPerMM(bool volumatric)
     {
+        if (volumatric)
+            return extrusion_volume_per_mm;
         return extrusion_per_mm;
     }
     
@@ -91,8 +95,9 @@ public:
 private:
     void calculateExtrusion()
     {
+        extrusion_volume_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
         double filament_area = M_PI * (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-        extrusion_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) / filament_area * double(flow) / 100.0;
+        extrusion_per_mm = extrusion_volume_per_mm / filament_area;
     }
 };
 
