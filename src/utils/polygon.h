@@ -175,35 +175,52 @@ public:
         return ret;
     }
     
+    
     /*!
      * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
      *  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
      * 
      * When the point is exactly on the border, the output is not determined.
      */
-    bool inside(Point p)
+    bool inside2(Point p)
     {
-        if (polygon->size() < 1)
+        PolygonRef thiss = *this;
+        if (size() < 1)
             return false;
         
         int crossings = 0;
         Point p0 =  back();
-        for(unsigned int n=0; n<polygon->size(); n++)
+        for(unsigned int n=0; n<size(); n++)
         {
-            Point p1 = (*polygon)[n];
-            
-            if ((p0.Y >= p.Y && p1.Y <= p.Y) || (p1.Y >= p.Y && p0.Y <= p.Y))
+            Point p1 = thiss[n];
+            if (p1.Y == p.Y)
+            {
+                if (p1.X >= p.X)
+                {
+                    while (p1.Y == p.Y && n<size())
+                    {
+                        n++;
+                        p1 = thiss[n];
+                    }
+                    if ( (p1.Y - p.Y) * (p0.Y - p.Y) < 0) // if border is eventually crossing the scanline instead of staying on the same side
+                    {
+                    std::cerr << "line: "<< __LINE__ << ": " << p0 << " - " << p1 << std::endl;
+                        crossings++;
+                    }
+                }
+                
+            }
+            else if ((p0.Y > p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y < p.Y))
             {
                 if (p0.X >= p.X && p1.X >= p.X) // x will be in positive direction
                 {
+                    std::cerr << "line: "<< __LINE__ << ": " << p0 << " - " << p1 << std::endl;
                     crossings ++;
                 }
                 else if (p0.X <= p.X && p1.X <= p.X) // x will be in negative direction
                 {
-                    continue;
-                }
-                else if (p1.Y == p0.Y) // point is on border or we don't cross this line segment
-                {
+                    std::cerr << "line: "<< __LINE__ << ": " << p0 << " - " << p1 << std::endl;
+                    p0 = p1;
                     continue;
                 }
                 else // x might be either in positive or in negative direction; compute x!
@@ -211,7 +228,93 @@ public:
                     int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
                     if (x >= p.X)
                     {
+                    std::cerr << "line: "<< __LINE__ << ": " << p0 << " - " << p1 << std::endl;
                         crossings ++;
+                    }
+                }
+            }
+            p0 = p1;
+        }
+        std::cerr << "crossings: " << crossings << std::endl;
+        return (crossings % 2) == 1;
+    }
+
+    /*!
+     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
+     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+     * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
+     * outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
+     * The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
+     * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
+     * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
+     * exactly on the line.
+     * 
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
+     * 
+     * \param p The point for which to check if it is inside this polygon
+     * \param border_result What to return when the point is exactly on the border
+     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
+     */
+    bool inside(Point p, bool border_result=false)
+    {
+        PolygonRef thiss = *this;
+        if (size() < 1)
+        {
+            return false;
+        }
+        
+        int crossings = 0;
+        Point p0 = back();
+        for(unsigned int n=0; n<size(); n++)
+        {
+            Point p1 = thiss[n];
+            // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
+            if ( std::max(p0.X, p1.X) >= p.X )
+            {
+                int64_t pdY = p1.Y-p0.Y;
+                if (pdY < 0) // p0->p1 is 'falling'
+                {
+                    if ( p1.Y <= p.Y && p0.Y > p.Y ) // candidate
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X-p.X)*pdY;
+                        if (dx == 0) // includes p == p1
+                        {
+                            return border_result;
+                        }
+                        if (dx > 0)
+                        {
+                            crossings ++;
+                        }
+                    }
+                }
+                else if (p.Y >= p0.Y)
+                {
+                    if (p.Y < p1.Y) // candidate for p0->p1 'rising' and includes p.Y
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X-p0.X)*pdY;
+                        if (dx == 0) // includes p == p0
+                        {
+                            return border_result;
+                        }
+                        if (dx > 0)
+                        {
+                            crossings ++;
+                        }
+                    }
+                    else if (p.Y == p1.Y)
+                    {
+                        // some special cases here, points on border:
+                        // - p1 exactly matches p (might otherwise be missed)
+                        // - p0->p1 exactly horizontal, and includes p.
+                        // (we already tested std::max(p0.X,p1.X) >= p.X )
+                        if (p.X == p1.X ||
+                            pdY==0 && std::min(p0.X,p1.X) <= p.X )
+                        {
+                            return border_result;
+                            // otherwise, count no crossings
+                        }
                     }
                 }
             }
@@ -219,7 +322,7 @@ public:
         }
         return (crossings % 2) == 1;
     }
-
+    
     void smooth(int remove_length, PolygonRef result)
     {
         PolygonRef& thiss = *this;
