@@ -9,32 +9,12 @@
 #include "slicer.h"
 
 #include "utils/polygon.h"
+#include "utils/polygonUtils.h"
 
 #include "debug.h"
 
 namespace cura
 {
-
-/*!
- * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
- */
-struct ClosestPolygonPoint
-{
-    Point p; //!< Result location
-    PolygonRef poly; //!< Polygon in which the result was found
-    int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  p(p), poly(poly), pos(pos) {};
-    ClosestPolygonPoint(PolygonRef poly) : poly(poly) {};
-};
-
-/*!
- * A point within a polygon and the index of which segment in the polygon the point lies on.
- */
-struct GivenDistPoint
-{
-    Point p; //!< Result location
-    int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
-};
 
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
@@ -166,32 +146,6 @@ private:
  */
     void connections2moves(WeaveRoofPart& inset);
    
-/*!
- * Find the point closest to \p from in all polygons in \p polygons.
- */
-    static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
-    
-/*!
- * Find the point closest to \p from in the polygon \p polygon.
- */
-    static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
-    
-/*!
- * Find the point closest to \p from on the line from \p p0 to \p p1
- */
-    static Point getClosestOnLine(Point from, Point p0, Point p1);
-
-/*!
- * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
- * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
- * The point \p from and the polygon \p poly are assumed to lie on the same plane.
- * 
- * \param start_idx the index of the prev poly point on the poly.
- * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
- */
-    static bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
-
-
 };
 
 }//namespace cura
