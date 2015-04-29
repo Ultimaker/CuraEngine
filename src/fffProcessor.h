@@ -502,17 +502,19 @@ private:
 
         if (fileNr == 1)
         {
-            if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-            
-            for(SliceMeshStorage& mesh : storage.meshes)
-                if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
-                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"));
-            for(SliceMeshStorage& mesh : storage.meshes)
-                if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
-                    gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"), true);
-            
-            gcode.writeCode(getSettingString("machine_start_gcode").c_str());
+            if (gcode.getFlavor() != GCODE_FLAVOR_ULTIGCODE)
+            {
+                if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+                    gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
+                
+                for(SliceMeshStorage& mesh : storage.meshes)
+                    if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+                        gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"));
+                for(SliceMeshStorage& mesh : storage.meshes)
+                    if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+                        gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"), true);
+                gcode.writeCode(getSettingString("machine_start_gcode").c_str());
+            }
             gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
             {
