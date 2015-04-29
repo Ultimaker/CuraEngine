@@ -178,7 +178,7 @@ private:
         }
 
         gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        gcode.setRetractionSettings(getSettingInMicrons("retractionAmountExtruderSwitch"), getSettingInMillimetersPerSecond("retractionExtruderSwitchSpeed"), getSettingInMillimetersPerSecond("retractionExtruderSwitchPrimeSpeed"), getSettingInMicrons("retraction_extrusion_window"), getSettingInMicrons("retraction_count_max"));
+        gcode.setRetractionSettings(getSettingInMicrons("machine_switch_extruder_retraction_amount"), getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), getSettingInMicrons("retraction_extrusion_window"), getSettingInMicrons("retraction_count_max"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model
@@ -446,7 +446,7 @@ private:
         }
         log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
 
-        if (getSettingInMicrons("wipe_tower_distance") > 0)
+        if (getSettingInMicrons("wipe_tower_distance") > 0 && getSettingInMicrons("wipe_tower_size") > 0)
         {
             PolygonRef p = storage.wipeTower.newPoly();
             int tower_size = getSettingInMicrons("wipe_tower_size");
