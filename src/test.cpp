@@ -15,7 +15,7 @@ using namespace cura;
 /*!
  * Test whether polygon.inside(point) returns correct results.
  */
-void test_poly_inside()
+void test_poly_inside_and_centerOfMass()
 {
     {
         Polygon poly;
@@ -29,6 +29,26 @@ void test_poly_inside()
         assert (poly.inside(Point(1111,1100)));
         assert (!poly.inside(Point(2001,2001)));
         assert (poly.inside(Point(1999,1998)));
+
+        std::cerr << "poly.centerOfMass() = " << poly.centerOfMass() << std::endl;
+        Point center = poly.centerOfMass();
+        for (int i = 0 ; i < 1000; i++)
+        {
+            Point translation(rand()%4000 - 2000, rand()%4000 - 2000);
+            Polygon translated;
+            for (Point& p : poly)
+            {
+                translated.add(p + translation);
+            }
+            Point translated_center = center + translation;
+            if (vSize2(translated.centerOfMass() - translated_center) > 5*5)
+            {
+                std::cerr << "ERROR! test failed! " << std::endl;
+                
+                std::cerr << "translated.centerOfMass() = " << translated.centerOfMass() << std::endl;
+                std::cerr << "translated_center = " << translated_center << std::endl;
+            }
+        }
     }
     {
         Polygon poly;
@@ -45,6 +65,25 @@ void test_poly_inside()
         assert (!poly.inside(Point(-1,100)));
         assert (!poly.inside(Point(-10,-10)));
         
+        std::cerr << "poly.centerOfMass() = " << poly.centerOfMass() << std::endl;
+        Point center = poly.centerOfMass();
+        for (int i = 0 ; i < 1000; i++)
+        {
+            Point translation(rand()%4000 - 2000, rand()%4000 - 2000);
+            Polygon translated;
+            for (Point& p : poly)
+            {
+                translated.add(p + translation);
+            }
+            Point translated_center = center + translation;
+            if (vSize2(translated.centerOfMass() - translated_center) > 5*5)
+            {
+                std::cerr << "ERROR! test failed! " << std::endl;
+                
+                std::cerr << "translated.centerOfMass() = " << translated.centerOfMass() << std::endl;
+                std::cerr << "translated_center = " << translated_center << std::endl;
+            }
+        }
     }
     {
         Polygon poly;
@@ -61,6 +100,25 @@ void test_poly_inside()
         assert (!poly.inside(Point(600,500)));
         assert (!poly.inside(Point(600,1500)));
         assert (!poly.inside(Point(2000,1000)));
+        
+        std::cerr << "poly.centerOfMass() = " << poly.centerOfMass() << std::endl;
+        Point center = poly.centerOfMass();
+        for (int i = 0 ; i < 1000; i++)
+        {
+            Point translation(rand()%4000 - 2000, rand()%4000 - 2000);
+            Polygon translated;
+            for (Point& p : poly)
+            {
+                translated.add(translation - Point(-p.X, p.Y));
+            }
+            Point translated_center = translation - Point(-center.X, center.Y);
+            if (vSize2(translated.centerOfMass() - translated_center) > 5*5)
+            {
+                std::cerr << "ERROR! test failed! " << std::endl;
+                std::cerr << "translated.centerOfMass() = " << translated.centerOfMass() << std::endl;
+                std::cerr << "translated_center = " << translated_center << std::endl;
+            }
+        }
     }
 }
 
@@ -106,5 +164,5 @@ void test_BucketGrid2D()
 
 int main(int argc, char **argv)
 {
-    test_poly_inside();
+    test_poly_inside_and_centerOfMass();
 }

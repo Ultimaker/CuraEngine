@@ -134,6 +134,19 @@ public:
     {
         return ClipperLib::Area(*polygon);
     }
+    
+    /*!
+     * Translate the whole polygon in some direction.
+     * 
+     * \param translation The direction in which to move the polygon
+     */
+    void translate(Point translation)
+    {
+        for (Point& p : *this)
+        {
+            p += translation;
+        }
+    }
 
     Point centerOfMass() const
     {
@@ -149,7 +162,7 @@ public:
             p0 = p1;
         }
 
-        double area = std::fabs(Area(*polygon));
+        double area = Area(*polygon);
         
         x = x / 6 / area;
         y = y / 6 / area;
@@ -244,7 +257,7 @@ public:
                         // - p0->p1 exactly horizontal, and includes p.
                         // (we already tested std::max(p0.X,p1.X) >= p.X )
                         if (p.X == p1.X ||
-                            pdY==0 && std::min(p0.X,p1.X) <= p.X )
+                            (pdY==0 && std::min(p0.X,p1.X) <= p.X) )
                         {
                             return border_result;
                             // otherwise, count no crossings
