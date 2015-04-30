@@ -2,6 +2,7 @@
 #define SETTINGS_H
 
 #include <vector>
+#include <map>
 
 #include "utils/floatpoint.h"
 
@@ -9,30 +10,11 @@
 #define VERSION "DEV"
 #endif
 
-#define FIX_HORRIBLE_UNION_ALL_TYPE_A    0x01
-#define FIX_HORRIBLE_UNION_ALL_TYPE_B    0x02
-#define FIX_HORRIBLE_EXTENSIVE_STITCHING 0x04
-#define FIX_HORRIBLE_UNION_ALL_TYPE_C    0x08
-#define FIX_HORRIBLE_KEEP_NONE_CLOSED    0x10
-
-/**
- * Type of support material.
- * Grid is a X/Y grid with an outline, which is very strong, provides good support. But in some cases is hard to remove.
- * Lines give a row of lines which break off one at a time, making them easier to remove, but they do not support as good as the grid support.
+/*!
+ * Different flavors of GCode. Some machines require different types of GCode.
+ * The GCode flavor definition handles this as a big setting to make major or minor modifications to the GCode.
  */
-enum Support_Pattern
-{
-    SUPPORT_TYPE_GRID = 0,
-    SUPPORT_TYPE_LINES = 1
-};
-
-#ifndef DEFAULT_CONFIG_PATH
-#define DEFAULT_CONFIG_PATH "default.cfg"
-#endif
-
-#define CONFIG_MULTILINE_SEPARATOR "\"\"\""
-
-enum GCode_Flavor
+enum EGCodeFlavor
 {
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
@@ -88,141 +70,83 @@ enum GCode_Flavor
     GCODE_FLAVOR_REPRAP_VOLUMATRIC = 5,
 };
 
+/*!
+ * In Cura different infill methods are available.
+ * This enum defines which fill patterns are available to get a uniform naming troughout the engine.
+ * The different methods are used for top/bottom, support and sparse infill.
+ */
+enum EFillMethod
+{
+    Fill_Lines,
+    Fill_Grid,
+    Fill_Triangles,
+    Fill_Concentric,
+    Fill_ZigZag,
+    Fill_None
+};
+
+/*!
+ * Type of platform adheasion
+ */
+enum EPlatformAdhesion
+{
+    Adhesion_None,
+    Adhesion_Brim,
+    Adhesion_Raft
+};
+
+/*!
+ * Type of support material to generate
+ */
+enum ESupportType
+{
+    Support_None,
+    Support_PlatformOnly,
+    Support_Everywhere
+};
+
 #define MAX_EXTRUDERS 16
 
-/**
- * Type of infill pattern.
+//Maximum number of sparse layers that can be combined into a single sparse extrusion.
+#define MAX_SPARSE_COMBINE 8
+
+/*!
+ * Base class for every object that can hold settings.
+ * The SettingBase object can hold multiple key-value pairs that define settings.
+ * The settings that are set on a SettingBase are checked against the SettingRegistry to ensure keys are valid.
+ * Different conversion functions are available for settings to increase code clarity and in the future make
+ * unit conversions possible.
  */
-enum Infill_Pattern
-{
-    INFILL_AUTOMATIC = 0,
-    INFILL_GRID = 1,
-    INFILL_LINES = 2,
-    INFILL_CONCENTRIC = 3,
-};
-
-/**
- * Where to use the combing feature
- */
-enum Combing_Feature
-{
-    COMBING_OFF = 0,
-    COMBING_ALL = 1,
-    COMBING_NOSKIN = 2,
-};
-
-class _ConfigSettingIndex
-{
-public:
-    const char* key;
-    int* ptr;
-
-    _ConfigSettingIndex(const char* key, int* ptr) : key(key), ptr(ptr) {}
-};
-
-class ConfigSettings
+class SettingsBase
 {
 private:
-    std::vector<_ConfigSettingIndex> _index;
+    std::map<std::string, std::string> setting_values;
+    SettingsBase* parent;
 public:
-    static ConfigSettings *config; // allow access to config settings from everywhere
-    int layerThickness;
-    int initialLayerThickness;
-    int filamentDiameter;
-    int filamentFlow;
-    int layer0extrusionWidth;
-    int extrusionWidth;
-    int insetCount;
-    int downSkinCount;
-    int upSkinCount;
-    int skirtDistance;
-    int skirtLineCount;
-    int skirtMinLength;
+    SettingsBase();
+    SettingsBase(SettingsBase* parent);
 
-    //Retraction settings
-    int retractionAmount;
-    int retractionAmountPrime;
-    int retractionAmountExtruderSwitch;
-    int retractionSpeed;
-    int retractionMinimalDistance;
-    int minimalExtrusionBeforeRetraction;
-    int retractionZHop;
+    bool hasSetting(std::string key);
 
-    int enableCombing;
-    int enableOozeShield;
-    int wipeTowerSize;
-    int multiVolumeOverlap;
-
-    int initialSpeedupLayers;
-    int initialLayerSpeed;
-    int printSpeed;
-    int inset0Speed;
-    int insetXSpeed;
-    int moveSpeed;
-    int fanFullOnLayerNr;
-
-    //Infill settings
-    int sparseInfillLineDistance;
-    int infillOverlap;
-    int infillSpeed;
-    int infillPattern;
-    int skinSpeed;
-    int perimeterBeforeInfill;
-
-    //Support material
-    int supportType;
-    int supportAngle;
-    int supportEverywhere;
-    int supportLineDistance;
-    int supportXYDistance;
-    int supportZDistance;
-    int supportExtruder;
-
-    //Cool settings
-    int minimalLayerTime;
-    int minimalFeedrate;
-    int coolHeadLift;
-    int fanSpeedMin;
-    int fanSpeedMax;
-
-    //Raft settings
-    int raftMargin;
-    int raftLineSpacing;
-    int raftBaseThickness;
-    int raftBaseLinewidth;
-    int raftBaseSpeed;
-    int raftInterfaceThickness;
-    int raftInterfaceLinewidth;
-    int raftInterfaceLineSpacing;
-    int raftFanSpeed;
-    int raftSurfaceThickness;
-    int raftSurfaceLinewidth;
-    int raftSurfaceLineSpacing;
-    int raftSurfaceLayers;
-    int raftSurfaceSpeed;
-    int raftAirGap;
-    int raftAirGapLayer0;
-
-    FMatrix3x3 matrix;
-    IntPoint objectPosition;
-    int objectSink;
-    int autoCenter;
-
-    int fixHorrible;
-    int spiralizeMode;
-    int simpleMode;
-    int gcodeFlavor;
-
-    IntPoint extruderOffset[MAX_EXTRUDERS];
-    std::string startCode;
-    std::string endCode;
-    std::string preSwitchExtruderCode;
-    std::string postSwitchExtruderCode;
-
-    ConfigSettings();
-    bool setSetting(const char* key, const char* value);
-    bool readSettings(void);
-    bool readSettings(const char* path);
+    void setSetting(std::string key, std::string value);
+    
+    std::string getSettingString(std::string key);
+    int getSettingAsIndex(std::string key);
+    int getSettingAsCount(std::string key);
+    
+    double getSettingInAngleRadians(std::string key);
+    int getSettingInMicrons(std::string key);
+    bool getSettingBoolean(std::string key);
+    double getSettingInDegreeCelsius(std::string key);
+    double getSettingInMillimetersPerSecond(std::string key);
+    double getSettingInPercentage(std::string key);
+    double getSettingInSeconds(std::string key);
+    
+    EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
+    EFillMethod getSettingAsFillMethod(std::string key);
+    EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
+    ESupportType getSettingAsSupportType(std::string key);
 };
+
 
 #endif//SETTINGS_H

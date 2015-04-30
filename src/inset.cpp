@@ -1,12 +1,13 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "inset.h"
 #include "polygonOptimizer.h"
-
+#include "utils/polygonUtils.h"
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int offset, int insetCount)
+void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {
-    part->combBoundery = part->outline.offset(-offset);
+    int combBoundaryInset = extrusionWidth/2; // hard coded value
+    part->combBoundery = part->outline.offset(-combBoundaryInset);
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);
@@ -16,7 +17,14 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     for(int i=0; i<insetCount; i++)
     {
         part->insets.push_back(Polygons());
-        part->insets[i] = part->outline.offset(-offset * i - offset/2);
+        if (i == 0)
+        {
+            offsetSafe(part->outline, - extrusionWidth/2, extrusionWidth, part->insets[i], avoidOverlappingPerimeters);
+        } else
+        {
+            offsetExtrusionWidth(part->insets[i-1], true, extrusionWidth, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+        }
+            
         optimizePolygons(part->insets[i]);
         if (part->insets[i].size() < 1)
         {
@@ -26,11 +34,12 @@ void generateInsets(SliceLayerPart* part, int offset, int insetCount)
     }
 }
 
-void generateInsets(SliceLayer* layer, int offset, int insetCount)
+
+void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], offset, insetCount);
+        generateInsets(&layer->parts[partNr], extrusionWidth, insetCount, avoidOverlappingPerimeters);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,

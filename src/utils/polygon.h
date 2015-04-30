@@ -4,8 +4,10 @@
 #include <vector>
 #include <assert.h>
 #include <float.h>
-using std::vector;
 #include <clipper/clipper.hpp>
+
+#include <algorithm>    // std::reverse
+#include <cmath> // fabs
 
 #include "intpoint.h"
 
@@ -17,6 +19,16 @@ using std::vector;
 #endif
 
 namespace cura {
+
+enum PolygonType
+{
+    NoneType,
+    Inset0Type,
+    InsetXType,
+    SkinType,
+    SupportType,
+    SkirtType
+};
 
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
@@ -37,10 +49,18 @@ public:
         return polygon->size();
     }
 
-    Point operator[] (unsigned int index) const
+    Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
         return (*polygon)[index];
+    }
+    ClipperLib::Path::iterator begin() 
+    {
+        return polygon->begin();
+    }
+    ClipperLib::Path::iterator end() 
+    {
+        return polygon->end();
     }
 
     void* data()
@@ -86,10 +106,46 @@ public:
         }
         return length;
     }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(Point p : *polygon)
+        {
+            ret.X = std::min(ret.X, p.X);
+            ret.Y = std::min(ret.Y, p.Y);
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(Point p : *polygon)
+        {
+            ret.X = std::max(ret.X, p.X);
+            ret.Y = std::max(ret.Y, p.Y);
+        }
+        return ret;
+    }
+
 
     double area() const
     {
         return ClipperLib::Area(*polygon);
+    }
+    
+    /*!
+     * Translate the whole polygon in some direction.
+     * 
+     * \param translation The direction in which to move the polygon
+     */
+    void translate(Point translation)
+    {
+        for (Point& p : *this)
+        {
+            p += translation;
+        }
     }
 
     Point centerOfMass() const
@@ -107,14 +163,10 @@ public:
         }
 
         double area = Area(*polygon);
+        
         x = x / 6 / area;
         y = y / 6 / area;
 
-        if (x < 0)
-        {
-            x = -x;
-            y = -y;
-        }
         return Point(x, y);
     }
 
@@ -134,29 +186,183 @@ public:
         return ret;
     }
     
-    //Check if we are inside the polygon. We do this by tracing from the point towards the negative X direction,
-    //  every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
-    bool inside(Point p)
+    /*!
+     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
+     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+     * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
+     * outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
+     * The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
+     * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
+     * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
+     * exactly on the line.
+     * 
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
+     * 
+     * \param p The point for which to check if it is inside this polygon
+     * \param border_result What to return when the point is exactly on the border
+     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
+     */
+    bool inside(Point p, bool border_result=false)
     {
-        if (polygon->size() < 1)
+        PolygonRef thiss = *this;
+        if (size() < 1)
+        {
             return false;
+        }
         
         int crossings = 0;
-        Point p0 = (*polygon)[polygon->size()-1];
-        for(unsigned int n=0; n<polygon->size(); n++)
+        Point p0 = back();
+        for(unsigned int n=0; n<size(); n++)
         {
-            Point p1 = (*polygon)[n];
-            
-            if ((p0.Y >= p.Y && p1.Y < p.Y) || (p1.Y > p.Y && p0.Y <= p.Y))
+            Point p1 = thiss[n];
+            // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
+            if ( std::max(p0.X, p1.X) >= p.X )
             {
-                int64_t x = p0.X + (p1.X - p0.X) * (p.Y - p0.Y) / (p1.Y - p0.Y);
-                if (x >= p.X)
-                    crossings ++;
+                int64_t pdY = p1.Y-p0.Y;
+                if (pdY < 0) // p0->p1 is 'falling'
+                {
+                    if ( p1.Y <= p.Y && p0.Y > p.Y ) // candidate
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X-p.X)*pdY;
+                        if (dx == 0) // includes p == p1
+                        {
+                            return border_result;
+                        }
+                        if (dx > 0)
+                        {
+                            crossings ++;
+                        }
+                    }
+                }
+                else if (p.Y >= p0.Y)
+                {
+                    if (p.Y < p1.Y) // candidate for p0->p1 'rising' and includes p.Y
+                    {
+                        // dx > 0 if intersection is to right of p.X
+                        int64_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X-p0.X)*pdY;
+                        if (dx == 0) // includes p == p0
+                        {
+                            return border_result;
+                        }
+                        if (dx > 0)
+                        {
+                            crossings ++;
+                        }
+                    }
+                    else if (p.Y == p1.Y)
+                    {
+                        // some special cases here, points on border:
+                        // - p1 exactly matches p (might otherwise be missed)
+                        // - p0->p1 exactly horizontal, and includes p.
+                        // (we already tested std::max(p0.X,p1.X) >= p.X )
+                        if (p.X == p1.X ||
+                            (pdY==0 && std::min(p0.X,p1.X) <= p.X) )
+                        {
+                            return border_result;
+                            // otherwise, count no crossings
+                        }
+                    }
+                }
             }
             p0 = p1;
         }
         return (crossings % 2) == 1;
     }
+    
+    void smooth(int remove_length, PolygonRef result)
+    {
+        PolygonRef& thiss = *this;
+        ClipperLib::Path* poly = result.polygon;
+        if (size() > 0)
+            poly->push_back(thiss[0]);
+        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+        {
+            if (shorterThen(thiss[poly_idx-1]-thiss[poly_idx], remove_length))
+            {
+                poly_idx++; // skip the next line piece (dont escalate the removal of edges)
+                if (poly_idx < size())
+                    poly->push_back(thiss[poly_idx]);
+            } else poly->push_back(thiss[poly_idx]);
+        }
+    }
+
+    void simplify(int allowed_error_distance_squared, PolygonRef result) //!< removes consecutive line segments with same orientation
+    {
+        PolygonRef& thiss = *this;
+        ClipperLib::Path* poly = result.polygon;
+        
+        if (size() < 4)
+        {
+            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+                poly->push_back(thiss[poly_idx]);
+            return;
+        }
+        
+        Point& last = thiss[0];
+        result.add(last);
+        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+        {
+            /*
+             *    /|
+             * c / | a
+             *  /__|
+             *  \ b|
+             * e \ | d
+             *    \|
+             * 
+             * b^2 = c^2 - a^2
+             * b^2 = e^2 - d^2
+             * 
+             * approximately: (this is asymptotically true for d -> 0)
+             * a/d = c/e
+             * a/(a+d) = c/(c+e)
+             * a^2 / (a+d)^2 = c^2 / (c+e)^2
+             * a^2 = c^2 * (a+d)^2/ (c+e)^2
+             * 
+             */
+            if ( vSize2(thiss[poly_idx]-last) < allowed_error_distance_squared )
+            {
+                continue;
+            }
+            Point& next = thiss[(poly_idx+1) % size()];
+            auto square = [](double in) { return in*in; };
+            int64_t a2 = vSize2(next-thiss[poly_idx]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[poly_idx]-last))*1000*1000);
+            
+            int64_t error2 = vSize2(next-thiss[poly_idx]) - a2;
+            if (error2 < allowed_error_distance_squared)
+            {
+                // don't add the point to the result
+            } else 
+            {
+                poly->push_back(thiss[poly_idx]);
+                last = thiss[poly_idx];
+            }
+        }
+        
+        if (result.size() < 3)
+        {
+            poly->clear();
+        
+            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+                poly->push_back(thiss[poly_idx]);
+            return;
+        }
+    }
+    ClipperLib::Path::const_iterator begin() const
+    {
+        return polygon->begin();
+    }
+
+    ClipperLib::Path::const_iterator end() const
+    {
+        return polygon->end();
+    }
+    ClipperLib::Path::reference back() const
+    {
+        return polygon->back();
+    }
+
 
     ClipperLib::Path::iterator begin()
     {
@@ -203,7 +409,7 @@ class Polygons
 private:
     ClipperLib::Paths polygons;
 public:
-    unsigned int size()
+    unsigned int size() const
     {
         return polygons.size();
     }
@@ -212,6 +418,14 @@ public:
     {
         POLY_ASSERT(index < size());
         return PolygonRef(polygons[index]);
+    }
+    ClipperLib::Paths::iterator begin()
+    {
+        return polygons.begin();
+    }
+    ClipperLib::Paths::iterator end()
+    {
+        return polygons.end();
     }
     void remove(unsigned int index)
     {
@@ -235,6 +449,10 @@ public:
     {
         polygons.push_back(ClipperLib::Path());
         return PolygonRef(polygons[polygons.size()-1]);
+    }
+    PolygonRef back()
+    {
+        return polygons[polygons.size()-1];
     }
 
     Polygons() {}
@@ -267,18 +485,68 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
         return ret;
     }
-    Polygons offset(int distance) const
+    Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;
-        ClipperLib::ClipperOffset clipper;
-        clipper.AddPaths(polygons, ClipperLib::jtMiter, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = 2.0;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
+        clipper.Execute(ClipperLib::ctXor, ret.polygons);
+        return ret;
+    }
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
+    {
+        Polygons ret;
+        double miterLimit = 1.2;
+        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
+        clipper.AddPaths(polygons, joinType, ClipperLib::etClosedPolygon);
+        clipper.MiterLimit = miterLimit;
         clipper.Execute(ret.polygons, distance);
         return ret;
     }
-    vector<Polygons> splitIntoParts(bool unionAll = false) const
+    
+    Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
-        vector<Polygons> ret;
+        Polygons ret;
+        for (unsigned int p = 0; p < size(); p++)
+        {
+            PolygonRef poly(polygons[p]);
+            if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
+            {
+                ret.add(poly);
+                continue;
+            }
+            
+            if (poly.size() == 0)
+                continue;
+            if (poly.size() < 4)
+                ret.add(poly);
+            else 
+                poly.smooth(remove_length, ret.newPoly());
+            
+
+        }
+        return ret;
+    }
+    
+    Polygons simplify(int allowed_error_distance) //!< removes points connected to similarly oriented lines
+    {
+        int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
+        Polygons ret;
+        Polygons& thiss = *this;
+        for (unsigned int p = 0; p < size(); p++)
+        {
+            thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
+        }
+        return ret;
+    }
+    /*!
+     * Split up the polygons into groups according to the even-odd rule.
+     * Each polygons in the result has an outline as first polygon, whereas the rest are holes.
+     */
+    std::vector<Polygons> splitIntoParts(bool unionAll = false) const
+    {
+        std::vector<Polygons> ret;
         ClipperLib::Clipper clipper(clipper_init);
         ClipperLib::PolyTree resultPolyTree;
         clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
@@ -290,8 +558,80 @@ public:
         _processPolyTreeNode(&resultPolyTree, ret);
         return ret;
     }
+    /*!
+     * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
+     */
+    void removeSmallAreas(double minAreaSize)
+    {               
+        Polygons& thiss = *this;
+        for(unsigned int i=0; i<size(); i++)
+        {
+            double area = INT2MM(INT2MM(fabs(thiss[i].area())));
+            if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
+            {
+                remove(i);
+                i -= 1;
+            }
+        }
+    }
+    /*!
+     * Removes the same polygons from this set (and also empty polygons).
+     * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
+     */
+    Polygons remove(Polygons& to_be_removed, int same_distance = 0)
+    {
+        Polygons result;
+        for (unsigned int poly_keep_idx = 0; poly_keep_idx < size(); poly_keep_idx++)
+        {
+            PolygonRef poly_keep = (*this)[poly_keep_idx];
+            bool should_be_removed = false;
+            if (poly_keep.size() > 0) 
+//             for (int hole_poly_idx = 0; hole_poly_idx < to_be_removed.size(); hole_poly_idx++)
+            for (PolygonRef poly_rem : to_be_removed)
+            {
+//                 PolygonRef poly_rem = to_be_removed[hole_poly_idx];
+                if (poly_rem.size() != poly_keep.size() || poly_rem.size() == 0) continue;
+                
+                // find closest point, supposing this point aligns the two shapes in the best way
+                int closest_point_idx = 0;
+                int smallestDist2 = -1;
+                for (unsigned int point_rem_idx = 0; point_rem_idx < poly_rem.size(); point_rem_idx++)
+                {
+                    int dist2 = vSize2(poly_rem[point_rem_idx] - poly_keep[0]);
+                    if (dist2 < smallestDist2 || smallestDist2 < 0)
+                    {
+                        smallestDist2 = dist2;
+                        closest_point_idx = point_rem_idx;
+                    }
+                }
+                bool poly_rem_is_poly_keep = true;
+                // compare the two polygons on all points
+                if (smallestDist2 > same_distance * same_distance)
+                    continue;
+                for (unsigned int point_idx = 0; point_idx < poly_rem.size(); point_idx++)
+                {
+                    int dist2 = vSize2(poly_rem[(closest_point_idx + point_idx) % poly_rem.size()] - poly_keep[point_idx]);
+                    if (dist2 > same_distance * same_distance)
+                    {
+                        poly_rem_is_poly_keep = false;
+                        break;
+                    }
+                }
+                if (poly_rem_is_poly_keep)
+                {
+                    should_be_removed = true;
+                    break;
+                }
+            }
+            if (!should_be_removed)
+                result.add(poly_keep);
+            
+        }
+        return result;
+    }
+            
 private:
-    void _processPolyTreeNode(ClipperLib::PolyNode* node, vector<Polygons>& ret) const
+    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Polygons>& ret) const
     {
         for(int n=0; n<node->ChildCount(); n++)
         {
@@ -330,6 +670,34 @@ public:
             }
         }
         return length;
+    }
+    
+    Point min() const
+    {
+        Point ret = Point(POINT_MAX, POINT_MAX);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::min(ret.X, p.X);
+                ret.Y = std::min(ret.Y, p.Y);
+            }
+        }
+        return ret;
+    }
+    
+    Point max() const
+    {
+        Point ret = Point(POINT_MIN, POINT_MIN);
+        for(const ClipperLib::Path& polygon : polygons)
+        {
+            for(Point p : polygon)
+            {
+                ret.X = std::max(ret.X, p.X);
+                ret.Y = std::max(ret.Y, p.Y);
+            }
+        }
+        return ret;
     }
 
     bool inside(Point p)

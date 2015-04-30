@@ -2,7 +2,7 @@
 #ifndef INT_POINT_H
 #define INT_POINT_H
 
-/*
+/**
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
 Integer points are used to avoid floating point rounding errors, and because ClipperLib uses them.
 */
@@ -15,6 +15,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <stdint.h>
 #include <cmath>
 
+#include <iostream> // auto-serialization / auto-toString()
+
 #define INT2MM(n) (double(n) / 1000.0)
 #define MM2INT(n) (int64_t((n) * 1000))
 
@@ -24,6 +26,15 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 //c++11 no longer defines M_PI, so add our own constant.
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
+#endif
+
+#ifdef __GNUC__
+#define DEPRECATED(func) func __attribute__ ((deprecated))
+#elif defined(_MSC_VER)
+#define DEPRECATED(func) __declspec(deprecated) func
+#else
+#pragma message("WARNING: You need to implement DEPRECATED for this compiler")
+#define DEPRECATED(func) func
 #endif
 
 class Point3
@@ -36,12 +47,24 @@ public:
     Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
     Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
+    Point3 operator*(const int32_t i) const { return Point3(x*i, y*i, z*i); }
+    Point3 operator*(const double d) const { return Point3(d*x, d*y, d*z); }
 
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     Point3& operator -= (const Point3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
 
     bool operator==(const Point3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(const Point3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
+
+
+    template<class CharT, class TraitsT>
+    friend
+    std::basic_ostream<CharT, TraitsT>&
+    operator <<(std::basic_ostream<CharT, TraitsT>& os, const Point3& p)
+    {
+        return os << "(" << p.x << ", " << p.y << ", " << p.z << ")";
+    }
+
 
     int32_t max()
     {
@@ -61,27 +84,50 @@ public:
         return vSize2() <= len*len;
     }
 
-    int64_t vSize2()
+    int64_t vSize2() const
     {
         return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
     }
 
-    int32_t vSize()
+    int32_t vSize() const
     {
         return sqrt(vSize2());
     }
-
-    Point3 cross(const Point3& p)
+    
+    double vSizeMM() const
+    {
+        double fx = INT2MM(x);
+        double fy = INT2MM(y);
+        double fz = INT2MM(z);
+        return sqrt(fx*fx+fy*fy+fz*fz);
+    }
+    /*! this function is deprecated because it can cause overflows for vectors which easily fit inside a printer. Use FPoint3.cross(a,b) instead. */
+    DEPRECATED(Point3 cross(const Point3& p))
     {
         return Point3(
-            y*p.z-z*p.y,
-            z*p.x-x*p.z,
+            y*p.z-z*p.y, /// dangerous for vectors longer than 4.6 cm !!!!!
+            z*p.x-x*p.z, /// can cause overflows
             x*p.y-y*p.x);
     }
+
+    int64_t dot(const Point3& p)
+    {
+        return x*p.x + y*p.y + z*p.z;
+    }
+
 };
+
+inline Point3 operator*(const int32_t i, const Point3& rhs) {
+    return rhs * i;
+}
+
+inline Point3 operator*(const double d, const Point3& rhs) {
+    return rhs * d;
+}
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
+
 class IntPoint {
 public:
     int X, Y;
@@ -91,16 +137,18 @@ public:
 #define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
+INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
 INLINE Point operator*(const Point& p0, const int32_t i) { return Point(p0.X*i, p0.Y*i); }
+INLINE Point operator*(const int32_t i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
 
-//Point& operator += (const Point& p) { x += p.x; y += p.y; return *this; }
-//Point& operator -= (const Point& p) { x -= p.x; y -= p.y; return *this; }
+INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
+INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
 
-INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
-INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
+//INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
+//INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }
 
 INLINE int64_t vSize2(const Point& p0)
 {
@@ -199,5 +247,23 @@ public:
         return Point(p.X * matrix[0] + p.Y * matrix[2], p.X * matrix[1] + p.Y * matrix[3]);
     }
 };
+
+
+inline Point3 operator+(const Point3& p3, const Point& p2) {
+    return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
+}
+
+inline Point operator+(const Point& p2, const Point3& p3) {
+    return Point(p3.x + p2.X, p3.y + p2.Y);
+}
+
+
+inline Point3 operator-(const Point3& p3, const Point& p2) {
+    return Point3(p3.x - p2.X, p3.y - p2.Y, p3.z);
+}
+
+inline Point operator-(const Point& p2, const Point3& p3) {
+    return Point(p2.X - p3.x, p2.Y - p3.y);
+}
 
 #endif//INT_POINT_H

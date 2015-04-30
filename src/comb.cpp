@@ -148,7 +148,7 @@ bool Comb::moveInside(Point* p, int distance)
     return false;
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
+bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints)
 {
     if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
         return true;
@@ -180,7 +180,7 @@ bool Comb::calc(Point startPoint, Point endPoint, vector<Point>& combPoints)
     calcMinMax();
     
     int64_t x = sp.X;
-    vector<Point> pointList;
+    std::vector<Point> pointList;
     //Now walk trough the crossings, for every boundary we cross, find the initial cross point and the exit point. Then add all the points in between
     // to the pointList and continue with the next boundary we will cross, until there are no more boundaries to cross.
     // This gives a path from the start to finish curved around the holes that it encounters.

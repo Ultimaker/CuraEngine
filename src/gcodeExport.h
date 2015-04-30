@@ -3,41 +3,132 @@
 #define GCODEEXPORT_H
 
 #include <stdio.h>
+#include <deque> // for extrusionAmountAtPreviousRetractions
 
 #include "settings.h"
-#include "comb.h"
 #include "utils/intpoint.h"
-#include "utils/polygon.h"
 #include "timeEstimate.h"
 
 namespace cura {
+
+class RetractionConfig
+{
+public:
+    double amount; //!< The amount
+    int speed;
+    int primeSpeed;
+    double primeAmount;
+    int zHop;
+};
+
+//The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
+class GCodePathConfig
+{
+private:
+    int speed;
+    int line_width;
+    int filament_diameter;
+    int flow;
+    int layer_thickness;
+    double extrusion_volume_per_mm;
+    double extrusion_per_mm;
+public:
+    const char* name;
+    bool spiralize;
+    RetractionConfig* retraction_config;
+    
+    GCodePathConfig() : speed(0), line_width(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
+    
+    void setSpeed(int speed)
+    {
+        this->speed = speed;
+    }
+    
+    void setLineWidth(int line_width)
+    {
+        this->line_width = line_width;
+        calculateExtrusion();
+    }
+    
+    void setLayerHeight(int layer_height)
+    {
+        this->layer_thickness = layer_height;
+        calculateExtrusion();
+    }
+
+    void setFilamentDiameter(int diameter)
+    {
+        this->filament_diameter = diameter;
+        calculateExtrusion();
+    }
+
+    void setFlow(int flow)
+    {
+        this->flow = flow;
+        calculateExtrusion();
+    }
+    
+    void smoothSpeed(int min_speed, int layer_nr, int max_speed_layer)
+    {
+        speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
+    }
+    
+    //volumatric extrusion means the E values in the final GCode are cubic mm. Else they are in mm filament.
+    double getExtrusionPerMM(bool volumatric)
+    {
+        if (volumatric)
+            return extrusion_volume_per_mm;
+        return extrusion_per_mm;
+    }
+    
+    int getSpeed()
+    {
+        return speed;
+    }
+    
+    int getLineWidth()
+    {
+        return line_width;
+    }
+
+private:
+    void calculateExtrusion()
+    {
+        extrusion_volume_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
+        double filament_area = M_PI * (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
+        extrusion_per_mm = extrusion_volume_per_mm / filament_area;
+    }
+};
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
 class GCodeExport
 {
 private:
-    FILE* f;
-    double extrusionAmount;
-    double extrusionPerMM;
-    double retractionAmount;
-    double retractionAmountPrime;
-    int retractionZHop;
+    std::ostream* output_stream;
+    double extrusion_amount;
     double extruderSwitchRetraction;
-    double minimalExtrusionBeforeRetraction;
-    double extrusionAmountAtPreviousRetraction;
+    int extruderSwitchRetractionSpeed;
+    int extruderSwitchPrimeSpeed;
+    double retraction_extrusion_window;
+    double retraction_count_max;
+    std::deque<double> extrusion_amount_at_previous_n_retractions;
     Point3 currentPosition;
     Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];
     char extruderCharacter[MAX_EXTRUDERS];
-    int currentSpeed, retractionSpeed;
+    int currentTemperature[MAX_EXTRUDERS];
+    int currentSpeed;
     int zPos;
     bool isRetracted;
+    bool isZHopped;
+    int retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
-    int flavor;
-    std::string preSwitchExtruderCode;
-    std::string postSwitchExtruderCode;
+    EGCodeFlavor flavor;
+    std::string preSwitchExtruderCode[MAX_EXTRUDERS];
+    std::string postSwitchExtruderCode[MAX_EXTRUDERS];
     
     double totalFilament[MAX_EXTRUDERS];
     double totalPrintTime;
@@ -45,26 +136,22 @@ private:
 public:
     
     GCodeExport();
-    
     ~GCodeExport();
     
-    void replaceTagInStart(const char* tag, const char* replaceValue);
+    void setOutputStream(std::ostream* stream);
     
     void setExtruderOffset(int id, Point p);
-    void setSwitchExtruderCode(std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
+    Point getExtruderOffset(int id);
+    void setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
-    void setFlavor(int flavor);
-    int getFlavor();
-    
-    void setFilename(const char* filename);
-    
-    bool isOpened();
-    
-    void setExtrusion(int layerThickness, int filamentDiameter, int flow);
-    
-    void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime);
+    void setFlavor(EGCodeFlavor flavor);
+    EGCodeFlavor getFlavor();
+        
+    void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
     
     void setZ(int z);
+    
+    Point3 getPosition();
     
     Point getPositionXY();
     
@@ -73,6 +160,10 @@ public:
     Point getStartPositionXY();
 
     int getPositionZ();
+    
+    Point getStartPositionXY();
+    
+    void resetStartPosition();
 
     int getExtruderNr();
     
@@ -80,18 +171,25 @@ public:
 
     double getTotalPrintTime();
     void updateTotalPrintTime();
+    void resetTotalPrintTime();
     
-    void writeComment(const char* comment, ...);
-
-    void writeLine(const char* line, ...);
+    void writeComment(std::string comment);
+    void writeTypeComment(const char* type);
+    void writeLayerComment(int layer_nr);
+    
+    void writeLine(const char* line);
     
     void resetExtrusionValue();
     
     void writeDelay(double timeAmount);
     
-    void writeMove(Point p, int speed, int lineWidth);
+    void writeMove(Point p, int speed, double extrusion_per_mm);
     
-    void writeRetraction(bool force=false);
+    void writeMove(Point3 p, int speed, double extrusion_per_mm);
+private:
+    void writeMove(int x, int y, int z, int speed, double extrusion_per_mm);
+public:
+    void writeRetraction(RetractionConfig* config, bool force=false);
     
     void switchExtruder(int newExtruder);
     
@@ -99,137 +197,12 @@ public:
     
     void writeFanCommand(int speed);
     
+    void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
+    void writeBedTemperatureCommand(int temperature, bool wait = false);
+    
     void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
-
-    int getFileSize();
-    void tellFileSize();
 };
 
-//The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
-class GCodePathConfig
-{
-public:
-    int speed;
-    int lineWidth;
-    const char* name;
-    bool spiralize;
-    
-    GCodePathConfig() : speed(0), lineWidth(0), name(nullptr), spiralize(false) {}
-    GCodePathConfig(int speed, int lineWidth, const char* name) : speed(speed), lineWidth(lineWidth), name(name), spiralize(false) {}
-    
-    void setData(int speed, int lineWidth, const char* name)
-    {
-        this->speed = speed;
-        this->lineWidth = lineWidth;
-        this->name = name;
-    }
-};
-
-class GCodePath
-{
-public:
-    GCodePathConfig* config;
-    bool retract;
-    int extruder;
-    vector<Point> points;
-    bool done;//Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
-};
-
-//The GCodePlanner class stores multiple moves that are planned.
-// It facilitates the combing to keep the head inside the print.
-// It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
-class GCodePlanner
-{
-private:
-    GCodeExport& gcode;
-    
-    Point lastPosition;
-    vector<GCodePath> paths;
-    Comb* comb;
-    
-    GCodePathConfig travelConfig;
-    int extrudeSpeedFactor;
-    int travelSpeedFactor;
-    int currentExtruder;
-    int retractionMinimalDistance;
-    bool forceRetraction;
-    bool alwaysRetract;
-    double extraTime;
-    double totalPrintTime;
-private:
-    GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
-    void forceNewPathStart();
-public:
-    GCodePlanner(GCodeExport& gcode, int travelSpeed, int retractionMinimalDistance);
-    ~GCodePlanner();
-    
-    bool setExtruder(int extruder)
-    {
-        if (extruder == currentExtruder)
-            return false;
-        currentExtruder = extruder;
-        return true;
-    }
-    
-    int getExtruder()
-    {
-        return currentExtruder;
-    }
-
-    void setCombBoundary(Polygons* polygons)
-    {
-        if (comb)
-            delete comb;
-        if (polygons)
-            comb = new Comb(*polygons);
-        else
-            comb = nullptr;
-    }
-    
-    void setAlwaysRetract(bool alwaysRetract)
-    {
-        this->alwaysRetract = alwaysRetract;
-    }
-    
-    void forceRetract()
-    {
-        forceRetraction = true;
-    }
-    
-    void setExtrudeSpeedFactor(int speedFactor)
-    {
-        if (speedFactor < 1) speedFactor = 1;
-        this->extrudeSpeedFactor = speedFactor;
-    }
-    int getExtrudeSpeedFactor()
-    {
-        return this->extrudeSpeedFactor;
-    }
-    void setTravelSpeedFactor(int speedFactor)
-    {
-        if (speedFactor < 1) speedFactor = 1;
-        this->travelSpeedFactor = speedFactor;
-    }
-    int getTravelSpeedFactor()
-    {
-        return this->travelSpeedFactor;
-    }
-    
-    void addTravel(Point p);
-    
-    void addExtrusionMove(Point p, GCodePathConfig* config);
-    
-    void moveInsideCombBoundary(int distance);
-
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config);
-
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config);
-    
-    void forceMinimalLayerTime(double minTime, int minimalSpeed);
-    
-    void writeGCode(bool liftHeadIfNeeded, int layerThickness);
-};
-
-}//namespace cura
+}
 
 #endif//GCODEEXPORT_H

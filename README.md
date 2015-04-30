@@ -16,6 +16,47 @@ Terms of the license can be found in the LICENSE file. Or at http://www.gnu.org/
 
 But in general it boils down to: You need to share the source of any CuraEngine modifications if you make an application with the CuraEngine. (Even if you make a web-based slicer, you still need to share the source!)
 
+How to Install
+==============
+1. Clone the repository from https://github.com/Ultimaker/CuraEngine.git (the URL at the right hand side of this page).
+2. Install Protobuf (see below)
+3. Install libArcus (see https://github.com/Ultimaker/libArcus)
+
+In order to compile CuraEngine, either use CMake or start a project in your preferred IDE. 
+CMake compilation:
+1. Navigate to the CuraEngine directory and execute the following commands
+2. $ mkdir build && cd build
+3. $ cmake ..
+4. $ make
+
+Project files generation:
+1. Navigate to the CuraEngine directory and execute the following commands
+2. cmake . -G "CodeBlocks - Unix Makefiles"
+3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
+
+Installing Protobuf
+-------------------
+1. Be sure to have libtool installed.
+2. Download protobuf from https://github.com/google/protobuf/ (download ZIP and unZIP at desired location, or clone the repo) The protocol buffer is used for communication between the CuraEngine and the GUI.
+3. Before installing protobuf, change autogen.sh : comment line 18 to line 38 using '#'s. This removes the dependency on gtest-1.7.0.
+4. Run autogen.sh from the protobuf directory: 
+   $ ./autogen.sh
+5. $ ./configure
+6. $ make
+7. $ make install     # Requires superused priviliges.
+8. (In case the shared library cannot be loaded, you can try "sudo ldconfig" on Linux systems)
+
+Running
+=======
+Other than running CuraEngine from a frontend, such as PluggableCura, one can run CuraEngine from the command line.
+An example run for an UM2 machine looks as follows:
+* Navigate to the CuraEngine directory and execute the following
+```
+./build/CuraEngine -v -j fdmprinter.json -s machine_start_gcode=";FLAVOR:UltiGCode
+;TIME:10000000
+;MATERIAL:2000
+;MATERIAL2:0" -s mesh_position_x=115.0 -s mesh_position_y=112.5 -s mesh_position_z=0 -s material_diameter=1.128 -o "output/test.gcode" "/path/to/model.stl"
+```
 
 Internals
 =========

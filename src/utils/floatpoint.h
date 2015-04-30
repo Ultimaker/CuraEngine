@@ -15,49 +15,91 @@ They represent millimeters in 3D space.
 class FPoint3
 {
 public:
-    double x,y,z;
+    float x,y,z;
     FPoint3() {}
-    FPoint3(double _x, double _y, double _z): x(_x), y(_y), z(_z) {}
-    
+    FPoint3(float _x, float _y, float _z): x(_x), y(_y), z(_z) {}
+    FPoint3(const Point3& p): x(p.x*.001), y(p.y*.001), z(p.z*.001) {}
+
     FPoint3 operator+(const FPoint3& p) const { return FPoint3(x+p.x, y+p.y, z+p.z); }
     FPoint3 operator-(const FPoint3& p) const { return FPoint3(x-p.x, y-p.y, z-p.z); }
-    FPoint3 operator*(const double f) const { return FPoint3(x*f, y*f, z*f); }
-    FPoint3 operator/(const double f) const { return FPoint3(x/f, y/f, z/f); }
-    
+    FPoint3 operator*(const float f) const { return FPoint3(x*f, y*f, z*f); }
+    FPoint3 operator/(const float f) const { return FPoint3(x/f, y/f, z/f); }
+
     FPoint3& operator += (const FPoint3& p) { x += p.x; y += p.y; z += p.z; return *this; }
     FPoint3& operator -= (const FPoint3& p) { x -= p.x; y -= p.y; z -= p.z; return *this; }
-    
+    FPoint3& operator *= (const float f) { x *= f; y *= f; z *= f; return *this; }
+
     bool operator==(FPoint3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(FPoint3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
-    
-    double max()
+
+    float max()
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
-    
-    bool testLength(double len)
+
+    bool testLength(float len)
     {
         return vSize2() <= len*len;
     }
-    
-    double vSize2()
+
+    float vSize2()
     {
         return x*x+y*y+z*z;
     }
-    
-    double vSize()
+
+    float vSize()
     {
         return sqrt(vSize2());
     }
+
+    inline FPoint3 normalized()
+    {
+        return (*this)/vSize();
+    }
+
+    FPoint3 cross(const FPoint3& p)
+    {
+        return FPoint3(
+            y*p.z-z*p.y,
+            z*p.x-x*p.z,
+            x*p.y-y*p.x);
+    }
+
+    static FPoint3 cross(const Point3& a, const Point3& b)
+    {
+        return FPoint3(a).cross(FPoint3(b));
+//        FPoint3(
+//            a.y*b.z-a.z*b.y,
+//            a.z*b.x-a.x*b.z,
+//            a.x*b.y-a.y*b.x);
+    }
+
+    Point3 toPoint3()
+    {
+        return Point3(x*1000, y*1000, z*1000);
+    }
 };
+
+
+//inline FPoint3 operator+(FPoint3 lhs, const FPoint3& rhs) {
+//  lhs += rhs;
+//  return lhs;
+//}
+inline float operator*(FPoint3 lhs, const FPoint3& rhs) {
+    return lhs.x*rhs.x + lhs.y*rhs.y + lhs.z*rhs.z;
+}
+//inline FPoint3 operator*(FPoint3 lhs, const float f) {
+//  lhs *= f;
+//  return lhs;
+//}
 
 class FMatrix3x3
 {
 public:
     double m[3][3];
-    
+
     FMatrix3x3()
     {
         m[0][0] = 1.0;
@@ -71,7 +113,7 @@ public:
         m[2][2] = 1.0;
     }
     
-    Point3 apply(FPoint3 p)
+    Point3 apply(const FPoint3& p)
     {
         return Point3(
             MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0]),

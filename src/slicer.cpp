@@ -9,7 +9,7 @@
 
 namespace cura {
 
-void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool extensiveStitching)
+void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
     Polygons openPolygonList;
     
@@ -30,20 +30,20 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
             Point p0 = segmentList[segmentIndex].end;
             poly.add(p0);
             int nextIndex = -1;
-            OptimizedFace* face = &ov->faces[segmentList[segmentIndex].faceIndex];
+            MeshFace* face = &mesh->faces[segmentList[segmentIndex].faceIndex];
             for(unsigned int i=0;i<3;i++)
             {
-                if (face->touching[i] > -1 && faceToSegmentIndex.find(face->touching[i]) != faceToSegmentIndex.end())
+                if (face->connected_face_index[i] > -1 && face_idx_to_segment_index.find(face->connected_face_index[i]) != face_idx_to_segment_index.end())
                 {
-                    Point p1 = segmentList[faceToSegmentIndex[face->touching[i]]].start;
+                    Point p1 = segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].start;
                     Point diff = p0 - p1;
                     if (shorterThen(diff, MM2INT(0.01)))
                     {
-                        if (faceToSegmentIndex[face->touching[i]] == static_cast<int>(startSegment))
+                        if (face_idx_to_segment_index[face->connected_face_index[i]] == static_cast<int>(startSegment))
                             canClose = true;
-                        if (segmentList[faceToSegmentIndex[face->touching[i]]].addedToPolygon)
+                        if (segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].addedToPolygon)
                             continue;
-                        nextIndex = faceToSegmentIndex[face->touching[i]];
+                        nextIndex = face_idx_to_segment_index[face->connected_face_index[i]];
                     }
                 }
             }
@@ -155,7 +155,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }
     }
 
-    if (extensiveStitching)
+    if (extensive_stitching)
     {
         //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
         // Then find the sortest path over this polygon that can be used to connect the open polygons,
@@ -263,7 +263,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
         }
     }
 
-    if (keepNoneClosed)
+    if (keep_none_closed)
     {
         for(unsigned int n=0; n<openPolygonList.size(); n++)
         {
@@ -282,7 +282,7 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
     for(unsigned int i=0;i<polygonList.size();i++)
     {
         int length = 0;
-        
+
         for(unsigned int n=1; n<polygonList[i].size(); n++)
         {
             length += vSize(polygonList[i][n] - polygonList[i][n-1]);
@@ -298,28 +298,32 @@ void SlicerLayer::makePolygons(OptimizedVolume* ov, bool keepNoneClosed, bool ex
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     optimizePolygons(polygonList);
+
+    int xy_offset = mesh->getSettingInMicrons("xy_offset");
+    if (xy_offset != 0)
+    {
+        polygonList = polygonList.offset(xy_offset);
+    }
 }
 
 
-Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool keepNoneClosed, bool extensiveStitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
 {
-    modelSize = ov->model->modelSize;
-    modelMin = ov->model->vMin;
+    assert(layer_count > 0);
+
+    layers.resize(layer_count);
     
-    int layerCount = (modelSize.z - initial) / thickness + 1;
-    cura::log("Layer count: %i\n", layerCount);
-    layers.resize(layerCount);
-    
-    for(int32_t layerNr = 0; layerNr < layerCount; layerNr++)
+    for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
     {
-        layers[layerNr].z = initial + thickness * layerNr;
+        layers[layer_nr].z = initial + thickness * layer_nr;
     }
     
-    for(unsigned int i=0; i<ov->faces.size(); i++)
+    for(unsigned int i=0; i<mesh->faces.size(); i++)
     {
-        Point3 p0 = ov->points[ov->faces[i].index[0]].p;
-        Point3 p1 = ov->points[ov->faces[i].index[1]].p;
-        Point3 p2 = ov->points[ov->faces[i].index[2]].p;
+        MeshFace& face = mesh->faces[i];
+        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
+        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
+        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ) minZ = p1.z;
@@ -327,11 +331,11 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
         
-        for(int32_t layerNr = (minZ - initial) / thickness; layerNr <= (maxZ - initial) / thickness; layerNr++)
+        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= (maxZ - initial) / thickness; layer_nr++)
         {
-            int32_t z = layerNr * thickness + initial;
+            int32_t z = layer_nr * thickness + initial;
             if (z < minZ) continue;
-            if (layerNr < 0) continue;
+            if (layer_nr < 0) continue;
             
             SlicerSegment s;
             if (p0.z < z && p1.z >= z && p2.z >= z)
@@ -354,61 +358,16 @@ Slicer::Slicer(OptimizedVolume* ov, int32_t initial, int32_t thickness, bool kee
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layerNr].faceToSegmentIndex[i] = layers[layerNr].segmentList.size();
+            layers[layer_nr].face_idx_to_segment_index[i] = layers[layer_nr].segmentList.size();
             s.faceIndex = i;
             s.addedToPolygon = false;
-            layers[layerNr].segmentList.push_back(s);
+            layers[layer_nr].segmentList.push_back(s);
         }
     }
-    
-    for(unsigned int layerNr=0; layerNr<layers.size(); layerNr++)
+    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
-        layers[layerNr].makePolygons(ov, keepNoneClosed, extensiveStitching);
+        layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }
-}
-
-void Slicer::dumpSegmentsToHTML(const char* filename)
-{
-    float scale = std::max(modelSize.x, modelSize.y) / 1500;
-    FILE* f = fopen(filename, "w");
-    fprintf(f, "<!DOCTYPE html><html><body>\n");
-    for(unsigned int i=0; i<layers.size(); i++)
-    {
-        fprintf(f, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style='width:%ipx;height:%ipx'>\n", int(modelSize.x / scale), int(modelSize.y / scale));
-        fprintf(f, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
-        fprintf(f, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
-        fprintf(f, "</marker>");
-        fprintf(f, "<g fill-rule='evenodd' style=\"fill: gray; stroke:black;stroke-width:1\">\n");
-        fprintf(f, "<path marker-mid='url(#MidMarker)' d=\"");
-        for(unsigned int j=0; j<layers[i].polygonList.size(); j++)
-        {
-            PolygonRef p = layers[i].polygonList[j];
-            for(unsigned int n=0; n<p.size(); n++)
-            {
-                if (n == 0)
-                    fprintf(f, "M");
-                else
-                    fprintf(f, "L");
-                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
-            }
-            fprintf(f, "Z\n");
-        }
-        fprintf(f, "\"/>");
-        fprintf(f, "</g>\n");
-        for(unsigned int j=0; j<layers[i].openPolygons.size(); j++)
-        {
-            PolygonRef p = layers[i].openPolygons[j];
-            fprintf(f, "<polyline marker-mid='url(#MidMarker)' points=\"");
-            for(unsigned int n=0; n<p.size(); n++)
-            {
-                fprintf(f, "%f,%f ", float(p[n].X - modelMin.x)/scale, float(p[n].Y - modelMin.y)/scale);
-            }
-            fprintf(f, "\" style=\"fill: none; stroke:red;stroke-width:1\" />\n");
-        }
-        fprintf(f, "</svg>\n");
-    }
-    fprintf(f, "</body></html>");
-    fclose(f);
 }
 
 }//namespace cura

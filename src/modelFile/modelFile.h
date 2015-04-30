@@ -7,112 +7,92 @@ modelFile contains the model loaders for the slicer. The model loader turns any 
 The format returned is a Model class with an array of faces, which have integer points with a resolution of 1 micron. Giving a maximum object size of 4 meters.
 **/
 
-#include <vector>
-using std::vector;
-#include "../utils/intpoint.h"
-#include "../utils/floatpoint.h"
+#include "../mesh.h"
 
-extern FILE* binaryMeshBlob;
-
-#define SET_MIN(n, m) do { if ((m) < (n)) n = m; } while(0)
-#define SET_MAX(n, m) do { if ((m) > (n)) n = m; } while(0)
-
-/* A SimpleFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers */
-class SimpleFace
+//A PrintObject is a 3D model with 1 or more 3D meshes.
+class PrintObject : public SettingsBase
 {
 public:
-    Point3 v[3];
+    std::vector<Mesh> meshes;
 
-    SimpleFace(Point3& v0, Point3& v1, Point3& v2) { v[0] = v0; v[1] = v1; v[2] = v2; }
-};
-
-/* A SimpleVolume is the most basic reprisentation of a 3D model. It contains all the faces as SimpleTriangles, with nothing fancy. */
-class SimpleVolume
-{
-public:
-    vector<SimpleFace> faces;
-
-    void addFace(Point3& v0, Point3& v1, Point3& v2)
+    PrintObject(SettingsBase* settings_base)
+    : SettingsBase(settings_base)
     {
-        faces.push_back(SimpleFace(v0, v1, v2));
     }
 
-    Point3 min()
+    Point3 min() //! minimal corner of bounding box
     {
-        if (faces.size() < 1)
+        if (meshes.size() < 1)
             return Point3(0, 0, 0);
-        Point3 ret = faces[0].v[0];
-        for(unsigned int i=0; i<faces.size(); i++)
+        Point3 ret = meshes[0].min();
+        for(unsigned int i=1; i<meshes.size(); i++)
         {
-            SET_MIN(ret.x, faces[i].v[0].x);
-            SET_MIN(ret.y, faces[i].v[0].y);
-            SET_MIN(ret.z, faces[i].v[0].z);
-            SET_MIN(ret.x, faces[i].v[1].x);
-            SET_MIN(ret.y, faces[i].v[1].y);
-            SET_MIN(ret.z, faces[i].v[1].z);
-            SET_MIN(ret.x, faces[i].v[2].x);
-            SET_MIN(ret.y, faces[i].v[2].y);
-            SET_MIN(ret.z, faces[i].v[2].z);
+            Point3 v = meshes[i].min();
+            ret.x = std::min(ret.x, v.x);
+            ret.y = std::min(ret.y, v.y);
+            ret.z = std::min(ret.z, v.z);
         }
         return ret;
     }
-    Point3 max()
+    Point3 max() //! maximal corner of bounding box
     {
-        if (faces.size() < 1)
+        if (meshes.size() < 1)
             return Point3(0, 0, 0);
-        Point3 ret = faces[0].v[0];
-        for(unsigned int i=0; i<faces.size(); i++)
+        Point3 ret = meshes[0].max();
+        for(unsigned int i=1; i<meshes.size(); i++)
         {
-            SET_MAX(ret.x, faces[i].v[0].x);
-            SET_MAX(ret.y, faces[i].v[0].y);
-            SET_MAX(ret.z, faces[i].v[0].z);
-            SET_MAX(ret.x, faces[i].v[1].x);
-            SET_MAX(ret.y, faces[i].v[1].y);
-            SET_MAX(ret.z, faces[i].v[1].z);
-            SET_MAX(ret.x, faces[i].v[2].x);
-            SET_MAX(ret.y, faces[i].v[2].y);
-            SET_MAX(ret.z, faces[i].v[2].z);
+            Point3 v = meshes[i].max();
+            ret.x = std::max(ret.x, v.x);
+            ret.y = std::max(ret.y, v.y);
+            ret.z = std::max(ret.z, v.z);
         }
         return ret;
     }
-};
 
-//A SimpleModel is a 3D model with 1 or more 3D volumes.
-class SimpleModel
-{
-public:
-    vector<SimpleVolume> volumes;
-
-    Point3 min()
+    void clear()
     {
-        if (volumes.size() < 1)
-            return Point3(0, 0, 0);
-        Point3 ret = volumes[0].min();
-        for(unsigned int i=0; i<volumes.size(); i++)
-        {
-            Point3 v = volumes[i].min();
-            SET_MIN(ret.x, v.x);
-            SET_MIN(ret.y, v.y);
-            SET_MIN(ret.z, v.z);
-        }
-        return ret;
+        for(Mesh& m : meshes)
+            m.clear();
     }
-    Point3 max()
+
+    void offset(Point3 offset)
     {
-        if (volumes.size() < 1)
-            return Point3(0, 0, 0);
-        Point3 ret = volumes[0].max();
-        for(unsigned int i=0; i<volumes.size(); i++)
+        for(Mesh& m : meshes)
+            for(MeshVertex& v : m.vertices)
+                v.p += offset;
+    }
+
+    void finalize()
+    {
+        // If a mesh position was given, put the mesh at this position in 3D space.
+        if (hasSetting("mesh_position_x") || hasSetting("mesh_position_y") || hasSetting("mesh_position_z"))
         {
-            Point3 v = volumes[i].max();
-            SET_MAX(ret.x, v.x);
-            SET_MAX(ret.y, v.y);
-            SET_MAX(ret.z, v.z);
+            Point3 object_min = min();
+            Point3 object_max = max();
+            Point3 object_size = object_max - object_min;
+            Point3 object_offset = Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
+            if (hasSetting("mesh_position_x"))
+                object_offset.x += getSettingInMicrons("mesh_position_x");
+            if (hasSetting("mesh_position_y"))
+                object_offset.y += getSettingInMicrons("mesh_position_y");
+            if (hasSetting("mesh_position_z"))
+                object_offset.z += getSettingInMicrons("mesh_position_z");
+            offset(object_offset);
         }
-        return ret;
+
+        //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
+        if (hasSetting("machine_center_is_zero") && !getSettingBoolean("machine_center_is_zero"))
+        {
+            Point3 object_offset = Point3(0, 0, 0);
+            if (hasSetting("machine_width"))
+                object_offset.x = getSettingInMicrons("machine_width") / 2;
+            if (hasSetting("machine_depth"))
+                object_offset.y = getSettingInMicrons("machine_depth") / 2;
+            offset(object_offset);
+        }
     }
 };
 
-SimpleModel* loadModelFromFile(SimpleModel*m,const char* filename, FMatrix3x3& matrix);
+bool loadMeshFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix);
 
 #endif//MODELFILE_H
