@@ -54,14 +54,6 @@ public:
         POLY_ASSERT(index < size());
         return (*polygon)[index];
     }
-    ClipperLib::Path::iterator begin() 
-    {
-        return polygon->begin();
-    }
-    ClipperLib::Path::iterator end() 
-    {
-        return polygon->end();
-    }
 
     void* data()
     {
@@ -349,20 +341,11 @@ public:
             return;
         }
     }
-    ClipperLib::Path::const_iterator begin() const
-    {
-        return polygon->begin();
-    }
 
-    ClipperLib::Path::const_iterator end() const
-    {
-        return polygon->end();
-    }
     ClipperLib::Path::reference back() const
     {
         return polygon->back();
     }
-
 
     ClipperLib::Path::iterator begin()
     {

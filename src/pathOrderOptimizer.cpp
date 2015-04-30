@@ -210,7 +210,6 @@ void LineOrderOptimizer::optimize()
                 best = i;
                 bestDist = dist + dot_score;
             }
-            polyStart[nr] = best;
         }
 
         polyStart[nr] = best;

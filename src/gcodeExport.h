@@ -160,10 +160,6 @@ public:
     Point getStartPositionXY();
 
     int getPositionZ();
-    
-    Point getStartPositionXY();
-    
-    void resetStartPosition();
 
     int getExtruderNr();
     
