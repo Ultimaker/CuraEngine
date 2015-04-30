@@ -14,11 +14,11 @@ namespace cura
 class GCodePath
 {
 public:
-    GCodePathConfig* config;
-    bool retract;
-    int extruder;
-    std::vector<Point> points;
-    bool done;//Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
+    GCodePathConfig* config; //!< The configuration settings of the path.
+    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
+    int extruder; //!< The extruder used for this path.
+    std::vector<Point> points; //!< The points constituting this path.
+    bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 };
 
 //The GCodePlanner class stores multiple moves that are planned.

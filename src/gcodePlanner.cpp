@@ -300,7 +300,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 gcode.setZ(z + layerThickness * length / totalLength);
                 gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
             }
-        }else{
+        }
+        else
+        { // normal path to gcode algorithm
             for(unsigned int i=0; i<path->points.size(); i++)
             {
                 gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));

@@ -218,15 +218,17 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
     pointList.push_back(endPoint);
     
     //Optimize the pointList, skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.
-    Point p0 = startPoint;
-    for(unsigned int n=1; n<pointList.size(); n++)
+    Point current_point = startPoint;
+    for(unsigned int point_idx = 1; point_idx<pointList.size(); point_idx++)
     {
-        if (collisionTest(p0, pointList[n]))
+        if (collisionTest(current_point, pointList[point_idx]))
         {
-            if (collisionTest(p0, pointList[n-1]))
+            if (collisionTest(current_point, pointList[point_idx - 1]))
+            {
                 return false;
-            p0 = pointList[n-1];
-            combPoints.push_back(p0);
+            }
+            current_point = pointList[point_idx - 1];
+            combPoints.push_back(current_point);
         }
     }
     if (addEndpoint)

@@ -36,6 +36,14 @@ public:
     bool inside(const Point p) { return boundery.inside(p); }
     bool moveInside(Point* p, int distance = 100);
     
+    /*!
+     * Calculate the comb path (if any)
+     * 
+     * \param startPoint Where to start moving from
+     * \param endPoint Where to move to
+     * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
+     * \return Whether combing has succeeded; otherwise a retraction is needed.
+     */
     bool calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints);
 };
 
