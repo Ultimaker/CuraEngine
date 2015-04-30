@@ -5,16 +5,16 @@
 #include <iostream>
 #include <cstdlib> // rand
 
-#include "utils/BucketGrid2D.h"
-#include "utils/intpoint.h"
+
+
+#include "utils/polygonUtils.h"
 
 using namespace cura;
 
-
+/*
+#include "utils/intpoint.h"
 #include "utils/polygon.h"
-/*!
- * Test whether polygon.inside(point) returns correct results.
- */
+// Test whether polygon.inside(point) returns correct results.
 void test_poly_inside_and_centerOfMass()
 {
     {
@@ -120,7 +120,7 @@ void test_poly_inside_and_centerOfMass()
             }
         }
     }
-}
+}*/
 
 /*
 struct LocationItem
@@ -130,6 +130,8 @@ struct LocationItem
     LocationItem(Point p, int i) : p(p), i(i) {};
     LocationItem() : p(0,0), i(-1) {};
 };
+
+#include "utils/BucketGrid2D.h"
 void test_BucketGrid2D()
 {
     
@@ -161,8 +163,108 @@ void test_BucketGrid2D()
     //bg.debug();
 }*/
 
+#include <math.h> 
+void test_findClosestConnection()
+{
+    srand(1234);
+    if (false)
+    {
+        Polygon poly2;
+        poly2.add(Point(0,300));
+        poly2.add(Point(100,300));    //   ____
+        poly2.add(Point(100,200));    //  |    |
+        poly2.add(Point(50,250));     //  | /\ |
+        poly2.add(Point(0,200));      //  |/  \|
+        
+        Polygon poly1;
+        poly1.add(Point(0,0));
+        poly1.add(Point(100,0));    //
+        poly1.add(Point(100,100));  //  |\  /|
+        poly1.add(Point(50,50));    //  | \/ |
+        poly1.add(Point(0,100));    //  |____|
+        
+        ClosestPolygonPoint result1 (poly1);
+        ClosestPolygonPoint result2 (poly2);
+        
+        findClosestConnection(result1, result2, 3);
+        std::cerr << result1.location << " -- " << result2.location << std::endl;
+    }
+    
+    if (false)
+    {
+        Polygon poly2;
+        poly2.add(Point(0,300));
+        poly2.add(Point(100,300));    //   ____
+        poly2.add(Point(100,200));    //  |    |
+        poly2.add(Point(50,250));     //  | /\ |
+        poly2.add(Point(10,105));     //  |/  \|
+        
+        Polygon poly1;
+        poly1.add(Point(0,0));
+        poly1.add(Point(100,0));    //
+        poly1.add(Point(100,100));  //  |\  /|
+        poly1.add(Point(50,50));    //  | \/ |
+        poly1.add(Point(0,100));    //  |____|
+        
+        ClosestPolygonPoint result1 (poly1);
+        ClosestPolygonPoint result2 (poly2);
+        
+        findClosestConnection(result1, result2, 3);
+        std::cerr << result1.location << " -- " << result2.location << std::endl;
+    }
+    { // for vizualization as csv with e.g. Rstudio
+        Polygon poly1;
+        double dist = 100;
+        for (double a = 0; a < 360; a += 1)
+        {
+            dist += int(rand()%3) -1;
+            Point p(static_cast<int>(dist * std::cos(a/180.0*3.1415)), static_cast<int>(dist * std::sin(a/180.0*3.1415)));
+            p = p + Point(0, 200);
+//             if (poly1.size() > 0);
+//             {
+//                 std::cerr << "Sdg" <<std::endl;
+//                 p = p + poly1[poly1.size()-1];
+//                 std::cerr << "Sdg" <<std::endl;
+//             }
+//             std::cerr << "Sdg" <<std::endl;
+//             p = p / 2;
+            if ( a ==0)
+                poly1.add(p);
+            else 
+                poly1.add((poly1.back() + p) / 2);
+            std::cerr << poly1.back().X << ", " << poly1.back().Y << std::endl;
+        }
+        std::cerr << " " << std::endl;
+        Polygon poly2;
+        dist = 100;
+        for (double a = 0; a < 360; a += 1)
+        {
+            
+            dist += int(rand()%3) - 1;
+            Point p(static_cast<int>(dist * std::cos(a/180.0*3.1415)), static_cast<int>(dist * std::sin(a/180.0*3.1415)));
+//             if (poly2.size() > 0);
+//             {
+//                 p = p + poly2.back();
+//                 p = p / 2;
+//             }
+            if ( a ==0)
+                poly2.add(p);
+            else 
+                poly2.add((poly2.back() + p) / 2);
+            std::cerr << poly2.back().X << ", " << poly2.back().Y << std::endl;
+        }
+        
+        ClosestPolygonPoint result1 (poly1);
+        ClosestPolygonPoint result2 (poly2);
+        
+        findClosestConnection(result1, result2, 5);
+        std::cerr << " " << std::endl;
+        std::cerr << result1.location.X  << " , " << result1.location.Y << std::endl;
+        std::cerr << result2.location.X  << " , " << result2.location.Y << std::endl;
+    }
+}
 
 int main(int argc, char **argv)
 {
-    test_poly_inside_and_centerOfMass();
+    test_findClosestConnection();
 }

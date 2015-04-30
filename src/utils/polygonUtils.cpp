@@ -46,7 +46,142 @@ void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
 
 
 
+void findClosestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+{
+    PolygonRef poly1 = poly1_result.poly;
+    PolygonRef poly2 = poly2_result.poly;
+    if (poly1.size() == 0 || poly2.size() == 0)
+    {
+        return;
+    }
+    
+    int bestDist2 = -1;
+    
+    int step1 = std::max<unsigned int>(2, poly1.size() / sample_size);
+    int step2 = std::max<unsigned int>(2, poly2.size() / sample_size);
+    for (unsigned int i = 0; i < poly1.size(); i += step1)
+    {
+        for (unsigned int j = 0; j < poly2.size(); j += step2)
+        {   
+            int dist2 = vSize2(poly1[i] - poly2[j]);
+            if (bestDist2 == -1 || dist2 < bestDist2)
+            {   
+                bestDist2 = dist2;
+                poly1_result.pos = i;
+                poly2_result.pos = j;
+            }
+        }
+    }
+    
+    walkToNearestSmallestConnection(poly1_result, poly2_result);    
+}
 
+void findClosestConnection_OLD(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+{
+    PolygonRef poly1 = poly1_result.poly;
+    PolygonRef poly2 = poly2_result.poly;
+    if (poly1.size() == 0 || poly2.size() == 0)
+    {
+        return;
+    }
+    
+    int bestDist2 = -1;
+    
+    int step1 = std::max<unsigned int>(2, poly1.size() / sample_size);
+    int step2 = std::max<unsigned int>(2, poly2.size() / sample_size);
+    for (unsigned int i = 0; i < poly1.size(); i += step1)
+    {
+        for (unsigned int j = 0; j < poly2.size(); j += step2)
+        {
+            ClosestPolygonPoint here1(i, poly1);
+            ClosestPolygonPoint here2(j, poly2);
+            walkToNearestSmallestConnection(here1, here2);
+            
+            int dist2 = vSize2(here1.location - here2.location);
+            if (bestDist2 == -1 || dist2 < bestDist2)
+            {   
+                bestDist2 = dist2;
+                poly1_result = here1;
+                poly2_result = here2;
+            }
+        }
+    }
+        
+}
+
+void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
+{
+    PolygonRef poly1 = poly1_result.poly;
+    PolygonRef poly2 = poly2_result.poly;
+    if (poly1_result.pos < 0 || poly2_result.pos < 0)
+    {
+        return;
+    }
+    
+    int equilibirum_limit = 100; // hard coded value
+    for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
+    {
+        int pos1_before = poly1_result.pos;
+        poly1_result = findNearestClosest(poly2_result.location, poly1, poly1_result.pos);
+        int pos2_before = poly2_result.pos;
+        poly2_result = findNearestClosest(poly1_result.location, poly2, poly2_result.pos);
+       
+        if (poly1_result.pos == pos1_before && poly2_result.pos == pos2_before)
+        {
+            break;
+        }
+    }
+}
+
+ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx)
+{
+    ClosestPolygonPoint forth = findNearestClosest(from, polygon, start_idx, 1);
+    ClosestPolygonPoint back = findNearestClosest(from, polygon, start_idx, -1);
+    if (vSize2(forth.location - from) < vSize2(back.location - from))
+    {
+        return forth;
+    }
+    else
+    {
+        return back;
+    }
+}
+
+ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction)
+{
+    if (polygon.size() == 0)
+    {
+        return ClosestPolygonPoint(polygon);
+    }
+    Point aPoint = polygon[0];
+    Point best = aPoint;
+
+    int64_t closestDist = vSize2(from - best);
+    int bestPos = 0;
+
+    for (unsigned int p = 0; p<polygon.size(); p++)
+    {
+        int p1_idx = (polygon.size() + direction*p + start_idx) % polygon.size();
+        int p2_idx = (polygon.size() + direction*(p+1) + start_idx) % polygon.size();
+        Point& p1 = polygon[p1_idx];
+        Point& p2 = polygon[p2_idx];
+
+        Point closestHere = getClosestOnLine(from, p1 ,p2);
+        int64_t dist = vSize2(from - closestHere);
+        if (dist < closestDist)
+        {
+            best = closestHere;
+            closestDist = dist;
+            bestPos = p1_idx;
+        }
+        else 
+        {
+            return ClosestPolygonPoint(best, bestPos, polygon);
+        }
+    }
+
+    return ClosestPolygonPoint(best, bestPos, polygon);
+}
 
 ClosestPolygonPoint findClosest(Point from, Polygons& polygons)
 {
@@ -61,14 +196,14 @@ ClosestPolygonPoint findClosest(Point from, Polygons& polygons)
 
     ClosestPolygonPoint best(aPoint, 0, aPolygon);
 
-    int64_t closestDist = vSize2(from - best.p);
+    int64_t closestDist = vSize2(from - best.location);
     
     for (unsigned int ply = 0; ply < polygons.size(); ply++)
     {
         PolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
         ClosestPolygonPoint closestHere = findClosest(from, poly);
-        int64_t dist = vSize2(from - closestHere.p);
+        int64_t dist = vSize2(from - closestHere.location);
         if (dist < closestDist)
         {
             best = closestHere;
@@ -80,9 +215,12 @@ ClosestPolygonPoint findClosest(Point from, Polygons& polygons)
     return best;
 }
 
-
 ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
 {
+    if (polygon.size() == 0)
+    {
+        return ClosestPolygonPoint(polygon);
+    }
     Point aPoint = polygon[0];
     Point best = aPoint;
 
@@ -188,7 +326,7 @@ bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, i
                 int64_t dist_to_middle = vSize(from - middle);
                 if (dist_to_middle - dist < 100 && dist_to_middle - dist > -100)
                 {
-                    result.p = middle;
+                    result.location = middle;
                     result.pos = prev_idx;
                     return true;
                 } else
@@ -220,7 +358,7 @@ bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, i
             Point xr = xr_dist * pn / vSize(pn);
             Point pr = px + xr;
             
-            result.p = prev_poly_point + pr;
+            result.location = prev_poly_point + pr;
             result.pos = prev_idx;
             return true;
         }

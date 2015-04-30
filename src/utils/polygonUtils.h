@@ -16,17 +16,17 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
 //! performs offsets to make sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
 void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result);
 
-
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
  */
 struct ClosestPolygonPoint
 {
-    Point p; //!< Result location
+    Point location; //!< Result location
     PolygonRef poly; //!< Polygon in which the result was found
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  p(p), poly(poly), pos(pos) {};
-    ClosestPolygonPoint(PolygonRef poly) : poly(poly) {};
+    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), pos(pos) {};
+    ClosestPolygonPoint(int pos, PolygonRef poly) : poly(poly), pos(pos) {};
+    ClosestPolygonPoint(PolygonRef poly) : poly(poly), pos(-1) {};
 };
 
 /*!
@@ -34,10 +34,47 @@ struct ClosestPolygonPoint
  */
 struct GivenDistPoint
 {
-    Point p; //!< Result location
+    Point location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
 
+/*!
+ * Find the two points in two polygons with the smallest distance.
+ * 
+ * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
+ * 
+ * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
+ * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
+ * \param sample_size The number of points on each polygon to start the hill climbing search from. 
+ */
+void findClosestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
+
+/*!
+ * 
+ * \warning Assumes \p poly1_result and \p poly2_result have their pos and poly fields initialized!
+ */
+void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result);
+
+/*!
+ * Find the nearest closest point on a polygon from a given index.
+ * 
+ * \param from The point from which to get the smallest distance.
+ * \param polygon The polygon on which to find the point with the smallest distance.
+ * \param start_idx The index of the point in the polygon from which to start looking.
+ * \return The nearest point from \p start_idx going along the \p polygon (in both directions) with a locally minimal distance to \p from.
+ */
+ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx);
+
+/*!
+ * Find the nearest closest point on a polygon from a given index walking in one direction along the polygon.
+ * 
+ * \param from The point from which to get the smallest distance.
+ * \param polygon The polygon on which to find the point with the smallest distance.
+ * \param start_idx The index of the point in the polygon from which to start looking.
+ * \param direction The direction to walk: 1 for walking along the \p polygon, -1 for walking in opposite direction
+ * \return The nearest point from \p start_idx going along the \p polygon with a locally minimal distance to \p from.
+ */
+ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction);
 
 /*!
  * Find the point closest to \p from in all polygons in \p polygons.
