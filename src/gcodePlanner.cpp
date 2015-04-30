@@ -64,7 +64,8 @@ void GCodePlanner::addTravel(Point p)
             path->retract = true;
         }
         forceRetraction = false;
-    }else if (comb != nullptr)
+    }
+    else if (comb != nullptr)
     {
         std::vector<Point> pointList;
         if (comb->calc(lastPosition, p, pointList))
@@ -73,14 +74,21 @@ void GCodePlanner::addTravel(Point p)
             {
                 path->points.push_back(pointList[n]);
             }
-        }else{
-            if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-                path->retract = true;
         }
-    }else if (alwaysRetract)
+        else
+        {
+            if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+            {
+                path->retract = true;
+            }
+        }
+    }
+    else if (alwaysRetract)
     {
         if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+        {
             path->retract = true;
+        }
     }
     path->points.push_back(p);
     lastPosition = p;
@@ -94,7 +102,10 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    if (!comb || comb->inside(lastPosition)) return;
+    if (!comb || comb->inside(lastPosition)) 
+    {
+        return;
+    }
     Point p = lastPosition;
     if (comb->moveInside(&p, distance))
     {

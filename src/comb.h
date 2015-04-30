@@ -9,7 +9,7 @@ namespace cura {
 class Comb
 {
 private:
-    Polygons& boundery;
+    Polygons& boundary; //!< The comb boundary used
 
     int64_t* minX;
     int64_t* maxX;
@@ -27,13 +27,22 @@ private:
     
     unsigned int getPolygonAbove(int64_t x);
     
-    Point getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx);
+    Point getBoundaryPointWithOffset(unsigned int polygonNr, unsigned int idx);
     
 public:
-    Comb(Polygons& _boundery);
+    Comb(Polygons& _boundary);
     ~Comb();
     
-    bool inside(const Point p) { return boundery.inside(p); }
+    //! Utility function for `comb_boundary.inside(p)`.
+    bool inside(const Point p) { return boundary.inside(p); }
+    
+    /*!
+     * Moves the point \p p inside the comb boundary or leaves the point as-is, when the comb boundary is not within \p distance.
+     * 
+     * \param p The point to move.
+     * \param distance The distance by which to move the point.
+     * \return Whether we succeeded in moving inside the comb boundary
+     */
     bool moveInside(Point* p, int distance = 100);
     
     /*!

@@ -868,7 +868,7 @@ private:
             SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
 
             if (getSettingBoolean("retraction_combing"))
-                gcodeLayer.setCombBoundary(&part->combBoundery);
+                gcodeLayer.setCombBoundary(&part->combBoundary);
             else
                 gcodeLayer.setAlwaysRetract(true);
 

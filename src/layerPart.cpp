@@ -11,7 +11,7 @@ each of these groups is called a "part", which sometimes are also known as "isla
 isolated areas in the 2D layer with possible holes.
 
 Creating "parts" is an important step, as all elements in a single part should be printed before going to another part.
-And all every bit inside a single part can be printed without the nozzle leaving the boundery of this part.
+And all every bit inside a single part can be printed without the nozzle leaving the boundary of this part.
 
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */

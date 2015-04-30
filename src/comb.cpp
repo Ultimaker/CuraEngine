@@ -16,14 +16,14 @@ bool Comb::collisionTest(Point startPoint, Point endPoint)
     sp = matrix.apply(startPoint);
     ep = matrix.apply(endPoint);
     
-    for(unsigned int n=0; n<boundery.size(); n++)
+    for(unsigned int n=0; n<boundary.size(); n++)
     {
-        if (boundery[n].size() < 1)
+        if (boundary[n].size() < 1)
             continue;
-        Point p0 = matrix.apply(boundery[n][boundery[n].size()-1]);
-        for(unsigned int i=0; i<boundery[n].size(); i++)
+        Point p0 = matrix.apply(boundary[n][boundary[n].size()-1]);
+        for(unsigned int i=0; i<boundary[n].size(); i++)
         {
-            Point p1 = matrix.apply(boundery[n][i]);
+            Point p1 = matrix.apply(boundary[n][i]);
             if ((p0.Y > sp.Y && p1.Y < sp.Y) || (p1.Y > sp.Y && p0.Y < sp.Y))
             {
                 int64_t x = p0.X + (p1.X - p0.X) * (sp.Y - p0.Y) / (p1.Y - p0.Y);
@@ -39,14 +39,14 @@ bool Comb::collisionTest(Point startPoint, Point endPoint)
 
 void Comb::calcMinMax()
 {
-    for(unsigned int n=0; n<boundery.size(); n++)
+    for(unsigned int n=0; n<boundary.size(); n++)
     {
         minX[n] = INT64_MAX;
         maxX[n] = INT64_MIN;
-        Point p0 = matrix.apply(boundery[n][boundery[n].size()-1]);
-        for(unsigned int i=0; i<boundery[n].size(); i++)
+        Point p0 = matrix.apply(boundary[n][boundary[n].size()-1]);
+        for(unsigned int i=0; i<boundary[n].size(); i++)
         {
-            Point p1 = matrix.apply(boundery[n][i]);
+            Point p1 = matrix.apply(boundary[n][i]);
             if ((p0.Y > sp.Y && p1.Y < sp.Y) || (p1.Y > sp.Y && p0.Y < sp.Y))
             {
                 int64_t x = p0.X + (p1.X - p0.X) * (sp.Y - p0.Y) / (p1.Y - p0.Y);
@@ -66,7 +66,7 @@ unsigned int Comb::getPolygonAbove(int64_t x)
 {
     int64_t min = POINT_MAX;
     unsigned int ret = NO_INDEX;
-    for(unsigned int n=0; n<boundery.size(); n++)
+    for(unsigned int n=0; n<boundary.size(); n++)
     {
         if (minX[n] > x && minX[n] < min)
         {
@@ -77,11 +77,11 @@ unsigned int Comb::getPolygonAbove(int64_t x)
     return ret;
 }
 
-Point Comb::getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx)
+Point Comb::getBoundaryPointWithOffset(unsigned int polygonNr, unsigned int idx)
 {
-    Point p0 = boundery[polygonNr][(idx > 0) ? (idx - 1) : (boundery[polygonNr].size() - 1)];
-    Point p1 = boundery[polygonNr][idx];
-    Point p2 = boundery[polygonNr][(idx < (boundery[polygonNr].size() - 1)) ? (idx + 1) : (0)];
+    Point p0 = boundary[polygonNr][(idx > 0) ? (idx - 1) : (boundary[polygonNr].size() - 1)];
+    Point p1 = boundary[polygonNr][idx];
+    Point p2 = boundary[polygonNr][(idx < (boundary[polygonNr].size() - 1)) ? (idx + 1) : (0)];
     
     Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0)));
     Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0)));
@@ -90,13 +90,13 @@ Point Comb::getBounderyPointWithOffset(unsigned int polygonNr, unsigned int idx)
     return p1 + n;
 }
 
-Comb::Comb(Polygons& _boundery)
-: boundery(_boundery)
+Comb::Comb(Polygons& _boundary)
+: boundary(_boundary)
 {
-    minX = new int64_t[boundery.size()];
-    maxX = new int64_t[boundery.size()];
-    minIdx = new unsigned int[boundery.size()];
-    maxIdx = new unsigned int[boundery.size()];
+    minX = new int64_t[boundary.size()];
+    maxX = new int64_t[boundary.size()];
+    minIdx = new unsigned int[boundary.size()];
+    maxIdx = new unsigned int[boundary.size()];
 }
 
 Comb::~Comb()
@@ -111,14 +111,14 @@ bool Comb::moveInside(Point* p, int distance)
 {
     Point ret = *p;
     int64_t bestDist = MM2INT(2.0) * MM2INT(2.0);
-    for(unsigned int n=0; n<boundery.size(); n++)
+    for(unsigned int n=0; n<boundary.size(); n++)
     {
-        if (boundery[n].size() < 1)
+        if (boundary[n].size() < 1)
             continue;
-        Point p0 = boundery[n][boundery[n].size()-1];
-        for(unsigned int i=0; i<boundery[n].size(); i++)
+        Point p0 = boundary[n][boundary[n].size()-1];
+        for(unsigned int i=0; i<boundary[n].size(); i++)
         {
-            Point p1 = boundery[n][i];
+            Point p1 = boundary[n][i];
             
             //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
             Point pDiff = p1 - p0;
@@ -155,13 +155,13 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
     
     bool addEndpoint = false;
     //Check if we are inside the comb boundaries
-    if (!boundery.inside(startPoint))
+    if (!boundary.inside(startPoint))
     {
         if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
         combPoints.push_back(startPoint);
     }
-    if (!boundery.inside(endPoint))
+    if (!boundary.inside(endPoint))
     {
         if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
             return false;
@@ -190,25 +190,25 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
         if (n == NO_INDEX) break;
         
         pointList.push_back(matrix.unapply(Point(minX[n] - MM2INT(0.2), sp.Y)));
-        if ( (minIdx[n] - maxIdx[n] + boundery[n].size()) % boundery[n].size() > (maxIdx[n] - minIdx[n] + boundery[n].size()) % boundery[n].size())
+        if ( (minIdx[n] - maxIdx[n] + boundary[n].size()) % boundary[n].size() > (maxIdx[n] - minIdx[n] + boundary[n].size()) % boundary[n].size())
         {
-            for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i < boundery[n].size() - 1) ? (i + 1) : (0))
+            for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i < boundary[n].size() - 1) ? (i + 1) : (0))
             {
-                pointList.push_back(getBounderyPointWithOffset(n, i));
+                pointList.push_back(getBoundaryPointWithOffset(n, i));
             }
         }else{
             if (minIdx[n] == 0)
-                minIdx[n] = boundery[n].size() - 1;
+                minIdx[n] = boundary[n].size() - 1;
             else
                 minIdx[n]--;
             if (maxIdx[n] == 0)
-                maxIdx[n] = boundery[n].size() - 1;
+                maxIdx[n] = boundary[n].size() - 1;
             else
                 maxIdx[n]--;
             
-            for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i > 0) ? (i - 1) : (boundery[n].size() - 1))
+            for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i > 0) ? (i - 1) : (boundary[n].size() - 1))
             {
-                pointList.push_back(getBounderyPointWithOffset(n, i));
+                pointList.push_back(getBoundaryPointWithOffset(n, i));
             }
         }
         pointList.push_back(matrix.unapply(Point(maxX[n] + MM2INT(0.2), sp.Y)));
