@@ -164,6 +164,7 @@ void test_BucketGrid2D()
 }*/
 
 #include <math.h> 
+#include "utils/gettime.h"
 void test_findClosestConnection()
 {
     srand(1234);
@@ -186,7 +187,7 @@ void test_findClosestConnection()
         ClosestPolygonPoint result1 (poly1);
         ClosestPolygonPoint result2 (poly2);
         
-        findClosestConnection(result1, result2, 3);
+        findSmallestConnection(result1, result2, 3);
         std::cerr << result1.location << " -- " << result2.location << std::endl;
     }
     
@@ -209,9 +210,15 @@ void test_findClosestConnection()
         ClosestPolygonPoint result1 (poly1);
         ClosestPolygonPoint result2 (poly2);
         
-        findClosestConnection(result1, result2, 3);
+        findSmallestConnection(result1, result2, 3);
         std::cerr << result1.location << " -- " << result2.location << std::endl;
     }
+    
+    double creationTime = 0;
+    double evalTime = 0;
+    long totalLength = 0;
+    TimeKeeper timer;
+    for (int i = 0; i < 10000; i++)
     { // for vizualization as csv with e.g. Rstudio
         Polygon poly1;
         double dist = 100;
@@ -220,21 +227,13 @@ void test_findClosestConnection()
             dist += int(rand()%3) -1;
             Point p(static_cast<int>(dist * std::cos(a/180.0*3.1415)), static_cast<int>(dist * std::sin(a/180.0*3.1415)));
             p = p + Point(0, 200);
-//             if (poly1.size() > 0);
-//             {
-//                 std::cerr << "Sdg" <<std::endl;
-//                 p = p + poly1[poly1.size()-1];
-//                 std::cerr << "Sdg" <<std::endl;
-//             }
-//             std::cerr << "Sdg" <<std::endl;
-//             p = p / 2;
             if ( a ==0)
                 poly1.add(p);
             else 
                 poly1.add((poly1.back() + p) / 2);
-            std::cerr << poly1.back().X << ", " << poly1.back().Y << std::endl;
+//             std::cerr << poly1.back().X << ", " << poly1.back().Y << std::endl;
         }
-        std::cerr << " " << std::endl;
+//         std::cerr << " " << std::endl;
         Polygon poly2;
         dist = 100;
         for (double a = 0; a < 360; a += 1)
@@ -242,26 +241,28 @@ void test_findClosestConnection()
             
             dist += int(rand()%3) - 1;
             Point p(static_cast<int>(dist * std::cos(a/180.0*3.1415)), static_cast<int>(dist * std::sin(a/180.0*3.1415)));
-//             if (poly2.size() > 0);
-//             {
-//                 p = p + poly2.back();
-//                 p = p / 2;
-//             }
             if ( a ==0)
                 poly2.add(p);
             else 
                 poly2.add((poly2.back() + p) / 2);
-            std::cerr << poly2.back().X << ", " << poly2.back().Y << std::endl;
+//             std::cerr << poly2.back().X << ", " << poly2.back().Y << std::endl;
         }
-        
+        creationTime += timer.restart();
         ClosestPolygonPoint result1 (poly1);
         ClosestPolygonPoint result2 (poly2);
         
-        findClosestConnection(result1, result2, 5);
-        std::cerr << " " << std::endl;
-        std::cerr << result1.location.X  << " , " << result1.location.Y << std::endl;
-        std::cerr << result2.location.X  << " , " << result2.location.Y << std::endl;
+        findSmallestConnection(result1, result2, 240);
+        totalLength += vSize(result1.location - result2.location);
+        evalTime += timer.restart();
+//         std::cerr << " " << std::endl;
+//         std::cerr << result1.location.X  << " , " << result1.location.Y << std::endl;
+//         std::cerr << result2.location.X  << " , " << result2.location.Y << std::endl;
+//         std::cerr << " " << std::endl;
     }
+    
+    std::cerr << "creationTime : " << creationTime << std::endl;
+    std::cerr << "evalTime : " << evalTime << std::endl;
+    std::cerr << "totalLength : " << totalLength << std::endl;
 }
 
 int main(int argc, char **argv)

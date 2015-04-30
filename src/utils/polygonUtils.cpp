@@ -46,7 +46,7 @@ void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
 
 
 
-void findClosestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
     PolygonRef poly1 = poly1_result.poly;
     PolygonRef poly2 = poly2_result.poly;
@@ -76,7 +76,7 @@ void findClosestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoin
     walkToNearestSmallestConnection(poly1_result, poly2_result);    
 }
 
-void findClosestConnection_OLD(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+void findSmallestConnection_OLD(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
     PolygonRef poly1 = poly1_result.poly;
     PolygonRef poly2 = poly2_result.poly;

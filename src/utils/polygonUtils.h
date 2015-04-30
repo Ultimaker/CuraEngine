@@ -47,7 +47,7 @@ struct GivenDistPoint
  * \param poly2_result Output parameter: the point at the other end of the smallest connection between its poly and \p poly1_result.poly.
  * \param sample_size The number of points on each polygon to start the hill climbing search from. 
  */
-void findClosestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
+void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size);
 
 /*!
  * 
