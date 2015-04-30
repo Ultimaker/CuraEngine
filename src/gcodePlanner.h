@@ -42,6 +42,8 @@ private:
     bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
+    
+    bool is_volumatric;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
