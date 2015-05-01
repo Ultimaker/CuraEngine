@@ -212,6 +212,9 @@ private:
         object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");
+        //carveMultipleVolumes(storage.meshes);
+        generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
+        
         for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
         {
             storage.meshes.emplace_back(&object->meshes[meshIdx]);
@@ -244,8 +247,6 @@ private:
         // const 
         unsigned int totalLayers = storage.meshes[0].layers.size();
 
-        //carveMultipleVolumes(storage.meshes);
-        generateMultipleVolumesOverlap(storage.meshes, getSettingInMicrons("multiple_mesh_overlap"));
         //dumpLayerparts(storage, "c:/models/output.html");
         if (getSettingBoolean("magic_polygon_mode"))
         {
