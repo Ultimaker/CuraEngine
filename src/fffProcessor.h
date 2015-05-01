@@ -1046,7 +1046,7 @@ private:
         
         sendPolygons(SupportType, layer_nr, support);
 
-        std::vector<Polygons> supportIslands = support.splitIntoParts();
+        std::vector<PolygonsPart> supportIslands = support.splitIntoParts();
 
         PathOrderOptimizer islandOrderOptimizer(gcode.getPositionXY());
         for(unsigned int n=0; n<supportIslands.size(); n++)
@@ -1057,7 +1057,7 @@ private:
 
         for(unsigned int n=0; n<supportIslands.size(); n++)
         {
-            Polygons& island = supportIslands[islandOrderOptimizer.polyOrder[n]];
+            PolygonsPart& island = supportIslands[islandOrderOptimizer.polyOrder[n]];
 
             Polygons supportLines;
             int support_line_distance = getSettingInMicrons("support_line_distance");

@@ -54,7 +54,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
         skin.removeSmallAreas(minAreaSize);
         
-        for (Polygons& skin_area_part : skin.splitIntoParts())
+        for (PolygonsPart& skin_area_part : skin.splitIntoParts())
         {
             part->skin_parts.emplace_back();
             part->skin_parts.back().outline = skin_area_part;

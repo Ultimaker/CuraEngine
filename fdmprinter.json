@@ -768,7 +768,7 @@
                     "description": "The maximum distance between support blocks, in the X/Y directions, such that the blocks will merge into a single block.",
                     "unit": "mm",
                     "type": "float",
-                    "default": 0.7,
+                    "default": 2.0,
                     "visible": false
                 },
                 "support_area_smoothing": {

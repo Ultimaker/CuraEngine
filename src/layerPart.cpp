@@ -31,7 +31,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
         }
     }
     
-    std::vector<Polygons> result;
+    std::vector<PolygonsPart> result;
     result = layer->polygonList.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
     {
