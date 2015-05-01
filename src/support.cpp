@@ -205,7 +205,7 @@ void AreaSupport::joinMeshesAndDetectOverhangPoints(
             for (SliceLayerPart& part : layer.parts)
             {
                 
-                if (part.outline[0].area() < supportMinAreaSqrt * supportMinAreaSqrt) 
+                if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
                 {
                     Polygons part_poly = part.outline.offset(-extrusionWidth/2);
                     if (part_poly.size() > 0)

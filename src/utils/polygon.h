@@ -691,6 +691,7 @@ public:
  */
 class PolygonsPart : public Polygons
 {   
+public:
     PolygonRef outerPolygon() 
     {
         Polygons& thiss = *this;
