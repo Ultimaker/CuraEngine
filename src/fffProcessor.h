@@ -206,44 +206,6 @@ private:
             */
         }
         
-        if (false) { // remove empty first layers
-            int n_empty_first_layers = 0;
-            for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
-            { 
-                bool layer_is_empty = true;
-                for (Slicer* slicer : slicerList)
-                {
-                    if (slicer->layers[layer_idx].polygonList.size() > 0)
-                    {
-                        layer_is_empty = false;
-                        break;
-                    }
-                }
-                
-                if (layer_is_empty) 
-                {
-                    n_empty_first_layers++;
-                } else
-                {
-                    break;
-                }
-            }
-            
-            if (n_empty_first_layers > 0)
-            {
-                for (Slicer* slicer : slicerList)
-                {
-                    std::vector<SlicerLayer>& layers = slicer->layers;
-                    layers.erase(layers.begin(), layers.begin() + n_empty_first_layers);
-                    for (SlicerLayer& layer : layers)
-                    {
-                        layer.z -= n_empty_first_layers * layer_thickness;
-                    }
-                }
-                layer_count -= n_empty_first_layers;
-            }
-        }
-        
         log("Layer count: %i\n", layer_count);
         log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
