@@ -41,6 +41,9 @@ struct GivenDistPoint
 /*!
  * Find the two points in two polygons with the smallest distance.
  * 
+ * Note: The amount of preliminary distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
+ * Further convergence time depends on polygon size and shape.
+ * 
  * \warning The ClosestPolygonPoint::poly fields output parameters should be initialized with the polygons for which to find the smallest connection.
  * 
  * \param poly1_result Output parameter: the point at the one end of the smallest connection between its poly and \p poly2_result.poly.
