@@ -68,28 +68,46 @@ void GCodePlanner::addTravel(Point p)
     }
     else if (comb != nullptr)
     {
-        std::vector<Point> pointList;
-//         std::vector<std::vector<Point>> combPaths;
-        if (comb->calc(lastPosition, p, pointList))
-        {
-            for(unsigned int n=0; n<pointList.size(); n++)
-            {
-                path->points.push_back(pointList[n]);
-            }
-//             bool first = true;
-//             for (std::vector<Point>& combPath : combPaths)
+//         path = getLatestPathWithConfig(&travelConfig);
+//         std::vector<Point> pointList;
+//         if (comb->calc(lastPosition, p, pointList))
+//         {
+//             for(unsigned int n=0; n<pointList.size(); n++)
 //             {
-//                 if (!first)
-//                 {
-//                     forceNewPathStart();
-//                 }
-//                 first = false;
-//                 path = getLatestPathWithConfig(&travelConfig);
-//                 for (Point& combPoint : combPath)
-//                 {
-//                     path->points.push_back(combPoint);
-//                 }
+//                 path->points.push_back(pointList[n]);
 //             }
+//         }
+        std::vector<std::vector<Point>> combPaths;
+        if (comb->calc(lastPosition, p, combPaths))
+        {
+            bool first = true;
+            for (std::vector<Point>& combPath : combPaths)
+            {
+                if (combPath.size() == 0)
+                {
+                    continue;
+                }
+                int starting_idx = 0;
+                if (!first)
+                {
+                    forceNewPathStart();
+                    path = getLatestPathWithConfig(&travelConfig);
+                    if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
+                    {
+                        path->retract = true;
+                    }
+                    path->points.push_back(combPath[0]);
+                    starting_idx = 1;
+                }
+                first = false;
+                path = getLatestPathWithConfig(&travelConfig);
+                for (unsigned int point_idx = starting_idx; point_idx < combPath.size(); point_idx++)
+                {
+                    Point& combPoint = combPath[point_idx];
+                    path->points.push_back(combPoint);
+                }
+                lastPosition = combPath.back();
+            }
         }
         else
         {
@@ -107,6 +125,10 @@ void GCodePlanner::addTravel(Point p)
         {
             path->retract = true;
         }
+    }
+    if (path == nullptr)
+    {
+        path = getLatestPathWithConfig(&travelConfig);
     }
     path->points.push_back(p);
     lastPosition = p;

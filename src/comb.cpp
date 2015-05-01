@@ -184,46 +184,110 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
     std::vector<Point> pointList;
     getBasicCombingPath(endPoint, pointList);
     
-    return optimizePath(startPoint, endPoint, pointList, combPoints);
+    bool succeeded = optimizePath(startPoint, pointList, combPoints);
+    if (addEndpoint)
+        combPoints.push_back(endPoint);
+    return succeeded;
+}
+
+bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>>& combPaths)
+{
+    if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
+        return true;
+    
+    bool addEndpoint = false;
+    //Check if we are inside the comb boundaries
+    if (!boundary.inside(startPoint))
+    {
+        if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+            return false;
+        combPaths.emplace_back();
+        combPaths.back().push_back(startPoint);
+    }
+    if (!boundary.inside(endPoint))
+    {
+        if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+            return false;
+        addEndpoint = true;
+    }
+    
+    //Check if we are crossing any boundaries, and pre-calculate some values.
+    if (!lineSegmentCollidesWithBoundary(startPoint, endPoint))
+    {
+        //We're not crossing any boundaries. So skip the comb generation.
+        if (!addEndpoint && combPaths.size() == 0) //Only skip if we didn't move the start and end point.
+            return true;
+    }
+    
+    
+    //Calculate the minimum and maximum positions where we cross the comb boundary
+    calcMinMax();
+    
+    std::vector<std::vector<Point>> basicCombPaths;
+    getBasicCombingPaths(endPoint, basicCombPaths);
+    
+    bool succeeded = optimizePaths(startPoint, basicCombPaths, combPaths);
+    if (addEndpoint)
+        combPaths.back().push_back(endPoint);
+    
+    return succeeded;
 }
 
 void Comb::getBasicCombingPath(Point endPoint, std::vector<Point>& pointList) 
 {
     for (unsigned int poly_idx = getNextPolygonAlongScanline(transformed_startPoint.X); poly_idx != NO_INDEX; poly_idx = getNextPolygonAlongScanline(maxX[poly_idx]))
     {
-        
-        pointList.push_back(transformation_matrix.unapply(Point(minX[poly_idx] - MM2INT(0.2), transformed_startPoint.Y)));
-        if ( (minIdx[poly_idx] - maxIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size() > (maxIdx[poly_idx] - minIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size())
-        { // take the path in the same direction as the winding order of the boundary polygon
-            for(unsigned int point_idx=minIdx[poly_idx]; point_idx != maxIdx[poly_idx]; point_idx = (point_idx < boundary[poly_idx].size() - 1) ? (point_idx + 1) : (0))
-            {
-                pointList.push_back(getBoundaryPointWithOffset(poly_idx, point_idx));
-            }
-        }
-        else
-        {
-            if (minIdx[poly_idx] == 0)
-                minIdx[poly_idx] = boundary[poly_idx].size() - 1;
-            else
-                minIdx[poly_idx]--;
-            if (maxIdx[poly_idx] == 0)
-                maxIdx[poly_idx] = boundary[poly_idx].size() - 1;
-            else
-                maxIdx[poly_idx]--;
-            
-            for(unsigned int i=minIdx[poly_idx]; i != maxIdx[poly_idx]; i = (i > 0) ? (i - 1) : (boundary[poly_idx].size() - 1))
-            {
-                pointList.push_back(getBoundaryPointWithOffset(poly_idx, i));
-            }
-        }
-        pointList.push_back(transformation_matrix.unapply(Point(maxX[poly_idx] + MM2INT(0.2), transformed_startPoint.Y)));
+        getBasicCombingPath(poly_idx, pointList);
     }
     pointList.push_back(endPoint);
 }
 
-bool Comb::optimizePath(Point startPoint, Point endPoint, std::vector<Point> pointList, std::vector<Point>& combPoints) 
+void Comb::getBasicCombingPaths(Point endPoint, std::vector<std::vector<Point>>& combPaths) 
 {
-    bool addEndpoint = false;
+    for (unsigned int poly_idx = getNextPolygonAlongScanline(transformed_startPoint.X); poly_idx != NO_INDEX; poly_idx = getNextPolygonAlongScanline(maxX[poly_idx]))
+    {
+        combPaths.emplace_back();
+        std::vector<Point>& pointList = combPaths.back();
+        getBasicCombingPath(poly_idx, pointList);
+    }
+    if (combPaths.size() == 0)
+    {
+        combPaths.emplace_back();
+    }
+    combPaths.back().push_back(endPoint);
+}
+
+void Comb::getBasicCombingPath(unsigned int poly_idx, std::vector<Point>& pointList) 
+{
+    pointList.push_back(transformation_matrix.unapply(Point(minX[poly_idx] - MM2INT(0.2), transformed_startPoint.Y)));
+    if ( (minIdx[poly_idx] - maxIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size() > (maxIdx[poly_idx] - minIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size())
+    { // follow the path in the same direction as the winding order of the boundary polygon
+        for(unsigned int point_idx = minIdx[poly_idx]; point_idx != maxIdx[poly_idx]; point_idx = (point_idx < boundary[poly_idx].size() - 1) ? (point_idx + 1) : (0))
+        {
+            pointList.push_back(getBoundaryPointWithOffset(poly_idx, point_idx));
+        }
+    }
+    else
+    {
+        if (minIdx[poly_idx] == 0)
+            minIdx[poly_idx] = boundary[poly_idx].size() - 1;
+        else
+            minIdx[poly_idx]--;
+        if (maxIdx[poly_idx] == 0)
+            maxIdx[poly_idx] = boundary[poly_idx].size() - 1;
+        else
+            maxIdx[poly_idx]--;
+        
+        for(unsigned int i=minIdx[poly_idx]; i != maxIdx[poly_idx]; i = (i > 0) ? (i - 1) : (boundary[poly_idx].size() - 1))
+        {
+            pointList.push_back(getBoundaryPointWithOffset(poly_idx, i));
+        }
+    }
+    pointList.push_back(transformation_matrix.unapply(Point(maxX[poly_idx] + MM2INT(0.2), transformed_startPoint.Y)));
+}
+
+bool Comb::optimizePath(Point startPoint, std::vector<Point>& pointList, std::vector<Point>& combPoints) 
+{
     
     Point current_point = startPoint;
     for(unsigned int point_idx = 1; point_idx<pointList.size(); point_idx++)
@@ -238,8 +302,29 @@ bool Comb::optimizePath(Point startPoint, Point endPoint, std::vector<Point> poi
             combPoints.push_back(current_point);
         }
     }
-    if (addEndpoint)
-        combPoints.push_back(endPoint);
+    return true;
+}
+
+bool Comb::optimizePaths(Point startPoint, std::vector<std::vector<Point>>& basicCombPaths, std::vector<std::vector<Point>>& combPaths) 
+{
+    Point current_point = startPoint;
+    bool first = true;
+    for (std::vector<Point>& basicCombPath : basicCombPaths)
+    {
+        if (!first)
+        {
+            current_point = basicCombPath[0]; // TODO: don't cause the first point to get doubled
+        }
+        first = false;
+        combPaths.emplace_back();
+        std::vector<Point>& combPath = combPaths.back();
+        
+        bool succeeded = optimizePath(current_point, basicCombPath, combPath);
+        if (!succeeded)
+        {
+            return false;
+        }
+    }
     return true;
 }
 
