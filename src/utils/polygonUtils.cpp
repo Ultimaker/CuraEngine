@@ -76,39 +76,6 @@ void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoi
     walkToNearestSmallestConnection(poly1_result, poly2_result);    
 }
 
-void findSmallestConnection_OLD(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
-{
-    PolygonRef poly1 = poly1_result.poly;
-    PolygonRef poly2 = poly2_result.poly;
-    if (poly1.size() == 0 || poly2.size() == 0)
-    {
-        return;
-    }
-    
-    int bestDist2 = -1;
-    
-    int step1 = std::max<unsigned int>(2, poly1.size() / sample_size);
-    int step2 = std::max<unsigned int>(2, poly2.size() / sample_size);
-    for (unsigned int i = 0; i < poly1.size(); i += step1)
-    {
-        for (unsigned int j = 0; j < poly2.size(); j += step2)
-        {
-            ClosestPolygonPoint here1(i, poly1);
-            ClosestPolygonPoint here2(j, poly2);
-            walkToNearestSmallestConnection(here1, here2);
-            
-            int dist2 = vSize2(here1.location - here2.location);
-            if (bestDist2 == -1 || dist2 < bestDist2)
-            {   
-                bestDist2 = dist2;
-                poly1_result = here1;
-                poly2_result = here2;
-            }
-        }
-    }
-        
-}
-
 void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
 {
     PolygonRef poly1 = poly1_result.poly;
