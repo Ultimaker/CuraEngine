@@ -189,7 +189,7 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
         
         pointList.push_back(transformation_matrix.unapply(Point(minX[n] - MM2INT(0.2), transformed_startPoint.Y)));
         if ( (minIdx[n] - maxIdx[n] + boundary[n].size()) % boundary[n].size() > (maxIdx[n] - minIdx[n] + boundary[n].size()) % boundary[n].size())
-        {
+        { // take the path in the same direction as the winding order of the boundary polygon
             for(unsigned int i=minIdx[n]; i != maxIdx[n]; i = (i < boundary[n].size() - 1) ? (i + 1) : (0))
             {
                 pointList.push_back(getBoundaryPointWithOffset(n, i));

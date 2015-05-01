@@ -30,7 +30,7 @@ private:
     /*!
      * Check if we are crossing any boundaries, and pre-calculate some values.
      * 
-     * Sets Comb::transformation_matrix, 
+     * Sets Comb::transformation_matrix, Comb::transformed_startPoint and Comb::transformed_endPoint
      */
     bool lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint);
 
