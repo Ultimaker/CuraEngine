@@ -826,12 +826,12 @@ private:
         }
         partOrderOptimizer.optimize();
 
-        for(unsigned int partCounter=0; partCounter<partOrderOptimizer.polyOrder.size(); partCounter++)
+        for(int order_idx : partOrderOptimizer.polyOrder)
         {
-            SliceLayerPart* part = &layer->parts[partOrderOptimizer.polyOrder[partCounter]];
-
+            SliceLayerPart& part = layer->parts[order_idx];
+            
             if (getSettingBoolean("retraction_combing"))
-                gcodeLayer.setCombBoundary(&part->combBoundary);
+                gcodeLayer.setCombBoundary(&part.combBoundary);
             else
                 gcodeLayer.setAlwaysRetract(true);
 
@@ -846,29 +846,29 @@ private:
             if (sparse_infill_line_distance > 0)
             {
                 //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
-                for(unsigned int n=1; n<part->sparse_outline.size(); n++)
+                for(unsigned int n=1; n<part.sparse_outline.size(); n++)
                 {
                     Polygons fillPolygons;
                     switch(getSettingAsFillMethod("fill_pattern"))
                     {
                     case Fill_Grid:
-                        generateGridInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
+                        generateGridInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     case Fill_Lines:
-                        generateLineInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
+                        generateLineInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     case Fill_Triangles:
-                        generateTriangleInfill(part->sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
+                        generateTriangleInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
                         gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     case Fill_Concentric:
-                        generateConcentricInfill(part->sparse_outline[n], fillPolygons, sparse_infill_line_distance);
+                        generateConcentricInfill(part.sparse_outline[n], fillPolygons, sparse_infill_line_distance);
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     case Fill_ZigZag:
-                        generateZigZagInfill(part->sparse_outline[n], fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
+                        generateZigZagInfill(part.sparse_outline[n], fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
                         gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
                         break;
                     default:
@@ -881,24 +881,24 @@ private:
             //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
             Polygons infillPolygons;
             Polygons infillLines;
-            if (sparse_infill_line_distance > 0 && part->sparse_outline.size() > 0)
+            if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
             {
                 switch(getSettingAsFillMethod("fill_pattern"))
                 {
                 case Fill_Grid:
-                    generateGridInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
+                    generateGridInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
                     break;
                 case Fill_Lines:
-                    generateLineInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
+                    generateLineInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
                     break;
                 case Fill_Triangles:
-                    generateTriangleInfill(part->sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
+                    generateTriangleInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
                     break;
                 case Fill_Concentric:
-                    generateConcentricInfill(part->sparse_outline[0], infillPolygons, sparse_infill_line_distance);
+                    generateConcentricInfill(part.sparse_outline[0], infillPolygons, sparse_infill_line_distance);
                     break;
                 case Fill_ZigZag:
-                    generateZigZagInfill(part->sparse_outline[0], infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
+                    generateZigZagInfill(part.sparse_outline[0], infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
                     break;
                 default:
                     logError("fill_pattern has unknown value.\n");
@@ -914,21 +914,21 @@ private:
                 {
                     if (static_cast<int>(layer_nr) >= getSettingAsCount("bottom_layers"))
                         mesh->inset0_config.spiralize = true;
-                    if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part->insets.size() > 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[0], &mesh->insetX_config);
+                    if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+                        gcodeLayer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config);
                 }
-                for(int insetNr=part->insets.size()-1; insetNr>-1; insetNr--)
+                for(int insetNr=part.insets.size()-1; insetNr>-1; insetNr--)
                 {
                     if (insetNr == 0)
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &mesh->inset0_config);
+                        gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
                     else
-                        gcodeLayer.addPolygonsByOptimizer(part->insets[insetNr], &mesh->insetX_config);
+                        gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->insetX_config);
                 }
             }
 
             Polygons skinPolygons;
             Polygons skinLines;
-            for(SkinPart& skin_part : part->skin_parts)
+            for(SkinPart& skin_part : part.skin_parts)
             {
                 int bridge = -1;
                 if (layer_nr > 0)
@@ -963,7 +963,7 @@ private:
                             offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
                             if (getSettingString("fill_perimeter_gaps") != "Nowhere")
                             {
-                                generateConcentricInfillDense(in_outline, skinPolygons, &part->perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
+                                generateConcentricInfillDense(in_outline, skinPolygons, &part.perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
                             }
                         }
                         break;
@@ -977,7 +977,7 @@ private:
             // handle gaps between perimeters etc.
             if (getSettingString("fill_perimeter_gaps") != "Nowhere")
             {
-                generateLineInfill(part->perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+                generateLineInfill(part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
             }
             
             

@@ -23,6 +23,9 @@ private:
     unsigned int* minIdx; //!< Array: for each polygon in the boundary: index of the point with the minimum x coordinate of crossings between the polygon and the scanline.
     unsigned int* maxIdx; //!< Array: for each polygon in the boundary: index of the point with the maximum x coordinate of crossings between the polygon and the scanline.
 
+    unsigned int minIdx_global; //!< The index of the polygon with the minimum x coordinate of crossings between the boundary polygons and the scanline.
+    unsigned int maxIdx_global; //!< The index of the polygon with the maximum x coordinate of crossings between the boundary polygons and the scanline.
+    
     PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     Point transformed_startPoint; //!< The startPoint (see Comb::calc) as transformed by Comb::transformation_matrix
     Point transformed_endPoint; //!< The endPoint (see Comb::calc) as transformed by Comb::transformation_matrix
@@ -35,7 +38,7 @@ private:
     bool lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint);
 
     /*!
-     * Calculate Comb::minX, Comb::maxX, Comb::minIdx and Comb::maxIdx.
+     * Calculate Comb::minX, Comb::maxX, Comb::minIdx, Comb::maxIdx, Comb::minIdx_global and Comb::maxIdx_global.
      */
     void calcMinMax();
     
@@ -84,6 +87,31 @@ public:
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
     bool calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints);
+    
+private:
+    /*! 
+     * Get the basic combing path, without shortcuts. The path goes straight toward the \p endPoint and follows the boundary when it hits it, until it passes the scanline again.
+     * 
+     * Walk trough the crossings, for every boundary we cross, find the initial cross point and the exit point. Then add all the points in between
+     * to the pointList and continue with the next boundary we will cross, until there are no more boundaries to cross.
+     * This gives a path from the start to finish curved around the holes that it encounters.
+     * 
+     * \param endPoint The endPoint toward which to comb.
+     * \param pointList Output parameter: the points along the combing path.
+     */
+    void getBasicCombingPath(Point endPoint, std::vector<Point>& pointList);
+
+    /*!
+     * Optimize the \p pointList: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.
+     * 
+     * \param startPoint The starting point of the comb move.
+     * \param endPoint The destination point of the comb move.
+     * \param pointList The unoptimized combing path.
+     * \param combPoints Output parameter: The points of optimized combing path
+     * \return 
+     */
+    bool optimizePath(Point startPoint, Point endPoint, std::vector<Point> pointList, std::vector<Point>& combPoints);
+
 };
 
 }//namespace cura
