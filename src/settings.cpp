@@ -49,7 +49,7 @@ std::string SettingsBase::getSettingString(std::string key)
     if (SettingRegistry::getInstance()->settingExists(key))
     {
         setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
-        cura::logError("Using default for: %s = %s\n", key.c_str(), setting_values[key].c_str());
+        //cura::logError("Using default for: %s = %s\n", key.c_str(), setting_values[key].c_str());
     }
     else
     {
