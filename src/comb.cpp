@@ -111,45 +111,79 @@ Comb::~Comb()
     delete[] maxIdx;
 }
 
-bool Comb::moveInside(Point* p, int distance)
+bool Comb::moveInside(Point* from, int distance)
 {
-    Point ret = *p;
+    Point ret = *from;
     int64_t maxDist2 =  MM2INT(2.0) * MM2INT(2.0);
     int64_t bestDist2 = maxDist2;
     for(PolygonRef poly : boundary)
     {
-        if (poly.size() < 1)
+        if (poly.size() < 2)
             continue;
-        Point p0 = poly.back();
-        for(Point& p1 : poly)
+        Point p0 = poly[poly.size()-2];
+        Point p1 = poly.back();
+        bool projected_p_beyond_prev_segment = dot(p1 - p0, *from - p0) > vSize2(p1 - p0);
+        for(Point& p2 : poly)
         {   
-            //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
-            // A = p0
-            // B = p1
-            // Q = ret 
-            // P = p
-            Point pDiff = p1 - p0;
-            int64_t lineLength = vSize(pDiff);
-            int64_t distOnLine = dot(pDiff, *p - p0) / lineLength;
-            if (distOnLine < 10)
-                distOnLine = 10;
-            if (distOnLine > lineLength - 10)
-                distOnLine = lineLength - 10;
-            Point q = p0 + pDiff * distOnLine / lineLength;
-            
-            int64_t dist2 = vSize2(q - *p);
-            if (dist2 < bestDist2)
+            // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+            // X = P projected on AB
+            Point& a = p1;
+            Point& b = p2;
+            Point& p = *from;
+            Point ab = b - a;
+            Point ap = p - a;
+            int64_t ab_length = vSize(ab);
+            int64_t ax_length = dot(ab, ap) / ab_length;
+            if (ax_length < 0) // x is projected to before ab
             {
-                bestDist2 = dist2;
-                ret = q + crossZ(normal(p1 - p0, distance));
+                if (projected_p_beyond_prev_segment)
+                { //  case which looks like:   > .
+                    projected_p_beyond_prev_segment = false;
+                    Point& x = p1;
+                    
+                    int64_t dist2 = vSize2(x - p);
+                    if (dist2 < bestDist2)
+                    {
+                        bestDist2 = dist2;
+                        ret = x + normal(crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4)), distance); // *4 to retain more precision for the eventual normalization
+                    }
+                }
+                else
+                {
+                    projected_p_beyond_prev_segment = false;
+                    p0 = p1;
+                    p1 = p2;
+                    continue;
+                }
+            }
+            else if (ax_length > ab_length) // x is projected to beyond ab
+            {
+                projected_p_beyond_prev_segment = true;
+                p0 = p1;
+                p1 = p2;
+                continue;
+            }
+            else 
+            {
+                projected_p_beyond_prev_segment = false;
+                Point x = a + ab * ax_length / ab_length;
+                
+                int64_t dist2 = vSize2(x - *from);
+                if (dist2 < bestDist2)
+                {
+                    bestDist2 = dist2;
+                    ret = x + crossZ(normal(ab, distance));
+                }
             }
             
+            
             p0 = p1;
+            p1 = p2;
         }
     }
     if (bestDist2 < maxDist2)
     {
-        *p = ret;
+        *from = ret;
         return true;
     }
     return false;
