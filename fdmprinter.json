@@ -55,7 +55,7 @@
                             "description": "The layer thickness of the bottom layer. A thicker bottom layer makes sticking to the bed easier.",
                             "unit": "mm",
                             "type": "float",
-                            "default": 0.2,
+                            "default": 0.3,
                             "min_value": 0.06,
                             "max_value": 2.0,
                             "visible": false

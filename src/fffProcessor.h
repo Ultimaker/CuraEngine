@@ -829,7 +829,7 @@ private:
         for(int order_idx : partOrderOptimizer.polyOrder)
         {
             SliceLayerPart& part = layer->parts[order_idx];
-            
+
             if (getSettingBoolean("retraction_combing"))
                 gcodeLayer.setCombBoundary(&part.combBoundary);
             else

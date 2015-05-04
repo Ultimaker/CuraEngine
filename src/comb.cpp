@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "comb.h"
 
+#include "debug.h"
+
 namespace cura {
 
 bool Comb::lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint)
@@ -112,17 +114,20 @@ Comb::~Comb()
 bool Comb::moveInside(Point* p, int distance)
 {
     Point ret = *p;
-    int64_t bestDist = MM2INT(2.0) * MM2INT(2.0);
-    for(unsigned int n=0; n<boundary.size(); n++)
+    int64_t maxDist2 =  MM2INT(2.0) * MM2INT(2.0);
+    int64_t bestDist2 = maxDist2;
+    for(PolygonRef poly : boundary)
     {
-        if (boundary[n].size() < 1)
+        if (poly.size() < 1)
             continue;
-        Point p0 = boundary[n][boundary[n].size()-1];
-        for(unsigned int i=0; i<boundary[n].size(); i++)
-        {
-            Point p1 = boundary[n][i];
-            
+        Point p0 = poly.back();
+        for(Point& p1 : poly)
+        {   
             //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+            // A = p0
+            // B = p1
+            // Q = ret 
+            // P = p
             Point pDiff = p1 - p0;
             int64_t lineLength = vSize(pDiff);
             int64_t distOnLine = dot(pDiff, *p - p0) / lineLength;
@@ -132,17 +137,17 @@ bool Comb::moveInside(Point* p, int distance)
                 distOnLine = lineLength - 10;
             Point q = p0 + pDiff * distOnLine / lineLength;
             
-            int64_t dist = vSize2(q - *p);
-            if (dist < bestDist)
+            int64_t dist2 = vSize2(q - *p);
+            if (dist2 < bestDist2)
             {
-                bestDist = dist;
+                bestDist2 = dist2;
                 ret = q + crossZ(normal(p1 - p0, distance));
             }
             
             p0 = p1;
         }
     }
-    if (bestDist < MM2INT(2.0) * MM2INT(2.0))
+    if (bestDist2 < maxDist2)
     {
         *p = ret;
         return true;
@@ -193,23 +198,33 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints
 bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>>& combPaths)
 {
     if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
+    {
+//         DEBUG_PRINTLN("too short dist!");
         return true;
+    }
     
     bool addEndpoint = false;
     //Check if we are inside the comb boundaries
     if (!boundary.inside(startPoint))
     {
         if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+        {   
+//             std::cerr << " fail to move the start point inside the comb boundary we need to retract."<< std::endl;
             return false;
+        }
         combPaths.emplace_back();
         combPaths.back().push_back(startPoint);
     }
     if (!boundary.inside(endPoint))
     {
         if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
+        {
+//             std::cerr << " fail to move the end point inside the comb boundary we need to retract."<< std::endl;
             return false;
+        }
         addEndpoint = true;
     }
+    
     
     //Check if we are crossing any boundaries, and pre-calculate some values.
     if (!lineSegmentCollidesWithBoundary(startPoint, endPoint))
@@ -219,6 +234,7 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>
             return true;
     }
     
+//     std::cerr << "calcuklating comb path!" << std::endl;
     
     //Calculate the minimum and maximum positions where we cross the comb boundary
     calcMinMax();
@@ -230,6 +246,7 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>
     if (addEndpoint)
         combPaths.back().push_back(endPoint);
     
+//     std::cerr << "succeeded = " << succeeded << std::endl;
     return succeeded;
 }
 
