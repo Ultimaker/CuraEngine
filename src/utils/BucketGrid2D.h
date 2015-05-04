@@ -46,7 +46,6 @@ private:
         inline uint32_t pointHash_simple(const Point& p) const
         {
             return p.X ^ (p.Y << 8);
-            //return (p.X / 20000) ^ (p.Y / 20000) << 8;
         }
 
         /*!
