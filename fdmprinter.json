@@ -688,7 +688,7 @@
                         "Touching Buildplate",
                         "Everywhere"
                     ],
-                    "default": "Touching Buildplate",
+                    "default": "Everywhere",
                     "visible": true,
                     "inherit_function": "'Everywhere' if support_enable else 'None'",
                     "active_if": {
