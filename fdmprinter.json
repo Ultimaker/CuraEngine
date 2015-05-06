@@ -684,7 +684,6 @@
                     "description": "Where to place support structures. The placement can be restricted such that the support structures won't rest on the model, which could otherwise cause scarring.",
                     "type": "enum",
                     "options": [
-                        "None",
                         "Touching Buildplate",
                         "Everywhere"
                     ],
