@@ -57,13 +57,3 @@ target_link_libraries(CuraEngine clipper Arcus)
 if (UNIX)
     target_link_libraries(CuraEngine pthread)
 endif()
-
-
-set(test_SRCS
-    src/test.cpp
-    src/utils/polygonUtils.cpp
-    src/utils/gettime.cpp
-)
-
-add_executable(Test ${test_SRCS})
-target_link_libraries(Test clipper Arcus)
