@@ -72,6 +72,25 @@ private:
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
     void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    
+    void slices2polygons_magicPolygonMode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    
+    void removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int totalLayers);
+    
+    void processInsets(SliceDataStorage& storage, unsigned int layer_nr);
+
+    void processOozeShield(SliceDataStorage& storage, unsigned int totalLayers);
+    
+    void processSkins(SliceDataStorage& storage, unsigned int layer_nr); 
+
+    void processWipeTower(SliceDataStorage& storage, unsigned int totalLayers);
+    
+    void processPlatformAdhesion(SliceDataStorage& storage);
+    
+    
+
+
+
 public:
     /*!
      * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
