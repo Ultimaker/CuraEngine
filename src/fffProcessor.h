@@ -119,10 +119,8 @@ public:
         {
             SliceDataStorage storage;
 
-            if (!areaGenerator.prepareModel(storage, model, timeKeeper))
+            if (!areaGenerator.generateAreas(storage, model, timeKeeper))
                 return false;
-
-            areaGenerator.processSliceData(storage, timeKeeper);
             
             gcodeWriter.setCommandSocket(commandSocket);
             gcodeWriter.writeGCode(storage, timeKeeper);

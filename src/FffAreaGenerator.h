@@ -12,32 +12,47 @@
 namespace cura
 {
 
-
+/*!
+ * Primary stage in Fused Filament Fabrication processing: Areas are generated.
+ * Each layer in the model consists of areas, 
+ */
 class FffAreaGenerator
 {
 private:
     CommandSocket* commandSocket;
-    SettingsBase& settings;
+    SettingsBase& settings; //!< Reference to the global settings
 public:
+    /*!
+     * Basic constructor; doesn't set the FffAreaGenerator::commandSocket .
+     */
     FffAreaGenerator(SettingsBase& settings_)
     : settings(settings_)
     {
     }
-
+    
+    /*!
+     * Set the FffAreaGenerator::commandSocket
+     */
     void setCommandSocket(CommandSocket* socket)
     {
         commandSocket = socket;
     }
   
+private:
+    /*!
+     * Send polygons over the command socket, if there is one.
+     */
     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
     {
         if (commandSocket)
             commandSocket->sendPolygons(type, layer_nr, polygons);
     }
     
-    bool prepareModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper); /// slices the model
+    bool sliceModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper); /// slices the model
 
-    void processSliceData(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    void slices2areas(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+public:
+    bool generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper);
     
 };
 } // namespace cura

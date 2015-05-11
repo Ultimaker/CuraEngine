@@ -18,8 +18,20 @@
 namespace cura
 {
 
+    
+bool FffAreaGenerator::generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper)
+{
+    if (!sliceModel(storage, object, timeKeeper)) 
+    {
+        return false;
+    }
+     
+    slices2areas(storage, timeKeeper);
+    
+    return true;
+}
 
-bool FffAreaGenerator::prepareModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper) /// slices the model
+bool FffAreaGenerator::sliceModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper) /// slices the model
 {
     storage.model_min = object->min();
     storage.model_max = object->max();
@@ -77,7 +89,7 @@ bool FffAreaGenerator::prepareModel(SliceDataStorage& storage, PrintObject* obje
     return true;
 }
 
-void FffAreaGenerator::processSliceData(SliceDataStorage& storage, TimeKeeper& timeKeeper)
+void FffAreaGenerator::slices2areas(SliceDataStorage& storage, TimeKeeper& timeKeeper)
 {
     if (commandSocket)
         commandSocket->beginSendSlicedObject();
