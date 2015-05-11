@@ -21,17 +21,17 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper)
 {
-    if (!sliceModel(storage, object, timeKeeper)) 
+    if (!sliceModel(object, timeKeeper, storage)) 
     {
         return false;
     }
      
-    slices2areas(storage, timeKeeper);
+    slices2polygons(storage, timeKeeper);
     
     return true;
 }
 
-bool FffPolygonGenerator::sliceModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper) /// slices the model
+bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
     storage.model_min = object->min();
     storage.model_max = object->max();
@@ -89,7 +89,7 @@ bool FffPolygonGenerator::sliceModel(SliceDataStorage& storage, PrintObject* obj
     return true;
 }
 
-void FffPolygonGenerator::slices2areas(SliceDataStorage& storage, TimeKeeper& timeKeeper)
+void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper)
 {
     if (commandSocket)
         commandSocket->beginSendSlicedObject();
