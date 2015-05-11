@@ -2,8 +2,6 @@
 #define FFF_PROCESSOR_H
 
 #include <algorithm>
-#include <sstream>
-#include <fstream>
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
@@ -14,13 +12,9 @@
 #include "layerPart.h"
 #include "inset.h"
 #include "skirt.h"
-#include "raft.h"
 #include "skin.h"
 #include "infill.h"
-#include "bridge.h"
 #include "pathOrderOptimizer.h"
-#include "gcodePlanner.h"
-#include "gcodeExport.h"
 #include "GcodeWriter.h"
 #include "commandSocket.h"
 #include "Weaver.h"

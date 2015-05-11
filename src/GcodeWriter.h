@@ -1,35 +1,18 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-// #include "gcodeExport.h"
-// #include "sliceDataStorage.h"
-// #include "commandSocket.h"
-// #include "gcodePlanner.h"
-// #include "gcodeExport.h"
 
-#include <algorithm>
-#include <sstream>
 #include <fstream>
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "sliceDataStorage.h"
-#include "modelFile/modelFile.h"
-#include "slicer.h"
-#include "support.h"
-#include "multiVolumes.h"
-#include "layerPart.h"
-#include "inset.h"
-#include "skirt.h"
 #include "raft.h"
-#include "skin.h"
 #include "infill.h"
 #include "bridge.h"
 #include "pathOrderOptimizer.h"
 #include "gcodePlanner.h"
 #include "gcodeExport.h"
 #include "commandSocket.h"
-#include "Weaver.h"
-#include "Wireframe2gcode.h"
 #include "utils/polygonUtils.h"
 
 namespace cura 
@@ -63,12 +46,6 @@ public:
         commandSocket = socket;
     }
 
-//     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
-//     {
-//         if (commandSocket)
-//             commandSocket->sendPolygons(type, layer_nr, polygons);
-//     }
-    
         
     bool setTargetFile(const char* filename)
     {
@@ -98,68 +75,6 @@ public:
     }
     
 
-//     bool processFiles(const std::vector<std::string> &files)
-//     {
-//         timeKeeper.restart();
-//         PrintObject* model = nullptr;
-// 
-//         model = new PrintObject(this);
-//         for(std::string filename : files)
-//         {
-//             log("Loading %s from disk...\n", filename.c_str());
-// 
-//             FMatrix3x3 matrix;
-//             if (!loadMeshFromFile(model, filename.c_str(), matrix))
-//             {
-//                 logError("Failed to load model: %s\n", filename.c_str());
-//                 return false;
-//             }
-//         }
-//         model->finalize();
-// 
-//         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
-//         return processModel(model);
-//     }
-
-//     bool processModel(PrintObject* model)
-//     {
-//         timeKeeper.restart();
-//         if (!model)
-//             return false;
-// 
-//         TimeKeeper timeKeeperTotal;
-//         
-//         if (model->getSettingBoolean("wireframe_enabled"))
-//         {
-//             log("starting Neith Weaver...\n");
-//                         
-//             Weaver w(this);
-//             w.weave(model, commandSocket);
-//             
-//             log("starting Neith Gcode generation...\n");
-//             preSetup();
-//             Wireframe2gcode gcoder(w, gcode, this);
-//             gcoder.writeGCode(commandSocket, maxObjectHeight);
-//             log("finished Neith Gcode generation...\n");
-//             
-//         } else 
-//         {
-//             SliceDataStorage storage;
-//             preSetup();
-// 
-//             if (!prepareModel(storage, model))
-//                 return false;
-// 
-// 
-//             processSliceData(storage);
-//             writeGCode(storage);
-//         }
-// 
-//         logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
-//         log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
-// 
-//         return true;
-//     }
 
     void finalize()
     {
