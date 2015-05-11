@@ -3,7 +3,7 @@
 
 #include "settings.h"
 #include "FffGcodeWriter.h"
-#include "FfPolygonGenerator.h"
+#include "FffPolygonGenerator.h"
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
@@ -14,7 +14,7 @@ namespace cura {
 class fffProcessor
 {
 private:
-    FfPolygonGenerator areaGenerator;
+    FffPolygonGenerator areaGenerator;
     FffGcodeWriter gcodeWriter;
     TimeKeeper timeKeeper;
     CommandSocket* commandSocket;

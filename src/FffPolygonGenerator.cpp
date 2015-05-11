@@ -1,4 +1,4 @@
-#include "FfPolygonGenerator.h"
+#include "FffPolygonGenerator.h"
 
 #include <algorithm>
 
@@ -19,7 +19,7 @@ namespace cura
 {
 
     
-bool FfPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper)
+bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper)
 {
     if (!sliceModel(storage, object, timeKeeper)) 
     {
@@ -31,7 +31,7 @@ bool FfPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* o
     return true;
 }
 
-bool FfPolygonGenerator::sliceModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper) /// slices the model
+bool FffPolygonGenerator::sliceModel(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper) /// slices the model
 {
     storage.model_min = object->min();
     storage.model_max = object->max();
@@ -89,7 +89,7 @@ bool FfPolygonGenerator::sliceModel(SliceDataStorage& storage, PrintObject* obje
     return true;
 }
 
-void FfPolygonGenerator::slices2areas(SliceDataStorage& storage, TimeKeeper& timeKeeper)
+void FffPolygonGenerator::slices2areas(SliceDataStorage& storage, TimeKeeper& timeKeeper)
 {
     if (commandSocket)
         commandSocket->beginSendSlicedObject();

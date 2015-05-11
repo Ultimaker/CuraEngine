@@ -16,7 +16,7 @@ namespace cura
  * Primary stage in Fused Filament Fabrication processing: Areas are generated.
  * Each layer in the model consists of areas, 
  */
-class FfPolygonGenerator
+class FffPolygonGenerator
 {
 private:
     CommandSocket* commandSocket;
@@ -25,7 +25,7 @@ public:
     /*!
      * Basic constructor; doesn't set the FffAreaGenerator::commandSocket .
      */
-    FfPolygonGenerator(SettingsBase& settings_)
+    FffPolygonGenerator(SettingsBase& settings_)
     : settings(settings_)
     {
     }
