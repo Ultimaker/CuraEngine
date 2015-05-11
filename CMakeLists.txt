@@ -22,7 +22,7 @@ set(engine_SRCS
     src/comb.cpp
     src/commandSocket.cpp
     src/FffGcodeWriter.cpp
-    src/FffAreaGenerator.cpp
+    src/FfPolygonGenerator.cpp
     src/gcodeExport.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
