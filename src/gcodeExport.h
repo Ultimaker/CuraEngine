@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <deque> // for extrusionAmountAtPreviousRetractions
+#include <sstream> // for stream.str()
 
 #include "settings.h"
 #include "utils/intpoint.h"
@@ -196,7 +197,28 @@ public:
     void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
     void writeBedTemperatureCommand(int temperature, bool wait = false);
     
+    void preSetup(SettingsBase& settings)
+    {
+        for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
+        {
+            std::ostringstream stream;
+            stream << "machine_extruder_offset" << n;
+            if (settings.hasSetting(stream.str() + "_x") || settings.hasSetting(stream.str() + "_y"))
+                setExtruderOffset(n, Point(settings.getSettingInMicrons(stream.str() + "_x"), settings.getSettingInMicrons(stream.str() + "_y")));
+        }
+        for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
+        {
+            std::ostringstream stream;
+            stream << n;
+            if (settings.hasSetting("machine_pre_extruder_switch_code" + stream.str()) || settings.hasSetting("machine_post_extruder_switch_code" + stream.str()))
+                setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
+        }
+
+        setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));
+        setRetractionSettings(settings.getSettingInMicrons("machine_switch_extruder_retraction_amount"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), settings.getSettingInMicrons("retraction_extrusion_window"), settings.getSettingInMicrons("retraction_count_max"));
+    }
     void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
+    
 };
 
 }

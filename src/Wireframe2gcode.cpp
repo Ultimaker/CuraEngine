@@ -10,13 +10,15 @@ namespace cura
 {
 
 
-void Wireframe2gcode::writeGCode(CommandSocket* commandSocket, int& maxObjectHeight)
+void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
 {
 
+    gcode.preSetup(*this);
+    
     if (commandSocket)
         commandSocket->beginGCode();
     
-    maxObjectHeight = wireFrame.layers.back().z1;
+    int maxObjectHeight = wireFrame.layers.back().z1;
     
     { // starting Gcode
         if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)

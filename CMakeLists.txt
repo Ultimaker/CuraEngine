@@ -21,6 +21,7 @@ set(engine_SRCS
     src/bridge.cpp
     src/comb.cpp
     src/commandSocket.cpp
+    src/GcodeWriter.cpp
     src/gcodeExport.cpp
     src/gcodePlanner.cpp
     src/infill.cpp

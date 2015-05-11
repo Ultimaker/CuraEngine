@@ -69,7 +69,7 @@ public:
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
-    void writeGCode(CommandSocket* commandSocket, int& maxObjectHeight);
+    void writeGCode(CommandSocket* commandSocket);
 
 
 private:
