@@ -18,9 +18,9 @@
 namespace cura 
 {
 
-class GcodeWriter
+class FffGcodeWriter
 {
-    friend class fffProcessor;
+    friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
     int maxObjectHeight;
     int fileNr; //!< used for sequential printing of objects
@@ -29,7 +29,7 @@ private:
     SettingsBase& settings;
     std::ofstream output_file;
 public:
-    GcodeWriter(SettingsBase& settings_)
+    FffGcodeWriter(SettingsBase& settings_)
     : settings(settings_)
     {
         fileNr = 1;
@@ -83,7 +83,7 @@ public:
             gcode.writeTemperatureCommand(e, 0, false);
     }
 
-    void writeGCode(SliceDataStorage& storage, TimeKeeper timeKeeper);
+    void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
     std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
     

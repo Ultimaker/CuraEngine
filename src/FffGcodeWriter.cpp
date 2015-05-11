@@ -5,7 +5,7 @@ namespace cura
 {
 
 
-void GcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper timeKeeper)
+void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
 {
     gcode.preSetup(settings);
     
@@ -309,7 +309,7 @@ void GcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper timeKeeper)
 }
 
 
-std::vector<SliceMeshStorage*> GcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
+std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
 {
     std::vector<SliceMeshStorage*> ret;
     std::vector<SliceMeshStorage*> add_list;
@@ -335,7 +335,7 @@ std::vector<SliceMeshStorage*> GcodeWriter::calculateMeshOrder(SliceDataStorage&
 }
 
 //Add a single layer from a single mesh-volume to the GCode
-void GcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
+void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
 {
     int prevExtruder = gcodeLayer.getExtruder();
     bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
@@ -558,7 +558,7 @@ void GcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorag
     gcodeLayer.setCombBoundary(nullptr);
 }
 
-void GcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
+void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
 {
     if (!storage.support.generated)
         return;
@@ -645,7 +645,7 @@ void GcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gco
 }
 
 
-void GcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder)
+void FffGcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder)
 {
     if (settings.getSettingInMicrons("wipe_tower_size") < 1)
         return;
