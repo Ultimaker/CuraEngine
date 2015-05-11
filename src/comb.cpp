@@ -13,14 +13,14 @@ bool Comb::lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint)
     transformed_startPoint = transformation_matrix.apply(startPoint);
     transformed_endPoint = transformation_matrix.apply(endPoint);
     
-    for(unsigned int n=0; n<boundary.size(); n++)
+    for(unsigned int n=0; n<parts_inside.size(); n++)
     {
-        if (boundary[n].size() < 1)
+        if (parts_inside[n].size() < 1)
             continue;
-        Point p0 = transformation_matrix.apply(boundary[n][boundary[n].size()-1]);
-        for(unsigned int i=0; i<boundary[n].size(); i++)
+        Point p0 = transformation_matrix.apply(parts_inside[n][parts_inside[n].size()-1]);
+        for(unsigned int i=0; i<parts_inside[n].size(); i++)
         {
-            Point p1 = transformation_matrix.apply(boundary[n][i]);
+            Point p1 = transformation_matrix.apply(parts_inside[n][i]);
             if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
             {
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
@@ -34,81 +34,84 @@ bool Comb::lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint)
     return false;
 }
 
-void Comb::calcMinMax()
+
+void Comb::calcScanlineCrossings()
 {
-    int64_t minX_global = INT64_MAX;
-    int64_t maxX_global = INT64_MIN;
-    for(unsigned int boundary_poly_idx = 0; boundary_poly_idx < boundary.size(); boundary_poly_idx++)
+    calcScanlineCrossings(parts_inside);
+    calcScanlineCrossings(parts_outside);
+}
+void Comb::calcScanlineCrossings(std::vector<PolygonsPart>& boundary)
+{
+    for(unsigned int part_idx = 0; part_idx < boundary.size(); part_idx++)
     {
-        minX[boundary_poly_idx] = INT64_MAX;
-        maxX[boundary_poly_idx] = INT64_MIN;
-        PolygonRef poly = boundary[boundary_poly_idx];
-        Point p0 = transformation_matrix.apply(poly.back());
-        for(unsigned int boundary_point_idx = 0; boundary_point_idx < poly.size(); boundary_point_idx++)
+        PolygonsPart& part = boundary[part_idx];
+        for(unsigned int poly_idx = 0; poly_idx < part.size(); poly_idx++)
         {
-            Point p1 = transformation_matrix.apply(poly[boundary_point_idx]);
-            if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+            PolyCrossings minMax(boundary, part_idx, poly_idx);
+            PolygonRef poly = part[poly_idx];
+            Point p0 = transformation_matrix.apply(poly.back());
+            for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
             {
-                int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
-                
-                if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
+                Point p1 = transformation_matrix.apply(poly[point_idx]);
+                if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
                 {
-                    if (x < minX[boundary_poly_idx]) { minX[boundary_poly_idx] = x; minIdx[boundary_poly_idx] = boundary_point_idx; }
-                    if (x > maxX[boundary_poly_idx]) { maxX[boundary_poly_idx] = x; maxIdx[boundary_poly_idx] = boundary_point_idx; }
-                    if (x < minX_global) { minX_global = x; minIdx_global = boundary_poly_idx; }
-                    if (x > maxX_global) { maxX_global = x; maxIdx_global = boundary_poly_idx; }
+                    int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+                    
+                    if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
+                    {
+                        if (x < minMax.min.x) { minMax.min.x = x; minMax.min.point_idx = point_idx; }
+                        if (x > minMax.max.x) { minMax.max.x = x; minMax.max.point_idx = point_idx; }
+                        if (x < crossings[min_crossing_idx].x) { min_crossing_idx = crossings.size(); }
+                        if (x > crossings[max_crossing_idx].x) { max_crossing_idx = crossings.size(); }
+                    }
                 }
+                p0 = p1;
             }
-            p0 = p1;
+            if (minMax.min.point_idx != NO_INDEX)
+            { // then also max.point_idx != -1
+                crossings.push_back(minMax);
+            }
         }
     }
 }
 
-unsigned int Comb::getNextPolygonAlongScanline(int64_t x)
+PolyCrossings Comb::getNextPolygonAlongScanline(int64_t x)
 {
-    int64_t min = POINT_MAX;
-    unsigned int ret = NO_INDEX;
-    for(unsigned int n = 0; n < boundary.size(); n++)
+    PolyCrossings ret(parts_inside, NO_INDEX, NO_INDEX);
+    for(PolyCrossings& crossing : crossings)
     {
-        if (minX[n] > x && minX[n] < min)
+        if (crossing.min.x > x && crossing.min.x < ret.min.x)
         {
-            min = minX[n];
-            ret = n;
+            ret = crossing;
         }
     }
     return ret;
 }
 
-Point Comb::getBoundaryPointWithOffset(unsigned int polygon_idx, unsigned int point_idx)
+Point Comb::getBoundaryPointWithOffset(unsigned int polygon_idx, unsigned int point_idx, int64_t offset)
 {
-    int64_t offset = MM2INT(0.2); // hard coded value
-    PolygonRef poly = boundary[polygon_idx];
+    PolygonRef poly = parts_inside[polygon_idx];
     Point p0 = poly[(point_idx > 0) ? (point_idx - 1) : (poly.size() - 1)];
     Point p1 = poly[point_idx];
     Point p2 = poly[(point_idx < (poly.size() - 1)) ? (point_idx + 1) : 0];
     
-    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0))); // hard coded value (?)
-    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0))); // hard coded value (?)
+    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0))); // 1.0 determines precision only ...
+    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0))); // ... normals will be normalized again here \/
     Point n = normal(off0 + off1, offset);
     
     return p1 + n;
 }
 
 Comb::Comb(Polygons& _boundary)
-: boundary(_boundary)
+: parts_inside(_boundary)
 {
-    minX = new int64_t[boundary.size()];
-    maxX = new int64_t[boundary.size()];
-    minIdx = new unsigned int[boundary.size()];
-    maxIdx = new unsigned int[boundary.size()];
+    
+    min_crossing_idx(INT64_MAX, true, -1, -1, -1);
+    max_crossing_idx(INT64_MIN, true, -1, -1, -1);
 }
 
 Comb::~Comb()
 {
-    delete[] minX;
-    delete[] maxX;
-    delete[] minIdx;
-    delete[] maxIdx;
 }
 
 bool Comb::moveInside(Point* from, int distance)
@@ -116,7 +119,7 @@ bool Comb::moveInside(Point* from, int distance)
     Point ret = *from;
     int64_t maxDist2 =  MM2INT(2.0) * MM2INT(2.0);
     int64_t bestDist2 = maxDist2;
-    for(PolygonRef poly : boundary)
+    for (PolygonRef poly : boundary)
     {
         if (poly.size() < 2)
             continue;
@@ -189,47 +192,7 @@ bool Comb::moveInside(Point* from, int distance)
     return false;
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints)
-{
-    if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
-        return true;
-    
-    bool addEndpoint = false;
-    //Check if we are inside the comb boundaries
-    if (!boundary.inside(startPoint))
-    {
-        if (!moveInside(&startPoint))    //If we fail to move the point inside the comb boundary we need to retract.
-            return false;
-        combPoints.push_back(startPoint);
-    }
-    if (!boundary.inside(endPoint))
-    {
-        if (!moveInside(&endPoint))    //If we fail to move the point inside the comb boundary we need to retract.
-            return false;
-        addEndpoint = true;
-    }
-    
-    //Check if we are crossing any boundaries, and pre-calculate some values.
-    if (!lineSegmentCollidesWithBoundary(startPoint, endPoint))
-    {
-        //We're not crossing any boundaries. So skip the comb generation.
-        if (!addEndpoint && combPoints.size() == 0) //Only skip if we didn't move the start and end point.
-            return true;
-    }
-    
-    //Calculate the minimum and maximum positions where we cross the comb boundary
-    calcMinMax();
-    
-    std::vector<Point> pointList;
-    getBasicCombingPath(endPoint, pointList);
-    
-    bool succeeded = optimizePath(startPoint, pointList, combPoints);
-    if (addEndpoint)
-        combPoints.push_back(endPoint);
-    return succeeded;
-}
-
-bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>>& combPaths)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
 {
     if (shorterThen(endPoint - startPoint, MM2INT(1.5)))
     {
@@ -271,9 +234,9 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>
 //     std::cerr << "calcuklating comb path!" << std::endl;
     
     //Calculate the minimum and maximum positions where we cross the comb boundary
-    calcMinMax();
+    calcScanlineCrossings();
     
-    std::vector<std::vector<Point>> basicCombPaths;
+    CombPaths basicCombPaths;
     getBasicCombingPaths(endPoint, basicCombPaths);
     
     bool succeeded = optimizePaths(startPoint, basicCombPaths, combPaths);
@@ -284,16 +247,16 @@ bool Comb::calc(Point startPoint, Point endPoint, std::vector<std::vector<Point>
     return succeeded;
 }
 
-void Comb::getBasicCombingPath(Point endPoint, std::vector<Point>& pointList) 
+void Comb::getBasicCombingPath(Point endPoint, CombPath& pointList) 
 {
-    for (unsigned int poly_idx = getNextPolygonAlongScanline(transformed_startPoint.X); poly_idx != NO_INDEX; poly_idx = getNextPolygonAlongScanline(maxX[poly_idx]))
+    for (Crossing crossing = getNextPolygonAlongScanline(transformed_startPoint.X); crossing.poly_idx != NO_INDEX; crossing = getNextPolygonAlongScanline(maxX[poly_idx]))
     {
         getBasicCombingPath(poly_idx, pointList);
     }
     pointList.push_back(endPoint);
 }
 
-void Comb::getBasicCombingPaths(Point endPoint, std::vector<std::vector<Point>>& combPaths) 
+void Comb::getBasicCombingPaths(Point endPoint, CombPaths& combPaths) 
 {
     for (unsigned int poly_idx = getNextPolygonAlongScanline(transformed_startPoint.X); poly_idx != NO_INDEX; poly_idx = getNextPolygonAlongScanline(maxX[poly_idx]))
     {
@@ -308,30 +271,30 @@ void Comb::getBasicCombingPaths(Point endPoint, std::vector<std::vector<Point>>&
     combPaths.back().push_back(endPoint);
 }
 
-void Comb::getBasicCombingPath(unsigned int poly_idx, std::vector<Point>& pointList) 
+void Comb::getBasicCombingPath(unsigned int poly_idx, std::vector<Point>& pointList, int64_t offset = MM2INT(0.2)) 
 {
     pointList.push_back(transformation_matrix.unapply(Point(minX[poly_idx] - MM2INT(0.2), transformed_startPoint.Y)));
-    if ( (minIdx[poly_idx] - maxIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size() > (maxIdx[poly_idx] - minIdx[poly_idx] + boundary[poly_idx].size()) % boundary[poly_idx].size())
+    if ( (minIdx[poly_idx] - maxIdx[poly_idx] + parts_inside[poly_idx].size()) % parts_inside[poly_idx].size() > (maxIdx[poly_idx] - minIdx[poly_idx] + parts_inside[poly_idx].size()) % parts_inside[poly_idx].size())
     { // follow the path in the same direction as the winding order of the boundary polygon
-        for(unsigned int point_idx = minIdx[poly_idx]; point_idx != maxIdx[poly_idx]; point_idx = (point_idx < boundary[poly_idx].size() - 1) ? (point_idx + 1) : (0))
+        for(unsigned int point_idx = minIdx[poly_idx]; point_idx != maxIdx[poly_idx]; point_idx = (point_idx < parts_inside[poly_idx].size() - 1) ? (point_idx + 1) : (0))
         {
-            pointList.push_back(getBoundaryPointWithOffset(poly_idx, point_idx));
+            pointList.push_back(getBoundaryPointWithOffset(poly_idx, point_idx, offset));
         }
     }
     else
     {
         if (minIdx[poly_idx] == 0)
-            minIdx[poly_idx] = boundary[poly_idx].size() - 1;
+            minIdx[poly_idx] = parts_inside[poly_idx].size() - 1;
         else
             minIdx[poly_idx]--;
         if (maxIdx[poly_idx] == 0)
-            maxIdx[poly_idx] = boundary[poly_idx].size() - 1;
+            maxIdx[poly_idx] = parts_inside[poly_idx].size() - 1;
         else
             maxIdx[poly_idx]--;
         
-        for(unsigned int i=minIdx[poly_idx]; i != maxIdx[poly_idx]; i = (i > 0) ? (i - 1) : (boundary[poly_idx].size() - 1))
+        for(unsigned int i=minIdx[poly_idx]; i != maxIdx[poly_idx]; i = (i > 0) ? (i - 1) : (parts_inside[poly_idx].size() - 1))
         {
-            pointList.push_back(getBoundaryPointWithOffset(poly_idx, i));
+            pointList.push_back(getBoundaryPointWithOffset(poly_idx, i, offset));
         }
     }
     pointList.push_back(transformation_matrix.unapply(Point(maxX[poly_idx] + MM2INT(0.2), transformed_startPoint.Y)));

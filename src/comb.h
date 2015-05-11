@@ -6,9 +6,11 @@
 
 namespace cura 
 {
+struct CombPath : public  std::vector<Point> {}; //!< A single path either inside or outise the parts
+struct CombPaths : public  std::vector<CombPath> {}; //!< A list of paths alternating between inside a part and outside a part
 
 /*!
- * Class for generating a combing move action from point a to point b.
+ * Class for generating a combing move action from point a to point b and avoiding collision with other parts when moving through air.
  * 
  * The general implementation is by rotating everything such that the the line segment from a to b is aligned with the x-axis.
  * We call the line on which a and b lie the 'scanline'.
@@ -16,15 +18,40 @@ namespace cura
 class Comb
 {
 private:
-    Polygons& boundary; //!< The comb boundary used
 
-    int64_t* minX; //!< Array: for each polygon in the boundary: minimum x coordinate of crossings between the polygon and the scanline.
-    int64_t* maxX; //!< Array: for each polygon in the boundary: maximum x coordinate of crossings between the polygon and the scanline.
-    unsigned int* minIdx; //!< Array: for each polygon in the boundary: index of the point with the minimum x coordinate of crossings between the polygon and the scanline.
-    unsigned int* maxIdx; //!< Array: for each polygon in the boundary: index of the point with the maximum x coordinate of crossings between the polygon and the scanline.
-
-    unsigned int minIdx_global; //!< The index of the polygon with the minimum x coordinate of crossings between the boundary polygons and the scanline.
-    unsigned int maxIdx_global; //!< The index of the polygon with the maximum x coordinate of crossings between the boundary polygons and the scanline.
+    struct Crossing
+    {
+        int64_t x; //!< x coordinate of crossings between the polygon and the scanline.
+        unsigned int point_idx; 
+        Crossing(int64_t x, unsigned int point_idx)
+        : x(x), point_idx(point_idx)
+        {
+        }
+    };
+    Polygons boundary;
+    std::vector<PolygonsPart> parts_inside;
+    std::vector<PolygonsPart> parts_outside;
+    Polygons boundary_inside;
+    Polygons boundary_outside;
+    
+    struct PolyCrossings
+    {
+        std::vector<PolygonsPart>& boundary;
+        unsigned int part_idx; //!< index of the crossings between the polygon and the scanline.
+        unsigned int poly_idx; 
+        Crossing min;
+        Crossing max;
+        PolyCrossings(std::vector<PolygonsPart>& boundary, unsigned int part_idx, unsigned int poly_idx) 
+        : boundary(boundary), part_idx(part_idx), poly_idx(poly_idx)
+        , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
+        { 
+        }
+    };
+    
+    std::vector<PolyCrossings> crossings;
+    PolyCrossings global_minMax;
+    unsigned int min_crossing_idx;
+    unsigned int max_crossing_idx;
     
     PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     Point transformed_startPoint; //!< The startPoint (see Comb::calc) as transformed by Comb::transformation_matrix
@@ -40,7 +67,10 @@ private:
     /*!
      * Calculate Comb::minX, Comb::maxX, Comb::minIdx, Comb::maxIdx, Comb::minIdx_global and Comb::maxIdx_global.
      */
-    void calcMinMax();
+    void calcScanlineCrossings();
+    
+    
+    void calcScanlineCrossings(std::vector<PolygonsPart>& boundary);
     
     /*!
      * Find the first polygon cutting the scanline after \p x.
@@ -51,7 +81,7 @@ private:
      * \param x The point on the scanline from where to look.
      * \return The index into the Comb::boundary of the first next polygon. Or NO_INDEX if there's none left.
      */
-    unsigned int getNextPolygonAlongScanline(int64_t x);
+    Crossing getNextPolygonAlongScanline(int64_t x);
     
     /*!
      * Get a point at an inset of 0.2mm of a given point in a polygon of the boudary.
@@ -60,13 +90,13 @@ private:
      * \param point_idx The index of the point in the polygon.
      * \return A point at the given distance inward from the point on the boundary polygon.
      */
-    Point getBoundaryPointWithOffset(unsigned int polygon_idx, unsigned int point_idx);
+    Point getBoundaryPointWithOffset(unsigned int polygon_idx, unsigned int point_idx, int64_t offset);
     
 public:
     Comb(Polygons& _boundary);
     ~Comb();
     
-    //! Utility function for `comb_boundary.inside(p)`.
+    //! Utility function for `boundary.inside(p)`.
     bool inside(const Point p) { return boundary.inside(p); }
     
     /*!
@@ -77,19 +107,9 @@ public:
      * \return Whether we succeeded in moving inside the comb boundary
      */
     bool moveInside(Point* p, int distance = 100);
-    
+
     /*!
-     * Calculate the comb path (if any)
-     * 
-     * \param startPoint Where to start moving from
-     * \param endPoint Where to move to
-     * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
-     * \return Whether combing has succeeded; otherwise a retraction is needed.
-     */
-    bool calc(Point startPoint, Point endPoint, std::vector<Point>& combPoints);
-    
-    /*!
-     * Calculate the comb paths (if any) - one for each polygon combed
+     * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
      * 
      * \param startPoint Where to start moving from
      * \param endPoint Where to move to
