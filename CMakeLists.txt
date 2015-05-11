@@ -21,7 +21,8 @@ set(engine_SRCS
     src/bridge.cpp
     src/comb.cpp
     src/commandSocket.cpp
-    src/GcodeWriter.cpp
+    src/FffGcodeWriter.cpp
+    src/FffAreaGenerator.cpp
     src/gcodeExport.cpp
     src/gcodePlanner.cpp
     src/infill.cpp

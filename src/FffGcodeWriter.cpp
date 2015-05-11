@@ -1,5 +1,5 @@
 
-#include "GcodeWriter.h"
+#include "FffGcodeWriter.h"
 
 namespace cura
 {

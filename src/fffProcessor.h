@@ -15,7 +15,7 @@
 #include "skin.h"
 #include "infill.h"
 #include "pathOrderOptimizer.h"
-#include "GcodeWriter.h"
+#include "FffGcodeWriter.h"
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
