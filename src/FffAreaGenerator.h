@@ -2,14 +2,12 @@
 #define FFF_AREA_GENERATOR_H
 
 
+#include "modelFile/modelFile.h"
+#include "utils/polygonUtils.h"
+#include "utils/gettime.h"
 #include "settings.h"
 #include "sliceDataStorage.h"
-#include "FffGcodeWriter.h"
-#include "FffAreaGenerator.h"
 #include "commandSocket.h"
-#include "Weaver.h"
-#include "Wireframe2gcode.h"
-#include "utils/polygonUtils.h"
 
 namespace cura
 {

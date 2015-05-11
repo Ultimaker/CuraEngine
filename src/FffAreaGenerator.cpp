@@ -13,6 +13,7 @@
 #include "skirt.h"
 #include "skin.h"
 #include "infill.h"
+#include "raft.h"
 
 namespace cura
 {
