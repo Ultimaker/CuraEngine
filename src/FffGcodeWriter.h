@@ -72,17 +72,39 @@ public:
     {
         return gcode.getTotalPrintTime();
     }
-    
-
-
-    void finalize()
-    {
-        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
-        for(int e=0; e<MAX_EXTRUDERS; e++)
-            gcode.writeTemperatureCommand(e, 0, false);
-    }
 
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    
+private:
+    //Setup the retraction parameters.
+    void setConfigRetraction(SliceDataStorage& storage);
+    
+    void setConfigSkirt(SliceDataStorage& storage, int layer_thickness);
+    
+    void setConfigSupport(SliceDataStorage& storage, int layer_thickness);
+    
+    void setConfigInsets(SliceMeshStorage& mesh, int layer_thickness);
+    
+    void setConfigSkin(SliceMeshStorage& mesh, int layer_thickness);
+    
+    void setConfigInfill(SliceMeshStorage& mesh, int layer_thickness);
+    
+    
+    void processStartingCode(SliceDataStorage& storage);
+
+    void processNextPrintObjectCode(SliceDataStorage& storage);
+    
+    void processRaft(SliceDataStorage& storage, unsigned int totalLayers);
+    
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int totalLayers, bool has_raft);
+    
+    void processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr);
+    
+    void processLayerStartPos(unsigned int layer_nr, bool has_raft);
+    
+    void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
+    
+    void processOozeShield(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
     
     std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
     
@@ -92,6 +114,11 @@ public:
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     
     void addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder);
+    
+    //Finish the layer by applying speed corrections for minimal layer times and determine the fanSpeed
+    void processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
+    
+    void finalize();
 };
 
 }//namespace cura

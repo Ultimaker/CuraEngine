@@ -119,8 +119,9 @@ public:
             SliceDataStorage storage;
 
             if (!polygonGenerator.generateAreas(storage, model, timeKeeper))
+            {
                 return false;
-            
+            }
             gcodeWriter.setCommandSocket(commandSocket);
             gcodeWriter.writeGCode(storage, timeKeeper);
         }

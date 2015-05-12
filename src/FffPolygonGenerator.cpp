@@ -91,8 +91,6 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
         }
     }
     log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
-    
-    log("Finished prepareModel.\n");
     return true;
 }
 
