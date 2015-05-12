@@ -6,7 +6,10 @@
 
 namespace cura 
 {
-struct CombPath : public  std::vector<Point> {}; //!< A single path either inside or outise the parts
+struct CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
+{
+    unsigned int part_idx;
+};
 struct CombPaths : public  std::vector<CombPath> {}; //!< A list of paths alternating between inside a part and outside a part
 
 /*!
@@ -29,29 +32,38 @@ private:
         }
     };
     Polygons boundary;
-    std::vector<PolygonsPart> parts_inside;
-    std::vector<PolygonsPart> parts_outside;
     Polygons boundary_inside;
     Polygons boundary_outside;
+    std::vector<PolygonsPart> parts_inside;
+    std::vector<PolygonsPart> parts_outside;
     
     struct PolyCrossings
     {
         std::vector<PolygonsPart>& boundary;
-        unsigned int part_idx; //!< index of the crossings between the polygon and the scanline.
         unsigned int poly_idx; 
         Crossing min;
         Crossing max;
-        PolyCrossings(std::vector<PolygonsPart>& boundary, unsigned int part_idx, unsigned int poly_idx) 
-        : boundary(boundary), part_idx(part_idx), poly_idx(poly_idx)
+        PolyCrossings(std::vector<PolygonsPart>& boundary, unsigned int poly_idx) 
+        : boundary(boundary), poly_idx(poly_idx)
         , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
         { 
         }
     };
     
-    std::vector<PolyCrossings> crossings;
-    PolyCrossings global_minMax;
-    unsigned int min_crossing_idx;
-    unsigned int max_crossing_idx;
+    struct CrossingDir
+    {
+        int part_idx;
+        int crossing_idx;
+    };
+    
+    struct PartCrossings : public std::vector<PolyCrossings>
+    {
+        //unsigned int part_idx;
+    };
+    PartCrossings* crossings_inside;
+    PartCrossings* crossings_outside;
+    CrossingDir min_crossing_dir;
+    CrossingDir max_crossing_dir;
     
     PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     Point transformed_startPoint; //!< The startPoint (see Comb::calc) as transformed by Comb::transformation_matrix
@@ -62,7 +74,11 @@ private:
      * 
      * Sets Comb::transformation_matrix, Comb::transformed_startPoint and Comb::transformed_endPoint
      */
-    bool lineSegmentCollidesWithBoundary(Point startPoint, Point endPoint);
+    bool lineSegmentCollidesWithAnyInsideBoundary(Point startPoint, Point endPoint);
+    
+    bool lineSegmentCollidesWithInsideBoundary(Point startPoint, Point endPoint, PolygonsPart part);
+
+    bool lineSegmentCollidesWithAnyOutsideBoundary(Point startPoint, Point endPoint);
 
     /*!
      * Calculate Comb::minX, Comb::maxX, Comb::minIdx, Comb::maxIdx, Comb::minIdx_global and Comb::maxIdx_global.
@@ -81,7 +97,7 @@ private:
      * \param x The point on the scanline from where to look.
      * \return The index into the Comb::boundary of the first next polygon. Or NO_INDEX if there's none left.
      */
-    Crossing getNextPolygonAlongScanline(int64_t x);
+    Crossing getNextPolygonAlongScanline(std::vector<PolyCrossings>& crossings, int64_t x);
     
     /*!
      * Get a point at an inset of 0.2mm of a given point in a polygon of the boudary.
