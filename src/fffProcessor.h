@@ -65,6 +65,11 @@ public:
     {
         return gcodeWriter.getTotalPrintTime();
     }
+    
+    void finalize()
+    {
+        gcodeWriter.finalize();
+    }
 
     bool processFiles(const std::vector<std::string> &files)
     {
@@ -87,11 +92,6 @@ public:
 
         log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
         return processModel(model);
-    }
-    
-    void finalize()
-    {
-        gcodeWriter.finalize();
     }
     
     bool processModel(PrintObject* model)
@@ -133,7 +133,6 @@ public:
     }
 
 
-private:
 
 
     
