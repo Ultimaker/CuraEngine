@@ -18,6 +18,8 @@ namespace cura
  * After slicing, the layers are processed; for example the wall insets are generated, and the areas which are to be filled with support and infill, which are all represented by polygons.
  * In this stage nothing other than areas and circular paths are generated, which are both represented by polygons.
  * No infill lines or support pattern etc. is generated.
+ * 
+ * The main function of this class is FffPolygonGenerator::generateAreas().
  */
 class FffPolygonGenerator : public SettingsBase
 {
@@ -40,6 +42,16 @@ public:
     {
         commandSocket = socket;
     }
+    
+
+    /*!
+     * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
+     * 
+     * \param object The object to slice.
+     * \param timeKeeper Object which keeps track of timings of each stage.
+     * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
+     */
+    bool generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper);
   
 private:
     /*!
@@ -72,34 +84,59 @@ private:
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
     void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
-    
+
+    /*!
+     * Processes the outline information as stored in the \p storage when in magic polygon mode: generates inset perimeter polygons
+     * 
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param timeKeeper Object which keeps track of timings of each stage.
+     */    
     void slices2polygons_magicPolygonMode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
+    /*!
+     * Remove all bottom layers which are empty.
+     * \param storage Input and Ouput parameter: stores all layers
+     * \param layer_height The height of each layer
+     * \param totalLayers The total number of layers
+     */
     void removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int totalLayers);
     
+    /*!
+     * Generate the inset polygons which form the walls.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param layer_nr The layer for which to generate the insets.
+     */
     void processInsets(SliceDataStorage& storage, unsigned int layer_nr);
 
+    /*!
+     * Generate the outline of the ooze shield.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param totalLayers The total number of layers 
+     */
     void processOozeShield(SliceDataStorage& storage, unsigned int totalLayers);
     
+    /*!
+     * Generate the skin areas.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param layer_nr The layer for which to generate the skin areas.
+     */
     void processSkins(SliceDataStorage& storage, unsigned int layer_nr); 
 
+    /*!
+     * Generate the area where the wipe tower should be.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param totalLayers The total number of layers 
+     */
     void processWipeTower(SliceDataStorage& storage, unsigned int totalLayers);
     
+    /*!
+     * Generate the skirt/brim/raft areas/insets.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     */
     void processPlatformAdhesion(SliceDataStorage& storage);
     
     
 
-
-
-public:
-    /*!
-     * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
-     * 
-     * \param object The object to slice.
-     * \param timeKeeper Object which keeps track of timings of each stage.
-     * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
-     */
-    bool generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper);
     
 };
 } // namespace cura

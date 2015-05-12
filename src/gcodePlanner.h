@@ -21,9 +21,11 @@ public:
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 };
 
-//The GCodePlanner class stores multiple moves that are planned.
-// It facilitates the combing to keep the head inside the print.
-// It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
+/*! 
+ * The GCodePlanner class stores multiple moves that are planned.
+ * It facilitates the combing to keep the head inside the print.
+ * It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
+ */
 class GCodePlanner
 {
 private:

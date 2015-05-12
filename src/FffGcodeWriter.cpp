@@ -207,7 +207,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
         gcodeLayer.writeGCode(false, getSettingInMicrons("raft_base_thickness"));
     }
 
-    { /// this code block is about something which is of yet unknown
+    { 
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
         GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
@@ -280,7 +280,14 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
     for(SliceMeshStorage* mesh : mesh_order)
     {
-        addMeshLayerToGCode(storage, mesh, gcodeLayer, layer_nr);
+        if (getSettingBoolean("magic_polygon_mode"))
+        {
+            addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcodeLayer, layer_nr);
+        }
+        else
+        {
+            addMeshLayerToGCode(storage, mesh, gcodeLayer, layer_nr);
+        }
     }
     if (!printSupportFirst)
         addSupportToGCode(storage, gcodeLayer, layer_nr);
@@ -375,7 +382,7 @@ std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStora
 }
 
 
-void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
+void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
 {
     int prevExtruder = gcodeLayer.getExtruder();
     bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
@@ -385,46 +392,54 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
-    if (getSettingBoolean("magic_polygon_mode"))
+
+    Polygons polygons;
+    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
-        Polygons polygons;
-        for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+        for(unsigned int n=0; n<layer->parts[partNr].outline.size(); n++)
         {
-            for(unsigned int n=0; n<layer->parts[partNr].outline.size(); n++)
-            {
-                for(unsigned int m=1; m<layer->parts[partNr].outline[n].size(); m++)
-                {
-                    Polygon p;
-                    p.add(layer->parts[partNr].outline[n][m-1]);
-                    p.add(layer->parts[partNr].outline[n][m]);
-                    polygons.add(p);
-                }
-                if (layer->parts[partNr].outline[n].size() > 0)
-                {
-                    Polygon p;
-                    p.add(layer->parts[partNr].outline[n][layer->parts[partNr].outline[n].size()-1]);
-                    p.add(layer->parts[partNr].outline[n][0]);
-                    polygons.add(p);
-                }
-            }
-        }
-        for(unsigned int n=0; n<layer->openLines.size(); n++)
-        {
-            for(unsigned int m=1; m<layer->openLines[n].size(); m++)
+            for(unsigned int m=1; m<layer->parts[partNr].outline[n].size(); m++)
             {
                 Polygon p;
-                p.add(layer->openLines[n][m-1]);
-                p.add(layer->openLines[n][m]);
+                p.add(layer->parts[partNr].outline[n][m-1]);
+                p.add(layer->parts[partNr].outline[n][m]);
+                polygons.add(p);
+            }
+            if (layer->parts[partNr].outline[n].size() > 0)
+            {
+                Polygon p;
+                p.add(layer->parts[partNr].outline[n][layer->parts[partNr].outline[n].size()-1]);
+                p.add(layer->parts[partNr].outline[n][0]);
                 polygons.add(p);
             }
         }
-        if (mesh->settings->getSettingBoolean("magic_spiralize"))
-            mesh->inset0_config.spiralize = true;
-
-        gcodeLayer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
-        return;
     }
+    for(unsigned int n=0; n<layer->openLines.size(); n++)
+    {
+        for(unsigned int m=1; m<layer->openLines[n].size(); m++)
+        {
+            Polygon p;
+            p.add(layer->openLines[n][m-1]);
+            p.add(layer->openLines[n][m]);
+            polygons.add(p);
+        }
+    }
+    if (mesh->settings->getSettingBoolean("magic_spiralize"))
+        mesh->inset0_config.spiralize = true;
 
+    gcodeLayer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
+    
+}
+
+void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr)
+{
+    int prevExtruder = gcodeLayer.getExtruder();
+    bool extruder_changed = gcodeLayer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
+
+    if (extruder_changed)
+        addWipeTower(storage, gcodeLayer, layer_nr, prevExtruder);
+
+    SliceLayer* layer = &mesh->layers[layer_nr];
 
     PathOrderOptimizer partOrderOptimizer(gcode.getStartPositionXY());
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -446,157 +461,179 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         if (layer_nr & 1)
             fillAngle += 90;
         int extrusionWidth = getSettingInMicrons("infill_line_width");
-
-        //Add thicker (multiple layers) sparse infill.
+        
         int sparse_infill_line_distance = getSettingInMicrons("infill_line_distance");
         double infill_overlap = getSettingInPercentage("fill_overlap");
-        if (sparse_infill_line_distance > 0)
-        {
-            //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
-            for(unsigned int n=1; n<part.sparse_outline.size(); n++)
-            {
-                Polygons fillPolygons;
-                switch(getSettingAsFillMethod("fill_pattern"))
-                {
-                case Fill_Grid:
-                    generateGridInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
-                    gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
-                    break;
-                case Fill_Lines:
-                    generateLineInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
-                    gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
-                    break;
-                case Fill_Triangles:
-                    generateTriangleInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
-                    gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
-                    break;
-                case Fill_Concentric:
-                    generateConcentricInfill(part.sparse_outline[n], fillPolygons, sparse_infill_line_distance);
-                    gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
-                    break;
-                case Fill_ZigZag:
-                    generateZigZagInfill(part.sparse_outline[n], fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
-                    gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
-                    break;
-                default:
-                    logError("fill_pattern has unknown value.\n");
-                    break;
-                }
-            }
-        }
-
-        //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
-        Polygons infillPolygons;
-        Polygons infillLines;
-        if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
-        {
-            switch(getSettingAsFillMethod("fill_pattern"))
-            {
-            case Fill_Grid:
-                generateGridInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
-                break;
-            case Fill_Lines:
-                generateLineInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
-                break;
-            case Fill_Triangles:
-                generateTriangleInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
-                break;
-            case Fill_Concentric:
-                generateConcentricInfill(part.sparse_outline[0], infillPolygons, sparse_infill_line_distance);
-                break;
-            case Fill_ZigZag:
-                generateZigZagInfill(part.sparse_outline[0], infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
-                break;
-            default:
-                logError("fill_pattern has unknown value.\n");
-                break;
-            }
-        }
-        gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
-        gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
-
-        if (getSettingAsCount("wall_line_count") > 0)
-        {
-            if (getSettingBoolean("magic_spiralize"))
-            {
-                if (static_cast<int>(layer_nr) >= getSettingAsCount("bottom_layers"))
-                    mesh->inset0_config.spiralize = true;
-                if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part.insets.size() > 0)
-                    gcodeLayer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config);
-            }
-            for(int insetNr=part.insets.size()-1; insetNr>-1; insetNr--)
-            {
-                if (insetNr == 0)
-                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
-                else
-                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->insetX_config);
-            }
-        }
-
-        Polygons skinPolygons;
-        Polygons skinLines;
-        for(SkinPart& skin_part : part.skin_parts)
-        {
-            int bridge = -1;
-            if (layer_nr > 0)
-                bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
-            if (bridge > -1)
-            {
-                generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
-            }else{
-                switch(getSettingAsFillMethod("top_bottom_pattern"))
-                {
-                case Fill_Lines:
-                    for (Polygons& skin_perimeter : skin_part.insets)
-                    {
-                        gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
-                    }
-                    if (skin_part.insets.size() > 0)
-                    {
-                        generateLineInfill(skin_part.insets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
-                        if (getSettingString("fill_perimeter_gaps") != "Nowhere")
-                        {
-                            generateLineInfill(skin_part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
-                        }
-                    } 
-                    else
-                    {
-                        generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
-                    }
-                    break;
-                case Fill_Concentric:
-                    {
-                        Polygons in_outline;
-                        offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
-                        if (getSettingString("fill_perimeter_gaps") != "Nowhere")
-                        {
-                            generateConcentricInfillDense(in_outline, skinPolygons, &part.perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
-                        }
-                    }
-                    break;
-                default:
-                    logError("Unknown fill method for skin\n");
-                    break;
-                }
-            }
-        }
         
-        // handle gaps between perimeters etc.
-        if (getSettingString("fill_perimeter_gaps") != "Nowhere")
-        {
-            generateLineInfill(part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
-        }
-        
-        
-        gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
-        gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
+        processMultiLayerInfill(gcodeLayer, mesh, part, sparse_infill_line_distance, infill_overlap, fillAngle, extrusionWidth);
+        processSingleLayerInfill(gcodeLayer, mesh, part, sparse_infill_line_distance, infill_overlap, fillAngle, extrusionWidth);
 
+        processInsets(gcodeLayer, mesh, part, layer_nr);
+
+        processSkin(gcodeLayer, mesh, part, layer_nr, infill_overlap, fillAngle, extrusionWidth);    
+        
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
             gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
     }
     gcodeLayer.setCombBoundary(nullptr);
 }
+
+
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth)
+{
+    if (sparse_infill_line_distance > 0)
+    {
+        //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
+        for(unsigned int n=1; n<part.sparse_outline.size(); n++)
+        {
+            Polygons fillPolygons;
+            switch(getSettingAsFillMethod("fill_pattern"))
+            {
+            case Fill_Grid:
+                generateGridInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
+                gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                break;
+            case Fill_Lines:
+                generateLineInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
+                gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                break;
+            case Fill_Triangles:
+                generateTriangleInfill(part.sparse_outline[n], 0, fillPolygons, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
+                gcodeLayer.addLinesByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                break;
+            case Fill_Concentric:
+                generateConcentricInfill(part.sparse_outline[n], fillPolygons, sparse_infill_line_distance);
+                gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                break;
+            case Fill_ZigZag:
+                generateZigZagInfill(part.sparse_outline[n], fillPolygons, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
+                gcodeLayer.addPolygonsByOptimizer(fillPolygons, &mesh->infill_config[n]);
+                break;
+            default:
+                logError("fill_pattern has unknown value.\n");
+                break;
+            }
+        }
+    }
+}
+
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth)
+{
+    //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
+    Polygons infillPolygons;
+    Polygons infillLines;
+    if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
+    {
+        switch(getSettingAsFillMethod("fill_pattern"))
+        {
+        case Fill_Grid:
+            generateGridInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
+            break;
+        case Fill_Lines:
+            generateLineInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle);
+            break;
+        case Fill_Triangles:
+            generateTriangleInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 3, infill_overlap, 0);
+            break;
+        case Fill_Concentric:
+            generateConcentricInfill(part.sparse_outline[0], infillPolygons, sparse_infill_line_distance);
+            break;
+        case Fill_ZigZag:
+            generateZigZagInfill(part.sparse_outline[0], infillLines, extrusionWidth, sparse_infill_line_distance, infill_overlap, fillAngle, false, false);
+            break;
+        default:
+            logError("fill_pattern has unknown value.\n");
+            break;
+        }
+    }
+    gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
+    gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
+}
+
+void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
+{
+    if (getSettingAsCount("wall_line_count") > 0)
+    {
+        if (getSettingBoolean("magic_spiralize"))
+        {
+            if (static_cast<int>(layer_nr) >= getSettingAsCount("bottom_layers"))
+                mesh->inset0_config.spiralize = true;
+            if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+                gcodeLayer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config);
+        }
+        for(int insetNr=part.insets.size()-1; insetNr>-1; insetNr--)
+        {
+            if (insetNr == 0)
+                gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+            else
+                gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->insetX_config);
+        }
+    }
+}
+
+
+void FffGcodeWriter::processSkin(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int fillAngle, int extrusionWidth)
+{
+    Polygons skinPolygons;
+    Polygons skinLines;
+    for(SkinPart& skin_part : part.skin_parts)
+    {
+        int bridge = -1;
+        if (layer_nr > 0)
+            bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
+        if (bridge > -1)
+        {
+            generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, bridge);
+        }else{
+            switch(getSettingAsFillMethod("top_bottom_pattern"))
+            {
+            case Fill_Lines:
+                for (Polygons& skin_perimeter : skin_part.insets)
+                {
+                    gcodeLayer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
+                }
+                if (skin_part.insets.size() > 0)
+                {
+                    generateLineInfill(skin_part.insets.back(), -extrusionWidth/2, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                    {
+                        generateLineInfill(skin_part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+                    }
+                } 
+                else
+                {
+                    generateLineInfill(skin_part.outline, 0, skinLines, extrusionWidth, extrusionWidth, infill_overlap, fillAngle);
+                }
+                break;
+            case Fill_Concentric:
+                {
+                    Polygons in_outline;
+                    offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
+                    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                    {
+                        generateConcentricInfillDense(in_outline, skinPolygons, &part.perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
+                    }
+                }
+                break;
+            default:
+                logError("Unknown fill method for skin\n");
+                break;
+            }
+        }
+    }
+    
+    // handle gaps between perimeters etc.
+    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+    {
+        generateLineInfill(part.perimeterGaps, 0, skinLines, extrusionWidth, extrusionWidth, 0, fillAngle);
+    }
+    
+    
+    gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
+    gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
+}
+
 
 void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
 {
@@ -685,7 +722,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
 }
 
 
-void FffGcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prevExtruder)
+void FffGcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)
 {
     if (getSettingInMicrons("wipe_tower_size") < 1)
         return;
@@ -713,7 +750,7 @@ void FffGcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcode
     }
     
     //Make sure we wipe the old extruder on the wipe tower.
-    gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prevExtruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
+    gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
 }
 
 void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)
