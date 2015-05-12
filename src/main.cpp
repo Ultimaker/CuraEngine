@@ -159,7 +159,7 @@ int main(int argc, char **argv)
                             {
                                 *valuePtr++ = '\0';
 
-                                processor.settings.setSetting(argv[argn], valuePtr);
+                                processor.setSetting(argv[argn], valuePtr);
                             }
                         }
                         break;

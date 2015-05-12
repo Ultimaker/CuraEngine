@@ -11,20 +11,19 @@
 namespace cura {
 
 //FusedFilamentFabrication processor.
-class fffProcessor
+class fffProcessor : public SettingsBase
 {
 private:
-    FffPolygonGenerator areaGenerator;
+    FffPolygonGenerator polygonGenerator;
     FffGcodeWriter gcodeWriter;
     TimeKeeper timeKeeper;
     CommandSocket* commandSocket;
 
 public:
-    SettingsBase settings;
     
     fffProcessor()
-    : areaGenerator(settings)
-    , gcodeWriter(settings)
+    : polygonGenerator(this)
+    , gcodeWriter(this)
     {
         commandSocket = NULL;
     }
@@ -38,7 +37,7 @@ public:
     {
         commandSocket = socket;
         gcodeWriter.setCommandSocket(socket);
-        areaGenerator.setCommandSocket(socket);
+        polygonGenerator.setCommandSocket(socket);
     }
 
     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
@@ -72,7 +71,7 @@ public:
         timeKeeper.restart();
         PrintObject* model = nullptr;
 
-        model = new PrintObject(&settings);
+        model = new PrintObject(this);
         for(std::string filename : files)
         {
             log("Loading %s from disk...\n", filename.c_str());
@@ -107,11 +106,11 @@ public:
         {
             log("starting Neith Weaver...\n");
                         
-            Weaver w(&settings);
+            Weaver w(this);
             w.weave(model, commandSocket);
             
             log("starting Neith Gcode generation...\n");
-            Wireframe2gcode gcoder(w, gcodeWriter.gcode, &settings);
+            Wireframe2gcode gcoder(w, gcodeWriter.gcode, this);
             gcoder.writeGCode(commandSocket);
             log("finished Neith Gcode generation...\n");
             
@@ -119,7 +118,7 @@ public:
         {
             SliceDataStorage storage;
 
-            if (!areaGenerator.generateAreas(storage, model, timeKeeper))
+            if (!polygonGenerator.generateAreas(storage, model, timeKeeper))
                 return false;
             
             gcodeWriter.setCommandSocket(commandSocket);

@@ -108,7 +108,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
     d->object_count = 0;
     d->objectIds.clear();
 
-    d->objectToSlice = std::make_shared<PrintObject>(&d->processor->settings);
+    d->objectToSlice = std::make_shared<PrintObject>(d->processor);
     for(auto object : list->objects())
     {
         d->objectToSlice->meshes.emplace_back(d->objectToSlice.get()); //Construct a new mesh and put it into printObject's mesh list.
@@ -145,7 +145,7 @@ void CommandSocket::handleSettingList(Cura::SettingList* list)
 {
     for(auto setting : list->settings())
     {
-        d->processor->settings.setSetting(setting.name(), setting.value());
+        d->processor->setSetting(setting.name(), setting.value());
     }
 }
 

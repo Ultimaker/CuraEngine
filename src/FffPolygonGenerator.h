@@ -19,17 +19,17 @@ namespace cura
  * In this stage nothing other than areas and circular paths are generated, which are both represented by polygons.
  * No infill lines or support pattern etc. is generated.
  */
-class FffPolygonGenerator
+class FffPolygonGenerator : public SettingsBase
 {
 private:
     CommandSocket* commandSocket;
-    SettingsBase& settings; //!< Reference to the global settings
 public:
     /*!
      * Basic constructor; doesn't set the FffAreaGenerator::commandSocket .
      */
-    FffPolygonGenerator(SettingsBase& settings_)
-    : settings(settings_)
+    FffPolygonGenerator(SettingsBase* settings_)
+    : SettingsBase(settings_)
+    , commandSocket(nullptr)
     {
     }
     

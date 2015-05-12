@@ -18,7 +18,7 @@
 namespace cura 
 {
 
-class FffGcodeWriter
+class FffGcodeWriter : public SettingsBase
 {
     friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
@@ -26,11 +26,10 @@ private:
     int fileNr; //!< used for sequential printing of objects
     GCodeExport gcode;
     CommandSocket* commandSocket;
-    SettingsBase& settings;
     std::ofstream output_file;
 public:
-    FffGcodeWriter(SettingsBase& settings_)
-    : settings(settings_)
+    FffGcodeWriter(SettingsBase* settings_)
+    : SettingsBase(settings_)
     {
         fileNr = 1;
         maxObjectHeight = 0;
@@ -78,7 +77,7 @@ public:
 
     void finalize()
     {
-        gcode.finalize(maxObjectHeight, settings.getSettingInMillimetersPerSecond("speed_travel"), settings.getSettingString("machine_end_gcode").c_str());
+        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
         for(int e=0; e<MAX_EXTRUDERS; e++)
             gcode.writeTemperatureCommand(e, 0, false);
     }

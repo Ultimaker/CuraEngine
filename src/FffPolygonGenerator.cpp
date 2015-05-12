@@ -14,7 +14,7 @@
 #include "skin.h"
 #include "infill.h"
 #include "raft.h"
-
+#include "debug.h"
 namespace cura
 {
 
@@ -26,7 +26,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* 
         return false;
     }
     
-    if (settings.getSettingBoolean("magic_polygon_mode"))
+    if (getSettingBoolean("magic_polygon_mode"))
     {
         slices2polygons_magicPolygonMode(storage, timeKeeper);
     }
@@ -70,7 +70,7 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
 
     log("Generating layer parts...\n");
     //carveMultipleVolumes(storage.meshes);
-    generateMultipleVolumesOverlap(slicerList, settings.getSettingInMicrons("multiple_mesh_overlap"));
+    generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
     
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
@@ -84,7 +84,7 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
             if (has_raft)
-                meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + settings.getSettingAsCount("raft_surface_layers") * settings.getSettingInMicrons("raft_surface_thickness");
+                meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
 
             if (commandSocket)
                 commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
@@ -108,7 +108,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     //dumpLayerparts(storage, "c:/models/output.html");
 
-
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         processInsets(storage, layer_nr);
@@ -117,7 +116,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layer_nr) / float(totalLayers));
     }
     
-    removeEmptyFirstLayers(storage, settings.getSettingInMicrons("layer_height"), totalLayers);
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), totalLayers);
     
     if (totalLayers < 1)
     {
@@ -144,7 +143,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
-        if (!settings.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < settings.getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkins(storage, layer_nr);
         }
@@ -235,7 +234,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
 
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    if (!settings.getSettingBoolean("ooze_shield_enabled"))
+    if (!getSettingBoolean("ooze_shield_enabled"))
     {
         return;
     }
@@ -255,7 +254,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
 
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
-    int offsetAngle = tan(settings.getSettingInAngleRadians("ooze_shield_angle")) * settings.getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
+    int offsetAngle = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
     for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
     for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
@@ -294,11 +293,11 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 
 void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    if (settings.getSettingInMicrons("wipe_tower_distance") > 0 && settings.getSettingInMicrons("wipe_tower_size") > 0)
+    if (getSettingInMicrons("wipe_tower_distance") > 0 && getSettingInMicrons("wipe_tower_size") > 0)
     {
         PolygonRef p = storage.wipeTower.newPoly();
-        int tower_size = settings.getSettingInMicrons("wipe_tower_size");
-        int tower_distance = settings.getSettingInMicrons("wipe_tower_distance");
+        int tower_size = getSettingInMicrons("wipe_tower_size");
+        int tower_distance = getSettingInMicrons("wipe_tower_distance");
         p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance));
         p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance + tower_size));
         p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
@@ -310,16 +309,16 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
-    switch(settings.getSettingAsPlatformAdhesion("adhesion_type"))
+    switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case Adhesion_None:
-        generateSkirt(storage, settings.getSettingInMicrons("skirt_gap"), settings.getSettingInMicrons("skirt_line_width"), settings.getSettingAsCount("skirt_line_count"), settings.getSettingInMicrons("skirt_minimal_length"));
+        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
         break;
     case Adhesion_Brim:
-        generateSkirt(storage, 0, settings.getSettingInMicrons("skirt_line_width"), settings.getSettingAsCount("brim_line_count"), settings.getSettingInMicrons("skirt_minimal_length"));
+        generateSkirt(storage, 0, getSettingInMicrons("skirt_line_width"), getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
         break;
     case Adhesion_Raft:
-        generateRaft(storage, settings.getSettingInMicrons("raft_margin"));
+        generateRaft(storage, getSettingInMicrons("raft_margin"));
         break;
     }
     
