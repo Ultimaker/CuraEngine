@@ -15,11 +15,11 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     else
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
 
-    _processPolyTreeNode(&resultPolyTree, ret);
+    splitIntoParts_processPolyTreeNode(&resultPolyTree, ret);
     return ret;
 }
 
-void Polygons::_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const
+void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const
 {
     for(int n=0; n<node->ChildCount(); n++)
     {
@@ -29,9 +29,45 @@ void Polygons::_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Poly
         for(int i=0; i<child->ChildCount(); i++)
         {
             part.add(child->Childs[i]->Contour);
-            _processPolyTreeNode(child->Childs[i], ret);
+            splitIntoParts_processPolyTreeNode(child->Childs[i], ret);
         }
         ret.push_back(part);
+    }
+}
+
+std::vector<std::vector<int>> Polygons::splitIntoPartsView(bool unionAll)
+{
+    Polygons reordered;
+    std::vector<std::vector<int>> partsView;
+    ClipperLib::Clipper clipper(clipper_init);
+    ClipperLib::PolyTree resultPolyTree;
+    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    if (unionAll)
+        clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+    else
+        clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
+
+    splitIntoPartsView_processPolyTreeNode(partsView, reordered, &resultPolyTree);
+    
+    (*this) = reordered;
+    return partsView;
+}
+
+void Polygons::splitIntoPartsView_processPolyTreeNode(std::vector<std::vector<int>>& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const
+{
+    for(int n=0; n<node->ChildCount(); n++)
+    {
+        ClipperLib::PolyNode* child = node->Childs[n];
+        partsView.emplace_back();
+        std::vector<int>& partView = partsView.back();
+        partView.push_back(reordered.size());
+        reordered.add(child->Contour);
+        for(int i = 0; i < child->ChildCount(); i++)
+        {
+            partView.push_back(reordered.size());
+            reordered.add(child->Childs[i]->Contour);
+            splitIntoParts_processPolyTreeNode(partsView, reordered, child->Childs[i]);
+        }
     }
 }
 
