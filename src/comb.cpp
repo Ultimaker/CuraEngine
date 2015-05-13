@@ -244,17 +244,38 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
 //     std::cerr << "calcuklating comb path!" << std::endl;
     
     //Calculate the minimum and maximum positions where we cross the comb boundary
-    calcScanlineCrossings();
+    calcScanlineCrossings(parts_inside, crossings_inside);
     
     CombPaths basicCombPaths;
+    if (min_crossing_dir.part_idx == max_crossing_dir.part_idx)
+    {
+        basicCombPaths.emplace_back();
+        getBasicCombingPath(min_crossing_dir.part_idx, crossings_inside[min_crossing_dir.part_idx][min_crossing_dir.crossing_idx], basicCombPaths.back());
+    }
+    else 
+    {
+        
+        basicCombPaths.emplace_back();
+        getBasicCombingPath(min_crossing_dir.part_idx, crossings_inside[min_crossing_dir.part_idx][min_crossing_dir.crossing_idx], basicCombPaths.back());
+        
+        calcScanlineCrossings(parts_outside, crossings_outside);
+        basicCombPaths.emplace_back();
+        get path outside 
+        
+        basicCombPaths.emplace_back();
+        getBasicCombingPath(max_crossing_dir.part_idx, crossings_inside[max_crossing_dir.part_idx][max_crossing_dir.crossing_idx], basicCombPaths.back());
+        
+    }
     getBasicCombingPaths(endPoint, basicCombPaths);
     
-    bool succeeded = optimizePaths(startPoint, basicCombPaths, combPaths);
-    if (addEndpoint)
-        combPaths.back().push_back(endPoint);
+    combPaths = basicCombPaths;
+    
+//     bool succeeded = optimizePaths(startPoint, basicCombPaths, combPaths);
+//     if (addEndpoint)
+//         combPaths.back().push_back(endPoint);
     
 //     std::cerr << "succeeded = " << succeeded << std::endl;
-    return succeeded;
+//     return succeeded;
 }
 
 void Comb::calcScanlineCrossings()
@@ -327,14 +348,16 @@ PolyCrossings Comb::getNextPolygonAlongScanline(bool inside, int64_t x)
     return ret;
 }
 
-// void Comb::getBasicCombingPath(Point endPoint, CombPath& pointList) 
-// {
-//     for (Crossing crossing = getNextPolygonAlongScanline(transformed_startPoint.X); crossing.poly_idx != NO_INDEX; crossing = getNextPolygonAlongScanline(maxX[poly_idx]))
-//     {
-//         getBasicCombingPath(poly_idx, pointList);
-//     }
-//     pointList.push_back(endPoint);
-// }
+/*
+void Comb::getBasicCombingPath(Point endPoint, CombPath& pointList) 
+{
+    for (Crossing crossing = getNextPolygonAlongScanline(transformed_startPoint.X); crossing.poly_idx != NO_INDEX; crossing = getNextPolygonAlongScanline(maxX[poly_idx]))
+    {
+        getBasicCombingPath(poly_idx, pointList);
+    }
+    pointList.push_back(endPoint);
+}
+*/
 
 void Comb::getBasicCombingPaths(Point endPoint, CombPaths& combPaths) 
 {
@@ -347,7 +370,7 @@ void Comb::getBasicCombingPaths(Point endPoint, CombPaths& combPaths)
         combPaths.emplace_back();
         CombPath& pointList = combPaths.back();
         pointList.part_idx = part_idx;
-        getBasicCombingPath(poly_idx, pointList);
+        getBasicCombingPath(part_idx, crossing, pointList);
     }
     if (combPaths.size() == 0)
     {
