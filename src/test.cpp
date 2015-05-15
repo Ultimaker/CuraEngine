@@ -7,9 +7,8 @@
 
 
 
-#include "utils/polygonUtils.h"
 
-using namespace cura;
+//using namespace cura;
 
 /*
 #include "utils/intpoint.h"
@@ -163,8 +162,11 @@ void test_BucketGrid2D()
     //bg.debug();
 }*/
 
+/*
 #include <math.h> 
 #include "utils/gettime.h"
+#include "utils/polygonUtils.h"
+
 void test_findClosestConnection()
 {
     srand(1234);
@@ -264,8 +266,8 @@ void test_findClosestConnection()
     std::cerr << "evalTime : " << evalTime << std::endl;
     std::cerr << "totalLength : " << totalLength << std::endl;
 }
-
+*/
 int main(int argc, char **argv)
 {
-    test_findClosestConnection();
+    //test_findClosestConnection();
 }
