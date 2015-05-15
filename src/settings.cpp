@@ -104,7 +104,7 @@ bool SettingsBase::getSettingBoolean(std::string key)
         return true;
     if (value == "yes")
         return true;
-    if (value == "true")
+    if (value == "true" or value == "True") //Python uses "True"
         return true;
     return atoi(value.c_str()) != 0;
 }
