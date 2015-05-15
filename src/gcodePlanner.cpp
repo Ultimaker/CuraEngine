@@ -77,7 +77,7 @@ void GCodePlanner::addTravel(Point p)
 //                 path->points.push_back(pointList[n]);
 //             }
 //         }
-        std::vector<std::vector<Point>> combPaths;
+        CombPaths combPaths;
         if (comb->calc(lastPosition, p, combPaths))
         {
             bool first = true;
