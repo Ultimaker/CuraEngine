@@ -11,7 +11,6 @@
 #include <limits> // int64_t.min
 
 #include "intpoint.h"
-#include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
 //#define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
@@ -196,33 +195,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false)
-    {
-        PolygonRef thiss = *this;
-        if (size() < 1)
-        {
-            return false;
-        }
-        
-        int crossings = 0;
-        Point p0 = back();
-        for(unsigned int n=0; n<size(); n++)
-        {
-            Point p1 = thiss[n];
-            // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
-            short comp = pointLiesOnTheRightOfLine(p, p0, p1);
-            if (comp == 1)
-            {
-                crossings++;
-            }
-            else if (comp == 0)
-            {
-                return border_result;
-            }
-            p0 = p1;
-        }
-        return (crossings % 2) == 1;
-    }
+    bool inside(Point p, bool border_result = false);
     
     void smooth(int remove_length, PolygonRef result)
     {
@@ -353,7 +326,7 @@ class PolygonsPart;
 
 class Polygons
 {
-private:
+protected:
     ClipperLib::Paths polygons;
 public:
     unsigned int size() const
@@ -468,34 +441,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false)
-    {
-        Polygons& thiss = *this;
-        if (size() < 1)
-        {
-            return false;
-        }
-        
-        int crossings = 0;
-        for (PolygonRef poly : thiss)
-        {
-            Point p0 = poly.back();
-            for(Point& p1 : thiss)
-            {
-                short comp = pointLiesOnTheRightOfLine(p, p0, p1);
-                if (comp == 1)
-                {
-                    crossings++;
-                }
-                else if (comp == 0)
-                {
-                    return border_result;
-                }
-                p0 = p1;
-            }
-        }
-        return (crossings % 2) == 1;
-    }
+    bool inside(Point p, bool border_result = false);
     
     /*!
      * Find the polygon inside which point \p p resides. 
@@ -510,62 +456,7 @@ public:
      * \param border_result Whether a point exactly on a polygon counts as inside
      * \return The index of the polygon inside which the point \p p resides
      */
-    unsigned int findInside(Point p, bool border_result = false)
-    {
-        Polygons& thiss = *this;
-        if (size() < 1)
-        {
-            return false;
-        }
-        
-        int64_t min_x[size()];
-        std::fill_n(min_x, size(), std::numeric_limits<int64_t>::max());  // initialize with int.max
-        int crossings[size()] = {}; // initialize with zeros
-        
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-        {
-            PolygonRef poly = thiss[poly_idx];
-            Point p0 = poly.back();
-            for(Point& p1 : thiss)
-            {
-                short comp = pointLiesOnTheRightOfLine(p, p0, p1);
-                if (comp == 1)
-                {
-                    crossings[poly_idx]++;
-                    int64_t x;
-                    if (p1.Y == p0.Y)
-                    {
-                        x = p0.X;
-                    }
-                    else 
-                    {
-                        x = p0.X + (p1.X-p0.X) * (p.Y-p0.Y) / ((p1.Y-p0.Y);
-                    }
-                    if (x < min_x[poly_idx])
-                    {
-                        min_x[poly_idx] = x;
-                    }
-                }
-                else if (border_result && comp == 0)
-                {
-                    return poly_idx;
-                }
-                p0 = p1;
-            }
-        }
-        
-        int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
-        unsigned int ret = NO_INDEX;
-        for (unsigned int array_idx = 0; array_idx < size(); array_idx++)
-        {
-            if (crossings[array_idx] % 2 == 1 && min_x[array_idx] < min_x_uneven)
-            {
-                min_x_uneven = min_x[array_idx];
-                ret = array_idx;
-            }
-        }
-        return ret;
-    }
+    unsigned int findInside(Point p, bool border_result = false);
     
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
@@ -608,7 +499,7 @@ public:
      */
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 private:
-    void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret);
+    void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 public:
     /*!
      * Split up the polygons into groups according to the even-odd rule.
@@ -616,9 +507,9 @@ public:
      * 
      * \warning Note that this function reorders the polygons!
      */
-    std::vector<std::vector<int>> splitIntoPartsView(bool unionAll) const;
+    std::vector<std::vector<unsigned int>> splitIntoPartsView(bool unionAll = false);
 private:
-    void splitIntoPartsView_processPolyTreeNode(std::vector<std::vector<int>>& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
+    void splitIntoPartsView_processPolyTreeNode(std::vector<std::vector<unsigned int>>& partsView, Polygons& reordered, ClipperLib::PolyNode* node);
 public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
