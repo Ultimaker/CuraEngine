@@ -1,6 +1,6 @@
 /** Copyright (C) 2015 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef POLYGON_UTILS_H
-#define POLYGON_UTILS_H
+#ifndef UTILS_POLYGON_UTILS_H
+#define UTILS_POLYGON_UTILS_H
 
 #include "polygon.h"
 

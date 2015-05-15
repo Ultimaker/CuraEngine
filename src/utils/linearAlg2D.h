@@ -1,5 +1,6 @@
-#ifndef LINEAR_ALG_2D_H
-#define LINEAR_ALG_2D_H
+/** Copyright (C) 2015 Tim Kuipers - Released under terms of the AGPLv3 License */
+#ifndef UTILS_LINEAR_ALG_2D_H
+#define UTILS_LINEAR_ALG_2D_H
 
 #include "intpoint.h"
 
@@ -63,4 +64,4 @@ short pointLiesOnTheRightOfLine(Point p, Point p0, Point p1)
 
 
 
-#endif // LINEAR_ALG_2D_H
+#endif//LINEAR_ALG_2D_H
