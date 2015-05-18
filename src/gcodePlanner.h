@@ -8,8 +8,11 @@
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 
+
 namespace cura 
 {
+
+class SliceDataStorage;
 
 class GCodePath
 {
@@ -50,7 +53,7 @@ private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
 public:
-    GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance);
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr);
     ~GCodePlanner();
 
     bool setExtruder(int extruder)
@@ -68,12 +71,12 @@ public:
 
     void setCombBoundary(Polygons* polygons)
     {
-        if (comb)
-            delete comb;
-        if (polygons)
-            comb = new Comb(*polygons);
-        else
-            comb = nullptr;
+//         if (comb)
+//             delete comb;
+//         if (polygons)
+//             comb = new Comb(*polygons);
+//         else
+//             comb = nullptr;
     }
 
     void setAlwaysRetract(bool alwaysRetract)

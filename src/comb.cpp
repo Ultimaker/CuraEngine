@@ -340,7 +340,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         
         combPaths.emplace_back();
         Polygons offsettedBoundary = boundary.offset(-(offset - 20));
-        optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
+        combPaths.back() = basicCombPaths.back();
+//         optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
     }
     else 
     { // comb to edge >> move through air avoiding other parts >> comb inside end part upto the endpoint
@@ -371,7 +372,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             
             combPaths.emplace_back();
             Polygons offsettedBoundary = boundary.offset(-(offset - 20));
-            optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
+            combPaths.back() = basicCombPaths.back();
+//             optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
         };
         startToBorder();
         
@@ -399,7 +401,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             
             combPaths.emplace_back();
             Polygons offsettedBoundary = boundary.offset(-(offset - 20));
-            optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
+            combPaths.back() = basicCombPaths.back();
+//             optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
         };
         throughAir();
         
@@ -426,7 +429,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             
             combPaths.emplace_back();
             Polygons offsettedBoundary = boundary.offset(-(offset - 20));
-            optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
+            combPaths.back() = basicCombPaths.back();
+//             optimizePath(offsettedBoundary, startPoint, basicCombPaths.back(), combPaths.back());
         };
         borderToEnd();
     }

@@ -1,5 +1,6 @@
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
+#include "sliceDataStorage.h"
 
 namespace cura {
 
@@ -22,7 +23,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr)
 : gcode(gcode), travelConfig(retraction_config, "MOVE")
 {
     lastPosition = gcode.getPositionXY();
@@ -35,6 +36,18 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_conf
     forceRetraction = false;
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
+    Polygons layer_outlines;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+        {
+            layer_outlines.add(part.outline);
+        }
+    }
+    if (retraction_combing)
+        comb = new Comb(layer_outlines);
+    else
+        comb = nullptr;
     this->retractionMinimalDistance = retractionMinimalDistance;
     
     switch(gcode.getFlavor())
