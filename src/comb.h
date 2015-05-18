@@ -62,8 +62,10 @@ private:
     
     void getBasicCombingPath(PolyCrossings crossings, std::vector<Point>& pointList);
     
+    
 public:
-    bool lineSegmentCollidesWithAnyInsideBoundary();
+    
+    bool lineSegmentCollidesWithBoundary();
     /*!
      * Calculate Comb::minX, Comb::maxX, Comb::minIdx, Comb::maxIdx, Comb::minIdx_global and Comb::maxIdx_global.
      */
@@ -139,6 +141,7 @@ public:
     Comb(Polygons& _boundary);
     ~Comb();
     
+    
     //! Utility function for `boundary.inside(p)`.
     bool inside(const Point p) { return boundary.inside(p); }
     
@@ -149,7 +152,7 @@ public:
      * \param distance The distance by which to move the point.
      * \return Whether we succeeded in moving inside the comb boundary
      */
-    bool moveInside(Point* p, int distance = 100);
+    unsigned int moveInside(Point* p, int distance = 100);
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
@@ -160,7 +163,21 @@ public:
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths);
+    
 private:
+    
+    /*!
+     * Optimize the \p pointList: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.
+     * 
+     * \param offsettedBoundary The polygons which not to cross
+     * \param startPoint The starting point of the comb move.
+     * \param endPoint The destination point of the comb move.
+     * \param pointList The unoptimized combing path.
+     * \param combPoints Output parameter: The points of optimized combing path
+     * \return 
+     */
+    static bool optimizePath(Polygons& offsettedBoundary, Point startPoint, std::vector<Point>& pointList, CombPath& combPoints);
+    
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the \p endPoint and follows the boundary when it hits it, until it passes the scanline again.
      * 
@@ -197,16 +214,6 @@ private:
      */    
 //     void getBasicCombingPath(unsigned int poly_idx, std::vector<Point>& pointList);
 
-    /*!
-     * Optimize the \p pointList: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.
-     * 
-     * \param startPoint The starting point of the comb move.
-     * \param endPoint The destination point of the comb move.
-     * \param pointList The unoptimized combing path.
-     * \param combPoints Output parameter: The points of optimized combing path
-     * \return 
-     */
-//     bool optimizePath(Point startPoint, std::vector<Point>& pointList, std::vector<Point>& combPoints);
 
     /*!
      * Optimize the \p basicCombPaths: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip any unneeded corners.

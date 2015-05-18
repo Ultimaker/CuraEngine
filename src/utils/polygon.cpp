@@ -3,6 +3,8 @@
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
+#include "../debug.h"
+
 namespace cura 
 {
     
@@ -109,14 +111,20 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     
     int64_t min_x_uneven = std::numeric_limits<int64_t>::max();
     unsigned int ret = NO_INDEX;
+    unsigned int n_unevens = 0;
     for (unsigned int array_idx = 0; array_idx < size(); array_idx++)
     {
-        if (crossings[array_idx] % 2 == 1 && min_x[array_idx] < min_x_uneven)
+        if (crossings[array_idx] % 2 == 1)
         {
-            min_x_uneven = min_x[array_idx];
-            ret = array_idx;
+            n_unevens++;
+            if (min_x[array_idx] < min_x_uneven)
+            {
+                min_x_uneven = min_x[array_idx];
+                ret = array_idx;
+            }
         }
     }
+    if (n_unevens % 2 == 0) { ret = NO_INDEX; }
     return ret;
 }
 

@@ -14,7 +14,7 @@
 
 #define DEBUG 1
 
-#define DEBUG_SHOW_LINE 0
+#define DEBUG_SHOW_LINE 1
 
 #if DEBUG_SHOW_LINE == 1
 #define DEBUG_FILE_LINE __FILE_NAME__ << "." << __LINE__ << ": "

@@ -334,4 +334,61 @@ bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, i
 
 
 
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+{
+    Point p0 = transformation_matrix.apply(poly.back());
+    for(Point p1_ : poly)
+    {
+        Point p1 = transformation_matrix.apply(p1_);
+        if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+        {
+            int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+            
+            if (x > transformed_startPoint.X && x < transformed_endPoint.X)
+                return true;
+        }
+        p0 = p1;
+    }
+    return false;
+}
+
+
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint)
+{
+    Point diff = endPoint - startPoint;
+
+    PointMatrix transformation_matrix = PointMatrix(diff);
+    Point transformed_startPoint = transformation_matrix.apply(startPoint);
+    Point transformed_endPoint = transformation_matrix.apply(endPoint);
+
+    return polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
+}
+
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+{
+    for(PolygonRef poly : polys)
+    {
+        if (poly.size() == 0) { continue; }
+        if (polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
+        {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint)
+{
+    Point diff = endPoint - startPoint;
+
+    PointMatrix transformation_matrix = PointMatrix(diff);
+    Point transformed_startPoint = transformation_matrix.apply(startPoint);
+    Point transformed_endPoint = transformation_matrix.apply(endPoint);
+
+    return polygonCollidesWithlineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
+}
+
+
 }//namespace cura

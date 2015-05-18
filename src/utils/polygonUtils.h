@@ -105,6 +105,52 @@ Point getClosestOnLine(Point from, Point p0, Point p1);
 bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
 
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
+ * 
+ * \param poly The polygon
+ * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
+ * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
+ * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * 
+ * \param poly The polygon
+ * \param startPoint The start point 
+ * \param endPoint The end point 
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint);
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
+ * 
+ * \param poly The polygon
+ * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
+ * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
+ * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * 
+ * \param poly The polygon
+ * \param startPoint The start point 
+ * \param endPoint The end point 
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint);
+
 }//namespace cura
 
 #endif//POLYGON_OPTIMIZER_H

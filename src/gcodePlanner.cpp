@@ -88,22 +88,21 @@ void GCodePlanner::addTravel(Point p)
                     continue;
                 }
                 int starting_idx = 0;
-                if (!first)
-                {
-                    forceNewPathStart();
-                    path = getLatestPathWithConfig(&travelConfig);
-                    if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
-                    {
-                        path->retract = true;
-                    }
-                    path->points.push_back(combPath[0]);
-                    starting_idx = 1;
-                }
-                first = false;
+//                 if (!first)
+//                 {
+//                     forceNewPathStart();
+//                     path = getLatestPathWithConfig(&travelConfig);
+//                     if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
+//                     {
+//                         path->retract = true;
+//                     }
+//                     path->points.push_back(combPath[0]);
+//                     starting_idx = 1;
+//                     first = false;
+//                 }
                 path = getLatestPathWithConfig(&travelConfig);
-                for (unsigned int point_idx = starting_idx; point_idx < combPath.size(); point_idx++)
+                for (Point& combPoint : combPath)
                 {
-                    Point& combPoint = combPath[point_idx];
                     path->points.push_back(combPoint);
                 }
                 lastPosition = combPath.back();
