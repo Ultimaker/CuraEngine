@@ -57,3 +57,6 @@ target_link_libraries(CuraEngine clipper Arcus)
 if (UNIX)
     target_link_libraries(CuraEngine pthread)
 endif()
+
+include(GNUInstallDirs)
+install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
