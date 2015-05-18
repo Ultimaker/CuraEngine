@@ -230,7 +230,7 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
                 isRetracted = true;
             }
         }
-        *output_stream << std::setprecision(3) << "G1 X" << INT2MM(x - extruderOffset[extruderNr].X) << " Y" << INT2MM(y - extruderOffset[extruderNr].Y) << " Z" << INT2MM(zPos) << std::setprecision(1) << " F" << fspeed << "\r\n";
+        *output_stream << std::setprecision(3) << "G1 X" << INT2MM(x - extruderOffset[extruderNr].X) << " Y" << INT2MM(y - extruderOffset[extruderNr].Y) << " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
     }else{
         //Normal E handling.
         if (extrusion_per_mm > 0.000001)
@@ -270,8 +270,8 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
         }
 
         *output_stream << std::setprecision(3) << " X" << INT2MM(x - extruderOffset[extruderNr].X) << " Y" << INT2MM(y - extruderOffset[extruderNr].Y);
-        if (zPos != currentPosition.z)
-            *output_stream << " Z" << INT2MM(zPos);
+        if (z != currentPosition.z)
+            *output_stream << " Z" << INT2MM(z);
         if (extrusion_per_mm > 0.000001)
             *output_stream << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount;
         *output_stream << "\n";
