@@ -17,6 +17,18 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
 void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result);
 
 /*!
+ * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+ * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+ * 
+ * \param polygons The polygons onto which to move the point
+ * \param from The point to move.
+ * \param distance The distance by which to move the point.
+ * \param maxDist2 The squared maximal allowed distance from the point to the nearest polygon.
+ * \return The index to the polygon onto which we have moved the point.
+ */
+unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t maxDist2 = std::numeric_limits<int64_t>::min());
+
+/*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
  */
 struct ClosestPolygonPoint

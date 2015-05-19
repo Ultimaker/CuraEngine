@@ -159,10 +159,53 @@ void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, st
     }
 }
 
-std::vector<std::vector<unsigned int>> Polygons::splitIntoPartsView(bool unionAll)
+unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) 
+{
+    PartsView& partsView = *this;
+    for (unsigned int part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
+    {
+        std::vector<unsigned int>& partView = partsView[part_idx_now];
+        if (partView.size() == 0) { continue; }
+        std::vector<unsigned int>::iterator result = std::find(partView.begin(), partView.end(), poly_idx);
+        if (result != partView.end()) 
+        { 
+            if (boundary_poly_idx) { *boundary_poly_idx = partView[0]; }
+            return part_idx_now;
+        }
+    }
+    return NO_INDEX;
+}
+
+PolygonsPart PartsView::assemblePart(unsigned int part_idx) 
+{
+    PartsView& partsView = *this;
+    PolygonsPart ret;
+    if (part_idx != NO_INDEX)
+    {
+        for (unsigned int poly_idx_ff : partsView[part_idx])
+        {
+            ret.add(polygons[poly_idx_ff]);
+        }
+    }
+    return ret;
+}
+
+PolygonsPart PartsView::assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) 
+{
+    PartsView& partsView = *this;
+    PolygonsPart ret;
+    unsigned int part_idx = getPartContaining(poly_idx, boundary_poly_idx);
+    if (part_idx != NO_INDEX)
+    {
+        return assemblePart(part_idx);
+    }
+    return ret;
+}
+
+PartsView Polygons::splitIntoPartsView(bool unionAll)
 {
     Polygons reordered;
-    std::vector<std::vector<unsigned int>> partsView;
+    PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
     clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
@@ -177,7 +220,7 @@ std::vector<std::vector<unsigned int>> Polygons::splitIntoPartsView(bool unionAl
     return partsView;
 }
 
-void Polygons::splitIntoPartsView_processPolyTreeNode(std::vector<std::vector<unsigned int>>& partsView, Polygons& reordered, ClipperLib::PolyNode* node)
+void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node)
 {
     for(int n=0; n<node->ChildCount(); n++)
     {

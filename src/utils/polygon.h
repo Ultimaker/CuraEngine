@@ -31,6 +31,9 @@ enum PolygonType
     SkirtType
 };
 
+
+class PartsView;
+
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
@@ -507,9 +510,9 @@ public:
      * 
      * \warning Note that this function reorders the polygons!
      */
-    std::vector<std::vector<unsigned int>> splitIntoPartsView(bool unionAll = false);
+    PartsView splitIntoPartsView(bool unionAll = false);
 private:
-    void splitIntoPartsView_processPolyTreeNode(std::vector<std::vector<unsigned int>>& partsView, Polygons& reordered, ClipperLib::PolyNode* node);
+    void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node);
 public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
@@ -675,6 +678,39 @@ public:
         }
         return true;
     }
+};
+
+/*!
+ * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons, instead of the polygons themselves
+ */
+struct PartsView : public std::vector<std::vector<unsigned int>>
+{
+    Polygons& polygons;
+public:
+    PartsView(Polygons& polygons) : polygons(polygons) { }
+    /*!
+     * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param poly_idx The index of the polygon in \p polygons
+     * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
+     * \return The PolygonsPart containing the polygon with index \p poly_idx
+     */
+    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+    /*!
+     * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param poly_idx The index of the polygon in \p polygons
+     * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
+     * \return The PolygonsPart containing the polygon with index \p poly_idx
+     */
+    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+        /*!
+     * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param part_idx The index of the part
+     * \return The PolygonsPart with index \p poly_idx
+     */
+    PolygonsPart assemblePart(unsigned int part_idx);
 };
 
 /* Axis aligned boundary box */

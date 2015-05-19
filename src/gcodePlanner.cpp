@@ -94,6 +94,7 @@ void GCodePlanner::addTravel(Point p)
         if (comb->calc(lastPosition, p, combPaths))
         {
             bool first = true;
+            int crapCounter = 0;
             for (std::vector<Point>& combPath : combPaths)
             {
                 if (combPath.size() == 0)
@@ -114,11 +115,13 @@ void GCodePlanner::addTravel(Point p)
 //                     first = false;
 //                 }
                 path = getLatestPathWithConfig(&travelConfig);
+                //if (crapCounter==1)
                 for (Point& combPoint : combPath)
                 {
                     path->points.push_back(combPoint);
                 }
                 lastPosition = combPath.back();
+                crapCounter++;
             }
         }
         else
@@ -159,10 +162,10 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
         return;
     }
     Point p = lastPosition;
-    if (comb->moveInside(&p, distance))
+    if (comb->moveInside_(p, distance))
     {
         //Move inside again, so we move out of tight 90deg corners
-        comb->moveInside(&p, distance);
+        comb->moveInside_(p, distance);
         if (comb->inside(p))
         {
             addTravel(p);

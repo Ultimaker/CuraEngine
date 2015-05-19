@@ -72,7 +72,13 @@ public:
     void calcScanlineCrossings();
     
     
+    void getCombingPath(Polygons& offsettedBoundary, CombPath& combPath);
+    
+// private:
     void getBasicCombingPathPart(Point endPoint, CombPath& combPath);
+    static bool optimizePath(Polygons& offsettedBoundary, Point startPoint, std::vector<Point>& pointList, CombPath& combPoints);
+    
+public:
     
     PartCrossings crossings;
     unsigned int min_crossing_idx;
@@ -88,6 +94,7 @@ class Comb
 {
     Polygons boundary;
     Polygons boundary_inside;
+    const int64_t max_moveInside_distance2 = MM2INT(5.0)*MM2INT(5.0);
    /*
     Polygons boundary_outside;
         
@@ -146,13 +153,13 @@ public:
     bool inside(const Point p) { return boundary.inside(p); }
     
     /*!
-     * Moves the point \p p inside the comb boundary or leaves the point as-is, when the comb boundary is not within \p distance.
+     * Moves the point \p from inside the comb boundary or leaves the point as-is, when the comb boundary is not within 3 mm distance.
      * 
-     * \param p The point to move.
-     * \param distance The distance by which to move the point.
+     * \param from The point to move.
+     * \param distance The distance by which to offset the point from the boundary.
      * \return Whether we succeeded in moving inside the comb boundary
      */
-    unsigned int moveInside(Point* p, int distance = 100);
+    unsigned int moveInside_(Point& from, int distance = 100);
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
@@ -176,7 +183,7 @@ private:
      * \param combPoints Output parameter: The points of optimized combing path
      * \return 
      */
-    static bool optimizePath(Polygons& offsettedBoundary, Point startPoint, std::vector<Point>& pointList, CombPath& combPoints);
+//     static bool optimizePath(Polygons& offsettedBoundary, Point startPoint, std::vector<Point>& pointList, CombPath& combPoints);
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the \p endPoint and follows the boundary when it hits it, until it passes the scanline again.

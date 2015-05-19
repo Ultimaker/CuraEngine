@@ -44,6 +44,90 @@ void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
 }
 
 
+unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
+{
+    Point ret = from;
+    int64_t bestDist2 = maxDist2;
+    unsigned int bestPoly = NO_INDEX;
+    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    {
+        PolygonRef poly = polygons[poly_idx];
+        if (poly.size() < 2)
+            continue;
+        Point p0 = poly[poly.size()-2];
+        Point p1 = poly.back();
+        bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) > vSize2(p1 - p0);
+        for(Point& p2 : poly)
+        {   
+            // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+            // X = P projected on AB
+            Point& a = p1;
+            Point& b = p2;
+            Point& p = from;
+            Point ab = b - a;
+            Point ap = p - a;
+            int64_t ab_length = vSize(ab);
+            int64_t ax_length = dot(ab, ap) / ab_length;
+            if (ax_length < 0) // x is projected to before ab
+            {
+                if (projected_p_beyond_prev_segment)
+                { //  case which looks like:   > .
+                    projected_p_beyond_prev_segment = false;
+                    Point& x = p1;
+                    
+                    int64_t dist2 = vSize2(x - p);
+                    if (dist2 < bestDist2)
+                    {
+                        bestDist2 = dist2;
+                        if (distance == 0) { ret = x; }
+                        else { ret = x + normal(crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4)), distance); } // *4 to retain more precision for the eventual normalization 
+                        bestPoly = poly_idx;
+                    }
+                }
+                else
+                {
+                    projected_p_beyond_prev_segment = false;
+                    p0 = p1;
+                    p1 = p2;
+                    continue;
+                }
+            }
+            else if (ax_length > ab_length) // x is projected to beyond ab
+            {
+                projected_p_beyond_prev_segment = true;
+                p0 = p1;
+                p1 = p2;
+                continue;
+            }
+            else 
+            {
+                projected_p_beyond_prev_segment = false;
+                Point x = a + ab * ax_length / ab_length;
+                
+                int64_t dist2 = vSize2(x - from);
+                if (dist2 < bestDist2)
+                {
+                    bestDist2 = dist2;
+                    if (distance == 0) { ret = x; }
+                    else { ret = x + crossZ(normal(ab, distance)); }
+                    bestPoly = poly_idx;
+                }
+            }
+            
+            
+            p0 = p1;
+            p1 = p2;
+        }
+    }
+    if (bestDist2 < maxDist2)
+    {
+        from = ret;
+        return bestPoly;
+    }
+    return NO_INDEX;
+}
+
+
 void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
     PolygonRef poly1 = poly1_result.poly;
