@@ -247,6 +247,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
+    
+    
 
     setConfigSkirt(storage, layer_thickness);
 
@@ -265,6 +267,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), layer_nr);
     
+    if (!getSettingBoolean("retraction_combing")) // TODO: process retraction and comb boundary 
+        gcodeLayer.setAlwaysRetract(true);
 
     processLayerStartPos(layer_nr, has_raft);
     
@@ -452,11 +456,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         SliceLayerPart& part = layer->parts[order_idx];
 
-        if (getSettingBoolean("retraction_combing"))
-            gcodeLayer.setCombBoundary(&part.combBoundary);
-        else
-            gcodeLayer.setAlwaysRetract(true);
-
         int fillAngle = 45;
         if (layer_nr & 1)
             fillAngle += 90;
@@ -476,7 +475,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
             gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
     }
-    gcodeLayer.setCombBoundary(nullptr);
 }
 
 
@@ -712,12 +710,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         }
 
         gcodeLayer.forceRetract();
-        if (getSettingBoolean("retraction_combing"))
-            gcodeLayer.setCombBoundary(&island);
         if (getSettingAsFillMethod("support_pattern") == Fill_Grid || ( getSettingAsFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
             gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
         gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
-        gcodeLayer.setCombBoundary(nullptr);
     }
 }
 

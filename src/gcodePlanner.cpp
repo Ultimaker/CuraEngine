@@ -36,16 +36,8 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     forceRetraction = false;
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
-    Polygons layer_outlines;
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
-        {
-            layer_outlines.add(part.outline);
-        }
-    }
     if (retraction_combing)
-        comb = new Comb(layer_outlines);
+        comb = new Comb(storage, layer_nr);
     else
         comb = nullptr;
     this->retractionMinimalDistance = retractionMinimalDistance;
@@ -81,47 +73,21 @@ void GCodePlanner::addTravel(Point p)
     }
     else if (comb != nullptr)
     {
-//         path = getLatestPathWithConfig(&travelConfig);
-//         std::vector<Point> pointList;
-//         if (comb->calc(lastPosition, p, pointList))
-//         {
-//             for(unsigned int n=0; n<pointList.size(); n++)
-//             {
-//                 path->points.push_back(pointList[n]);
-//             }
-//         }
         CombPaths combPaths;
         if (comb->calc(lastPosition, p, combPaths))
         {
-            bool first = true;
-            int crapCounter = 0;
             for (std::vector<Point>& combPath : combPaths)
-            {
+            { // add all comb paths (don't do anything special for uneven paths which are moving through air)
                 if (combPath.size() == 0)
                 {
                     continue;
                 }
-                int starting_idx = 0;
-//                 if (!first)
-//                 {
-//                     forceNewPathStart();
-//                     path = getLatestPathWithConfig(&travelConfig);
-//                     if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
-//                     {
-//                         path->retract = true;
-//                     }
-//                     path->points.push_back(combPath[0]);
-//                     starting_idx = 1;
-//                     first = false;
-//                 }
                 path = getLatestPathWithConfig(&travelConfig);
-                //if (crapCounter==1)
                 for (Point& combPoint : combPath)
                 {
                     path->points.push_back(combPoint);
                 }
                 lastPosition = combPath.back();
-                crapCounter++;
             }
         }
         else

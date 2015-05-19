@@ -69,16 +69,6 @@ public:
         return currentExtruder;
     }
 
-    void setCombBoundary(Polygons* polygons)
-    {
-//         if (comb)
-//             delete comb;
-//         if (polygons)
-//             comb = new Comb(*polygons);
-//         else
-//             comb = nullptr;
-    }
-
     void setAlwaysRetract(bool alwaysRetract)
     {
         this->alwaysRetract = alwaysRetract;
