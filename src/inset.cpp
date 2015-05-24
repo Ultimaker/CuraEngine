@@ -7,7 +7,7 @@ namespace cura {
 void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
 {
     int combBoundaryInset = extrusionWidth/2; // hard coded value
-    part->combBoundery = part->outline.offset(-combBoundaryInset);
+    part->combBoundary = part->outline.offset(-combBoundaryInset);
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);

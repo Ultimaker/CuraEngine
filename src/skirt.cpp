@@ -46,18 +46,17 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         for(SliceMeshStorage& mesh : storage.meshes)
         {
             if (mesh.layers.size() < 1) continue;
-            SliceLayer* layer = &mesh.layers[0];
-            for(unsigned int i=0; i<layer->parts.size(); i++)
+            for(SliceLayerPart& part : mesh.layers[0].parts)
             {
                 if (externalOnly)
                 {
                     Polygons p;
-                    p.add(layer->parts[i].outline[0]);
+                    p.add(part.outline.outerPolygon());
                     skirtPolygons = skirtPolygons.unionPolygons(p.offset(offsetDistance, ClipperLib::jtRound));
                 }
                 else
                 {
-                    skirtPolygons = skirtPolygons.unionPolygons(layer->parts[i].outline.offset(offsetDistance, ClipperLib::jtRound));
+                    skirtPolygons = skirtPolygons.unionPolygons(part.outline.offset(offsetDistance, ClipperLib::jtRound));
                 }
             }
         }

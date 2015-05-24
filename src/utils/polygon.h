@@ -387,6 +387,8 @@ public:
     }
 };
 
+class PolygonsPart;
+
 class Polygons
 {
 private:
@@ -527,20 +529,10 @@ public:
      * Split up the polygons into groups according to the even-odd rule.
      * Each polygons in the result has an outline as first polygon, whereas the rest are holes.
      */
-    std::vector<Polygons> splitIntoParts(bool unionAll = false) const
-    {
-        std::vector<Polygons> ret;
-        ClipperLib::Clipper clipper(clipper_init);
-        ClipperLib::PolyTree resultPolyTree;
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        if (unionAll)
-            clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
-        else
-            clipper.Execute(ClipperLib::ctUnion, resultPolyTree);
-
-        _processPolyTreeNode(&resultPolyTree, ret);
-        return ret;
-    }
+    std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
+private:
+    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
      */
@@ -612,24 +604,7 @@ public:
         }
         return result;
     }
-            
-private:
-    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<Polygons>& ret) const
-    {
-        for(int n=0; n<node->ChildCount(); n++)
-        {
-            ClipperLib::PolyNode* child = node->Childs[n];
-            Polygons polygons;
-            polygons.add(child->Contour);
-            for(int i=0; i<child->ChildCount(); i++)
-            {
-                polygons.add(child->Childs[i]->Contour);
-                _processPolyTreeNode(child->Childs[i], ret);
-            }
-            ret.push_back(polygons);
-        }
-    }
-public:
+
     Polygons processEvenOdd() const
     {
         Polygons ret;
@@ -706,6 +681,21 @@ public:
                 polygons[i][j] = matrix.apply(polygons[i][j]);
             }
         }
+    }
+};
+
+/*!
+ * A single area with holes. The first polygon is the outline, while the rest are holes within this outline.
+ * 
+ * This class has little more functionality than Polygons, but serves to show that a specific instance is ordered such that the first Polygon is the outline and the rest are holes.
+ */
+class PolygonsPart : public Polygons
+{   
+public:
+    PolygonRef outerPolygon() 
+    {
+        Polygons& thiss = *this;
+        return thiss[0];
     }
 };
 

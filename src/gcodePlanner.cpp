@@ -56,31 +56,79 @@ GCodePlanner::~GCodePlanner()
 
 void GCodePlanner::addTravel(Point p)
 {
-    GCodePath* path = getLatestPathWithConfig(&travelConfig);
+    GCodePath* path = nullptr;
     if (forceRetraction)
     {
+        path = getLatestPathWithConfig(&travelConfig);
         if (!shorterThen(lastPosition - p, retractionMinimalDistance))
         {
             path->retract = true;
         }
         forceRetraction = false;
-    }else if (comb != nullptr)
+    }
+    else if (comb != nullptr)
     {
-        std::vector<Point> pointList;
-        if (comb->calc(lastPosition, p, pointList))
+//         path = getLatestPathWithConfig(&travelConfig);
+//         std::vector<Point> pointList;
+//         if (comb->calc(lastPosition, p, pointList))
+//         {
+//             for(unsigned int n=0; n<pointList.size(); n++)
+//             {
+//                 path->points.push_back(pointList[n]);
+//             }
+//         }
+        std::vector<std::vector<Point>> combPaths;
+        if (comb->calc(lastPosition, p, combPaths))
         {
-            for(unsigned int n=0; n<pointList.size(); n++)
+            bool first = true;
+            for (std::vector<Point>& combPath : combPaths)
             {
-                path->points.push_back(pointList[n]);
+                if (combPath.size() == 0)
+                {
+                    continue;
+                }
+                int starting_idx = 0;
+                if (!first)
+                {
+                    forceNewPathStart();
+                    path = getLatestPathWithConfig(&travelConfig);
+                    if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
+                    {
+                        path->retract = true;
+                    }
+                    path->points.push_back(combPath[0]);
+                    starting_idx = 1;
+                }
+                first = false;
+                path = getLatestPathWithConfig(&travelConfig);
+                for (unsigned int point_idx = starting_idx; point_idx < combPath.size(); point_idx++)
+                {
+                    Point& combPoint = combPath[point_idx];
+                    path->points.push_back(combPoint);
+                }
+                lastPosition = combPath.back();
             }
-        }else{
-            if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-                path->retract = true;
         }
-    }else if (alwaysRetract)
+        else
+        {
+            path = getLatestPathWithConfig(&travelConfig);
+            if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+            {
+                path->retract = true;
+            }
+        }
+    }
+    else if (alwaysRetract)
     {
+        path = getLatestPathWithConfig(&travelConfig);
         if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+        {
             path->retract = true;
+        }
+    }
+    if (path == nullptr)
+    {
+        path = getLatestPathWithConfig(&travelConfig);
     }
     path->points.push_back(p);
     lastPosition = p;
@@ -94,7 +142,10 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    if (!comb || comb->inside(lastPosition)) return;
+    if (!comb || comb->inside(lastPosition)) 
+    {
+        return;
+    }
     Point p = lastPosition;
     if (comb->moveInside(&p, distance))
     {
@@ -300,7 +351,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 gcode.setZ(z + layerThickness * length / totalLength);
                 gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
             }
-        }else{
+        }
+        else
+        { // normal path to gcode algorithm
             for(unsigned int i=0; i<path->points.size(); i++)
             {
                 gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
