@@ -62,7 +62,8 @@ GCodePlanner::~GCodePlanner()
 void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
-    if (forceRetraction)
+//     if (forceRetraction)
+    if (false)
     {
         path = getLatestPathWithConfig(&travelConfig);
         if (!shorterThen(lastPosition - p, retractionMinimalDistance))

@@ -121,8 +121,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         return true;
     }
     
-//     DEBUG_PRINTLN(" >>>>>>>>>>>>>>>>>>>>>> ");
-    
     
     bool startInside = true;
     bool endInside = true;
@@ -163,7 +161,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         return true;
     }
     else 
-//         return false;
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
         Point middle_from;
         Point middle_to;
@@ -210,18 +207,26 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         Polygons& middle = *getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
         Polygons& middle_extra_offset = middle; // *getBoundaryOutsideExtraOffset();  TODO
         Point from_outside = middle_from;
-        if (startInside || middle.findInside(from_outside, true) == NO_INDEX)
-        {
+        if (startInside || middle.inside(from_outside, true))
+        { // move outside
             moveInside(middle, from_outside, -offset_extra_start_end, max_moveOutside_distance2);
         }
         Point to_outside = middle_to;
-        if (endInside || middle.findInside(to_outside, true) == NO_INDEX)
-        {
+        if (endInside || middle.inside(to_outside, true))
+        { // move outside
             moveInside(middle, to_outside, -offset_extra_start_end, max_moveOutside_distance2);
         }
         combPaths.emplace_back();
         combPaths.back().throughAir = true;
-        LinePolygonsCrossings::comb(middle, middle_extra_offset, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside);
+        if ( vSize(middle_from - middle_to) < vSize(middle_from - from_outside) + vSize(middle_to - to_outside) )
+        { // via outside is a detour
+            combPaths.back().push_back(middle_from);
+            combPaths.back().push_back(middle_to);
+        }
+        else
+        {
+            LinePolygonsCrossings::comb(middle, middle_extra_offset, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside);
+        }
         
         if (endInside)
         {
@@ -283,6 +288,7 @@ void LinePolygonsCrossings::getCombingPath(Polygons& offsettedBoundary, CombPath
         combPath.push_back(endPoint); // TODO: do this?
         return; // true
     }
+    
     calcScanlineCrossings();
     
     CombPath basicPath;
@@ -362,6 +368,7 @@ bool LinePolygonsCrossings::optimizePath(Polygons& offsettedBoundary, CombPath& 
         {
 //             if (polygonCollidesWithlineSegment(offsettedBoundary, current_point, comb_path[point_idx - 1]))
 //             {
+//                 DEBUG_PRINTLN("Couldn't optimize path!");
 //                 return false;
 //             }
             optimized_comb_path.push_back(comb_path[point_idx - 1]);
