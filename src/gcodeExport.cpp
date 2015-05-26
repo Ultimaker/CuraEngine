@@ -129,9 +129,14 @@ double GCodeExport::getTotalPrintTime()
     return totalPrintTime;
 }
 
-void GCodeExport::resetTotalPrintTime()
+void GCodeExport::resetTotalPrintTimeAndFilament()
 {
     totalPrintTime = 0;
+    for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
+    {
+        totalFilament[e] = 0.0;
+        currentTemperature[e] = 0;
+    }
     estimateCalculator.reset();
 }
 

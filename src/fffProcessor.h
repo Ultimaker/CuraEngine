@@ -480,7 +480,7 @@ private:
 
     void writeGCode(SliceDataStorage& storage)
     {
-        gcode.resetTotalPrintTime();
+        gcode.resetTotalPrintTimeAndFilament();
         
         if (commandSocket)
             commandSocket->beginGCode();
