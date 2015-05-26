@@ -136,7 +136,11 @@ void FffGcodeWriter::setConfigInfill(SliceMeshStorage& mesh, int layer_thickness
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
-    if (gcode.getFlavor() != GCODE_FLAVOR_ULTIGCODE)
+    if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+    {
+        gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:-1\n;MATERIAL:-1\n;MATERIAL2:-1\n");
+    }
+    else 
     {
         if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
