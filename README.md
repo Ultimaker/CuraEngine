@@ -24,6 +24,7 @@ How to Install
 
 In order to compile CuraEngine, either use CMake or start a project in your preferred IDE. 
 CMake compilation:
+
 1. Navigate to the CuraEngine directory and execute the following commands
 2. $ mkdir build && cd build
 3. $ cmake ..
