@@ -37,7 +37,7 @@
 
 void print_usage()
 {
-    cura::logError("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-c <config file>] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
+    cura::logError("usage: CuraEngine [-h] [-v] [--connect <host>[:<port>]] [-j <settings.json>] [-p] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
 }
 
 //Signal handler for a "floating point exception", which can also be integer division by zero errors.
