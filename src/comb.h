@@ -52,6 +52,8 @@ private:
         //unsigned int part_idx;
     };
     
+    int64_t dist_to_move_boundary_point_outside; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems.
+    
     PartCrossings crossings;
     unsigned int min_crossing_idx;
     unsigned int max_crossing_idx;
@@ -138,14 +140,14 @@ public:
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
      */
-    static void comb(Polygons& boundary, Polygons& boundary_offsetted, Point startPoint, Point endPoint, CombPath& combPath)
+    static void comb(Polygons& boundary, Polygons& boundary_offsetted, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside)
     {
-        LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint);
+        LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
         linePolygonsCrossings.getCombingPath(boundary_offsetted, combPath);
     };
     
-    LinePolygonsCrossings(Polygons& boundary, Point& start, Point& end)
-    : boundary(boundary), startPoint(start), endPoint(end)
+    LinePolygonsCrossings(Polygons& boundary, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
+    : boundary(boundary), startPoint(start), endPoint(end), dist_to_move_boundary_point_outside(dist_to_move_boundary_point_outside)
     {
     }
 };
