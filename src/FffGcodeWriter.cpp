@@ -138,7 +138,10 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
     if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
     {
-        gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:-1\n;MATERIAL:-1\n;MATERIAL2:-1\n");
+        if (!commandSocket)
+        {
+            gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
+        }
     }
     else 
     {
