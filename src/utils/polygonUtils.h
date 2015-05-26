@@ -17,6 +17,16 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
 void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result);
 
 /*!
+ * Get a point from the \p poly with a given \p offset.
+ * 
+ * \param poly The polygon.
+ * \param point_idx The index of the point in the polygon.
+ * \param offset The distance the point has to be moved outward from the polygon.
+ * \return A point at the given distance inward from the point on the boundary polygon.
+ */
+Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset);
+
+/*!
  * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
  * Given a \p distance more than zero, the point will end up inside, and conversely outside.
  * 

@@ -9,6 +9,7 @@ namespace cura
     
 struct CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
 {
+    bool throughAir = false;
 };
 struct CombPaths : public  std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
 {
@@ -63,8 +64,6 @@ private:
     Point transformed_startPoint; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix
     Point transformed_endPoint; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix
 
-    
-    
     
     /*!
      * Check if we are crossing the boundaries, and pre-calculate some values.
@@ -159,21 +158,27 @@ class Comb
 private:
     Polygons boundary;
     Polygons boundary_inside;
+    Polygons* boundary_outside;
+    Polygons* boundary_outside_extra_offset;
     PartsView partsView_inside;
-    static const int64_t max_moveInside_distance2 = MM2INT(5.0)*MM2INT(5.0);
-    static const int64_t offset_from_outlines = MM2INT(2); // TODO: change 2 to more appropriate dist
-    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 20;
+    static const int64_t max_moveInside_distance2 = MM2INT(0.4)*MM2INT(0.4); // very sharp corners not allowed :S
+    static const int64_t offset_from_outlines = MM2INT(0.2); // TODO: nozzle width / 2 !
+    static const int64_t offset_from_outlines_outside = MM2INT(1.0); 
+    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40;
     static const int64_t max_comb_distance_ignored = MM2INT(1.5);
     static const int64_t offset_extra_start_end = 100;
-    
-    /*
-     * Get a point at an inset of 0.2mm of a given point in a polygon of the boudary.
-     * 
-     * \param polygon_idx The index of the polygon in the boundary.
-     * \param point_idx The index of the point in the polygon.
-     * \return A point at the given distance inward from the point on the boundary polygon.
+
+    /*!
+     * Get the outside boundary, which is an offset from Comb::boundary. Calculate it when it hasn't been calculated yet.
      */
-//     Point getBoundaryPointWithOffset(unsigned int polygon_idx, unsigned int point_idx, int64_t offset);
+    Polygons* getBoundaryOutside();
+    
+    /*!
+     * Get the outside boundary with the extra offset, which is an offset from Comb::boundary_outside. Calculate it when it hasn't been calculated yet.
+     * 
+     * The extra offset is used to ensure there is no overlap between the ouside polygons and the comb path, which is neccesary when optimizating the path.
+     */
+    Polygons* getBoundaryOutsideExtraOffset();
     
     /*!
      * Calculates the outlines for every mesh in the layer (not support)
@@ -182,6 +187,7 @@ private:
      */
     static Polygons getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr);
     
+    static Polygons getLayerOuterWalls(SliceDataStorage& storage, unsigned int layer_nr);
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)

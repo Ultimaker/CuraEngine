@@ -77,7 +77,7 @@ void GCodePlanner::addTravel(Point p)
         if (comb->calc(lastPosition, p, combPaths))
         {
             for (std::vector<Point>& combPath : combPaths)
-            { // add all comb paths (don't do anything special for uneven paths which are moving through air)
+            { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
                 {
                     continue;

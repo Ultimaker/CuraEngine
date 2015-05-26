@@ -43,6 +43,18 @@ void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
     result = poly.offset(extrusionWidth/2).offset(-extrusionWidth).offset(extrusionWidth/2);
 }
 
+Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+{
+    Point p0 = poly[(point_idx > 0) ? (point_idx - 1) : (poly.size() - 1)];
+    Point p1 = poly[point_idx];
+    Point p2 = poly[(point_idx < (poly.size() - 1)) ? (point_idx + 1) : 0];
+    
+    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0))); // 1.0 for some precision
+    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0))); // 1.0 for some precision
+    Point n = normal(off0 + off1, -offset);
+    
+    return p1 + n;
+}
 
 unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
 {
