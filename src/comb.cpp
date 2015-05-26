@@ -163,6 +163,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         return true;
     }
     else 
+        return false;
 //     if (false)
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
         Point middle_from;
