@@ -163,10 +163,11 @@ private:
     Polygons* boundary_outside;
     Polygons* boundary_outside_extra_offset;
     PartsView partsView_inside;
-    static const int64_t max_moveInside_distance2 = MM2INT(0.4)*MM2INT(0.4); // very sharp corners not allowed :S
     static const int64_t offset_from_outlines = MM2INT(0.2); // TODO: nozzle width / 2 !
+    static const int64_t max_moveInside_distance2 = MM2INT(0.4)*MM2INT(0.4); // very sharp corners not allowed :S
     static const int64_t offset_from_outlines_outside = MM2INT(1.0); 
-    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40;
+    static const int64_t max_moveOutside_distance2 = MM2INT(2.0)*MM2INT(2.0); // very sharp corners not allowed :S
+    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 20;
     static const int64_t max_comb_distance_ignored = MM2INT(1.5);
     static const int64_t offset_extra_start_end = 100;
 

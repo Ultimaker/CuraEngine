@@ -212,12 +212,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         Point from_outside = middle_from;
         if (startInside || middle.findInside(from_outside, true) == NO_INDEX)
         {
-            moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
+            moveInside(middle, from_outside, -offset_extra_start_end, max_moveOutside_distance2);
         }
         Point to_outside = middle_to;
         if (endInside || middle.findInside(to_outside, true) == NO_INDEX)
         {
-            moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
+            moveInside(middle, to_outside, -offset_extra_start_end, max_moveOutside_distance2);
         }
         combPaths.emplace_back();
         combPaths.back().throughAir = true;
