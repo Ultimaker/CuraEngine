@@ -52,7 +52,6 @@ private:
         //unsigned int part_idx;
     };
     
-    int64_t dist_to_move_boundary_point_outside; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems.
     
     PartCrossings crossings;
     unsigned int min_crossing_idx;
@@ -61,6 +60,8 @@ private:
     Polygons& boundary;
     Point startPoint;
     Point endPoint;
+    
+    int64_t dist_to_move_boundary_point_outside; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems.
     
     PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     Point transformed_startPoint; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix
@@ -155,33 +156,38 @@ class Comb
 {
     friend class LinePolygonsCrossings;
 private:
-    Polygons boundary;
     Polygons boundary_inside;
-    Polygons* boundary_outside;
+    Polygons* boundary_outside; //!< pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     PartsView partsView_inside;
+    SliceDataStorage& storage;
+    unsigned int layer_nr;
     static const int64_t offset_from_outlines = MM2INT(0.2); // TODO: nozzle width / 2 !
     static const int64_t max_moveInside_distance2 = MM2INT(0.4)*MM2INT(0.4); // very sharp corners not allowed :S
-//     static const int64_t max_moveInside_distance2 = MM2INT(2 * offset_from_outlines)*MM2INT(2 * offset_from_outlines); // very sharp corners not allowed :S
     static const int64_t offset_from_outlines_outside = MM2INT(1.0); 
     static const int64_t max_moveOutside_distance2 = MM2INT(4.0)*MM2INT(4.0); // very sharp corners not allowed :S
-//     static const int64_t max_moveOutside_distance2 = MM2INT(4 * offset_from_outlines_outside)*MM2INT(4 * offset_from_outlines_outside); // very sharp corners not allowed :S
-    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40;
+    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; // in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t max_comb_distance_ignored = MM2INT(1.5);
     static const int64_t offset_extra_start_end = 100;
-
-    /*!
-     * Get the outside boundary, which is an offset from Comb::boundary. Calculate it when it hasn't been calculated yet.
-     */
-    Polygons* getBoundaryOutside();
     
     /*!
-     * Calculates the outlines for every mesh in the layer (not support)
+     * Collects the outlines for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
      */
     static Polygons getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr);
     
+    /*!
+     * Collects the outer walls for every mesh in the layer (not support) or computes them from the outlines
+     * \param storage Where the layer polygon data is stored
+     * \param layer_nr The number of the layer for which to generate the combing areas.
+     */
     static Polygons getLayerOuterWalls(SliceDataStorage& storage, unsigned int layer_nr);
+
+    /*!
+     * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
+     */
+    Polygons* getBoundaryOutside();
+    
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
@@ -192,8 +198,8 @@ public:
     
     ~Comb();
     
-    //! Utility function for `boundary.inside(p)`.
-    bool inside(const Point p) { return boundary.inside(p); }
+    //! Utility function for `boundary_inside.inside(p)`.
+    bool inside(const Point p) { return boundary_inside.inside(p); }
     
     /*!
      * Moves the point \p from inside the comb boundary or leaves the point as-is, when the comb boundary is not within 3 mm distance.
