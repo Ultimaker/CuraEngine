@@ -1,6 +1,6 @@
 /** Copyright (C) 2015 Tim Kuipers- Released under terms of the AGPLv3 License */
-#ifndef BUCKET_GRID_2D_H
-#define BUCKET_GRID_2D_H
+#ifndef UTILS_BUCKET_GRID_2D_H
+#define UTILS_BUCKET_GRID_2D_H
 
 #include "logoutput.h"
 #include "intpoint.h"

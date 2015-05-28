@@ -1,6 +1,6 @@
 /** Copyright (C) 2015 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef POLYGON_UTILS_H
-#define POLYGON_UTILS_H
+#ifndef UTILS_POLYGON_UTILS_H
+#define UTILS_POLYGON_UTILS_H
 
 #include "polygon.h"
 
@@ -15,6 +15,28 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
 
 //! performs offsets to make sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
 void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result);
+
+/*!
+ * Get a point from the \p poly with a given \p offset.
+ * 
+ * \param poly The polygon.
+ * \param point_idx The index of the point in the polygon.
+ * \param offset The distance the point has to be moved outward from the polygon.
+ * \return A point at the given distance inward from the point on the boundary polygon.
+ */
+Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset);
+
+/*!
+ * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+ * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+ * 
+ * \param polygons The polygons onto which to move the point
+ * \param from The point to move.
+ * \param distance The distance by which to move the point.
+ * \param maxDist2 The squared maximal allowed distance from the point to the nearest polygon.
+ * \return The index to the polygon onto which we have moved the point.
+ */
+unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t maxDist2 = std::numeric_limits<int64_t>::min());
 
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
@@ -104,6 +126,52 @@ Point getClosestOnLine(Point from, Point p0, Point p1);
  */
 bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
 
+
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
+ * 
+ * \param poly The polygon
+ * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
+ * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
+ * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * 
+ * \param poly The polygon
+ * \param startPoint The start point 
+ * \param endPoint The end point 
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint);
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
+ * 
+ * \param poly The polygon
+ * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
+ * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
+ * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+
+
+/*!
+ * Checks whether a given line segment collides with a given polygon(s).
+ * 
+ * \param poly The polygon
+ * \param startPoint The start point 
+ * \param endPoint The end point 
+ * \return whether the line segment collides with the boundary of the polygon(s)
+ */
+bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint);
 
 }//namespace cura
 

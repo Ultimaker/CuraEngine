@@ -6,8 +6,9 @@
 #include <float.h>
 #include <clipper/clipper.hpp>
 
-#include <algorithm>    // std::reverse
+#include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
+#include <limits> // int64_t.min
 
 #include "intpoint.h"
 
@@ -29,6 +30,9 @@ enum PolygonType
     SupportType,
     SkirtType
 };
+
+
+class PartsView;
 
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
@@ -194,73 +198,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result=false)
-    {
-        PolygonRef thiss = *this;
-        if (size() < 1)
-        {
-            return false;
-        }
-        
-        int crossings = 0;
-        Point p0 = back();
-        for(unsigned int n=0; n<size(); n++)
-        {
-            Point p1 = thiss[n];
-            // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
-            if ( std::max(p0.X, p1.X) >= p.X )
-            {
-                int64_t pdY = p1.Y-p0.Y;
-                if (pdY < 0) // p0->p1 is 'falling'
-                {
-                    if ( p1.Y <= p.Y && p0.Y > p.Y ) // candidate
-                    {
-                        // dx > 0 if intersection is to right of p.X
-                        int64_t dx = (p1.X - p0.X) * (p1.Y - p.Y) - (p1.X-p.X)*pdY;
-                        if (dx == 0) // includes p == p1
-                        {
-                            return border_result;
-                        }
-                        if (dx > 0)
-                        {
-                            crossings ++;
-                        }
-                    }
-                }
-                else if (p.Y >= p0.Y)
-                {
-                    if (p.Y < p1.Y) // candidate for p0->p1 'rising' and includes p.Y
-                    {
-                        // dx > 0 if intersection is to right of p.X
-                        int64_t dx = (p1.X - p0.X) * (p.Y - p0.Y) - (p.X-p0.X)*pdY;
-                        if (dx == 0) // includes p == p0
-                        {
-                            return border_result;
-                        }
-                        if (dx > 0)
-                        {
-                            crossings ++;
-                        }
-                    }
-                    else if (p.Y == p1.Y)
-                    {
-                        // some special cases here, points on border:
-                        // - p1 exactly matches p (might otherwise be missed)
-                        // - p0->p1 exactly horizontal, and includes p.
-                        // (we already tested std::max(p0.X,p1.X) >= p.X )
-                        if (p.X == p1.X ||
-                            (pdY==0 && std::min(p0.X,p1.X) <= p.X) )
-                        {
-                            return border_result;
-                            // otherwise, count no crossings
-                        }
-                    }
-                }
-            }
-            p0 = p1;
-        }
-        return (crossings % 2) == 1;
-    }
+    bool inside(Point p, bool border_result = false);
     
     void smooth(int remove_length, PolygonRef result)
     {
@@ -391,7 +329,7 @@ class PolygonsPart;
 
 class Polygons
 {
-private:
+protected:
     ClipperLib::Paths polygons;
 public:
     unsigned int size() const
@@ -490,6 +428,39 @@ public:
         return ret;
     }
     
+    /*!
+     * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
+     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+     * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
+     * outline passes vertically past; and 0 (or 2) intersections if that point on the outline is a 'top' or 'bottom' vertex.
+     * The easiest way to do this is to break out two cases for increasing and decreasing Y ( from p0 to p1 ).
+     * A segment is tested if pa.Y <= p.Y < pb.Y, where pa and pb are the points (from p0,p1) with smallest & largest Y.
+     * When both have the same Y, no intersections are counted but there is a special test to see if the point falls
+     * exactly on the line.
+     * 
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
+     * 
+     * \param p The point for which to check if it is inside this polygon
+     * \param border_result What to return when the point is exactly on the border
+     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
+     */
+    bool inside(Point p, bool border_result = false);
+    
+    /*!
+     * Find the polygon inside which point \p p resides. 
+     * 
+     * We do this by tracing from the point towards the positive X direction,
+     * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
+     * We then find the polygon with an uneven number of crossings which is closest to \p p.
+     * 
+     * If \p border_result, we return the first polygon which is exactly on \p p.
+     * 
+     * \param p The point for which to check in which polygon it is.
+     * \param border_result Whether a point exactly on a polygon counts as inside
+     * \return The index of the polygon inside which the point \p p resides
+     */
+    unsigned int findInside(Point p, bool border_result = false);
+    
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
@@ -527,11 +498,21 @@ public:
     }
     /*!
      * Split up the polygons into groups according to the even-odd rule.
-     * Each polygons in the result has an outline as first polygon, whereas the rest are holes.
+     * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
      */
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 private:
-    void _processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+    void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
+public:
+    /*!
+     * Split up the polygons into groups according to the even-odd rule.
+     * Each vector in the result has the index to an outline as first index, whereas the rest are indices to holes.
+     * 
+     * \warning Note that this function reorders the polygons!
+     */
+    PartsView splitIntoPartsView(bool unionAll = false);
+private:
+    void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node);
 public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
@@ -658,20 +639,6 @@ public:
         return ret;
     }
 
-    bool inside(Point p)
-    {
-        if (size() < 1)
-            return false;
-        if (!(*this)[0].inside(p))
-            return false;
-        for(unsigned int n=1; n<polygons.size(); n++)
-        {
-            if ((*this)[n].inside(p))
-                return false;
-        }
-        return true;
-    }
-
     void applyMatrix(const PointMatrix& matrix)
     {
         for(unsigned int i=0; i<polygons.size(); i++)
@@ -697,6 +664,53 @@ public:
         Polygons& thiss = *this;
         return thiss[0];
     }
+    
+    bool inside(Point p)
+    {
+        if (size() < 1)
+            return false;
+        if (!(*this)[0].inside(p))
+            return false;
+        for(unsigned int n=1; n<polygons.size(); n++)
+        {
+            if ((*this)[n].inside(p))
+                return false;
+        }
+        return true;
+    }
+};
+
+/*!
+ * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons, instead of the polygons themselves
+ */
+struct PartsView : public std::vector<std::vector<unsigned int>>
+{
+    Polygons& polygons;
+public:
+    PartsView(Polygons& polygons) : polygons(polygons) { }
+    /*!
+     * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param poly_idx The index of the polygon in \p polygons
+     * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
+     * \return The PolygonsPart containing the polygon with index \p poly_idx
+     */
+    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+    /*!
+     * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param poly_idx The index of the polygon in \p polygons
+     * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
+     * \return The PolygonsPart containing the polygon with index \p poly_idx
+     */
+    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+        /*!
+     * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
+     * 
+     * \param part_idx The index of the part
+     * \return The PolygonsPart with index \p poly_idx
+     */
+    PolygonsPart assemblePart(unsigned int part_idx);
 };
 
 /* Axis aligned boundary box */

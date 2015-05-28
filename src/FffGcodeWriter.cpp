@@ -199,7 +199,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     {
         gcode.writeLayerComment(-2);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0);
         if (getSettingAsIndex("support_extruder_nr") > 0)
             gcodeLayer.setExtruder(getSettingAsIndex("support_extruder_nr"));
         gcode.setZ(getSettingInMicrons("raft_base_thickness"));
@@ -217,7 +217,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { 
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0);
         gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness"));
 
         Polygons raftLines;
@@ -232,7 +232,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     {
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0);
         gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
 
         Polygons raftLines;
@@ -254,6 +254,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
+    
+    
 
     setConfigSkirt(storage, layer_thickness);
 
@@ -270,8 +272,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     gcode.writeLayerComment(layer_nr);
 
-    GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
+    GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), layer_nr);
     
+    if (!getSettingBoolean("retraction_combing")) // TODO: process retraction and comb boundary 
+        gcodeLayer.setAlwaysRetract(true);
 
     processLayerStartPos(layer_nr, has_raft);
     
@@ -459,11 +463,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         SliceLayerPart& part = layer->parts[order_idx];
 
-        if (getSettingBoolean("retraction_combing"))
-            gcodeLayer.setCombBoundary(&part.combBoundary);
-        else
-            gcodeLayer.setAlwaysRetract(true);
-
         int fillAngle = 45;
         if (layer_nr & 1)
             fillAngle += 90;
@@ -483,7 +482,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
             gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
     }
-    gcodeLayer.setCombBoundary(nullptr);
 }
 
 
@@ -718,13 +716,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
             }
         }
 
-        gcodeLayer.forceRetract();
-        if (getSettingBoolean("retraction_combing"))
-            gcodeLayer.setCombBoundary(&island);
         if (getSettingAsFillMethod("support_pattern") == Fill_Grid || ( getSettingAsFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
             gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
         gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
-        gcodeLayer.setCombBoundary(nullptr);
     }
 }
 

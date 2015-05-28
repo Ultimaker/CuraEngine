@@ -64,8 +64,6 @@ endif()
 
 set(test_SRCS
     src/test.cpp
-    src/utils/polygonUtils.cpp
-    src/utils/gettime.cpp
 )
 
 add_executable(Test ${test_SRCS})

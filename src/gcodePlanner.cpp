@@ -1,5 +1,6 @@
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
+#include "sliceDataStorage.h"
 
 namespace cura {
 
@@ -22,7 +23,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr)
 : gcode(gcode), travelConfig(retraction_config, "MOVE")
 {
     lastPosition = gcode.getPositionXY();
@@ -32,9 +33,12 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_conf
     travelSpeedFactor = 100;
     extraTime = 0.0;
     totalPrintTime = 0.0;
-    forceRetraction = false;
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
+    if (retraction_combing)
+        comb = new Comb(storage, layer_nr);
+    else
+        comb = nullptr;
     this->retractionMinimalDistance = retractionMinimalDistance;
     
     switch(gcode.getFlavor())
@@ -57,53 +61,28 @@ GCodePlanner::~GCodePlanner()
 void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
-    if (forceRetraction)
+
+    if (comb != nullptr)
     {
-        path = getLatestPathWithConfig(&travelConfig);
-        if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-        {
-            path->retract = true;
-        }
-        forceRetraction = false;
-    }
-    else if (comb != nullptr)
-    {
-//         path = getLatestPathWithConfig(&travelConfig);
-//         std::vector<Point> pointList;
-//         if (comb->calc(lastPosition, p, pointList))
-//         {
-//             for(unsigned int n=0; n<pointList.size(); n++)
-//             {
-//                 path->points.push_back(pointList[n]);
-//             }
-//         }
-        std::vector<std::vector<Point>> combPaths;
+        CombPaths combPaths;
         if (comb->calc(lastPosition, p, combPaths))
         {
-            bool first = true;
-            for (std::vector<Point>& combPath : combPaths)
-            {
+            bool retract = combPaths.size() > 1;
+            // TODO: retract when moving from air to air besides objects?
+//             if (combPaths.size() == 1 && combPaths[0].throughAir)
+//             {
+//                 retract = true;
+//             }
+            for (CombPath& combPath : combPaths)
+            { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
                 {
                     continue;
                 }
-                int starting_idx = 0;
-                if (!first)
-                {
-                    forceNewPathStart();
-                    path = getLatestPathWithConfig(&travelConfig);
-                    if (!shorterThen(lastPosition - combPath[0], retractionMinimalDistance))
-                    {
-                        path->retract = true;
-                    }
-                    path->points.push_back(combPath[0]);
-                    starting_idx = 1;
-                }
-                first = false;
                 path = getLatestPathWithConfig(&travelConfig);
-                for (unsigned int point_idx = starting_idx; point_idx < combPath.size(); point_idx++)
+                path->retract = retract;
+                for (Point& combPoint : combPath)
                 {
-                    Point& combPoint = combPath[point_idx];
                     path->points.push_back(combPoint);
                 }
                 lastPosition = combPath.back();
@@ -147,10 +126,10 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
         return;
     }
     Point p = lastPosition;
-    if (comb->moveInside(&p, distance))
+    if (comb->moveInside_(p, distance))
     {
         //Move inside again, so we move out of tight 90deg corners
-        comb->moveInside(&p, distance);
+        comb->moveInside_(p, distance);
         if (comb->inside(p))
         {
             addTravel(p);
