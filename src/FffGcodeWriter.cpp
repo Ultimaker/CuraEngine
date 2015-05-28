@@ -709,7 +709,6 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
             }
         }
 
-//         gcodeLayer.forceRetract();
         if (getSettingAsFillMethod("support_pattern") == Fill_Grid || ( getSettingAsFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
             gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
         gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);

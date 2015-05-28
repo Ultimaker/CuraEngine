@@ -83,10 +83,9 @@ private:
     /*! 
      * Get the basic combing path and optimize it.
      * 
-     * \param offsettedBoundary The boundary which the optimized comb path shouldn't cross
      * \param combPath Output parameter: the points along the combing path.
      */
-    void getCombingPath(Polygons& offsettedBoundary, CombPath& combPath);
+    void getCombingPath(CombPath& combPath);
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -124,26 +123,24 @@ private:
     /*!
      * Optimize the \p comb_path: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip some unneeded corners.
      * 
-     * \param boundary_offsetted The polygons which not to cross. (Make sure the comb path doesnt lie on the offsettedBoundary)
      * \param comb_path The unoptimized combing path.
      * \param optimized_comb_path Output parameter: The points of optimized combing path
      * \return Whether it turns out that the basic comb path already crossed a boundary
      */
-    bool optimizePath(Polygons& boundary_offsetted, CombPath& comb_path, CombPath& optimized_comb_path);
+    bool optimizePath(CombPath& comb_path, CombPath& optimized_comb_path);
 public: 
     
     /*!
      * The main function of this class: calculate one combing path within the boundary.
      * \param boundary The polygons to follow when calculating the basic combing path
-     * \param boundary_offsetted The polygons which not to cross. (Make sure the comb path doesnt lie on the offsettedBoundary)
      * \param startPoint From where to start the combing move.
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
      */
-    static void comb(Polygons& boundary, Polygons& boundary_offsetted, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside)
+    static void comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        linePolygonsCrossings.getCombingPath(boundary_offsetted, combPath);
+        linePolygonsCrossings.getCombingPath(combPath);
     };
     
     LinePolygonsCrossings(Polygons& boundary, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
@@ -161,7 +158,6 @@ private:
     Polygons boundary;
     Polygons boundary_inside;
     Polygons* boundary_outside;
-    Polygons* boundary_outside_extra_offset;
     PartsView partsView_inside;
     static const int64_t offset_from_outlines = MM2INT(0.2); // TODO: nozzle width / 2 !
     static const int64_t max_moveInside_distance2 = MM2INT(0.4)*MM2INT(0.4); // very sharp corners not allowed :S
@@ -177,13 +173,6 @@ private:
      * Get the outside boundary, which is an offset from Comb::boundary. Calculate it when it hasn't been calculated yet.
      */
     Polygons* getBoundaryOutside();
-    
-    /*!
-     * Get the outside boundary with the extra offset, which is an offset from Comb::boundary_outside. Calculate it when it hasn't been calculated yet.
-     * 
-     * The extra offset is used to ensure there is no overlap between the ouside polygons and the comb path, which is neccesary when optimizating the path.
-     */
-    Polygons* getBoundaryOutsideExtraOffset();
     
     /*!
      * Calculates the outlines for every mesh in the layer (not support)

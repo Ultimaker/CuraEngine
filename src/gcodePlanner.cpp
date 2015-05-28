@@ -33,7 +33,6 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     travelSpeedFactor = 100;
     extraTime = 0.0;
     totalPrintTime = 0.0;
-    forceRetraction = false;
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     if (retraction_combing)
@@ -62,21 +61,22 @@ GCodePlanner::~GCodePlanner()
 void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
+
 //     if (forceRetraction)
-    if (false)
-    {
-        path = getLatestPathWithConfig(&travelConfig);
-        if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-        {
-            path->retract = true;
-        }
-        forceRetraction = false;
-    }
-    else if (comb != nullptr)
+//     {
+//         path = getLatestPathWithConfig(&travelConfig);
+//         if (!shorterThen(lastPosition - p, retractionMinimalDistance))
+//         {
+//             path->retract = true;
+//         }
+//         forceRetraction = false;
+//     }
+    if (comb != nullptr)
     {
         CombPaths combPaths;
         if (comb->calc(lastPosition, p, combPaths))
         {
+            bool retract = combPaths.size() > 1;
             for (std::vector<Point>& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
@@ -84,6 +84,7 @@ void GCodePlanner::addTravel(Point p)
                     continue;
                 }
                 path = getLatestPathWithConfig(&travelConfig);
+                path->retract = retract;
                 for (Point& combPoint : combPath)
                 {
                     path->points.push_back(combPoint);

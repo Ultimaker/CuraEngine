@@ -43,7 +43,6 @@ private:
     int travelSpeedFactor;
     int currentExtruder;
     int retractionMinimalDistance;
-    bool forceRetraction;
     bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
@@ -72,11 +71,6 @@ public:
     void setAlwaysRetract(bool alwaysRetract)
     {
         this->alwaysRetract = alwaysRetract;
-    }
-
-    void forceRetract()
-    {
-        forceRetraction = true;
     }
 
     void setExtrudeSpeedFactor(int speedFactor)
