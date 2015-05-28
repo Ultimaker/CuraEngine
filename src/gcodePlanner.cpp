@@ -62,15 +62,6 @@ void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
 
-//     if (forceRetraction)
-//     {
-//         path = getLatestPathWithConfig(&travelConfig);
-//         if (!shorterThen(lastPosition - p, retractionMinimalDistance))
-//         {
-//             path->retract = true;
-//         }
-//         forceRetraction = false;
-//     }
     if (comb != nullptr)
     {
         CombPaths combPaths;
