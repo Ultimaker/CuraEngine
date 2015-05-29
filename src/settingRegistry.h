@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <list>
-#include <map>
+#include <unordered_map>
+#include <string>
 
 #include "rapidjson/document.h"
 
@@ -93,7 +94,7 @@ class SettingRegistry
 private:
     static SettingRegistry instance;
 
-    std::map<std::string, SettingConfig*> settings;
+    std::unordered_map<std::string, SettingConfig*> settings;
     std::list<SettingCategory> categories;
 public:
     static SettingRegistry* getInstance() { return &instance; }
