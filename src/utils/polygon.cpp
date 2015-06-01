@@ -75,8 +75,8 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     
     int64_t min_x[size()];
     std::fill_n(min_x, size(), std::numeric_limits<int64_t>::max());  // initialize with int.max
-    int crossings[size()]; // initialize with zeros
-    std::fill_n(min_x, size(), 0);  // initialize with int.max
+    int crossings[size()];
+    std::fill_n(crossings, size(), 0);  // initialize with zeros
     
     for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
     {
