@@ -61,8 +61,8 @@ Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_w
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_outside(nullptr)
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside 
-, offset_from_outlines(wall_line_width_0 / 2)
-, max_moveInside_distance2(wall_line_width_0 * wall_line_width_0)
+, offset_from_outlines(wall_line_width_0) // between outer two walls
+, max_moveInside_distance2(wall_line_width_0 * wall_line_width_0 * 4)
 {
 }
 

@@ -68,24 +68,34 @@ void GCodePlanner::addTravel(Point p)
         if (comb->calc(lastPosition, p, combPaths))
         {
             bool retract = combPaths.size() > 1;
-            // TODO: retract when moving from air to air besides objects?
             if (combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
-            {
+            { // retract when avoiding obstacles through air
                 retract = true;
             }
-            for (CombPath& combPath : combPaths)
-            { // add all comb paths (don't do anything special for paths which are moving through air)
-                if (combPath.size() == 0)
-                {
-                    continue;
-                }
+            if (retract && travelConfig.retraction_config->zHop > 0)
+            { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
                 path = getLatestPathWithConfig(&travelConfig);
-                path->retract = retract;
-                for (Point& combPoint : combPath)
+                if (!shorterThen(lastPosition - p, retractionMinimalDistance))
                 {
-                    path->points.push_back(combPoint);
+                    path->retract = true;
                 }
-                lastPosition = combPath.back();
+            }
+            else 
+            {
+                for (CombPath& combPath : combPaths)
+                { // add all comb paths (don't do anything special for paths which are moving through air)
+                    if (combPath.size() == 0)
+                    {
+                        continue;
+                    }
+                    path = getLatestPathWithConfig(&travelConfig);
+                    path->retract = retract;
+                    for (Point& combPoint : combPath)
+                    {
+                        path->points.push_back(combPoint);
+                    }
+                    lastPosition = combPath.back();
+                }
             }
         }
         else
