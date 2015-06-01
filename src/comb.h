@@ -212,7 +212,7 @@ private:
     
     int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    static const int64_t offset_from_outlines_outside = MM2INT(1.0); 
+    static const int64_t offset_from_outlines_outside = MM2INT(1.0); // TODO: make setting!
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t max_comb_distance_ignored = MM2INT(1.5); //!< If the direct path from start point to end point is shorter than this, go directly without any combing.
