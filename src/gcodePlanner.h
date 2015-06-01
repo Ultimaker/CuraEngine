@@ -52,7 +52,7 @@ private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
 public:
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr);
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0);
     ~GCodePlanner();
 
     bool setExtruder(int extruder)

@@ -23,7 +23,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0)
 : gcode(gcode), travelConfig(retraction_config, "MOVE")
 {
     lastPosition = gcode.getPositionXY();
@@ -36,7 +36,7 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     if (retraction_combing)
-        comb = new Comb(storage, layer_nr);
+        comb = new Comb(storage, layer_nr, wall_line_width_0);
     else
         comb = nullptr;
     this->retractionMinimalDistance = retractionMinimalDistance;
