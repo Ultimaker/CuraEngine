@@ -14,7 +14,7 @@ public:
     Point3 p; //!< location of the vertex
     std::vector<uint32_t> connected_faces; //!< list of the indices of connected faces
 
-    MeshVertex(Point3 p) : p(p) {} //!< doesn't set connected_faces
+    MeshVertex(Point3 p) : p(p) {connected_faces.reserve(8);} //!< doesn't set connected_faces
 };
 
 /*! A MeshFace is a 3 dimensional model triangle with 3 points. These points are already converted to integers
@@ -54,7 +54,8 @@ See MeshFace for the specifics of how/when faces are connected.
 class Mesh : public SettingsBase // inherits settings
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
-    std::map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
+    std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
+    Point3  aabb[2] = {{0,0,0},{0,0,0}};
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh

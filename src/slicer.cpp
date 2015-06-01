@@ -30,20 +30,22 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             Point p0 = segmentList[segmentIndex].end;
             poly.add(p0);
             int nextIndex = -1;
-            MeshFace* face = &mesh->faces[segmentList[segmentIndex].faceIndex];
+            const MeshFace& face = mesh->faces[segmentList[segmentIndex].faceIndex];
             for(unsigned int i=0;i<3;i++)
             {
-                if (face->connected_face_index[i] > -1 && face_idx_to_segment_index.find(face->connected_face_index[i]) != face_idx_to_segment_index.end())
+                decltype(face_idx_to_segment_index.begin()) it;
+                if (face.connected_face_index[i] > -1 && (it = face_idx_to_segment_index.find(face.connected_face_index[i])) != face_idx_to_segment_index.end())
                 {
-                    Point p1 = segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].start;
+                    int index = (*it).second;
+                    Point p1 = segmentList[index].start;
                     Point diff = p0 - p1;
                     if (shorterThen(diff, MM2INT(0.01)))
                     {
-                        if (face_idx_to_segment_index[face->connected_face_index[i]] == static_cast<int>(startSegment))
+                        if (index == static_cast<int>(startSegment))
                             canClose = true;
-                        if (segmentList[face_idx_to_segment_index[face->connected_face_index[i]]].addedToPolygon)
+                        if (segmentList[index].addedToPolygon)
                             continue;
-                        nextIndex = face_idx_to_segment_index[face->connected_face_index[i]];
+                        nextIndex = index;
                     }
                 }
             }
@@ -330,8 +332,8 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         if (p2.z < minZ) minZ = p2.z;
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
-        
-        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= (maxZ - initial) / thickness; layer_nr++)
+        int32_t layer_max = (maxZ - initial) / thickness;
+        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
         {
             int32_t z = layer_nr * thickness + initial;
             if (z < minZ) continue;
@@ -358,7 +360,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layer_nr].face_idx_to_segment_index[i] = layers[layer_nr].segmentList.size();
+            layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(i, layers[layer_nr].segmentList.size()));
             s.faceIndex = i;
             s.addedToPolygon = false;
             layers[layer_nr].segmentList.push_back(s);
