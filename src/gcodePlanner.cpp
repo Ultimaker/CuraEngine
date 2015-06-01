@@ -69,10 +69,10 @@ void GCodePlanner::addTravel(Point p)
         {
             bool retract = combPaths.size() > 1;
             // TODO: retract when moving from air to air besides objects?
-//             if (combPaths.size() == 1 && combPaths[0].throughAir)
-//             {
-//                 retract = true;
-//             }
+            if (combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
+            {
+                retract = true;
+            }
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.size() == 0)
