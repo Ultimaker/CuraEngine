@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
 
 #include "utils/floatpoint.h"
 
@@ -120,7 +121,7 @@ enum ESupportType
 class SettingsBase
 {
 private:
-    std::map<std::string, std::string> setting_values;
+    std::unordered_map<std::string, std::string> setting_values;
     SettingsBase* parent;
 public:
     SettingsBase();

@@ -55,29 +55,11 @@ void Mesh::finish()
 
 Point3 Mesh::min()
 {
-    if (vertices.size() < 1)
-        return Point3(0, 0, 0);
-    Point3 ret = vertices[0].p;
-    for(unsigned int i=0; i<vertices.size(); i++)
-    {
-        ret.x = std::min(ret.x, vertices[i].p.x);
-        ret.y = std::min(ret.y, vertices[i].p.y);
-        ret.z = std::min(ret.z, vertices[i].p.z);
-    }
-    return ret;
+    return aabb[0];
 }
 Point3 Mesh::max()
 {
-    if (vertices.size() < 1)
-        return Point3(0, 0, 0);
-    Point3 ret = vertices[0].p;
-    for(unsigned int i=0; i<vertices.size(); i++)
-    {
-        ret.x = std::max(ret.x, vertices[i].p.x);
-        ret.y = std::max(ret.y, vertices[i].p.y);
-        ret.z = std::max(ret.z, vertices[i].p.z);
-    }
-    return ret;
+    return aabb[1];
 }
 
 int Mesh::findIndexOfVertex(Point3& v)
@@ -93,6 +75,16 @@ int Mesh::findIndexOfVertex(Point3& v)
     }
     vertex_hash_map[hash].push_back(vertices.size());
     vertices.emplace_back(v);
+    
+    //aabb min
+    aabb[0].x = std::min(aabb[0].x, v.x);
+    aabb[0].y = std::min(aabb[0].y, v.y);
+    aabb[0].z = std::min(aabb[0].z, v.z);
+    //aabb max
+    aabb[1].x = std::max(aabb[1].x, v.x);
+    aabb[1].y = std::max(aabb[1].y, v.y);
+    aabb[1].z = std::max(aabb[1].z, v.z);
+    
     return vertices.size() - 1;
 }
 

@@ -77,28 +77,22 @@ bool loadModelSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     }
     //For each face read:
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
+    // Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
+    mesh->faces.reserve(faceCount);
+    mesh->vertices.reserve(faceCount*3);
     for(unsigned int i=0;i<faceCount;i++)
     {
-        if (fread(buffer, sizeof(float) * 3, 1, f) != 1)
+        if (fread(buffer, 50, 1, f) != 1)
         {
             fclose(f);
             return false;
         }
-        float v[9];
-        if (fread(v, sizeof(float) * 9, 1, f) != 1)
-        {
-            fclose(f);
-            return false;
-        }
+        float *v= ((float*)buffer)+3;
+
         Point3 v0 = matrix.apply(FPoint3(v[0], v[1], v[2]));
         Point3 v1 = matrix.apply(FPoint3(v[3], v[4], v[5]));
         Point3 v2 = matrix.apply(FPoint3(v[6], v[7], v[8]));
         mesh->addFace(v0, v1, v2);
-        if (fread(buffer, sizeof(uint16_t), 1, f) != 1)
-        {
-            fclose(f);
-            return false;
-        }
     }
     fclose(f);
     mesh->finish();

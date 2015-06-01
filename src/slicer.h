@@ -40,7 +40,7 @@ class SlicerLayer
 {
 public:
     std::vector<SlicerSegment> segmentList;
-    std::map<int, int> face_idx_to_segment_index;
+    std::unordered_map<int, int> face_idx_to_segment_index; // topology
     
     int z;
     Polygons polygonList;
