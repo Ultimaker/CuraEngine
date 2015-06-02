@@ -348,12 +348,10 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
         Point& current_point = optimized_comb_path.back();
         if (polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
         {
-            // TODO: what to do when we hit a boundary in every way?
-//             if (polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx - 1]))
-//             {
-//                 DEBUG_PRINTLN("Couldn't optimize path!");
-//                 return false;
-//             }
+            if (polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx - 1]))
+            {
+                comb_path.cross_boundary = true;
+            }
             optimized_comb_path.push_back(comb_path[point_idx - 1]);
         }
         else 

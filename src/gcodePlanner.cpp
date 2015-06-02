@@ -68,10 +68,18 @@ void GCodePlanner::addTravel(Point p)
         if (comb->calc(lastPosition, p, combPaths))
         {
             bool retract = combPaths.size() > 1;
-            if (combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
-            { // retract when avoiding obstacles through air
-                retract = true;
+            { // check whether we want to retract
+                if (!retract && combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
+                { // retract when avoiding obstacles through air
+                    retract = true;
+                }
+                
+                for (unsigned int path_idx = 0; path_idx < combPaths.size() && !retract; path_idx++)
+                { // retract when path moves through a boundary
+                    if (combPaths[path_idx].cross_boundary) { retract = true; }
+                }
             }
+            
             if (retract && travelConfig.retraction_config->zHop > 0)
             { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
                 path = getLatestPathWithConfig(&travelConfig);
