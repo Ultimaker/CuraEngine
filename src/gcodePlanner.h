@@ -52,7 +52,11 @@ private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
     void forceNewPathStart();
 public:
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0);
+    /*
+     * 
+     * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
+     */
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     bool setExtruder(int extruder)

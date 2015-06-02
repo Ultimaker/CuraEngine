@@ -212,7 +212,7 @@ private:
     
     int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    static const int64_t offset_from_outlines_outside = MM2INT(1.0); // TODO: make setting!
+    int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t max_comb_distance_ignored = MM2INT(1.5); //!< If the direct path from start point to end point is shorter than this, go directly without any combing.
@@ -240,8 +240,9 @@ public:
      * Initializes the combing areas for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
+     * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0);
+    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t travel_avoid_distance);
     
     ~Comb();
     

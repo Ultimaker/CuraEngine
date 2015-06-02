@@ -54,7 +54,7 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0)
+Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , boundary_inside( getLayerOuterWalls() )
@@ -63,6 +63,7 @@ Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_w
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside 
 , offset_from_outlines(wall_line_width_0) // between outer two walls
 , max_moveInside_distance2(wall_line_width_0 * wall_line_width_0 * 4)
+, offset_from_outlines_outside(travel_avoid_distance)
 {
 }
 
