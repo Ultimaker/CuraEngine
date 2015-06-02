@@ -3,7 +3,6 @@
 
 #include <algorithm>
 
-#include "debug.h"
 #include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
 
