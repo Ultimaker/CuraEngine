@@ -8,14 +8,14 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
-//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
-#include <clipper/clipper.hpp>
-
 #include <limits>
 #include <stdint.h>
 #include <cmath>
 
 #include <iostream> // auto-serialization / auto-toString()
+
+//Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
+#include <polyclipping/clipper.hpp>
 
 #define INT2MM(n) (double(n) / 1000.0)
 #define MM2INT(n) (int64_t((n) * 1000))
