@@ -53,7 +53,7 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , boundary_inside( getLayerOuterWalls() )
@@ -63,6 +63,7 @@ Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_w
 , offset_from_outlines(wall_line_width_0) // between outer two walls
 , max_moveInside_distance2(wall_line_width_0 * wall_line_width_0 * 4)
 , offset_from_outlines_outside(travel_avoid_distance)
+, avoid_other_parts(travel_avoid_other_parts)
 {
 }
 
@@ -165,28 +166,39 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             LinePolygonsCrossings::comb(part_begin, startPoint, middle_from, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside);
         }
         
-         // throught air from boundary to boundary
-        Polygons& middle = *getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
-        Point from_outside = middle_from;
-        if (startInside || middle.inside(from_outside, true))
-        { // move outside
-            moveInside(middle, from_outside, -offset_extra_start_end, max_moveOutside_distance2);
+        // throught air from boundary to boundary
+        if (avoid_other_parts)
+        {
+            Polygons& middle = *getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            Point from_outside = middle_from;
+            if (startInside || middle.inside(from_outside, true))
+            { // move outside
+                moveInside(middle, from_outside, -offset_extra_start_end, max_moveOutside_distance2);
+            }
+            Point to_outside = middle_to;
+            if (endInside || middle.inside(to_outside, true))
+            { // move outside
+                moveInside(middle, to_outside, -offset_extra_start_end, max_moveOutside_distance2);
+            }
+            combPaths.emplace_back();
+            combPaths.back().throughAir = true;
+            if ( vSize(middle_from - middle_to) < vSize(middle_from - from_outside) + vSize(middle_to - to_outside) )
+            { // via outside is a detour
+                combPaths.back().push_back(middle_from);
+                combPaths.back().push_back(middle_to);
+            }
+            else
+            {
+                LinePolygonsCrossings::comb(middle, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside);
+            }
         }
-        Point to_outside = middle_to;
-        if (endInside || middle.inside(to_outside, true))
-        { // move outside
-            moveInside(middle, to_outside, -offset_extra_start_end, max_moveOutside_distance2);
-        }
-        combPaths.emplace_back();
-        combPaths.back().throughAir = true;
-        if ( vSize(middle_from - middle_to) < vSize(middle_from - from_outside) + vSize(middle_to - to_outside) )
-        { // via outside is a detour
+        else 
+        { // directly through air (and over other parts)
+            combPaths.emplace_back();
+            combPaths.back().throughAir = true;
+            combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
             combPaths.back().push_back(middle_from);
             combPaths.back().push_back(middle_to);
-        }
-        else
-        {
-            LinePolygonsCrossings::comb(middle, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside);
         }
         
         if (endInside)

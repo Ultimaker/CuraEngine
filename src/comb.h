@@ -219,6 +219,8 @@ private:
     static const int64_t max_comb_distance_ignored = MM2INT(1.5); //!< If the direct path from start point to end point is shorter than this, go directly without any combing.
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
     
+    bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
+    
     /*!
      * Collects the outlines for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
@@ -241,9 +243,10 @@ public:
      * Initializes the combing areas for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
+     * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t travel_avoid_distance);
+    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
     
