@@ -193,7 +193,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             }
         }
         else 
-        { // directly through air (and over other parts)
+        { // directly through air (not avoiding other parts)
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
             combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
