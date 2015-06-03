@@ -52,6 +52,98 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
         break;
     }
 }
+
+
+    
+void GCodePlanner::processCoasting()
+{ // process coasting:
+    int64_t coasting_volume_retract;
+    double coasting_speed_retract;
+    double coasting_min_dist_retract;
+    int64_t coasting_min_dist = 1000; // hardcoded setting
+    
+    for (unsigned int path_idx = 0; path_idx < paths.size() - 1; path_idx++)
+    {
+        GCodePath& path = paths[path_idx];
+        GCodePath& path_next = paths[path_idx + 1];
+        
+        if ( ! (path.config->getExtrusionPerMM(is_volumatric) > 0 && path_next.config->getExtrusionPerMM(is_volumatric) == 0) )
+        {
+            continue;
+        }
+        if (path.points.size() < 2)
+        {
+            continue;
+        }
+        
+        int64_t coasting_dist_retract = coasting_volume_retract / coasting_volume_retract / path.config->line_width;
+        
+        std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the second last point! (cause that of the last point is always zero...)
+        
+        int64_t accumulated_dist = 0;
+        
+        int64_t buildup_dist = -1;
+        
+        bool length_is_less_than_min_dist = true;
+        
+        unsigned int coast_dist_idx = NO_INDEX; // the index of the last point with accumulated_dist less than coasting_dist (= index into accumulated_dist_per_point)
+        
+        Point* last = &path.points.back();
+        for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
+        {
+            Point& point = path.points[path.points.size() - 1 - backward_point_idx];
+            int64_t dist = vSize(point - last);
+            accumulated_dist += dist;
+            accumulated_dist_per_point.push_back(accumulated_dist);
+            
+            if (accumulated_dist >= coasting_dist_retract)
+            {
+                coast_dist_idx = accumulated_dist_per_point.size() - 2; // the point before the newly added one 
+            }
+            
+            if (accumulated_dist >= coasting_min_dist_retract)
+            {
+                length_is_less_than_min_dist = false;
+                buildup_dist = coasting_min_dist_retract;
+                break;
+            }
+            
+            *last = point;
+        }
+        
+        int64_t actual_coasting_dist = coasting_dist_retract;
+        if (length_is_less_than_min_dist)
+        {
+            actual_coasting_dist = accumulated_dist * coasting_dist_retract / coasting_min_dist_retract;
+            for (coast_dist_idx = 0 ; coast_dist_idx < accumulated_dist_per_point.size() ; coast_dist_idx++)
+            { // search for the correct coast_dist_idx
+                if (accumulated_dist_per_point[coast_dist_idx] > actual_coasting_dist)
+                {
+                    coast_dist_idx--;
+                    break;
+                }
+            }
+        }
+        
+        Point start;
+        { // computation of begin point of coasting
+            int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[coast_dist_idx];
+            Point& a = path.points[path.points.size() - coast_dist_idx - 2];
+            Point& b = path.points[path.points.size() - coast_dist_idx - 1];
+            start = a + normal(a-b, residual_dist);
+        }
+        
+        GCodePath coast_path = path_next;
+        coast_path.config = &
+        coast_path.config->setSpeed(coasting_speed_retract);
+        for (unsigned int point_idx = path.points.size() - coast_dist_idx - 1; point_idx < path.points.size(); point_idx++)
+        {
+            
+        }
+    }
+    
+    
+}
 GCodePlanner::~GCodePlanner()
 {
     if (comb)
@@ -257,9 +349,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     GCodePathConfig* lastConfig = nullptr;
     int extruder = gcode.getExtruderNr();
 
-    for(unsigned int n=0; n<paths.size(); n++)
+    for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
     {
-        GCodePath* path = &paths[n];
+        GCodePath* path = &paths[path_idx];
         if (extruder != path->extruder)
         {
             extruder = path->extruder;
@@ -280,46 +372,48 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         else
             speed = speed * travelSpeedFactor / 100;
 
-        if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->getLineWidth() * 2))
-        {
-            //Check for lots of small moves and combine them into one large line
-            Point p0 = path->points[0];
-            unsigned int i = n + 1;
-            while(i < paths.size() && paths[i].points.size() == 1 && shorterThen(p0 - paths[i].points[0], path->config->getLineWidth() * 2))
+        { //Check for lots of small moves and combine them into one large line
+            if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->getLineWidth() * 2))
             {
-                p0 = paths[i].points[0];
-                i ++;
-            }
-            if (paths[i-1].config == &travelConfig)
-                i --;
-            if (i > n + 2)
-            {
-                p0 = gcode.getPositionXY();
-                for(unsigned int x=n; x<i-1; x+=2)
+                Point p0 = path->points[0];
+                unsigned int path_idx_last = path_idx + 1; // index of the last short move 
+                while(path_idx_last < paths.size() && paths[path_idx_last].points.size() == 1 && shorterThen(p0 - paths[path_idx_last].points[0], path->config->getLineWidth() * 2))
                 {
-                    int64_t oldLen = vSize(p0 - paths[x].points[0]);
-                    Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
-                    int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
-                    if (newLen > 0)
-                    {
-                        if (oldLen > 0)
-                            gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
-                        else 
-                            gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
-                    }
-                    p0 = paths[x+1].points[0];
+                    p0 = paths[path_idx_last].points[0];
+                    path_idx_last ++;
                 }
-                gcode.writeMove(paths[i-1].points[0], speed, path->config->getExtrusionPerMM(is_volumatric));
-                n = i - 1;
-                continue;
+                if (paths[path_idx_last-1].config == &travelConfig)
+                    path_idx_last --;
+                
+                if (path_idx_last > path_idx + 2)
+                {
+                    p0 = gcode.getPositionXY();
+                    for(unsigned int path_idx_short = path_idx; path_idx_short < path_idx_last-1; path_idx_short+=2)
+                    {
+                        int64_t oldLen = vSize(p0 - paths[path_idx_short].points[0]);
+                        Point newPoint = (paths[path_idx_short].points[0] + paths[path_idx_short+1].points[0]) / 2;
+                        int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
+                        if (newLen > 0)
+                        {
+                            if (oldLen > 0)
+                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                            else 
+                                gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                        }
+                        p0 = paths[path_idx_short+1].points[0];
+                    }
+                    gcode.writeMove(paths[path_idx_last-1].points[0], speed, path->config->getExtrusionPerMM(is_volumatric));
+                    path_idx = path_idx_last - 1;
+                    continue;
+                }
             }
         }
-
+        
         bool spiralize = path->config->spiralize;
         if (spiralize)
         {
             //Check if we are the last spiralize path in the list, if not, do not spiralize.
-            for(unsigned int m=n+1; m<paths.size(); m++)
+            for(unsigned int m=path_idx+1; m<paths.size(); m++)
             {
                 if (paths[m].config->spiralize)
                     spiralize = false;
@@ -340,20 +434,20 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 
             float length = 0.0;
             p0 = gcode.getPositionXY();
-            for(unsigned int i=0; i<path->points.size(); i++)
+            for(unsigned int point_idx = 0; point_idx < path->points.size(); point_idx++)
             {
-                Point p1 = path->points[i];
+                Point p1 = path->points[point_idx];
                 length += vSizeMM(p0 - p1);
                 p0 = p1;
                 gcode.setZ(z + layerThickness * length / totalLength);
-                gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(path->points[point_idx], speed, path->config->getExtrusionPerMM(is_volumatric));
             }
         }
         else
         { // normal path to gcode algorithm
-            for(unsigned int i=0; i<path->points.size(); i++)
+            for(unsigned int point_idx = 0; point_idx < path->points.size(); point_idx++)
             {
-                gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(path->points[point_idx], speed, path->config->getExtrusionPerMM(is_volumatric));
             }
         }
     }
