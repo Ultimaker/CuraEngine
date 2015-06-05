@@ -113,6 +113,13 @@ public:
     
     void getTimes(double& travelTime, double& extrudeTime);
 
+    /*!
+     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
+     * \param path_idx The index into GCodePlanner::paths for the next path to be written to GCode.
+     * \return Whether any GCode has been written for the path.
+     */
+    bool writePathWithCoasting(unsigned int path_idx, int64_t layerThickness);
+
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };
 

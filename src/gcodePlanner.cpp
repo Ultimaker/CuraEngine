@@ -2,6 +2,8 @@
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
 
+#include "debug.h" // TODO: remove depend!
+
 namespace cura {
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)
@@ -53,97 +55,6 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     }
 }
 
-
-    
-void GCodePlanner::processCoasting()
-{ // process coasting:
-    int64_t coasting_volume_retract;
-    double coasting_speed_retract;
-    double coasting_min_dist_retract;
-    int64_t coasting_min_dist = 1000; // hardcoded setting
-    
-    for (unsigned int path_idx = 0; path_idx < paths.size() - 1; path_idx++)
-    {
-        GCodePath& path = paths[path_idx];
-        GCodePath& path_next = paths[path_idx + 1];
-        
-        if ( ! (path.config->getExtrusionPerMM(is_volumatric) > 0 && path_next.config->getExtrusionPerMM(is_volumatric) == 0) )
-        {
-            continue;
-        }
-        if (path.points.size() < 2)
-        {
-            continue;
-        }
-        
-        int64_t coasting_dist_retract = coasting_volume_retract / coasting_volume_retract / path.config->line_width;
-        
-        std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the second last point! (cause that of the last point is always zero...)
-        
-        int64_t accumulated_dist = 0;
-        
-        int64_t buildup_dist = -1;
-        
-        bool length_is_less_than_min_dist = true;
-        
-        unsigned int coast_dist_idx = NO_INDEX; // the index of the last point with accumulated_dist less than coasting_dist (= index into accumulated_dist_per_point)
-        
-        Point* last = &path.points.back();
-        for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
-        {
-            Point& point = path.points[path.points.size() - 1 - backward_point_idx];
-            int64_t dist = vSize(point - last);
-            accumulated_dist += dist;
-            accumulated_dist_per_point.push_back(accumulated_dist);
-            
-            if (accumulated_dist >= coasting_dist_retract)
-            {
-                coast_dist_idx = accumulated_dist_per_point.size() - 2; // the point before the newly added one 
-            }
-            
-            if (accumulated_dist >= coasting_min_dist_retract)
-            {
-                length_is_less_than_min_dist = false;
-                buildup_dist = coasting_min_dist_retract;
-                break;
-            }
-            
-            *last = point;
-        }
-        
-        int64_t actual_coasting_dist = coasting_dist_retract;
-        if (length_is_less_than_min_dist)
-        {
-            actual_coasting_dist = accumulated_dist * coasting_dist_retract / coasting_min_dist_retract;
-            for (coast_dist_idx = 0 ; coast_dist_idx < accumulated_dist_per_point.size() ; coast_dist_idx++)
-            { // search for the correct coast_dist_idx
-                if (accumulated_dist_per_point[coast_dist_idx] > actual_coasting_dist)
-                {
-                    coast_dist_idx--;
-                    break;
-                }
-            }
-        }
-        
-        Point start;
-        { // computation of begin point of coasting
-            int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[coast_dist_idx];
-            Point& a = path.points[path.points.size() - coast_dist_idx - 2];
-            Point& b = path.points[path.points.size() - coast_dist_idx - 1];
-            start = a + normal(a-b, residual_dist);
-        }
-        
-        GCodePath coast_path = path_next;
-        coast_path.config = &
-        coast_path.config->setSpeed(coasting_speed_retract);
-        for (unsigned int point_idx = path.points.size() - coast_dist_idx - 1; point_idx < path.points.size(); point_idx++)
-        {
-            
-        }
-    }
-    
-    
-}
 GCodePlanner::~GCodePlanner()
 {
     if (comb)
@@ -444,10 +355,18 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             }
         }
         else
-        { // normal path to gcode algorithm
-            for(unsigned int point_idx = 0; point_idx < path->points.size(); point_idx++)
+        { 
+            bool coasting = true; // TODO: use setting coasting_enable
+            if (coasting)
             {
-                gcode.writeMove(path->points[point_idx], speed, path->config->getExtrusionPerMM(is_volumatric));
+                coasting = writePathWithCoasting(path_idx, layerThickness);
+            }
+            if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
+            { // normal path to gcode algorithm
+                for(unsigned int point_idx = 0; point_idx < path->points.size(); point_idx++)
+                {
+                    gcode.writeMove(path->points[point_idx], speed, path->config->getExtrusionPerMM(is_volumatric));
+                }
             }
         }
     }
@@ -463,6 +382,142 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.getSpeed(), 0);
         gcode.writeDelay(extraTime);
     }
+}
+
+   
+bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThickness)
+{
+        // TODO: make settings:
+    double coasting_volume = 0.4 * 0.4 * 2.0; // in mm^3
+    double coasting_speed = 25; // TODO: make speed a percentage of the previous speed (?)
+    //int64_t coasting_min_dist = 4000;
+    double coasting_min_volume = 0.4 * 0.4 * 8.0; // in mm^3
+    
+    int64_t coasting_min_dist_considered = 1000; // hardcoded setting for when to not perform coasting
+
+    GCodePath& path = paths[path_idx];
+    if (path_idx + 1 >= paths.size()
+        ||
+        ! (path.config->getExtrusionPerMM(is_volumatric) > 0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0) 
+        ||
+        path.points.size() < 2
+        ||
+        paths[path_idx + 1].retract == true // TODO: allow for both retraction and normal move coasting!
+        )
+    {
+        return false;
+    }
+    GCodePath& path_next = paths[path_idx + 1];
+    
+    int extrude_speed = path.config->getSpeed() * extrudeSpeedFactor / 100; // travel speed 
+    
+    int64_t coasting_dist = MM2INT(MM2INT(MM2INT(coasting_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    int64_t coasting_min_dist = MM2INT(MM2INT(MM2INT(coasting_min_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    
+    
+    
+    
+    std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
+    accumulated_dist_per_point.push_back(0);
+    
+    int64_t accumulated_dist = 0;
+    
+    bool length_is_less_than_min_dist = true;
+    
+    unsigned int acc_dist_idx_gt_coast_dist = NO_INDEX; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
+     // == the point printed BEFORE the start point for coasting
+    
+    
+    Point* last = &path.points[path.points.size() - 1];
+    for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
+    {
+        Point& point = path.points[path.points.size() - 1 - backward_point_idx];
+        int64_t dist = vSize(point - *last);
+        accumulated_dist += dist;
+        accumulated_dist_per_point.push_back(accumulated_dist);
+        
+        if (acc_dist_idx_gt_coast_dist == NO_INDEX && accumulated_dist >= coasting_dist)
+        {
+            acc_dist_idx_gt_coast_dist = backward_point_idx; // the newly added point
+        }
+        
+        if (accumulated_dist >= coasting_min_dist)
+        {
+            length_is_less_than_min_dist = false;
+            break;
+        }
+        
+        last = &point;
+    }
+    
+    if (accumulated_dist < coasting_min_dist_considered)
+    {
+        return false;
+    }
+//     std::cerr << "accumulated_dist_per_point: ";
+//     for (int64_t i = 0; i < accumulated_dist_per_point.size(); i++) std::cerr << path.points[path.points.size() - 1 - i] << ":"<< accumulated_dist_per_point[i] << ", ";
+//     std::cerr << std::endl;
+        
+    int64_t actual_coasting_dist = coasting_dist;
+    if (length_is_less_than_min_dist)
+    {
+        // in this case accumulated_dist is the length of the whole path
+        actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
+        for (acc_dist_idx_gt_coast_dist = 0 ; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
+        { // search for the correct coast_dist_idx
+            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] > actual_coasting_dist)
+            {
+                break;
+            }
+        }
+    }
+    
+    if (acc_dist_idx_gt_coast_dist == NO_INDEX) 
+    { // something has gone wrong; coasting_min_dist < coasting_dist ?
+        return false;
+    }
+    
+    unsigned int point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist;
+    
+    Point start;
+    { // computation of begin point of coasting
+//     DEBUG_PRINTLN("");
+//     
+//     DEBUG_SHOW(coasting_dist);
+//     DEBUG_SHOW(coasting_min_dist);
+//     DEBUG_SHOW(acc_dist_idx_gt_coast_dist);
+//     DEBUG_SHOW(accumulated_dist_per_point.size());
+        int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist - 1];
+        Point& a = path.points[point_idx_before_start];
+        Point& b = path.points[point_idx_before_start + 1];
+        start = b + normal(a-b, residual_dist);
+//     DEBUG_SHOW(residual_dist);
+//     DEBUG_SHOW(a);
+//     DEBUG_SHOW(start);
+//     DEBUG_SHOW(b);
+    }
+    
+    { // write normal extrude path:
+        for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
+        {
+            gcode.writeMove(path.points[point_idx], extrude_speed, path.config->getExtrusionPerMM(is_volumatric));
+        }
+        gcode.writeMove(start, extrude_speed, path.config->getExtrusionPerMM(is_volumatric));
+    }
+    
+    if (path_next.retract)
+    {
+        gcode.writeRetraction(path.config->retraction_config);
+    }
+    
+    for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
+    {
+        gcode.writeMove(path.points[point_idx], coasting_speed, 0);
+    }
+    
+    gcode.setLastCoastedAmount(path.config->getExtrusionPerMM(is_volumatric) * actual_coasting_dist);
+    
+    return true;
 }
 
 }//namespace cura

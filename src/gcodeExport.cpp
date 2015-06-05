@@ -27,6 +27,7 @@ GCodeExport::GCodeExport()
     retractionPrimeSpeed = 1;
     isRetracted = false;
     isZHopped = false;
+    last_coasted_amount = 0;
     setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
 }
@@ -241,12 +242,17 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = false;
             }
+            extrusion_amount += last_coasted_amount;
             if (isRetracted)
             {
                 if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     *output_stream << "G11\n";
                     //Assume default UM2 retraction settings.
+                    if (last_coasted_amount > 0)
+                    {
+                        *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
+                    }
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
                     *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
@@ -257,6 +263,15 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
                     resetExtrusionValue();
                 isRetracted = false;
             }
+            else 
+            {
+                if (last_coasted_amount > 0)
+                {
+                    *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[extruderNr] << std::setprecision(5) << extrusion_amount << "\n";
+                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), currentSpeed);
+                }
+            }
+            last_coasted_amount = 0;
             extrusion_amount += extrusion_per_mm * diff.vSizeMM();
             *output_stream << "G1";
         }else{

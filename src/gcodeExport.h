@@ -124,6 +124,7 @@ private:
     int zPos;
     bool isRetracted;
     bool isZHopped;
+    int64_t last_coasted_amount; //!< The coasted area to be primed on the first next extrusion.
     int retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
@@ -151,6 +152,8 @@ public:
     void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
     
     void setZ(int z);
+    
+    void setLastCoastedAmount(int64_t last_coasted_amount) { this->last_coasted_amount = last_coasted_amount; }
     
     Point3 getPosition();
     
