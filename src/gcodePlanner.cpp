@@ -359,7 +359,17 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             bool coasting = true; // TODO: use setting coasting_enable
             if (coasting)
             {
-                coasting = writePathWithCoasting(path_idx, layerThickness);
+                // TODO: make settings:
+                double coasting_volume_move = 0.4 * 0.4 * 2.0; // in mm^3
+                double coasting_speed_move = 25; // TODO: make speed a percentage of the previous speed (?)
+                double coasting_min_volume_move = 0.4 * 0.4 * 8.0; // in mm^3
+                
+                double coasting_volume_retract = 0.4 * 0.4 * 1.0; // in mm^3
+                double coasting_speed_retract = 25; // TODO: make speed a percentage of the previous speed (?)
+                double coasting_min_volume_retract = 0.4 * 0.4 * 6.0; // in mm^3
+
+                
+                coasting = writePathWithCoasting(path_idx, layerThickness, coasting_volume, coasting_speed, coasting_min_volume);
             }
             if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
             { // normal path to gcode algorithm
@@ -384,37 +394,40 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     }
 }
 
-   
-bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThickness)
-{
-        // TODO: make settings:
-    double coasting_volume = 0.4 * 0.4 * 2.0; // in mm^3
-    double coasting_speed = 25; // TODO: make speed a percentage of the previous speed (?)
-    //int64_t coasting_min_dist = 4000;
-    double coasting_min_volume = 0.4 * 0.4 * 8.0; // in mm^3
     
-    int64_t coasting_min_dist_considered = 1000; // hardcoded setting for when to not perform coasting
-
+bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract)
+{
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
         ! (path.config->getExtrusionPerMM(is_volumatric) > 0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0) 
         ||
         path.points.size() < 2
-        ||
-        paths[path_idx + 1].retract == true // TODO: allow for both retraction and normal move coasting!
         )
     {
         return false;
     }
     GCodePath& path_next = paths[path_idx + 1];
     
+    if (path_next.retract)
+    {
+        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract);
+    }
+    else
+    {
+        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move);
+    }
+}  
+bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
+{
+
+    int64_t coasting_min_dist_considered = 1000; // hardcoded setting for when to not perform coasting
+
+    
     int extrude_speed = path.config->getSpeed() * extrudeSpeedFactor / 100; // travel speed 
     
     int64_t coasting_dist = MM2INT(MM2INT(MM2INT(coasting_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     int64_t coasting_min_dist = MM2INT(MM2INT(MM2INT(coasting_min_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    
-    
     
     
     std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
