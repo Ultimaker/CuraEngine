@@ -369,7 +369,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 double coasting_min_volume_retract = 0.4 * 0.4 * 6.0; // in mm^3
 
                 
-                coasting = writePathWithCoasting(path_idx, layerThickness, coasting_volume, coasting_speed, coasting_min_volume);
+                coasting = writePathWithCoasting(path_idx, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract);
             }
             if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
             { // normal path to gcode algorithm
