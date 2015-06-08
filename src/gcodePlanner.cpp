@@ -63,7 +63,7 @@ void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
 
-    if (comb != nullptr)
+    if (comb != nullptr && lastPosition != Point(0,0))
     {
         CombPaths combPaths;
         if (comb->calc(lastPosition, p, combPaths))
