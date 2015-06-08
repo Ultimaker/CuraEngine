@@ -47,7 +47,7 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
     log("Slicing model...\n");
     int initial_layer_thickness = object->getSettingInMicrons("layer_height_0");
     int layer_thickness = object->getSettingInMicrons("layer_height");
-    int layer_count = (storage.model_max.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
+    int layer_count = (storage.model_size.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
     std::vector<Slicer*> slicerList;
     for(Mesh& mesh : object->meshes)
     {

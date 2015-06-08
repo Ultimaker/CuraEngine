@@ -320,9 +320,9 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
     
-    for(unsigned int i=0; i<mesh->faces.size(); i++)
+    for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
-        MeshFace& face = mesh->faces[i];
+        MeshFace& face = mesh->faces[mesh_idx];
         Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
         Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
         Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
@@ -360,8 +360,8 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(i, layers[layer_nr].segmentList.size()));
-            s.faceIndex = i;
+            layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(mesh_idx, layers[layer_nr].segmentList.size()));
+            s.faceIndex = mesh_idx;
             s.addedToPolygon = false;
             layers[layer_nr].segmentList.push_back(s);
         }
