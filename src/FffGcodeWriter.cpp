@@ -1,6 +1,8 @@
 
 #include "FffGcodeWriter.h"
 
+#include "debug.h" //TODO: remove
+
 namespace cura
 {
 
@@ -305,6 +307,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     processFanSpeedAndMinimalLayerTime(storage, gcodeLayer, layer_nr);
 
+    DEBUG_SHOW(layer_nr);
+    
     gcodeLayer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
     if (commandSocket)
         commandSocket->sendGCodeLayer();
@@ -477,10 +481,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         processInsets(gcodeLayer, mesh, part, layer_nr);
 
         processSkin(gcodeLayer, mesh, part, layer_nr, infill_overlap, fillAngle, extrusionWidth);    
-        
-        //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
-            gcodeLayer.moveInsideCombBoundary(extrusionWidth * 2);
     }
 }
 
