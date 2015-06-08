@@ -5,7 +5,7 @@ The CuraEngine is a C++ console application for 3D printing GCode generation. It
 The CuraEngine is pure C++ and uses Clipper from http://www.angusj.com/delphi/clipper.php
 There are no external dependences and Clipper is included in the source code without modifications.
 
-This is just a console application for GCode generation. For a full graphical application look at https://github.com/daid/Cura which is the graphical frontend for CuraEngine.
+This is just a console application for GCode generation. For a full graphical application look at https://github.com/Ultimaker/Cura which is the graphical frontend for CuraEngine.
 
 The CuraEngine can be used seperately or in other applications. Feel free to add it to your application. But please take note of the License.
 
