@@ -32,6 +32,7 @@ private:
     int maxObjectHeight;
     int fileNr; //!< used for sequential printing of objects
     GCodeExport gcode;
+    CoastingConfig coasting_config;
     CommandSocket* commandSocket;
     std::ofstream output_file;
 public:
@@ -83,6 +84,8 @@ public:
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
 private:
+    void setConfigCoasting();
+
     //Setup the retraction parameters.
     void setConfigRetraction(SliceDataStorage& storage);
     

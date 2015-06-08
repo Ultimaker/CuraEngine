@@ -2,8 +2,6 @@
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
 
-#include "debug.h" // TODO: remove depend!
-
 namespace cura {
 
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config)
@@ -25,8 +23,8 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
-: gcode(gcode), travelConfig(retraction_config, "MOVE")
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+: gcode(gcode), travelConfig(retraction_config, "MOVE"), coasting_config(coasting_config)
 {
     lastPosition = gcode.getPositionXY();
     travelConfig.setSpeed(travelSpeed);
@@ -138,26 +136,6 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config)
 {
     getLatestPathWithConfig(config)->points.push_back(p);
     lastPosition = p;
-}
-
-void GCodePlanner::moveInsideCombBoundary(int distance)
-{
-    if (!comb || comb->inside(lastPosition)) 
-    {
-        return;
-    }
-    Point p = lastPosition;
-    if (comb->moveInside_(p, distance))
-    {
-        //Move inside again, so we move out of tight 90deg corners
-        comb->moveInside_(p, distance);
-        if (comb->inside(p))
-        {
-            addTravel(p);
-            //Make sure the that any retraction happens after this move, not before it by starting a new move path.
-            forceNewPathStart();
-        }
-    }
 }
 
 void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config)
@@ -356,20 +334,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
         else
         { 
-            bool coasting = true; // TODO: use setting coasting_enable
+            bool coasting = coasting_config.coasting_enable; 
             if (coasting)
             {
-                // TODO: make settings:
-                double coasting_volume_move = 0.4 * 0.4 * 2.0; // in mm^3
-                double coasting_speed_move = 25; // TODO: make speed a percentage of the previous speed (?)
-                double coasting_min_volume_move = 0.4 * 0.4 * 8.0; // in mm^3
-                
-                double coasting_volume_retract = 0.4 * 0.4 * 1.0; // in mm^3
-                double coasting_speed_retract = 25; // TODO: make speed a percentage of the previous speed (?)
-                double coasting_min_volume_retract = 0.4 * 0.4 * 6.0; // in mm^3
-
-                
-                coasting = writePathWithCoasting(path_idx, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract);
+                coasting = writePathWithCoasting(path_idx, layerThickness
+                            , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move
+                            , coasting_config.coasting_volume_retract, coasting_config.coasting_speed_retract, coasting_config.coasting_min_volume_retract);
             }
             if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
             { // normal path to gcode algorithm
@@ -400,7 +370,7 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
-        ! (path.config->getExtrusionPerMM(is_volumatric) > 0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0) 
+        ! (path.config->getExtrusionPerMM(is_volumatric) > 0.0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0.0) 
         ||
         path.points.size() < 2
         )
@@ -411,23 +381,25 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     
     if (path_next.retract)
     {
+        if (coasting_volume_retract <= 0) { return false; }
         return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract);
     }
     else
     {
+        if (coasting_volume_move <= 0) { return false; }
         return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move);
     }
 }  
 bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
 
-    int64_t coasting_min_dist_considered = 1000; // hardcoded setting for when to not perform coasting
+    int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
 
     
     int extrude_speed = path.config->getSpeed() * extrudeSpeedFactor / 100; // travel speed 
     
-    int64_t coasting_dist = MM2INT(MM2INT(MM2INT(coasting_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    int64_t coasting_min_dist = MM2INT(MM2INT(MM2INT(coasting_min_volume)) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    int64_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    int64_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     
     
     std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
@@ -467,10 +439,6 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     {
         return false;
     }
-//     std::cerr << "accumulated_dist_per_point: ";
-//     for (int64_t i = 0; i < accumulated_dist_per_point.size(); i++) std::cerr << path.points[path.points.size() - 1 - i] << ":"<< accumulated_dist_per_point[i] << ", ";
-//     std::cerr << std::endl;
-        
     int64_t actual_coasting_dist = coasting_dist;
     if (length_is_less_than_min_dist)
     {
@@ -494,20 +462,10 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     
     Point start;
     { // computation of begin point of coasting
-//     DEBUG_PRINTLN("");
-//     
-//     DEBUG_SHOW(coasting_dist);
-//     DEBUG_SHOW(coasting_min_dist);
-//     DEBUG_SHOW(acc_dist_idx_gt_coast_dist);
-//     DEBUG_SHOW(accumulated_dist_per_point.size());
         int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist - 1];
         Point& a = path.points[point_idx_before_start];
         Point& b = path.points[point_idx_before_start + 1];
         start = b + normal(a-b, residual_dist);
-//     DEBUG_SHOW(residual_dist);
-//     DEBUG_SHOW(a);
-//     DEBUG_SHOW(start);
-//     DEBUG_SHOW(b);
     }
     
     { // write normal extrude path:
@@ -525,10 +483,10 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        gcode.writeMove(path.points[point_idx], coasting_speed, 0);
+        gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
     
-    gcode.setLastCoastedAmount(path.config->getExtrusionPerMM(is_volumatric) * actual_coasting_dist);
+    gcode.setLastCoastedAmount(path.config->getExtrusionPerMM(is_volumatric) * INT2MM(actual_coasting_dist));
     
     return true;
 }

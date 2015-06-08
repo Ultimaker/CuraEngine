@@ -121,6 +121,12 @@ double SettingsBase::getSettingInMillimetersPerSecond(std::string key)
     return std::max(1.0, atof(value.c_str()));
 }
 
+double SettingsBase::getSettingInCubicMillimeters(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
 double SettingsBase::getSettingInPercentage(std::string key)
 {
     std::string value = getSettingString(key);

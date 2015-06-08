@@ -140,6 +140,7 @@ public:
     bool getSettingBoolean(std::string key);
     double getSettingInDegreeCelsius(std::string key);
     double getSettingInMillimetersPerSecond(std::string key);
+    double getSettingInCubicMillimeters(std::string key);
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
     

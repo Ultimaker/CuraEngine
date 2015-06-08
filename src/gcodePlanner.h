@@ -39,6 +39,7 @@ private:
     Comb* comb;
 
     GCodePathConfig travelConfig;
+    CoastingConfig& coasting_config;
     int extrudeSpeedFactor;
     int travelSpeedFactor;
     int currentExtruder;
@@ -57,7 +58,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     bool setExtruder(int extruder)
@@ -100,8 +101,6 @@ public:
     void addTravel(Point p);
 
     void addExtrusionMove(Point p, GCodePathConfig* config);
-
-    void moveInsideCombBoundary(int distance);
 
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config);
 

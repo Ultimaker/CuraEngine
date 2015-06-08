@@ -12,34 +12,46 @@
 
 namespace cura {
 
+struct CoastingConfig
+{
+    bool coasting_enable; 
+    double coasting_volume_move; 
+    double coasting_speed_move; 
+    double coasting_min_volume_move; 
+
+    double coasting_volume_retract;
+    double coasting_speed_retract;
+    double coasting_min_volume_retract;
+};
+    
 class RetractionConfig
 {
 public:
-    double amount; //!< The amount
-    int speed;
-    int primeSpeed;
-    double primeAmount;
-    int zHop;
+    double amount; //!< The amount retracted
+    int speed; //!< The speed with which to retract
+    int primeSpeed; //!< the speed with which to unretract
+    double primeAmount; //!< the amount of material primed after unretracting
+    int zHop; //!< the amount with which to lift the head during a retraction-travel
 };
 
 //The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
 class GCodePathConfig
 {
 private:
-    int speed;
-    int line_width;
-    int filament_diameter;
-    int flow;
-    int layer_thickness;
-    double extrusion_volume_per_mm;
-    double extrusion_per_mm;
+    int speed; //!< movement speed
+    int line_width; //!< width of the line extruded
+    int filament_diameter; //!< diameter of the filament as it is on the roll
+    int flow; //!< extrusion flow in %
+    int layer_thickness; //!< layer height
+    double extrusion_volume_per_mm; //!< mm^3 filament moved per mm line extruded
+    double extrusion_per_mm; //!< mm filament moved per mm line extruded
 public:
     const char* name;
     bool spiralize;
     RetractionConfig* retraction_config;
     
-    GCodePathConfig() : speed(0), line_width(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig() : speed(0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
     void setSpeed(int speed)
     {
@@ -124,7 +136,7 @@ private:
     int zPos;
     bool isRetracted;
     bool isZHopped;
-    int64_t last_coasted_amount; //!< The coasted area to be primed on the first next extrusion.
+    double last_coasted_amount; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     int retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
@@ -153,7 +165,7 @@ public:
     
     void setZ(int z);
     
-    void setLastCoastedAmount(int64_t last_coasted_amount) { this->last_coasted_amount = last_coasted_amount; }
+    void setLastCoastedAmount(double last_coasted_amount) { this->last_coasted_amount = last_coasted_amount; }
     
     Point3 getPosition();
     
