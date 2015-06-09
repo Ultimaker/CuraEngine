@@ -1,4 +1,4 @@
-/** Copyright (C) 2015 Tim Kuipers - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
 #include "polygon.h"
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
