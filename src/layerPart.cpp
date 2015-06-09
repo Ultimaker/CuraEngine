@@ -42,17 +42,14 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
     }
 }
 
-void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes, CommandSocket* commandSocket)
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
-    Progress::messageProgressStage(Progress::Stage::PARTS, commandSocket);
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         storage.layers.push_back(SliceLayer());
         storage.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
         storage.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
         createLayerWithParts(storage.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
-        
-        Progress::messageProgress(Progress::Stage::PARTS, layer_nr + 1, slicer->layers.size(), commandSocket);
     }
 }
 

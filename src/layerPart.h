@@ -22,7 +22,7 @@ namespace cura {
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes);
 
-void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes, CommandSocket* commandSocket);
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes);
 
 void dumpLayerparts(SliceDataStorage& storage, const char* filename);
 

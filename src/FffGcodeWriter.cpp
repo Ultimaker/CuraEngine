@@ -38,7 +38,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeepe
         processRaft(storage, totalLayers);
     }
     
-    Progress::messageProgressStage(Progress::Stage::EXPORT, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         processLayer(storage, layer_nr, totalLayers, has_raft);
@@ -46,7 +45,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeepe
     
     gcode.writeRetraction(&storage.retraction_config, true);
 
-    log("Wrote layers in %5.2fs.\n", timeKeeper.restart());
+    Progress::messageProgressStage(Progress::Stage::FINISH, &timeKeeper, commandSocket);
+    
     gcode.writeFanCommand(0);
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.

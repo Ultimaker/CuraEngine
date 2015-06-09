@@ -42,6 +42,8 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* 
 
 bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
+    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, commandSocket);
+    
     storage.model_min = object->min();
     storage.model_max = object->max();
     storage.model_size = storage.model_max - storage.model_min;
@@ -51,8 +53,9 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
     int layer_thickness = object->getSettingInMicrons("layer_height");
     int layer_count = (storage.model_size.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
     std::vector<Slicer*> slicerList;
-    for(Mesh& mesh : object->meshes)
+    for(unsigned int mesh_idx = 0; mesh_idx < object->meshes.size(); mesh_idx++)
     {
+        Mesh& mesh = object->meshes[mesh_idx];
         Slicer* slicer = new Slicer(&mesh, initial_layer_thickness - layer_thickness / 2, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
@@ -63,22 +66,23 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
             //sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
+        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, object->meshes.size(), commandSocket);
     }
     
     log("Layer count: %i\n", layer_count);
-    log("Sliced model in %5.3fs\n", timeKeeper.restart());
 
     object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
-    log("Generating layer parts...\n");
+    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper, commandSocket);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
+    
     
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
         storage.meshes.emplace_back(&object->meshes[meshIdx]);
         SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
-        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"), commandSocket);
+        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
         bool has_raft = meshStorage.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
@@ -91,8 +95,11 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
             if (commandSocket)
                 commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
         }
+        
+        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
     }
-    log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
+    
+    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper, commandSocket);
     return true;
 }
 
@@ -108,7 +115,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     //dumpLayerparts(storage, "c:/models/output.html");
 
-    Progress::messageProgressStage(Progress::Stage::INSET, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         processInsets(storage, layer_nr);
@@ -126,7 +132,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         
     processOozeShield(storage, totalLayers);
     
-    log("Generated insets in %5.3fs\n", timeKeeper.restart());  
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &timeKeeper, commandSocket);  
             
     for(SliceMeshStorage& mesh : storage.meshes)
     {
@@ -137,10 +143,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             sendPolygons(SupportType, layer_idx, support);
         }
     }
-    log("Generated support areas in %5.3fs\n", timeKeeper.restart());
     
+    Progress::messageProgressStage(Progress::Stage::SKIN, &timeKeeper, commandSocket);
 
-    Progress::messageProgressStage(Progress::Stage::SKIN, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
@@ -155,9 +160,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for(SliceMeshStorage& mesh : storage.meshes)
             combineSparseLayers(layer_nr, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
     }
-    
-    log("Generated up/down skin in %5.3fs\n", timeKeeper.restart());
-
 
     processWipeTower(storage, totalLayers);
     

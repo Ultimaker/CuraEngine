@@ -29,8 +29,6 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         return;
     if (support_type == Support_None)
         return;
-
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, commandSocket);
     
     double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
     bool supportOnBuildplateOnly = support_type == Support_PlatformOnly;

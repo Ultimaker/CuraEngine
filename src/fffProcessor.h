@@ -8,6 +8,7 @@
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
 #include "Progress.h"
+#include "utils/gettime.h"
 
 namespace cura {
 
@@ -124,6 +125,8 @@ public:
                 return false;
             }
             gcodeWriter.setCommandSocket(commandSocket);
+            
+            Progress::messageProgressStage(Progress::Stage::EXPORT, &timeKeeper, commandSocket);
             gcodeWriter.writeGCode(storage, timeKeeper);
         }
 

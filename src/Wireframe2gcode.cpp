@@ -79,7 +79,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
                         gcode.writeMove(segment.to, speedBottom, extrusion_per_mm_flat); 
                 }
             );
-    Progress::messageProgressStage(Progress::Stage::EXPORT, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, commandSocket);
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
         Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket); // abuse the progress system of the normal mode of CuraEngine

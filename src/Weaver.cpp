@@ -62,7 +62,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
         else 
             starting_point_in_layer = (Point(0,0) + object->max() + object->min()) / 2;
         
-        Progress::messageProgressStage(Progress::Stage::INSET, commandSocket);
+        Progress::messageProgressStage(Progress::Stage::INSET, nullptr, commandSocket);
         for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
         {
             Progress::messageProgress(Progress::Stage::INSET, layer_idx+1, layer_count, commandSocket); // abuse the progress system of the normal mode of CuraEngine
@@ -99,7 +99,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         
-        Progress::messageProgressStage(Progress::Stage::SKIN, commandSocket);
+        Progress::messageProgressStage(Progress::Stage::SKIN, nullptr, commandSocket);
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
             Progress::messageProgress(Progress::Stage::SKIN, layer_idx+1, wireFrame.layers.size(), commandSocket); // abuse the progress system of the normal mode of CuraEngine
