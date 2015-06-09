@@ -473,6 +473,8 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     partOrderOptimizer.optimize();
 
+    bool skin_alternate_rotation = getSettingBoolean("skin_alternate_rotation") && ( getSettingAsCount("top_layers") >= 4 || getSettingAsCount("bottom_layers") >= 4 );
+    
     for(int order_idx : partOrderOptimizer.polyOrder)
     {
         SliceLayerPart& part = layer->parts[order_idx];
@@ -490,6 +492,8 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
         processInsets(gcodeLayer, mesh, part, layer_nr);
 
+        if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
+            fillAngle -= 45;
         processSkin(gcodeLayer, mesh, part, layer_nr, infill_overlap, fillAngle, extrusionWidth);    
     }
 }
