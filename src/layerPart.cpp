@@ -44,6 +44,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 
 void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes, CommandSocket* commandSocket)
 {
+    Progress::messageProgressStage(Progress::Stage::PARTS, commandSocket);
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
         storage.layers.push_back(SliceLayer());

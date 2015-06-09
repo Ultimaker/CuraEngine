@@ -4,6 +4,7 @@
 #include "utils/socket.h"
 #include "utils/polygon.h"
 #include "settings.h"
+#include "Progress.h"
 
 #include <memory>
 
@@ -12,7 +13,6 @@
 namespace cura {
 
 
-    
 class fffProcessor;
 class CommandSocket
 {
@@ -27,6 +27,7 @@ public:
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons);
     void sendProgress(float amount);
+    void sendProgressStage(Progress::Stage stage);
     void sendPrintTime();
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
 

@@ -2,19 +2,29 @@
 #ifndef PROGRESS_H
 #define PROGRESS_H
 
-#include "commandSocket.h"
+
 #include "utils/logoutput.h"
 
 
 namespace cura {
+
+class CommandSocket;
     
 #define N_PROGRESS_STAGES 8
 
-
+/*!
+ * Class for handling the progress bar and the progress logging.
+ * 
+ * The progress bar is based on a single slicing of a rather large model which needs some complex support;
+ * the relative timing of each stage is currently based on that of the slicing of dragon_65_tilted_large.stl
+ */
 class Progress 
 {
 public:
-    enum class Stage 
+    /*!
+     * The stage in the whole slicing process 
+     */
+    enum class Stage : unsigned int
     {
         START   = 0, 
         SLICING = 1, 
@@ -26,15 +36,36 @@ public:
         FINISH  = 7
     };
 private:
-    static double times [N_PROGRESS_STAGES];
-    static double accumulated_times [N_PROGRESS_STAGES];
-    static const Stage stages[];
-    static double totalTiming;
-    static double getTotalTiming();
+    static double times [N_PROGRESS_STAGES]; //!< Time estimates per stage
+    static double accumulated_times [N_PROGRESS_STAGES]; //!< Time past before each stage
+    static const Stage stages[]; //!< an ordered array of the stages
+    static double totalTiming; //!< An estimate of the total time
+    /*!
+     * Give an estimate between 0 and 1 of how far the process is.
+     * 
+     * \param stage The current stage of processing
+     * \param stage_process How far we currently are in the \p stage
+     * \return An estimate of the overall progress.
+     */
     static float calcOverallProgress(Stage stage, float stage_progress);
 public:
-    static void init();
+    static void init(); //!< Initialize some values needed in a fast computation of the progress
+    /*!
+     * Message progress over the \p commandSocket and to the terminal (if the command line arg '-p' is provided).
+     * 
+     * \param stage The current stage of processing
+     * \param progress_in_stage Any number giving the progress within the stage
+     * \param progress_in_stage_max The maximal value of \p progress_in_stage
+     * \param commandSocket The command socket over which to communicate the progress.
+     */
     static void messageProgress(Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* commandSocket);
+    /*!
+     * Message the progress stage over the command socket.
+     * 
+     * \param stage The current stage
+     * \param commandSocket The command socket over which to communicate
+     */
+    static void messageProgressStage(Stage stage, CommandSocket* commandSocket);
 };
 
 

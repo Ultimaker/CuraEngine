@@ -108,6 +108,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     //dumpLayerparts(storage, "c:/models/output.html");
 
+    Progress::messageProgressStage(Progress::Stage::INSET, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         processInsets(storage, layer_nr);
@@ -139,7 +140,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     log("Generated support areas in %5.3fs\n", timeKeeper.restart());
     
 
-
+    Progress::messageProgressStage(Progress::Stage::SKIN, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.

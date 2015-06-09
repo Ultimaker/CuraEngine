@@ -38,6 +38,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeepe
         processRaft(storage, totalLayers);
     }
     
+    Progress::messageProgressStage(Progress::Stage::EXPORT, commandSocket);
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         processLayer(storage, layer_nr, totalLayers, has_raft);

@@ -1,6 +1,7 @@
 #include "utils/logoutput.h"
 #include "commandSocket.h"
 #include "fffProcessor.h"
+#include "Progress.h"
 
 #include <thread>
 #include <cinttypes>
@@ -16,7 +17,7 @@ namespace cura {
 #define BYTES_PER_FLOAT 4
 #define FLOATS_PER_VECTOR 3
 #define VECTORS_PER_FACE 3
-
+    
 class CommandSocket::Private
 {
 public:
@@ -182,6 +183,11 @@ void CommandSocket::sendProgress(float amount)
     auto message = std::make_shared<Cura::Progress>();
     message->set_amount(amount);
     d->socket->sendMessage(message);
+}
+
+void CommandSocket::sendProgressStage(Progress::Stage stage)
+{
+    // TODO
 }
 
 void CommandSocket::sendPrintTime()

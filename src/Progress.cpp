@@ -1,6 +1,8 @@
 /** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
 #include "Progress.h"
 
+#include "commandSocket.h"
+
 namespace cura {
     
 double Progress::times [] = { 0.0, 5.269, 1.533, 22.953, 51.009, 48.858, 154.62, 0.0 };
@@ -21,7 +23,7 @@ const Progress::Stage Progress::stages[] =
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
-    return accumulated_times[(int)stage] / totalTiming + stage_progress / times[(int)stage];
+    return ( accumulated_times[(int)stage] + stage_progress / times[(int)stage] ) / totalTiming;
 }
 
 
@@ -44,6 +46,9 @@ void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int
     }
     switch (stage)
     {
+    case Stage::START:
+        logProgress("start", progress_in_stage, progress_in_stage_max);
+        break;
     case Stage::SLICING:
         logProgress("slice", progress_in_stage, progress_in_stage_max);
         break;
@@ -65,10 +70,14 @@ void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int
     case Stage::FINISH:
         logProgress("process", progress_in_stage, progress_in_stage_max);
         break;
-//     default:
-//         logProgress("unknown", progress_in_stage, progress_in_stage_max);
     }
 }
+
+void Progress::messageProgressStage(Progress::Stage stage, CommandSocket* commandSocket)
+{
+    commandSocket->sendProgressStage(stage);
+}
+
 
 
 }// namespace cura
