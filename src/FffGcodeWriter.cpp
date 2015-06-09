@@ -655,6 +655,10 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (!storage.support.generated)
         return;
     
+    int support_line_distance = getSettingInMicrons("support_line_distance");
+    int extrusionWidth = storage.support_config.getLineWidth();
+    double infill_overlap = getSettingInPercentage("fill_overlap");
+    EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     
     if (getSettingAsIndex("support_extruder_nr") > -1)
     {
@@ -680,12 +684,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         PolygonsPart& island = supportIslands[islandOrderOptimizer.polyOrder[n]];
 
         Polygons supportLines;
-        int support_line_distance = getSettingInMicrons("support_line_distance");
-        double infill_overlap = getSettingInPercentage("fill_overlap");
         if (support_line_distance > 0)
         {
-            int extrusionWidth = getSettingInMicrons("wall_line_width_x");
-            switch(getSettingAsFillMethod("support_pattern"))
+            switch(support_pattern)
             {
             case Fill_Grid:
                 {
@@ -703,9 +704,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
                     int offset_from_outline = 0;
                     if (layer_nr == 0)
                     {
-                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, infill_overlap + 150, 0);
+                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, 0 + 150, 0);
                     }else{
-                        generateLineInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, infill_overlap, 0);
+                        generateLineInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, 0, 0);
                     }
                 }
                 break;
@@ -714,9 +715,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
                     int offset_from_outline = 0;
                     if (layer_nr == 0)
                     {
-                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, infill_overlap + 150, 0);
+                        generateGridInfill(island, offset_from_outline, supportLines, extrusionWidth, support_line_distance, 0 + 150, 0);
                     }else{
-                        generateZigZagInfill(island, supportLines, extrusionWidth, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
+                        generateZigZagInfill(island, supportLines, extrusionWidth, support_line_distance, 0, 0, getSettingBoolean("support_connect_zigzags"), true);
                     }
                 }
                 break;
@@ -726,7 +727,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
             }
         }
 
-        if (getSettingAsFillMethod("support_pattern") == Fill_Grid || ( getSettingAsFillMethod("support_pattern") == Fill_ZigZag && layer_nr == 0 ) )
+        if (support_pattern == Fill_Grid || ( support_pattern == Fill_ZigZag && layer_nr == 0 ) )
             gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
         gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
     }
