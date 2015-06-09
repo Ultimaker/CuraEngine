@@ -3,6 +3,7 @@
 
 #include "layerPart.h"
 #include "settings.h"
+#include "Progress.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -41,7 +42,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
     }
 }
 
-void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
+void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes, CommandSocket* commandSocket)
 {
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
@@ -50,7 +51,7 @@ void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_laye
         storage.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
         createLayerWithParts(storage.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
         
-        logProgress("layerparts", layer_nr + 1, slicer->layers.size());
+        Progress::messageProgress(Progress::Stage::PARTS, layer_nr + 1, slicer->layers.size(), commandSocket);
     }
 }
 

@@ -34,6 +34,7 @@
 #include "comb.h"
 #include "gcodeExport.h"
 #include "fffProcessor.h"
+#include "Progress.h"
 
 void print_usage()
 {
@@ -62,6 +63,8 @@ int main(int argc, char **argv)
     signal(SIGFPE, signal_FPE);
 #endif
 
+    Progress::init();
+    
     fffProcessor processor;
     std::vector<std::string> files;
 

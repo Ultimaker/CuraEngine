@@ -11,6 +11,8 @@
 
 namespace cura {
 
+
+    
 class fffProcessor;
 class CommandSocket
 {

@@ -4,7 +4,7 @@
 #include <fstream> // debug IO
 
 #include "weaveDataStorage.h"
-
+#include "Progress.h"
 
 namespace cura 
 {
@@ -82,9 +82,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
-        
-        logProgress("export", layer_nr+1, totalLayers); // abuse the progress system of the normal mode of CuraEngine
-        if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
+        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
         

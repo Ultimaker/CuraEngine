@@ -4,6 +4,7 @@
 
 #include "sliceDataStorage.h"
 #include "modelFile/modelFile.h"
+#include "commandSocket.h"
 
 namespace cura {
 
@@ -76,8 +77,9 @@ public:
 * \param storage data storage containing the input layer outline data and containing the output support storage per layer
 * \param object The object for which to generate support areas
 * \param layer_count total number of layers
+* \param commandSocket Socket over which to report the progress
 */
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count);
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count, CommandSocket* commandSocket);
 
 
 }//namespace cura

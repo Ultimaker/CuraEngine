@@ -4,6 +4,7 @@
 #include <fstream> // debug IO
 #include <unistd.h>
 
+#include "Progress.h"
 #include "weaveDataStorage.h"
 
 namespace cura 
@@ -63,7 +64,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
         
         for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
         {
-            logProgress("inset", layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::INSET, layer_idx+1, layer_count, commandSocket); // abuse the progress system of the normal mode of CuraEngine
             
             Polygons parts1;
             for (cura::Slicer* slicer : slicerList)
@@ -99,7 +100,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
         
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
-            logProgress("skin", layer_idx+1, wireFrame.layers.size()); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::SKIN, layer_idx+1, wireFrame.layers.size(), commandSocket); // abuse the progress system of the normal mode of CuraEngine
             
             WeaveLayer& layer = wireFrame.layers[layer_idx];
             

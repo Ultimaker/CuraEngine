@@ -1,5 +1,6 @@
 
 #include "FffGcodeWriter.h"
+#include "Progress.h"
 
 namespace cura
 {
@@ -259,8 +260,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 
 void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int totalLayers, bool has_raft)
 {
-    logProgress("export", layer_nr+1, totalLayers);
-    if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
+    Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket);
 
     int layer_thickness = getSettingInMicrons("layer_height");
     if (layer_nr == 0)

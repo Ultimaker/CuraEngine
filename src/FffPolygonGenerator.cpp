@@ -15,6 +15,8 @@
 #include "infill.h"
 #include "raft.h"
 #include "debug.h"
+#include "Progress.h"
+
 namespace cura
 {
 
@@ -76,7 +78,7 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
     {
         storage.meshes.emplace_back(&object->meshes[meshIdx]);
         SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
-        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
+        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"), commandSocket);
         delete slicerList[meshIdx];
 
         bool has_raft = meshStorage.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
@@ -110,8 +112,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processInsets(storage, layer_nr);
         
-        logProgress("inset",layer_nr+1,totalLayers);
-        if (commandSocket) commandSocket->sendProgress(1.0/3.0 * float(layer_nr) / float(totalLayers));
+        Progress::messageProgress(Progress::Stage::INSET, layer_nr+1, totalLayers, commandSocket);
     }
     
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), totalLayers);
@@ -128,7 +129,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        generateSupportAreas(storage, &mesh, totalLayers);
+        generateSupportAreas(storage, &mesh, totalLayers, commandSocket);
         for (unsigned int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
         {
             Polygons& support = storage.support.supportAreasPerLayer[layer_idx];
@@ -145,8 +146,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processSkins(storage, layer_nr);
         }
-        logProgress("skin", layer_nr+1, totalLayers);
-        if (commandSocket) commandSocket->sendProgress(1.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
+        Progress::messageProgress(Progress::Stage::SKIN, layer_nr+1, totalLayers, commandSocket);
     }
     
     for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)

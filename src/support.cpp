@@ -3,6 +3,7 @@
 
 #include <cmath> // sqrt
 #include <utility> // pair
+#include "Progress.h"
 
 namespace cura 
 {
@@ -18,7 +19,7 @@ namespace cura
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count)
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count, CommandSocket* commandSocket)
 {
     // given settings
     ESupportType support_type = object->settings->getSettingAsSupportType("support_type");
@@ -166,7 +167,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         
         storage.support.supportAreasPerLayer[layer_idx] = supportLayer_this;
         
-        logProgress("support", support_layer_count - layer_idx, support_layer_count);
+        Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count - layer_idx, support_layer_count, commandSocket);
     }
     
     // do stuff for when support on buildplate only

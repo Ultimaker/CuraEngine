@@ -7,6 +7,7 @@
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
+#include "Progress.h"
 
 namespace cura {
 
@@ -126,7 +127,7 @@ public:
             gcodeWriter.writeGCode(storage, timeKeeper);
         }
 
-        logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, commandSocket); //Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
 
         return true;
