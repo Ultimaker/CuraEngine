@@ -112,7 +112,7 @@ enum class EnumExample
 {
     ELEM0 = 0,
     ELEM1 = 1
-}
+};
 ~~~~~~~~~~~~~~~
 
 Illegal syntax
