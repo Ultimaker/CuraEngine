@@ -23,14 +23,14 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, double travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : gcode(gcode), travelConfig(retraction_config, "MOVE"), coasting_config(coasting_config)
 {
     lastPosition = gcode.getPositionXY();
     travelConfig.setSpeed(travelSpeed);
     comb = nullptr;
-    extrudeSpeedFactor = 100;
-    travelSpeedFactor = 100;
+    setExtrudeSpeedFactor(1.0);
+    setTravelSpeedFactor(1.0);
     extraTime = 0.0;
     totalPrintTime = 0.0;
     alwaysRetract = false;
@@ -178,7 +178,7 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
-void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed, double travelTime, double extrudeTime)
+void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
     double totalTime = travelTime + extrudeTime; 
     if (totalTime < minTime && extrudeTime > 0.0)
@@ -192,16 +192,16 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed, doubl
             GCodePath* path = &paths[n];
             if (path->config->getExtrusionPerMM(is_volumatric) == 0)
                 continue;
-            int speed = path->config->getSpeed() * factor;
+            double speed = path->config->getSpeed() * factor;
             if (speed < minimalSpeed)
-                factor = double(minimalSpeed) / double(path->config->getSpeed());
+                factor = minimalSpeed / path->config->getSpeed();
         }
 
         //Only slow down with the minimal time if that will be slower then a factor already set. First layer slowdown also sets the speed factor.
-        if (factor * 100 < getExtrudeSpeedFactor())
-            setExtrudeSpeedFactor(factor * 100);
+        if (factor < getExtrudeSpeedFactor())
+            setExtrudeSpeedFactor(factor);
         else
-            factor = getExtrudeSpeedFactor() / 100.0;
+            factor = getExtrudeSpeedFactor();
 
         if (minTime - (extrudeTime / factor) - travelTime > 0.1)
         {
@@ -223,7 +223,7 @@ void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
         GCodePath* path = &paths[n];
         for(unsigned int i=0; i<path->points.size(); i++)
         {
-            double thisTime = vSizeMM(p0 - path->points[i]) / double(path->config->getSpeed());
+            double thisTime = vSizeMM(p0 - path->points[i]) / path->config->getSpeed();
             if (path->config->getExtrusionPerMM(is_volumatric) != 0)
                 extrudeTime += thisTime;
             else
@@ -254,12 +254,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             gcode.writeTypeComment(path->config->name);
             lastConfig = path->config;
         }
-        int speed = path->config->getSpeed();
+        double speed = path->config->getSpeed();
 
-        if (path->config->getExtrusionPerMM(is_volumatric) != 0)// Only apply the extrudeSpeedFactor to extrusion moves
-            speed = speed * extrudeSpeedFactor / 100;
+        if (path->config->getExtrusionPerMM(is_volumatric) != 0)// Only apply the extrudeSpeed to extrusion moves
+            speed *= getExtrudeSpeedFactor();
         else
-            speed = speed * travelSpeedFactor / 100;
+            speed *= getExtrudeSpeedFactor();
 
         { //Check for lots of small moves and combine them into one large line
             if (path->points.size() == 1 && path->config != &travelConfig && shorterThen(gcode.getPositionXY() - path->points[0], path->config->getLineWidth() * 2))
@@ -396,7 +396,7 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
 
     
-    int extrude_speed = path.config->getSpeed() * extrudeSpeedFactor / 100; // travel speed 
+    double extrude_speed = path.config->getSpeed() * getExtrudeSpeedFactor(); // travel speed 
     
     int64_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     int64_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues

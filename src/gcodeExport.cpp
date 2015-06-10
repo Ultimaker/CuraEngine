@@ -74,7 +74,7 @@ EGCodeFlavor GCodeExport::getFlavor()
     return this->flavor;
 }
 
-void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int retraction_extrusion_window, int retraction_count_max)
+void GCodeExport::setRetractionSettings(int extruderSwitchRetraction, double extruderSwitchRetractionSpeed, double extruderSwitchPrimeSpeed, int retraction_extrusion_window, int retraction_count_max)
 {
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->extruderSwitchRetractionSpeed = extruderSwitchRetractionSpeed;
@@ -179,16 +179,16 @@ void GCodeExport::writeDelay(double timeAmount)
     totalPrintTime += timeAmount;
 }
 
-void GCodeExport::writeMove(Point p, int speed, double extrusion_per_mm)
+void GCodeExport::writeMove(Point p, double speed, double extrusion_per_mm)
 {
     writeMove(p.X, p.Y, zPos, speed, extrusion_per_mm);
 }
 
-void GCodeExport::writeMove(Point3 p, int speed, double extrusion_per_mm)
+void GCodeExport::writeMove(Point3 p, double speed, double extrusion_per_mm)
 {
     writeMove(p.x, p.y, p.z, speed, extrusion_per_mm);
 }
-void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per_mm)
+void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_per_mm)
 {
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
@@ -204,12 +204,12 @@ void GCodeExport::writeMove(int x, int y, int z, int speed, double extrusion_per
         {
             if (isRetracted)
             {
-                if (currentSpeed != int(rpm * 10))
+                if (currentSpeed != double(rpm))
                 {
                     //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
                     //fprintf(f, "M108 S%0.1f\r\n", rpm);
                     *output_stream << "M108 S" << std::setprecision(1) << rpm << "\r\n";
-                    currentSpeed = int(rpm * 10);
+                    currentSpeed = double(rpm);
                 }
                 //Add M101 or M201 to enable the proper extruder.
                 *output_stream << "M" << int((extruderNr + 1) * 100 + 1) << "\r\n";
@@ -385,7 +385,7 @@ void GCodeExport::writeCode(const char* str)
         *output_stream << "\n";
 }
 
-void GCodeExport::writeFanCommand(int speed)
+void GCodeExport::writeFanCommand(double speed)
 {
     if (currentFanSpeed == speed)
         return;
@@ -406,7 +406,7 @@ void GCodeExport::writeFanCommand(int speed)
     currentFanSpeed = speed;
 }
 
-void GCodeExport::writeTemperatureCommand(int extruder, int temperature, bool wait)
+void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool wait)
 {
     if (!wait && currentTemperature[extruder] == temperature)
         return;
@@ -421,7 +421,7 @@ void GCodeExport::writeTemperatureCommand(int extruder, int temperature, bool wa
     currentTemperature[extruder] = temperature;
 }
 
-void GCodeExport::writeBedTemperatureCommand(int temperature, bool wait)
+void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 {
     if (wait)
         *output_stream << "M190 S";
@@ -430,7 +430,7 @@ void GCodeExport::writeBedTemperatureCommand(int temperature, bool wait)
     *output_stream << temperature << "\n";
 }
 
-void GCodeExport::finalize(int maxObjectHeight, int moveSpeed, const char* endCode)
+void GCodeExport::finalize(int maxObjectHeight, double moveSpeed, const char* endCode)
 {
     std::cerr << "maxObjectHeight : " << maxObjectHeight << std::endl;
     writeFanCommand(0);

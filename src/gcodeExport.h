@@ -28,8 +28,8 @@ class RetractionConfig
 {
 public:
     double amount; //!< The amount retracted
-    int speed; //!< The speed with which to retract
-    int primeSpeed; //!< the speed with which to unretract
+    double speed; //!< The speed with which to retract
+    double primeSpeed; //!< the speed with which to unretract
     double primeAmount; //!< the amount of material primed after unretracting
     int zHop; //!< the amount with which to lift the head during a retraction-travel
 };
@@ -38,10 +38,10 @@ public:
 class GCodePathConfig
 {
 private:
-    int speed; //!< movement speed
+    double speed; //!< movement speed
     int line_width; //!< width of the line extruded
     int filament_diameter; //!< diameter of the filament as it is on the roll
-    int flow; //!< extrusion flow in %
+    double flow; //!< extrusion flow in %
     int layer_thickness; //!< layer height
     double extrusion_volume_per_mm; //!< mm^3 filament moved per mm line extruded
     double extrusion_per_mm; //!< mm filament moved per mm line extruded
@@ -50,10 +50,10 @@ public:
     bool spiralize;
     RetractionConfig* retraction_config;
     
-    GCodePathConfig() : speed(0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig() : speed(0.0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0.0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
-    void setSpeed(int speed)
+    void setSpeed(double speed)
     {
         this->speed = speed;
     }
@@ -76,13 +76,13 @@ public:
         calculateExtrusion();
     }
 
-    void setFlow(int flow)
+    void setFlow(double flow)
     {
         this->flow = flow;
         calculateExtrusion();
     }
     
-    void smoothSpeed(int min_speed, int layer_nr, int max_speed_layer)
+    void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer) 
     {
         speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
@@ -95,7 +95,7 @@ public:
         return extrusion_per_mm;
     }
     
-    int getSpeed()
+    double getSpeed()
     {
         return speed;
     }
@@ -108,7 +108,7 @@ public:
 private:
     void calculateExtrusion()
     {
-        extrusion_volume_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
+        extrusion_volume_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * flow / 100.0;
         double filament_area = M_PI * (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
         extrusion_per_mm = extrusion_volume_per_mm / filament_area;
     }
@@ -132,12 +132,12 @@ private:
     Point extruderOffset[MAX_EXTRUDERS];
     char extruderCharacter[MAX_EXTRUDERS];
     int currentTemperature[MAX_EXTRUDERS];
-    int currentSpeed;
+    double currentSpeed;
     int zPos;
     bool isRetracted;
     bool isZHopped;
     double last_coasted_amount; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
-    int retractionPrimeSpeed;
+    double retractionPrimeSpeed;
     int extruderNr;
     int currentFanSpeed;
     EGCodeFlavor flavor;
@@ -161,7 +161,7 @@ public:
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor();
         
-    void setRetractionSettings(int extruderSwitchRetraction, int extruderSwitchRetractionSpeed, int extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
+    void setRetractionSettings(int extruderSwitchRetraction, double extruderSwitchRetractionSpeed, double extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
     
     void setZ(int z);
     
@@ -195,11 +195,11 @@ public:
     
     void writeDelay(double timeAmount);
     
-    void writeMove(Point p, int speed, double extrusion_per_mm);
+    void writeMove(Point p, double speed, double extrusion_per_mm);
     
-    void writeMove(Point3 p, int speed, double extrusion_per_mm);
+    void writeMove(Point3 p, double speed, double extrusion_per_mm);
 private:
-    void writeMove(int x, int y, int z, int speed, double extrusion_per_mm);
+    void writeMove(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force=false);
     
@@ -207,10 +207,10 @@ public:
     
     void writeCode(const char* str);
     
-    void writeFanCommand(int speed);
+    void writeFanCommand(double speed);
     
-    void writeTemperatureCommand(int extruder, int temperature, bool wait = false);
-    void writeBedTemperatureCommand(int temperature, bool wait = false);
+    void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
+    void writeBedTemperatureCommand(double temperature, bool wait = false);
     
     void preSetup(SettingsBase& settings)
     {
@@ -232,7 +232,7 @@ public:
         setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));
         setRetractionSettings(settings.getSettingInMicrons("machine_switch_extruder_retraction_amount"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), settings.getSettingInMicrons("retraction_extrusion_window"), settings.getSettingInMicrons("retraction_count_max"));
     }
-    void finalize(int maxObjectHeight, int moveSpeed, const char* endCode);
+    void finalize(int maxObjectHeight, double moveSpeed, const char* endCode);
     
 };
 

@@ -32,20 +32,20 @@ private:
     int initial_layer_thickness;
     int filament_diameter;
     int extrusionWidth;
-    int flowConnection;// = getSettingInt("wireframeFlowConnection");
-    int flowFlat; // = getSettingInt("wireframeFlowFlat");
+    double flowConnection;// = getSettingInt("wireframeFlowConnection");
+    double flowFlat; // = getSettingInt("wireframeFlowFlat");
     double extrusion_per_mm_connection; // = lineArea / filament_area * double(flowConnection) / 100.0;
     double extrusion_per_mm_flat; // = lineArea / filament_area * double(flowFlat) / 100.0;
-    int nozzle_outer_diameter; // = getSettingInt("machineNozzleTipOuterDiameter"); // ___       ___   .
-    int nozzle_head_distance; // = getSettingInt("machineNozzleHeadDistance");      //    |     |      .
-    int nozzle_expansion_angle; // = getSettingInt("machineNozzleExpansionAngle");  //     \_U_/       .
+    int nozzle_outer_diameter; // = getSettingInt("machineNozzleTipOuterDiameter");    // ___       ___   .
+    int nozzle_head_distance; // = getSettingInt("machineNozzleHeadDistance");         //    |     |      .
+    double nozzle_expansion_angle; // = getSettingInt("machineNozzleExpansionAngle");  //     \_U_/       .
     int nozzle_clearance; // = getSettingInt("wireframeNozzleClearance");    // at least line width
     int nozzle_top_diameter; // = tan(static_cast<double>(nozzle_expansion_angle)/180.0 * M_PI) * connectionHeight + nozzle_outer_diameter + nozzle_clearance;
-    int moveSpeed; // = 40;
-    int speedBottom; // =  getSettingInt("wireframePrintspeedBottom");
-    int speedUp; // = getSettingInt("wireframePrintspeedUp");
-    int speedDown; // = getSettingInt("wireframePrintspeedDown");
-    int speedFlat; // = getSettingInt("wireframePrintspeedFlat");
+    double moveSpeed; // = 40;
+    double speedBottom; // =  getSettingInt("wireframePrintspeedBottom");
+    double speedUp; // = getSettingInt("wireframePrintspeedUp");
+    double speedDown; // = getSettingInt("wireframePrintspeedDown");
+    double speedFlat; // = getSettingInt("wireframePrintspeedFlat");
     int connectionHeight; // = getSettingInt("wireframeConnectionHeight"); 
     int roof_inset; // = getSettingInt("wireframeRoofInset"); 
     double flat_delay; // = getSettingInt("wireframeFlatDelay")/100.0;

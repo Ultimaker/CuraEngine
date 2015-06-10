@@ -40,8 +40,8 @@ private:
 
     GCodePathConfig travelConfig;
     CoastingConfig& coasting_config;
-    int extrudeSpeedFactor;
-    int travelSpeedFactor;
+    double extrudeSpeedFactor;
+    double travelSpeedFactor; // TODO: remove this unused var?
     int currentExtruder;
     int retractionMinimalDistance;
     bool alwaysRetract;
@@ -58,7 +58,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, int travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, double travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     bool setExtruder(int extruder)
@@ -79,21 +79,21 @@ public:
         this->alwaysRetract = alwaysRetract;
     }
 
-    void setExtrudeSpeedFactor(int speedFactor)
+    void setExtrudeSpeedFactor(double speedFactor)
     {
-        if (speedFactor < 1) speedFactor = 1;
+        if (speedFactor < 1) speedFactor = 1.0;
         this->extrudeSpeedFactor = speedFactor;
     }
-    int getExtrudeSpeedFactor()
+    double getExtrudeSpeedFactor()
     {
         return this->extrudeSpeedFactor;
     }
-    void setTravelSpeedFactor(int speedFactor)
+    void setTravelSpeedFactor(double speedFactor)
     {
-        if (speedFactor < 1) speedFactor = 1;
+        if (speedFactor < 1) speedFactor = 1.0;
         this->travelSpeedFactor = speedFactor;
     }
-    int getTravelSpeedFactor()
+    double getTravelSpeedFactor()
     {
         return this->travelSpeedFactor;
     }
@@ -108,7 +108,7 @@ public:
 
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config);
 
-    void forceMinimalLayerTime(double minTime, int minimalSpeed, double travelTime, double extrusionTime);
+    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     
     void getTimes(double& travelTime, double& extrudeTime);
 

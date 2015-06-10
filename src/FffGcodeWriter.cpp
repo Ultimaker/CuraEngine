@@ -74,12 +74,12 @@ void FffGcodeWriter::setConfigCoasting()
 {
     coasting_config.coasting_enable = getSettingBoolean("coasting_enable"); 
     coasting_config.coasting_volume_move = getSettingInCubicMillimeters("coasting_volume_move"); 
-    coasting_config.coasting_speed_move = getSettingInCubicMillimeters("coasting_speed_move"); 
     coasting_config.coasting_min_volume_move = getSettingInCubicMillimeters("coasting_min_volume_move"); 
+    coasting_config.coasting_speed_move = getSettingInPercentage("coasting_speed_move"); 
 
     coasting_config.coasting_volume_retract = getSettingInCubicMillimeters("coasting_volume_retract");
-    coasting_config.coasting_speed_retract = getSettingInCubicMillimeters("coasting_speed_retract");
     coasting_config.coasting_min_volume_retract = getSettingInCubicMillimeters("coasting_min_volume_retract");
+    coasting_config.coasting_speed_retract = getSettingInPercentage("coasting_speed_retract");
 }
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
@@ -326,10 +326,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
 void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr)
 {
-    int initial_speedup_layers = getSettingAsCount("speed_slowdown_layers");
+    double initial_speedup_layers = getSettingAsCount("speed_slowdown_layers");
     if (static_cast<int>(layer_nr) < initial_speedup_layers)
     {
-        int initial_layer_speed = getSettingInMillimetersPerSecond("speed_layer_0");
+        double initial_layer_speed = getSettingInMillimetersPerSecond("speed_layer_0");
         storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
         for(SliceMeshStorage& mesh : storage.meshes)
         {
@@ -777,7 +777,7 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
     gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("cool_min_layer_time"), getSettingInMillimetersPerSecond("cool_min_speed"), travelTime, extrudeTime);
 
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    int fanSpeed = getSettingInPercentage("cool_fan_speed_min");
+    double fanSpeed = getSettingInPercentage("cool_fan_speed_min");
     double totalLayerTime = travelTime + extrudeTime;
     if (totalLayerTime < getSettingInSeconds("cool_min_layer_time"))
     {
@@ -788,8 +788,8 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
         double minTime = (getSettingInSeconds("cool_min_layer_time"));
         double maxTime = (getSettingInSeconds("cool_min_layer_time_fan_speed_max"));
-        int fanSpeedMin = getSettingInPercentage("cool_fan_speed_min");
-        int fanSpeedMax = getSettingInPercentage("cool_fan_speed_max");
+        double fanSpeedMin = getSettingInPercentage("cool_fan_speed_min");
+        double fanSpeedMax = getSettingInPercentage("cool_fan_speed_max");
         fanSpeed = fanSpeedMax - (fanSpeedMax-fanSpeedMin) * (totalLayerTime - minTime) / (maxTime - minTime);
     }
     if (static_cast<int>(layer_nr) < getSettingAsCount("cool_fan_full_layer"))

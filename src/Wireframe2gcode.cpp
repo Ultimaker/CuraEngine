@@ -88,7 +88,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
         
         gcode.writeLayerComment(layer_nr+1);
         
-        int fanSpeed = getSettingInPercentage("cool_fan_speed_max");
+        double fanSpeed = getSettingInPercentage("cool_fan_speed_max");
         if (layer_nr == 0)
             fanSpeed = getSettingInPercentage("cool_fan_speed_min");
         gcode.writeFanCommand(fanSpeed);
@@ -500,8 +500,8 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
     double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
-    extrusion_per_mm_connection = lineArea / filament_area * double(flowConnection) / 100.0;
-    extrusion_per_mm_flat = lineArea / filament_area * double(flowFlat) / 100.0;
+    extrusion_per_mm_connection = lineArea / filament_area * flowConnection / 100.0;
+    extrusion_per_mm_flat = lineArea / filament_area * flowFlat / 100.0;
     
     nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter"); // ___       ___   .
     nozzle_head_distance = getSettingInMicrons("machine_nozzle_head_distance");      //    |     |      .
