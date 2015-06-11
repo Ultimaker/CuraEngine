@@ -20,31 +20,31 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
 
 void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
-    SliceLayer* layer = &storage.layers[layerNr];
+    SliceLayer& layer = storage.layers[layerNr];
 
-    for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+    for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
-        SliceLayerPart* part = &layer->parts[partNr];
+        SliceLayerPart& part = layer.parts[partNr];
         
-        Polygons upskin = part->insets.back().offset(-extrusionWidth/2);
+        Polygons upskin = part.insets.back().offset(-extrusionWidth/2);
         Polygons downskin = upskin;
 
         
         if (static_cast<int>(layerNr - downSkinCount) >= 0)
         {
-            SliceLayer* layer2 = &storage.layers[layerNr - downSkinCount];
-            for(SliceLayerPart& part2 : layer2->parts)
+            SliceLayer& layer2 = storage.layers[layerNr - downSkinCount];
+            for(SliceLayerPart& part2 : layer2.parts)
             {
-                if (part->boundaryBox.hit(part2.boundaryBox))
+                if (part.boundaryBox.hit(part2.boundaryBox))
                     downskin = downskin.difference(part2.insets.back());
             }
         }
         if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
         {
-            SliceLayer* layer2 = &storage.layers[layerNr + upSkinCount];
-            for(SliceLayerPart& part2 : layer2->parts)
+            SliceLayer& layer2 = storage.layers[layerNr + upSkinCount];
+            for(SliceLayerPart& part2 : layer2.parts)
             {
-                if (part->boundaryBox.hit(part2.boundaryBox))
+                if (part.boundaryBox.hit(part2.boundaryBox))
                     upskin = upskin.difference(part2.insets.back());
             }
         }
@@ -56,8 +56,8 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())
         {
-            part->skin_parts.emplace_back();
-            part->skin_parts.back().outline = skin_area_part;
+            part.skin_parts.emplace_back();
+            part.skin_parts.back().outline = skin_area_part;
         }
     }
 }

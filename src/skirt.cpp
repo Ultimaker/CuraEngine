@@ -13,7 +13,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     
     Polygons support;
     if (storage.support.generated) 
-        support = storage.support.supportAreasPerLayer[0];
+        support = storage.support.supportLayers[0].supportAreas;
     { // get support polygons
         for(SliceMeshStorage& mesh : storage.meshes)
         {

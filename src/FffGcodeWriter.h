@@ -238,7 +238,21 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, GCodePathConfig& roofConfig);
+    /*!
+     * Add the support lines/walls to the gcode of the current layer.
+     * \param storage Input: where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
+    void addSupportLinesToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
+    /*!
+     * Add the support roofs to the gcode of the current layer.
+     * \param storage Input: where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
+    void addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, GCodePathConfig& roofConfig);
     
     /*!
      * Add the wipe tower gcode for the current layer.

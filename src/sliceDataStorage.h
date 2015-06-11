@@ -51,15 +51,22 @@ public:
 };
 
 /******************/
+class SupportLayer
+{
+public:
+    Polygons supportAreas;
+    Polygons roofs;
+};
+
 class SupportStorage
 {
 public:
     bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
         
-    std::vector<Polygons> supportAreasPerLayer;
+    std::vector<SupportLayer> supportLayers;
 
     SupportStorage(){}
-    ~SupportStorage(){supportAreasPerLayer.clear(); }
+    ~SupportStorage(){supportLayers.clear(); }
 };
 /******************/
 

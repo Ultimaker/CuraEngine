@@ -81,6 +81,15 @@ public:
 */
 void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count, CommandSocket* commandSocket);
 
+/*!
+ * Generate support roof areas and adjust non-roof areas.
+ * 
+* \param storage Input + output storage: support area data input and support area + support roof area output
+* \param commandSocket Socket over which to report the progress
+* \param layerThickness The layer height
+ */
+void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness);
+
 
 }//namespace cura
 

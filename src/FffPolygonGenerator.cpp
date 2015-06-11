@@ -139,10 +139,11 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         generateSupportAreas(storage, &mesh, totalLayers, commandSocket);
         for (unsigned int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
         {
-            Polygons& support = storage.support.supportAreasPerLayer[layer_idx];
+            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
             sendPolygons(SupportType, layer_idx, support);
         }
     }
+    generateSupportRoofs(storage, commandSocket, getSettingInMicrons("layer_height"));
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &timeKeeper, commandSocket);
 
