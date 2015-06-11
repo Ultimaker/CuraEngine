@@ -307,7 +307,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
     for(SliceMeshStorage* mesh : mesh_order)
     {
-        if (getSettingBoolean("magic_polygon_mode"))
+        if (getSettingBoolean("magic_mesh_surface_mode"))
         {
             addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcodeLayer, layer_nr);
         }

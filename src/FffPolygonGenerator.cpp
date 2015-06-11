@@ -28,7 +28,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* 
         return false;
     }
     
-    if (getSettingBoolean("magic_polygon_mode"))
+    if (getSettingBoolean("magic_mesh_surface_mode"))
     {
         slices2polygons_magicPolygonMode(storage, timeKeeper);
     }
