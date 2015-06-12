@@ -11,6 +11,11 @@
 #define VERSION "DEV"
 #endif
 
+#ifndef PATH_DATA_DEFAULT
+/* #define PATH_DATA_DEFAULT "/usr/share/cura-engine/" */
+#define PATH_DATA_DEFAULT ""
+#endif
+
 /*!
  * Different flavors of GCode. Some machines require different types of GCode.
  * The GCode flavor definition handles this as a big setting to make major or minor modifications to the GCode.

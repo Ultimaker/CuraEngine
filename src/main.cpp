@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     if (!SettingRegistry::getInstance()->settingsLoaded())
     {
         //If no json file has been loaded, try to load the default.
-        if (!SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
+        if (!SettingRegistry::getInstance()->loadJSON(PATH_DATA_DEFAULT "fdmprinter.json"))
         {
             logError("ERROR: Failed to load json file: fdmprinter.json\n");
         }

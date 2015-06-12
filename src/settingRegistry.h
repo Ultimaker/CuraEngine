@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <string>
 
-#include "rapidjson/document.h"
+#include <rapidjson/document.h>
 
 // Forward declaration
 class SettingConfig;
