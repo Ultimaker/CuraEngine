@@ -3,7 +3,7 @@ CuraEngine
 The CuraEngine is a C++ console application for 3D printing GCode generation. It has been made as a better and faster alternative to the old Skeinforge engine.
 
 The CuraEngine is pure C++ and uses Clipper from http://www.angusj.com/delphi/clipper.php
-There are no external dependences and Clipper is included in the source code without modifications.
+Furthermore it depends on libArcus by Ultimaker, which can be found at http://github.com/Ultimaker/libArcus
 
 This is just a console application for GCode generation. For a full graphical application look at https://github.com/Ultimaker/Cura which is the graphical frontend for CuraEngine.
 
