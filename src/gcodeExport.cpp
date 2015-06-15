@@ -137,6 +137,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
         totalFilament[e] = 0.0;
         currentTemperature[e] = 0;
     }
+    extrusion_amount = 0.0;
     estimateCalculator.reset();
 }
 
