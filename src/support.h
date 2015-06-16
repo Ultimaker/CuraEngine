@@ -79,7 +79,7 @@ public:
 * \param layer_count total number of layers
 * \param commandSocket Socket over which to report the progress
 */
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count, CommandSocket* commandSocket);
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket);
 
 /*!
  * Generate support roof areas and adjust non-roof areas.

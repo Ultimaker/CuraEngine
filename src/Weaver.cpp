@@ -154,7 +154,7 @@ void Weaver::createHorizontalFill(Polygons& lower_top_parts, WeaveLayer& layer, 
 {
     int64_t bridgable_dist = connectionHeight;
     
-    Polygons& polys_below = lower_top_parts;
+//     Polygons& polys_below = lower_top_parts;
     Polygons& polys_here = layer.supported;
     Polygons& polys_above = layer_above;
 

@@ -19,7 +19,7 @@ namespace cura
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, int layer_count, CommandSocket* commandSocket)
+void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket)
 {
     // given settings
     ESupportType support_type = object->settings->getSettingAsSupportType("support_type");
@@ -63,12 +63,12 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     int supportLayerThickness = layerThickness;
     
     int layerZdistanceTop       = supportZDistanceTop / supportLayerThickness + 1; // support must always be 1 layer below overhang
-    int layerZdistanceBottom    = supportZDistanceBottom / supportLayerThickness; 
+    unsigned int layerZdistanceBottom    = std::max(0, supportZDistanceBottom / supportLayerThickness); 
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
     
-    int support_layer_count = layer_count;
+    unsigned int support_layer_count = layer_count;
     
     
     double tanTowerRoofAngle = tan(supportTowerRoofAngle);
