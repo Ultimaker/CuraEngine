@@ -109,7 +109,7 @@ public:
     Point wipePoint;
     
     SliceDataStorage()
-    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "HAMMOCK")
+    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "SKIN")
     {
     }
 };

@@ -107,7 +107,7 @@ void FffGcodeWriter::setConfigSkirt(SliceDataStorage& storage, int layer_thickne
 void FffGcodeWriter::setConfigSupport(SliceDataStorage& storage, int layer_thickness)
 {
     storage.support_config.setLineWidth(getSettingInMicrons("support_line_width"));
-    storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support"));
+    storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support_lines"));
     storage.support_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
     storage.support_config.setFlow(getSettingInPercentage("material_flow"));
     storage.support_config.setLayerHeight(layer_thickness);
@@ -664,18 +664,26 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (!storage.support.generated)
         return;
     
-    bool print_alternate_material_first = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcodeLayer.getExtruder());
-    bool roofs_in_alternate_material_only = true;
     
-    if (roofs_in_alternate_material_only && print_alternate_material_first)
+    if (getSettingBoolean("support_roof_enable"))
     {
-        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
-        addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
+        bool print_alternate_material_first = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcodeLayer.getExtruder());
+        bool roofs_in_alternate_material_only = true;
+        
+        if (roofs_in_alternate_material_only && print_alternate_material_first)
+        {
+            addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
+            addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
+        }
+        else 
+        {
+            addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
+            addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
+        }
     }
-    else 
+    else
     {
         addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
-        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
     }
 }
 
@@ -763,7 +771,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 {
     double fillAngle = 90; // perpendicular to support lines
     double infill_overlap = 0;
-    int outline_offset =  0; // - roofConfig.getLineWidth();
+    int outline_offset =  0; // - roofConfig.getLineWidth() / 2;
     
     Polygons skinLines;
     generateLineInfill(storage.support.supportLayers[layer_nr].roofs, outline_offset, skinLines, storage.support_roof_config.getLineWidth(), storage.support_roof_config.getLineWidth(), infill_overlap, fillAngle);
