@@ -342,11 +342,9 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness)
+void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height)
 {
-    
-    int support_roof_thickness = 1000;// object->settings->getSettingInMicrons("support_roof_thickness"); TODO introduce settings
-    int roof_layer_count = support_roof_thickness / layerThickness;
+    int roof_layer_count = support_roof_height / layerThickness;
     
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < supportLayers.size(); layer_idx++)
@@ -360,6 +358,7 @@ void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocke
         }
         
         layer.roofs = layer.supportAreas.difference(non_roof);
+        layer.roofs.removeSmallAreas(1.0);
         layer.supportAreas = layer.supportAreas.difference(layer.roofs);
         
     }

@@ -143,7 +143,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             sendPolygons(SupportType, layer_idx, support);
         }
     }
-    generateSupportRoofs(storage, commandSocket, getSettingInMicrons("layer_height"));
+    if (getSettingBoolean("support_roof_enabled"))
+    {
+        generateSupportRoofs(storage, commandSocket, getSettingInMicrons("layer_height"), getSettingInMicrons("support_roof_height"));
+    }
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &timeKeeper, commandSocket);
 

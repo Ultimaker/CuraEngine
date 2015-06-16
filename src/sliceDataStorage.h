@@ -102,13 +102,14 @@ public:
     RetractionConfig retraction_config;
     GCodePathConfig skirt_config;
     GCodePathConfig support_config;
+    GCodePathConfig support_roof_config;
     
     SupportStorage support;
     Polygons wipeTower;
     Point wipePoint;
     
     SliceDataStorage()
-    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT")
+    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "HAMMOCK")
     {
     }
 };

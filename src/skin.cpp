@@ -51,7 +51,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         
         Polygons skin = upskin.unionPolygons(downskin);
           
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
+        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value! = circle area * 8 * 0.3  !?!??!
         skin.removeSmallAreas(minAreaSize);
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())

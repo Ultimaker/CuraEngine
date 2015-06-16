@@ -87,8 +87,9 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
 * \param storage Input + output storage: support area data input and support area + support roof area output
 * \param commandSocket Socket over which to report the progress
 * \param layerThickness The layer height
+* \param support_roof_height The thickness of the hammock in z directiontt
  */
-void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness);
+void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height);
 
 
 }//namespace cura

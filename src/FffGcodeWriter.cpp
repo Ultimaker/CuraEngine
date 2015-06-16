@@ -111,6 +111,12 @@ void FffGcodeWriter::setConfigSupport(SliceDataStorage& storage, int layer_thick
     storage.support_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
     storage.support_config.setFlow(getSettingInPercentage("material_flow"));
     storage.support_config.setLayerHeight(layer_thickness);
+    
+    storage.support_roof_config.setLineWidth(getSettingInMicrons("support_roof_line_width"));
+    storage.support_roof_config.setSpeed(getSettingInMillimetersPerSecond("speed_support_roof"));
+    storage.support_roof_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
+    storage.support_roof_config.setFlow(getSettingInPercentage("material_flow"));
+    storage.support_roof_config.setLayerHeight(layer_thickness);
 }
 
 void FffGcodeWriter::setConfigInsets(SliceMeshStorage& mesh, int layer_thickness)
@@ -294,12 +300,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     processLayerStartPos(layer_nr, has_raft);
     
     processSkirt(storage, gcodeLayer, layer_nr);
-
-    GCodePathConfig& roofConfig = storage.meshes[0].skin_config; // TODO: make support roof config settings!
     
     bool printSupportFirst = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcodeLayer.getExtruder());
     if (printSupportFirst)
-        addSupportToGCode(storage, gcodeLayer, layer_nr, roofConfig);
+        addSupportToGCode(storage, gcodeLayer, layer_nr);
 
     processOozeShield(storage, gcodeLayer, layer_nr);
 
@@ -317,7 +321,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         }
     }
     if (!printSupportFirst)
-        addSupportToGCode(storage, gcodeLayer, layer_nr, roofConfig);
+        addSupportToGCode(storage, gcodeLayer, layer_nr);
 
     processFanSpeedAndMinimalLayerTime(storage, gcodeLayer, layer_nr);
     
@@ -655,7 +659,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcodeLayer, SliceMeshStorage* mes
     gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
 }
 
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, GCodePathConfig& roofConfig)
+void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
 {
     if (!storage.support.generated)
         return;
@@ -665,13 +669,13 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     
     if (roofs_in_alternate_material_only && print_alternate_material_first)
     {
-        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr, roofConfig);
+        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
         addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
     }
     else 
     {
         addSupportLinesToGCode(storage, gcodeLayer, layer_nr);
-        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr, roofConfig);
+        addSupportRoofsToGCode(storage, gcodeLayer, layer_nr);
     }
 }
 
@@ -755,18 +759,15 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     }
 }
 
-void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, GCodePathConfig& roofConfig)
+void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
 {
-    double fillAngle = 90;
+    double fillAngle = 90; // perpendicular to support lines
     double infill_overlap = 0;
     int outline_offset =  0; // - roofConfig.getLineWidth();
     
     Polygons skinLines;
-//     for (SupportLayer& layer : storage.support.supportLayers[layer_nr])
-    {
-        generateLineInfill(storage.support.supportLayers[layer_nr].roofs, outline_offset, skinLines, roofConfig.getLineWidth(), roofConfig.getLineWidth(), infill_overlap, fillAngle);
-    }
-    gcodeLayer.addLinesByOptimizer(skinLines, &roofConfig);
+    generateLineInfill(storage.support.supportLayers[layer_nr].roofs, outline_offset, skinLines, storage.support_roof_config.getLineWidth(), storage.support_roof_config.getLineWidth(), infill_overlap, fillAngle);
+    gcodeLayer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
 }
 
 
