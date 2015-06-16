@@ -49,7 +49,8 @@ Installing Protobuf
 
 Running
 =======
-Other than running CuraEngine from a frontend, such as PluggableCura, one can run CuraEngine from the command line.
+Other than running CuraEngine from a frontend, such as Ultimaker/Cura, one can run CuraEngine from the command line.
+For that one needs a settings JSON file, which can be found in the Ultimaker/Cura repository.
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
