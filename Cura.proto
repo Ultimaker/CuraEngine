@@ -33,7 +33,11 @@ message SlicedObject {
 
 message Layer {
     int32 id = 1;
-    repeated Polygon polygons = 2;
+
+    float height = 2;
+    float thickness = 3;
+
+    repeated Polygon polygons = 4;
 }
 
 message Polygon {

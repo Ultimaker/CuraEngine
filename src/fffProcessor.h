@@ -263,9 +263,6 @@ private:
             {
                 if (has_raft)
                     meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
-
-                if (commandSocket)
-                    commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -305,6 +302,10 @@ private:
         {
             for(SliceMeshStorage& mesh : storage.meshes)
             {
+                if(commandSocket)
+                {
+                    commandSocket->sendLayerInfo(layer_nr, mesh.layers[layer_nr].printZ, layer_nr == 0 ? mesh.settings->getSettingInMicrons("layer_height_0") : mesh.settings->getSettingInMicrons("layer_height"));
+                }
                 int insetCount = mesh.settings->getSettingAsCount("wall_line_count");
                 if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;

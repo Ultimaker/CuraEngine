@@ -29,6 +29,8 @@ public:
         , slicedObjects(0)
     { }
 
+    Cura::Layer* getLayerById(int id);
+
     fffProcessor* processor;
 
     Arcus::Socket* socket;
@@ -151,12 +153,14 @@ void CommandSocket::handleSettingList(Cura::SettingList* list)
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
-//     socket.sendInt32(CMD_LAYER_INFO);
-//     socket.sendInt32(4 * 4);
-//     socket.sendInt32(current_object_number);
-//     socket.sendInt32(layer_nr);
-//     socket.sendInt32(z);
-//     socket.sendInt32(height);
+    if(!d->currentSlicedObject)
+    {
+        return;
+    }
+
+    Cura::Layer* layer = d->getLayerById(layer_nr);
+    layer->set_height(z);
+    layer->set_thickness(height);
 }
 
 void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
@@ -164,8 +168,7 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
     if(!d->currentSlicedObject)
         return;
 
-    Cura::Layer* layer = d->currentSlicedObject->add_layers();
-    layer->set_id(layer_nr);
+    Cura::Layer* layer = d->getLayerById(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
     {
@@ -244,6 +247,24 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
     auto message = std::make_shared<Cura::GCodePrefix>();
     message->set_data(prefix);
     d->socket->sendMessage(message);
+}
+
+Cura::Layer* CommandSocket::Private::getLayerById(int id)
+{
+    auto itr = std::find_if(currentSlicedObject->mutable_layers()->begin(), currentSlicedObject->mutable_layers()->end(), [id](Cura::Layer& l) { return l.id() == id; });
+
+    Cura::Layer* layer = nullptr;
+    if(itr != currentSlicedObject->mutable_layers()->end())
+    {
+        layer = &(*itr);
+    }
+    else
+    {
+        layer = currentSlicedObject->add_layers();
+        layer->set_id(id);
+    }
+
+    return layer;
 }
 
 }//namespace cura
