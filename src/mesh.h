@@ -70,6 +70,10 @@ public:
     Point3 min(); //!< min (in x,y and z) vertex of the bounding box
     Point3 max(); //!< max (in x,y and z) vertex of the bounding box
     
+    /*!
+     * Offset the whole mesh (all vertices and the bounding box).
+     * \param offset The offset byu which to offset the whole mesh.
+     */
     void offset(Point3 offset)
     {
         for(MeshVertex& v : vertices)
