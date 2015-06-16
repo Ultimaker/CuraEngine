@@ -2,6 +2,7 @@
 #define MESH_H
 
 #include "settings.h"
+#include "utils/AABB.h"
 
 /*!
 Vertex type to be used in a Mesh.
@@ -55,7 +56,7 @@ class Mesh : public SettingsBase // inherits settings
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
-    Point3  aabb[2] = {{0,0,0},{0,0,0}};
+    AABB aabb;
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
@@ -68,6 +69,13 @@ public:
 
     Point3 min(); //!< min (in x,y and z) vertex of the bounding box
     Point3 max(); //!< max (in x,y and z) vertex of the bounding box
+    
+    void offset(Point3 offset)
+    {
+        for(MeshVertex& v : vertices)
+            v.p += offset;
+        aabb.offset(offset);
+    }
 
 private:
     int findIndexOfVertex(Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.

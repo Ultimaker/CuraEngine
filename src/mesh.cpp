@@ -55,11 +55,11 @@ void Mesh::finish()
 
 Point3 Mesh::min()
 {
-    return aabb[0];
+    return aabb.min;
 }
 Point3 Mesh::max()
 {
-    return aabb[1];
+    return aabb.max;
 }
 
 int Mesh::findIndexOfVertex(Point3& v)
@@ -76,14 +76,7 @@ int Mesh::findIndexOfVertex(Point3& v)
     vertex_hash_map[hash].push_back(vertices.size());
     vertices.emplace_back(v);
     
-    //aabb min
-    aabb[0].x = std::min(aabb[0].x, v.x);
-    aabb[0].y = std::min(aabb[0].y, v.y);
-    aabb[0].z = std::min(aabb[0].z, v.z);
-    //aabb max
-    aabb[1].x = std::max(aabb[1].x, v.x);
-    aabb[1].y = std::max(aabb[1].y, v.y);
-    aabb[1].z = std::max(aabb[1].z, v.z);
+    aabb.include(v);
     
     return vertices.size() - 1;
 }

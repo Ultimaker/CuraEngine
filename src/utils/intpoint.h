@@ -254,6 +254,11 @@ public:
 inline Point3 operator+(const Point3& p3, const Point& p2) {
     return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);
 }
+inline Point3& operator+=(Point3& p3, const Point& p2) {
+    p3.x += p2.X;
+    p3.y += p2.Y;
+    return p3;
+}
 
 inline Point operator+(const Point& p2, const Point3& p3) {
     return Point(p3.x + p2.X, p3.y + p2.Y);
@@ -262,6 +267,11 @@ inline Point operator+(const Point& p2, const Point3& p3) {
 
 inline Point3 operator-(const Point3& p3, const Point& p2) {
     return Point3(p3.x - p2.X, p3.y - p2.Y, p3.z);
+}
+inline Point3& operator-=(Point3& p3, const Point& p2) {
+    p3.x -= p2.X;
+    p3.y -= p2.Y;
+    return p3;
 }
 
 inline Point operator-(const Point& p2, const Point3& p3) {

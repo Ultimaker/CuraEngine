@@ -58,8 +58,7 @@ public:
     void offset(Point3 offset)
     {
         for(Mesh& m : meshes)
-            for(MeshVertex& v : m.vertices)
-                v.p += offset;
+            m.offset(offset);
     }
 
     void finalize()
