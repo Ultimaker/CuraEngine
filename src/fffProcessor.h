@@ -57,10 +57,10 @@ public:
         commandSocket = socket;
     }
 
-    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
+    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
     {
         if (commandSocket)
-            commandSocket->sendPolygons(type, layer_nr, polygons);
+            commandSocket->sendPolygons(type, layer_nr, polygons, line_width);
     }
     
     bool setTargetFile(const char* filename)
@@ -291,7 +291,7 @@ private:
                     SliceLayer* layer = &mesh.layers[layer_nr];
                     for(SliceLayerPart& part : layer->parts)
                     {
-                        sendPolygons(Inset0Type, layer_nr, part.outline);
+                        sendPolygons(Inset0Type, layer_nr, part.outline, mesh.settings->getSettingInMicrons("wall_line_width_x"));
                     }
                 }
             }
@@ -306,6 +306,7 @@ private:
                 {
                     commandSocket->sendLayerInfo(layer_nr, mesh.layers[layer_nr].printZ, layer_nr == 0 ? mesh.settings->getSettingInMicrons("layer_height_0") : mesh.settings->getSettingInMicrons("layer_height"));
                 }
+
                 int insetCount = mesh.settings->getSettingAsCount("wall_line_count");
                 if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
@@ -320,9 +321,9 @@ private:
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0]);
+                        sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], extrusionWidth);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset]);
+                            sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], extrusionWidth);
                     }
                 }
             }
@@ -435,7 +436,7 @@ private:
                     {
                         for (SkinPart& skin_part : part.skin_parts)
                         {
-                            sendPolygons(SkinType, layer_nr, skin_part.outline);
+                            sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
                         }
                     }
                 }
@@ -463,20 +464,23 @@ private:
             storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
         }
 
+        int adhesion_line_width = 0;
         switch(getSettingAsPlatformAdhesion("adhesion_type"))
         {
         case Adhesion_None:
-            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            adhesion_line_width = getSettingInMicrons("skirt_line_width");
+            generateSkirt(storage, getSettingInMicrons("skirt_gap"), adhesion_line_width, getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
             break;
         case Adhesion_Brim:
-            generateSkirt(storage, 0, getSettingInMicrons("skirt_line_width"), getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            adhesion_line_width = getSettingInMicrons("skirt_line_width");
+            generateSkirt(storage, 0, adhesion_line_width, getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
             break;
         case Adhesion_Raft:
             generateRaft(storage, getSettingInMicrons("raft_margin"));
             break;
         }
 
-        sendPolygons(SkirtType, 0, storage.skirt);
+        sendPolygons(SkirtType, 0, storage.skirt, adhesion_line_width);
     }
 
     void writeGCode(SliceDataStorage& storage)
@@ -1044,8 +1048,8 @@ private:
         Polygons support;
         if (storage.support.generated) 
             support = storage.support.supportAreasPerLayer[layer_nr];
-        
-        sendPolygons(SupportType, layer_nr, support);
+
+        sendPolygons(SupportType, layer_nr, support, getSettingInMicrons("wall_line_width_x"));
 
         std::vector<Polygons> supportIslands = support.splitIntoParts();
 

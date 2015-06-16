@@ -51,7 +51,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
         
         if (commandSocket)
-            commandSocket->sendPolygons(Inset0Type, 0, wireFrame.bottom_outline);
+            commandSocket->sendPolygons(Inset0Type, 0, wireFrame.bottom_outline, 1);
         
         wireFrame.z_bottom = slicerList[0]->layers[starting_layer_idx].z;
         
@@ -75,7 +75,7 @@ void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
             
             if (commandSocket)
-                commandSocket->sendPolygons(Inset0Type, layer_idx - starting_layer_idx, chainified);
+                commandSocket->sendPolygons(Inset0Type, layer_idx - starting_layer_idx, chainified, 1);
             
             if (chainified.size() > 0)
             {

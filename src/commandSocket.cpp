@@ -163,7 +163,7 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
     layer->set_thickness(height);
 }
 
-void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
+void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
 {
     if(!d->currentSlicedObject)
         return;
@@ -177,6 +177,7 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
         std::string polydata;
         polydata.append(reinterpret_cast<const char*>(polygons[i].data()), polygons[i].size() * sizeof(Point));
         p->set_points(polydata);
+        p->set_line_width(line_width);
     }
 }
 

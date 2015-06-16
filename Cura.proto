@@ -51,6 +51,7 @@ message Polygon {
     }
     Type type = 1;
     bytes points = 2;
+    float line_width = 3;
 }
 
 // typeid 4
