@@ -76,6 +76,8 @@ public:
     SettingsBase* settings;
     std::vector<SliceLayer> layers;
 
+    int layer_nr_max_filled_layer;
+    
     RetractionConfig retraction_config;
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
@@ -83,7 +85,7 @@ public:
     GCodePathConfig infill_config[MAX_SPARSE_COMBINE];
     
     SliceMeshStorage(SettingsBase* settings)
-    : settings(settings), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
+    : settings(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
         for(int n=0; n<MAX_SPARSE_COMBINE; n++)
             infill_config[n] = GCodePathConfig(&retraction_config, "FILL");
@@ -94,6 +96,7 @@ class SliceDataStorage
 {
 public:
     Point3 model_size, model_min, model_max;
+    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion
     Polygons skirt;
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     std::vector<Polygons> oozeShield;        //oozeShield per layer
@@ -109,7 +112,7 @@ public:
     Point wipePoint;
     
     SliceDataStorage()
-    : skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "SKIN")
+    : max_object_height_second_to_last_extruder(-1), skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "SKIN")
     {
     }
 };

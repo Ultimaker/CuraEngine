@@ -51,7 +51,44 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeepe
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     maxObjectHeight = std::max(maxObjectHeight, storage.model_max.z);
-
+    
+    { // compute max_object_height_second_to_last_extruder
+        // TODO: move this code into its own function!
+        int max_object_height_per_extruder[MAX_EXTRUDERS];
+        memset(max_object_height_per_extruder, -1, sizeof(max_object_height_per_extruder));
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            max_object_height_per_extruder[mesh.settings->getSettingAsIndex("extruder_nr")] = 
+                std::max(   max_object_height_per_extruder[mesh.settings->getSettingAsIndex("extruder_nr")]
+                        ,   mesh.layer_nr_max_filled_layer  ); 
+        }
+        unsigned int extruder_max_object_height = 0;
+        for (unsigned int extruder_nr = 1; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+        {
+            if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_max_object_height])
+            {
+                extruder_max_object_height = extruder_nr;
+            }
+        }
+        int extruder_second_max_object_height = -1;
+        for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+        {
+            if (extruder_nr == extruder_max_object_height) { continue; }
+            if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
+            {
+                extruder_second_max_object_height = extruder_nr;
+            }
+        }
+        if (extruder_second_max_object_height < 0)
+        {
+            storage.max_object_height_second_to_last_extruder = -1;
+        }
+        else 
+        {
+            storage.max_object_height_second_to_last_extruder = max_object_height_per_extruder[extruder_second_max_object_height];
+        }
+    }
+        
     if (commandSocket)
     {
         finalize();
@@ -782,7 +819,13 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 void FffGcodeWriter::addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)
 {
     if (getSettingInMicrons("wipe_tower_size") < 1)
+    {
         return;
+    }
+    if (layer_nr > storage.max_object_height_second_to_last_extruder)
+    {
+        return;
+    }
 
     int64_t offset = -getSettingInMicrons("wall_line_width_x");
     if (layer_nr > 0)

@@ -89,11 +89,17 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
         //Add the raft offset to each layer.
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
+            SliceLayer& layer = meshStorage.layers[layer_nr];
             if (has_raft)
-                meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
-
+                layer.printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
+            
+            if (layer.parts.size() > 0)
+            {
+                meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
+            }
+                
             if (commandSocket)
-                commandSocket->sendLayerInfo(layer_nr, meshStorage.layers[layer_nr].printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
+                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
         }
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
@@ -298,7 +304,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 
 void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    if (getSettingInMicrons("wipe_tower_distance") > 0 && getSettingInMicrons("wipe_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && getSettingInMicrons("wipe_tower_distance") > 0 && getSettingInMicrons("wipe_tower_size") > 0)
     {
         PolygonRef p = storage.wipeTower.newPoly();
         int tower_size = getSettingInMicrons("wipe_tower_size");
