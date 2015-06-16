@@ -7,6 +7,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/filereadstream.h"
+#include "utils/logoutput.h"
 
 SettingRegistry SettingRegistry::instance; // define settingRegistry
 
@@ -31,7 +32,7 @@ bool SettingRegistry::settingsLoaded()
     return settings.size() > 0;
 }
 
-bool SettingRegistry::loadJSON(std::string filename)
+int SettingRegistry::loadJSON(std::string filename)
 {
     rapidjson::Document json_document;
     
@@ -39,7 +40,8 @@ bool SettingRegistry::loadJSON(std::string filename)
         FILE* f = fopen(filename.c_str(), "rb");
         if (!f)
         {
-            return false;
+            cura::logError("Couldn't open JSON file.\n");
+            return 1;
         }
         char read_buffer[4096];
         rapidjson::FileReadStream reader_stream(f, read_buffer, sizeof(read_buffer));
@@ -48,22 +50,27 @@ bool SettingRegistry::loadJSON(std::string filename)
         if (json_document.HasParseError())
         {
             cura::logError("Error(offset %u): %s\n", (unsigned)json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
-            return false;
+            return 2;
         }
     }
 
     if (!json_document.IsObject())
     {
-        return false;
+        cura::logError("JSON file is not an object.\n");
+        return 3;
     }
-    if (!json_document.HasMember("categories"))
-    {
-        return false;
-    }
+//     if (!json_document.HasMember("categories"))
+//     {
+//         cura::logError("JSON settings file doesn't have categories member.\n");
+//         return 4;
+//     }
 
-    categories.emplace_back("machine_settings", "Machine Settings");
-    SettingCategory* category_machine_settings = &categories.back();
-    _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
+    if (json_document.HasMember("machine_settings"))
+    {
+        categories.emplace_back("machine_settings", "Machine Settings");
+        SettingCategory* category_machine_settings = &categories.back();
+        _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
+    }
     
     categories.emplace_back("mesh_settings", "TEMPORARY");
     SettingCategory* category_mesh_settings = &categories.back();
@@ -74,7 +81,10 @@ bool SettingRegistry::loadJSON(std::string filename)
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
         }
-        settings[config->getKey()] = config;
+        else 
+        {
+            settings[config->getKey()] = config;
+        }
     }
     {
         SettingConfig* config = category_mesh_settings->addChild("mesh_position_y", "mesh_position_y");
@@ -83,7 +93,10 @@ bool SettingRegistry::loadJSON(std::string filename)
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
         }
-        settings[config->getKey()] = config;
+        else 
+        {
+            settings[config->getKey()] = config;
+        }
     }
     {
         SettingConfig* config = category_mesh_settings->addChild("mesh_position_z", "mesh_position_z");
@@ -92,33 +105,37 @@ bool SettingRegistry::loadJSON(std::string filename)
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
         }
-        settings[config->getKey()] = config;
+        else 
+        {
+            settings[config->getKey()] = config;
+        }
     }
     
-    
-    for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
+    if (json_document.HasMember("categories"))
     {
-        if (!category_iterator->value.IsObject())
+        for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
         {
-            continue;
+            if (!category_iterator->value.IsObject())
+            {
+                continue;
+            }
+            if (!category_iterator->value.HasMember("label") || !category_iterator->value["label"].IsString())
+            {
+                continue;
+            }
+            if (!category_iterator->value.HasMember("settings") || !category_iterator->value["settings"].IsObject())
+            {
+                continue;
+            }
+            
+            categories.emplace_back(category_iterator->name.GetString(), category_iterator->value["label"].GetString());
+            SettingCategory* category = &categories.back();
+            
+            _addSettingsToCategory(category, category_iterator->value["settings"], NULL);
         }
-        if (!category_iterator->value.HasMember("label") || !category_iterator->value["label"].IsString())
-        {
-            continue;
-        }
-        if (!category_iterator->value.HasMember("settings") || !category_iterator->value["settings"].IsObject())
-        {
-            continue;
-        }
-        
-        categories.emplace_back(category_iterator->name.GetString(), category_iterator->value["label"].GetString());
-        SettingCategory* category = &categories.back();
-        
-        _addSettingsToCategory(category, category_iterator->value["settings"], NULL);
     }
     
-    
-    return true;
+    return 0;
 }
 
 void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent)

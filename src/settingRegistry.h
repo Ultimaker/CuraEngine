@@ -103,7 +103,13 @@ public:
     const SettingConfig* getSettingConfig(std::string key);
     
     bool settingsLoaded();
-    bool loadJSON(std::string filename);
+    /*!
+     * Load settings from a json file.
+     * 
+     * \param filename The filename of the json file to parse
+     * \return an error code or zero of succeeded
+     */
+    int loadJSON(std::string filename);
 private:
     SettingRegistry();
     

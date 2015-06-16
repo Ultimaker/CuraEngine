@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                         break;
                     case 'j':
                         argn++;
-                        if (!SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                        if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
                         {
                             cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                         }
@@ -180,7 +180,7 @@ int main(int argc, char **argv)
     if (!SettingRegistry::getInstance()->settingsLoaded())
     {
         //If no json file has been loaded, try to load the default.
-        if (!SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
+        if (SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
         {
             logError("ERROR: Failed to load json file: fdmprinter.json\n");
         }
