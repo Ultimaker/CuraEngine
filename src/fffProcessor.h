@@ -917,6 +917,7 @@ private:
                         logError("fill_pattern has unknown value.\n");
                         break;
                     }
+                    sendPolygons(InfillType, layer_nr, fillPolygons, extrusionWidth);
                 }
             }
 
@@ -948,7 +949,9 @@ private:
                 }
             }
             gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
-            gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
+            gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]);
+
+            sendPolygons(InfillType, layer_nr, infillLines, extrusionWidth);
 
             if (getSettingAsCount("wall_line_count") > 0)
             {
@@ -1025,6 +1028,8 @@ private:
             
             gcodeLayer.addPolygonsByOptimizer(skinPolygons, &mesh->skin_config);
             gcodeLayer.addLinesByOptimizer(skinLines, &mesh->skin_config);
+
+            sendPolygons(SkinType, layer_nr, skinLines, extrusionWidth);
 
             //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
             if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))
@@ -1118,6 +1123,8 @@ private:
                 gcodeLayer.addPolygonsByOptimizer(island, &storage.support_config);
             gcodeLayer.addLinesByOptimizer(supportLines, &storage.support_config);
             gcodeLayer.setCombBoundary(nullptr);
+
+            sendPolygons(SupportInfillType, layer_nr, supportLines, getSettingInMicrons("wall_line_width_x"));
         }
     }
 

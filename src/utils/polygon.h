@@ -27,7 +27,9 @@ enum PolygonType
     InsetXType,
     SkinType,
     SupportType,
-    SkirtType
+    SkirtType,
+    InfillType,
+    SupportInfillType
 };
 
 const static int clipper_init = (0);
