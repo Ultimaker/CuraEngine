@@ -84,7 +84,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         
     
     // initialization of supportAreasPerLayer
-    for (int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
         storage.support.supportLayers.emplace_back();
 
     
