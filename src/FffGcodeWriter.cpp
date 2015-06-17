@@ -786,7 +786,15 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
 
 void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
 {
-    double fillAngle = 90; // perpendicular to support lines
+    double fillAngle = 0;
+    if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height"))
+    {
+        fillAngle = 90; // perpendicular to support lines
+    }
+    else 
+    {
+        fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal
+    }
     double infill_overlap = 0;
     int outline_offset =  0; // - roofConfig.getLineWidth() / 2;
     
