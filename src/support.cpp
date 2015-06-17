@@ -87,7 +87,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
         storage.support.supportLayers.emplace_back();
 
-    
+    bool still_in_upper_empty_layers = true;
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;
@@ -109,7 +109,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
 //         presumably the computation above is slower than the one below
         
         Polygons overhang_extented = basic_overhang.offset(maxDistFromLowerLayer + 100); // +100 for easier joining with support from layer above
-        Polygons overhang = overhang_extented.intersection(supportLayer_supported.unionPolygons(supportLayer_supporter));
+        Polygons overhang = overhang_extented.intersection(supportLayer_supported.unionPolygons(supportLayer_supportee));
         
         /*            layer 2
          * layer 1 ______________|
@@ -175,6 +175,12 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
             supportLayer_this = supportLayer_this.difference(joinedLayers[layer_idx].offset(supportXYDistance));
         
         storage.support.supportLayers[layer_idx].supportAreas = supportLayer_this;
+        
+        if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
+        {
+            storage.support.layer_nr_max_filled_layer = layer_idx;
+            still_in_upper_empty_layers = false;
+        }
         
         Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count - layer_idx, support_layer_count, commandSocket);
     }

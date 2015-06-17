@@ -63,10 +63,12 @@ class SupportStorage
 public:
     bool generated; //!< whether generateSupportGrid(.) has completed (successfully)
         
+    int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
+    
     std::vector<SupportLayer> supportLayers;
 
-    SupportStorage(){}
-    ~SupportStorage(){supportLayers.clear(); }
+    SupportStorage() : layer_nr_max_filled_layer(-1) { }
+    ~SupportStorage(){ supportLayers.clear(); }
 };
 /******************/
 
@@ -76,7 +78,7 @@ public:
     SettingsBase* settings;
     std::vector<SliceLayer> layers;
 
-    int layer_nr_max_filled_layer;
+    int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
     
     RetractionConfig retraction_config;
     GCodePathConfig inset0_config;
@@ -96,7 +98,7 @@ class SliceDataStorage
 {
 public:
     Point3 model_size, model_min, model_max;
-    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion
+    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     Polygons skirt;
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     std::vector<Polygons> oozeShield;        //oozeShield per layer
