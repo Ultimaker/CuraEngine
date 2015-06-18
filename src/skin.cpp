@@ -6,7 +6,7 @@
 namespace cura 
 {
 
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     generateSkinAreas(layerNr, storage, extrusionWidth, downSkinCount, upSkinCount);
 
@@ -14,7 +14,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-        generateSkinInsets(part, extrusionWidth, insetCount, avoidOverlappingPerimeters);
+        generateSkinInsets(part, extrusionWidth, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
     }
 }
 
@@ -63,7 +63,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
 }
 
 
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
+void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     if (insetCount == 0)
     {
@@ -77,7 +77,7 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             skin_part.insets.push_back(Polygons());
             if (i == 0)
             {
-                offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters);
+                offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters_0);
                 Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
                 skin_part.perimeterGaps.add(in_between);
             } else

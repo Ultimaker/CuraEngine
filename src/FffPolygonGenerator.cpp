@@ -189,7 +189,7 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
         int inset_count = insetCount; 
         if (mesh.settings->getSettingBoolean("alternate_extra_perimeter"))
             inset_count += layer_nr % 2; 
-        generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+        generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
 
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
@@ -277,7 +277,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-        generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skin_outline_count"), mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+        generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skin_outline_count"), mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
         if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
         {
             generateSparse(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));

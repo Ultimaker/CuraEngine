@@ -644,10 +644,10 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcodeLayer, SliceMeshStorage* mes
             case Fill_Concentric:
                 {
                     Polygons in_outline;
-                    offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("wall_overlap_avoid_enabled"));
+                    offsetSafe(skin_part.outline, -extrusionWidth/2, extrusionWidth, in_outline, getSettingBoolean("remove_overlapping_walls_x_enabled"));
                     if (getSettingString("fill_perimeter_gaps") != "Nowhere")
                     {
-                        generateConcentricInfillDense(in_outline, skinPolygons, &part.perimeterGaps, extrusionWidth, getSettingBoolean("wall_overlap_avoid_enabled"));
+                        generateConcentricInfillDense(in_outline, skinPolygons, &part.perimeterGaps, extrusionWidth, getSettingBoolean("remove_overlapping_walls_x_enabled"));
                     }
                 }
                 break;

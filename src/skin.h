@@ -27,9 +27,10 @@ void generatePerimeterGaps(int layerNr, SliceMeshStorage& storage, int extrusion
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
  * \param insetCount The number of perimeters to surround the skin
+ * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
  * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
  */
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters);
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
 
 /*!
  * Generate the skin areas (outlines)
@@ -49,9 +50,10 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
  * \param part The part where the skin outline information (input) is stored and where the skin insets (output) are stored.
  * \param extrusionWidth extrusionWidth
  * \param insetCount The number of perimeters to surround the skin
+ * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
  * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
  */
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters);
+void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
 
 
 void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);

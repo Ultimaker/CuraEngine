@@ -4,7 +4,7 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     if (insetCount == 0)
     {
@@ -17,7 +17,7 @@ void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bo
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            offsetSafe(part->outline, - extrusionWidth/2, extrusionWidth, part->insets[i], avoidOverlappingPerimeters);
+            offsetSafe(part->outline, - extrusionWidth/2, extrusionWidth, part->insets[i], avoidOverlappingPerimeters_0);
         } else
         {
             offsetExtrusionWidth(part->insets[i-1], true, extrusionWidth, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
@@ -33,11 +33,11 @@ void generateInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bo
 }
 
 
-void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayer* layer, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], extrusionWidth, insetCount, avoidOverlappingPerimeters);
+        generateInsets(&layer->parts[partNr], extrusionWidth, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
