@@ -59,7 +59,7 @@ PROJECT_LOGO           =
 # left blank the current directory will be used.
 
 #LEAVE THIS DIRECTORY EMPTY IF THIS DOCUMENTATION NEEDS TO BE PUBLISHED AUTOMATICALLY TO GITHUB PAGES!
-OUTPUT_DIRECTORY       =
+OUTPUT_DIRECTORY       = docs
 
 # If the CREATE_SUBDIRS tag is set to YES, then doxygen will create 4096 sub-
 # directories (in 2 levels) under the output directory of each output format and
