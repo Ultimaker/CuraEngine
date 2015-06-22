@@ -42,6 +42,7 @@ set(engine_SRCS
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
+    src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 

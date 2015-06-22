@@ -121,6 +121,7 @@ Point getClosestOnLine(Point from, Point p0, Point p1);
  * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
  * The point \p from and the polygon \p poly are assumed to lie on the same plane.
  * 
+ * \param from The point from whitch to find a point on the polygon satisfying the conditions
  * \param start_idx the index of the prev poly point on the poly.
  * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
  */

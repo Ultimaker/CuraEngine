@@ -15,6 +15,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <stdint.h>
 #include <cmath>
 
+#include <functional> // for hash function obkject
+
 #include <iostream> // auto-serialization / auto-toString()
 
 #define INT2MM(n) (double(n) / 1000.0)
@@ -204,6 +206,20 @@ INLINE int angle(const Point& p)
     double angle = std::atan2(p.X, p.Y) / M_PI * 180.0;
     if (angle < 0.0) angle += 360.0;
     return angle;
+}
+
+namespace std {
+template <>
+struct hash<Point> {
+    size_t operator()(const Point & pp) const
+    {
+        static int prime = 31;
+        int result = 89;
+        result = result * prime + pp.X;
+        result = result * prime + pp.Y;
+        return result; 
+    }
+};
 }
 
 class PointMatrix

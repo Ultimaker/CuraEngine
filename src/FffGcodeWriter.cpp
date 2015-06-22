@@ -588,6 +588,8 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMes
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
 {
+    bool compensate_overlap = true;
+    
     if (getSettingAsCount("wall_line_count") > 0)
     {
         if (getSettingBoolean("magic_spiralize"))
@@ -600,9 +602,21 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* m
         for(int insetNr=part.insets.size()-1; insetNr>-1; insetNr--)
         {
             if (insetNr == 0)
-                gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+            {
+                if (!compensate_overlap)
+                {
+                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+                }
+                else
+                {
+                    // TODO: compute overlap stuff via wallOverlap.h
+                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+                }
+            }
             else
+            {
                 gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->insetX_config);
+            }
         }
     }
 }
