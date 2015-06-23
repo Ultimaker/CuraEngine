@@ -70,9 +70,17 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
     
     int support_layer_count = layer_count;
     
-    
     double tanTowerRoofAngle = tan(supportTowerRoofAngle);
     int towerRoofExpansionDistance = layerThickness / tanTowerRoofAngle;
+    
+    
+    // early out
+    
+    if ( layerZdistanceTop + 1 > support_layer_count )
+    {
+        storage.support.generated = false; // no (first layer) support can be generated 
+        return;
+    }
     
     
     // computation
@@ -183,9 +191,6 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, i
         }
     }
 
-    
-    joinedLayers.clear();
-    
     storage.support.generated = true;
 }
 
