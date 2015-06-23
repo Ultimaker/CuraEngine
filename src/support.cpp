@@ -76,7 +76,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     
     // early out
     
-    if ( layerZdistanceTop + 1 > support_layer_count )
+    if ( layerZdistanceTop + 1 > (int) support_layer_count )
     {
         storage.support.generated = false; // no (first layer) support can be generated 
         return;
