@@ -7,6 +7,7 @@
 #include "comb.h"
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
+#include "wallOverlap.h"
 
 
 namespace cura 
@@ -18,10 +19,16 @@ class GCodePath
 {
 public:
     GCodePathConfig* config; //!< The configuration settings of the path.
+    float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
     int extruder; //!< The extruder used for this path.
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
+    
+    double getExtrusionPerMM(bool volumatric)
+    {
+        return flow * config->getExtrusionPerMM(volumatric);
+    }
 };
 
 /*! 
@@ -50,7 +57,7 @@ private:
     
     bool is_volumatric;
 private:
-    GCodePath* getLatestPathWithConfig(GCodePathConfig* config);
+    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, float flow = 1.0);
     void forceNewPathStart();
 public:
     /*
@@ -100,11 +107,11 @@ public:
 
     void addTravel(Point p);
 
-    void addExtrusionMove(Point p, GCodePathConfig* config);
+    void addExtrusionMove(Point p, GCodePathConfig* config, float flow = 1.0);
 
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config);
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config);
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config);
 

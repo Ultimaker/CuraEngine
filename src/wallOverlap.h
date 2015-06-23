@@ -20,9 +20,8 @@ struct WallOverlapPointLink
     Point a;
     Point b;
     int dist;
-    bool passed;
-    WallOverlapPointLink(Point a, Point b, int dist) : a(a), b(b), dist(dist), passed(false) { }
-    bool operator==(const WallOverlapPointLink& other) const { return a == other.a && b == other.b; }
+    WallOverlapPointLink(Point a, Point b, int dist) : a(a), b(b), dist(dist) { }
+    bool operator==(const WallOverlapPointLink& other) const { return (a == other.a && b == other.b) || (a == other.b && b == other.a); }
 };
 } // namespace cura 
 
@@ -33,11 +32,13 @@ namespace std {
     {
         size_t operator()(const cura::WallOverlapPointLink & pp) const
         {
-            static int prime = 31;
-            int result = 1;
-            result = result * prime + std::hash<Point>()(pp.a);
-            result = result * prime + std::hash<Point>()(pp.b);
-            return result; 
+//             static int prime = 31;
+//             int result = 1;
+//             result = result * prime + std::hash<Point>()(pp.a);
+//             result = result * prime + std::hash<Point>()(pp.b);
+//             return result; 
+            // a and b should be at the same level
+            return std::hash<Point>()(pp.a) + std::hash<Point>()(pp.b);
         }
     };
 }   // namespace std 
@@ -67,7 +68,7 @@ class WallOverlapComputation
     
 
 //     struct Links: public std::unordered_map<Point, Link>
-    struct WallOverlapPointLinks : public std::unordered_set<WallOverlapPointLink>
+    struct WallOverlapPointLinks : public std::unordered_map<WallOverlapPointLink, bool>
     {
 
     };
@@ -75,38 +76,48 @@ class WallOverlapComputation
     
     Polygons& polygons;
     int lineWidth;
-    int lineR; // half the lineWidth
     
     WallOverlapPointLinks overlap_point_links;
     
-    typedef std::unordered_map<Point, std::vector<WallOverlapPointLinks::iterator>> Point2Link;
+    typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link;
     Point2Link point_to_link;
     
         
     typedef std::list<Point> ListPolygon;
-    typedef std::list<ListPolygon> ListPolygons;
-
+    typedef std::vector<ListPolygon> ListPolygons;
     
-    void findOverlapPoints(Point from);
+    ListPolygons list_polygons;
+
+//     typedef std::unordered_map<Point, ListPolygon::iterator> Loc2ListPolyIndex;
+//     
+//     Loc2ListPolyIndex loc_to_list_poly_idx;
+//     
+//     std::unordered_set<WallOverlapPointLink> end_points;
+    
+    void findOverlapPoints();
     void findOverlapPoints(Point from, PolygonRef to_poly);
     void findOverlapPoints(Point from, ListPolygon& to_list_poly);
+    void findOverlapPoints(Point from, ListPolygon& to_list_poly, ListPolygon::iterator start);
     
     void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
     void convertPolygonToList(PolygonRef poly, ListPolygon& result);
     void convertListPolygonToPolygon(ListPolygon& poly, PolygonRef result);
-
-    void findOverlapPoints();
     
+    WallOverlapPointLink addOverlapPoint(Point& from, Point& to, int64_t dist);
+    
+    void addOverlapEndings();
+        
     void createPoint2LinkMap();
     void addToPoint2LinkMap(Point p, WallOverlapPointLinks::iterator it);
     
 public:
     float getFlow(Point& from, Point& to);
     
-    WallOverlapComputation(Polygons& polygons) : polygons(polygons) 
+    WallOverlapComputation(Polygons& polygons) : polygons(polygons), lineWidth(400) // TODO
     { 
         findOverlapPoints();
-        // TODO: handle ends of overlaps
+        addOverlapEndings();
+//         loc_to_list_poly_idx.clear();
         // TODO: add corners
         createPoint2LinkMap();
     }

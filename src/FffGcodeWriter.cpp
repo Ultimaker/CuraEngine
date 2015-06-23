@@ -1,6 +1,7 @@
 
 #include "FffGcodeWriter.h"
 #include "Progress.h"
+#include "wallOverlap.h"
 
 namespace cura
 {
@@ -605,12 +606,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* m
             {
                 if (!compensate_overlap)
                 {
-                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+                    gcodeLayer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
                 }
                 else
                 {
-                    // TODO: compute overlap stuff via wallOverlap.h
-                    gcodeLayer.addPolygonsByOptimizer(part.insets[insetNr], &mesh->inset0_config);
+                    Polygons& outer_wall = part.insets[0];
+                    WallOverlapComputation wall_overlap_computation(outer_wall);
+                    gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
                 }
             }
             else
