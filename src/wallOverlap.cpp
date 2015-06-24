@@ -24,17 +24,16 @@ void WallOverlapComputation::findOverlapPoints()
         ListPolygon& poly = list_polygons[poly_idx];
         for (unsigned int poly2_idx = 0; poly2_idx <= poly_idx; poly2_idx++)
         {
-            ListPolygon& poly2 = list_polygons[poly2_idx];
             for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
             {
-                Point& p = *it;
+                ListPolyIt lpi(poly, it);
                 if (poly_idx == poly2_idx)
                 {
-                    findOverlapPoints(p, poly2, it);
+                    findOverlapPoints(lpi, poly2_idx, it);
                 }
                 else 
                 {
-                    findOverlapPoints(p, poly2);
+                    findOverlapPoints(lpi, poly2_idx);
                 }
             }
         }
@@ -61,15 +60,15 @@ void WallOverlapComputation::findOverlapPoints()
 //     }
 }
 
+/*
 
-
-void WallOverlapComputation::findOverlapPoints(Point from, PolygonRef to_poly)
+void WallOverlapComputation::findOverlapPoints(ListPolyIt from, PolygonRef to_poly)
 {
     ListPolygon converted;
     convertPolygonToList(to_poly, converted);
     findOverlapPoints(from, converted);
     convertListPolygonToPolygon(converted, to_poly); // apply point additions
-}
+}*/
 
     
 void WallOverlapComputation::convertPolygonsToLists(Polygons& polys, ListPolygons& result)
@@ -98,16 +97,20 @@ void WallOverlapComputation::convertListPolygonToPolygon(ListPolygon& poly, Poly
     }
 }
     
-void WallOverlapComputation::findOverlapPoints(Point from, ListPolygon& to_list_poly)
+void WallOverlapComputation::findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx)
 {
-    findOverlapPoints(from, to_list_poly, to_list_poly.begin());
+    findOverlapPoints(from, to_list_poly_idx, list_polygons[to_list_poly_idx].begin());
 }
 
-void WallOverlapComputation::findOverlapPoints(Point from, ListPolygon& to_list_poly, ListPolygon::iterator start)
+void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int to_list_poly_idx, ListPolygon::iterator start)
 {
-    Point last_point = to_list_poly.back();
+    ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
+    Point& from = from_it.p();
+    ListPolygon::iterator last_it = to_list_poly.end();
+    last_it--;
     for (ListPolygon::iterator it = start; it != to_list_poly.end(); ++it)
     {
+        Point& last_point = *last_it;
         Point& point = *it;
         if (from == last_point || from == point )
         { // we currently consider a linesegment directly connected to [from]
@@ -128,16 +131,16 @@ void WallOverlapComputation::findOverlapPoints(Point from, ListPolygon& to_list_
         
         if (closest == last_point)
         {
-            addOverlapPoint(from, last_point, dist);
+            addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
         }
         else if (closest == point)
         {
-            addOverlapPoint(from, point, dist);
+            addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
         }
         else 
         {
             ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
-             addOverlapPoint(from, closest, dist);
+            addOverlapPoint(from_it, ListPolyIt(to_list_poly, new_it), dist);
         }
         
         last_point = point;
@@ -146,7 +149,7 @@ void WallOverlapComputation::findOverlapPoints(Point from, ListPolygon& to_list_
 }
 
 
-WallOverlapPointLink WallOverlapComputation::addOverlapPoint(Point& from, Point& to, int64_t dist)
+void WallOverlapComputation::addOverlapPoint(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
     WallOverlapPointLink link(from, to, dist);
     std::pair<WallOverlapPointLinks::iterator, bool> result =
@@ -155,11 +158,15 @@ WallOverlapPointLink WallOverlapComputation::addOverlapPoint(Point& from, Point&
     if (! result.second)
     {
         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
-        DEBUG_PRINTLN(link.a << " - " << link.b <<  " @ " << link.dist << " < old ");
-        DEBUG_PRINTLN(result.first->first.a << " - "<< result.first->first.b << " @ " << result.first->first.dist);
+//         DEBUG_PRINTLN(link.a << " - " << link.b <<  " @ " << link.dist << " < old ");
+//         DEBUG_PRINTLN(result.first->first.a << " - "<< result.first->first.b << " @ " << result.first->first.dist);
     }
-    
-    return link;
+    else 
+    {
+        WallOverlapPointLinks::iterator it = result.first;
+        addToPoint2LinkMap(*it->first.a.it, it);
+        addToPoint2LinkMap(*it->first.b.it, it);
+    }
 }
 
 void WallOverlapComputation::addOverlapEndings()
@@ -180,24 +187,77 @@ void WallOverlapComputation::addOverlapEndings()
 //         if (a_it_next == 
 //     }
     
-    for (ListPolygon& poly : list_polygons)
+//     for (ListPolygon& poly : list_polygons)
+//     {
+//         for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
+//         {
+//             Point& p = *it;
+//             
+//         }
+//     }
+    for (std::pair<WallOverlapPointLink, bool> link_pair : overlap_point_links)
     {
-        for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
+        WallOverlapPointLink& link = link_pair.first;
+        ListPolyIt a_next = link.a; ++a_next;
+        ListPolyIt b_next = link.b; --b_next;
+        Point& a1 = link.a.p();
+        Point& a2 = a_next.p();
+        Point& b1 = link.b.p();
+        Point& b2 = b_next.p();
+        Point a = a2-a1;
+        Point b = b2-b1;
+        if (point_to_link.find(a_next.p()) == point_to_link.end() 
+            || point_to_link.find(b_next.p()) == point_to_link.end())
         {
-            Point& p = *it;
-            
+            int64_t dist = overlapEndingDistance(a1, a2, b1, b2, link.dist);
+            if (dist > 0)
+            {
+                Point a_p = a1 + a * dist / vSize(a);
+                ListPolygon::iterator new_a = link.a.poly.insert(a_next.it, a_p);
+                Point b_p = b1 + b * dist / vSize(b);
+                ListPolygon::iterator new_b = link.a.poly.insert(link.b.it, b_p);
+                addOverlapPoint(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), lineWidth);
+            }
         }
+        
+        
+        
     }
 }
 
+int64_t WallOverlapComputation::overlapEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
+{
+    int overlap = lineWidth - a1b1_dist;
+    Point a = a2-a1;
+    Point b = b2-b1;
+    double cos_angle = INT2MM2(dot(a, b)) / vSizeMM(a) / vSizeMM(b);
+    // result == .5*overlap / tan(.5*angle) == .5*overlap / tan(.5*acos(cos_angle)) 
+    // [wolfram alpha] == 0.5*overlap * sqrt(cos_angle+1)/sqrt(1-cos_angle)
+    // [assuming positive x] == 0.5*overlap / sqrt( 2 / (cos_angle + 1) - 1 ) 
+    if (cos_angle <= 0)
+    {
+        return 0;
+    }
+    else 
+    {
+        int64_t dist = overlap * double ( 1.0 / (2.0 * sqrt(2.0 / (cos_angle+1.0) - 1.0)) );
+        if (dist * dist > vSize2(a) || dist * dist > vSize2(b)) 
+        {
+            return 0;
+            DEBUG_PRINTLN("ERROR! overlap end too long!! ");
+        }
+        return dist;
+    }
+    
+}
 
     
 void WallOverlapComputation::createPoint2LinkMap()
 {
     for (WallOverlapPointLinks::iterator it = overlap_point_links.begin(); it != overlap_point_links.end(); ++it)
     {
-        addToPoint2LinkMap(it->first.a, it);
-        addToPoint2LinkMap(it->first.b, it);
+        addToPoint2LinkMap(*it->first.a.it, it);
+        addToPoint2LinkMap(*it->first.b.it, it);
     }
 }
     
@@ -237,7 +297,45 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
    
     float ratio = avg_link_dist / INT2MM(lineWidth);
 
+    if (ratio > 1.0) { return 1.0; }
+    
     return ratio;
+}
+
+
+
+void WallOverlapComputation::debugCheck()
+{
+    for (std::pair<WallOverlapPointLink, bool> pair : overlap_point_links)
+    {
+        if (vSize( pair.first.a.p() - pair.first.b.p()) != pair.first.dist)
+            std::cerr << vSize( pair.first.a.p() - pair.first.b.p())<<" != " << pair.first.dist << std::endl;
+        
+    }
+}
+
+
+void WallOverlapComputation::debugOutputCSV()
+{
+    for (PolygonRef poly : polygons)
+    {
+        Point last = poly.back();
+        for (Point& p : poly)
+        {
+            std::cerr << last.X <<", "<<last.Y <<", -1" <<std::endl;
+            std::cerr << p.X <<", "<<p.Y <<", -1" <<std::endl;
+            std::cerr << std::endl;
+            last = p;
+        }
+            
+    }
+    for (std::pair<WallOverlapPointLink, bool> pair : overlap_point_links)
+    {
+        std::cerr << pair.first.a.p().X <<", "<<pair.first.a.p().Y <<", "<<pair.first.dist<<std::endl;
+        std::cerr << pair.first.b.p().X <<", "<<pair.first.b.p().Y <<", "<<pair.first.dist<<std::endl;
+            std::cerr << std::endl;
+        
+    }
 }
 
     
