@@ -89,7 +89,7 @@ class WallOverlapComputation
         ListPolygon::iterator it; 
         ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
         : poly(poly), it(it) { }
-        Point& p() { return *it; }
+        Point& p() const { return *it; }
         bool operator==(const ListPolyIt& other) const { return it == other.it; }
         ListPolyIt& operator++() 
         { 
@@ -107,17 +107,17 @@ class WallOverlapComputation
 
     struct WallOverlapPointLink
     {
-        ListPolyIt a; // invalidated after list_polygons have been cleared!
-        ListPolyIt b;
+        const ListPolyIt a; // invalidated after list_polygons have been cleared!
+        const ListPolyIt b;
         int dist;
-        WallOverlapPointLink(ListPolyIt a, ListPolyIt b, int dist)
+        WallOverlapPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
         : a(a), b(b), dist(dist) 
         { 
             Point ap = a.p();
             Point bp = b.p();
             if (std::abs(vSize(ap - bp) - dist) > 10)
             {
-                DEBUG_PRINTLN(vSize(ap - bp) << "!="<< dist);
+//                 DEBUG_PRINTLN(vSize(ap - bp) << "!="<< dist);
             }
         }
         bool operator==(const WallOverlapPointLink& other) const { return (a == other.a && b == other.b) || (a == other.b && b == other.a); }
@@ -185,7 +185,7 @@ public:
 //         loc_to_list_poly_idx.clear();
         // TODO: add corners
         
-        debugCheck();
+//         debugCheck();
 //         debugOutputCSV();
     }
     
