@@ -611,8 +611,9 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* m
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
-                    WallOverlapComputation wall_overlap_computation(outer_wall);
-                    gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+//                     WallOverlapComputation wall_overlap_computation(outer_wall);
+//                     gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+                    gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config);
                 }
             }
             else
