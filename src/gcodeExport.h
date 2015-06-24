@@ -217,7 +217,7 @@ public:
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
-            stream << "machine_extruder_offset" << n;
+            stream << "machine_nozzle_offset" << n;
             if (settings.hasSetting(stream.str() + "_x") || settings.hasSetting(stream.str() + "_y"))
                 setExtruderOffset(n, Point(settings.getSettingInMicrons(stream.str() + "_x"), settings.getSettingInMicrons(stream.str() + "_y")));
         }
