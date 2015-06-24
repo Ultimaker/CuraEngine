@@ -308,8 +308,8 @@ void WallOverlapComputation::debugCheck()
 {
     for (std::pair<WallOverlapPointLink, bool> pair : overlap_point_links)
     {
-        if (vSize( pair.first.a.p() - pair.first.b.p()) != pair.first.dist)
-            std::cerr << vSize( pair.first.a.p() - pair.first.b.p())<<" != " << pair.first.dist << std::endl;
+        if (std::abs(vSize( pair.first.a.p() - pair.first.b.p()) - pair.first.dist) > 10)
+            DEBUG_PRINTLN(vSize( pair.first.a.p() - pair.first.b.p())<<" != " << pair.first.dist);
         
     }
 }

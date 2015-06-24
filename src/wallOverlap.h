@@ -12,6 +12,7 @@
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
 
+#include "debug.h" // TODO remove
 
 namespace cura 
 {
@@ -116,7 +117,7 @@ class WallOverlapComputation
             Point bp = b.p();
             if (std::abs(vSize(ap - bp) - dist) > 10)
             {
-//                 DEBUG_
+                DEBUG_PRINTLN(vSize(ap - bp) << "!="<< dist);
             }
         }
         bool operator==(const WallOverlapPointLink& other) const { return (a == other.a && b == other.b) || (a == other.b && b == other.a); }
