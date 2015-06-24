@@ -224,7 +224,7 @@ public:
         for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
-            stream << n;
+            stream << "_" << n;
             if (settings.hasSetting("machine_pre_extruder_switch_code" + stream.str()) || settings.hasSetting("machine_post_extruder_switch_code" + stream.str()))
                 setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
         }
