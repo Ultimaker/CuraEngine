@@ -157,9 +157,9 @@ class WallOverlapComputation
     void findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx);
     void findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx, ListPolygon::iterator start);
     
-    void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
-    void convertPolygonToList(PolygonRef poly, ListPolygon& result);
-    void convertListPolygonToPolygon(ListPolygon& poly, PolygonRef result);
+    static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
+    static void convertPolygonToList(PolygonRef poly, ListPolygon& result);
+    static void convertListPolygonToPolygon(ListPolygon& poly, PolygonRef result);
     
     void addOverlapPoint(ListPolyIt from, ListPolyIt to, int64_t dist);
     
@@ -180,7 +180,6 @@ public:
     WallOverlapComputation(Polygons& polygons) : polygons(polygons), lineWidth(400) // TODO
     { 
         findOverlapPoints();
-//         createPoint2LinkMap();
         addOverlapEndings();
 //         loc_to_list_poly_idx.clear();
         // TODO: add corners

@@ -114,7 +114,7 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         Point& point = *it;
         if (from == last_point || from == point )
         { // we currently consider a linesegment directly connected to [from]
-            last_point = point;
+            last_it = it;
             continue;
         }
         Point closest = getClosestOnLine(from, last_point, point);
@@ -123,7 +123,7 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         if (dist2 > lineWidth * lineWidth)
         { // line segment too far away to have overlap
-            last_point = point;
+            last_it = it;
             continue;
         }
         
@@ -131,19 +131,19 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         if (closest == last_point)
         {
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
+//             addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
         }
         else if (closest == point)
         {
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
+//             addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
         }
         else 
         {
-            ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, new_it), dist);
+//             ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
+//             addOverlapPoint(from_it, ListPolyIt(to_list_poly, new_it), dist);
         }
         
-        last_point = point;
+        last_it = it;
     }
     
 }
