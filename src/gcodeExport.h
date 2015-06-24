@@ -216,17 +216,17 @@ public:
     {
         for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
         {
-            std::ostringstream stream;
-            stream << "machine_nozzle_offset" << n;
-            if (settings.hasSetting(stream.str() + "_x") || settings.hasSetting(stream.str() + "_y"))
-                setExtruderOffset(n, Point(settings.getSettingInMicrons(stream.str() + "_x"), settings.getSettingInMicrons(stream.str() + "_y")));
+            std::ostringstream stream_x; stream_x << "machine_nozzle_offset_x_" << n;
+            std::ostringstream stream_y; stream_y << "machine_nozzle_offset_y_" << n;
+            setExtruderOffset(n, Point(settings.getSettingInMicrons(stream_x.str()), settings.getSettingInMicrons(stream_y.str())));
+//             else 
+//                 std::cerr << " !!!!!!!!!!! cannot find setting " << stream_x.str() << " or " << stream_y.str() << std::endl;
         }
         for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
             stream << "_" << n;
-            if (settings.hasSetting("machine_pre_extruder_switch_code" + stream.str()) || settings.hasSetting("machine_post_extruder_switch_code" + stream.str()))
-                setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
+            setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
         }
 
         setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));

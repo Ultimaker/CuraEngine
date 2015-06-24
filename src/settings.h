@@ -127,8 +127,6 @@ public:
     SettingsBase();
     SettingsBase(SettingsBase* parent);
 
-    bool hasSetting(std::string key);
-
     void setSetting(std::string key, std::string value);
     
     std::string getSettingString(std::string key);

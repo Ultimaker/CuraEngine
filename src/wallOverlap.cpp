@@ -43,7 +43,7 @@ void WallOverlapComputation::findOverlapPoints()
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         convertListPolygonToPolygon(list_polygons[poly_idx], polygons[poly_idx]);
-        DEBUG_SHOW(list_polygons[poly_idx].size());
+//         DEBUG_SHOW(list_polygons[poly_idx].size());
     }
 //     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
 //     {

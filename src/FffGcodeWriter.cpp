@@ -167,14 +167,14 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
     else 
     {
-        if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+        if (getSettingInDegreeCelsius("material_bed_temperature") > 0)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
         
         for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+            if (mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
                 gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"));
         for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.settings->hasSetting("material_print_temperature") && mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
+            if (mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
                 gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"), true);
         gcode.writeCode(getSettingString("machine_start_gcode").c_str());
     }

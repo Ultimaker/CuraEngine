@@ -21,9 +21,9 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     int maxObjectHeight = wireFrame.layers.back().z1;
     
     { // starting Gcode
-        if (hasSetting("material_bed_temperature") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+        if (getSettingInDegreeCelsius("material_bed_temperature") > 0)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-        if (hasSetting("material_print_temperature") && getSettingInDegreeCelsius("material_print_temperature") > 0)
+        if (getSettingInDegreeCelsius("material_print_temperature") > 0)
             gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
         
         gcode.writeCode(getSettingString("machine_start_gcode").c_str());

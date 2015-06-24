@@ -59,20 +59,6 @@ std::string SettingsBase::getSettingString(std::string key)
     return setting_values[key];
 }
 
-bool SettingsBase::hasSetting(std::string key)
-{
-    if (setting_values.find(key) != setting_values.end())
-    {
-        return true;
-    }
-    if (parent)
-    {
-        return parent->hasSetting(key);
-    }
-    
-    return false;
-}
-
 int SettingsBase::getSettingAsIndex(std::string key)
 {
     std::string value = getSettingString(key);
