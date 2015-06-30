@@ -70,3 +70,7 @@ set(test_SRCS
 
 add_executable(Test ${test_SRCS})
 target_link_libraries(Test clipper Arcus)
+
+install(TARGETS CuraEngine RUNTIME DESTINATION bin)
+
+include(CPackConfig.cmake)
