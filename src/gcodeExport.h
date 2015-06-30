@@ -40,18 +40,16 @@ class GCodePathConfig
 private:
     double speed; //!< movement speed
     int line_width; //!< width of the line extruded
-    int filament_diameter; //!< diameter of the filament as it is on the roll
     double flow; //!< extrusion flow in %
     int layer_thickness; //!< layer height
-    double extrusion_volume_per_mm; //!< mm^3 filament moved per mm line extruded
-    double extrusion_per_mm; //!< mm filament moved per mm line extruded
+    double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line extruded
 public:
     const char* name;
     bool spiralize;
     RetractionConfig* retraction_config;
     
-    GCodePathConfig() : speed(0.0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0.0), line_width(0), extrusion_volume_per_mm(0), extrusion_per_mm(0), name(name), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
     void setSpeed(double speed)
     {
@@ -70,12 +68,6 @@ public:
         calculateExtrusion();
     }
 
-    void setFilamentDiameter(int diameter)
-    {
-        this->filament_diameter = diameter;
-        calculateExtrusion();
-    }
-
     void setFlow(double flow)
     {
         this->flow = flow;
@@ -88,11 +80,9 @@ public:
     }
     
     //volumatric extrusion means the E values in the final GCode are cubic mm. Else they are in mm filament.
-    double getExtrusionPerMM(bool volumatric)
+    double getExtrusionMM3perMM()
     {
-        if (volumatric)
-            return extrusion_volume_per_mm;
-        return extrusion_per_mm;
+        return extrusion_mm3_per_mm;
     }
     
     double getSpeed()
@@ -108,9 +98,7 @@ public:
 private:
     void calculateExtrusion()
     {
-        extrusion_volume_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * flow / 100.0;
-        double filament_area = M_PI * (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-        extrusion_per_mm = extrusion_volume_per_mm / filament_area;
+        extrusion_mm3_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
     }
 };
 
@@ -120,13 +108,13 @@ class GCodeExport
 {
 private:
     std::ostream* output_stream;
-    double extrusion_amount;
+    double extrusion_amount; // in mm or mm^3
     double extruderSwitchRetraction;
     int extruderSwitchRetractionSpeed;
     int extruderSwitchPrimeSpeed;
     double retraction_extrusion_window;
     double retraction_count_max;
-    std::deque<double> extrusion_amount_at_previous_n_retractions;
+    std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     Point3 startPosition;
     Point extruderOffset[MAX_EXTRUDERS];
@@ -136,17 +124,21 @@ private:
     int zPos;
     bool isRetracted;
     bool isZHopped;
+    
     double last_coasted_amount; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
-    int extruderNr;
+    int current_extruder;
     int currentFanSpeed;
     EGCodeFlavor flavor;
     std::string preSwitchExtruderCode[MAX_EXTRUDERS];
     std::string postSwitchExtruderCode[MAX_EXTRUDERS];
     
-    double totalFilament[MAX_EXTRUDERS];
+    double totalFilament[MAX_EXTRUDERS]; // in mm^3
+    double filament_diameter[MAX_EXTRUDERS]; // in mm^3
     double totalPrintTime;
     TimeEstimateCalculator estimateCalculator;
+    
+    bool is_volumatric;
 public:
     
     GCodeExport();
@@ -178,6 +170,11 @@ public:
     int getPositionZ();
 
     int getExtruderNr();
+    
+    void setFilamentDiameter(unsigned int n, int diameter);
+    double getFilamentArea(unsigned int extruder);
+    
+    double getExtrusionAmountMM3(unsigned int extruder);
     
     double getTotalFilamentUsed(int e);
 

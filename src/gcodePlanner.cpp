@@ -42,17 +42,6 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     else
         comb = nullptr;
     this->retractionMinimalDistance = retractionMinimalDistance;
-    
-    switch(gcode.getFlavor())
-    {
-    case GCODE_FLAVOR_REPRAP_VOLUMATRIC:
-    case GCODE_FLAVOR_ULTIGCODE:
-        is_volumatric = true;
-        break;
-    default:
-        is_volumatric = false;
-        break;
-    }
 }
 
 GCodePlanner::~GCodePlanner()
@@ -195,7 +184,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         for(unsigned int n=0; n<paths.size(); n++)
         {
             GCodePath* path = &paths[n];
-            if (path->getExtrusionPerMM(is_volumatric) == 0)
+            if (path->getExtrusionMM3perMM() == 0)
                 continue;
             double speed = path->config->getSpeed() * factor;
             if (speed < minimalSpeed)
@@ -229,7 +218,7 @@ void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
         for(unsigned int i=0; i<path->points.size(); i++)
         {
             double thisTime = vSizeMM(p0 - path->points[i]) / path->config->getSpeed();
-            if (path->getExtrusionPerMM(is_volumatric) != 0)
+            if (path->getExtrusionMM3perMM() != 0)
                 extrudeTime += thisTime;
             else
                 travelTime += thisTime;
@@ -261,7 +250,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
         double speed = path->config->getSpeed();
 
-        if (path->getExtrusionPerMM(is_volumatric) != 0)// Only apply the extrudeSpeed to extrusion moves
+        if (path->getExtrusionMM3perMM() != 0)// Only apply the extrudeSpeed to extrusion moves
             speed *= getExtrudeSpeedFactor();
         else
             speed *= getExtrudeSpeedFactor();
@@ -290,13 +279,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                         if (newLen > 0)
                         {
                             if (oldLen > 0)
-                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->getExtrusionPerMM(is_volumatric));
+                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->getExtrusionMM3perMM());
                             else 
-                                gcode.writeMove(newPoint, speed, path->getExtrusionPerMM(is_volumatric));
+                                gcode.writeMove(newPoint, speed, path->getExtrusionMM3perMM());
                         }
-                        p0 = paths[path_idx_short+1].points[0];
                     }
-                    gcode.writeMove(paths[path_idx_last-1].points[0], speed, path->getExtrusionPerMM(is_volumatric));
+                    gcode.writeMove(paths[path_idx_last-1].points[0], speed, path->getExtrusionMM3perMM());
                     path_idx = path_idx_last - 1;
                     continue;
                 }
@@ -334,7 +322,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 length += vSizeMM(p0 - p1);
                 p0 = p1;
                 gcode.setZ(z + layerThickness * length / totalLength);
-                gcode.writeMove(path->points[point_idx], speed, path->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(path->points[point_idx], speed, path->getExtrusionMM3perMM());
             }
         }
         else
@@ -350,7 +338,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             { // normal path to gcode algorithm
                 for(unsigned int point_idx = 0; point_idx < path->points.size(); point_idx++)
                 {
-                    gcode.writeMove(path->points[point_idx], speed, path->getExtrusionPerMM(is_volumatric));
+                    gcode.writeMove(path->points[point_idx], speed, path->getExtrusionMM3perMM());
                 }
             }
         }
@@ -375,7 +363,7 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
-        ! (path.getExtrusionPerMM(is_volumatric) > 0.0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0.0) 
+        ! (path.getExtrusionMM3perMM(is_volumatric) > 0.0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0.0) 
         ||
         path.points.size() < 2
         )
@@ -476,9 +464,9 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionPerMM(is_volumatric));
+            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(is_volumatric));
         }
-        gcode.writeMove(start, extrude_speed, path.getExtrusionPerMM(is_volumatric));
+        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM(is_volumatric));
     }
     
     if (path_next.retract)
@@ -491,7 +479,7 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
     
-    gcode.setLastCoastedAmount(path.getExtrusionPerMM(is_volumatric) * INT2MM(actual_coasting_dist));
+    gcode.setLastCoastedAmount(path.getExtrusionMM3perMM(is_volumatric) * INT2MM(actual_coasting_dist));
     
     return true;
 }

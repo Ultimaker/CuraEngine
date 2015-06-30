@@ -25,9 +25,9 @@ public:
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     
-    double getExtrusionPerMM(bool volumatric)
+    double getExtrusionMM3perMM()
     {
-        return flow * config->getExtrusionPerMM(volumatric);
+        return flow * config->getExtrusionMM3perMM();
     }
 };
 
@@ -55,7 +55,6 @@ private:
     double extraTime;
     double totalPrintTime;
     
-    bool is_volumatric;
 private:
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config, float flow = 1.0);
     void forceNewPathStart();
