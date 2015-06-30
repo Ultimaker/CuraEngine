@@ -290,9 +290,9 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                         if (newLen > 0)
                         {
                             if (oldLen > 0)
-                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->getExtrusionPerMM(is_volumatric));
                             else 
-                                gcode.writeMove(newPoint, speed, path->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                                gcode.writeMove(newPoint, speed, path->getExtrusionPerMM(is_volumatric));
                         }
                         p0 = paths[path_idx_short+1].points[0];
                     }
