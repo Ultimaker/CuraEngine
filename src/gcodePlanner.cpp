@@ -36,17 +36,6 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, RetractionConfig* retraction_conf
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     this->retractionMinimalDistance = retractionMinimalDistance;
-    
-    switch(gcode.getFlavor())
-    {
-    case GCODE_FLAVOR_REPRAP_VOLUMATRIC:
-    case GCODE_FLAVOR_ULTIGCODE:
-        is_volumatric = true;
-        break;
-    default:
-        is_volumatric = false;
-        break;
-    }
 }
 GCodePlanner::~GCodePlanner()
 {
@@ -161,7 +150,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, int minimalSpeed, doubl
         for(unsigned int n=0; n<paths.size(); n++)
         {
             GCodePath* path = &paths[n];
-            if (path->config->getExtrusionPerMM(is_volumatric) == 0)
+            if (path->config->getExtrusionMM3perMM() == 0)
                 continue;
             int speed = path->config->getSpeed() * factor;
             if (speed < minimalSpeed)
@@ -195,7 +184,7 @@ void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
         for(unsigned int i=0; i<path->points.size(); i++)
         {
             double thisTime = vSizeMM(p0 - path->points[i]) / double(path->config->getSpeed());
-            if (path->config->getExtrusionPerMM(is_volumatric) != 0)
+            if (path->config->getExtrusionMM3perMM() != 0)
                 extrudeTime += thisTime;
             else
                 travelTime += thisTime;
@@ -227,7 +216,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
         int speed = path->config->getSpeed();
 
-        if (path->config->getExtrusionPerMM(is_volumatric) != 0)// Only apply the extrudeSpeedFactor to extrusion moves
+        if (path->config->getExtrusionMM3perMM() != 0)// Only apply the extrudeSpeedFactor to extrusion moves
             speed = speed * extrudeSpeedFactor / 100;
         else
             speed = speed * travelSpeedFactor / 100;
@@ -255,13 +244,13 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                     if (newLen > 0)
                     {
                         if (oldLen > 0)
-                            gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                            gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionMM3perMM() * oldLen / newLen);
                         else 
-                            gcode.writeMove(newPoint, speed, path->config->getExtrusionPerMM(is_volumatric) * oldLen / newLen);
+                            gcode.writeMove(newPoint, speed, path->config->getExtrusionMM3perMM() * oldLen / newLen);
                     }
                     p0 = paths[x+1].points[0];
                 }
-                gcode.writeMove(paths[i-1].points[0], speed, path->config->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(paths[i-1].points[0], speed, path->config->getExtrusionMM3perMM());
                 n = i - 1;
                 continue;
             }
@@ -298,12 +287,12 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 length += vSizeMM(p0 - p1);
                 p0 = p1;
                 gcode.setZ(z + layerThickness * length / totalLength);
-                gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(path->points[i], speed, path->config->getExtrusionMM3perMM());
             }
         }else{
             for(unsigned int i=0; i<path->points.size(); i++)
             {
-                gcode.writeMove(path->points[i], speed, path->config->getExtrusionPerMM(is_volumatric));
+                gcode.writeMove(path->points[i], speed, path->config->getExtrusionMM3perMM());
             }
         }
     }

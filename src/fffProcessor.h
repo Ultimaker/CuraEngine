@@ -175,6 +175,8 @@ private:
             stream << n;
             if (hasSetting("machine_pre_extruder_switch_code" + stream.str()) || hasSetting("machine_post_extruder_switch_code" + stream.str()))
                 gcode.setSwitchExtruderCode(n, getSettingString("machine_pre_extruder_switch_code" + stream.str()), getSettingString("machine_post_extruder_switch_code" + stream.str()));
+            
+            gcode.setFilamentDiameter(n, getSettingInMicrons("material_diameter")); // TODO: separate for each nozzle!
         }
 
         gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
@@ -549,19 +551,16 @@ private:
             raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
             raft_base_config.setLineWidth(getSettingInMicrons("raft_base_linewidth"));
             raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-            raft_base_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_base_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
             raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
             raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_linewidth"));
             raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-            raft_interface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
             raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
             raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
             raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-            raft_surface_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
 
             {
@@ -625,32 +624,27 @@ private:
 
             storage.skirt_config.setSpeed(getSettingInMillimetersPerSecond("skirt_speed"));
             storage.skirt_config.setLineWidth(getSettingInMicrons("skirt_line_width"));
-            storage.skirt_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             storage.skirt_config.setFlow(getSettingInPercentage("material_flow"));
             storage.skirt_config.setLayerHeight(layer_thickness);
 
             storage.support_config.setLineWidth(getSettingInMicrons("support_line_width"));
             storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support"));
-            storage.support_config.setFilamentDiameter(getSettingInMicrons("material_diameter"));
             storage.support_config.setFlow(getSettingInPercentage("material_flow"));
             storage.support_config.setLayerHeight(layer_thickness);
             for(SliceMeshStorage& mesh : storage.meshes)
             {
                 mesh.inset0_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_0"));
                 mesh.inset0_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_0"));
-                mesh.inset0_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
                 mesh.inset0_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.inset0_config.setLayerHeight(layer_thickness);
 
                 mesh.insetX_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_x"));
                 mesh.insetX_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_x"));
-                mesh.insetX_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
                 mesh.insetX_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.insetX_config.setLayerHeight(layer_thickness);
 
                 mesh.skin_config.setLineWidth(mesh.settings->getSettingInMicrons("skin_line_width"));
                 mesh.skin_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_topbottom"));
-                mesh.skin_config.setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
                 mesh.skin_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                 mesh.skin_config.setLayerHeight(layer_thickness);
 
@@ -658,7 +652,6 @@ private:
                 {
                     mesh.infill_config[idx].setLineWidth(mesh.settings->getSettingInMicrons("infill_line_width") * (idx + 1));
                     mesh.infill_config[idx].setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_infill"));
-                    mesh.infill_config[idx].setFilamentDiameter(mesh.settings->getSettingInMicrons("material_diameter"));
                     mesh.infill_config[idx].setFlow(mesh.settings->getSettingInPercentage("material_flow"));
                     mesh.infill_config[idx].setLayerHeight(layer_thickness);
                 }
