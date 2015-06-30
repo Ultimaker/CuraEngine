@@ -310,7 +310,7 @@ void Wireframe2gcode::strategy_compensate(WeaveLayer& layer, WeaveConnectionPart
     int64_t orrLength = (segment.to - from).vSize() + next_vector.vSize() + 1; // + 1 in order to avoid division by zero
     int64_t newLength = (newTop - from).vSize() + (next_point - newTop).vSize() + 1; // + 1 in order to avoid division by zero
     
-    gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection);
+    gcode.writeMove(newTop, speedUp * newLength / orrLength, extrusion_per_mm_connection * orrLength / newLength);
 }
 void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& part, unsigned int segment_idx) 
 {
