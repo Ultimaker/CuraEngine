@@ -67,6 +67,14 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     else
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruderCharacter[n] = 'E';
+    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
+    {
+        is_volumatric = true;
+    } 
+    else 
+    {
+        is_volumatric = false;
+    }
 }
 
 EGCodeFlavor GCodeExport::getFlavor()

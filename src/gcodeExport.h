@@ -66,7 +66,6 @@ public:
         speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
     
-    //volumatric extrusion means the E values in the final GCode are cubic mm. Else they are in mm filament.
     double getExtrusionMM3perMM()
     {
         return extrusion_mm3_per_mm;

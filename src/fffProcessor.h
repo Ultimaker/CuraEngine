@@ -134,6 +134,9 @@ public:
 
             processSliceData(storage);
             writeGCode(storage);
+            
+    std::cerr << "machine_gcode_flavor = " << model->getSettingString("machine_gcode_flavor") << std::endl;
+    std::cerr << "machine_gcode_flavor = " << model->getSettingAsGCodeFlavor("machine_gcode_flavor") << std::endl;
         }
 
         logProgress("process", 1, 1);//Report the GUI that a file has been fully processed.
