@@ -79,7 +79,6 @@ public:
         speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
     
-    //volumatric extrusion means the E values in the final GCode are cubic mm. Else they are in mm filament.
     double getExtrusionMM3perMM()
     {
         return extrusion_mm3_per_mm;
@@ -125,7 +124,7 @@ private:
     bool isRetracted;
     bool isZHopped;
     
-    double last_coasted_amount; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
+    double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
     int current_extruder;
     int currentFanSpeed;
@@ -133,8 +132,8 @@ private:
     std::string preSwitchExtruderCode[MAX_EXTRUDERS];
     std::string postSwitchExtruderCode[MAX_EXTRUDERS];
     
-    double totalFilament[MAX_EXTRUDERS]; // in mm^3
-    double filament_diameter[MAX_EXTRUDERS]; // in mm^3
+    double totalFilament[MAX_EXTRUDERS]; //!< total filament used per extruder in mm^3
+    double filament_area[MAX_EXTRUDERS]; //!< in mm^2 for non-volumetric, cylindrical filament
     double totalPrintTime;
     TimeEstimateCalculator estimateCalculator;
     
@@ -157,7 +156,7 @@ public:
     
     void setZ(int z);
     
-    void setLastCoastedAmount(double last_coasted_amount) { this->last_coasted_amount = last_coasted_amount; }
+    void setLastCoastedAmountMM3(double last_coasted_amount) { this->last_coasted_amount_mm3 = last_coasted_amount; }
     
     Point3 getPosition();
     
@@ -216,14 +215,14 @@ public:
             std::ostringstream stream_x; stream_x << "machine_nozzle_offset_x_" << n;
             std::ostringstream stream_y; stream_y << "machine_nozzle_offset_y_" << n;
             setExtruderOffset(n, Point(settings.getSettingInMicrons(stream_x.str()), settings.getSettingInMicrons(stream_y.str())));
-//             else 
-//                 std::cerr << " !!!!!!!!!!! cannot find setting " << stream_x.str() << " or " << stream_y.str() << std::endl;
         }
         for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
         {
             std::ostringstream stream;
             stream << "_" << n;
             setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
+            
+            setFilamentDiameter(n, settings.getSettingInMicrons("material_diameter")); // TODO: allow for different material diameters for the different nozzles
         }
 
         setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));

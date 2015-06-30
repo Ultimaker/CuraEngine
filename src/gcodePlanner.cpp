@@ -363,7 +363,7 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
-        ! (path.getExtrusionMM3perMM(is_volumatric) > 0.0 &&  paths[path_idx + 1].config->getExtrusionPerMM(is_volumatric) == 0.0) 
+        ! (path.getExtrusionMM3perMM() > 0.0 &&  paths[path_idx + 1].config->getExtrusionMM3perMM() == 0.0) 
         ||
         path.points.size() < 2
         )
@@ -464,9 +464,9 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(is_volumatric));
+            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
         }
-        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM(is_volumatric));
+        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
     }
     
     if (path_next.retract)
@@ -479,7 +479,7 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
     
-    gcode.setLastCoastedAmount(path.getExtrusionMM3perMM(is_volumatric) * INT2MM(actual_coasting_dist));
+    gcode.setLastCoastedAmountMM3(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
     
     return true;
 }

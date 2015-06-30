@@ -21,14 +21,14 @@ GCodeExport::GCodeExport()
     {
         totalFilament[e] = 0.0;
         currentTemperature[e] = 0;
-        filament_diameter[e] = 0;
+        filament_area[e] = 0;
     }
     
     currentSpeed = 1;
     retractionPrimeSpeed = 1;
     isRetracted = false;
     isZHopped = false;
-    last_coasted_amount = 0;
+    last_coasted_amount_mm3 = 0;
     setFlavor(GCODE_FLAVOR_REPRAP);
     memset(extruderOffset, 0, sizeof(extruderOffset));
 }
@@ -119,16 +119,16 @@ int GCodeExport::getExtruderNr()
     return current_extruder;
 }
 
-double GCodeExport::getFilamentArea(unsigned int extruder)
-{
-    double r = INT2MM(filament_diameter[extruder]) / 2.0;
-    double filament_area = M_PI * r * r;
-    return filament_area;
-}
-
 void GCodeExport::setFilamentDiameter(unsigned int n, int diameter)
 {
-    filament_diameter[n] = diameter;
+    double r = INT2MM(diameter) / 2.0;
+    double area = M_PI * r * r;
+    filament_area[n] = area;
+}
+
+double GCodeExport::getFilamentArea(unsigned int extruder)
+{
+    return filament_area[extruder];
 }
 
 double GCodeExport::getExtrusionAmountMM3(unsigned int extruder)
@@ -275,14 +275,14 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = false;
             }
-            extrusion_amount += last_coasted_amount;
+            extrusion_amount += (is_volumatric) ? last_coasted_amount_mm3 : last_coasted_amount_mm3 / getFilamentArea(current_extruder);   
             if (isRetracted)
             {
                 if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
                 {
                     *output_stream << "G11\n";
                     //Assume default UM2 retraction settings.
-                    if (last_coasted_amount > 0)
+                    if (last_coasted_amount_mm3 > 0)
                     {
                         *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[current_extruder] << std::setprecision(5) << extrusion_amount << "\n";
                     }
@@ -298,13 +298,13 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             }
             else 
             {
-                if (last_coasted_amount > 0)
+                if (last_coasted_amount_mm3 > 0)
                 {
                     *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruderCharacter[current_extruder] << std::setprecision(5) << extrusion_amount << "\n";
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), currentSpeed);
                 }
             }
-            last_coasted_amount = 0;
+            last_coasted_amount_mm3 = 0;
             extrusion_amount += extrusion_per_mm * diff.vSizeMM();
             *output_stream << "G1";
         }else{
