@@ -185,7 +185,7 @@ public:
         // TODO: add corners
         
 //         debugCheck();
-//         debugOutputCSV();
+        debugOutputCSV();
     }
     
 };
