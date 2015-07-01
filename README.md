@@ -54,7 +54,7 @@ For that one needs a settings JSON file, which can be found in the Ultimaker/Cur
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
-./build/CuraEngine -v -j ../Cura/resources/settings/fdmprinter.json -j ../Cura/resources/settings/[specific_machine].json -s mesh_position_x=110 -s mesh_position_y=110 -s mesh_position_z=0 -o "output/test.gcode" "/path/to/model.stl"
+./build/CuraEngine -v -j ../Cura/resources/settings/fdmprinter.json -j ../Cura/resources/settings/[specific_machine].json -s adhesion_type=Brim -o "output/test.gcode" "/path/to/model.stl"
 ```
 
 Internals
