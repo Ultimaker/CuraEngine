@@ -53,7 +53,7 @@ void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_laye
     }
 }
 
-void dumpLayerparts(SliceDataStorage& storage, const char* filename)
+void layerparts2HTML(SliceDataStorage& storage, const char* filename)
 {
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");

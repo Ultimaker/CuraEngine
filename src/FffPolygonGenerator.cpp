@@ -119,7 +119,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // const 
     unsigned int totalLayers = storage.meshes[0].layers.size();
 
-    //dumpLayerparts(storage, "c:/models/output.html");
+    //layerparts2HTML(storage, "output/output.html");
 
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {

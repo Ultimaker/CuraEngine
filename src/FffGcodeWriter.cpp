@@ -579,7 +579,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMes
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
 {
-    bool compensate_overlap = true;
+    bool compensate_overlap = getSettingBoolean("travel_compensate_overlapping_walls_enabled");
     
     if (getSettingAsCount("wall_line_count") > 0)
     {
@@ -603,7 +603,6 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* m
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall);
                     gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
-//                     gcodeLayer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config); // TODO remove
                 }
             }
             else

@@ -145,7 +145,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
         addExtrusionMove(p1, config, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
     }
 }
-
+static int qwe = 0;
 void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation)
 {
     //log("addPolygonsByOptimizer");

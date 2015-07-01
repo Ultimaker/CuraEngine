@@ -24,7 +24,7 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 
 void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes);
 
-void dumpLayerparts(SliceDataStorage& storage, const char* filename);
+void layerparts2HTML(SliceDataStorage& storage, const char* filename);
 
 }//namespace cura
 
