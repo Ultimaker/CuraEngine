@@ -195,11 +195,16 @@ private:
         log("Slicing model...\n");
         int initial_layer_thickness = object->getSettingInMicrons("layer_height_0");
         int layer_thickness = object->getSettingInMicrons("layer_height");
-        int layer_count = (storage.model_max.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
+        if (object->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
+        { 
+            initial_layer_thickness = layer_thickness; 
+        }
+        int initial_slice_z = (initial_layer_thickness - layer_thickness / 2);
+        int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
         std::vector<Slicer*> slicerList;
         for(Mesh& mesh : object->meshes)
         {
-            Slicer* slicer = new Slicer(&mesh, initial_layer_thickness - layer_thickness / 2, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+            Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
             slicerList.push_back(slicer);
             /*
             for(SlicerLayer& layer : slicer->layers)
@@ -263,11 +268,24 @@ private:
             delete slicerList[meshIdx];
 
             bool has_raft = meshStorage.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
-            //Add the raft offset to each layer.
             for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
             {
+                //Add the raft offset to each layer.
                 if (has_raft)
-                    meshStorage.layers[layer_nr].printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
+                {
+                    meshStorage.layers[layer_nr].printZ += 
+                        meshStorage.settings->getSettingInMicrons("raft_base_thickness") 
+                        + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") 
+                        + meshStorage.settings->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
+                        + meshStorage.settings->getSettingInMicrons("raft_airgap")
+                        - initial_slice_z;
+                }
+                else 
+                {
+                    meshStorage.layers[layer_nr].printZ += 
+                        meshStorage.settings->getSettingInMicrons("layer_height_0")
+                        - initial_slice_z;
+                }
             }
         }
         log("Generated layer parts in %5.3fs\n", timeKeeper.restart());
@@ -309,7 +327,13 @@ private:
             {
                 if(commandSocket)
                 {
-                    commandSocket->sendLayerInfo(layer_nr, mesh.layers[layer_nr].printZ, layer_nr == 0 ? mesh.settings->getSettingInMicrons("layer_height_0") : mesh.settings->getSettingInMicrons("layer_height"));
+                    int initial_layer_thickness = mesh.settings->getSettingInMicrons("layer_height_0");
+                    int layer_thickness = mesh.settings->getSettingInMicrons("layer_height");
+                    if (mesh.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
+                    { 
+                        initial_layer_thickness = layer_thickness; 
+                    }
+                    commandSocket->sendLayerInfo(layer_nr, mesh.layers[layer_nr].printZ, layer_nr == 0 ? initial_layer_thickness : layer_thickness);
                 }
 
                 int insetCount = mesh.settings->getSettingAsCount("wall_line_count");
@@ -556,18 +580,18 @@ private:
             raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_base_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
-            raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
-            raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_linewidth"));
+            raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
+            raft_interface_config.setLineWidth(getSettingInMicrons("raft_base_linewidth"));
             raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
             GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
-            raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
-            raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
+            raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
+            raft_surface_config.setLineWidth(getSettingInMicrons("raft_base_linewidth"));
             raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
             raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
 
             {
-                gcode.writeLayerComment(-2);
+                gcode.writeLayerComment(-3);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
                 if (getSettingAsIndex("support_extruder_nr") > 0)
@@ -580,19 +604,21 @@ private:
                 generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_base_linewidth"), getSettingInMicrons("raft_line_spacing"), getSettingInPercentage("fill_overlap"), 0);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
-                gcode.writeFanCommand(getSettingInPercentage("raft_base_fan_speed"));
+                gcode.writeFanCommand(getSettingInPercentage("cool_fan_speed_max"));
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raft_base_thickness"));
             }
 
-            { /// this code block is about something which is of yet unknown
-                gcode.writeLayerComment(-1);
+            { 
+                gcode.writeLayerComment(-2);
                 gcode.writeComment("RAFT");
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
                 gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness"));
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_interface_line_width"), getSettingInMicrons("raft_interface_line_spacing"), getSettingInPercentage("fill_overlap"), getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
+                int raft_interface_line_width = getSettingInMicrons("wall_line_width_x"); // getSettingInMicrons("raft_interface_line_width")
+                int raft_interface_line_spacing = getSettingInMicrons("raft_line_spacing"); // getSettingInMicrons("raft_interface_line_spacing")
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, raft_interface_line_width, raft_interface_line_spacing, getSettingInPercentage("fill_overlap"), getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raft_interface_thickness"));
@@ -602,12 +628,15 @@ private:
             {
                 gcode.writeLayerComment(-1);
                 gcode.writeComment("RAFT");
+                int raft_surface_thickness = getSettingInMicrons("layer_height"); // getSettingInMicrons("raft_surface_thickness")
                 GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
-                gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
+                gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + raft_surface_thickness*raftSurfaceLayer);
 
                 Polygons raftLines;
                 int offset_from_poly_outline = 0;
-                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_surface_line_width"), getSettingInMicrons("raft_surface_line_spacing"), getSettingInPercentage("fill_overlap"), 90 * raftSurfaceLayer);
+                int raft_surface_line_width = getSettingInMicrons("wall_line_width_0"); // getSettingInMicrons("raft_surface_line_width")
+                int raft_surface_line_spacing = raft_surface_line_width; // getSettingInMicrons("raft_surface_line_spacing")
+                generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, raft_surface_line_width, raft_surface_line_spacing, getSettingInPercentage("fill_overlap"), (raftSurfaceLayer % 2 == 0)? 0 : 90);
                 gcodeLayer.addLinesByOptimizer(raftLines, &raft_surface_config);
 
                 gcodeLayer.writeGCode(false, getSettingInMicrons("raft_interface_thickness"));
@@ -620,7 +649,7 @@ private:
             if (commandSocket) commandSocket->sendProgress(2.0/3.0 + 1.0/3.0 * float(layer_nr) / float(totalLayers));
 
             int layer_thickness = getSettingInMicrons("layer_height");
-            if (layer_nr == 0)
+            if (layer_nr == 0 && !has_raft)
             {
                 layer_thickness = getSettingInMicrons("layer_height_0");
             }
@@ -680,17 +709,9 @@ private:
             gcode.writeLayerComment(layer_nr);
 
             GCodePlanner gcodeLayer(gcode, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"));
-            int32_t z = getSettingInMicrons("layer_height_0") + layer_nr * getSettingInMicrons("layer_height");
-            if (has_raft)
-            {
-                z += getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers")*getSettingInMicrons("raft_surface_thickness");
-                if (layer_nr == 0)
-                {
-                    z += getSettingInMicrons("raft_airgap_layer_0");
-                } else {
-                    z += getSettingInMicrons("raft_airgap");
-                }
-            }
+ 
+            int z = storage.meshes[0].layers[layer_nr].printZ;
+            
             gcode.setZ(z);
             gcode.resetStartPosition();
 
@@ -751,7 +772,7 @@ private:
                 gcode.writeFanCommand(fanSpeed);
             }
 
-            gcodeLayer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+            gcodeLayer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 || getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
             if (commandSocket)
                 commandSocket->sendGCodeLayer();
         }
