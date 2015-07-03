@@ -79,7 +79,7 @@ bool loadModelSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     // Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
     mesh->faces.reserve(faceCount);
-    mesh->vertices.reserve(faceCount*3);
+    mesh->vertices.reserve(faceCount);
     for(unsigned int i=0;i<faceCount;i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
