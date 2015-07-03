@@ -194,12 +194,12 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 {
     GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
     raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
-    raft_base_config.setLineWidth(getSettingInMicrons("raft_base_linewidth"));
+    raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
     raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
     raft_base_config.setFlow(getSettingInPercentage("material_flow"));
     GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
     raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
-    raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_linewidth"));
+    raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
     raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
     raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
     GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
@@ -208,8 +208,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
     raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
 
-    {
-        gcode.writeLayerComment(-2);
+    { // raft base layer
+        gcode.writeLayerComment(-3);
         gcode.writeComment("RAFT");
         GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, getSettingInMicrons("wall_line_width_0"), getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
         if (getSettingAsIndex("support_extruder_nr") > 0)
@@ -219,15 +219,15 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_base_linewidth"), getSettingInMicrons("raft_line_spacing"), getSettingInPercentage("fill_overlap"), 0);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, getSettingInMicrons("raft_base_line_width"), getSettingInMicrons("raft_base_line_spacing"), getSettingInPercentage("fill_overlap"), 0);
         gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
         gcode.writeFanCommand(getSettingInPercentage("raft_base_fan_speed"));
         gcodeLayer.writeGCode(false, getSettingInMicrons("raft_base_thickness"));
     }
 
-    { 
-        gcode.writeLayerComment(-1);
+    { // raft interface layer
+        gcode.writeLayerComment(-2);
         gcode.writeComment("RAFT");
         GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, getSettingInMicrons("wall_line_width_0"), getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
         gcode.setZ(getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness"));
@@ -241,7 +241,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     }
 
     for (int raftSurfaceLayer=1; raftSurfaceLayer<=getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
-    {
+    { // raft surface layers
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
         GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, getSettingInMicrons("wall_line_width_0"), getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
@@ -261,7 +261,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket);
 
     int layer_thickness = getSettingInMicrons("layer_height");
-    if (layer_nr == 0)
+    if (layer_nr == 0 && !has_raft)
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
@@ -288,7 +288,9 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     if (!getSettingBoolean("retraction_combing")) 
         gcodeLayer.setAlwaysRetract(true);
 
-    processLayerStartPos(layer_nr, has_raft);
+    int z = storage.meshes[0].layers[layer_nr].printZ;         
+    gcode.setZ(z);
+    gcode.resetStartPosition();
     
     processSkirt(storage, gcodeLayer, layer_nr);
     
@@ -339,23 +341,6 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
             }
         }
     }
-}
-
-void FffGcodeWriter::processLayerStartPos(unsigned int layer_nr, bool has_raft)
-{
-    int32_t z = getSettingInMicrons("layer_height_0") + layer_nr * getSettingInMicrons("layer_height");
-    if (has_raft)
-    {
-        z += getSettingInMicrons("raft_base_thickness") + getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers")*getSettingInMicrons("raft_surface_thickness");
-        if (layer_nr == 0)
-        {
-            z += getSettingInMicrons("raft_airgap_layer_0");
-        } else {
-            z += getSettingInMicrons("raft_airgap");
-        }
-    }
-    gcode.setZ(z);
-    gcode.resetStartPosition();
 }
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)

@@ -51,12 +51,18 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
     log("Slicing model...\n");
     int initial_layer_thickness = object->getSettingInMicrons("layer_height_0");
     int layer_thickness = object->getSettingInMicrons("layer_height");
-    int layer_count = (storage.model_size.z - (initial_layer_thickness - layer_thickness / 2)) / layer_thickness + 1;
+    if (object->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
+    { 
+        initial_layer_thickness = layer_thickness; 
+    }
+    int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
+    int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
+
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < object->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = object->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_layer_thickness - layer_thickness / 2, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
         for(SlicerLayer& layer : slicer->layers)
@@ -91,15 +97,29 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
             if (has_raft)
-                layer.printZ += meshStorage.settings->getSettingInMicrons("raft_base_thickness") + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") + getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness");
-            
+            {
+                layer.printZ += 
+                    meshStorage.settings->getSettingInMicrons("raft_base_thickness") 
+                    + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") 
+                    + meshStorage.settings->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
+                    + meshStorage.settings->getSettingInMicrons("raft_airgap")
+                    - initial_slice_z;
+            }
+            else 
+            {
+                meshStorage.layers[layer_nr].printZ += 
+                    meshStorage.settings->getSettingInMicrons("layer_height_0")
+                    - initial_slice_z;
+            }
+    
+ 
             if (layer.parts.size() > 0)
             {
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             }
                 
             if (commandSocket)
-                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 ? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
+                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 && !has_raft? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
         }
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);

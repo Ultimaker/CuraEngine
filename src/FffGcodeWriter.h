@@ -135,13 +135,6 @@ private:
     void processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr);
     
     /*!
-     * Go to the starting position of the layer, which is farther up when we print a raft.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * \param has_raft Whether a raft is used for this print.
-     */
-    void processLayerStartPos(unsigned int layer_nr, bool has_raft);
-    
-    /*!
      * Add the skirt to the gcode.
      * \param storage Input: where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
