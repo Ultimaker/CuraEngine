@@ -69,14 +69,17 @@ class WallOverlapComputation
     {
         ListPolygon& poly; //!< The polygon
         ListPolygon::iterator it; //!< The iterator into ListPolyIt::poly
+        ListPolyIt(const ListPolyIt& other)
+        : poly(other.poly), it(other.it) { }
         ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
         : poly(poly), it(it) { }
         Point& p() const { return *it; }
-        bool operator==(const ListPolyIt& other) const { return it == other.it; }
+        bool operator==(const ListPolyIt& other) const { return poly == other.poly && it == other.it; }
+        void operator=(const ListPolyIt& other) { poly = other.poly; it = other.it; }
         //!< move the iterator forward (and wrap around at the end)
         ListPolyIt& operator++() 
         { 
-            it++; 
+            ++it; 
             if (it == poly.end()) { it = poly.begin(); }
             return *this; 
         }
@@ -84,11 +87,22 @@ class WallOverlapComputation
         ListPolyIt& operator--() 
         { 
             if (it == poly.begin()) { it = poly.end(); }
-            it--; 
+            --it; 
             return *this; 
         }
+        ListPolyIt next() const 
+        {
+            ListPolyIt ret(*this);
+            ++ret;
+            return ret;
+        }
+        ListPolyIt prev() const 
+        {
+            ListPolyIt ret(*this);
+            --ret;
+            return ret;
+        }
     };
-    
     /*!
      * A class recording the amount of overlap implicitly by recording the distance between two points on two different polygons or one and the same polygon.
      * The order of the two points doesn't matter.
@@ -97,8 +111,7 @@ class WallOverlapComputation
     {
         const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
         const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
-        int dist; //!< The distance between the two points
-        WallOverlapPointLink(const ListPolyIt a, const ListPolyIt b, int dist) : a(a), b(b), dist(dist) { }
+        WallOverlapPointLink(const ListPolyIt a, const ListPolyIt b) : a(a), b(b) { }
         bool operator==(const WallOverlapPointLink& other) const { return (a == other.a && b == other.b) || (a == other.b && b == other.a); }
     };
     
@@ -113,7 +126,14 @@ class WallOverlapComputation
         }
     };
 
-    typedef std::unordered_map<WallOverlapPointLink, bool, WallOverlapPointLink_Hasher> WallOverlapPointLinks; //!< The type of WallOverlapComputation::overlap_point_links
+    struct WallOverlapPointLinkAttributes
+    {
+        int dist; //!< The distance between the two points
+        bool passed; //!< Whether this point has been passed while writing gcode
+        WallOverlapPointLinkAttributes(int dist, bool passed) : dist(dist), passed(passed) { }
+    };
+    
+    typedef std::unordered_map<WallOverlapPointLink, WallOverlapPointLinkAttributes, WallOverlapPointLink_Hasher> WallOverlapPointLinks; //!< The type of WallOverlapComputation::overlap_point_links
     typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link; //!< The type of WallOverlapComputation::point_to_link
     
     
@@ -123,9 +143,10 @@ class WallOverlapComputation
     Polygons& polygons; //!< The polygons for which to compensate overlapping walls for
     ListPolygons list_polygons; //!< The WallOverlapComputation::polygons converted
     
-    int lineWidth; //!< The line width of the walls
+    int line_width; //!< The line width of the walls
     
-    WallOverlapPointLinks overlap_point_links; //!< mapping from each link to whether they have already been crossed once
+    WallOverlapPointLinks overlap_point_links; //!< mapping from each link to its attributes
+    WallOverlapPointLinks overlap_point_links_endings; //!< mapping from each ending link to its attributes (which has a distance field equal to WallOverlapComputation::line_width). Note that this is a separate map from WallOverlapComputation::overlap_point_links, because that magically solved a bug .
     
     Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
 
@@ -146,7 +167,7 @@ class WallOverlapComputation
      * \param to_list_poly_idx The index into WallOverlapComputation::list_polygons for the polygon to check
      * \param start Where to start looking into the polygon with index \p to_list_poly_idx
      */
-    void findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx, ListPolygon::iterator start);
+    void findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx, const ListPolygon::iterator start);
     
     /*!
      * Add a link between \p from and \p to to WallOverlapComputation::overlap_point_links and add the appropriate mappings to WallOverlapComputation::point_to_link
@@ -154,8 +175,18 @@ class WallOverlapComputation
      * \param from The one point of the link
      * \param to The other point of the link
      * \param dist The distance between the two points
+     * \return Whether the point has been added
      */
-    void addOverlapPoint(ListPolyIt from, ListPolyIt to, int64_t dist);
+    bool addOverlapPoint(ListPolyIt from, ListPolyIt to, int64_t dist);
+    /*!
+     * Add a link between \p from and \p to to WallOverlapComputation::overlap_point_links_endings and add the appropriate mappings to WallOverlapComputation::point_to_link
+     * 
+     * \param from The one point of the link
+     * \param to The other point of the link
+     * \param dist The distance between the two points
+     * \return Whether the point has been added
+     */
+    bool addOverlapPoint_endings(ListPolyIt from, ListPolyIt to, int64_t dist);
     
     /*!
      * Add links for the ending points of overlap regions, supporting the residual triangles.
@@ -165,13 +196,13 @@ class WallOverlapComputation
     /*!
      * Add a link for the ending point of a given overlap region, if it is an ending.
      * 
-     * \param link The link which might be an ending
+     * \param link_pair The link which might be an ending
      * \param a_next The next point from ListPolyIt::a of \p link 
      * \param b_next The next point from ListPolyIt::b of \p link (in the opposite direction of \p a_next)
      * \param a_before_middle Where to insert a new point for a if this is indeed en ending
      * \param b_before_middle Where to insert a new point for b if this is indeed en ending
      */
-    void addOverlapEnding(WallOverlapPointLink& link, ListPolyIt& a_next, ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
+    void addOverlapEnding(std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> link_pair, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
     
     /*!
      * Compute the distance between the points of the last link and the points introduced to account for the overlap endings.
@@ -208,11 +239,14 @@ public:
     
     void wallOverlaps2HTML(const char* filename); //!< debug
     
+    std::vector<Point> endings; // TODO remove line
+    std::vector<Point> endings_special; // TODO remove line
+    std::vector<std::pair<Point, Point>> endings_linked; // TODO remove line
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons) : polygons(polygons), lineWidth(400) // TODO
+    WallOverlapComputation(Polygons& polygons, int lineWidth) : polygons(polygons), line_width(lineWidth) // TODO
     { 
         // convert to list polygons for insertion of points
         convertPolygonsToLists(polygons, list_polygons); 
@@ -223,9 +257,8 @@ public:
         
         // convert list polygons back
         convertListPolygonsToPolygons(list_polygons, polygons);
-//         debugCheck();
 //         wallOverlaps2HTML("output/output.html");
-        list_polygons.clear(); // clear up some space! (unneccesary?)
+//         list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
     }
     
 };
