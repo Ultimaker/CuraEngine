@@ -170,17 +170,9 @@ void WallOverlapComputation::addOverlapEndings()
 {
     for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
     {
-            bool debug_now = (link_pair.first.b.p() == Point(144601, 92500) && link_pair.first.a.p() == Point(144800, 92512)) 
-                          || (link_pair.first.a.p() == Point(144601, 92500) && link_pair.first.b.p() == Point(144800, 92512));
-        if (debug_now)
-        {
-            std::cerr << " now" << std::endl;
-            DEBUG_PRINTLN(" debuggin !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
-            DEBUG_SHOW(link_pair.second.dist);
-        }
+
         if (link_pair.second.dist == line_width)
         { // its ending itself
-            DEBUG_PRINTLN("is an ending itself! skipping...");
             continue;
         }
         WallOverlapPointLink& link = link_pair.first;
@@ -188,13 +180,11 @@ void WallOverlapComputation::addOverlapEndings()
         const ListPolyIt& b_1 = link.b;
         // an overlap segment can be an ending in two directions
         { 
-            DEBUG_PRINTLN("first dir end");
             ListPolyIt a_2 = a_1.next();
             ListPolyIt b_2 = b_1.prev();
             addOverlapEnding(link_pair, a_2, b_2, a_2, b_1);
         }
         { 
-            DEBUG_PRINTLN("second dir end");
             ListPolyIt a_2 = a_1.prev();
             ListPolyIt b_2 = b_1.next();
             addOverlapEnding(link_pair, a_2, b_2, a_1, b_2);
@@ -212,59 +202,31 @@ void WallOverlapComputation::addOverlapEnding(std::pair<WallOverlapPointLink, Wa
     Point a = a2-a1;
     Point b = b2-b1;
 
-    bool debug_now = (b1 == Point(144601, 92500) && a1 == Point(144800, 92512));
-    if (debug_now)
-    {
-            std::cerr << " now" << std::endl;
-        DEBUG_PRINTLN("debugging now <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-        DEBUG_SHOW(a1);
-        DEBUG_SHOW(a2);
-        DEBUG_SHOW(b1);
-        DEBUG_SHOW(b2);
-    }
     if (point_to_link.find(a2_it.p()) == point_to_link.end() 
         || point_to_link.find(b2_it.p()) == point_to_link.end())
     {
-        endings.push_back(a1);
-        endings.push_back(b1);
         int64_t dist = overlapEndingDistance(a1, a2, b1, b2, link_pair.second.dist);
-        if (debug_now)
-        {
-            DEBUG_SHOW(dist);
-        }
         if (dist < 0) { return; }
         int64_t a_length2 = vSize2(a);
         int64_t b_length2 = vSize2(b);
         if (dist*dist > std::min(a_length2, b_length2) )
         { // TODO remove this /\ case if error below is never shown
-            DEBUG_PRINTLN("Next point should have been linked already!!");
-//             DEBUG_SHOW(dist);
-//             DEBUG_SHOW(std::sqrt(a_length2));
-//             DEBUG_SHOW(std::sqrt(b_length2));
-//             DEBUG_SHOW(b2);
-//             DEBUG_SHOW(b1);
-//             DEBUG_SHOW(link.b.next().p());
-//             DEBUG_SHOW(link.b.prev().p());
-//             DEBUG_SHOW( (link.b.it == b2_it.it) );
-//             DEBUG_SHOW( (link.b.poly == b2_it.poly) );
+//             DEBUG_PRINTLN("Next point should have been linked already!!");
             dist = std::sqrt(std::min(a_length2, b_length2));
             if (a_length2 < b_length2)
             {
                 Point b_p = b1 + normal(b, dist);
                 ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-                endings_linked.emplace_back((a2_it.p()+ *new_b)/2, (a1+b1)/2);
                 addOverlapPoint_endings(a2_it, ListPolyIt(link.b.poly, new_b), line_width);
             }
             else if (b_length2 < a_length2)
             {
                 Point a_p = a1 + normal(a, dist);
                 ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-                endings_linked.emplace_back((b2_it.p()+ *new_a)/2, (a1+b1)/2);
                 addOverlapPoint_endings(ListPolyIt(link.a.poly, new_a), b2_it, line_width);
             }
             else // equal
             {
-                endings_linked.emplace_back((b2_it.p() + a2_it.p())/2, (a1+b1)/2);
                 addOverlapPoint_endings(a2_it, b2_it, line_width);
             }
         }
@@ -274,25 +236,11 @@ void WallOverlapComputation::addOverlapEnding(std::pair<WallOverlapPointLink, Wa
             ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
             Point b_p = b1 + normal(b, dist);
             ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-            endings_linked.emplace_back((*new_b + *new_a)/2, (a1+b1)/2);
             addOverlapPoint_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), line_width);
         }
         else if (dist == 0)
         {
             addOverlapPoint_endings(link.a, link.b, line_width);
-            DEBUG_PRINTLN("dist == 0! !"); // TODO remove line 
-            endings_special.push_back(a1); // TODO remove line 
-            endings_special.push_back(b1); // TODO remove line 
-        }
-        else 
-        { // TODO: remove case
-            DEBUG_PRINTLN("WTF!" );
-            DEBUG_SHOW(dist);
-        }
-        if (debug_now)
-        {
-            std::cerr << " now" << std::endl;
-            DEBUG_PRINTLN(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
         }
     }
 }
@@ -318,13 +266,6 @@ int64_t WallOverlapComputation::overlapEndingDistance(Point& a1, Point& a2, Poin
     else 
     {
         int64_t dist = overlap * double ( 1.0 / (2.0 * sqrt(2.0 / (cos_angle+1.0) - 1.0)) );
-        if (dist < 0)
-        {
-            DEBUG_SHOW(overlap);
-            DEBUG_SHOW(2.0 / (cos_angle+1.0) );
-            DEBUG_SHOW( sqrt(2.0 / (cos_angle+1.0) - 1.0) );
-            DEBUG_SHOW(1.0 / (2.0 * sqrt(2.0 / (cos_angle+1.0) - 1.0)));
-        }
         return dist;
     }
     
@@ -386,8 +327,6 @@ void WallOverlapComputation::debugCheck()
 
 void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
 {
-    
-    DEBUG_PRINTLN(" >>>>>>>>>>>>>>>>> wallOverlaps2HTML <<<<<<<<<<<<<<<<<< ");
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");
     
@@ -434,37 +373,9 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
             
         }
     }
-        
-    for (Point& p : endings)
-    {
-        Point pf = transform(p);
-        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"blue\" stroke-width=\"1\" fill=\"black\" />",pf.Y, pf.X, 1);
-    }
-        
-    for (Point& p : endings_special)
-    {
-        Point pf = transform(p);
-        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"blue\" stroke-width=\"1\" fill=\"yellow\" />",pf.Y, pf.X, 1);
-    }
-    
-    for (std::pair<Point , Point> pair : endings_linked)
-    {
-        Point a = transform(pair.first);
-        Point b = transform(pair.second);
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(0,0,255);stroke-width:1\" />", a.Y, a.X, b.Y, b.X);
-    }
-    
     for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
     {
         WallOverlapPointLink& link = link_pair.first;
-            bool debug_now = (link_pair.first.b.p() == Point(144601, 92500) && link_pair.first.a.p() == Point(144800, 92512)) 
-                          || (link_pair.first.a.p() == Point(144601, 92500) && link_pair.first.b.p() == Point(144800, 92512));
-        if (debug_now)
-        {
-            std::cerr << " now" << std::endl;
-            DEBUG_PRINTLN(" debuggin !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
-            DEBUG_SHOW(link_pair.second.dist);
-        }
         Point a = transform(link.a.p());
         Point b = transform(link.b.p());
         fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
@@ -473,14 +384,6 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
     for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links_endings)
     {
         WallOverlapPointLink& link = link_pair.first;
-            bool debug_now = (link_pair.first.b.p() == Point(144601, 92500) && link_pair.first.a.p() == Point(144800, 92512)) 
-                          || (link_pair.first.a.p() == Point(144601, 92500) && link_pair.first.b.p() == Point(144800, 92512));
-        if (debug_now)
-        {
-            std::cerr << " now" << std::endl;
-            DEBUG_PRINTLN(" debuggin !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
-            DEBUG_SHOW(link_pair.second.dist);
-        }
         Point a = transform(link.a.p());
         Point b = transform(link.b.p());
         fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
@@ -492,7 +395,6 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
     fprintf(out, "</body></html>");
     fclose(out);
     
-    DEBUG_PRINTLN(" \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ wallOverlaps2HTML ////////////////// ");
 }
     
 } // namespace cura 

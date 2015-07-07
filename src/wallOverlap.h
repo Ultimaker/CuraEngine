@@ -239,14 +239,11 @@ public:
     
     void wallOverlaps2HTML(const char* filename); //!< debug
     
-    std::vector<Point> endings; // TODO remove line
-    std::vector<Point> endings_special; // TODO remove line
-    std::vector<std::pair<Point, Point>> endings_linked; // TODO remove line
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons, int lineWidth) : polygons(polygons), line_width(lineWidth) // TODO
+    WallOverlapComputation(Polygons& polygons, int lineWidth) : polygons(polygons), line_width(lineWidth) 
     { 
         // convert to list polygons for insertion of points
         convertPolygonsToLists(polygons, list_polygons); 
