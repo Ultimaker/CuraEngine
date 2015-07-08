@@ -201,15 +201,15 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        int insetCount = mesh.settings->getSettingAsCount("wall_line_count");
+        int inset_count = mesh.settings->getSettingAsCount("wall_line_count");
         if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
-            insetCount += 5;
+            inset_count += 5;
         SliceLayer* layer = &mesh.layers[layer_nr];
-        int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-        int inset_count = insetCount; 
+        int line_width_x = mesh.settings->getSettingInMicrons("wall_line_width_x");
+        int line_width_0 = mesh.settings->getSettingInMicrons("wall_line_width_0");
         if (mesh.settings->getSettingBoolean("alternate_extra_perimeter"))
             inset_count += layer_nr % 2; 
-        generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateInsets(layer, line_width_0, line_width_x, inset_count, mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
 
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
