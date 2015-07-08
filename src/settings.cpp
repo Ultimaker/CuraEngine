@@ -166,7 +166,7 @@ EPlatformAdhesion SettingsBase::getSettingAsPlatformAdhesion(std::string key)
         return Adhesion_Brim;
     if (value == "Raft")
         return Adhesion_Raft;
-    return Adhesion_None;
+    return Adhesion_Skirt;
 }
 
 ESupportType SettingsBase::getSettingAsSupportType(std::string key)

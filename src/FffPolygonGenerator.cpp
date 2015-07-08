@@ -426,8 +426,11 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
-    case Adhesion_None:
-        generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+    case Adhesion_Skirt:
+        if (getSettingInMicrons("draft_screen_height") == 0)
+        { // draft screen replaces skirt
+            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+        }
         break;
     case Adhesion_Brim:
         generateSkirt(storage, 0, getSettingInMicrons("skirt_line_width"), getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));

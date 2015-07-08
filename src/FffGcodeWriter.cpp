@@ -349,6 +349,10 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
 {
     if (layer_nr == 0)
     {
+        if (getSettingInMicrons("draft_screen_height") == 0)
+        {
+            return;
+        }
         if (storage.skirt.size() > 0)
             gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
         gcodeLayer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
@@ -369,7 +373,6 @@ void FffGcodeWriter::processDraftProtectionScreen(SliceDataStorage& storage, GCo
 {
     if (storage.draft_protection_screen.size() == 0)
     {
-        std::cerr << "no draft shield!" << std::endl;
         return;
     }
     

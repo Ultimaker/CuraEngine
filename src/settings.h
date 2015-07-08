@@ -91,7 +91,7 @@ enum EFillMethod
  */
 enum EPlatformAdhesion
 {
-    Adhesion_None,
+    Adhesion_Skirt,
     Adhesion_Brim,
     Adhesion_Raft
 };
