@@ -30,17 +30,11 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
             support = support.offset(dist).offset(-dist);
         }
     }
-    
-    int overshoot = 0; // distance by which to expand and contract the skirt to approximate the convex hull of the first layer
-    if (count == 1 && distance > 0)
-    {
-        overshoot = 100000; // 10 cm 
-    } 
-    
+
     
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
-        int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2 + overshoot;
+        int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
 
         Polygons skirtPolygons(storage.wipeTower.offset(offsetDistance));
         for(SliceMeshStorage& mesh : storage.meshes)
@@ -86,10 +80,11 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         wipe_tower = wipe_tower.offset(-extrusionWidth);
     }
 
-    if (overshoot > 0)
+    
+    if (count == 1 && distance > 0)
     {
-        storage.skirt = storage.skirt.offset(-overshoot, ClipperLib::jtRound);
-    }
+        storage.skirt = storage.skirt.convexHull(); 
+    } 
 }
 
 }//namespace cura

@@ -461,6 +461,19 @@ public:
      */
     unsigned int findInside(Point p, bool border_result = false);
     
+    /*!
+     * Approximates the convex hull of the polygons.
+     * \p extra_outset Extra offset outward
+     * \return the convex hull (approximately)
+     * 
+     */
+    Polygons convexHull(int extra_outset = 0)
+    {
+        int overshoot = 100000; // 10 cm (hardcoded value)
+        
+        return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
+    }
+    
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;

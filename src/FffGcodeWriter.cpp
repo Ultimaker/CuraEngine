@@ -299,6 +299,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         addSupportToGCode(storage, gcodeLayer, layer_nr);
 
     processOozeShield(storage, gcodeLayer, layer_nr);
+    
+    processDraftProtectionScreen(storage, gcodeLayer, layer_nr);
 
     //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
@@ -361,6 +363,31 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
         gcodeLayer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config);
         gcodeLayer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     }
+}
+
+void FffGcodeWriter::processDraftProtectionScreen(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)
+{
+    if (storage.draft_protection_screen.size() == 0)
+    {
+        std::cerr << "no draft shield!" << std::endl;
+        return;
+    }
+    
+    int draft_screen_height = getSettingInMicrons("draft_screen_height");
+    int layer_height_0 = getSettingInMicrons("layer_height_0");
+    int layer_height = getSettingInMicrons("layer_height");
+    
+    int max_screen_layer = (draft_screen_height - layer_height_0) / layer_height + 1;
+    
+    if (layer_nr > max_screen_layer)
+    {
+        return;
+    }
+    
+    gcodeLayer.setAlwaysRetract(true);
+    gcodeLayer.addPolygonsByOptimizer(storage.draft_protection_screen, &storage.skirt_config);
+    gcodeLayer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
+    
 }
 
 std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)

@@ -193,6 +193,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     processWipeTower(storage, totalLayers);
     
+    processDraftScreen(storage, totalLayers);
+    
     processPlatformAdhesion(storage);
 
 }
@@ -320,6 +322,39 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
             }
         }
     }
+}
+
+void FffPolygonGenerator::processDraftScreen(SliceDataStorage& storage, unsigned int totalLayers)
+{
+    int draft_screen_height = getSettingInMicrons("draft_screen_height");
+    int draft_screen_dist = getSettingInMicrons("draft_screen_dist");
+    int layer_height_0 = getSettingInMicrons("layer_height_0");
+    int layer_height = getSettingInMicrons("layer_height");
+    
+    if (draft_screen_height < layer_height_0)
+    {
+        return;
+    }
+    
+    int max_screen_layer = (draft_screen_height - layer_height_0) / layer_height + 1;
+    
+    int layer_skip = 200 / layer_height;
+    
+    Polygons& draft_screen = storage.draft_protection_screen;
+    for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
+    {
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+            {
+                draft_screen = draft_screen.unionPolygons(part.outline);
+            }
+        }
+        draft_screen = draft_screen.unionPolygons(storage.support.supportLayers[layer_nr].supportAreas);
+//         draft_screen = draft_screen.unionPolygons(storage.support.supportLayers[layer_nr].roofs); // will already be included by supportAreas below, and if the roof is at a low level, the screen will most likely avoid it at a higher level
+    }
+    
+    storage.draft_protection_screen = draft_screen.convexHull(draft_screen_dist);
 }
 
 void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
