@@ -13,6 +13,10 @@ endif()
 # Add warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
+if(NOT APPLE AND NOT WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
+endif()
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
 
 add_library(clipper STATIC libs/clipper/clipper.cpp)
