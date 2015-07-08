@@ -340,19 +340,20 @@ private:
                 if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                     insetCount += 5;
                 SliceLayer* layer = &mesh.layers[layer_nr];
-                int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
+                int wall_line_width_0 = mesh.settings->getSettingInMicrons("wall_line_width_0");
+                int wall_line_width_x = mesh.settings->getSettingInMicrons("wall_line_width_x");
                 int inset_count = insetCount; 
                 if (mesh.settings->getSettingBoolean("alternate_extra_perimeter"))
                     inset_count += layer_nr % 2; 
-                generateInsets(layer, extrusionWidth, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
+                generateInsets(layer, wall_line_width_0, wall_line_width_x, inset_count, mesh.settings->getSettingBoolean("wall_overlap_avoid_enabled"));
 
                 for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
                 {
                     if (layer->parts[partNr].insets.size() > 0)
                     {
-                        sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], extrusionWidth);
+                        sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], wall_line_width_x);
                         for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                            sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], extrusionWidth);
+                            sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], wall_line_width_x);
                     }
                 }
             }
