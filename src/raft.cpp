@@ -19,7 +19,7 @@ void generateRaft(SliceDataStorage& storage, int distance)
         support = storage.support.supportLayers[0].supportAreas;
     storage.raftOutline = storage.raftOutline.unionPolygons(support.offset(distance));
     storage.raftOutline = storage.raftOutline.unionPolygons(storage.wipeTower.offset(distance));
-    storage.raftOutline = storage.raftOutline.unionPolygons(storage.draft_protection_screen.offset(distance));
+    storage.raftOutline = storage.raftOutline.unionPolygons(storage.draft_protection_shield.offset(distance));
 }
 
 }//namespace cura

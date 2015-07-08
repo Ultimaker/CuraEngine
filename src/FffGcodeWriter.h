@@ -156,7 +156,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processDraftProtectionScreen(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
+    void processDraftShield(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
     
     /*!
      * Calculate in which order to print the meshes.

@@ -193,7 +193,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     processWipeTower(storage, totalLayers);
     
-    processDraftScreen(storage, totalLayers);
+    processDraftShield(storage, totalLayers);
     
     processPlatformAdhesion(storage);
 
@@ -272,6 +272,8 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
         return;
     }
     
+    int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
+    
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
         Polygons oozeShield;
@@ -279,14 +281,15 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
         {
             for(SliceLayerPart& part : mesh.layers[layer_nr].parts)
             {
-                oozeShield = oozeShield.unionPolygons(part.outline.offset(MM2INT(2.0))); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+                oozeShield = oozeShield.unionPolygons(part.outline.offset(ooze_shield_dist)); 
             }
         }
         storage.oozeShield.push_back(oozeShield);
     }
-
+    
+    int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
-        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-MM2INT(1.0)).offset(MM2INT(1.0)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
     int offsetAngle = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
     for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
@@ -324,37 +327,37 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     }
 }
 
-void FffPolygonGenerator::processDraftScreen(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    int draft_screen_height = getSettingInMicrons("draft_screen_height");
-    int draft_screen_dist = getSettingInMicrons("draft_screen_dist");
+    int draft_shield_height = getSettingInMicrons("draft_shield_height");
+    int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
     int layer_height_0 = getSettingInMicrons("layer_height_0");
     int layer_height = getSettingInMicrons("layer_height");
     
-    if (draft_screen_height < layer_height_0)
+    if (draft_shield_height < layer_height_0)
     {
         return;
     }
     
-    int max_screen_layer = (draft_screen_height - layer_height_0) / layer_height + 1;
+    int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
     
     int layer_skip = 200 / layer_height;
     
-    Polygons& draft_screen = storage.draft_protection_screen;
+    Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
             {
-                draft_screen = draft_screen.unionPolygons(part.outline);
+                draft_shield = draft_shield.unionPolygons(part.outline);
             }
         }
-        draft_screen = draft_screen.unionPolygons(storage.support.supportLayers[layer_nr].supportAreas);
-//         draft_screen = draft_screen.unionPolygons(storage.support.supportLayers[layer_nr].roofs); // will already be included by supportAreas below, and if the roof is at a low level, the screen will most likely avoid it at a higher level
+        draft_shield = draft_shield.unionPolygons(storage.support.supportLayers[layer_nr].supportAreas);
+//         draft_shield = draft_shield.unionPolygons(storage.support.supportLayers[layer_nr].roofs); // will already be included by supportAreas below, and if the roof is at a low level, the screen will most likely avoid it at a higher level
     }
     
-    storage.draft_protection_screen = draft_screen.convexHull(draft_screen_dist);
+    storage.draft_protection_shield = draft_shield.convexHull(draft_shield_dist);
 }
 
 void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
@@ -427,7 +430,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case Adhesion_Skirt:
-        if (getSettingInMicrons("draft_screen_height") == 0)
+        if (getSettingInMicrons("draft_shield_height") == 0)
         { // draft screen replaces skirt
             generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
         }

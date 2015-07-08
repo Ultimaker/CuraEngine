@@ -300,7 +300,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     processOozeShield(storage, gcodeLayer, layer_nr);
     
-    processDraftProtectionScreen(storage, gcodeLayer, layer_nr);
+    processDraftShield(storage, gcodeLayer, layer_nr);
 
     //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcodeLayer.getExtruder());
@@ -349,7 +349,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
 {
     if (layer_nr == 0)
     {
-        if (getSettingInMicrons("draft_screen_height") == 0)
+        if (getSettingInMicrons("draft_shield_height") == 0)
         {
             return;
         }
@@ -369,18 +369,18 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
     }
 }
 
-void FffGcodeWriter::processDraftProtectionScreen(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)
+void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)
 {
-    if (storage.draft_protection_screen.size() == 0)
+    if (storage.draft_protection_shield.size() == 0)
     {
         return;
     }
     
-    int draft_screen_height = getSettingInMicrons("draft_screen_height");
+    int draft_shield_height = getSettingInMicrons("draft_shield_height");
     int layer_height_0 = getSettingInMicrons("layer_height_0");
     int layer_height = getSettingInMicrons("layer_height");
     
-    int max_screen_layer = (draft_screen_height - layer_height_0) / layer_height + 1;
+    int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
     
     if (layer_nr > max_screen_layer)
     {
@@ -388,7 +388,7 @@ void FffGcodeWriter::processDraftProtectionScreen(SliceDataStorage& storage, GCo
     }
     
     gcodeLayer.setAlwaysRetract(true);
-    gcodeLayer.addPolygonsByOptimizer(storage.draft_protection_screen, &storage.skirt_config);
+    gcodeLayer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config);
     gcodeLayer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     
 }

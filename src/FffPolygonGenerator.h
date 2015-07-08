@@ -136,7 +136,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param totalLayers The total number of layers 
      */
-    void processDraftScreen(SliceDataStorage& storage, unsigned int totalLayers);
+    void processDraftShield(SliceDataStorage& storage, unsigned int totalLayers);
     /*!
      * Generate the skirt/brim/raft areas/insets.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage

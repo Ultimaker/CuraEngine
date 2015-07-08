@@ -111,7 +111,7 @@ public:
     
     SupportStorage support;
     Polygons wipeTower;
-    Polygons draft_protection_screen; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
+    Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
     SliceDataStorage()
