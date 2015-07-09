@@ -159,7 +159,7 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config, wall_overlap_computation);
     }
 }
-void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config)
+void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist)
 {
     LineOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
@@ -168,7 +168,22 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
     {
         int nr = orderOptimizer.polyOrder[i];
-        addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
+//         addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
+        PolygonRef polygon = polygons[nr];
+        int start = orderOptimizer.polyStart[nr];
+        int end = 1 - start;
+        Point& p0 = polygon[start];
+        addTravel(p0);
+        Point& p1 = polygon[end];
+        addExtrusionMove(p1, config);
+        if (wipe_dist != 0)
+        {
+            int line_width = config->getLineWidth();
+            if (vSize2(p1-p0) > line_width * line_width * 4)
+            { // otherwise line will get optimized by combining multiple into a single extrusion move
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, 0.0);
+            }
+        }
     }
 }
 

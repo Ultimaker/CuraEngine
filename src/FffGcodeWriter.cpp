@@ -564,9 +564,10 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMes
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infillPolygons;
     Polygons infillLines;
+    EFillMethod pattern = getSettingAsFillMethod("fill_pattern");
     if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
     {
-        switch(getSettingAsFillMethod("fill_pattern"))
+        switch(pattern)
         {
         case Fill_Grid:
             generateGridInfill(part.sparse_outline[0], 0, infillLines, extrusionWidth, sparse_infill_line_distance * 2, infill_overlap, fillAngle);
@@ -589,7 +590,14 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMes
         }
     }
     gcodeLayer.addPolygonsByOptimizer(infillPolygons, &mesh->infill_config[0]);
-    gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
+    if (pattern == Fill_Grid || pattern == Fill_Lines || pattern == Fill_Triangles)
+    {
+        gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0], getSettingInMicrons("infill_wipe_dist")); 
+    }
+    else 
+    {
+        gcodeLayer.addLinesByOptimizer(infillLines, &mesh->infill_config[0]); 
+    }
 }
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)

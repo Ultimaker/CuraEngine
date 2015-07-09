@@ -112,7 +112,13 @@ public:
 
     void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
-    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config);
+    /*!
+     * Add lines to the gcode with optimized order.
+     * \param polygons The lines
+     * \param config The config of the lines
+     * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     */
+    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist = 0);
 
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     
