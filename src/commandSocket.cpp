@@ -167,6 +167,9 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
 {
     if(!d->currentSlicedObject)
         return;
+    
+    if (polygons.size() == 0)
+        return;
 
     Cura::Layer* layer = d->getLayerById(layer_nr);
 
