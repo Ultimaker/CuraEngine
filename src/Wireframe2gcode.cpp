@@ -244,7 +244,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
-    retraction_config.amount = 500; //INT2MM(getSettingInt("retractionAmount"))
+    retraction_config.amount = 500; //INT2MM(getSettingInt("retraction_amount"))
     retraction_config.primeAmount = 0;//INT2MM(getSettingInt("retractionPrime
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;

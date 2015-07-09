@@ -5,10 +5,8 @@
 #include <iostream>
 #include <cstdlib> // rand
 
-
-
-
 //using namespace cura;
+
 
 /*
 #include "utils/intpoint.h"
@@ -267,7 +265,11 @@ void test_findClosestConnection()
     std::cerr << "totalLength : " << totalLength << std::endl;
 }
 */
+
+
+
 int main(int argc, char **argv)
 {
+    
     //test_findClosestConnection();
 }

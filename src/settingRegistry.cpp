@@ -1,6 +1,7 @@
 #include "settingRegistry.h"
 
 #include <sstream>
+#include <iostream> // debug IO
 #include "utils/logoutput.h"
 
 #include "rapidjson/rapidjson.h"
@@ -222,6 +223,7 @@ SettingConfig* SettingCategory::addChild(std::string key, std::string label)
 SettingConfig::SettingConfig(std::string key, std::string label, SettingConfig* parent)
 : label(label), key(key), parent(parent)
 {
+//     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
 }
 
 SettingConfig* SettingConfig::addChild(std::string key, std::string label)
