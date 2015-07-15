@@ -294,7 +294,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                         if (newLen > 0)
                         {
                             if (oldLen > 0)
-                                gcode.writeMove(newPoint, speed * newLen / oldLen, path->getExtrusionMM3perMM());
+                                gcode.writeMove(newPoint, speed * oldLen / newLen, path->getExtrusionMM3perMM() * newLen / oldLen);
                             else 
                                 gcode.writeMove(newPoint, speed, path->getExtrusionMM3perMM());
                         }
