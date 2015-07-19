@@ -227,12 +227,12 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     {
         ClipperLib::PolyNode* child = node->Childs[n];
         partsView.emplace_back();
-        std::vector<unsigned int>& partView = partsView.back();
-        partView.push_back(reordered.size());
+        unsigned int pos = partsView.size() - 1;
+        partsView[pos].push_back(reordered.size());
         reordered.add(child->Contour);
         for(int i = 0; i < child->ChildCount(); i++)
         {
-            partView.push_back(reordered.size());
+            partsView[pos].push_back(reordered.size());
             reordered.add(child->Childs[i]->Contour);
             splitIntoPartsView_processPolyTreeNode(partsView, reordered, child->Childs[i]);
         }
