@@ -339,9 +339,9 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
         return;
     }
     
-    int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
+    unsigned int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
     
-    int layer_skip = 200 / layer_height;
+    int layer_skip = 100 / layer_height + 1;
     
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
