@@ -575,7 +575,6 @@ public:
      */
     Polygons removeDegenerateVerts()
     {
-                        std::cerr << "remove degenerate verts" << std::endl;
         Polygons ret;
         for (PolygonRef poly : *this)
         {
@@ -595,12 +594,10 @@ public:
                 Point& next = (idx+1 == poly.size())? result[0] : poly[idx+1];
                 if ( isDegenerate(last, poly[idx], next) )
                 { // lines are in the opposite direction
-                    std::cerr << "skipping" << std::endl;
                     // don't add vert to the result
                     while (result.size() > 1 && isDegenerate(result[result.size()-2], result.back(), next) )
                     {
                         result.pop_back();
-                        std::cerr << "REMOVING!!!!" << std::endl;
                     }
                 }
                 else 
@@ -612,7 +609,6 @@ public:
             if (result.size() > 2) {  ret.add(result); }
         }
         
-                        std::cerr << "//remove degenerate verts" << std::endl;
         return ret;
     }
     /*!
