@@ -163,6 +163,7 @@ void test_BucketGrid2D()
     //bg.debug();
 }*/
 
+/*
 #include <math.h> 
 #include "utils/gettime.h"
 void test_findClosestConnection()
@@ -264,8 +265,48 @@ void test_findClosestConnection()
     std::cerr << "evalTime : " << evalTime << std::endl;
     std::cerr << "totalLength : " << totalLength << std::endl;
 }
+*/
 
+void test_clipper()
+{
+    Polygon p;
+    p.emplace_back(0, 11004);
+    p.emplace_back(0, 10129);
+    p.emplace_back(0, 9185);
+    p.emplace_back(0, 8477);
+    p.emplace_back(1, 8491);
+    p.emplace_back(418, 8861);
+    p.emplace_back(1080, 9389);
+    p.emplace_back(2106, 10142);
+    p.emplace_back(3000, 10757);
+    p.emplace_back(3000, 12010);
+    p.emplace_back(3000, 12790);
+    p.emplace_back(3000, 13485);
+    p.emplace_back(3000, 14088);
+    p.emplace_back(3000, 14601);
+    p.emplace_back(3000, 15354);
+    p.emplace_back(3000, 24867);
+    p.emplace_back(3000, 25469);
+    p.emplace_back(3000, 26303);
+    p.emplace_back(3000, 27421);
+    p.emplace_back(3000, 28242);
+    p.emplace_back(2107, 28856);
+    p.emplace_back(1080, 29610);
+    p.emplace_back(608, 29986);
+    p.emplace_back(1, 30508);
+    p.emplace_back(1, 30522);
+    p.emplace_back(0, 11772);
+
+    Polygons polys;
+    polys.add(p);
+    
+    polys.debugOutputHTML("output/problem_test.html", true);
+    polys.offset(-400).debugOutputHTML("output/problem_test_offset.html", true);
+    polys = polys.removeDegenerateVerts();
+    polys.offset(-400).debugOutputHTML("output/problem_test_offset_solved.html", true);
+}
 int main(int argc, char **argv)
 {
-    test_findClosestConnection();
+//     test_findClosestConnection();
+    test_clipper();
 }

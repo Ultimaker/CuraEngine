@@ -66,6 +66,12 @@ public:
     {
         polygon->push_back(p);
     }
+    
+    template <typename... Args>
+    void emplace_back(Args... args)
+    {
+        polygon->emplace_back(args...);
+    }
 
     void remove(unsigned int index)
     {
@@ -344,11 +350,16 @@ public:
         }
     }
 
+    void pop_back()
+    { 
+        polygon->pop_back();
+    }
+    
     ClipperLib::Path::reference back() const
     {
         return polygon->back();
     }
-
+    
     ClipperLib::Path::iterator begin()
     {
         return polygon->begin();
@@ -560,6 +571,51 @@ public:
         }
     }
     /*!
+     * Removes overlapping consecutive line segments which don't delimit a positive area.
+     */
+    Polygons removeDegenerateVerts()
+    {
+                        std::cerr << "remove degenerate verts" << std::endl;
+        Polygons ret;
+        for (PolygonRef poly : *this)
+        {
+            Polygon result;
+            
+            auto isDegenerate = [](Point& last, Point& now, Point& next)
+            {
+                Point last_line = now - last;
+                Point next_line = next - now;
+                return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
+            };
+            
+            for (unsigned int idx = 0; idx < poly.size(); idx++)
+            {
+                Point& last = (result.size() == 0) ? poly.back() : result.back();
+                if (idx+1 == poly.size() && result.size() == 0) { break; }
+                Point& next = (idx+1 == poly.size())? result[0] : poly[idx+1];
+                if ( isDegenerate(last, poly[idx], next) )
+                { // lines are in the opposite direction
+                    std::cerr << "skipping" << std::endl;
+                    // don't add vert to the result
+                    while (result.size() > 1 && isDegenerate(result[result.size()-2], result.back(), next) )
+                    {
+                        result.pop_back();
+                        std::cerr << "REMOVING!!!!" << std::endl;
+                    }
+                }
+                else 
+                {
+                    result.add(poly[idx]);
+                }
+            }
+            
+            if (result.size() > 2) {  ret.add(result); }
+        }
+        
+                        std::cerr << "//remove degenerate verts" << std::endl;
+        return ret;
+    }
+    /*!
      * Removes the same polygons from this set (and also empty polygons).
      * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
      */
@@ -708,6 +764,41 @@ public:
                 polygons[i][j] = matrix.apply(polygons[i][j]);
             }
         }
+    }
+        
+    void debugOutputHTML(const char* filename, bool dotTheVertices = false)
+    {
+        FILE* out = fopen(filename, "w");
+        fprintf(out, "<!DOCTYPE html><html><body>");
+        Point modelSize = max() - min();
+        modelSize.X = std::max(modelSize.X, modelSize.Y);
+        modelSize.Y = std::max(modelSize.X, modelSize.Y);
+        Point modelMin = min();
+
+        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
+        for(Polygons& parts : splitIntoParts())
+        {
+            for(unsigned int j=0;j<parts.size();j++)
+            {
+                Polygon poly = parts[j];
+                fprintf(out, "<polygon points=\"");
+                for(Point& p : poly)
+                {
+                    fprintf(out, "%f,%f ", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
+                }
+                if (j == 0)
+                    fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
+                else
+                    fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
+                
+                if (dotTheVertices)
+                    for(Point& p : poly)
+                        fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"2\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" />", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
+            }
+        }
+        fprintf(out, "</svg>\n");
+        fprintf(out, "</body></html>");
+        fclose(out);
     }
 };
 

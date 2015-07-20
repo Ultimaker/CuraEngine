@@ -271,6 +271,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                 polygonList.add(openPolygonList[n]);
         }
     }
+    
     for(unsigned int i=0;i<openPolygonList.size();i++)
     {
         if (openPolygonList[i].size() > 0)
@@ -298,7 +299,9 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     optimizePolygons(polygonList);
-
+    
+    polygonList = polygonList.removeDegenerateVerts(); // remove verts connected to overlapping line segments
+    
     int xy_offset = mesh->getSettingInMicrons("xy_offset");
     if (xy_offset != 0)
     {
