@@ -68,6 +68,12 @@ public:
     {
         polygon->push_back(p);
     }
+    
+    template <typename... Args>
+    void emplace_back(Args... args)
+    {
+        polygon->emplace_back(args...);
+    }
 
     void remove(unsigned int index)
     {
@@ -280,11 +286,16 @@ public:
         }
     }
 
+    void pop_back()
+    { 
+        polygon->pop_back();
+    }
+    
     ClipperLib::Path::reference back() const
     {
         return polygon->back();
     }
-
+    
     ClipperLib::Path::iterator begin()
     {
         return polygon->begin();
@@ -544,6 +555,47 @@ public:
         }
     }
     /*!
+     * Removes overlapping consecutive line segments which don't delimit a positive area.
+     */
+    Polygons removeDegenerateVerts()
+    {
+        Polygons ret;
+        for (PolygonRef poly : *this)
+        {
+            Polygon result;
+            
+            auto isDegenerate = [](Point& last, Point& now, Point& next)
+            {
+                Point last_line = now - last;
+                Point next_line = next - now;
+                return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
+            };
+            
+            for (unsigned int idx = 0; idx < poly.size(); idx++)
+            {
+                Point& last = (result.size() == 0) ? poly.back() : result.back();
+                if (idx+1 == poly.size() && result.size() == 0) { break; }
+                Point& next = (idx+1 == poly.size())? result[0] : poly[idx+1];
+                if ( isDegenerate(last, poly[idx], next) )
+                { // lines are in the opposite direction
+                    // don't add vert to the result
+                    while (result.size() > 1 && isDegenerate(result[result.size()-2], result.back(), next) )
+                    {
+                        result.pop_back();
+                    }
+                }
+                else 
+                {
+                    result.add(poly[idx]);
+                }
+            }
+            
+            if (result.size() > 2) {  ret.add(result); }
+        }
+        
+        return ret;
+    }
+    /*!
      * Removes the same polygons from this set (and also empty polygons).
      * Polygons are considered the same if all points lie within [same_distance] of their counterparts.
      */
@@ -662,6 +714,8 @@ public:
             }
         }
     }
+    
+    void debugOutputHTML(const char* filename, bool dotTheVertices = false);
 };
 
 /*!
@@ -717,7 +771,7 @@ public:
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
     PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
-        /*!
+    /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      * 
      * \param part_idx The index of the part
