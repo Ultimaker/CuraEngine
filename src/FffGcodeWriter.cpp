@@ -349,10 +349,6 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
 {
     if (layer_nr == 0)
     {
-        if (getSettingInMicrons("draft_shield_height") == 0)
-        {
-            return;
-        }
         if (storage.skirt.size() > 0)
             gcodeLayer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
         gcodeLayer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
@@ -504,10 +500,10 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int fillAngle = 45;
         if (layer_nr & 1)
             fillAngle += 90;
-        int extrusionWidth = getSettingInMicrons("infill_line_width");
+        int extrusionWidth =  mesh->infill_config[0].getLineWidth(); //getSettingInMicrons("infill_line_width");
         
-        int sparse_infill_line_distance = getSettingInMicrons("infill_line_distance");
-        double infill_overlap = getSettingInPercentage("fill_overlap");
+        int sparse_infill_line_distance = mesh->settings->getSettingInMicrons("infill_line_distance");
+        double infill_overlap = mesh->settings->getSettingInPercentage("fill_overlap");
         
         processMultiLayerInfill(gcodeLayer, mesh, part, sparse_infill_line_distance, infill_overlap, fillAngle, extrusionWidth);
         processSingleLayerInfill(gcodeLayer, mesh, part, sparse_infill_line_distance, infill_overlap, fillAngle, extrusionWidth);
