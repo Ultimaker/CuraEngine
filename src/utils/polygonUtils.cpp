@@ -7,10 +7,10 @@
 namespace cura 
 {
 
-void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
+void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int distance = (inward)? -extrusionWidth : extrusionWidth;
-    if (!avoidOverlappingPerimeters)
+    if (!removeOverlappingPerimeters)
     {
         result = poly.offset(distance);
         return;
@@ -24,10 +24,10 @@ void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polyg
 }
 
 
-void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool avoidOverlappingPerimeters)
+void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
-    if (!avoidOverlappingPerimeters)
+    if (!removeOverlappingPerimeters)
     {
         result = poly.offset(distance);
         return;

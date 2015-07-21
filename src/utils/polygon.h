@@ -557,11 +557,12 @@ public:
     /*!
      * Removes overlapping consecutive line segments which don't delimit a positive area.
      */
-    Polygons removeDegenerateVerts()
+    void removeDegenerateVerts()
     {
-        Polygons ret;
-        for (PolygonRef poly : *this)
+        Polygons& thiss = *this;
+        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
         {
+            PolygonRef poly = thiss[poly_idx];
             Polygon result;
             
             auto isDegenerate = [](Point& last, Point& now, Point& next)
@@ -570,7 +571,7 @@ public:
                 Point next_line = next - now;
                 return dot(last_line, next_line) == -1 * vSize(last_line) * vSize(next_line);
             };
-            
+            bool isChanged = false;
             for (unsigned int idx = 0; idx < poly.size(); idx++)
             {
                 Point& last = (result.size() == 0) ? poly.back() : result.back();
@@ -579,6 +580,7 @@ public:
                 if ( isDegenerate(last, poly[idx], next) )
                 { // lines are in the opposite direction
                     // don't add vert to the result
+                    isChanged = true;
                     while (result.size() > 1 && isDegenerate(result[result.size()-2], result.back(), next) )
                     {
                         result.pop_back();
@@ -590,10 +592,19 @@ public:
                 }
             }
             
-            if (result.size() > 2) {  ret.add(result); }
+            if (isChanged)
+            {
+                if (result.size() > 2) 
+                {   
+                    thiss[poly_idx] = result;
+                }
+                else 
+                {
+                    thiss.remove(poly_idx);
+                    poly_idx--; // effectively the next iteration has the same poly_idx (referring to a new poly which is not yet processed)
+                }
+            }
         }
-        
-        return ret;
     }
     /*!
      * Removes the same polygons from this set (and also empty polygons).

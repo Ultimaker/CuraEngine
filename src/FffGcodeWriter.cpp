@@ -378,7 +378,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     
     int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
     
-    if (layer_nr > max_screen_layer)
+    if (int(layer_nr) > max_screen_layer)
     {
         return;
     }

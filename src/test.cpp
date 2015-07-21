@@ -304,7 +304,7 @@ void test_clipper()
     
 //     polys.debugOutputHTML("output/problem_test.html", true);
 //     polys.offset(-400).debugOutputHTML("output/problem_test_offset.html", true);
-    polys = polys.removeDegenerateVerts();
+    polys.removeDegenerateVerts();
 //     polys.offset(-400).debugOutputHTML("output/problem_test_offset_solved.html", true);
 }
 int main(int argc, char **argv)

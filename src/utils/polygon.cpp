@@ -193,7 +193,6 @@ PolygonsPart PartsView::assemblePart(unsigned int part_idx)
 
 PolygonsPart PartsView::assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) 
 {
-    PartsView& partsView = *this;
     PolygonsPart ret;
     unsigned int part_idx = getPartContaining(poly_idx, boundary_poly_idx);
     if (part_idx != NO_INDEX)

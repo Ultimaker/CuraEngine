@@ -199,8 +199,9 @@ public:
      */
     void insert(Point& p, T& t)
     {
-        typedef typename Map::iterator iter;
-        std::pair<iter, bool> emplaced = point2object.emplace(p, t);
+//         typedef typename Map::iterator iter;
+//         std::pair<iter, bool> emplaced = 
+        point2object.emplace(p, t);
 //         if (! emplaced.second)
 //             logError("Error! BucketGrid2D couldn't insert object!");
     };
