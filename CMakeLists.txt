@@ -29,6 +29,7 @@ set(engine_SRCS
     src/inset.cpp
     src/layerPart.cpp
     src/main.cpp
+    src/MergeInfillLines.cpp
     src/mesh.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
