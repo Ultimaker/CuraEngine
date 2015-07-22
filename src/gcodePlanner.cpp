@@ -273,7 +273,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             speed *= getExtrudeSpeedFactor();
 
         int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
-//         if (false)
+        
         if (MergeInfillLines::mergeInfillLines(gcode, paths, travelConfig, nozzle_size, speed, path_idx))
         { // !! has effect on path_idx
             continue;

@@ -32,7 +32,6 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     
     double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
     bool supportOnBuildplateOnly = support_type == Support_PlatformOnly;
-    int supportXYDistance = object->settings->getSettingInMicrons("support_xy_distance");
     int supportZDistance = object->settings->getSettingInMicrons("support_z_distance");
     int supportZDistanceBottom = object->settings->getSettingInMicrons("support_bottom_distance");
     int supportZDistanceTop = object->settings->getSettingInMicrons("support_top_distance");
@@ -51,6 +50,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         
     int layerThickness = object->settings->getSettingInMicrons("layer_height");
     int extrusionWidth = object->settings->getSettingInMicrons("support_line_width"); 
+    int supportXYDistance = object->settings->getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
     
 
     
