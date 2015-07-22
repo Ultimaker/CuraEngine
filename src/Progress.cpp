@@ -31,7 +31,7 @@ std::string Progress::names [] =
 
     
 double Progress::accumulated_times [] = {-1};
-double Progress::totalTiming = -1;
+double Progress::total_timing = -1;
 
 const Progress::Stage Progress::stages[] = 
 { 
@@ -47,7 +47,7 @@ const Progress::Stage Progress::stages[] =
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
-    return ( accumulated_times[(int)stage] + stage_progress / times[(int)stage] ) / totalTiming;
+    return ( accumulated_times[(int)stage] + stage_progress / times[(int)stage] ) / total_timing;
 }
 
 
@@ -59,42 +59,40 @@ void Progress::init()
         accumulated_times[(int)stage] = accumulated_time;
         accumulated_time += times[(int)stage];
     }
-    totalTiming = accumulated_time;
+    total_timing = accumulated_time;
 }
 
-void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* commandSocket)
+void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* command_socket)
 {
-    if (commandSocket)
+    if (command_socket)
     {
-        commandSocket->sendProgress(calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max)));
+        command_socket->sendProgress(calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max)));
     }
     
     logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max);
 }
 
-void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* timeKeeper, CommandSocket* commandSocket)
+void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper, CommandSocket* command_socket)
 {
-    if (commandSocket)
+    if (command_socket)
     {
-        commandSocket->sendProgressStage(stage);
+        command_socket->sendProgressStage(stage);
     }
     
-    if (timeKeeper)
+    if (time_keeper)
     {
         if ((int)stage > 0)
         {
-            log("Progress: %s accomplished in %5.3fs\n", names[(int)stage-1].c_str(), timeKeeper->restart());
+            log("Progress: %s accomplished in %5.3fs\n", names[(int)stage-1].c_str(), time_keeper->restart());
         }
         else
         {
-            timeKeeper->restart();
+            time_keeper->restart();
         }
         
         if ((int)stage < (int)Stage::FINISH)
             log("Starting %s...\n", names[(int)stage].c_str());
     }
 }
-
-
 
 }// namespace cura

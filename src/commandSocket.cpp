@@ -120,7 +120,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
         for(int i = 0; i < face_count; ++i)
         {
             //TODO: Apply matrix
-            std::string data = object.vertices().substr(i * bytesPerFace, bytesPerFace);
+            std::string data = object.vertices().substr(i * bytes_per_face, bytes_per_face);
             const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
 
             Point3 verts[3];
