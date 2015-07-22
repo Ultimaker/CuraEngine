@@ -26,8 +26,8 @@ public:
         , socket(nullptr)
         , object_count(0)
         , current_object_number(0)
-        , currentSlicedObject(nullptr)
-        , slicedObjects(0)
+        , current_sliced_object(nullptr)
+        , sliced_objects(0)
     { }
 
     fffProcessor* processor;
@@ -37,15 +37,15 @@ public:
     int object_count;
     int current_object_number;
 
-    std::shared_ptr<Cura::SlicedObjectList> slicedObjectList;
-    Cura::SlicedObject* currentSlicedObject;
-    int slicedObjects;
-    std::vector<int64_t> objectIds;
+    std::shared_ptr<Cura::SlicedObjectList> sliced_object_list;
+    Cura::SlicedObject* current_sliced_object;
+    int sliced_objects;
+    std::vector<int64_t> object_ids;
 
-    std::string tempGCodeFile;
+    std::string temp_gcode_file;
     std::ostringstream gcode_output_stream;
 
-    std::shared_ptr<PrintObject> objectToSlice;
+    std::shared_ptr<PrintObject> object_to_slice;
 };
 
 CommandSocket::CommandSocket(fffProcessor* processor)
@@ -70,11 +70,11 @@ void CommandSocket::connect(const std::string& ip, int port)
 
     while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error)
     {
-        if(d->objectToSlice)
+        if(d->object_to_slice)
         {
             //TODO: Support all-at-once/one-at-a-time printing
-            d->processor->processModel(d->objectToSlice.get());
-            d->objectToSlice.reset();
+            d->processor->processModel(d->object_to_slice.get());
+            d->object_to_slice.reset();
             d->processor->resetFileNumber();
 
             sendPrintTime();
@@ -107,13 +107,13 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
 {
     FMatrix3x3 matrix;
     d->object_count = 0;
-    d->objectIds.clear();
+    d->object_ids.clear();
 
-    d->objectToSlice = std::make_shared<PrintObject>(d->processor);
+    d->object_to_slice = std::make_shared<PrintObject>(d->processor);
     for(auto object : list->objects())
     {
-        d->objectToSlice->meshes.emplace_back(d->objectToSlice.get()); //Construct a new mesh and put it into printObject's mesh list.
-        Mesh& mesh = d->objectToSlice->meshes.back();
+        d->object_to_slice->meshes.emplace_back(d->object_to_slice.get()); //Construct a new mesh and put it into printObject's mesh list.
+        Mesh& mesh = d->object_to_slice->meshes.back();
 
         int bytesPerFace = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int faceCount = object.vertices().size() / bytesPerFace;
@@ -135,11 +135,11 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
             mesh.setSetting(setting.name(), setting.value());
         }
 
-        d->objectIds.push_back(object.id());
+        d->object_ids.push_back(object.id());
         mesh.finish();
     }
     d->object_count++;
-    d->objectToSlice->finalize();
+    d->object_to_slice->finalize();
 }
 
 void CommandSocket::handleSettingList(Cura::SettingList* list)
@@ -162,10 +162,10 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 
 void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
 {
-    if(!d->currentSlicedObject)
+    if(!d->current_sliced_object)
         return;
 
-    Cura::Layer* layer = d->currentSlicedObject->add_layers();
+    Cura::Layer* layer = d->current_sliced_object->add_layers();
     layer->set_id(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
@@ -209,24 +209,24 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 
 void CommandSocket::beginSendSlicedObject()
 {
-    if(!d->slicedObjectList)
+    if(!d->sliced_object_list)
     {
-        d->slicedObjectList = std::make_shared<Cura::SlicedObjectList>();
+        d->sliced_object_list = std::make_shared<Cura::SlicedObjectList>();
     }
 
-    d->currentSlicedObject = d->slicedObjectList->add_objects();
-    d->currentSlicedObject->set_id(d->objectIds[d->slicedObjects]);
+    d->current_sliced_object = d->sliced_object_list->add_objects();
+    d->current_sliced_object->set_id(d->object_ids[d->sliced_objects]);
 }
 
 void CommandSocket::endSendSlicedObject()
 {
-    d->slicedObjects++;
-    if(d->slicedObjects >= d->object_count)
+    d->sliced_objects++;
+    if(d->sliced_objects >= d->object_count)
     {
-        d->socket->sendMessage(d->slicedObjectList);
-        d->slicedObjects = 0;
-        d->slicedObjectList.reset();
-        d->currentSlicedObject = nullptr;
+        d->socket->sendMessage(d->sliced_object_list);
+        d->sliced_objects = 0;
+        d->sliced_object_list.reset();
+        d->current_sliced_object = nullptr;
     }
 }
 
@@ -238,7 +238,7 @@ void CommandSocket::beginGCode()
 void CommandSocket::sendGCodeLayer()
 {
     auto message = std::make_shared<Cura::GCodeLayer>();
-    message->set_id(d->objectIds[0]);
+    message->set_id(d->object_ids[0]);
     message->set_data(d->gcode_output_stream.str());
     d->socket->sendMessage(message);
     
