@@ -115,18 +115,18 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
         d->object_to_slice->meshes.emplace_back(d->object_to_slice.get()); //Construct a new mesh and put it into printObject's mesh list.
         Mesh& mesh = d->object_to_slice->meshes.back();
 
-        int bytesPerFace = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
-        int faceCount = object.vertices().size() / bytesPerFace;
-        for(int i = 0; i < faceCount; ++i)
+        int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
+        int face_count = object.vertices().size() / bytes_per_face;
+        for(int i = 0; i < face_count; ++i)
         {
             //TODO: Apply matrix
             std::string data = object.vertices().substr(i * bytesPerFace, bytesPerFace);
-            const FPoint3* floatVerts = reinterpret_cast<const FPoint3*>(data.data());
+            const FPoint3* float_vertices = reinterpret_cast<const FPoint3*>(data.data());
 
             Point3 verts[3];
-            verts[0] = matrix.apply(floatVerts[0]);
-            verts[1] = matrix.apply(floatVerts[1]);
-            verts[2] = matrix.apply(floatVerts[2]);
+            verts[0] = matrix.apply(float_vertices[0]);
+            verts[1] = matrix.apply(float_vertices[1]);
+            verts[2] = matrix.apply(float_vertices[2]);
             mesh.addFace(verts[0], verts[1], verts[2]);
         }
 
