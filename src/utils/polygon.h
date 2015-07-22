@@ -47,6 +47,11 @@ public:
     PolygonRef(ClipperLib::Path& polygon)
     : polygon(&polygon)
     {}
+    
+    PolygonRef(const PolygonRef& other)
+    { 
+        polygon = other.polygon;
+    }
 
     unsigned int size() const
     {
@@ -68,6 +73,10 @@ public:
     {
         polygon->push_back(p);
     }
+    
+    PolygonRef& operator=(const PolygonRef& other) { polygon = other.polygon; return *this; }
+    
+    ClipperLib::Path& operator*() { return *polygon; }
     
     template <typename... Args>
     void emplace_back(Args... args)
@@ -596,7 +605,7 @@ public:
             {
                 if (result.size() > 2) 
                 {   
-                    thiss[poly_idx] = result;
+                    *poly = *result;
                 }
                 else 
                 {

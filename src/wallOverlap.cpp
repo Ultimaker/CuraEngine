@@ -369,7 +369,7 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
             // number:
 //             fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli</text>",pf.Y, pf.X, pp);
             // coords:
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>",pf.Y, pf.X, p.X, p.Y, pp);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>",pf.Y, pf.X, p.X, p.Y);
             
         }
     }
