@@ -16,66 +16,66 @@ namespace cura {
 class fffProcessor : public SettingsBase
 {
 private:
-    FffPolygonGenerator polygonGenerator;
-    FffGcodeWriter gcodeWriter;
-    TimeKeeper timeKeeper;
-    CommandSocket* commandSocket;
+    FffPolygonGenerator polygon_generator;
+    FffGcodeWriter gcode_writer;
+    TimeKeeper time_keeper;
+    CommandSocket* command_socket;
 
 public:
     
     fffProcessor()
-    : polygonGenerator(this)
-    , gcodeWriter(this)
+    : polygon_generator(this)
+    , gcode_writer(this)
     {
-        commandSocket = NULL;
+        command_socket = NULL;
     }
     
     void resetFileNumber()
     {
-        gcodeWriter.resetFileNumber();
+        gcode_writer.resetFileNumber();
     }
 
     void setCommandSocket(CommandSocket* socket)
     {
-        commandSocket = socket;
-        gcodeWriter.setCommandSocket(socket);
-        polygonGenerator.setCommandSocket(socket);
+        command_socket = socket;
+        gcode_writer.setCommandSocket(socket);
+        polygon_generator.setCommandSocket(socket);
     }
 
     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
     {
-        if (commandSocket)
-            commandSocket->sendPolygons(type, layer_nr, polygons);
+        if (command_socket)
+            command_socket->sendPolygons(type, layer_nr, polygons);
     }
     
     bool setTargetFile(const char* filename)
     {
-        return gcodeWriter.setTargetFile(filename);
+        return gcode_writer.setTargetFile(filename);
     }
     
     void setTargetStream(std::ostream* stream)
     {
-        return gcodeWriter.setTargetStream(stream);
+        return gcode_writer.setTargetStream(stream);
     }
 
     double getTotalFilamentUsed(int e)
     {
-        return gcodeWriter.getTotalFilamentUsed(e);
+        return gcode_writer.getTotalFilamentUsed(e);
     }
 
     double getTotalPrintTime()
     {
-        return gcodeWriter.getTotalPrintTime();
+        return gcode_writer.getTotalPrintTime();
     }
     
     void finalize()
     {
-        gcodeWriter.finalize();
+        gcode_writer.finalize();
     }
 
     bool processFiles(const std::vector<std::string> &files)
     {
-        timeKeeper.restart();
+        time_keeper.restart();
         PrintObject* model = nullptr;
 
         model = new PrintObject(this);
@@ -92,54 +92,49 @@ public:
         }
         model->finalize();
 
-        log("Loaded from disk in %5.3fs\n", timeKeeper.restart());
+        log("Loaded from disk in %5.3fs\n", time_keeper.restart());
         return processModel(model);
     }
     
     bool processModel(PrintObject* model)
     {
-        timeKeeper.restart();
+        time_keeper.restart();
         if (!model)
             return false;
 
-        TimeKeeper timeKeeperTotal;
+        TimeKeeper time_keeper_total;
         
         if (model->getSettingBoolean("wireframe_enabled"))
         {
             log("starting Neith Weaver...\n");
                         
             Weaver w(this);
-            w.weave(model, commandSocket);
+            w.weave(model, command_socket);
             
             log("starting Neith Gcode generation...\n");
-            Wireframe2gcode gcoder(w, gcodeWriter.gcode, this);
-            gcoder.writeGCode(commandSocket);
+            Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
+            gcoder.writeGCode(command_socket);
             log("finished Neith Gcode generation...\n");
             
         } else 
         {
             SliceDataStorage storage;
 
-            if (!polygonGenerator.generateAreas(storage, model, timeKeeper))
+            if (!polygon_generator.generateAreas(storage, model, time_keeper))
             {
                 return false;
             }
-            gcodeWriter.setCommandSocket(commandSocket);
+            gcode_writer.setCommandSocket(command_socket);
             
-            Progress::messageProgressStage(Progress::Stage::EXPORT, &timeKeeper, commandSocket);
-            gcodeWriter.writeGCode(storage, timeKeeper);
+            Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper, command_socket);
+            gcode_writer.writeGCode(storage, time_keeper);
         }
 
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, commandSocket); //Report the GUI that a file has been fully processed.
-        log("Total time elapsed %5.2fs.\n", timeKeeperTotal.restart());
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+        log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
         return true;
     }
-
-
-
-
-    
 };
 
 }//namespace cura
