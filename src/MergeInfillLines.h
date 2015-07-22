@@ -16,11 +16,6 @@ class MergeInfillLines
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
     
-    /*!
-     * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
-     */
-    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths,  GCodePathConfig& travelConfig, int64_t nozzle_size) 
-    : gcode(gcode), paths(paths), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
     
     /*!
      * Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
@@ -33,6 +28,11 @@ class MergeInfillLines
      */
     bool isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& line_width, bool use_second_middle_as_first);
 public:
+    /*!
+     * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
+     */
+    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths,  GCodePathConfig& travelConfig, int64_t nozzle_size) 
+    : gcode(gcode), paths(paths), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
     
     /*!
      * Check for lots of small moves and combine them into one large line.
@@ -46,7 +46,7 @@ public:
      * \param path_idx Input/Output parameter: The current index in \p paths where to start combining and the current index after combining as output parameter.
      * \return Whether lines have been merged and normal path-to-gcode generation can be skipped for the current resulting \p path_idx .
      */
-    static bool mergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths, GCodePathConfig& travelConfig, int64_t nozzle_size, double speed, unsigned int& path_idx);
+    bool mergeInfillLines(double speed, unsigned int& path_idx);
     
 };
 
