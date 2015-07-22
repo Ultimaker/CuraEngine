@@ -5,7 +5,7 @@
 #include "commandSocket.h"
 #include "settings.h"
 
-#include "modelFile/modelFile.h" // PrintObject
+#include "PrintObject.h"
 #include "slicer.h"
 
 #include "utils/polygon.h"

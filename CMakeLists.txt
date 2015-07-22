@@ -47,7 +47,7 @@ set(engine_SRCS
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 
-    src/modelFile/modelFile.cpp
+    src/PrintObject.cpp
 
     src/utils/gettime.cpp
     src/utils/logoutput.cpp

@@ -96,7 +96,8 @@ void CommandSocket::connect(const std::string& ip, int port)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
 
-        if(!d->socket->errorString().empty()) {
+        if(!d->socket->errorString().empty()) 
+        {
             logError("%s\n", d->socket->errorString().data());
             d->socket->clearError();
         }

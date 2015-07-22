@@ -3,9 +3,9 @@
 #include <strings.h>
 #include <stdio.h>
 
-#include "modelFile.h"
-#include "../utils/logoutput.h"
-#include "../utils/string.h"
+#include "PrintObject.h"
+#include "utils/logoutput.h"
+#include "utils/string.h"
 
 FILE* binaryMeshBlob = nullptr;
 

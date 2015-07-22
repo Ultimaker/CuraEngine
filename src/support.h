@@ -3,7 +3,7 @@
 #define SUPPORT_H
 
 #include "sliceDataStorage.h"
-#include "modelFile/modelFile.h"
+#include "PrintObject.h"
 #include "commandSocket.h"
 
 namespace cura {

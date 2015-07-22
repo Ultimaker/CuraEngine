@@ -5,7 +5,7 @@
 #include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
-#include "modelFile/modelFile.h"
+#include "PrintObject.h"
 #include "support.h"
 #include "multiVolumes.h"
 #include "layerPart.h"
