@@ -300,7 +300,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             }
             if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
             { // normal path to gcode algorithm
-                if (
+                if (  // change   ||||||   to  /\/\/\/\/ ...
+                    false &&
                     path_idx + 2 < paths.size() // has a next move
                     && paths[path_idx+1].points.size() == 1 // is single extruded line
                     && paths[path_idx+1].config != &travelConfig // next move is extrusion
@@ -308,7 +309,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                     && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
                     && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
                     && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
-                ) // change   ||||||   to  /\/\/\/\/ ...
+                )
                 {
                     gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
                     path_idx += 2;
