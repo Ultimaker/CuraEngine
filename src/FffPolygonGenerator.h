@@ -2,7 +2,7 @@
 #define FFF_AREA_GENERATOR_H
 
 
-#include "modelFile/modelFile.h"
+#include "PrintObject.h"
 #include "utils/polygonUtils.h"
 #include "utils/gettime.h"
 #include "settings.h"

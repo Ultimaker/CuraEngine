@@ -16,7 +16,7 @@
 #include "utils/string.h"
 #include "sliceDataStorage.h"
 
-#include "modelFile/modelFile.h"
+#include "PrintObject.h"
 #include "settings.h"
 #include "settingRegistry.h"
 #include "multiVolumes.h"
