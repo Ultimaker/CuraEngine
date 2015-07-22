@@ -29,28 +29,28 @@ class FffGcodeWriter : public SettingsBase
 {
     friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
-    int maxObjectHeight;
-    int fileNr; //!< used for sequential printing of objects
+    int max_object_height;
+    int file_number; //!< used for sequential printing of objects
     GCodeExport gcode;
     CoastingConfig coasting_config;
-    CommandSocket* commandSocket;
+    CommandSocket* command_socket;
     std::ofstream output_file;
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsBase(settings_)
     {
-        fileNr = 1;
-        maxObjectHeight = 0;
-        commandSocket = NULL;
+        file_number = 1;
+        max_object_height = 0;
+        command_socket = NULL;
     }
     void resetFileNumber()
     {
-        fileNr = 1;
+        file_number = 1;
     }
 
     void setCommandSocket(CommandSocket* socket)
     {
-        commandSocket = socket;
+        command_socket = socket;
     }
 
         
