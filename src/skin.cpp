@@ -95,14 +95,13 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
 {
-    int extra_sparse_inset_during_clipping = extrusionWidth / 2;
     SliceLayer& layer = storage.layers[layerNr];
 
     for(SliceLayerPart& part : layer.parts)
     {
-        Polygons sparse = part.insets.back().offset(-extrusionWidth / 2 - extra_sparse_inset_during_clipping);
+        Polygons sparse = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
@@ -116,7 +115,7 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
         }
         sparse.removeSmallAreas(3.0);//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
         
-        part.sparse_outline.push_back(sparse.offset(extra_sparse_inset_during_clipping));
+        part.sparse_outline.push_back(sparse.offset(infill_skin_overlap));
     }
 }
 
