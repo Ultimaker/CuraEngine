@@ -292,7 +292,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         if (!spiralize) // normal (extrusion) move (with coasting
         { 
             bool coasting = coasting_config.coasting_enable; 
-            if (coasting && path.getExtrusionMM3perMM() > 0)
+            if (coasting)
             {
                 coasting = writePathWithCoasting(path_idx, layerThickness
                             , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move

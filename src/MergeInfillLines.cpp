@@ -21,14 +21,21 @@ bool MergeInfillLines::mergeInfillLines(GCodeExport& gcode, std::vector<GCodePat
         }
         
         path_idx += 2;
+        
+        Point prev_prev_middle; // used for ending part
+        int64_t last_line_width; // used for ending part
         for (; merger.isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
         {
             GCodePath& last_path = paths[path_idx + 3];
             gcode.writeMove(last_middle, speed * line_width / last_path.config->getLineWidth(), last_path.getExtrusionMM3perMM() * line_width / last_path.config->getLineWidth());
+            prev_prev_middle = prev_middle;
+            last_line_width = line_width;
         }
-        // add last lil path of half line width
-        GCodePath& last_path = paths[path_idx + 1];
-        gcode.writeMove(last_middle + normal(last_middle-prev_middle, last_path.config->getLineWidth() / 2), speed * line_width / last_path.config->getLineWidth(), last_path.getExtrusionMM3perMM() * line_width / last_path.config->getLineWidth());
+        { // ending part:
+            // add last lil path of half line width
+            GCodePath& last_path = paths[path_idx + 1];
+            gcode.writeMove(prev_middle + normal(prev_middle-prev_prev_middle, last_path.config->getLineWidth() / 2), speed * last_line_width / last_path.config->getLineWidth(), last_path.getExtrusionMM3perMM() * line_width / last_path.config->getLineWidth());
+        }
         path_idx = path_idx + 1; // means that the next path considered is the travel path after the converted extrusion path corresponding to the updated path_idx
         return true;
     }
@@ -54,8 +61,8 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     Point& b = paths[idx+1].points.back(); // first extruded line to
     Point& c = paths[idx+2].points.back(); // second extruded line from
     Point& d = paths[idx+3].points.back(); // second extruded line to
-    Point cd = d - c;
     Point ab = b - a;
+    Point cd = d - c;
     
     int64_t prod = dot(ab,cd);
     if (prod*prod + 20 < vSize2(ab) * vSize2(cd)) return false; // extrusion moves not in the same or opposite diraction
