@@ -558,8 +558,9 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
             gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
         }
         
-        gcode.writeCode(getSettingString("machine_start_gcode").c_str());
     }
+    gcode.writeCode(getSettingString("machine_start_gcode").c_str());
+    
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
     if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
     {
