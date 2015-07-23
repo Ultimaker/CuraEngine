@@ -296,7 +296,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     processSkirt(storage, gcode_layer, layer_nr);
     
-    bool printSupportFirst = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcode_layer.getExtruder());
+    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+    bool printSupportFirst = (storage.support.generated && support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder());
     if (printSupportFirst)
         addSupportToGCode(storage, gcode_layer, layer_nr);
 
@@ -704,7 +705,8 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     
     if (getSettingBoolean("support_roof_enable"))
     {
-        bool print_alternate_material_first = (storage.support.generated && getSettingAsIndex("support_extruder_nr") > 0 && getSettingAsIndex("support_extruder_nr") == gcode_layer.getExtruder());
+        int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+        bool print_alternate_material_first = (storage.support.generated && support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder());
         bool roofs_in_alternate_material_only = true;
         
         if (roofs_in_alternate_material_only && print_alternate_material_first)
@@ -739,7 +741,8 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     if (getSettingAsIndex("support_extruder_nr") > -1)
     {
         int previous_extruder = gcode_layer.getExtruder();
-        bool extruder_changed = gcode_layer.setExtruder(getSettingAsIndex("support_extruder_nr"));
+        int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+        bool extruder_changed = gcode_layer.setExtruder(support_extruder_nr);
         
         if (extruder_changed)
             addWipeTower(storage, gcode_layer, layer_nr, previous_extruder);
