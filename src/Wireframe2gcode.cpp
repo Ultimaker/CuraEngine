@@ -6,6 +6,8 @@
 #include "weaveDataStorage.h"
 #include "Progress.h"
 
+#include "pathOrderOptimizer.h" // for skirt
+
 namespace cura 
 {
 
@@ -18,24 +20,11 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     if (commandSocket)
         commandSocket->beginGCode();
     
+    processStartingCode(commandSocket);
+    
     int maxObjectHeight = wireFrame.layers.back().z1;
     
-    { // starting Gcode
-        if (getSettingInDegreeCelsius("material_bed_temperature") > 0)
-            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-        if (getSettingInDegreeCelsius("material_print_temperature") > 0)
-            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
-        
-        gcode.writeCode(getSettingString("machine_start_gcode").c_str());
-        if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
-        {
-            gcode.writeComment("enable auto-retraction");
-            std::ostringstream tmp;
-            tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);  // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
-            gcode.writeLine(tmp.str().c_str());
-        }
-    }
-    
+    processSkirt(commandSocket);
     
             
     unsigned int totalLayers = wireFrame.layers.size();
@@ -168,12 +157,10 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     gcode.writeFanCommand(0);
 
+    finalize(maxObjectHeight);
+    
     if (commandSocket)
     {
-        gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
-        for(int e=0; e<MAX_EXTRUDERS; e++)
-            gcode.writeTemperatureCommand(e, 0, false);
-
         commandSocket->sendGCodeLayer();
         commandSocket->endSendSlicedObject();
     }
@@ -551,5 +538,65 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 
 }
 
+void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
+{
+    if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+    {
+        if (!command_socket)
+        {
+            gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
+        }
+    }
+    else 
+    {
+        if (getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
+        
+        if (getSettingInDegreeCelsius("material_print_temperature") > 0)
+        {
+            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
+            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
+        }
+        
+    }
+    gcode.writeCode(getSettingString("machine_start_gcode").c_str());
+    
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+    if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
+    {
+        gcode.writeComment("enable auto-retraction");
+        std::ostringstream tmp;
+        tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
+        gcode.writeLine(tmp.str().c_str());
+    }
+}
 
+
+void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
+{
+    Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
+    PathOrderOptimizer order(gcode.getStartPositionXY());
+    order.addPolygons(skirt);
+    order.optimize();
+    
+    for (unsigned int poly_idx = 0; poly_idx < skirt.size(); poly_idx++)
+    {
+        unsigned int actual_poly_idx = order.polyOrder[poly_idx];
+        PolygonRef poly = skirt[actual_poly_idx];
+        gcode.writeMove(poly[order.polyStart[actual_poly_idx]], getSettingInMillimetersPerSecond("speed_travel"), 0);
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            Point& p = poly[(point_idx + order.polyStart[actual_poly_idx] + 1) % poly.size()];
+            gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_speed"), getSettingInMillimetersPerSecond("skirt_line_width"));
+        }
+    }
+}
+
+
+void Wireframe2gcode::finalize(int maxObjectHeight)
+{
+    gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    for(int e=0; e<MAX_EXTRUDERS; e++)
+        gcode.writeTemperatureCommand(e, 0, false);
+}
 } // namespace cura    
