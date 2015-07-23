@@ -1,11 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #ifndef PRINTOBJECT_H
 #define PRINTOBJECT_H
-/**
-modelFile contains the model loaders for the slicer. The model loader turns any format that it can read into a list of triangles with 3 X/Y/Z points.
-
-The format returned is a Model class with an array of faces, which have integer points with a resolution of 1 micron. Giving a maximum object size of 4 meters.
-**/
 
 #include "mesh.h"
 
@@ -13,9 +8,11 @@ The format returned is a Model class with an array of faces, which have integer 
 class PrintObject : public SettingsBase
 {
 public:
-    std::vector<Mesh> meshes;
+   
 
     PrintObject(SettingsBase* settings_base): SettingsBase(settings_base){}
+    
+    std::vector<Mesh> meshes;
 
     Point3 min() //! minimal corner of bounding box
     {

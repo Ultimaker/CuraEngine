@@ -58,7 +58,8 @@ CommandSocket::CommandSocket(fffProcessor* processor)
 void CommandSocket::connect(const std::string& ip, int port)
 {
     d->socket = new Arcus::Socket();
-    d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
+    //d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
+    d->socket->registerMessageType(1, &Cura::Slice::default_instance());
     d->socket->registerMessageType(2, &Cura::SlicedObjectList::default_instance());
     d->socket->registerMessageType(3, &Cura::Progress::default_instance());
     d->socket->registerMessageType(4, &Cura::GCodeLayer::default_instance());
@@ -82,16 +83,25 @@ void CommandSocket::connect(const std::string& ip, int port)
 
         Arcus::MessagePtr message = d->socket->takeNextMessage();
 
-        Cura::SettingList* settingList = dynamic_cast<Cura::SettingList*>(message.get());
-        if(settingList)
+        Cura::SettingList* setting_list = dynamic_cast<Cura::SettingList*>(message.get());
+        if(setting_list)
         {
-            handleSettingList(settingList);
+            handleSettingList(setting_list);
         }
 
-        Cura::ObjectList* objectList = dynamic_cast<Cura::ObjectList*>(message.get());
-        if(objectList)
+        Cura::ObjectList* object_list = dynamic_cast<Cura::ObjectList*>(message.get());
+        if(object_list)
         {
-            handleObjectList(objectList);
+            handleObjectList(object_list);
+        }
+        
+        Cura::Slice* slice = dynamic_cast<Cura::Slice*>(message.get());
+        if(slice)
+        {
+            for(auto object : slice->object_lists())
+            {
+                handleObjectList(&object);
+            }
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -113,7 +123,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
     d->object_to_slice = std::make_shared<PrintObject>(d->processor);
     for(auto object : list->objects())
     {
-        d->object_to_slice->meshes.emplace_back(d->object_to_slice.get()); //Construct a new mesh and put it into printObject's mesh list.
+        d->object_to_slice->meshes.emplace_back(d->object_to_slice.get()); //Construct a new mesh and put it into PrintObject's mesh list.
         Mesh& mesh = d->object_to_slice->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
