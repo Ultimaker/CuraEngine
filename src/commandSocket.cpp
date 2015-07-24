@@ -25,7 +25,6 @@ public:
         : processor(nullptr)
         , socket(nullptr)
         , object_count(0)
-        , current_object_number(0)
         , current_sliced_object(nullptr)
         , sliced_objects(0)
     { }
@@ -33,19 +32,27 @@ public:
     fffProcessor* processor;
 
     Arcus::Socket* socket;
-
+    
+    // Number of objects that need to be sliced
     int object_count;
-    int current_object_number;
-
+    
+    // Message that holds a list of sliced objects
     std::shared_ptr<Cura::SlicedObjectList> sliced_object_list;
+    
+    // Message that holds the currently sliced object (to be added to sliced_object_list)
     Cura::SlicedObject* current_sliced_object;
+    
+    // Number of sliced objects for this sliced object list
     int sliced_objects;
+    
+    // Ids of the sliced objects
     std::vector<int64_t> object_ids;
 
     std::string temp_gcode_file;
     std::ostringstream gcode_output_stream;
-
-    std::shared_ptr<PrintObject> object_to_slice;
+    
+    // Print object that olds one or more meshes that need to be sliced. 
+    std::vector< std::shared_ptr<PrintObject> > objects_to_slice;
 };
 
 CommandSocket::CommandSocket(fffProcessor* processor)
@@ -68,36 +75,47 @@ void CommandSocket::connect(const std::string& ip, int port)
     d->socket->registerMessageType(7, &Cura::GCodePrefix::default_instance());
 
     d->socket->connect(ip, port);
-
+    
+    // Start & continue listening as long as socket is not closed and there is no error.
     while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error)
     {
-        if(d->object_to_slice)
+        //If there is an object to slice, do so.
+        if(d->objects_to_slice.size())
         {
-            //TODO: Support all-at-once/one-at-a-time printing
-            d->processor->processModel(d->object_to_slice.get());
-            d->object_to_slice.reset();
-            d->processor->resetFileNumber();
-
+            for(auto object : d->objects_to_slice)
+            {
+                d->processor->processModel(object.get());
+            }
+            d->objects_to_slice.clear();
             sendPrintTime();
+            //TODO: Support all-at-once/one-at-a-time printing
+            //d->processor->processModel(d->object_to_slice.get());
+            //d->object_to_slice.reset();
+            //d->processor->resetFileNumber();
+
+            //sendPrintTime();
         }
-
+        
+        // Actually start handling messages.
         Arcus::MessagePtr message = d->socket->takeNextMessage();
-
         Cura::SettingList* setting_list = dynamic_cast<Cura::SettingList*>(message.get());
         if(setting_list)
         {
             handleSettingList(setting_list);
         }
 
-        Cura::ObjectList* object_list = dynamic_cast<Cura::ObjectList*>(message.get());
+        /*Cura::ObjectList* object_list = dynamic_cast<Cura::ObjectList*>(message.get());
         if(object_list)
         {
             handleObjectList(object_list);
-        }
+        }*/
         
         Cura::Slice* slice = dynamic_cast<Cura::Slice*>(message.get());
         if(slice)
         {
+            // Reset object counts
+            d->object_count = 0;
+            d->object_ids.clear();
             for(auto object : slice->object_lists())
             {
                 handleObjectList(&object);
@@ -117,14 +135,14 @@ void CommandSocket::connect(const std::string& ip, int port)
 void CommandSocket::handleObjectList(Cura::ObjectList* list)
 {
     FMatrix3x3 matrix;
-    d->object_count = 0;
-    d->object_ids.clear();
-
-    d->object_to_slice = std::make_shared<PrintObject>(d->processor);
+    //d->object_count = 0;
+    //d->object_ids.clear();
+    std::cout << "Handling" << std::endl;
+    d->objects_to_slice.push_back(std::make_shared<PrintObject>(d->processor));
     for(auto object : list->objects())
     {
-        d->object_to_slice->meshes.emplace_back(d->object_to_slice.get()); //Construct a new mesh and put it into PrintObject's mesh list.
-        Mesh& mesh = d->object_to_slice->meshes.back();
+        d->objects_to_slice.back()->meshes.push_back(d->objects_to_slice.back().get()); //Construct a new mesh and put it into PrintObject's mesh list.
+        Mesh& mesh = d->objects_to_slice.back()->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int face_count = object.vertices().size() / bytes_per_face;
@@ -150,7 +168,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
         mesh.finish();
     }
     d->object_count++;
-    d->object_to_slice->finalize();
+    d->objects_to_slice.back()->finalize();
 }
 
 void CommandSocket::handleSettingList(Cura::SettingList* list)
@@ -232,6 +250,7 @@ void CommandSocket::beginSendSlicedObject()
 void CommandSocket::endSendSlicedObject()
 {
     d->sliced_objects++;
+    std::cout << "End sliced object called. sliced objects " << d->sliced_objects << " object count: " << d->object_count << std::endl;
     if(d->sliced_objects >= d->object_count)
     {
         d->socket->sendMessage(d->sliced_object_list);
