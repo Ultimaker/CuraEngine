@@ -37,10 +37,10 @@ public:
     int object_count;
     
     // Message that holds a list of sliced objects
-    std::shared_ptr<Cura::SlicedObjectList> sliced_object_list;
+    std::shared_ptr<cura::proto::SlicedObjectList> sliced_object_list;
     
     // Message that holds the currently sliced object (to be added to sliced_object_list)
-    Cura::SlicedObject* current_sliced_object;
+    cura::proto::SlicedObject* current_sliced_object;
     
     // Number of sliced objects for this sliced object list
     int sliced_objects;
@@ -66,13 +66,13 @@ void CommandSocket::connect(const std::string& ip, int port)
 {
     d->socket = new Arcus::Socket();
     //d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
-    d->socket->registerMessageType(1, &Cura::Slice::default_instance());
-    d->socket->registerMessageType(2, &Cura::SlicedObjectList::default_instance());
-    d->socket->registerMessageType(3, &Cura::Progress::default_instance());
-    d->socket->registerMessageType(4, &Cura::GCodeLayer::default_instance());
-    d->socket->registerMessageType(5, &Cura::ObjectPrintTime::default_instance());
-    d->socket->registerMessageType(6, &Cura::SettingList::default_instance());
-    d->socket->registerMessageType(7, &Cura::GCodePrefix::default_instance());
+    d->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
+    d->socket->registerMessageType(2, &cura::proto::SlicedObjectList::default_instance());
+    d->socket->registerMessageType(3, &cura::proto::Progress::default_instance());
+    d->socket->registerMessageType(4, &cura::proto::GCodeLayer::default_instance());
+    d->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
+    d->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
+    d->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
 
     d->socket->connect(ip, port);
     
@@ -98,19 +98,19 @@ void CommandSocket::connect(const std::string& ip, int port)
         
         // Actually start handling messages.
         Arcus::MessagePtr message = d->socket->takeNextMessage();
-        Cura::SettingList* setting_list = dynamic_cast<Cura::SettingList*>(message.get());
+        cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if(setting_list)
         {
             handleSettingList(setting_list);
         }
 
-        /*Cura::ObjectList* object_list = dynamic_cast<Cura::ObjectList*>(message.get());
+        /*cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
         if(object_list)
         {
             handleObjectList(object_list);
         }*/
         
-        Cura::Slice* slice = dynamic_cast<Cura::Slice*>(message.get());
+        cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get());
         if(slice)
         {
             // Reset object counts
@@ -132,7 +132,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     }
 }
 
-void CommandSocket::handleObjectList(Cura::ObjectList* list)
+void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
     FMatrix3x3 matrix;
     //d->object_count = 0;
@@ -171,7 +171,7 @@ void CommandSocket::handleObjectList(Cura::ObjectList* list)
     d->objects_to_slice.back()->finalize();
 }
 
-void CommandSocket::handleSettingList(Cura::SettingList* list)
+void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 {
     for(auto setting : list->settings())
     {
@@ -194,13 +194,13 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
     if(!d->current_sliced_object)
         return;
 
-    Cura::Layer* layer = d->current_sliced_object->add_layers();
+    cura::proto::Layer* layer = d->current_sliced_object->add_layers();
     layer->set_id(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
     {
-        Cura::Polygon* p = layer->add_polygons();
-        p->set_type(static_cast<Cura::Polygon_Type>(type));
+        cura::proto::Polygon* p = layer->add_polygons();
+        p->set_type(static_cast<cura::proto::Polygon_Type>(type));
         std::string polydata;
         polydata.append(reinterpret_cast<const char*>(polygons[i].data()), polygons[i].size() * sizeof(Point));
         p->set_points(polydata);
@@ -209,7 +209,7 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
 
 void CommandSocket::sendProgress(float amount)
 {
-    auto message = std::make_shared<Cura::Progress>();
+    auto message = std::make_shared<cura::proto::Progress>();
     message->set_amount(amount);
     d->socket->sendMessage(message);
 }
@@ -221,7 +221,7 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 
 void CommandSocket::sendPrintTime()
 {
-    auto message = std::make_shared<Cura::ObjectPrintTime>();
+    auto message = std::make_shared<cura::proto::ObjectPrintTime>();
     message->set_time(d->processor->getTotalPrintTime());
     message->set_material_amount(d->processor->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
@@ -240,7 +240,7 @@ void CommandSocket::beginSendSlicedObject()
 {
     if(!d->sliced_object_list)
     {
-        d->sliced_object_list = std::make_shared<Cura::SlicedObjectList>();
+        d->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
     }
 
     d->current_sliced_object = d->sliced_object_list->add_objects();
@@ -267,7 +267,7 @@ void CommandSocket::beginGCode()
 
 void CommandSocket::sendGCodeLayer()
 {
-    auto message = std::make_shared<Cura::GCodeLayer>();
+    auto message = std::make_shared<cura::proto::GCodeLayer>();
     message->set_id(d->object_ids[0]);
     message->set_data(d->gcode_output_stream.str());
     d->socket->sendMessage(message);
@@ -277,7 +277,7 @@ void CommandSocket::sendGCodeLayer()
 
 void CommandSocket::sendGCodePrefix(std::string prefix)
 {
-    auto message = std::make_shared<Cura::GCodePrefix>();
+    auto message = std::make_shared<cura::proto::GCodePrefix>();
     message->set_data(prefix);
     d->socket->sendMessage(message);
 }

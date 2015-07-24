@@ -30,13 +30,13 @@ public:
      * Handler for ObjectList message. 
      * Loads all objects from the message and starts the slicing process
      */
-    void handleObjectList(Cura::ObjectList* list);
+    void handleObjectList(cura::proto::ObjectList* list);
     
     /*! 
      * Handler for SettingList message. 
      * This simply sets all the settings by using key value pair
      */
-    void handleSettingList(Cura::SettingList* list);
+    void handleSettingList(cura::proto::SettingList* list);
     
     /*!
      * Does nothing at the moment 
