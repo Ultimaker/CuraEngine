@@ -15,7 +15,7 @@ double Progress::times [] =
     51.009, 
     48.858, 
     154.62, 
-    0.0 
+    0.1 
 };
 std::string Progress::names [] = 
 {
@@ -30,9 +30,10 @@ std::string Progress::names [] =
 };
 
     
-double Progress::accumulated_times [] = {-1};
+double Progress::accumulated_times [N_PROGRESS_STAGES] = {-1};
 double Progress::total_timing = -1;
 
+/*
 const Progress::Stage Progress::stages[] = 
 { 
     Progress::Stage::START, 
@@ -44,10 +45,11 @@ const Progress::Stage Progress::stages[] =
     Progress::Stage::EXPORT, 
     Progress::Stage::FINISH 
 };
+*/
 
 float Progress::calcOverallProgress(Stage stage, float stage_progress)
 {
-    return ( accumulated_times[(int)stage] + stage_progress / times[(int)stage] ) / total_timing;
+    return ( accumulated_times[(int)stage] + stage_progress * times[(int)stage] ) / total_timing;
 }
 
 
@@ -64,12 +66,13 @@ void Progress::init()
 
 void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* command_socket)
 {
+    float percentage = calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max));
     if (command_socket)
     {
-        command_socket->sendProgress(calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max)));
+        command_socket->sendProgress(percentage);
     }
     
-    logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max);
+    logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage);
 }
 
 void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper, CommandSocket* command_socket)

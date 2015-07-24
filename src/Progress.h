@@ -40,7 +40,6 @@ private:
     static double times [N_PROGRESS_STAGES]; //!< Time estimates per stage
     static std::string names[N_PROGRESS_STAGES]; //!< name of each stage
     static double accumulated_times [N_PROGRESS_STAGES]; //!< Time past before each stage
-    static const Stage stages[]; //!< an ordered array of the stages
     static double total_timing; //!< An estimate of the total time
     /*!
      * Give an estimate between 0 and 1 of how far the process is.

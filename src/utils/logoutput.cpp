@@ -48,12 +48,12 @@ void log(const char* fmt, ...)
     va_end(args);
     fflush(stderr);
 }
-void logProgress(const char* type, int value, int maxValue)
+void logProgress(const char* type, int value, int maxValue, float percent)
 {
     if (!progressLogging)
         return;
 
-    fprintf(stderr, "Progress:%s:%i:%i\n", type, value, maxValue);
+    fprintf(stderr, "Progress:%s:%i:%i  %f\%\n", type, value, maxValue, percent);
     fflush(stderr);
 }
 

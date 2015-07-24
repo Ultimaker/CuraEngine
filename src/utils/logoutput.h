@@ -15,7 +15,7 @@ void log(const char* fmt, ...);
 void logCopyright(const char* fmt, ...);
 
 //Report engine progress to interface if any. Only if "enableProgressLogging()" has been called.
-void logProgress(const char* type, int value, int maxValue);
+void logProgress(const char* type, int value, int maxValue, float percent);
 
 }//namespace cura
 
