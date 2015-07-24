@@ -211,6 +211,8 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
 void CommandSocket::sendProgress(float amount)
 {
     auto message = std::make_shared<cura::proto::Progress>();
+    amount /= d->object_count;
+    amount += d->sliced_objects * (1. / d->object_count);
     message->set_amount(amount);
     d->socket->sendMessage(message);
 }
