@@ -2,6 +2,8 @@
 #include "skirt.h"
 #include "support.h"
 
+#include <queue> 
+
 namespace cura 
 {
 
@@ -74,12 +76,18 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
 
     //Add a skirt under the wipetower to make it stick better.
     Polygons wipe_tower = storage.wipeTower.offset(-extrusionWidth / 2);
+    std::queue<Polygons> wipe_tower_insets;
     while(wipe_tower.size() > 0)
     {
-        storage.skirt.add(wipe_tower);
+        wipe_tower_insets.emplace(wipe_tower);
         wipe_tower = wipe_tower.offset(-extrusionWidth);
     }
-
+    while (wipe_tower_insets.empty())
+    {
+        Polygons& inset = wipe_tower_insets.back();
+        storage.skirt.add(inset);
+        wipe_tower_insets.pop();
+    }
     
     if (count == 1 && distance > 0)
     {
