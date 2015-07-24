@@ -1,11 +1,17 @@
 syntax = "proto3";
 
-package Cura;
+package cura.proto;
 
-// typeid 1
+
 message ObjectList 
 {
     repeated Object objects = 1;
+}
+
+// typeid 1
+message Slice
+{
+    repeated ObjectList object_lists = 1;
 }
 
 message Object 

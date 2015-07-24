@@ -129,41 +129,37 @@ bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper
     return true;
 }
 
-
-
-void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper)
+void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     if (commandSocket)
         commandSocket->beginSendSlicedObject();
-
+    
     // const 
-    unsigned int totalLayers = storage.meshes[0].layers.size();
-
+    unsigned int total_layers = storage.meshes.at(0).layers.size();
     //layerparts2HTML(storage, "output/output.html");
-
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
-        processInsets(storage, layer_nr);
+        processInsets(storage, layer_number);
         
-        Progress::messageProgress(Progress::Stage::INSET, layer_nr+1, totalLayers, commandSocket);
+        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers, commandSocket);
     }
     
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), totalLayers);
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers);
     
-    if (totalLayers < 1)
+    if (total_layers < 1)
     {
         log("Stopping process because there are no layers.\n");
         return;
     }
         
-    processOozeShield(storage, totalLayers);
+    processOozeShield(storage, total_layers);
     
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &timeKeeper, commandSocket);  
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        generateSupportAreas(storage, &mesh, totalLayers, commandSocket);
-        for (unsigned int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
+        generateSupportAreas(storage, &mesh, total_layers, commandSocket);
+        for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
             sendPolygons(SupportType, layer_idx, support);
@@ -174,26 +170,25 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         generateSupportRoofs(storage, commandSocket, getSettingInMicrons("layer_height"), getSettingInMicrons("support_roof_height"));
     }
     
-    Progress::messageProgressStage(Progress::Stage::SKIN, &timeKeeper, commandSocket);
-
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
+    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
-        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            processSkins(storage, layer_nr);
+            processSkins(storage, layer_number);
         }
-        Progress::messageProgress(Progress::Stage::SKIN, layer_nr+1, totalLayers, commandSocket);
+        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
     }
     
-    for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+    for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
     {
         for(SliceMeshStorage& mesh : storage.meshes)
-            combineSparseLayers(layer_nr, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
+            combineSparseLayers(layer_number, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
     }
 
-    processWipeTower(storage, totalLayers);
+    processWipeTower(storage, total_layers);
     
-    processDraftShield(storage, totalLayers);
+    processDraftShield(storage, total_layers);
     
     processPlatformAdhesion(storage);
 
