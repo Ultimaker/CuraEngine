@@ -29,6 +29,8 @@ public:
         , sliced_objects(0)
     { }
 
+    cura::proto::Layer* getLayerById(int id);
+
     fffProcessor* processor;
 
     Arcus::Socket* socket;
@@ -182,21 +184,25 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
-//     socket.sendInt32(CMD_LAYER_INFO);
-//     socket.sendInt32(4 * 4);
-//     socket.sendInt32(current_object_number);
-//     socket.sendInt32(layer_nr);
-//     socket.sendInt32(z);
-//     socket.sendInt32(height);
+    if(!d->current_sliced_object)
+    {
+        return;
+    }
+
+    cura::proto::Layer* layer = d->getLayerById(layer_nr);
+    layer->set_height(z);
+    layer->set_thickness(height);
 }
 
-void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons)
+void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
 {
     if(!d->current_sliced_object)
         return;
+    
+    if (polygons.size() == 0)
+        return;
 
-    cura::proto::Layer* layer = d->current_sliced_object->add_layers();
-    layer->set_id(layer_nr);
+    cura::proto::Layer* layer = d->getLayerById(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
     {
@@ -205,6 +211,7 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
         std::string polydata;
         polydata.append(reinterpret_cast<const char*>(polygons[i].data()), polygons[i].size() * sizeof(Point));
         p->set_points(polydata);
+        p->set_line_width(line_width);
     }
 }
 
@@ -283,6 +290,24 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
     auto message = std::make_shared<cura::proto::GCodePrefix>();
     message->set_data(prefix);
     d->socket->sendMessage(message);
+}
+
+cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
+{
+    auto itr = std::find_if(current_sliced_object->mutable_layers()->begin(), current_sliced_object->mutable_layers()->end(), [id](cura::proto::Layer& l) { return l.id() == id; });
+
+    cura::proto::Layer* layer = nullptr;
+    if(itr != current_sliced_object->mutable_layers()->end())
+    {
+        layer = &(*itr);
+    }
+    else
+    {
+        layer = current_sliced_object->add_layers();
+        layer->set_id(id);
+    }
+
+    return layer;
 }
 
 }//namespace cura

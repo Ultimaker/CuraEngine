@@ -44,7 +44,11 @@ message SlicedObject
 
 message Layer {
     int32 id = 1;
-    repeated Polygon polygons = 2;
+
+    float height = 2;
+    float thickness = 3;
+
+    repeated Polygon polygons = 4;
 }
 
 message Polygon {
@@ -55,9 +59,12 @@ message Polygon {
         SkinType = 3;
         SupportType = 4;
         SkirtType = 5;
+        InfillType = 6;
+        SupportInfillType = 7;
     }
     Type type = 1;
     bytes points = 2;
+    float line_width = 3;
 }
 
 // typeid 4

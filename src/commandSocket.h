@@ -46,7 +46,7 @@ public:
     /*! 
      * Send a polygon to the engine. This is used for the layerview in the GUI
      */
-    void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons);
+    void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons, int line_width);
     
     /*! 
      * Send progress to GUI

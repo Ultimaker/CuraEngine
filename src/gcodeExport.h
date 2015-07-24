@@ -123,7 +123,7 @@ private:
     int zPos;
     bool isRetracted;
     bool isZHopped;
-    
+
     double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
     int current_extruder;
@@ -131,7 +131,7 @@ private:
     EGCodeFlavor flavor;
     std::string preSwitchExtruderCode[MAX_EXTRUDERS];
     std::string postSwitchExtruderCode[MAX_EXTRUDERS];
-    
+
     double totalFilament[MAX_EXTRUDERS]; //!< total filament used per extruder in mm^3
     double filament_area[MAX_EXTRUDERS]; //!< in mm^2 for non-volumetric, cylindrical filament
     double totalPrintTime;
@@ -179,7 +179,7 @@ public:
 
     double getTotalPrintTime();
     void updateTotalPrintTime();
-    void resetTotalPrintTime();
+    void resetTotalPrintTimeAndFilament();
     
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
