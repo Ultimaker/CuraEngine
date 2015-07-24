@@ -83,7 +83,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
-    
+
     unsigned int support_layer_count = layer_count;
     
     double tanTowerRoofAngle = tan(supportTowerRoofAngle);

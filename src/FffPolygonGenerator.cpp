@@ -162,7 +162,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            sendPolygons(SupportType, layer_idx, support);
+            sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
         }
     }
     if (getSettingBoolean("support_roof_enable"))
@@ -212,9 +212,9 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
         {
             if (layer->parts[partNr].insets.size() > 0)
             {
-                sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0]);
+                sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0);
                 for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                    sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset]);
+                    sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
             }
         }
     }
@@ -321,7 +321,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
         {
             for (SkinPart& skin_part : part.skin_parts)
             {
-                sendPolygons(SkinType, layer_nr, skin_part.outline);
+                sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
             }
         }
     }
@@ -443,7 +443,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         break;
     }
     
-    sendPolygons(SkirtType, 0, storage.skirt);
+    sendPolygons(SkirtType, 0, storage.skirt, getSettingInMicrons("skirt_line_width"));
 }
 
 void FffPolygonGenerator::slices2polygons_magicPolygonMode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
@@ -458,7 +458,7 @@ void FffPolygonGenerator::slices2polygons_magicPolygonMode(SliceDataStorage& sto
             SliceLayer* layer = &mesh.layers[layer_nr];
             for(SliceLayerPart& part : layer->parts)
             {
-                sendPolygons(Inset0Type, layer_nr, part.outline);
+                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.settings->getSettingInMicrons("wall_line_width_0"));
             }
         }
     }

@@ -11,7 +11,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     gcode.preSetup(*this);
     
-    gcode.resetTotalPrintTime();
+    gcode.resetTotalPrintTimeAndFilament();
     
     if (command_socket)
         command_socket->beginGCode();

@@ -28,7 +28,9 @@ enum PolygonType
     InsetXType,
     SkinType,
     SupportType,
-    SkirtType
+    SkirtType,
+    InfillType,
+    SupportInfillType
 };
 
 

@@ -35,7 +35,6 @@ void generateInsets(SliceLayerPart* part, int line_width_0, int line_width_x, in
     }
 }
 
-
 void generateInsets(SliceLayer* layer, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
