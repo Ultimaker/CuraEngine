@@ -15,7 +15,8 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     
     Polygons support;
     if (storage.support.generated) 
-        support = storage.support.supportLayers[0].supportAreas;
+        support = storage.support.supportLayers[0].supportAreas
+                .unionPolygons(storage.support.supportLayers[0].roofs);
     { // get support polygons
         for(SliceMeshStorage& mesh : storage.meshes)
         {
