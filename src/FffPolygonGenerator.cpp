@@ -416,12 +416,12 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
         PolygonRef p = storage.wipeTower.newPoly();
         int tower_size = getSettingInMicrons("wipe_tower_size");
         int tower_distance = getSettingInMicrons("wipe_tower_distance");
-        p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance));
-        p.add(Point(storage.model_min.x - tower_distance, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_min.x - tower_distance - tower_size, storage.model_max.y + tower_distance));
+        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance));
+        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance + tower_size));
+        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
+        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance));
 
-        storage.wipePoint = Point(storage.model_min.x - tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
+        storage.wipePoint = Point(storage.model_max.x + tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
     }
 }
 
