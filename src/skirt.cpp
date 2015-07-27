@@ -82,7 +82,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
         wipe_tower_insets.emplace(wipe_tower);
         wipe_tower = wipe_tower.offset(-extrusionWidth);
     }
-    while (wipe_tower_insets.empty())
+    while (!wipe_tower_insets.empty())
     {
         Polygons& inset = wipe_tower_insets.back();
         storage.skirt.add(inset);
