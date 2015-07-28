@@ -383,7 +383,7 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
         }
         { // // compute max_object_height_second_to_last_extruder
             int extruder_max_object_height = 0;
-            for (unsigned int extruder_nr = 1; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+            for (unsigned int extruder_nr = 1; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
                 if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_max_object_height])
                 {
@@ -391,7 +391,7 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
                 }
             }
             int extruder_second_max_object_height = -1;
-            for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+            for (int extruder_nr = 0; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
                 if (extruder_nr == extruder_max_object_height) { continue; }
                 if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])

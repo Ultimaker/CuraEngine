@@ -210,13 +210,13 @@ public:
     
     void preSetup(SettingsBase& settings)
     {
-        for(unsigned int n=1; n<MAX_EXTRUDERS;n++)
+        for(unsigned int n=1; n<settings.getSettingAsCount("machine_extruder_count"); n++)
         {
             std::ostringstream stream_x; stream_x << "machine_nozzle_offset_x_" << n;
             std::ostringstream stream_y; stream_y << "machine_nozzle_offset_y_" << n;
             setExtruderOffset(n, Point(settings.getSettingInMicrons(stream_x.str()), settings.getSettingInMicrons(stream_y.str())));
         }
-        for(unsigned int n=0; n<MAX_EXTRUDERS;n++)
+        for(unsigned int n=0; n<settings.getSettingAsCount("machine_extruder_count"); n++)
         {
             std::ostringstream stream;
             stream << "_" << n;
