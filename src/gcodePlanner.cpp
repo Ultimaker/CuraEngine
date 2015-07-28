@@ -238,13 +238,13 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
                 p0 = gcode.getPositionXY();
                 for(unsigned int x=n; x<i-1; x+=2)
                 {
-                    int64_t oldLen = vSize(p0 - paths[x].points[0]);
+                    int64_t new_width = vSize(p0 - paths[x].points[0]); // = old_length
                     Point newPoint = (paths[x].points[0] + paths[x+1].points[0]) / 2;
-                    int64_t newLen = vSize(gcode.getPositionXY() - newPoint);
-                    if (newLen > 0)
+                    int64_t old_width = path->config->getLineWidth();
+                    if (old_width > 0)
                     {
-                        if (oldLen > 0)
-                            gcode.writeMove(newPoint, speed * newLen / oldLen, path->config->getExtrusionMM3perMM());
+                        if (new_width > 0)
+                            gcode.writeMove(newPoint, speed * old_width / new_width, path->config->getExtrusionMM3perMM() * new_width / old_width);
                         else 
                             gcode.writeMove(newPoint, speed, path->config->getExtrusionMM3perMM());
                     }
