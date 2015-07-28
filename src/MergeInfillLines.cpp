@@ -2,6 +2,16 @@
 
 namespace cura
 {
+    
+void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& last_path, int64_t new_line_width)
+{
+    double old_line_width = INT2MM(last_path.config->getLineWidth());
+    double new_line_width_mm = INT2MM(new_line_width);
+    double speed_mod = old_line_width / new_line_width_mm;
+    double extrusion_mod = new_line_width_mm / old_line_width;
+    gcode.writeMove(to, speed * speed_mod, last_path.getExtrusionMM3perMM() * extrusion_mod);
+}
+    
 bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
 { //Check for lots of small moves and combine them into one large line
     Point prev_middle;
@@ -16,14 +26,14 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         {
             GCodePath& last_path = paths[path_idx + 3];
             gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
-            gcode.writeMove(last_middle, speed * line_width / last_path.config->getLineWidth(), last_path.getExtrusionMM3perMM() * line_width / last_path.config->getLineWidth());
+            writeCompensatedMove(last_middle, speed, last_path, line_width);
         }
         
         path_idx += 2;
         for (; merger.isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
         {
             GCodePath& last_path = paths[path_idx + 3];
-            gcode.writeMove(last_middle, speed * line_width / last_path.config->getLineWidth(), last_path.getExtrusionMM3perMM() * line_width / last_path.config->getLineWidth());
+            writeCompensatedMove(last_middle, speed, last_path, line_width);
         }
         path_idx = path_idx + 1; // means that the next path considered is the travel path after the converted extrusion path corresponding to the updated path_idx
         return true;

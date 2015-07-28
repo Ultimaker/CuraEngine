@@ -27,6 +27,16 @@ class MergeInfillLines
      * \return Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
      */
     bool isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& line_width, bool use_second_middle_as_first);
+    
+    /*!
+     * Write an extrusion move with compensated width and compensated speed so that the material flow will be the same.
+     * 
+     * \param to The point to move to
+     * \param speed The original speed
+     * \param old_path The original path
+     * \param new_line_width The width of the convewrted line (approximately the length of the original line)
+     */
+    void writeCompensatedMove(Point& to, double speed, GCodePath& old_path, int64_t new_line_width);
 public:
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
