@@ -363,11 +363,11 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
 void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
 {
     
-    
+    int extruder_count = getSettingAsCount("machine_extruder_count");
     // TODO: move this code into its own function?
     { // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the wipe tower
         
-        int max_object_height_per_extruder[MAX_EXTRUDERS];
+        int max_object_height_per_extruder[extruder_count];
         { // compute max_object_height_per_extruder
             memset(max_object_height_per_extruder, -1, sizeof(max_object_height_per_extruder));
             for (SliceMeshStorage& mesh : storage.meshes)
@@ -383,7 +383,7 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
         }
         { // // compute max_object_height_second_to_last_extruder
             int extruder_max_object_height = 0;
-            for (unsigned int extruder_nr = 1; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
+            for (int extruder_nr = 1; extruder_nr < extruder_count; extruder_nr++)
             {
                 if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_max_object_height])
                 {
@@ -391,7 +391,7 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
                 }
             }
             int extruder_second_max_object_height = -1;
-            for (int extruder_nr = 0; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
+            for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
                 if (extruder_nr == extruder_max_object_height) { continue; }
                 if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
