@@ -233,13 +233,13 @@ private:
     void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int fill_angle, int extrusion_width);
     
     /*!
-     * Change to a new extruder, and add the wipe tower instructions if the new extruder is different from the last.
+     * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
      * \param storage Input: where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr The extruder to which to switch
      */
-    void setExtruder_addWipeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr);
+    void setExtruder_addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr);
     
     /*!
      * Add the support to the gcode of the current layer.
@@ -266,13 +266,13 @@ private:
     void addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
-     * Add the wipe tower gcode for the current layer.
+     * Add the prime tower gcode for the current layer.
      * \param storage Input: where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addWipeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder);
+    void addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder);
     
     /*!
      * Finish the layer by applying speed corrections for minimal layer times and determine the fanSpeed.

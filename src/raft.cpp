@@ -18,7 +18,7 @@ void generateRaft(SliceDataStorage& storage, int distance)
     if (storage.support.generated) 
         support = storage.support.supportLayers[0].supportAreas;
     storage.raftOutline = storage.raftOutline.unionPolygons(support.offset(distance));
-    storage.raftOutline = storage.raftOutline.unionPolygons(storage.wipeTower.offset(distance));
+    storage.raftOutline = storage.raftOutline.unionPolygons(storage.primeTower.offset(distance));
     storage.raftOutline = storage.raftOutline.unionPolygons(storage.draft_protection_shield.offset(distance));
 }
 

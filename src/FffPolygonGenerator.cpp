@@ -186,7 +186,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             combineSparseLayers(layer_number, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
     }
 
-    processWipeTower(storage, total_layers);
+    processPrimeTower(storage, total_layers);
     
     processDraftShield(storage, total_layers);
     
@@ -360,12 +360,12 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     storage.draft_protection_shield = draft_shield.convexHull(draft_shield_dist);
 }
 
-void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processPrimeTower(SliceDataStorage& storage, unsigned int totalLayers)
 {
     
     int extruder_count = getSettingAsCount("machine_extruder_count");
     // TODO: move this code into its own function?
-    { // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the wipe tower
+    { // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the prime tower
         
         int max_object_height_per_extruder[extruder_count];
         { // compute max_object_height_per_extruder
@@ -415,11 +415,11 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
     }
        
         
-    if (storage.max_object_height_second_to_last_extruder >= 0 && getSettingInMicrons("wipe_tower_distance") > 0 && getSettingInMicrons("wipe_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && getSettingInMicrons("prime_tower_distance") > 0 && getSettingInMicrons("prime_tower_size") > 0)
     {
-        PolygonRef p = storage.wipeTower.newPoly();
-        int tower_size = getSettingInMicrons("wipe_tower_size");
-        int tower_distance = getSettingInMicrons("wipe_tower_distance");
+        PolygonRef p = storage.primeTower.newPoly();
+        int tower_size = getSettingInMicrons("prime_tower_size");
+        int tower_distance = getSettingInMicrons("prime_tower_distance");
         p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance));
         p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance + tower_size));
         p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));

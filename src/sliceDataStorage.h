@@ -110,7 +110,7 @@ public:
     GCodePathConfig support_roof_config;
     
     SupportStorage support;
-    Polygons wipeTower;
+    Polygons primeTower;
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     

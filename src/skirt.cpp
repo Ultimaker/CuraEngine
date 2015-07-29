@@ -39,7 +39,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     {
         int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
 
-        Polygons skirtPolygons(storage.wipeTower.offset(offsetDistance));
+        Polygons skirtPolygons(storage.primeTower.offset(offsetDistance));
         for(SliceMeshStorage& mesh : storage.meshes)
         {
             if (mesh.layers.size() < 1) continue;
@@ -75,19 +75,19 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     }
 
 
-    //Add a skirt under the wipetower to make it stick better.
-    Polygons wipe_tower = storage.wipeTower.offset(-extrusionWidth / 2);
-    std::queue<Polygons> wipe_tower_insets;
-    while(wipe_tower.size() > 0)
+    //Add a skirt under the prime tower to make it stick better.
+    Polygons prime_tower = storage.primeTower.offset(-extrusionWidth / 2);
+    std::queue<Polygons> prime_tower_insets;
+    while(prime_tower.size() > 0)
     {
-        wipe_tower_insets.emplace(wipe_tower);
-        wipe_tower = wipe_tower.offset(-extrusionWidth);
+        prime_tower_insets.emplace(prime_tower);
+        prime_tower = prime_tower.offset(-extrusionWidth);
     }
-    while (!wipe_tower_insets.empty())
+    while (!prime_tower_insets.empty())
     {
-        Polygons& inset = wipe_tower_insets.back();
+        Polygons& inset = prime_tower_insets.back();
         storage.skirt.add(inset);
-        wipe_tower_insets.pop();
+        prime_tower_insets.pop();
     }
     
     if (count == 1 && distance > 0)
