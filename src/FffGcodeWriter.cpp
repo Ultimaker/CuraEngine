@@ -214,8 +214,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
         gcode.writeLayerComment(-3);
         gcode.writeComment("RAFT");
         GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, getSettingInMicrons("wall_line_width_0"), getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-        if (getSettingAsIndex("support_extruder_nr") > 0)
-            gcodeLayer.setExtruder(getSettingAsIndex("support_extruder_nr"));
+        if (getSettingAsIndex("adhesion_extruder_nr") > 0)
+            gcodeLayer.setExtruder(getSettingAsIndex("adhesion_extruder_nr"));
         gcode.setZ(getSettingInMicrons("raft_base_thickness"));
         gcodeLayer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
@@ -352,6 +352,8 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
 {
     if (layer_nr == 0)
     {
+        if (getSettingAsIndex("adhesion_extruder_nr") > 0)
+            gcode_layer.setExtruder(getSettingAsIndex("adhesion_extruder_nr"));
         if (storage.skirt.size() > 0)
             gcode_layer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
         gcode_layer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
