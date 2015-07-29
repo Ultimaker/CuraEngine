@@ -701,7 +701,7 @@ void FffGcodeWriter::setExtruder_addPrimeTower(SliceDataStorage& storage, GCodeP
 
 void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before, bool before_rest)
 {
-    if (!storage.support.generated)
+    if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
         return;
     
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
@@ -736,7 +736,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
 
 void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
-    if (layer_nr > storage.support.layer_nr_max_filled_layer)
+    if (!storage.support.generated 
+        || layer_nr > storage.support.layer_nr_max_filled_layer 
+        || storage.support.supportLayers[layer_nr].supportAreas.size() == 0)
     {
         return;
     }
@@ -749,9 +751,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
     setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, support_extruder_nr);
     
-    Polygons support; // may stay empty
-    if (storage.support.generated) 
-        support = storage.support.supportLayers[layer_nr].supportAreas;
+    Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
     
     std::vector<PolygonsPart> support_islands = support.splitIntoParts();
 
@@ -818,6 +818,12 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
 
 void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    if (!storage.support.generated 
+        || layer_nr > storage.support.layer_nr_max_filled_layer 
+        || storage.support.supportLayers[layer_nr].roofs.size() == 0)
+    {
+        return;
+    }
     
     int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, roof_extruder_nr);
