@@ -9,6 +9,8 @@ void enableProgressLogging();
 
 //Report an error message (always reported, independed of verbose level)
 void logError(const char* fmt, ...);
+//Report a warning message (always reported, independed of verbose level)
+void logWarning(const char* fmt, ...);
 //Report a message if the verbose level is 1 or higher. (defined as _log to prevent clash with log() function from <math.h>)
 void log(const char* fmt, ...);
 //Report an copyright message (always reported, independed of verbose level)
