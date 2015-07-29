@@ -380,6 +380,10 @@ void FffPolygonGenerator::processWipeTower(SliceDataStorage& storage, unsigned i
             max_object_height_per_extruder[support_extruder_nr] = 
             std::max(   max_object_height_per_extruder[support_extruder_nr]
                     ,   storage.support.layer_nr_max_filled_layer  ); 
+            int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+            max_object_height_per_extruder[support_roof_extruder_nr] = 
+            std::max(   max_object_height_per_extruder[support_roof_extruder_nr]
+                    ,   storage.support.layer_nr_max_filled_layer  ); 
         }
         { // // compute max_object_height_second_to_last_extruder
             int extruder_max_object_height = 0;
