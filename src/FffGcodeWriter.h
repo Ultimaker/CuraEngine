@@ -69,7 +69,6 @@ public:
     {
         gcode.setOutputStream(stream);
     }
-
     
     double getTotalFilamentUsed(int e)
     {
@@ -234,13 +233,23 @@ private:
     void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int fill_angle, int extrusion_width);
     
     /*!
+     * Change to a new extruder, and add the wipe tower instructions if the new extruder is different from the last.
+     * \param storage Input: where the slice data is stored.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * \param extruder_nr The extruder to which to switch
+     */
+    void setExtruder_addWipeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr);
+    
+    /*!
      * Add the support to the gcode of the current layer.
      * \param storage Input: where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
+     * \param extruder_nr_before The extruder number at the start of the layer (before other print parts aka the rest)
      * \param before_rest Whether the function has been called before adding the rest to the gcode, or after.
      */
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, bool before_rest);
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr_before, bool before_rest);
     /*!
      * Add the support lines/walls to the gcode of the current layer.
      * \param storage Input: where the slice data is stored.

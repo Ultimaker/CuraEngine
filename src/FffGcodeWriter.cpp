@@ -296,7 +296,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     processSkirt(storage, gcode_layer, layer_nr);
     
-    addSupportToGCode(storage, gcode_layer, layer_nr, true);
+    int extruder_nr_before = gcode_layer.getExtruder();
+    addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, true);
 
     processOozeShield(storage, gcode_layer, layer_nr);
     
@@ -315,7 +316,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
             addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
         }
     }
-    addSupportToGCode(storage, gcode_layer, layer_nr, false);
+    addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, false);
 
     processFanSpeedAndMinimalLayerTime(storage, gcode_layer, layer_nr);
     
@@ -348,8 +349,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
 {
     if (layer_nr == 0)
     {
-        if (getSettingAsIndex("adhesion_extruder_nr") > 0)
-            gcode_layer.setExtruder(getSettingAsIndex("adhesion_extruder_nr"));
+        setExtruder_addWipeTower(storage, gcode_layer, layer_nr, getSettingAsIndex("adhesion_extruder_nr"));
         if (storage.skirt.size() > 0)
             gcode_layer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
         gcode_layer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
@@ -418,16 +418,12 @@ std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStora
 
 void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
 {
-    int prevExtruder = gcode_layer.getExtruder();
-    bool extruder_changed = gcode_layer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
-
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
         return;
     }
     
-    if (extruder_changed)
-        addWipeTower(storage, gcode_layer, layer_nr, prevExtruder);
+    setExtruder_addWipeTower(storage, gcode_layer, layer_nr, mesh->settings->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -472,16 +468,12 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
 
 void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
 {
-    int previous_extruder = gcode_layer.getExtruder();
-    bool extruder_changed = gcode_layer.setExtruder(mesh->settings->getSettingAsIndex("extruder_nr"));
-
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
         return;
     }
     
-    if (extruder_changed)
-        addWipeTower(storage, gcode_layer, layer_nr, previous_extruder);
+    setExtruder_addWipeTower(storage, gcode_layer, layer_nr, mesh->settings->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -695,27 +687,37 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
 }
 
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, bool before_rest)
+void FffGcodeWriter::setExtruder_addWipeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
+{
+    if (extruder_nr == -1)
+        return;
+    
+    int previous_extruder = gcode_layer.getExtruder();
+    bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
+    
+    if (extruder_changed)
+        addWipeTower(storage, gcode_layer, layer_nr, previous_extruder);
+}
+
+void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before, bool before_rest)
 {
     if (!storage.support.generated)
         return;
     
-    int current_extruder_nr = gcode_layer.getExtruder();
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
     
-    bool printSupportFirst = ( support_extruder_nr > 0 && support_extruder_nr == current_extruder_nr )
-                            || ( support_roof_extruder_nr > 0 && support_roof_extruder_nr == current_extruder_nr );
+    bool print_support_before_rest = ( support_extruder_nr > 0 && support_extruder_nr == extruder_nr_before )
+                                    || ( support_roof_extruder_nr > 0 && support_roof_extruder_nr == extruder_nr_before );
     
-    if (printSupportFirst != before_rest)
+    if (print_support_before_rest != before_rest)
         return;
     
+    int current_extruder_nr = gcode_layer.getExtruder();
+    
     if (getSettingBoolean("support_roof_enable"))
-    {
-        bool print_alternate_material_first = support_extruder_nr > 0 && support_extruder_nr == current_extruder_nr;
-        bool roofs_in_alternate_material_only = support_roof_extruder_nr != support_extruder_nr;
-        
-        if (roofs_in_alternate_material_only && print_alternate_material_first)
+    {   
+        if (support_roof_extruder_nr != support_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {
             addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
             addSupportLinesToGCode(storage, gcode_layer, layer_nr);
@@ -744,15 +746,9 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     double infill_overlap = getSettingInPercentage("fill_overlap");
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     
-    if (getSettingAsIndex("support_extruder_nr") > -1)
-    {
-        int previous_extruder = gcode_layer.getExtruder();
-        int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
-        bool extruder_changed = gcode_layer.setExtruder(support_extruder_nr);
-        
-        if (extruder_changed)
-            addWipeTower(storage, gcode_layer, layer_nr, previous_extruder);
-    }
+    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+    setExtruder_addWipeTower(storage, gcode_layer, layer_nr, support_extruder_nr);
+    
     Polygons support; // may stay empty
     if (storage.support.generated) 
         support = storage.support.supportLayers[layer_nr].supportAreas;
@@ -820,8 +816,12 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     }
 }
 
-void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr)
+void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    
+    int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    setExtruder_addWipeTower(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    
     double fillAngle;
     if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height"))
     {
@@ -836,7 +836,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     
     Polygons skinLines;
     generateLineInfill(storage.support.supportLayers[layer_nr].roofs, outline_offset, skinLines, storage.support_roof_config.getLineWidth(), storage.support_roof_config.getLineWidth(), infill_overlap, fillAngle);
-    gcodeLayer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
+    gcode_layer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
 }
 
 
