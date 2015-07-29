@@ -296,10 +296,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     processSkirt(storage, gcode_layer, layer_nr);
     
-    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
-    bool printSupportFirst = (storage.support.generated && support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder());
-    if (printSupportFirst)
-        addSupportToGCode(storage, gcode_layer, layer_nr);
+    addSupportToGCode(storage, gcode_layer, layer_nr);
 
     processOozeShield(storage, gcode_layer, layer_nr);
     
@@ -318,8 +315,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
             addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
         }
     }
-    if (!printSupportFirst)
-        addSupportToGCode(storage, gcode_layer, layer_nr);
+    addSupportToGCode(storage, gcode_layer, layer_nr);
 
     processFanSpeedAndMinimalLayerTime(storage, gcode_layer, layer_nr);
     
@@ -699,17 +695,25 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
 }
 
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, bool before_rest)
 {
     if (!storage.support.generated)
         return;
+    int support_extruder_nr_layer_1 = getSettingAsIndex("support_extruder_nr_layer_1");
+    int support_extruder_nr = getSettingAsIndex("support_extruder_nr");
+    int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     
+    int support_extruder_nr = (layer_nr == 0)? support_extruder_nr_layer_1 : support_extruder_nr;
+    bool printSupportFirst = ( support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder() )
+                            || ( support_roof_extruder_nr > 0 && support_roof_extruder_nr == gcode_layer.getExtruder() );
+    
+    if (printSupportFirst != before_rest)
+        return;
     
     if (getSettingBoolean("support_roof_enable"))
     {
-        int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
-        bool print_alternate_material_first = (storage.support.generated && support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder());
-        bool roofs_in_alternate_material_only = true;
+        bool print_alternate_material_first = support_extruder_nr > 0 && support_extruder_nr == gcode_layer.getExtruder();
+        bool roofs_in_alternate_material_only = support_roof_extruder_nr != support_extruder_nr;
         
         if (roofs_in_alternate_material_only && print_alternate_material_first)
         {
