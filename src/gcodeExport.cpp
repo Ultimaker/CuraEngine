@@ -234,6 +234,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
     
+    if (extrusion_mm3_per_mm < 0)
+        logWarning("Warning! Negative extrusion move!");
+    
     double extrusion_per_mm = extrusion_mm3_per_mm;
     if (!is_volumatric)
     {
@@ -479,7 +482,6 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 
 void GCodeExport::finalize(int maxObjectHeight, double moveSpeed, const char* endCode)
 {
-    std::cerr << "maxObjectHeight : " << maxObjectHeight << std::endl;
     writeFanCommand(0);
     setZ(maxObjectHeight + 5000);
     writeMove(Point3(0,0,maxObjectHeight + 5000) + getPositionXY(), moveSpeed, 0);
