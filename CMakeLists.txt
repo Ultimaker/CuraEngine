@@ -38,6 +38,7 @@ set(engine_SRCS
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/polygonOptimizer.cpp
+    src/PrimeTower.cpp
     src/Progress.cpp
     src/raft.cpp
     src/settingRegistry.cpp
