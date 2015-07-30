@@ -68,6 +68,171 @@ void signal_FPE(int n)
 
 using namespace cura;
 
+int connect(fffProcessor processor, int argc, char **argv)
+{
+    CommandSocket* commandSocket = new CommandSocket(&processor);
+    std::string ip;
+    int port = 49674;
+    
+    std::string ip_port(argv[2]);
+    if (ip_port.find(':') != std::string::npos)
+    {
+        ip = ip_port.substr(0, ip_port.find(':'));
+        port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+    }
+
+    
+    for(int argn = 3; argn < argc; argn++)
+    {
+        char* str = argv[argn];
+        if (str[0] == '-')
+        {
+            for(str++; *str; str++)
+            {
+                switch(*str)
+                {
+                case 'v':
+                    cura::increaseVerboseLevel();
+                    break;
+                case 'j':
+                    argn++;
+                    if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                    {
+                        cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
+                    }
+                    break;
+                default:
+                    cura::logError("Unknown option: %c\n", *str);
+                    break;
+                }
+            }
+        }
+    }
+    
+    commandSocket->connect(ip, port);
+}
+
+int slice(fffProcessor processor, int argc, char **argv)
+{   
+    std::vector<std::string> files;
+    
+    SettingsBase* last_settings_object = &processor;
+    for(int argn = 2; argn < argc; argn++)
+    {
+        char* str = argv[argn];
+        if (str[0] == '-')
+        {
+            if (str[1] == '-')
+            {
+                if (stringcasecompare(str, "--next") == 0)
+                {
+                    try {
+                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+                        if (files.size() > 0)
+                            processor.processFiles(files);
+                        files.clear();
+                    }catch(...){
+                        cura::logError("Unknown exception\n");
+                        exit(1);
+                    }
+                    break;
+                }else{
+                    cura::logError("Unknown option: %s\n", str);
+                }
+            }else{
+                for(str++; *str; str++)
+                {
+                    switch(*str)
+                    {
+                    case 'v':
+                        cura::increaseVerboseLevel();
+                        break;
+                    case 'p':
+                        cura::enableProgressLogging();
+                        break;
+                    case 'j':
+                        argn++;
+                        if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                        {
+                            cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
+                        }
+                        break;
+                    case 'e':
+                        // TODO
+                        // last_settings_object = 
+                        break;
+                    case 'l':
+                        argn++;
+                        files.push_back(argv[argn]);
+                        break;
+                    case 'o':
+                        argn++;
+                        if (!processor.setTargetFile(argv[argn]))
+                        {
+                            cura::logError("Failed to open %s for output.\n", argv[argn]);
+                            exit(1);
+                        }
+                        break;
+                    case 's':
+                        {
+                            //Parse the given setting and store it.
+                            argn++;
+                            char* valuePtr = strchr(argv[argn], '=');
+                            if (valuePtr)
+                            {
+                                *valuePtr++ = '\0';
+
+                                last_settings_object->setSetting(argv[argn], valuePtr);
+                            }
+                        }
+                        break;
+                    default:
+                        cura::logError("Unknown option: %c\n", *str);
+                        print_usage();
+                        exit(1);
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            
+            cura::logError("Unknown option: %s\n", argv[argn]);
+            print_usage();
+            exit(1);
+        }
+    }
+    
+    if (!SettingRegistry::getInstance()->settingsLoaded())
+    {
+        //If no json file has been loaded, try to load the default.
+        if (SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
+        {
+            logError("ERROR: Failed to load json file: fdmprinter.json\n");
+        }
+    }
+        
+    
+#ifndef DEBUG
+    try {
+#endif
+        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+        if (files.size() > 0)
+            processor.processFiles(files);
+#ifndef DEBUG
+    }catch(...){
+        cura::logError("Unknown exception\n");
+        exit(1);
+    }
+#endif
+    //Finalize the processor, this adds the end.gcode. And reports statistics.
+    processor.finalize();
+
+}
+
 int main(int argc, char **argv)
 {
 #if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
@@ -83,11 +248,7 @@ int main(int argc, char **argv)
     Progress::init();
     
     fffProcessor processor;
-    std::vector<std::string> files;
 
-    logCopyright("CuraEngine ");
-    for (int a = 0; a < argc; a++)
-        logCopyright("%s ", argv[a]);
     logCopyright("\n");
     logCopyright("Cura_SteamEngine version %s\n", VERSION);
     logCopyright("Copyright (C) 2014 David Braam\n");
@@ -105,9 +266,6 @@ int main(int argc, char **argv)
     logCopyright("You should have received a copy of the GNU Affero General Public License\n");
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
-    CommandSocket* commandSocket = NULL;
-    std::string ip;
-    int port = 49674;
 
     if (argc < 1)
     {
@@ -117,172 +275,17 @@ int main(int argc, char **argv)
     
     if (stringcasecompare(argv[1], "connect") == 0)
     {
-        commandSocket = new CommandSocket(&processor);
-        
-        std::string ip_port(argv[2]);
-        if (ip_port.find(':') != std::string::npos)
-        {
-            ip = ip_port.substr(0, ip_port.find(':'));
-            port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
-        }
-
-        
-        for(int argn = 3; argn < argc; argn++)
-        {
-            char* str = argv[argn];
-            if (str[0] == '-')
-            {
-                for(str++; *str; str++)
-                {
-                    switch(*str)
-                    {
-                    case 'v':
-                        cura::increaseVerboseLevel();
-                        break;
-                    case 'j':
-                        argn++;
-                        if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
-                        {
-                            cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
-                        }
-                        break;
-                    default:
-                        cura::logError("Unknown option: %c\n", *str);
-                        break;
-                    }
-                }
-            }
-        }
+        return connect(fffProcessor, argc, **argv);
     } 
     else if (stringcasecompare(argv[1], "slice") == 0)
-    {   
-        SettingsBase* last_settings_object = &processor;
-        for(int argn = 2; argn < argc; argn++)
-        {
-            char* str = argv[argn];
-            if (str[0] == '-')
-            {
-                if (str[1] == '-')
-                {
-                    if (stringcasecompare(str, "--next") == 0)
-                    {
-                        try {
-                            //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                            // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                            if (files.size() > 0)
-                                processor.processFiles(files);
-                            files.clear();
-                        }catch(...){
-                            cura::logError("Unknown exception\n");
-                            exit(1);
-                        }
-                        break;
-                    }else{
-                        cura::logError("Unknown option: %s\n", str);
-                    }
-                }else{
-                    for(str++; *str; str++)
-                    {
-                        switch(*str)
-                        {
-                        case 'v':
-                            cura::increaseVerboseLevel();
-                            break;
-                        case 'p':
-                            cura::enableProgressLogging();
-                            break;
-                        case 'j':
-                            argn++;
-                            if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
-                            {
-                                cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
-                            }
-                            break;
-                        case 'e':
-                            // TODO
-                            // last_settings_object = 
-                            break;
-                        case 'l':
-                            argn++;
-                            files.push_back(argv[argn]);
-                            break;
-                        case 'o':
-                            argn++;
-                            if (!processor.setTargetFile(argv[argn]))
-                            {
-                                cura::logError("Failed to open %s for output.\n", argv[argn]);
-                                exit(1);
-                            }
-                            break;
-                        case 's':
-                            {
-                                //Parse the given setting and store it.
-                                argn++;
-                                char* valuePtr = strchr(argv[argn], '=');
-                                if (valuePtr)
-                                {
-                                    *valuePtr++ = '\0';
-
-                                    last_settings_object->setSetting(argv[argn], valuePtr);
-                                }
-                            }
-                            break;
-                        default:
-                            cura::logError("Unknown option: %c\n", *str);
-                            print_usage();
-                            exit(1);
-                            break;
-                        }
-                    }
-                }
-            }
-            else
-            {
-                
-                cura::logError("Unknown option: %s\n", argv[argn]);
-                print_usage();
-                exit(1);
-            }
-        }
+    {
+        return slice(fffProcessor, argc, argv);
     }
     else
     {
         cura::logError("Unknown command: %s\n", argv[1]);
         print_usage();
         exit(1);
-    }
-    
-
-    if (!SettingRegistry::getInstance()->settingsLoaded())
-    {
-        //If no json file has been loaded, try to load the default.
-        if (SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
-        {
-            logError("ERROR: Failed to load json file: fdmprinter.json\n");
-        }
-    }
-        
-    if(commandSocket)
-    {
-        commandSocket->connect(ip, port);
-    }
-    else
-    {
-#ifndef DEBUG
-        try {
-#endif
-            //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-            // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-            if (files.size() > 0)
-                processor.processFiles(files);
-#ifndef DEBUG
-        }catch(...){
-            cura::logError("Unknown exception\n");
-            exit(1);
-        }
-#endif
-        //Finalize the processor, this adds the end.gcode. And reports statistics.
-        processor.finalize();
     }
     
     return 0;

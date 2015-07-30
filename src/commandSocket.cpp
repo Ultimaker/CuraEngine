@@ -143,7 +143,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     MeshGroup* object_to_slice = d->objects_to_slice.back().get();
     for(auto object : list->objects())
     {
-        object_to_slice->meshes.push_back(object_to_slice); //Construct a new mesh (with settings parent object object_to_slice) and put it into MeshGroup's mesh list.
+        object_to_slice->meshes.push_back(object_to_slice); //Construct a new mesh (with object_to_slice as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = object_to_slice->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
