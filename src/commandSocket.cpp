@@ -140,10 +140,11 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     //d->object_count = 0;
     //d->object_ids.clear();
     d->objects_to_slice.push_back(std::make_shared<MeshGroup>(d->processor));
+    std::shared_ptr<MeshGroup> object_to_slice = d->objects_to_slice.back();
     for(auto object : list->objects())
     {
-        d->objects_to_slice.back()->meshes.push_back(d->objects_to_slice.back().get()); //Construct a new mesh and put it into MeshGroup's mesh list.
-        Mesh& mesh = d->objects_to_slice.back()->meshes.back();
+        object_to_slice->meshes.push_back(object_to_slice.get()); //Construct a new mesh and put it into MeshGroup's mesh list.
+        Mesh& mesh = object_to_slice->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int face_count = object.vertices().size() / bytes_per_face;
@@ -169,7 +170,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         mesh.finish();
     }
     d->object_count++;
-    d->objects_to_slice.back()->finalize();
+    object_to_slice->finalize();
 }
 
 void CommandSocket::handleSettingList(cura::proto::SettingList* list)
