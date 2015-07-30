@@ -5,7 +5,7 @@
 #include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "support.h"
 #include "multiVolumes.h"
 #include "layerPart.h"
@@ -21,7 +21,7 @@ namespace cura
 {
 
     
-bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper)
+bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper)
 {
     if (!sliceModel(object, timeKeeper, storage)) 
     {
@@ -40,7 +40,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, PrintObject* 
     return true;
 }
 
-bool FffPolygonGenerator::sliceModel(PrintObject* object, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
+bool FffPolygonGenerator::sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
     Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, commandSocket);
     

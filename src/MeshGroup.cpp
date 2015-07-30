@@ -3,7 +3,7 @@
 #include <strings.h>
 #include <stdio.h>
 
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
@@ -132,7 +132,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadPrintObjectFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix)
+bool loadMeshGroupFromFile(MeshGroup* object, const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))

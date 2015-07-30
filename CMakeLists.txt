@@ -35,6 +35,7 @@ set(engine_SRCS
     src/main.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
+    src/MeshGroup.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/polygonOptimizer.cpp
@@ -51,8 +52,6 @@ set(engine_SRCS
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
-
-    src/PrintObject.cpp
 
     src/utils/gettime.cpp
     src/utils/logoutput.cpp

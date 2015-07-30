@@ -8,7 +8,7 @@
 #include "commandSocket.h"
 #include "settings.h"
 
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "slicer.h"
 
 #include "utils/polygon.h"

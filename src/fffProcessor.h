@@ -76,15 +76,15 @@ public:
     bool processFiles(const std::vector<std::string> &files)
     {
         time_keeper.restart();
-        PrintObject* model = nullptr;
+        MeshGroup* model = nullptr;
 
-        model = new PrintObject(this);
+        model = new MeshGroup(this);
         for(std::string filename : files)
         {
             log("Loading %s from disk...\n", filename.c_str());
 
             FMatrix3x3 matrix;
-            if (!loadPrintObjectFromFile(model, filename.c_str(), matrix))
+            if (!loadMeshGroupFromFile(model, filename.c_str(), matrix))
             {
                 logError("Failed to load model: %s\n", filename.c_str());
                 return false;
@@ -96,7 +96,7 @@ public:
         return processModel(model);
     }
     
-    bool processModel(PrintObject* model)
+    bool processModel(MeshGroup* model)
     {
         time_keeper.restart();
         if (!model)

@@ -2,7 +2,7 @@
 #define FFF_AREA_GENERATOR_H
 
 
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "utils/polygonUtils.h"
 #include "utils/gettime.h"
 #include "settings.h"
@@ -51,7 +51,7 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, PrintObject* object, TimeKeeper& timeKeeper);
+    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper);
   
 private:
     /*!
@@ -75,7 +75,7 @@ private:
      * 
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(PrintObject* object, TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc. 

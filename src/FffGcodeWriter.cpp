@@ -26,7 +26,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     else
     {
-        processNextPrintObjectCode(storage);
+        processNextMeshGroupCode(storage);
     }
     file_number++;
 
@@ -186,7 +186,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
 }
 
-void FffGcodeWriter::processNextPrintObjectCode(SliceDataStorage& storage)
+void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
     gcode.resetExtrusionValue();

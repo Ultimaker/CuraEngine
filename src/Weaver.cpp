@@ -10,7 +10,7 @@
 namespace cura 
 {
 
-void Weaver::weave(PrintObject* object, CommandSocket* commandSocket)
+void Weaver::weave(MeshGroup* object, CommandSocket* commandSocket)
 {
     int maxz = object->max().z;
 

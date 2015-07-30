@@ -115,7 +115,7 @@ private:
      * Move up and over the just printed model to print the next model.
      * \param storage Input: where the slice data is stored.
      */
-    void processNextPrintObjectCode(SliceDataStorage& storage);
+    void processNextMeshGroupCode(SliceDataStorage& storage);
     
     /*!
      * Add raft gcode.

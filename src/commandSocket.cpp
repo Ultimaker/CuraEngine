@@ -54,7 +54,7 @@ public:
     std::ostringstream gcode_output_stream;
     
     // Print object that olds one or more meshes that need to be sliced. 
-    std::vector< std::shared_ptr<PrintObject> > objects_to_slice;
+    std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 };
 
 CommandSocket::CommandSocket(fffProcessor* processor)
@@ -139,10 +139,10 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     FMatrix3x3 matrix;
     //d->object_count = 0;
     //d->object_ids.clear();
-    d->objects_to_slice.push_back(std::make_shared<PrintObject>(d->processor));
+    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(d->processor));
     for(auto object : list->objects())
     {
-        d->objects_to_slice.back()->meshes.push_back(d->objects_to_slice.back().get()); //Construct a new mesh and put it into PrintObject's mesh list.
+        d->objects_to_slice.back()->meshes.push_back(d->objects_to_slice.back().get()); //Construct a new mesh and put it into MeshGroup's mesh list.
         Mesh& mesh = d->objects_to_slice.back()->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;

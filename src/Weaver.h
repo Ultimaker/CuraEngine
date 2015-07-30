@@ -5,7 +5,7 @@
 #include "commandSocket.h"
 #include "settings.h"
 
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "slicer.h"
 
 #include "utils/polygon.h"
@@ -63,7 +63,7 @@ public:
      * \param object The object for which to create a wireframe print
      * \param commandSocket the commandSocket
      */
-    void weave(PrintObject* object, CommandSocket* commandSocket);
+    void weave(MeshGroup* object, CommandSocket* commandSocket);
     
 
 private:

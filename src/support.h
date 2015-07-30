@@ -3,7 +3,7 @@
 #define SUPPORT_H
 
 #include "sliceDataStorage.h"
-#include "PrintObject.h"
+#include "MeshGroup.h"
 #include "commandSocket.h"
 
 namespace cura {

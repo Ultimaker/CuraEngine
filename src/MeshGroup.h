@@ -1,21 +1,21 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef PRINTOBJECT_H
-#define PRINTOBJECT_H
+#ifndef MESH_GROUP_H
+#define MESH_GROUP_H
 
 #include "mesh.h"
 
 /*!
- * A PrintObject is a 3D model with 1 or more 3D meshes.
+ * A MeshGroup is a 3D model with 1 or more 3D meshes.
  * 
- * One PrintObject is a whole which is printed at once.
- * Generally there is one single PrintObject, though when using one-at-a-time printing, multiple PrintObjects are processed consecutively.
+ * One MeshGroup is a whole which is printed at once.
+ * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
  */
-class PrintObject : public SettingsBase
+class MeshGroup : public SettingsBase
 {
 public:
    
 
-    PrintObject(SettingsBase* settings_base): SettingsBase(settings_base){}
+    MeshGroup(SettingsBase* settings_base): SettingsBase(settings_base){}
     
     std::vector<Mesh> meshes;
 
@@ -92,6 +92,6 @@ public:
     }
 };
 
-bool loadPrintObjectFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix);
+bool loadMeshGroupFromFile(MeshGroup* object, const char* filename, FMatrix3x3& matrix);
 
-#endif//PRINTOBJECT_H
+#endif//MESH_GROUP_H
