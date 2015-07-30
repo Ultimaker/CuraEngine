@@ -139,12 +139,10 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     FMatrix3x3 matrix;
     //d->object_count = 0;
     //d->object_ids.clear();
-    std::cout << "HandleObjectList called" << std::endl;
     d->objects_to_slice.push_back(std::make_shared<PrintObject>(d->processor));
     for(auto object : list->objects())
     {
         d->objects_to_slice.back()->meshes.push_back(d->objects_to_slice.back().get()); //Construct a new mesh and put it into PrintObject's mesh list.
-        std::cout << "adding mesh: " << d->objects_to_slice.back()->meshes.size() << std::endl;
         Mesh& mesh = d->objects_to_slice.back()->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;

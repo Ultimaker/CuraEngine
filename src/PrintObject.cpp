@@ -25,7 +25,7 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-bool loadModelSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
@@ -58,7 +58,7 @@ bool loadModelSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return true;
 }
 
-bool loadModelSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
     char buffer[80];
@@ -99,7 +99,7 @@ bool loadModelSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return true;
 }
 
-bool loadModelSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "r");
     char buffer[6];
@@ -116,7 +116,7 @@ bool loadModelSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     buffer[5] = '\0';
     if (stringcasecompare(buffer, "solid") == 0)
     {
-        bool load_success = loadModelSTL_ascii(mesh, filename, matrix);
+        bool load_success = loadMeshSTL_ascii(mesh, filename, matrix);
         if (!load_success)
             return false;
 
@@ -125,20 +125,20 @@ bool loadModelSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
         if (mesh->faces.size() < 1)
         {
             mesh->clear();
-            return loadModelSTL_binary(mesh, filename, matrix);
+            return loadMeshSTL_binary(mesh, filename, matrix);
         }
         return true;
     }
-    return loadModelSTL_binary(mesh, filename, matrix);
+    return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix)
+bool loadPrintObjectFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
         object->meshes.emplace_back(object);
-        return loadModelSTL(&object->meshes[object->meshes.size()-1], filename, matrix);
+        return loadMeshSTL(&object->meshes[object->meshes.size()-1], filename, matrix);
     }
     return false;
 }

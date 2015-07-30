@@ -4,7 +4,12 @@
 
 #include "mesh.h"
 
-//A PrintObject is a 3D model with 1 or more 3D meshes.
+/*!
+ * A PrintObject is a 3D model with 1 or more 3D meshes.
+ * 
+ * One PrintObject is a whole which is printed at once.
+ * Generally there is one single PrintObject, though when using one-at-a-time printing, multiple PrintObjects are processed consecutively.
+ */
 class PrintObject : public SettingsBase
 {
 public:
@@ -87,6 +92,6 @@ public:
     }
 };
 
-bool loadMeshFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix);
+bool loadPrintObjectFromFile(PrintObject* object, const char* filename, FMatrix3x3& matrix);
 
 #endif//PRINTOBJECT_H

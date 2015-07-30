@@ -84,7 +84,7 @@ public:
             log("Loading %s from disk...\n", filename.c_str());
 
             FMatrix3x3 matrix;
-            if (!loadMeshFromFile(model, filename.c_str(), matrix))
+            if (!loadPrintObjectFromFile(model, filename.c_str(), matrix))
             {
                 logError("Failed to load model: %s\n", filename.c_str());
                 return false;
