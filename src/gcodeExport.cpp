@@ -161,7 +161,8 @@ double GCodeExport::getTotalFilamentUsed(int e)
 
 double GCodeExport::getTotalPrintTime()
 {
-    return totalPrintTime;
+    return 10; // TODO: fix negative print times!
+//     return totalPrintTime;
 }
 
 void GCodeExport::resetTotalPrintTimeAndFilament()
