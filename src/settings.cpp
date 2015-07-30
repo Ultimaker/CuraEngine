@@ -12,13 +12,28 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-SettingsBase::SettingsBase()
+SettingsBaseVirtual::SettingsBaseVirtual()
 : parent(NULL)
 {
 }
 
-SettingsBase::SettingsBase(SettingsBase* parent)
+SettingsBaseVirtual::SettingsBaseVirtual(SettingsBaseVirtual* parent)
 : parent(parent)
+{
+}
+
+SettingsBase::SettingsBase()
+: SettingsBaseVirtual(NULL)
+{
+}
+
+SettingsBase::SettingsBase(SettingsBaseVirtual* parent)
+: SettingsBaseVirtual(parent)
+{
+}
+
+SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
+: SettingsBaseVirtual(parent)
 {
 }
 
@@ -59,31 +74,43 @@ std::string SettingsBase::getSettingString(std::string key)
     return setting_values[key];
 }
 
-int SettingsBase::getSettingAsIndex(std::string key)
+void SettingsMessenger::setSetting(std::string key, std::string value)
+{
+    parent->setSetting(key, value);
+}
+
+std::string SettingsMessenger::getSettingString(std::string key)
+{
+    return parent->getSettingString(key);
+}
+
+
+
+int SettingsBaseVirtual::getSettingAsIndex(std::string key)
 {
     std::string value = getSettingString(key);
     return atoi(value.c_str());
 }
 
-int SettingsBase::getSettingAsCount(std::string key)
+int SettingsBaseVirtual::getSettingAsCount(std::string key)
 {
     std::string value = getSettingString(key);
     return atoi(value.c_str());
 }
 
-int SettingsBase::getSettingInMicrons(std::string key)
+int SettingsBaseVirtual::getSettingInMicrons(std::string key)
 {
     std::string value = getSettingString(key);
     return atof(value.c_str()) * 1000.0;
 }
 
-double SettingsBase::getSettingInAngleRadians(std::string key)
+double SettingsBaseVirtual::getSettingInAngleRadians(std::string key)
 {
     std::string value = getSettingString(key);
     return atof(value.c_str()) / 180.0 * M_PI;
 }
 
-bool SettingsBase::getSettingBoolean(std::string key)
+bool SettingsBaseVirtual::getSettingBoolean(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "on")
@@ -95,37 +122,37 @@ bool SettingsBase::getSettingBoolean(std::string key)
     return atoi(value.c_str()) != 0;
 }
 
-double SettingsBase::getSettingInDegreeCelsius(std::string key)
+double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key)
 {
     std::string value = getSettingString(key);
     return atof(value.c_str());
 }
 
-double SettingsBase::getSettingInMillimetersPerSecond(std::string key)
+double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key)
 {
     std::string value = getSettingString(key);
     return std::max(1.0, atof(value.c_str()));
 }
 
-double SettingsBase::getSettingInCubicMillimeters(std::string key)
+double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key)
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-double SettingsBase::getSettingInPercentage(std::string key)
+double SettingsBaseVirtual::getSettingInPercentage(std::string key)
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-double SettingsBase::getSettingInSeconds(std::string key)
+double SettingsBaseVirtual::getSettingInSeconds(std::string key)
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-EGCodeFlavor SettingsBase::getSettingAsGCodeFlavor(std::string key)
+EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "RepRap")
@@ -143,7 +170,7 @@ EGCodeFlavor SettingsBase::getSettingAsGCodeFlavor(std::string key)
     return GCODE_FLAVOR_REPRAP;
 }
 
-EFillMethod SettingsBase::getSettingAsFillMethod(std::string key)
+EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Lines")
@@ -159,7 +186,7 @@ EFillMethod SettingsBase::getSettingAsFillMethod(std::string key)
     return Fill_None;
 }
 
-EPlatformAdhesion SettingsBase::getSettingAsPlatformAdhesion(std::string key)
+EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Brim")
@@ -169,7 +196,7 @@ EPlatformAdhesion SettingsBase::getSettingAsPlatformAdhesion(std::string key)
     return Adhesion_Skirt;
 }
 
-ESupportType SettingsBase::getSettingAsSupportType(std::string key)
+ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Everywhere")

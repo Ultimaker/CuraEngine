@@ -156,6 +156,7 @@ int main(int argc, char **argv)
     } 
     else if (stringcasecompare(argv[1], "slice") == 0)
     {   
+        SettingsBase* last_settings_object = &processor;
         for(int argn = 2; argn < argc; argn++)
         {
             char* str = argv[argn];
@@ -199,6 +200,7 @@ int main(int argc, char **argv)
                             break;
                         case 'e':
                             // TODO
+                            // last_settings_object = 
                             break;
                         case 'l':
                             argn++;
@@ -221,7 +223,7 @@ int main(int argc, char **argv)
                                 {
                                     *valuePtr++ = '\0';
 
-                                    processor.setSetting(argv[argn], valuePtr);
+                                    last_settings_object->setSetting(argv[argn], valuePtr);
                                 }
                             }
                             break;

@@ -19,7 +19,7 @@ namespace cura
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
  */
-class Weaver : public SettingsBase
+class Weaver : public SettingsMessenger
 {
     friend class Wireframe2gcode;
 private:
@@ -41,7 +41,7 @@ private:
     
 public:
     
-    Weaver(SettingsBase* settings_base) : SettingsBase(settings_base) 
+    Weaver(SettingsBase* settings_base) : SettingsMessenger(settings_base) 
     {
         
         initial_layer_thickness = getSettingInMicrons("layer_height_0");

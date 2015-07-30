@@ -208,7 +208,7 @@ public:
     void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
     void writeBedTemperatureCommand(double temperature, bool wait = false);
     
-    void preSetup(SettingsBase& settings)
+    void preSetup(SettingsMessenger& settings)
     {
         for(int n=1; n<settings.getSettingAsCount("machine_extruder_count"); n++)
         {

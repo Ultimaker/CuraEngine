@@ -22,7 +22,7 @@ namespace cura
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
  */
-class Wireframe2gcode : public SettingsBase
+class Wireframe2gcode : public SettingsMessenger
 {
 private:
     static const int STRATEGY_COMPENSATE = 0;

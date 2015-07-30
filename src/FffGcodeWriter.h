@@ -25,7 +25,7 @@ namespace cura
  * 
  * The main function of this class is FffGcodeWriter::writeGCode().
  */
-class FffGcodeWriter : public SettingsBase
+class FffGcodeWriter : public SettingsMessenger
 {
     friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
@@ -44,7 +44,7 @@ private:
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
 public:
     FffGcodeWriter(SettingsBase* settings_)
-    : SettingsBase(settings_)
+    : SettingsMessenger(settings_)
     {
         file_number = 1;
         max_object_height = 0;

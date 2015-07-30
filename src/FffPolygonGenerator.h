@@ -21,7 +21,7 @@ namespace cura
  * 
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public SettingsBase
+class FffPolygonGenerator : public SettingsMessenger
 {
 private:
     CommandSocket* commandSocket;
@@ -30,7 +30,7 @@ public:
      * Basic constructor; doesn't set the FffAreaGenerator::commandSocket .
      */
     FffPolygonGenerator(SettingsBase* settings_)
-    : SettingsBase(settings_)
+    : SettingsMessenger(settings_)
     , commandSocket(nullptr)
     {
     }

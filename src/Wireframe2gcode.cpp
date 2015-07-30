@@ -471,7 +471,7 @@ void Wireframe2gcode::writeMoveWithRetract(Point to)
 }
 
 Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base) 
-: SettingsBase(settings_base) 
+: SettingsMessenger(settings_base) 
 , gcode(gcode)
 {
     wireFrame = weaver.wireFrame;

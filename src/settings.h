@@ -111,25 +111,28 @@ enum ESupportType
 //Maximum number of sparse layers that can be combined into a single sparse extrusion.
 #define MAX_SPARSE_COMBINE 8
 
-/*!
- * Base class for every object that can hold settings.
- * The SettingBase object can hold multiple key-value pairs that define settings.
- * The settings that are set on a SettingBase are checked against the SettingRegistry to ensure keys are valid.
- * Different conversion functions are available for settings to increase code clarity and in the future make
- * unit conversions possible.
- */
-class SettingsBase
-{
-private:
-    std::unordered_map<std::string, std::string> setting_values;
-    SettingsBase* parent;
-public:
-    SettingsBase();
-    SettingsBase(SettingsBase* parent);
+class SettingsBase;
 
-    void setSetting(std::string key, std::string value);
+/*!
+ * An abstract class for classes that can provide setting values.
+ * These are: SettingsBase, which contains setting information 
+ * and SettingsMessenger, which can pass on setting information from a SettingsBase
+ */
+class SettingsBaseVirtual
+{
+protected:
+    SettingsBaseVirtual* parent;
+public:
+    virtual std::string getSettingString(std::string key) = 0;
     
-    std::string getSettingString(std::string key);
+    virtual void setSetting(std::string key, std::string value) = 0;
+    
+    SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
+    SettingsBaseVirtual(SettingsBaseVirtual* parent); //!< construct a SettingsBaseVirtual with a parent settings object
+
+    void setParent(SettingsBaseVirtual* parent) { this->parent = parent; }
+    SettingsBaseVirtual* getParent() { return parent; }
+    
     int getSettingAsIndex(std::string key);
     int getSettingAsCount(std::string key);
     
@@ -147,6 +150,40 @@ public:
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
     ESupportType getSettingAsSupportType(std::string key);
 };
+
+/*!
+ * Base class for every object that can hold settings.
+ * The SettingBase object can hold multiple key-value pairs that define settings.
+ * The settings that are set on a SettingBase are checked against the SettingRegistry to ensure keys are valid.
+ * Different conversion functions are available for settings to increase code clarity and in the future make
+ * unit conversions possible.
+ */
+class SettingsBase : public SettingsBaseVirtual
+{
+private:
+    std::unordered_map<std::string, std::string> setting_values;
+public:
+    SettingsBase(); //!< SettingsBase without a parent settings object
+    SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
+    
+    void setSetting(std::string key, std::string value);
+    std::string getSettingString(std::string key); //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+};
+
+/*!
+ * Base class for an object which passes on settings from another object.
+ * An object which is a subclass of SettingsMessenger can be handled as a SettingsBase;
+ * the difference is that such an object cannot hold any settings, but can only pass on the settings from its parent.
+ */
+class SettingsMessenger : public SettingsBaseVirtual
+{
+public:
+    SettingsMessenger(SettingsBaseVirtual* parent); //!< construct a SettingsMessenger with a parent settings object
+    
+    void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
+    std::string getSettingString(std::string key); //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
+};
+
 
 
 #endif//SETTINGS_H
