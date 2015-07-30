@@ -35,6 +35,13 @@ private:
     CoastingConfig coasting_config;
     CommandSocket* command_socket;
     std::ofstream output_file;
+    
+    /*!
+     * Layer number of the last layer in which a prime tower has been printed per extruder train.  
+     * 
+     * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
+     */
+    int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsBase(settings_)

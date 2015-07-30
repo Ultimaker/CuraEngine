@@ -39,6 +39,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         processRaft(storage, total_layers);
     }
     
+    for (int extruder = 0; extruder < getSettingAsCount("machine_extruder_count"); extruder++)
+        last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
+    
     for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         processLayer(storage, layer_nr, total_layers, has_raft);
@@ -318,6 +321,18 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     }
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, false);
 
+    { // add prime tower if it hasn't already been added
+        bool prime_tower_added = false;
+        for (int extruder = 0; extruder < getSettingAsCount("machine_extruder_count") && !prime_tower_added; extruder++)
+        {
+            prime_tower_added = last_prime_tower_poly_printed[extruder] == int(layer_nr);
+        }
+        if (!prime_tower_added)
+        { // print the prime tower if it hasn't been printed yet
+            int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
+            addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
+        }
+    }
     processFanSpeedAndMinimalLayerTime(storage, gcode_layer, layer_nr);
     
     gcode_layer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
@@ -687,18 +702,6 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
 }
 
-void FffGcodeWriter::setExtruder_addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
-{
-    if (extruder_nr == -1)
-        return;
-    
-    int previous_extruder = gcode_layer.getExtruder();
-    bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
-    
-    if (extruder_changed)
-        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
-}
-
 void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before, bool before_rest)
 {
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
@@ -845,6 +848,17 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     gcode_layer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
 }
 
+void FffGcodeWriter::setExtruder_addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
+{
+    if (extruder_nr == -1)
+        return;
+    
+    int previous_extruder = gcode_layer.getExtruder();
+    bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
+    
+    if (extruder_changed)
+        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
+}
 
 void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)
 {
@@ -856,6 +870,8 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
     {
         return;
     }
+    
+    int new_extruder = gcodeLayer.getExtruder();
 
     int64_t offset = -getSettingInMicrons("wall_line_width_x");
     if (layer_nr > 0)
@@ -881,10 +897,12 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
     {
         gcodeLayer.addPolygonsByOptimizer(insets[(prime_tower_dir_outward)? insets.size() - 1 - n : n], &storage.meshes[0].insetX_config);
     }
+    last_prime_tower_poly_printed[new_extruder] = layer_nr;
+    
     
     if (getSettingBoolean("prime_tower_wipe_enabled"))
     { //Make sure we wipe the old extruder on the prime tower.
-        gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(gcodeLayer.getExtruder()));
+        gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
 }
 
