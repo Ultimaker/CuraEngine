@@ -92,6 +92,6 @@ public:
     }
 };
 
-bool loadMeshGroupFromFile(MeshGroup* object, const char* filename, FMatrix3x3& matrix);
+bool loadMeshIntoMeshGroup(MeshGroup* object, const char* filename, FMatrix3x3& matrix);
 
 #endif//MESH_GROUP_H

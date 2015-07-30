@@ -86,7 +86,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         {
             for(auto object : d->objects_to_slice)
             {
-                d->processor->processModel(object.get());
+                d->processor->processMeshGroup(object.get());
             }
             d->objects_to_slice.clear();
             sendPrintTime();

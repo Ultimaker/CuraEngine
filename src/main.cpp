@@ -68,7 +68,7 @@ void signal_FPE(int n)
 
 using namespace cura;
 
-int connect(fffProcessor processor, int argc, char **argv)
+void connect(fffProcessor& processor, int argc, char **argv)
 {
     CommandSocket* commandSocket = new CommandSocket(&processor);
     std::string ip;
@@ -112,9 +112,16 @@ int connect(fffProcessor processor, int argc, char **argv)
     commandSocket->connect(ip, port);
 }
 
-int slice(fffProcessor processor, int argc, char **argv)
+void slice(fffProcessor& processor, int argc, char **argv)
 {   
+    processor.time_keeper.restart();
+    
+    FMatrix3x3 transformation; // the transformation applied to a model when loaded
+                        
+    MeshGroup* meshgroup = new MeshGroup(&processor);
+        
     std::vector<std::string> files;
+    std::vector<SettingsBase> file_settings;
     
     SettingsBase* last_settings_object = &processor;
     for(int argn = 2; argn < argc; argn++)
@@ -129,9 +136,16 @@ int slice(fffProcessor processor, int argc, char **argv)
                     try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        if (files.size() > 0)
-                            processor.processFiles(files);
-                        files.clear();
+                        meshgroup->finalize();
+                        log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
+                        
+                        //start slicing
+                        processor.processMeshGroup(meshgroup);
+                        
+                        // initialize loading of new meshes
+                        processor.time_keeper.restart();
+                        delete meshgroup;
+                        meshgroup = new MeshGroup(&processor);
                     }catch(...){
                         cura::logError("Unknown exception\n");
                         exit(1);
@@ -164,7 +178,18 @@ int slice(fffProcessor processor, int argc, char **argv)
                         break;
                     case 'l':
                         argn++;
-                        files.push_back(argv[argn]);
+                        
+                        log("Loading %s from disk...\n", argv[argn]);
+                        // transformation = // TODO: get a transformation from somewhere
+                        
+                        if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation))
+                        {
+                            logError("Failed to load model: %s\n", argv[argn]);
+                        }
+                        else 
+                        {
+                            last_settings_object = &(meshgroup->meshes.back());
+                        }
                         break;
                     case 'o':
                         argn++;
@@ -220,8 +245,12 @@ int slice(fffProcessor processor, int argc, char **argv)
 #endif
         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        if (files.size() > 0)
-            processor.processFiles(files);
+        meshgroup->finalize();
+        log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
+        
+        //start slicing
+        processor.processMeshGroup(meshgroup);
+        
 #ifndef DEBUG
     }catch(...){
         cura::logError("Unknown exception\n");
@@ -230,6 +259,8 @@ int slice(fffProcessor processor, int argc, char **argv)
 #endif
     //Finalize the processor, this adds the end.gcode. And reports statistics.
     processor.finalize();
+    
+    delete meshgroup;
 
 }
 
@@ -275,11 +306,11 @@ int main(int argc, char **argv)
     
     if (stringcasecompare(argv[1], "connect") == 0)
     {
-        return connect(fffProcessor, argc, **argv);
+        connect(processor, argc, argv);
     } 
     else if (stringcasecompare(argv[1], "slice") == 0)
     {
-        return slice(fffProcessor, argc, argv);
+        slice(processor, argc, argv);
     }
     else
     {

@@ -18,10 +18,10 @@ class fffProcessor : public SettingsBase
 private:
     FffPolygonGenerator polygon_generator;
     FffGcodeWriter gcode_writer;
-    TimeKeeper time_keeper;
     CommandSocket* command_socket;
 
 public:
+    TimeKeeper time_keeper; // TODO: use singleton time keeper
     
     fffProcessor()
     : polygon_generator(this)
@@ -76,40 +76,40 @@ public:
     bool processFiles(const std::vector<std::string> &files)
     {
         time_keeper.restart();
-        MeshGroup* model = nullptr;
-
-        model = new MeshGroup(this);
+        MeshGroup* meshgroup = new MeshGroup(this);
+        
         for(std::string filename : files)
         {
             log("Loading %s from disk...\n", filename.c_str());
 
             FMatrix3x3 matrix;
-            if (!loadMeshGroupFromFile(model, filename.c_str(), matrix))
+            if (!loadMeshIntoMeshGroup(meshgroup, filename.c_str(), matrix))
             {
                 logError("Failed to load model: %s\n", filename.c_str());
                 return false;
             }
         }
-        model->finalize();
+        
+        meshgroup->finalize();
 
         log("Loaded from disk in %5.3fs\n", time_keeper.restart());
-        return processModel(model);
+        return processMeshGroup(meshgroup);
     }
     
-    bool processModel(MeshGroup* model)
+    bool processMeshGroup(MeshGroup* meshgroup)
     {
         time_keeper.restart();
-        if (!model)
+        if (!meshgroup)
             return false;
 
         TimeKeeper time_keeper_total;
         
-        if (model->getSettingBoolean("wireframe_enabled"))
+        if (meshgroup->getSettingBoolean("wireframe_enabled"))
         {
             log("starting Neith Weaver...\n");
                         
             Weaver w(this);
-            w.weave(model, command_socket);
+            w.weave(meshgroup, command_socket);
             
             log("starting Neith Gcode generation...\n");
             Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
@@ -120,7 +120,7 @@ public:
         {
             SliceDataStorage storage;
 
-            if (!polygon_generator.generateAreas(storage, model, time_keeper))
+            if (!polygon_generator.generateAreas(storage, meshgroup, time_keeper))
             {
                 return false;
             }

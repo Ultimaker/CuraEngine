@@ -40,18 +40,18 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* ob
     return true;
 }
 
-bool FffPolygonGenerator::sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
+bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
     Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, commandSocket);
     
-    storage.model_min = object->min();
-    storage.model_max = object->max();
+    storage.model_min = meshgroup->min();
+    storage.model_max = meshgroup->max();
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int initial_layer_thickness = object->getSettingInMicrons("layer_height_0");
-    int layer_thickness = object->getSettingInMicrons("layer_height");
-    if (object->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
+    int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
+    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
     { 
         initial_layer_thickness = layer_thickness; 
     }
@@ -59,9 +59,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, 
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
 
     std::vector<Slicer*> slicerList;
-    for(unsigned int mesh_idx = 0; mesh_idx < object->meshes.size(); mesh_idx++)
+    for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
-        Mesh& mesh = object->meshes[mesh_idx];
+        Mesh& mesh = meshgroup->meshes[mesh_idx];
         Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
@@ -72,12 +72,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, 
             //sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
-        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, object->meshes.size(), commandSocket);
+        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size(), commandSocket);
     }
     
     log("Layer count: %i\n", layer_count);
 
-    object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
+    meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper, commandSocket);
     //carveMultipleVolumes(storage.meshes);
@@ -86,7 +86,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, 
     
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
-        storage.meshes.emplace_back(&object->meshes[meshIdx]);
+        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]);
         SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
         createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];

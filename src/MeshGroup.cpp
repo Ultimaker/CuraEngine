@@ -132,12 +132,12 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshGroupFromFile(MeshGroup* object, const char* filename, FMatrix3x3& matrix)
+bool loadMeshIntoMeshGroup(MeshGroup* object, const char* filename, FMatrix3x3& matrix)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        object->meshes.emplace_back(object);
+        object->meshes.emplace_back(object); // make new mesh with [object] as parent settings object
         return loadMeshSTL(&object->meshes[object->meshes.size()-1], filename, matrix);
     }
     return false;
