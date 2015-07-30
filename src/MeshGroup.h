@@ -5,7 +5,7 @@
 #include "mesh.h"
 
 /*!
- * A MeshGroup is a 3D model with 1 or more 3D meshes.
+ * A MeshGroup is a collection with 1 or more 3D meshes.
  * 
  * One MeshGroup is a whole which is printed at once.
  * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
