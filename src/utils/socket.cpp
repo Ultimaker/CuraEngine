@@ -14,6 +14,9 @@
 #include "socket.h"
 #include "logoutput.h"
 
+namespace cura
+{
+    
 #ifdef __WIN32
 bool wsaStartupDone = false;
 #endif
@@ -135,3 +138,5 @@ void ClientSocket::close()
 #endif
     sockfd = -1;
 }
+
+}//namespace cura

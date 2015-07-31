@@ -4,6 +4,9 @@
 #include <algorithm>
 #include "timeEstimate.h"
 
+namespace cura
+{
+    
 #define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
 
 const double max_feedrate[TimeEstimateCalculator::NUM_AXIS] = {600, 600, 40, 25};
@@ -306,3 +309,5 @@ void TimeEstimateCalculator::recalculate_trapezoids()
         next->recalculate_flag = false;
     }
 }
+
+}//namespace cura

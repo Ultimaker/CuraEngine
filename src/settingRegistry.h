@@ -8,6 +8,9 @@
 
 #include "rapidjson/document.h"
 
+namespace cura
+{
+    
 // Forward declaration
 class SettingConfig;
 
@@ -116,4 +119,5 @@ private:
     void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent);
 };
 
+}//namespace cura
 #endif//SETTING_REGISTRY_H

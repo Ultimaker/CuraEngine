@@ -599,4 +599,4 @@ void Wireframe2gcode::finalize(int maxObjectHeight)
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }
-} // namespace cura    
+}//namespace cura    

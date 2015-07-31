@@ -60,5 +60,5 @@ public:
     
 };
 
-} // namespace cura
+}//namespace cura
 #endif // MERGE_INFILL_LINES_H

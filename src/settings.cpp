@@ -7,6 +7,8 @@
 #include "settings.h"
 #include "settingRegistry.h"
 
+namespace cura
+{
 //c++11 no longer defines M_PI, so add our own constant.
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -205,3 +207,5 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
         return Support_PlatformOnly;
     return Support_None;
 }
+
+}//namespace cura

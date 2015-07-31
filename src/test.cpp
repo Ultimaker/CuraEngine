@@ -267,8 +267,9 @@ void test_findClosestConnection()
 
 
 #include "utils/polygon.h"
-using namespace cura;
-
+namespace cura
+{
+    
 void test_clipper()
 {
     Polygon p;
@@ -312,3 +313,5 @@ int main(int argc, char **argv)
 //     test_findClosestConnection();
     test_clipper();
 }
+
+}//namespace cura

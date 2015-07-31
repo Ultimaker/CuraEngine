@@ -141,4 +141,4 @@ void MergeInfillLines::merge(Point& from, Point& p0, Point& p1)
      
      
      
-} // namespace cura
+}//namespace cura

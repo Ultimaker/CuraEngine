@@ -10,6 +10,9 @@
 #include "rapidjson/filereadstream.h"
 #include "utils/logoutput.h"
 
+namespace cura
+{
+    
 SettingRegistry SettingRegistry::instance; // define settingRegistry
 
 bool SettingRegistry::settingExists(std::string key) const
@@ -231,3 +234,5 @@ SettingConfig* SettingConfig::addChild(std::string key, std::string label)
     children.emplace_back(key, label, this);
     return &children.back();
 }
+
+}//namespace cura

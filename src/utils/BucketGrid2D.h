@@ -212,5 +212,5 @@ public:
 
 };
 
-} // namespace cura
+}//namespace cura
 #endif//BUCKET_GRID_2D_H

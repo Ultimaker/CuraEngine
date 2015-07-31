@@ -397,4 +397,4 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
     
 }
     
-} // namespace cura 
+}//namespace cura 

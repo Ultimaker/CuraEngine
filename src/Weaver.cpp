@@ -472,5 +472,5 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
 
 
 
-} // namespace cura
+}//namespace cura
     

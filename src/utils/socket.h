@@ -2,7 +2,9 @@
 #define SOCKET_H
 
 #include <string>
-
+namespace cura
+{
+    
 class ClientSocket
 {
     int sockfd;
@@ -23,4 +25,5 @@ public:
     void close();
 };
 
+}//namespace cura
 #endif//SOCKET_H

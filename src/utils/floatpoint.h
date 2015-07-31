@@ -2,16 +2,19 @@
 #ifndef FLOAT_POINT_H
 #define FLOAT_POINT_H
 
-/*
-Floating point 3D points are used during model loading as 3D vectors.
-They represent millimeters in 3D space.
-*/
-
 #include "intpoint.h"
 
 #include <stdint.h>
 #include <math.h>
 
+
+namespace cura
+{
+    
+/*
+Floating point 3D points are used during model loading as 3D vectors.
+They represent millimeters in 3D space.
+*/
 class FPoint3
 {
 public:
@@ -122,4 +125,5 @@ public:
     }
 };
 
+}//namespace cura
 #endif//INT_POINT_H

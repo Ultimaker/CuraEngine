@@ -4,6 +4,9 @@
 
 #include "intpoint.h"
 
+namespace cura
+{
+    
 short pointLiesOnTheRightOfLine(Point p, Point p0, Point p1)
 {
     // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
@@ -63,5 +66,5 @@ short pointLiesOnTheRightOfLine(Point p, Point p0, Point p1)
 
 
 
-
+}//namespace cura
 #endif//LINEAR_ALG_2D_H
