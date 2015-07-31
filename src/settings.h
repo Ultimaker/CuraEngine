@@ -7,6 +7,9 @@
 
 #include "utils/floatpoint.h"
 
+namespace cura
+{
+
 #ifndef VERSION
 #define VERSION "DEV"
 #endif
@@ -127,6 +130,8 @@ public:
     
     virtual void setSetting(std::string key, std::string value) = 0;
     
+    virtual ~SettingsBaseVirtual() {}
+    
     SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
     SettingsBaseVirtual(SettingsBaseVirtual* parent); //!< construct a SettingsBaseVirtual with a parent settings object
 
@@ -185,5 +190,5 @@ public:
 };
 
 
-
+}//namespace cura
 #endif//SETTINGS_H
