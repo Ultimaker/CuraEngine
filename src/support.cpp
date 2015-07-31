@@ -38,37 +38,37 @@ Polygons join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t su
 void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket)
 {
     // given settings
-    ESupportType support_type = object->settings->getSettingAsSupportType("support_type");
+    ESupportType support_type = object->getSettingAsSupportType("support_type");
     
     storage.support.generated = false;
-    if (!object->settings->getSettingBoolean("support_enable"))
+    if (!object->getSettingBoolean("support_enable"))
         return;
     if (support_type == Support_None)
         return;
     
-    double supportAngle = object->settings->getSettingInAngleRadians("support_angle");
+    double supportAngle = object->getSettingInAngleRadians("support_angle");
     bool supportOnBuildplateOnly = support_type == Support_PlatformOnly;
-    int supportZDistance = object->settings->getSettingInMicrons("support_z_distance");
-    int supportZDistanceBottom = object->settings->getSettingInMicrons("support_bottom_distance");
-    int supportZDistanceTop = object->settings->getSettingInMicrons("support_top_distance");
-    int join_distance = object->settings->getSettingInMicrons("support_join_distance");
-    int support_bottom_stair_step_height = object->settings->getSettingInMicrons("support_bottom_stair_step_height");
-    int smoothing_distance = object->settings->getSettingInMicrons("support_area_smoothing"); 
+    int supportZDistance = object->getSettingInMicrons("support_z_distance");
+    int supportZDistanceBottom = object->getSettingInMicrons("support_bottom_distance");
+    int supportZDistanceTop = object->getSettingInMicrons("support_top_distance");
+    int join_distance = object->getSettingInMicrons("support_join_distance");
+    int support_bottom_stair_step_height = object->getSettingInMicrons("support_bottom_stair_step_height");
+    int smoothing_distance = object->getSettingInMicrons("support_area_smoothing"); 
     
-    int supportTowerDiameter = object->settings->getSettingInMicrons("support_tower_diameter");
-    int supportMinAreaSqrt = object->settings->getSettingInMicrons("support_minimal_diameter");
-    double supportTowerRoofAngle = object->settings->getSettingInAngleRadians("support_tower_roof_angle");
+    int supportTowerDiameter = object->getSettingInMicrons("support_tower_diameter");
+    int supportMinAreaSqrt = object->getSettingInMicrons("support_minimal_diameter");
+    double supportTowerRoofAngle = object->getSettingInAngleRadians("support_tower_roof_angle");
     
     //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
     
     int min_smoothing_area = 100*100; // minimal area for which to perform smoothing
     int z_layer_distance_tower = 1; // start tower directly below overhang point
         
-    int layerThickness = object->settings->getSettingInMicrons("layer_height");
-    int extrusionWidth = object->settings->getSettingInMicrons("support_line_width"); 
-    int supportXYDistance = object->settings->getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
+    int layerThickness = object->getSettingInMicrons("layer_height");
+    int extrusionWidth = object->getSettingInMicrons("support_line_width"); 
+    int supportXYDistance = object->getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
     
-    bool conical_support = object->settings->getSettingBoolean("support_conical_enabled");
+    bool conical_support = object->getSettingBoolean("support_conical_enabled");
     
     // derived settings:
     

@@ -147,5 +147,5 @@ private:
 
     
 };
-} // namespace cura
+}//namespace cura
 #endif // FFF_AREA_GENERATOR_H

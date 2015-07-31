@@ -86,12 +86,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
-        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]);
+        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
-        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.settings->getSettingBoolean("meshfix_union_all"), meshStorage.settings->getSettingBoolean("meshfix_union_all_remove_holes"));
+        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.getSettingBoolean("meshfix_union_all"), meshStorage.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
-        bool has_raft = meshStorage.settings->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+        bool has_raft = meshStorage.getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
         //Add the raft offset to each layer.
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
@@ -99,16 +99,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             if (has_raft)
             {
                 layer.printZ += 
-                    meshStorage.settings->getSettingInMicrons("raft_base_thickness") 
-                    + meshStorage.settings->getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.settings->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
-                    + meshStorage.settings->getSettingInMicrons("raft_airgap")
+                    meshStorage.getSettingInMicrons("raft_base_thickness") 
+                    + meshStorage.getSettingInMicrons("raft_interface_thickness") 
+                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
+                    + meshStorage.getSettingInMicrons("raft_airgap")
                     - initial_slice_z;
             }
             else 
             {
                 meshStorage.layers[layer_nr].printZ += 
-                    meshStorage.settings->getSettingInMicrons("layer_height_0")
+                    meshStorage.getSettingInMicrons("layer_height_0")
                     - initial_slice_z;
             }
     
@@ -119,7 +119,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
                 
             if (commandSocket)
-                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 && !has_raft? meshStorage.settings->getSettingInMicrons("layer_height_0") : meshStorage.settings->getSettingInMicrons("layer_height"));
+                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 && !has_raft? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
         }
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
@@ -183,7 +183,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
     {
         for(SliceMeshStorage& mesh : storage.meshes)
-            combineSparseLayers(layer_number, mesh, mesh.settings->getSettingAsCount("fill_sparse_combine"));
+            combineSparseLayers(layer_number, mesh, mesh.getSettingAsCount("fill_sparse_combine"));
     }
 
     processPrimeTower(storage, total_layers);
@@ -198,15 +198,15 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        int inset_count = mesh.settings->getSettingAsCount("wall_line_count");
-        if (mesh.settings->getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.settings->getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+        int inset_count = mesh.getSettingAsCount("wall_line_count");
+        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
             inset_count += 5;
         SliceLayer* layer = &mesh.layers[layer_nr];
-        int line_width_x = mesh.settings->getSettingInMicrons("wall_line_width_x");
-        int line_width_0 = mesh.settings->getSettingInMicrons("wall_line_width_0");
-        if (mesh.settings->getSettingBoolean("alternate_extra_perimeter"))
+        int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        if (mesh.getSettingBoolean("alternate_extra_perimeter"))
             inset_count += layer_nr % 2; 
-        generateInsets(layer, line_width_0, line_width_x, inset_count, mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateInsets(layer, line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
 
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {
@@ -296,21 +296,21 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        int extrusionWidth = mesh.settings->getSettingInMicrons("wall_line_width_x");
-        generateSkins(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"), mesh.settings->getSettingAsCount("skin_outline_count"), mesh.settings->getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.settings->getSettingBoolean("remove_overlapping_walls_x_enabled"));
-        if (mesh.settings->getSettingInMicrons("infill_line_distance") > 0)
+        int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
+        generateSkins(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
-            if (mesh.settings->getSettingInMicrons("infill_line_distance") > mesh.settings->getSettingInMicrons("infill_line_width") + 10)
+            if (mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") + 10)
             {
                 infill_skin_overlap = extrusionWidth / 2;
             }
             generateSparse(layer_nr, mesh, extrusionWidth, infill_skin_overlap);
-            if (mesh.settings->getSettingString("fill_perimeter_gaps") == "Skin")
+            if (mesh.getSettingString("fill_perimeter_gaps") == "Skin")
             {
-                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.settings->getSettingAsCount("bottom_layers"), mesh.settings->getSettingAsCount("top_layers"));
+                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
             }
-            else if (mesh.settings->getSettingString("fill_perimeter_gaps") == "Everywhere")
+            else if (mesh.getSettingString("fill_perimeter_gaps") == "Everywhere")
             {
                 generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
             }
@@ -372,8 +372,8 @@ void FffPolygonGenerator::processPrimeTower(SliceDataStorage& storage, unsigned 
             memset(max_object_height_per_extruder, -1, sizeof(max_object_height_per_extruder));
             for (SliceMeshStorage& mesh : storage.meshes)
             {
-                max_object_height_per_extruder[mesh.settings->getSettingAsIndex("extruder_nr")] = 
-                    std::max(   max_object_height_per_extruder[mesh.settings->getSettingAsIndex("extruder_nr")]
+                max_object_height_per_extruder[mesh.getSettingAsIndex("extruder_nr")] = 
+                    std::max(   max_object_height_per_extruder[mesh.getSettingAsIndex("extruder_nr")]
                             ,   mesh.layer_nr_max_filled_layer  ); 
             }
             int support_extruder_nr = getSettingAsIndex("support_extruder_nr");
@@ -462,10 +462,10 @@ void FffPolygonGenerator::slices2polygons_magicPolygonMode(SliceDataStorage& sto
             SliceLayer* layer = &mesh.layers[layer_nr];
             for(SliceLayerPart& part : layer->parts)
             {
-                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.settings->getSettingInMicrons("wall_line_width_0"));
+                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
     }
 }
 
-} // namespace cura
+}//namespace cura
