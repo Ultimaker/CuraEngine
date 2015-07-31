@@ -122,22 +122,22 @@ void FffGcodeWriter::setConfigSupport(SliceDataStorage& storage, int layer_thick
 
 void FffGcodeWriter::setConfigInsets(SliceMeshStorage& mesh, int layer_thickness)
 {
-    mesh.inset0_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_0"));
-    mesh.inset0_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_0"));
-    mesh.inset0_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
+    mesh.inset0_config.setLineWidth(mesh.getSettingInMicrons("wall_line_width_0"));
+    mesh.inset0_config.setSpeed(mesh.getSettingInMillimetersPerSecond("speed_wall_0"));
+    mesh.inset0_config.setFlow(mesh.getSettingInPercentage("material_flow"));
     mesh.inset0_config.setLayerHeight(layer_thickness);
 
-    mesh.insetX_config.setLineWidth(mesh.settings->getSettingInMicrons("wall_line_width_x"));
-    mesh.insetX_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_wall_x"));
-    mesh.insetX_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
+    mesh.insetX_config.setLineWidth(mesh.getSettingInMicrons("wall_line_width_x"));
+    mesh.insetX_config.setSpeed(mesh.getSettingInMillimetersPerSecond("speed_wall_x"));
+    mesh.insetX_config.setFlow(mesh.getSettingInPercentage("material_flow"));
     mesh.insetX_config.setLayerHeight(layer_thickness);
 }
 
 void FffGcodeWriter::setConfigSkin(SliceMeshStorage& mesh, int layer_thickness)
 {
-    mesh.skin_config.setLineWidth(mesh.settings->getSettingInMicrons("skin_line_width"));
-    mesh.skin_config.setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_topbottom"));
-    mesh.skin_config.setFlow(mesh.settings->getSettingInPercentage("material_flow"));
+    mesh.skin_config.setLineWidth(mesh.getSettingInMicrons("skin_line_width"));
+    mesh.skin_config.setSpeed(mesh.getSettingInMillimetersPerSecond("speed_topbottom"));
+    mesh.skin_config.setFlow(mesh.getSettingInPercentage("material_flow"));
     mesh.skin_config.setLayerHeight(layer_thickness);
 }
 
@@ -145,9 +145,9 @@ void FffGcodeWriter::setConfigInfill(SliceMeshStorage& mesh, int layer_thickness
 {
     for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
     {
-        mesh.infill_config[idx].setLineWidth(mesh.settings->getSettingInMicrons("infill_line_width") * (idx + 1));
-        mesh.infill_config[idx].setSpeed(mesh.settings->getSettingInMillimetersPerSecond("speed_infill"));
-        mesh.infill_config[idx].setFlow(mesh.settings->getSettingInPercentage("material_flow"));
+        mesh.infill_config[idx].setLineWidth(mesh.getSettingInMicrons("infill_line_width") * (idx + 1));
+        mesh.infill_config[idx].setSpeed(mesh.getSettingInMillimetersPerSecond("speed_infill"));
+        mesh.infill_config[idx].setFlow(mesh.getSettingInPercentage("material_flow"));
         mesh.infill_config[idx].setLayerHeight(layer_thickness);
     }
 }
@@ -167,11 +167,11 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
         
         for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"));
+            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
         for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.settings->getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.settings->getSettingAsIndex("extruder_nr"), mesh.settings->getSettingInDegreeCelsius("material_print_temperature"), true);
+            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
     }
     
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
@@ -417,7 +417,7 @@ std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStora
     {
         for(unsigned int idx=0; idx<add_list.size(); idx++)
         {
-            if (add_list[idx]->settings->getSettingAsIndex("extruder_nr") == add_extruder_nr)
+            if (add_list[idx]->getSettingAsIndex("extruder_nr") == add_extruder_nr)
             {
                 ret.push_back(add_list[idx]);
                 add_list.erase(add_list.begin() + idx);
@@ -425,7 +425,7 @@ std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStora
             }
         }
         if (add_list.size() > 0)
-            add_extruder_nr = add_list[0]->settings->getSettingAsIndex("extruder_nr");
+            add_extruder_nr = add_list[0]->getSettingAsIndex("extruder_nr");
     }
     return ret;
 }
@@ -438,7 +438,7 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
         return;
     }
     
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->settings->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -474,7 +474,7 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
             polygons.add(p);
         }
     }
-    if (mesh->settings->getSettingBoolean("magic_spiralize"))
+    if (mesh->getSettingBoolean("magic_spiralize"))
         mesh->inset0_config.spiralize = true;
 
     gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
@@ -488,7 +488,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         return;
     }
     
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->settings->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -510,8 +510,8 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             fill_angle += 90;
         int extrusion_width =  mesh->infill_config[0].getLineWidth(); //getSettingInMicrons("infill_line_width");
         
-        int sparse_infill_line_distance = mesh->settings->getSettingInMicrons("infill_line_distance");
-        double infill_overlap = mesh->settings->getSettingInPercentage("fill_overlap");
+        int sparse_infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
+        double infill_overlap = mesh->getSettingInPercentage("fill_overlap");
         
         processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, fill_angle, extrusion_width);
         processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, fill_angle, extrusion_width);
@@ -951,4 +951,4 @@ void FffGcodeWriter::finalize()
 }
 
 
-} // namespace cura
+}//namespace cura

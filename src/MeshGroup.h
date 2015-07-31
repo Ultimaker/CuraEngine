@@ -3,7 +3,11 @@
 #define MESH_GROUP_H
 
 #include "mesh.h"
+#include "ExtruderTrain.h"
 
+namespace cura
+{
+    
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
  * 
@@ -13,9 +17,19 @@
 class MeshGroup : public SettingsBase
 {
 public:
-   
+    ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
 
-    MeshGroup(SettingsBase* settings_base): SettingsBase(settings_base){}
+    MeshGroup(SettingsBaseVirtual* settings_base) : SettingsBase(settings_base){}
+    ~MeshGroup() 
+    {
+        for (unsigned int extruder = 0; extruder < MAX_EXTRUDERS; extruder++)
+        {
+            if (extruders[extruder])
+            {
+                delete extruders[extruder];
+            }
+        }
+    }
     
     std::vector<Mesh> meshes;
 
@@ -92,6 +106,16 @@ public:
     }
 };
 
-bool loadMeshIntoMeshGroup(MeshGroup* object, const char* filename, FMatrix3x3& matrix);
+/*!
+ * Load a Mesh from file and store it in the \p meshgroup.
+ * 
+ * \param meshgroup The meshgroup where to store the mesh
+ * \param filename The filename of the mesh file
+ * \param transformation The transformation applied to all vertices
+ * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
+ * \return whether the file could be loaded
+ */
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings = nullptr);
 
+}//namespace cura
 #endif//MESH_GROUP_H

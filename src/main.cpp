@@ -36,25 +36,33 @@
 #include "fffProcessor.h"
 #include "Progress.h"
 
+namespace cura
+{
+    
 void print_usage()
 {
     cura::logError("\n");
-    cura::logError("usage: CuraEngine connect <host>[:<port>] [-j <settings.json>]\n");
+    cura::logError("usage:\n");
+    cura::logError("CuraEngine help\n");
+    cura::logError("\tShow this help message\n");
+    cura::logError("\n");
+    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.json>]\n");
     cura::logError("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
     cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults\n");
     cura::logError("\n");
-    cura::logError("usage: CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-e] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
-    cura::logError("  -v\n\tIncrease the verbose level (show log messages)\n");
-    cura::logError("  -p\n\tLog progress information\n");
-    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults\n");
-    cura::logError("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings\n");
-    cura::logError("  -l <model_file>\n\tLoad an STL model \n");
-    cura::logError("  -e\n\tAdd a new extruder train \n");
-    cura::logError("  --next\n\tGenerate gcode for the previously supplied models and append that to \n\tthe gcode of further models for one-at-a-time printing\n");
-    cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode\n");
+    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    cura::logError("  -v\n\tIncrease the verbose level (show log messages).\n");
+    cura::logError("  -p\n\tLog progress information.\n");
+    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults.\n");
+    cura::logError("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
+    cura::logError("  -l <model_file>\n\tLoad an STL model. \n");
+    cura::logError("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
+    cura::logError("  -e\n\tAdd a new extruder train.\n");
+    cura::logError("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
+    cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     cura::logError("\n");
-    cura::logError("usage: CuraEngine help\n");
-    cura::logError("\tShow this help message\n");
+    cura::logError("The settings are appended to the last supplied object:\n");
+    cura::logError("SuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
     cura::logError("\n");
 }
 
@@ -66,7 +74,6 @@ void signal_FPE(int n)
     exit(1);
 }
 
-using namespace cura;
 
 void connect(fffProcessor& processor, int argc, char **argv)
 {
@@ -118,11 +125,12 @@ void slice(fffProcessor& processor, int argc, char **argv)
     
     FMatrix3x3 transformation; // the transformation applied to a model when loaded
                         
-    MeshGroup* meshgroup = new MeshGroup(&processor);
-        
-    std::vector<std::string> files;
-    std::vector<SettingsBase> file_settings;
+    MeshGroup meshgroup(&processor);
     
+    int extruder_train_nr = 0;
+    meshgroup.extruders[0] = new ExtruderTrain(&processor, 0);
+
+    SettingsBase* last_extruder_train = meshgroup.extruders[0];
     SettingsBase* last_settings_object = &processor;
     for(int argn = 2; argn < argc; argn++)
     {
@@ -136,16 +144,16 @@ void slice(fffProcessor& processor, int argc, char **argv)
                     try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        meshgroup->finalize();
+                        meshgroup.finalize();
                         log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
                         
                         //start slicing
-                        processor.processMeshGroup(meshgroup);
+                        processor.processMeshGroup(&meshgroup);
                         
                         // initialize loading of new meshes
                         processor.time_keeper.restart();
-                        delete meshgroup;
-                        meshgroup = new MeshGroup(&processor);
+                        meshgroup = MeshGroup(&processor);
+                        last_settings_object = &meshgroup;
                     }catch(...){
                         cura::logError("Unknown exception\n");
                         exit(1);
@@ -173,8 +181,14 @@ void slice(fffProcessor& processor, int argc, char **argv)
                         }
                         break;
                     case 'e':
-                        // TODO
-                        // last_settings_object = 
+                        str++;
+                        extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
+                        if (!meshgroup.extruders[extruder_train_nr]) 
+                        {
+                            meshgroup.extruders[extruder_train_nr] = new ExtruderTrain(&processor, extruder_train_nr);
+                        }
+                        last_settings_object = meshgroup.extruders[extruder_train_nr];
+                        last_extruder_train = meshgroup.extruders[extruder_train_nr];
                         break;
                     case 'l':
                         argn++;
@@ -182,13 +196,13 @@ void slice(fffProcessor& processor, int argc, char **argv)
                         log("Loading %s from disk...\n", argv[argn]);
                         // transformation = // TODO: get a transformation from somewhere
                         
-                        if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation))
+                        if (!loadMeshIntoMeshGroup(&meshgroup, argv[argn], transformation, last_extruder_train))
                         {
                             logError("Failed to load model: %s\n", argv[argn]);
                         }
                         else 
                         {
-                            last_settings_object = &(meshgroup->meshes.back());
+                            last_settings_object = &(meshgroup.meshes.back()); // pointer is valid until a new object is added, so this is OK
                         }
                         break;
                     case 'o':
@@ -239,17 +253,24 @@ void slice(fffProcessor& processor, int argc, char **argv)
         }
     }
         
+    for (extruder_train_nr = 0; extruder_train_nr < processor.getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
+    {
+        if (!meshgroup.extruders[extruder_train_nr]) 
+        {
+            meshgroup.extruders[extruder_train_nr] = new ExtruderTrain(&processor, extruder_train_nr);
+        }
+    }
     
 #ifndef DEBUG
     try {
 #endif
         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        meshgroup->finalize();
+        meshgroup.finalize();
         log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
         
         //start slicing
-        processor.processMeshGroup(meshgroup);
+        processor.processMeshGroup(&meshgroup);
         
 #ifndef DEBUG
     }catch(...){
@@ -260,9 +281,11 @@ void slice(fffProcessor& processor, int argc, char **argv)
     //Finalize the processor, this adds the end.gcode. And reports statistics.
     processor.finalize();
     
-    delete meshgroup;
-
 }
+
+}//namespace cura
+
+using namespace cura;
 
 int main(int argc, char **argv)
 {
@@ -298,7 +321,7 @@ int main(int argc, char **argv)
     logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
 
-    if (argc < 1)
+    if (argc < 2)
     {
         print_usage();
         exit(1);
