@@ -12,7 +12,7 @@ class ExtruderTrain : public SettingsBase
 public:
     int getExtruderNr() { return extruder_nr; }
     
-    ExtruderTrain(SettingsBase* settings, int extruder_nr)
+    ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr)
     : SettingsBase(settings)
     , extruder_nr(extruder_nr)
     { }

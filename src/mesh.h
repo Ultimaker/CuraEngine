@@ -4,6 +4,8 @@
 #include "settings.h"
 #include "utils/AABB.h"
 
+namespace cura
+{
 /*!
 Vertex type to be used in a Mesh.
 
@@ -56,12 +58,12 @@ class Mesh : public SettingsBase // inherits settings
 {
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t> > vertex_hash_map;
-    AABB aabb;
+    AABB3D aabb;
 public:
     std::vector<MeshVertex> vertices;//!< list of all vertices in the mesh
     std::vector<MeshFace> faces; //!< list of all faces in the mesh
 
-    Mesh(SettingsBase* parent); //!< initializes the settings
+    Mesh(SettingsBaseVirtual* parent); //!< initializes the settings
 
     void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
@@ -90,6 +92,6 @@ private:
     int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx);
 };
 
-
+}//namespace cura
 #endif//MESH_H
 

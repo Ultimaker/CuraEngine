@@ -1,6 +1,8 @@
 #include "mesh.h"
 #include "utils/logoutput.h"
 
+namespace cura
+{
 
 const int vertex_meld_distance = MM2INT(0.03);
 static inline uint32_t pointHash(Point3& p)
@@ -8,7 +10,7 @@ static inline uint32_t pointHash(Point3& p)
     return ((p.x + vertex_meld_distance/2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance/2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance/2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(SettingsBase* parent)
+Mesh::Mesh(SettingsBaseVirtual* parent)
 : SettingsBase(parent)
 {
 }
@@ -176,3 +178,5 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
     if (bestIdx < 0) cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx);
     return bestIdx;
 }
+
+}//namespace cura
