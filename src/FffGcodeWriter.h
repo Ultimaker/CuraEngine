@@ -14,6 +14,7 @@
 #include "gcodeExport.h"
 #include "commandSocket.h"
 #include "utils/polygonUtils.h"
+#include "PrimeTower.h"
 
 namespace cura 
 {
@@ -30,7 +31,7 @@ class FffGcodeWriter : public SettingsMessenger
     friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
     int max_object_height;
-    int file_number; //!< used for sequential printing of objects
+    int meshgroup_number; //!< used for sequential printing of objects
     GCodeExport gcode;
     CoastingConfig coasting_config;
     CommandSocket* command_socket;
@@ -46,13 +47,13 @@ public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
     {
-        file_number = 1;
+        meshgroup_number = 1;
         max_object_height = 0;
         command_socket = NULL;
     }
     void resetFileNumber()
     {
-        file_number = 1;
+        meshgroup_number = 1;
     }
 
     void setCommandSocket(CommandSocket* socket)

@@ -118,7 +118,7 @@ public:
             
         } else 
         {
-            SliceDataStorage storage;
+            SliceDataStorage storage(meshgroup);
 
             if (!polygon_generator.generateAreas(storage, meshgroup, time_keeper))
             {

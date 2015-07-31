@@ -6,6 +6,8 @@
 #include "utils/polygon.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
+#include "MeshGroup.h"
+#include "PrimeTower.h"
 
 namespace cura 
 {
@@ -85,7 +87,7 @@ public:
     GCodePathConfig skin_config;
     GCodePathConfig infill_config[MAX_SPARSE_COMBINE];
     
-    SliceMeshStorage(SettingsBase* settings)
+    SliceMeshStorage(SettingsBaseVirtual* settings)
     : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
         for(int n=0; n<MAX_SPARSE_COMBINE; n++)
@@ -93,9 +95,11 @@ public:
     }
 };
 
-class SliceDataStorage
+class SliceDataStorage : public SettingsMessenger
 {
 public:
+    MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
+    
     Point3 model_size, model_min, model_max;
     int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     Polygons skirt;
@@ -109,12 +113,19 @@ public:
     GCodePathConfig support_roof_config;
     
     SupportStorage support;
-    Polygons primeTower;
+    PrimeTower primeTower;
+    
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
-    SliceDataStorage()
-    : max_object_height_second_to_last_extruder(-1), skirt_config(&retraction_config, "SKIRT"), support_config(&retraction_config, "SUPPORT"), support_roof_config(&retraction_config, "SKIN")
+    SliceDataStorage(MeshGroup* meshgroup)
+    : SettingsMessenger(meshgroup)
+    , meshgroup(meshgroup)
+    , max_object_height_second_to_last_extruder(-1)
+    , skirt_config(&retraction_config, "SKIRT")
+    , support_config(&retraction_config, "SUPPORT")
+    , support_roof_config(&retraction_config, "SKIN")
+    , primeTower(meshgroup, &retraction_config)
     {
     }
 };

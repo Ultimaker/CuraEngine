@@ -21,9 +21,9 @@ namespace cura
 {
 
     
-bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper)
+bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (!sliceModel(object, timeKeeper, storage)) 
+    if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
         return false;
     }
@@ -186,7 +186,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             combineSparseLayers(layer_number, mesh, mesh.getSettingAsCount("fill_sparse_combine"));
     }
 
-    processPrimeTower(storage, total_layers);
+    storage.primeTower.computePrimeTowerMax(storage);
+    storage.primeTower.generatePaths(storage, total_layers);
     
     processDraftShield(storage, total_layers);
     
@@ -358,75 +359,6 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     }
     
     storage.draft_protection_shield = draft_shield.convexHull(draft_shield_dist);
-}
-
-void FffPolygonGenerator::processPrimeTower(SliceDataStorage& storage, unsigned int totalLayers)
-{
-    
-    int extruder_count = getSettingAsCount("machine_extruder_count");
-    // TODO: move this code into its own function?
-    { // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the prime tower
-        
-        int max_object_height_per_extruder[extruder_count];
-        { // compute max_object_height_per_extruder
-            memset(max_object_height_per_extruder, -1, sizeof(max_object_height_per_extruder));
-            for (SliceMeshStorage& mesh : storage.meshes)
-            {
-                max_object_height_per_extruder[mesh.getSettingAsIndex("extruder_nr")] = 
-                    std::max(   max_object_height_per_extruder[mesh.getSettingAsIndex("extruder_nr")]
-                            ,   mesh.layer_nr_max_filled_layer  ); 
-            }
-            int support_extruder_nr = getSettingAsIndex("support_extruder_nr");
-            max_object_height_per_extruder[support_extruder_nr] = 
-            std::max(   max_object_height_per_extruder[support_extruder_nr]
-                    ,   storage.support.layer_nr_max_filled_layer  ); 
-            int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-            max_object_height_per_extruder[support_roof_extruder_nr] = 
-            std::max(   max_object_height_per_extruder[support_roof_extruder_nr]
-                    ,   storage.support.layer_nr_max_filled_layer  ); 
-        }
-        { // // compute max_object_height_second_to_last_extruder
-            int extruder_max_object_height = 0;
-            for (int extruder_nr = 1; extruder_nr < extruder_count; extruder_nr++)
-            {
-                if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_max_object_height])
-                {
-                    extruder_max_object_height = extruder_nr;
-                }
-            }
-            int extruder_second_max_object_height = -1;
-            for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-            {
-                if (extruder_nr == extruder_max_object_height) { continue; }
-                if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
-                {
-                    extruder_second_max_object_height = extruder_nr;
-                }
-            }
-            if (extruder_second_max_object_height < 0)
-            {
-                storage.max_object_height_second_to_last_extruder = -1;
-            }
-            else 
-            {
-                storage.max_object_height_second_to_last_extruder = max_object_height_per_extruder[extruder_second_max_object_height];
-            }
-        }
-    }
-       
-        
-    if (storage.max_object_height_second_to_last_extruder >= 0 && getSettingInMicrons("prime_tower_distance") > 0 && getSettingInMicrons("prime_tower_size") > 0)
-    {
-        PolygonRef p = storage.primeTower.newPoly();
-        int tower_size = getSettingInMicrons("prime_tower_size");
-        int tower_distance = getSettingInMicrons("prime_tower_distance");
-        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance));
-        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance));
-
-        storage.wipePoint = Point(storage.model_max.x + tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
-    }
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)

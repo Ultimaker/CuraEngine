@@ -39,7 +39,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
     {
         int offsetDistance = distance + extrusionWidth * skirtNr + extrusionWidth / 2;
 
-        Polygons skirtPolygons(storage.primeTower.offset(offsetDistance));
+        Polygons skirtPolygons(storage.primeTower.ground_poly.offset(offsetDistance));
         for(SliceMeshStorage& mesh : storage.meshes)
         {
             if (mesh.layers.size() < 1) continue;
@@ -76,7 +76,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, 
 
 
     //Add a skirt under the prime tower to make it stick better.
-    Polygons prime_tower = storage.primeTower.offset(-extrusionWidth / 2);
+    Polygons prime_tower = storage.primeTower.ground_poly.offset(-extrusionWidth / 2);
     std::queue<Polygons> prime_tower_insets;
     while(prime_tower.size() > 0)
     {

@@ -9,6 +9,8 @@ namespace cura
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
+    PrimeTower primetower();
+    
     gcode.preSetup(*this);
     
     gcode.resetTotalPrintTimeAndFilament();
@@ -20,7 +22,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetraction(storage);
 
-    if (file_number == 1)
+    if (meshgroup_number == 1)
     {
         processStartingCode(storage);
     }
@@ -28,7 +30,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processNextMeshGroupCode(storage);
     }
-    file_number++;
+    meshgroup_number++;
 
     unsigned int total_layers = storage.meshes[0].layers.size();
     //gcode.writeComment("Layer count: %d", totalLayers);
@@ -871,45 +873,7 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
     bool prime_tower_dir_outward = getSettingBoolean("prime_tower_dir_outward");
     bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
     
-//     auto qwr = [](SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
-    {
-        if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
-        {
-            return;
-        }
-        
-        int new_extruder = gcodeLayer.getExtruder();
-
-        int64_t offset = -getSettingInMicrons("wall_line_width_x"); // TODO: retrieve width per nozzle object
-        if (layer_nr > 0)
-            offset *= 2;
-        
-        //If we changed extruder, print the wipe/prime tower for this nozzle;
-        std::vector<Polygons> insets;
-        if ((layer_nr % 2) == 1)
-            insets.push_back(storage.primeTower.offset(offset / 2));
-        else
-            insets.push_back(storage.primeTower);
-        while(true)
-        {
-            Polygons new_inset = insets[insets.size() - 1].offset(offset);
-            if (new_inset.size() < 1)
-                break;
-            insets.push_back(new_inset);
-        }
-        
-        
-        for(unsigned int n=0; n<insets.size(); n++)
-        {
-            gcodeLayer.addPolygonsByOptimizer(insets[(prime_tower_dir_outward)? insets.size() - 1 - n : n], &storage.meshes[0].insetX_config);
-        }
-        last_prime_tower_poly_printed[new_extruder] = layer_nr;
-        
-        if (wipe)
-        { //Make sure we wipe the old extruder on the prime tower.
-            gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
-        }
-    };
+    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
 }
 
 void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)

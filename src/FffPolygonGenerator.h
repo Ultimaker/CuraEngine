@@ -123,14 +123,6 @@ private:
     void processSkins(SliceDataStorage& storage, unsigned int layer_nr); 
 
     /*!
-     * Generate the area where the prime tower should be.
-     * 
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param totalLayers The total number of layers 
-     */
-    void processPrimeTower(SliceDataStorage& storage, unsigned int totalLayers);
-    
-    /*!
      * Generate the polygons where the draft screen should be.
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
