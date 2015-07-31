@@ -137,7 +137,7 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     
     int new_extruder = gcodeLayer.getExtruder();
 
-    int64_t offset = -(config_per_extruder[0].getLineWidth() + config_per_extruder[1].getLineWidth()) / 2; // -getSettingInMicrons("wall_line_width_x"); // TODO: retrieve width per nozzle object
+    int64_t offset = -config_per_extruder[new_extruder].getLineWidth(); 
     if (layer_nr > 0)
         offset *= 2;
     
