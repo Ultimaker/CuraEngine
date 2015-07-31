@@ -2,6 +2,8 @@
 #include "infill.h"
 #include "functional"
 #include "utils/polygonUtils.h"
+#include "utils/AABB.h"
+
 namespace cura {
 
     
