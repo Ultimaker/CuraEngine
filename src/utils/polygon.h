@@ -802,48 +802,6 @@ public:
     PolygonsPart assemblePart(unsigned int part_idx);
 };
 
-/* Axis aligned boundary box */
-class AABB
-{
-public:
-    Point min, max;
-
-    AABB()
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
-    {
-    }
-    AABB(Polygons polys)
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
-    {
-        calculate(polys);
-    }
-
-    void calculate(Polygons polys)
-    {
-        min = Point(POINT_MAX, POINT_MAX);
-        max = Point(POINT_MIN, POINT_MIN);
-        for(unsigned int i=0; i<polys.size(); i++)
-        {
-            for(unsigned int j=0; j<polys[i].size(); j++)
-            {
-                if (min.X > polys[i][j].X) min.X = polys[i][j].X;
-                if (min.Y > polys[i][j].Y) min.Y = polys[i][j].Y;
-                if (max.X < polys[i][j].X) max.X = polys[i][j].X;
-                if (max.Y < polys[i][j].Y) max.Y = polys[i][j].Y;
-            }
-        }
-    }
-
-    bool hit(const AABB& other) const
-    {
-        if (max.X < other.min.X) return false;
-        if (min.X > other.max.X) return false;
-        if (max.Y < other.min.Y) return false;
-        if (min.Y > other.max.Y) return false;
-        return true;
-    }
-};
-
 }//namespace cura
 
 #endif//UTILS_POLYGON_H
