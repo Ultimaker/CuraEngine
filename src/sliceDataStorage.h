@@ -72,10 +72,9 @@ public:
 };
 /******************/
 
-class SliceMeshStorage
+class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
 public:
-    SettingsBase* settings;
     std::vector<SliceLayer> layers;
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
@@ -87,7 +86,7 @@ public:
     GCodePathConfig infill_config[MAX_SPARSE_COMBINE];
     
     SliceMeshStorage(SettingsBase* settings)
-    : settings(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
         for(int n=0; n<MAX_SPARSE_COMBINE; n++)
             infill_config[n] = GCodePathConfig(&retraction_config, "FILL");
