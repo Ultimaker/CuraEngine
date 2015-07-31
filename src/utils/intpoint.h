@@ -42,6 +42,10 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #define DEPRECATED(func) func
 #endif
 
+
+namespace cura
+{
+
 class Point3
 {
 public:
@@ -210,10 +214,12 @@ INLINE int angle(const Point& p)
     return angle;
 }
 
+}//namespace cura
+    
 namespace std {
 template <>
-struct hash<Point> {
-    size_t operator()(const Point & pp) const
+struct hash<cura::Point> {
+    size_t operator()(const cura::Point & pp) const
     {
         static int prime = 31;
         int result = 89;
@@ -223,6 +229,9 @@ struct hash<Point> {
     }
 };
 }
+
+namespace cura
+{
 
 class PointMatrix
 {
@@ -296,4 +305,5 @@ inline Point operator-(const Point& p2, const Point3& p3) {
     return Point(p2.X - p3.x, p2.Y - p3.y);
 }
 
+}//namespace cura
 #endif//INT_POINT_H
