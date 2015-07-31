@@ -21,9 +21,9 @@ private:
     unsigned int extruder_count;
     std::vector<GCodePathConfig> config_per_extruder;
 
+public:
     void setConfigs(MeshGroup* configs, RetractionConfig* retraction_config, int layer_thickness);
     
-public:
     Polygons ground_poly;
     
     std::vector<PolyLine> extruder_paths;

@@ -279,6 +279,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     setConfigSupport(storage, layer_thickness);
     
+    storage.primeTower.setConfigs(storage.meshgroup, &storage.retraction_config, layer_thickness);
+    
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         setConfigInsets(mesh, layer_thickness);

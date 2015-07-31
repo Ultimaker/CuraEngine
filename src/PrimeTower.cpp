@@ -98,21 +98,24 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLaye
     {
         PolygonRef p = storage.primeTower.ground_poly.newPoly();
         int tower_size = storage.getSettingInMicrons("prime_tower_size");
-        int tower_distance = storage.getSettingInMicrons("prime_tower_distance");
-        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance));
-        p.add(Point(storage.model_max.x + tower_distance, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance + tower_size));
-        p.add(Point(storage.model_max.x + tower_distance - tower_size, storage.model_max.y + tower_distance));
+        int tower_distance = 0; //storage.getSettingInMicrons("prime_tower_distance");
+        int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
+        int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
+        p.add(Point(x + tower_distance, y + tower_distance));
+        p.add(Point(x + tower_distance, y + tower_distance + tower_size));
+        p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
+        p.add(Point(x + tower_distance - tower_size, y + tower_distance));
 
-        storage.wipePoint = Point(storage.model_max.x + tower_distance - tower_size / 2, storage.model_max.y + tower_distance + tower_size / 2);
+        storage.wipePoint = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
     }
 }
     
 void PrimeTower::setConfigs(MeshGroup* meshgroup, RetractionConfig* retraction_config, int layer_thickness)
 {
-    for (ExtruderTrain* extruder : meshgroup->extruders)
+    for (int extr = 0; extr < extruder_count; extr++)
     {
-        config_per_extruder.emplace_back(retraction_config, "PRIME-TOWER");
+        ExtruderTrain* extruder = meshgroup->extruders[extr];
+        config_per_extruder.emplace_back(retraction_config, "WALL-INNER");// so that visualization in the old Cura still works (TODO)
         GCodePathConfig& conf = config_per_extruder.back();
         
         conf.setSpeed(extruder->getSettingInMillimetersPerSecond("speed_prime_tower"));
@@ -134,7 +137,7 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     
     int new_extruder = gcodeLayer.getExtruder();
 
-    int64_t offset = -400; // -getSettingInMicrons("wall_line_width_x"); // TODO: retrieve width per nozzle object
+    int64_t offset = -(config_per_extruder[0].getLineWidth() + config_per_extruder[1].getLineWidth()) / 2; // -getSettingInMicrons("wall_line_width_x"); // TODO: retrieve width per nozzle object
     if (layer_nr > 0)
         offset *= 2;
     
@@ -155,7 +158,8 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     
     for(unsigned int n=0; n<insets.size(); n++)
     {
-        gcodeLayer.addPolygonsByOptimizer(insets[(prime_tower_dir_outward)? insets.size() - 1 - n : n], &storage.meshes[0].insetX_config);
+        GCodePathConfig& config = config_per_extruder[new_extruder];
+        gcodeLayer.addPolygonsByOptimizer(insets[(prime_tower_dir_outward)? insets.size() - 1 - n : n], &config);
     }
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
     
