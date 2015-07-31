@@ -62,7 +62,7 @@ void logProgress(const char* type, int value, int maxValue, float percent)
     if (!progressLogging)
         return;
 
-    fprintf(stderr, "Progress:%s:%i:%i  %f\%\n", type, value, maxValue, percent);
+    fprintf(stderr, "Progress:%s:%i:%i \t%f%%\n", type, value, maxValue, percent);
     fflush(stderr);
 }
 
