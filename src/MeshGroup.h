@@ -16,8 +16,8 @@ namespace cura
  */
 class MeshGroup : public SettingsBase
 {
-public:
     ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
+public:
 
     MeshGroup(SettingsBaseVirtual* settings_base) : SettingsBase(settings_base){}
     ~MeshGroup() 
@@ -29,6 +29,15 @@ public:
                 delete extruders[extruder];
             }
         }
+    }
+    
+    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr)
+    {
+        if (!extruders[extruder_nr])
+        {
+            extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
+        }
+        return extruders[extruder_nr];
     }
     
     std::vector<Mesh> meshes;

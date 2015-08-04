@@ -50,6 +50,19 @@ public:
 
     SettingConfig* addChild(std::string key, std::string label);
     
+    const SettingConfig* getChild(unsigned int idx) const
+    {
+        if (idx < children.size())
+        {
+            auto it = children.begin();
+            while (idx > 0) { ++it; idx--; }
+            return &*it;
+        }
+        else 
+            return nullptr;
+    }
+    const std::list<SettingConfig>& getChildren() const { return children; }
+    
     std::string getKey() const
     {
         return key;

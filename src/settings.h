@@ -134,7 +134,7 @@ public:
     
     SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
     SettingsBaseVirtual(SettingsBaseVirtual* parent); //!< construct a SettingsBaseVirtual with a parent settings object
-
+    
     void setParent(SettingsBaseVirtual* parent) { this->parent = parent; }
     SettingsBaseVirtual* getParent() { return parent; }
     
@@ -170,6 +170,14 @@ private:
 public:
     SettingsBase(); //!< SettingsBase without a parent settings object
     SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
+    
+    /*!
+     * Retrieve the defaults for each extruder train from the machine_extruder_trains settings 
+     * and set the general settings to those defaults if they haven't been set yet.
+     * 
+     * \param extruder_nr The index of which extruder train in machine_extruder_trains to get the settings from
+     */
+    void setExtruderTrainDefaults(unsigned int extruder_nr);
     
     void setSetting(std::string key, std::string value);
     std::string getSettingString(std::string key); //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)

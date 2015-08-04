@@ -114,7 +114,7 @@ void PrimeTower::setConfigs(MeshGroup* meshgroup, RetractionConfig* retraction_c
 {
     for (int extr = 0; extr < extruder_count; extr++)
     {
-        ExtruderTrain* extruder = meshgroup->extruders[extr];
+        ExtruderTrain* extruder = meshgroup->getExtruderTrain(extr);
         config_per_extruder.emplace_back(retraction_config, "WALL-INNER");// so that visualization in the old Cura still works (TODO)
         GCodePathConfig& conf = config_per_extruder.back();
         

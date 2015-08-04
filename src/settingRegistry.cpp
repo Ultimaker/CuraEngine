@@ -63,56 +63,12 @@ int SettingRegistry::loadJSON(std::string filename)
         cura::logError("JSON file is not an object.\n");
         return 3;
     }
-//     if (!json_document.HasMember("categories"))
-//     {
-//         cura::logError("JSON settings file doesn't have categories member.\n");
-//         return 4;
-//     }
 
     if (json_document.HasMember("machine_settings"))
     {
         categories.emplace_back("machine_settings", "Machine Settings");
         SettingCategory* category_machine_settings = &categories.back();
         _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
-    }
-    
-    categories.emplace_back("mesh_settings", "TEMPORARY");
-    SettingCategory* category_mesh_settings = &categories.back();
-    {
-        SettingConfig* config = category_mesh_settings->addChild("mesh_position_x", "mesh_position_x");
-        config->setDefault("0");
-        if (settingExists(config->getKey()))
-        {
-            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
-        }
-        else 
-        {
-            settings[config->getKey()] = config;
-        }
-    }
-    {
-        SettingConfig* config = category_mesh_settings->addChild("mesh_position_y", "mesh_position_y");
-        config->setDefault("0");
-        if (settingExists(config->getKey()))
-        {
-            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
-        }
-        else 
-        {
-            settings[config->getKey()] = config;
-        }
-    }
-    {
-        SettingConfig* config = category_mesh_settings->addChild("mesh_position_z", "mesh_position_z");
-        config->setDefault("0");
-        if (settingExists(config->getKey()))
-        {
-            cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
-        }
-        else 
-        {
-            settings[config->getKey()] = config;
-        }
     }
     
     if (json_document.HasMember("categories"))
@@ -141,7 +97,7 @@ int SettingRegistry::loadJSON(std::string filename)
     
     return 0;
 }
-
+#include <string>
 void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent)
 {
     for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object.MemberBegin(); setting_iterator != json_object.MemberEnd(); ++setting_iterator)
@@ -158,6 +114,10 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
             label = data["label"].GetString();
         }
 
+        std::string ff = std::string("machine_extruder_count");
+        if (std::string(setting_iterator->name.GetString()).compare(ff) == 0)
+            logError("");
+        
         /// Create the new setting config object.
         SettingConfig* config;
         if (parent)
@@ -173,23 +133,42 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         }
         if (data.HasMember("default"))
         {
-            if (data["default"].IsString())
+            const rapidjson::Value& dflt = data["default"];
+            if (dflt.IsString())
             {
-                config->setDefault(data["default"].GetString());
+                config->setDefault(dflt.GetString());
             }
-            else if (data["default"].IsTrue())
+            else if (dflt.IsTrue())
             {
                 config->setDefault("true");
             }
-            else if (data["default"].IsFalse())
+            else if (dflt.IsFalse())
             {
                 config->setDefault("false");
             }
-            else if (data["default"].IsNumber())
+            else if (dflt.IsNumber())
             {
                 std::ostringstream ss;
-                ss << data["default"].GetDouble();
+                ss << dflt.GetDouble();
                 config->setDefault(ss.str());
+            }
+            else if (dflt.IsArray()) 
+            {
+                if (dflt.Size() > 0 && dflt[0].IsObject())
+                {
+                    unsigned int idx = 0;
+                    for (auto it = dflt.Begin(); it != dflt.End(); ++it)
+                    {
+                        SettingConfig* child = config->addChild(std::to_string(idx), std::to_string(idx));
+                        _addSettingsToCategory(category, *it, child);
+                        
+                        idx++;
+                    }
+                }
+            }
+            else 
+            {
+                logError("Unrecognized data type in JSON: %i\n", int(dflt.GetType()));
             }
         }
         if (data.HasMember("unit") && data["unit"].IsString())

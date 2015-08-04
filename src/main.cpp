@@ -128,9 +128,8 @@ void slice(fffProcessor& processor, int argc, char **argv)
     MeshGroup meshgroup(&processor);
     
     int extruder_train_nr = 0;
-    meshgroup.extruders[0] = new ExtruderTrain(&processor, 0);
 
-    SettingsBase* last_extruder_train = meshgroup.extruders[0];
+    SettingsBase* last_extruder_train = meshgroup.getExtruderTrain(0);
     SettingsBase* last_settings_object = &processor;
     for(int argn = 2; argn < argc; argn++)
     {
@@ -147,6 +146,10 @@ void slice(fffProcessor& processor, int argc, char **argv)
                         meshgroup.finalize();
                         log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
                         
+                        for (int extruder_nr = 0; extruder_nr < processor.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                        { // initialize remaining extruder trains and load the defaults
+                            meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
+                        }
                         //start slicing
                         processor.processMeshGroup(&meshgroup);
                         
@@ -183,12 +186,8 @@ void slice(fffProcessor& processor, int argc, char **argv)
                     case 'e':
                         str++;
                         extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
-                        if (!meshgroup.extruders[extruder_train_nr]) 
-                        {
-                            meshgroup.extruders[extruder_train_nr] = new ExtruderTrain(&processor, extruder_train_nr);
-                        }
-                        last_settings_object = meshgroup.extruders[extruder_train_nr];
-                        last_extruder_train = meshgroup.extruders[extruder_train_nr];
+                        last_settings_object = meshgroup.getExtruderTrain(extruder_train_nr);
+                        last_extruder_train = meshgroup.getExtruderTrain(extruder_train_nr);
                         break;
                     case 'l':
                         argn++;
@@ -243,22 +242,10 @@ void slice(fffProcessor& processor, int argc, char **argv)
             exit(1);
         }
     }
-    
-    if (!SettingRegistry::getInstance()->settingsLoaded())
-    {
-        //If no json file has been loaded, try to load the default.
-        if (SettingRegistry::getInstance()->loadJSON("fdmprinter.json"))
-        {
-            logError("ERROR: Failed to load json file: fdmprinter.json\n");
-        }
-    }
-        
+
     for (extruder_train_nr = 0; extruder_train_nr < processor.getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
-    {
-        if (!meshgroup.extruders[extruder_train_nr]) 
-        {
-            meshgroup.extruders[extruder_train_nr] = new ExtruderTrain(&processor, extruder_train_nr);
-        }
+    { // initialize remaining extruder trains and load the defaults
+        meshgroup.getExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // also initializes yet uninitialized extruder trains
     }
     
 #ifndef DEBUG

@@ -66,7 +66,6 @@ std::string SettingsBase::getSettingString(std::string key)
     if (SettingRegistry::getInstance()->settingExists(key))
     {
         setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
-        //cura::logError("Using default for: %s = %s\n", key.c_str(), setting_values[key].c_str());
     }
     else
     {
@@ -87,6 +86,30 @@ std::string SettingsMessenger::getSettingString(std::string key)
 }
 
 
+void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
+{
+    const SettingConfig* machine_extruder_trains = SettingRegistry::getInstance()->getSettingConfig("machine_extruder_trains");
+    
+    if (!machine_extruder_trains)
+    {
+        logError("Cannot find extruder specific settings in JSON.\n");
+    }
+    
+    const SettingConfig* train = machine_extruder_trains->getChild(extruder_nr);
+    
+    if (!train)
+    {
+        logError("Not enough extruder trains specified in JSON.");
+    }
+    
+    for (const SettingConfig& setting : train->getChildren())
+    {
+        if (setting_values.find(setting.getKey()) == setting_values.end())
+        {
+            setSetting(setting.getKey(), setting.getDefaultValue());
+        }
+    }
+}
 
 int SettingsBaseVirtual::getSettingAsIndex(std::string key)
 {

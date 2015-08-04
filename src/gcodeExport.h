@@ -226,7 +226,7 @@ public:
         }
 
         setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        setRetractionSettings(settings.getSettingInMicrons("machine_switch_extruder_retraction_amount"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), settings.getSettingInMicrons("retraction_extrusion_window"), settings.getSettingInMicrons("retraction_count_max"));
+        setRetractionSettings(settings.getSettingInMicrons("machine_switch_extruder_retraction_amount"), settings.getSettingInMillimetersPerSecond("machine_switch_extruder_retraction_speed"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), settings.getSettingInMicrons("retraction_extrusion_window"), settings.getSettingInMicrons("retraction_count_max"));
     }
     void finalize(int maxObjectHeight, double moveSpeed, const char* endCode);
     
