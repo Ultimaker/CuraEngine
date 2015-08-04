@@ -772,10 +772,10 @@ public:
 /*!
  * Extension of vector<vector<unsigned int>> which is similar to a vector of PolygonParts, except the base of the container is indices to polygons into the original Polygons, instead of the polygons themselves
  */
-struct PartsView : public std::vector<std::vector<unsigned int>>
+class PartsView : public std::vector<std::vector<unsigned int>>
 {
-    Polygons& polygons;
 public:
+    Polygons& polygons;
     PartsView(Polygons& polygons) : polygons(polygons) { }
     /*!
      * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
