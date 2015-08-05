@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "utils/intpoint.h"
 #include "timeEstimate.h"
+#include "MeshGroup.h"
 
 namespace cura {
 
@@ -106,19 +107,45 @@ private:
 class GCodeExport
 {
 private:
+    struct ExtruderTrainAttributes
+    {
+        Point extruderOffset;
+        char extruderCharacter;
+        std::string extruder_start_code;
+        std::string extruder_end_code;
+        double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
+
+        double extruderSwitchRetraction;
+        int extruderSwitchRetractionSpeed;
+        int extruderSwitchPrimeSpeed;
+        double retraction_extrusion_window;
+        int retraction_count_max;
+        
+        double totalFilament; //!< total filament used per extruder in mm^3
+        int currentTemperature;
+        
+        ExtruderTrainAttributes()
+        : extruderOffset(0,0)
+        , extruderCharacter(0)
+        , extruder_start_code("")
+        , extruder_end_code("")
+        , filament_area(0)
+        , extruderSwitchRetraction(0.0)
+        , extruderSwitchRetractionSpeed(0)
+        , extruderSwitchPrimeSpeed(0)
+        , retraction_extrusion_window(0.0)
+        , retraction_count_max(1)
+        , totalFilament(0)
+        , currentTemperature(0)
+        { }
+    };
+    ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
+    
     std::ostream* output_stream;
     double extrusion_amount; // in mm or mm^3
-    double extruderSwitchRetraction;
-    int extruderSwitchRetractionSpeed;
-    int extruderSwitchPrimeSpeed;
-    double retraction_extrusion_window;
-    double retraction_count_max;
     std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     Point3 startPosition;
-    Point extruderOffset[MAX_EXTRUDERS];
-    char extruderCharacter[MAX_EXTRUDERS];
-    int currentTemperature[MAX_EXTRUDERS];
     double currentSpeed;
     int zPos;
     bool isRetracted;
@@ -129,11 +156,7 @@ private:
     int current_extruder;
     int currentFanSpeed;
     EGCodeFlavor flavor;
-    std::string preSwitchExtruderCode[MAX_EXTRUDERS];
-    std::string postSwitchExtruderCode[MAX_EXTRUDERS];
 
-    double totalFilament[MAX_EXTRUDERS]; //!< total filament used per extruder in mm^3
-    double filament_area[MAX_EXTRUDERS]; //!< in mm^2 for non-volumetric, cylindrical filament
     double totalPrintTime;
     TimeEstimateCalculator estimateCalculator;
     
@@ -145,14 +168,10 @@ public:
     
     void setOutputStream(std::ostream* stream);
     
-    void setExtruderOffset(int id, Point p);
     Point getExtruderOffset(int id);
-    void setSwitchExtruderCode(int id, std::string preSwitchExtruderCode, std::string postSwitchExtruderCode);
     
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor();
-        
-    void setRetractionSettings(int extruderSwitchRetraction, double extruderSwitchRetractionSpeed, double extruderSwitchPrimeSpeed, int minimalExtrusionBeforeRetraction, int retraction_count_max);
     
     void setZ(int z);
     
@@ -208,25 +227,24 @@ public:
     void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
     void writeBedTemperatureCommand(double temperature, bool wait = false);
     
-    void preSetup(SettingsMessenger& settings)
+    void preSetup(MeshGroup* settings)
     {
-        for(int n=1; n<settings.getSettingAsCount("machine_extruder_count"); n++)
+        for(int n=0; n<settings->getSettingAsCount("machine_extruder_count"); n++)
         {
-            std::ostringstream stream_x; stream_x << "machine_nozzle_offset_x_" << n;
-            std::ostringstream stream_y; stream_y << "machine_nozzle_offset_y_" << n;
-            setExtruderOffset(n, Point(settings.getSettingInMicrons(stream_x.str()), settings.getSettingInMicrons(stream_y.str())));
-        }
-        for(int n=0; n<settings.getSettingAsCount("machine_extruder_count"); n++)
-        {
-            std::ostringstream stream;
-            stream << "_" << n;
-            setSwitchExtruderCode(n, settings.getSettingString("machine_pre_extruder_switch_code" + stream.str()), settings.getSettingString("machine_post_extruder_switch_code" + stream.str()));
+            ExtruderTrain* train = settings->getExtruderTrain(n);
+            setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
             
-            setFilamentDiameter(n, settings.getSettingInMicrons("material_diameter")); // TODO: allow for different material diameters for the different nozzles
+            extruder_attr[n].extruderOffset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+            extruder_attr[n].extruder_start_code = train->getSettingString("machine_extruder_start_code");
+            extruder_attr[n].extruder_end_code = train->getSettingString("machine_extruder_end_code");
+            extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("machine_switch_extruder_retraction_amount")); 
+            extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("machine_switch_extruder_retraction_speed");
+            extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed");
+            extruder_attr[n].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
+            extruder_attr[n].retraction_count_max = train->getSettingAsCount("retraction_count_max");
         }
 
-        setFlavor(settings.getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        setRetractionSettings(settings.getSettingInMicrons("machine_switch_extruder_retraction_amount"), settings.getSettingInMillimetersPerSecond("machine_switch_extruder_retraction_speed"), settings.getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), settings.getSettingInMicrons("retraction_extrusion_window"), settings.getSettingInMicrons("retraction_count_max"));
+        setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     }
     void finalize(int maxObjectHeight, double moveSpeed, const char* endCode);
     

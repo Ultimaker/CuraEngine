@@ -11,7 +11,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     PrimeTower primetower();
     
-    gcode.preSetup(*this);
+    gcode.preSetup(storage.meshgroup);
     
     gcode.resetTotalPrintTimeAndFilament();
     
