@@ -54,8 +54,10 @@ For that one needs a settings JSON file, which can be found in the Ultimaker/Cur
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
-./build/CuraEngine -v -j ../Cura/resources/settings/fdmprinter.json -j ../Cura/resources/settings/[specific_machine].json -s adhesion_type=Brim -o "output/test.gcode" "/path/to/model.stl"
+./build/CuraEngine slice -v -j ../Cura/resources/settings/fdmprinter.json -j ../Cura/resources/settings/ultimaker2.json -o "output/test.gcode" -e1 -s infill_line_distance=0 -e0 -l "/home/tim/Documents/3D_models/simple_shapes/cube_cm.stl" -e1 -l "/home/tim/Documents/3D_models/simple_shapes/cube_shifted.stl" 
 ```
+
+Run `CuraEngine help` for a general description of how to use the CuraEngine tool.
 
 Internals
 =========
