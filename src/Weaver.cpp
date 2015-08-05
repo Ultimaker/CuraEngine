@@ -10,9 +10,11 @@
 namespace cura 
 {
 
-void Weaver::weave(MeshGroup* object, CommandSocket* commandSocket)
-{
-    int maxz = object->max().z;
+void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
+{   
+    wireFrame.meshgroup = meshgroup;
+    
+    int maxz = meshgroup->max().z;
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
 
@@ -20,7 +22,7 @@ void Weaver::weave(MeshGroup* object, CommandSocket* commandSocket)
 
     std::vector<cura::Slicer*> slicerList;
 
-    for(Mesh& mesh : object->meshes)
+    for(Mesh& mesh : meshgroup->meshes)
     {
         cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
@@ -60,7 +62,7 @@ void Weaver::weave(MeshGroup* object, CommandSocket* commandSocket)
         if (wireFrame.bottom_outline.size() > 0)
             starting_point_in_layer = (wireFrame.bottom_outline.max() + wireFrame.bottom_outline.min()) / 2;
         else 
-            starting_point_in_layer = (Point(0,0) + object->max() + object->min()) / 2;
+            starting_point_in_layer = (Point(0,0) + meshgroup->max() + meshgroup->min()) / 2;
         
         Progress::messageProgressStage(Progress::Stage::INSET, nullptr, commandSocket);
         for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)

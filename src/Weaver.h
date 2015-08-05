@@ -40,7 +40,6 @@ private:
    
     
 public:
-    
     Weaver(SettingsBase* settings_base) : SettingsMessenger(settings_base) 
     {
         
@@ -60,10 +59,10 @@ public:
      * This is the main function for Neith / Weaving / WirePrinting / Webbed printing.
      * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
      * 
-     * \param object The object for which to create a wireframe print
+     * \param objects The objects for which to create a wireframe print
      * \param commandSocket the commandSocket
      */
-    void weave(MeshGroup* object, CommandSocket* commandSocket);
+    void weave(MeshGroup* objects, CommandSocket* commandSocket);
     
 
 private:

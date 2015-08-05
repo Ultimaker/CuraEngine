@@ -6,6 +6,7 @@
 #include "utils/polygon.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
+#include "MeshGroup.h"
 
 #include "debug.h"
 
@@ -70,6 +71,7 @@ struct WeaveLayer : WeaveConnection
 };
 struct WireFrame
 {
+    MeshGroup* meshgroup;
     WeaveRoof bottom_infill;
     Polygons bottom_outline;
     int z_bottom;

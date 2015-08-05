@@ -15,7 +15,7 @@ namespace cura
 void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
 {
 
-    gcode.preSetup(*this);
+    gcode.preSetup(wireFrame.meshgroup);
     
     if (commandSocket)
         commandSocket->beginGCode();
