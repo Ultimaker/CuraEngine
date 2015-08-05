@@ -183,7 +183,7 @@ private:
         }
 
         gcode.setFlavor(getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        gcode.setRetractionSettings(getSettingInMicrons("machine_switch_extruder_retraction_amount"), getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), getSettingInMicrons("retraction_extrusion_window"), getSettingInMicrons("retraction_count_max"));
+        gcode.setRetractionSettings(getSettingInMicrons("machine_switch_extruder_retraction_amount"), getSettingInMillimetersPerSecond("material_switch_extruder_retraction_speed"), getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed"), getSettingInMicrons("retraction_extrusion_window"), getSettingAsCount("retraction_count_max"));
     }
 
     bool prepareModel(SliceDataStorage& storage, PrintObject* object) /// slices the model

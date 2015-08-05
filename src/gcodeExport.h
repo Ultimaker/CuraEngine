@@ -99,7 +99,7 @@ private:
     int extruderSwitchRetractionSpeed;
     int extruderSwitchPrimeSpeed;
     double retraction_extrusion_window;
-    double retraction_count_max;
+    int retraction_count_max;
     std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     Point3 startPosition;
