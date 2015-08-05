@@ -40,6 +40,7 @@ class GCodePlanner
 {
 private:
     GCodeExport& gcode;
+    SliceDataStorage& storage;
 
     Point lastPosition;
     std::vector<GCodePath> paths;
@@ -56,7 +57,26 @@ private:
     double totalPrintTime;
     
 private:
+    /*!
+     * Either create a new path with the given config or return the last path if it already had that config.
+     * If GCodePlanner::forceNewPathStart has been called a new path will always be returned.
+     * 
+     * \param config The config used for the path returned
+     * \param flow (optional) A ratio for the extrusion speed
+     * \return A path with the given config which is now the last path in GCodePlanner::paths
+     */
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config, float flow = 1.0);
+    
+    /*!
+     * Force GCodePlanner::getLatestPathWithConfig to return a new path.
+     * 
+     * This function is introduced because in some cases 
+     * GCodePlanner::getLatestPathWithConfig is called consecutively with the same config pointer, 
+     * though the content of the config has changed.
+     * 
+     * Example cases: 
+     * - when changing extruder, the same travel config is used, but its extruder field is changed.
+     */
     void forceNewPathStart();
 public:
     /*
@@ -67,13 +87,7 @@ public:
     GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, double travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
-    bool setExtruder(int extruder)
-    {
-        if (extruder == currentExtruder)
-            return false;
-        currentExtruder = extruder;
-        return true;
-    }
+    bool setExtruder(int extruder);
 
     int getExtruder()
     {

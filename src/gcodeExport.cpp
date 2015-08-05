@@ -36,7 +36,7 @@ void GCodeExport::setOutputStream(std::ostream* stream)
 
 Point GCodeExport::getExtruderOffset(int id)
 {
-    return extruder_attr[id].extruderOffset;
+    return extruder_attr[id].nozzle_offset;
 }
 
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
@@ -328,7 +328,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     if (config->amount <= 0)
         return;
     
-    if (!force && extruder_attr[current_extruder].retraction_count_max > 0 && extrusion_amount_at_previous_n_retractions.size() == extruder_attr[current_extruder].retraction_count_max - 1 
+    if (!force && extruder_attr[current_extruder].retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == extruder_attr[current_extruder].retraction_count_max - 1 
         && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + extruder_attr[current_extruder].retraction_extrusion_window) 
         return;
 
@@ -353,7 +353,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         isZHopped = true;
     }
     extrusion_amount_at_previous_n_retractions.push_front(extrusion_amount);
-    if (extrusion_amount_at_previous_n_retractions.size() == extruder_attr[current_extruder].retraction_count_max)
+    if (int(extrusion_amount_at_previous_n_retractions.size()) == extruder_attr[current_extruder].retraction_count_max)
     {
         extrusion_amount_at_previous_n_retractions.pop_back();
     }
@@ -388,12 +388,12 @@ void GCodeExport::switchExtruder(int new_extruder)
     if (flavor == GCODE_FLAVOR_MACH3)
         resetExtrusionValue();
     isRetracted = true;
-    writeCode(extruder_attr[old_extruder].extruder_end_code.c_str());
+    writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == GCODE_FLAVOR_MAKERBOT)
         *output_stream << "M135 T" << current_extruder << "\n";
     else
         *output_stream << "T" << current_extruder << "\n";
-    writeCode(extruder_attr[new_extruder].extruder_start_code.c_str());
+    writeCode(extruder_attr[new_extruder].start_code.c_str());
     
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;

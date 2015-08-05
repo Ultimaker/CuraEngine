@@ -28,7 +28,8 @@ void GCodePlanner::forceNewPathStart()
 }
 
 GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, double travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
-: gcode(gcode), travelConfig(retraction_config, "MOVE"), coasting_config(coasting_config)
+: gcode(gcode), storage(storage)
+, travelConfig(retraction_config, "MOVE"), coasting_config(coasting_config)
 {
     lastPosition = gcode.getPositionXY();
     travelConfig.setSpeed(travelSpeed);
@@ -51,6 +52,29 @@ GCodePlanner::~GCodePlanner()
     if (comb)
         delete comb;
 }
+
+bool GCodePlanner::setExtruder(int extruder)
+{
+    if (extruder == currentExtruder)
+    {
+        return false;
+    }
+    SettingsBase* train = storage.meshgroup->getExtruderTrain(currentExtruder);
+    bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
+    Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
+    addTravel((end_pos_absolute)? end_pos : lastPosition + end_pos);
+    
+    currentExtruder = extruder; // the extruder switch
+    
+    forceNewPathStart();
+    
+    train = storage.meshgroup->getExtruderTrain(currentExtruder);
+    bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
+    Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
+    lastPosition = (start_pos_absolute)? start_pos : lastPosition + start_pos;
+    return true;
+}
+
 
 void GCodePlanner::addTravel(Point p)
 {

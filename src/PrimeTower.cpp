@@ -143,16 +143,18 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     
     //If we changed extruder, print the wipe/prime tower for this nozzle;
     std::vector<Polygons> insets;
-    if ((layer_nr % 2) == 1)
-        insets.push_back(storage.primeTower.ground_poly.offset(offset / 2));
-    else
-        insets.push_back(storage.primeTower.ground_poly);
-    while(true)
-    {
-        Polygons new_inset = insets[insets.size() - 1].offset(offset);
-        if (new_inset.size() < 1)
-            break;
-        insets.push_back(new_inset);
+    { // generate polygons
+        if ((layer_nr % 2) == 1)
+            insets.push_back(storage.primeTower.ground_poly.offset(offset / 2));
+        else
+            insets.push_back(storage.primeTower.ground_poly);
+        while(true)
+        {
+            Polygons new_inset = insets[insets.size() - 1].offset(offset);
+            if (new_inset.size() < 1)
+                break;
+            insets.push_back(new_inset);
+        }
     }
     
     

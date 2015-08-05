@@ -109,10 +109,10 @@ class GCodeExport
 private:
     struct ExtruderTrainAttributes
     {
-        Point extruderOffset;
+        Point nozzle_offset;
         char extruderCharacter;
-        std::string extruder_start_code;
-        std::string extruder_end_code;
+        std::string start_code;
+        std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
         double extruderSwitchRetraction;
@@ -125,10 +125,10 @@ private:
         int currentTemperature;
         
         ExtruderTrainAttributes()
-        : extruderOffset(0,0)
+        : nozzle_offset(0,0)
         , extruderCharacter(0)
-        , extruder_start_code("")
-        , extruder_end_code("")
+        , start_code("")
+        , end_code("")
         , filament_area(0)
         , extruderSwitchRetraction(0.0)
         , extruderSwitchRetractionSpeed(0)
@@ -234,9 +234,11 @@ public:
             ExtruderTrain* train = settings->getExtruderTrain(n);
             setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
             
-            extruder_attr[n].extruderOffset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-            extruder_attr[n].extruder_start_code = train->getSettingString("machine_extruder_start_code");
-            extruder_attr[n].extruder_end_code = train->getSettingString("machine_extruder_end_code");
+            extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+            
+            extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
+            extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
+            
             extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("machine_switch_extruder_retraction_amount")); 
             extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("machine_switch_extruder_retraction_speed");
             extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed");
