@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <list>
 
-#include <hash_fun.h> // hash function object
+#include <functional> // hash function object
 
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
