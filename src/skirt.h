@@ -12,11 +12,10 @@ namespace cura
  * 
  * \param storage Storage containing the parts at the first layer
  * \param distance The distance of the first outset from the parts at the first layer
- * \param extrusionWidth extrusionWidth
  * \param count Number of outsets / brim lines
  * \param minLength The minimum length the skirt should have (enforced by taking more outsets)
  */
-void generateSkirt(SliceDataStorage& storage, int distance, int extrusionWidth, int count, int minLength);
+void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLength);
 
 }//namespace cura
 

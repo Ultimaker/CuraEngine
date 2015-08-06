@@ -102,13 +102,13 @@ public:
     
     Point3 model_size, model_min, model_max;
     int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
-    Polygons skirt;
+    Polygons skirt[MAX_EXTRUDERS]; //!< Skirt polygons per extruder, ordered from inner to outer polygons
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
     std::vector<Polygons> oozeShield;        //oozeShield per layer
     std::vector<SliceMeshStorage> meshes;
 
     RetractionConfig retraction_config;
-    GCodePathConfig skirt_config;
+    GCodePathConfig* skirt_config[MAX_EXTRUDERS] = {nullptr}; //!< config for skirt per extruder
     GCodePathConfig support_config;
     GCodePathConfig support_roof_config;
     
@@ -122,11 +122,22 @@ public:
     : SettingsMessenger(meshgroup)
     , meshgroup(meshgroup)
     , max_object_height_second_to_last_extruder(-1)
-    , skirt_config(&retraction_config, "SKIRT")
     , support_config(&retraction_config, "SUPPORT")
     , support_roof_config(&retraction_config, "SKIN")
     , primeTower(meshgroup, &retraction_config)
     {
+        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+        {
+            skirt_config[extruder] = new GCodePathConfig(&retraction_config, "SKIRT");
+        }
+    }
+    
+    ~SliceDataStorage()
+    {
+        for (int e =0; e < meshgroup->getExtruderCount(); e++)
+        {
+            delete skirt_config[e];
+        }
     }
 };
 

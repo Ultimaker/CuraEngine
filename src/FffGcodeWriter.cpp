@@ -41,7 +41,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         processRaft(storage, total_layers);
     }
     
-    for (int extruder = 0; extruder < getSettingAsCount("machine_extruder_count"); extruder++)
+    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
     
     for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
@@ -103,10 +103,14 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigSkirt(SliceDataStorage& storage, int layer_thickness)
 {
-    storage.skirt_config.setSpeed(getSettingInMillimetersPerSecond("skirt_speed"));
-    storage.skirt_config.setLineWidth(getSettingInMicrons("skirt_line_width"));
-    storage.skirt_config.setFlow(getSettingInPercentage("material_flow"));
-    storage.skirt_config.setLayerHeight(layer_thickness);
+    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    {
+        SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
+        storage.skirt_config[extruder]->setSpeed(train->getSettingInMillimetersPerSecond("skirt_speed"));
+        storage.skirt_config[extruder]->setLineWidth(train->getSettingInMicrons("skirt_line_width"));
+        storage.skirt_config[extruder]->setFlow(train->getSettingInPercentage("material_flow"));
+        storage.skirt_config[extruder]->setLayerHeight(layer_thickness);
+    }
 }
 
 void FffGcodeWriter::setConfigSupport(SliceDataStorage& storage, int layer_thickness)
@@ -301,7 +305,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     gcode.setZ(z);
     gcode.resetStartPosition();
     
-    processSkirt(storage, gcode_layer, layer_nr);
+    if (layer_nr == 0)
+    {
+        int start_extruder = 0; // TODO: make settable
+        gcode_layer.setExtruder(start_extruder);
+        processSkirt(storage, gcode_layer, start_extruder);
+    }
     
     int extruder_nr_before = gcode_layer.getExtruder();
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, true);
@@ -327,7 +336,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     { // add prime tower if it hasn't already been added
         bool prime_tower_added = false;
-        for (int extruder = 0; extruder < getSettingAsCount("machine_extruder_count") && !prime_tower_added; extruder++)
+        for (int extruder = 0; extruder <  storage.meshgroup->getExtruderCount() && !prime_tower_added; extruder++)
         {
             prime_tower_added = last_prime_tower_poly_printed[extruder] == int(layer_nr);
         }
@@ -364,15 +373,14 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
     }
 }
 
-void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
+void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
-    if (layer_nr == 0)
-    {
-        setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, getSettingAsIndex("adhesion_extruder_nr"));
-        if (storage.skirt.size() > 0)
-            gcode_layer.addTravel(storage.skirt[storage.skirt.size()-1].closestPointTo(gcode.getPositionXY()));
-        gcode_layer.addPolygonsByOptimizer(storage.skirt, &storage.skirt_config);
-    }
+    Polygons& skirt = storage.skirt[extruder_nr];
+//     gcode_layer.setExtruder(getSettingAsIndex("adhesion_extruder_nr"));
+    if (skirt.size() > 0)
+        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+    gcode_layer.addPolygonsByOptimizer(skirt, storage.skirt_config[extruder_nr]);
+    
 }
 
 void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
@@ -380,7 +388,7 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
     if (storage.oozeShield.size() > 0)
     {
         gcode_layer.setAlwaysRetract(true);
-        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config);
+        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
         gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     }
 }
@@ -404,7 +412,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     }
     
     gcode_layer.setAlwaysRetract(true);
-    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config);
+    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
     gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     
 }
@@ -442,7 +450,7 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
         return;
     }
     
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -492,7 +500,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         return;
     }
     
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
 
@@ -756,7 +764,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, support_extruder_nr);
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
     
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
     
@@ -833,7 +841,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     }
     
     int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-    setExtruder_addPrimeTower(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
     
     double fillAngle;
     if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height"))
@@ -852,7 +860,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     gcode_layer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
 }
 
-void FffGcodeWriter::setExtruder_addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
+void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
 {
     if (extruder_nr == -1)
         return;
@@ -861,7 +869,17 @@ void FffGcodeWriter::setExtruder_addPrimeTower(SliceDataStorage& storage, GCodeP
     bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
     
     if (extruder_changed)
-        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
+    {
+        if (layer_nr == 0)
+        {
+            processSkirt(storage, gcode_layer, extruder_nr);
+        }
+        else
+        {
+            addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
+            
+        }
+    }
 }
 
 void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)

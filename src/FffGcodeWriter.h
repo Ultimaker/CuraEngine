@@ -145,9 +145,9 @@ private:
      * Add the skirt to the gcode.
      * \param storage Input: where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
+     * \param extruder_nr The extrudewr train for which to process the skirt
      */
-    void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
+    void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
     
     /*!
      * Adds the ooze shield to the print.
@@ -247,7 +247,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr The extruder to which to switch
      */
-    void setExtruder_addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr);
+    void setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr);
     
     /*!
      * Add the support to the gcode of the current layer.

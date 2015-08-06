@@ -17,9 +17,22 @@ namespace cura
 class MeshGroup : public SettingsBase
 {
     ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
+    int extruder_count;
 public:
+    int getExtruderCount()
+    {
+        if (extruder_count == -1)
+        {
+            extruder_count = getSettingAsCount("machine_extruder_count");
+        }
+        return extruder_count;
+    }
 
-    MeshGroup(SettingsBaseVirtual* settings_base) : SettingsBase(settings_base){}
+    MeshGroup(SettingsBaseVirtual* settings_base) 
+    : SettingsBase(settings_base)
+    , extruder_count(-1) 
+    {}
+    
     ~MeshGroup() 
     {
         for (unsigned int extruder = 0; extruder < MAX_EXTRUDERS; extruder++)

@@ -368,18 +368,21 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     case Adhesion_Skirt:
         if (getSettingInMicrons("draft_shield_height") == 0)
         { // draft screen replaces skirt
-            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingInMicrons("skirt_line_width"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
         }
         break;
     case Adhesion_Brim:
-        generateSkirt(storage, 0, getSettingInMicrons("skirt_line_width"), getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
+        generateSkirt(storage, 0, getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
         break;
     case Adhesion_Raft:
         generateRaft(storage, getSettingInMicrons("raft_margin"));
         break;
     }
     
-    sendPolygons(SkirtType, 0, storage.skirt, getSettingInMicrons("skirt_line_width"));
+    Polygons skirt_sent = storage.skirt[0];
+    for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+        skirt_sent.add(storage.skirt[extruder]);
+    sendPolygons(SkirtType, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
 
 void FffPolygonGenerator::slices2polygons_magicPolygonMode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
