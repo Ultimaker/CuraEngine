@@ -181,6 +181,12 @@ public:
     
     void setSetting(std::string key, std::string value);
     std::string getSettingString(std::string key); //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+    
+    void debugOutputAllLocalSettings() 
+    {
+        for (auto pair : setting_values)
+            std::cerr << pair.first << " : " << pair.second << std::endl;
+    }
 };
 
 /*!

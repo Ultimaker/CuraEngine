@@ -62,7 +62,7 @@ void print_usage()
     cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     cura::logError("\n");
     cura::logError("The settings are appended to the last supplied object:\n");
-    cura::logError("SuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
     cura::logError("\n");
 }
 
@@ -247,6 +247,7 @@ void slice(fffProcessor& processor, int argc, char **argv)
     { // initialize remaining extruder trains and load the defaults
         meshgroup.getExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // also initializes yet uninitialized extruder trains
     }
+    
     
 #ifndef DEBUG
     try {
