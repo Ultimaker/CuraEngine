@@ -25,9 +25,30 @@ private:
     std::string key;
     std::list<SettingConfig> children;
 public:
+    std::string getKey() const { return key; }
     SettingCategory(std::string key, std::string label);
     
     SettingConfig* addChild(std::string key, std::string label);
+    
+    /*!
+     * Get the \p idx th child.
+     * 
+     * This is used to get a specific extruder train in Settingsbase::setExtruderTrainDefaults
+     * 
+     * \param idx The index in the list of children
+     * \return The \p idx th child
+     */
+    const SettingConfig* getChild(unsigned int idx) const
+    {
+        if (idx < children.size())
+        {
+            auto it = children.begin();
+            while (idx > 0) { ++it; idx--; }
+            return &*it;
+        }
+        else 
+            return nullptr;
+    }
 };
 
 /*!
@@ -50,17 +71,13 @@ public:
 
     SettingConfig* addChild(std::string key, std::string label);
     
-    const SettingConfig* getChild(unsigned int idx) const
-    {
-        if (idx < children.size())
-        {
-            auto it = children.begin();
-            while (idx > 0) { ++it; idx--; }
-            return &*it;
-        }
-        else 
-            return nullptr;
-    }
+    /*!
+     * Get the SettingConfig::children.
+     * 
+     * This is used to get the extruder trains; see Settingsbase::setExtruderTrainDefaults
+     * 
+     * \return SettingConfig::children
+     */
     const std::list<SettingConfig>& getChildren() const { return children; }
     
     std::string getKey() const
@@ -113,10 +130,25 @@ private:
     std::unordered_map<std::string, SettingConfig*> settings;
     std::list<SettingCategory> categories;
 public:
+    /*!
+     * Get the SettingRegistry.
+     * 
+     * This is a singleton class.
+     * 
+     * \return The SettingRegistry
+     */
     static SettingRegistry* getInstance() { return &instance; }
     
     bool settingExists(std::string key) const;
     const SettingConfig* getSettingConfig(std::string key);
+    
+    /*!
+     * Return the first category with the given key as name, or a null pointer.
+     * 
+     * \param key the key as it is in the JSON file
+     * \return The first category in the list having the \p key
+     */
+    SettingCategory* getCategory(std::string key);
     
     bool settingsLoaded();
     /*!
@@ -129,7 +161,7 @@ public:
 private:
     SettingRegistry();
     
-    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent);
+    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool add_to_settings = true);
 };
 
 }//namespace cura

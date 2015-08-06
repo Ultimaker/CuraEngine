@@ -88,18 +88,20 @@ std::string SettingsMessenger::getSettingString(std::string key)
 
 void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
 {
-    const SettingConfig* machine_extruder_trains = SettingRegistry::getInstance()->getSettingConfig("machine_extruder_trains");
+    const SettingCategory* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
     
-    if (!machine_extruder_trains)
+    if (!machine_extruder_trains) 
     {
-        logError("Cannot find extruder specific settings in JSON.\n");
+        logWarning("Error: no machine_extruder_trains category found in JSON!\n");
+        return;
     }
     
     const SettingConfig* train = machine_extruder_trains->getChild(extruder_nr);
     
     if (!train)
     {
-        logError("Not enough extruder trains specified in JSON.");
+        logError("Not enough extruder trains specified in JSON: %i\n", extruder_nr);
+        return;
     }
     
     for (const SettingConfig& setting : train->getChildren())

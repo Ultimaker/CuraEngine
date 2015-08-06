@@ -175,6 +175,8 @@ public:
      * Retrieve the defaults for each extruder train from the machine_extruder_trains settings 
      * and set the general settings to those defaults if they haven't been set yet.
      * 
+     * Only sets those settings which haven't already been set on that level - not looking at its parent (fffProcessor, meshgroup) or children (meshes).
+     * 
      * \param extruder_nr The index of which extruder train in machine_extruder_trains to get the settings from
      */
     void setExtruderTrainDefaults(unsigned int extruder_nr);

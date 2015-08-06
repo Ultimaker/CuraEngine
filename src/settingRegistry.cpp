@@ -22,10 +22,20 @@ bool SettingRegistry::settingExists(std::string key) const
 
 const SettingConfig* SettingRegistry::getSettingConfig(std::string key)
 {
-    if (settings.find(key) == settings.end())
+    auto it = settings.find(key);
+    if (it == settings.end())
         return nullptr;
-    return settings[key];
+    return it->second;
 }
+
+SettingCategory* SettingRegistry::getCategory(std::string key)
+{
+    for (SettingCategory& cat : categories)
+        if (cat.getKey().compare(key) == 0)
+            return &cat;
+    return nullptr;
+}
+
 
 SettingRegistry::SettingRegistry()
 {
@@ -64,6 +74,30 @@ int SettingRegistry::loadJSON(std::string filename)
         return 3;
     }
 
+    if (json_document.HasMember("machine_extruder_trains"))
+    {
+        categories.emplace_back("machine_extruder_trains", "Extruder Trains Settings Objects");
+        SettingCategory* category_trains = &categories.back();
+        const rapidjson::Value& trains = json_document["machine_extruder_trains"];
+        if (trains.IsArray()) 
+        {
+            if (trains.Size() > 0 && trains[0].IsObject())
+            {
+                unsigned int idx = 0;
+                for (auto it = trains.Begin(); it != trains.End(); ++it)
+                {
+                    SettingConfig* child = category_trains->addChild(std::to_string(idx), std::to_string(idx));
+                    _addSettingsToCategory(category_trains, *it, child, false);
+                    
+                    idx++;
+                }
+            }
+        }
+        else 
+        {
+            logError("Error: JSON machine_extruder_trains is not an array!\n");
+        }
+    }
     if (json_document.HasMember("machine_settings"))
     {
         categories.emplace_back("machine_settings", "Machine Settings");
@@ -98,7 +132,7 @@ int SettingRegistry::loadJSON(std::string filename)
     return 0;
 }
 #include <string>
-void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent)
+void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool add_to_settings)
 {
     for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object.MemberBegin(); setting_iterator != json_object.MemberEnd(); ++setting_iterator)
     {
@@ -114,10 +148,6 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
             label = data["label"].GetString();
         }
 
-        std::string ff = std::string("machine_extruder_count");
-        if (std::string(setting_iterator->name.GetString()).compare(ff) == 0)
-            logError("");
-        
         /// Create the new setting config object.
         SettingConfig* config;
         if (parent)
@@ -151,21 +181,7 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
                 std::ostringstream ss;
                 ss << dflt.GetDouble();
                 config->setDefault(ss.str());
-            }
-            else if (dflt.IsArray()) 
-            {
-                if (dflt.Size() > 0 && dflt[0].IsObject())
-                {
-                    unsigned int idx = 0;
-                    for (auto it = dflt.Begin(); it != dflt.End(); ++it)
-                    {
-                        SettingConfig* child = config->addChild(std::to_string(idx), std::to_string(idx));
-                        _addSettingsToCategory(category, *it, child);
-                        
-                        idx++;
-                    }
-                }
-            }
+            } // arrays are ignored because machine_extruder_trains needs to be handled separately
             else 
             {
                 logError("Unrecognized data type in JSON: %i\n", int(dflt.GetType()));
@@ -181,7 +197,11 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
         }
-        settings[config->getKey()] = config;
+        
+        if (add_to_settings)
+        {
+            settings[config->getKey()] = config;
+        }
 
         /// When this setting has children, add those children to this setting.
         if (data.HasMember("children") && data["children"].IsObject())
