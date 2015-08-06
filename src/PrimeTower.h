@@ -18,15 +18,26 @@ typedef std::vector<IntPoint> PolyLine;
 class PrimeTower
 {
 private:
-    unsigned int extruder_count;
+    int extruder_count;
     std::vector<GCodePathConfig> config_per_extruder;
 
+    class WallInfill
+    {
+        
+    };
 public:
     void setConfigs(MeshGroup* configs, RetractionConfig* retraction_config, int layer_thickness);
     
     Polygons ground_poly;
     
     std::vector<PolyLine> extruder_paths;
+    
+    
+    void generateGroundpoly(SliceDataStorage& storage);
+
+    std::vector<std::vector<Polygons>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers
+    
+    void generatePaths3(SliceDataStorage& storage);
     
     void generatePaths2(SliceDataStorage& storage);
     /*!
@@ -36,12 +47,15 @@ public:
      * \param totalLayers The total number of layers 
      */
     void generatePaths(SliceDataStorage& storage, unsigned int totalLayers);
+    void generatePaths_OLD(SliceDataStorage& storage, unsigned int totalLayers);
 
     void computePrimeTowerMax(SliceDataStorage& storage);
     
     PrimeTower(MeshGroup* configs, RetractionConfig* retraction_config);
 
     void addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
+    void addToGcode_OLD(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
+    void addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
 
 };
 

@@ -4,6 +4,7 @@
 #include "sliceDataStorage.h"
 #include "gcodeExport.h"
 #include "gcodePlanner.h"
+#include "infill.h"
 
 namespace cura 
 {
@@ -11,8 +12,26 @@ namespace cura
     
 PrimeTower::PrimeTower(MeshGroup* configs, RetractionConfig* retraction_config)
 {
-//     setConfigs(configs);
 }
+
+
+
+void PrimeTower::setConfigs(MeshGroup* meshgroup, RetractionConfig* retraction_config, int layer_thickness)
+{
+    for (int extr = 0; extr < extruder_count; extr++)
+    {
+        ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
+        config_per_extruder.emplace_back(retraction_config, "WALL-INNER");// so that visualization in the old Cura still works (TODO)
+        GCodePathConfig& conf = config_per_extruder.back();
+        
+        conf.setSpeed(train->getSettingInMillimetersPerSecond("speed_prime_tower"));
+        conf.setLineWidth(train->getSettingInMicrons("prime_tower_line_width"));
+        conf.setFlow(train->getSettingInPercentage("prime_tower_flow"));
+        conf.setLayerHeight(layer_thickness);
+    }
+}
+
+    
 
 void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
 { // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the prime tower
@@ -67,32 +86,32 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
        
 }
 
-void PrimeTower::generatePaths2(SliceDataStorage& storage) // half baked attempt at spiral shaped prime tower pattern
+void PrimeTower::generateGroundpoly(SliceDataStorage& storage) 
 {
-    extruder_count = storage.getSettingAsCount("machine_extruder_count");
-    
-    int64_t line_dists[extruder_count + 1]; // distance between the lines of different extruders, and half the line dist for beginning and ending
-    int64_t total_width = 0;
-    {
-        int64_t last_line_width = 0;
-        for (int extr = 0; extr < extruder_count; extr++)
-        {
-            int64_t line_width = config_per_extruder[extr].getLineWidth();
-            line_dists[extr] = (line_width + last_line_width) / 2;
-            total_width += line_width;
-            last_line_width = line_width;
-        }
-        line_dists[extruder_count] = last_line_width / 2;
-    }
-    
-    
-    
-}
+    PolygonRef p = storage.primeTower.ground_poly.newPoly();
+    int tower_size = storage.getSettingInMicrons("prime_tower_size");
+    int tower_distance = 0; //storage.getSettingInMicrons("prime_tower_distance");
+    int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
+    int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
+    p.add(Point(x + tower_distance, y + tower_distance));
+    p.add(Point(x + tower_distance, y + tower_distance + tower_size));
+    p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
+    p.add(Point(x + tower_distance - tower_size, y + tower_distance));
 
+    storage.wipePoint = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);   
+}
 
 void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    extruder_count = storage.getSettingAsCount("machine_extruder_count");
+    if (storage.max_object_height_second_to_last_extruder >= 0 
+        && storage.getSettingInMicrons("prime_tower_distance") > 0 
+        && storage.getSettingInMicrons("prime_tower_size") > 0)
+    {
+        generatePaths3(storage);
+    }
+}
+void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int totalLayers)
+{
     
     if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_distance") > 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
     {
@@ -110,25 +129,89 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLaye
     }
 }
     
-void PrimeTower::setConfigs(MeshGroup* meshgroup, RetractionConfig* retraction_config, int layer_thickness)
+    
+void PrimeTower::generatePaths2(SliceDataStorage& storage) // half baked attempt at spiral shaped prime tower pattern
 {
-    for (int extr = 0; extr < extruder_count; extr++)
-    {
-        ExtruderTrain* extruder = meshgroup->getExtruderTrain(extr);
-        config_per_extruder.emplace_back(retraction_config, "WALL-INNER");// so that visualization in the old Cura still works (TODO)
-        GCodePathConfig& conf = config_per_extruder.back();
+//     extruder_count = storage.getSettingAsCount("machine_extruder_count");
+//     
+//     int64_t line_dists[extruder_count + 1]; // distance between the lines of different extruders, and half the line dist for beginning and ending
+//     int64_t total_width = 0;
+//     {
+//         int64_t last_line_width = 0;
+//         for (int extr = 0; extr < extruder_count; extr++)
+//         {
+//             int64_t line_width = config_per_extruder[extr].getLineWidth();
+//             line_dists[extr] = (line_width + last_line_width) / 2;
+//             total_width += line_width;
+//             last_line_width = line_width;
+//         }
+//         line_dists[extruder_count] = last_line_width / 2;
+//     }
+//     
+    
+    
+}
+
+void PrimeTower::generatePaths3(SliceDataStorage& storage)
+{
         
-        conf.setSpeed(extruder->getSettingInMillimetersPerSecond("speed_prime_tower"));
-        conf.setLineWidth(extruder->getSettingInMicrons("prime_tower_line_width"));
-        conf.setFlow(extruder->getSettingInPercentage("prime_tower_flow"));
-        conf.setLayerHeight(layer_thickness);
+    int n_patterns = 2; // alternating patterns between layers
+    double infill_overlap = 15; // so that it can't be zero
+    
+    generateGroundpoly(storage);
+    
+    for (int extruder = 0; extruder < extruder_count; extruder++)
+    {
+        int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
+        patterns_per_extruder.emplace_back(n_patterns);
+        std::vector<Polygons>& patterns = patterns_per_extruder.back();
+        for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
+        {
+            generateLineInfill(ground_poly, -line_width/2, patterns[pattern_idx], line_width, line_width, infill_overlap, 45 + pattern_idx*90);
+        }
     }
 }
 
     
-    
 
 void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
+{
+    if (!( storage.max_object_height_second_to_last_extruder >= 0 
+        && storage.getSettingInMicrons("prime_tower_distance") > 0 
+        && storage.getSettingInMicrons("prime_tower_size") > 0) )
+    {
+        return;
+    }
+    addToGcode3(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
+}
+
+void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
+{
+    if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
+    {
+        return;
+    }
+    
+    int new_extruder = gcodeLayer.getExtruder();
+
+    
+    Polygons& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
+
+    
+    GCodePathConfig& config = config_per_extruder[new_extruder];
+    gcodeLayer.addLinesByOptimizer(pattern, &config);
+    int start_idx = 0; // TODO: figure out which idx 
+    gcodeLayer.addPolygon(ground_poly.back(), start_idx, &config);
+    
+    last_prime_tower_poly_printed[new_extruder] = layer_nr;
+    
+    if (wipe)
+    { //Make sure we wipe the old extruder on the prime tower.
+        gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+    }
+}
+
+void PrimeTower::addToGcode_OLD(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
 {
     if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
     {
