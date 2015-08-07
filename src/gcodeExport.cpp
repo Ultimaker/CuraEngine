@@ -360,11 +360,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     isRetracted = true;
 }
 
-void GCodeExport::switchExtruder(int new_extruder)
+void GCodeExport::writeRetraction_extruderSwitch()
 {
-    if (current_extruder == new_extruder)
-        return;
-    
     if (flavor == GCODE_FLAVOR_BFB)
     {
         if (!isRetracted)
@@ -373,7 +370,6 @@ void GCodeExport::switchExtruder(int new_extruder)
         isRetracted = true;
         return;
     }
-    
     resetExtrusionValue();
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
     {
@@ -382,7 +378,18 @@ void GCodeExport::switchExtruder(int new_extruder)
         *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
     }
+}
 
+void GCodeExport::switchExtruder(int new_extruder)
+{
+    if (current_extruder == new_extruder)
+        return;
+    
+    if (!isRetracted) // assumes the last retraction already was an extruder switch retraction
+    {
+        writeRetraction_extruderSwitch();
+    }
+    
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
     if (flavor == GCODE_FLAVOR_MACH3)

@@ -49,7 +49,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         processLayer(storage, layer_nr, total_layers, has_raft);
     }
     
-    gcode.writeRetraction(&storage.retraction_config, true);
+//     gcode.writeRetraction(&storage.retraction_config, true);
+    gcode.writeRetraction_extruderSwitch();
 
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
     
@@ -863,8 +864,6 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     int previous_extruder = gcode_layer.getExtruder();
     if (previous_extruder == extruder_nr) { return; }
     bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
-    
-    int start_extruder = 0; // TODO make configurable
     
     if (extruder_changed)
     {

@@ -218,6 +218,8 @@ private:
 public:
     void writeRetraction(RetractionConfig* config, bool force=false);
     
+    void writeRetraction_extruderSwitch();
+    
     void switchExtruder(int newExtruder);
     
     void writeCode(const char* str);

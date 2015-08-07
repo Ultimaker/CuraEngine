@@ -168,9 +168,10 @@ public:
      * \param coasting_volume The volume otherwise leaked.
      * \param coasting_speed The speed at which to move during coasting.
      * \param coasting_min_volume The minimal volume a path should have which builds up enough pressure to ooze as much as \p coasting_volume.
+     * \param extruder_switch_retract (optional) For a coasted path followed by a retraction: whether to retract normally, or do an extruder switch retraction.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
+    bool writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract = false);
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };

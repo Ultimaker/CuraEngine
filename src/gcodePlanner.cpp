@@ -14,8 +14,6 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, float 
     paths.push_back(GCodePath());
     GCodePath* ret = &paths[paths.size()-1];
     ret->retract = false;
-    if (config->retraction_config->zHop > 0) // TODO remove this debug code
-        std::cerr << "debug: zhop changed" << std::endl;
     ret->config = config;
     ret->extruder = currentExtruder;
     ret->done = false;
@@ -275,6 +273,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     GCodePathConfig* lastConfig = nullptr;
     int extruder = gcode.getExtruderNr();
 
+    
     for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
     {
         GCodePath& path = paths[path_idx];
@@ -284,7 +283,20 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             gcode.switchExtruder(extruder);
         }else if (path.retract)
         {
-            gcode.writeRetraction(path.config->retraction_config);
+            bool extruder_switch_retract = false;
+            for (unsigned int path_idx2 = 0; path_idx2 < paths.size(); path_idx2++)
+            {
+                if (paths[path_idx2].getExtrusionMM3perMM() > 0) { break; }
+                if (paths[path_idx2].extruder != extruder) { extruder_switch_retract = true; break; }
+            }
+            if (extruder_switch_retract)
+            {
+                gcode.writeRetraction_extruderSwitch();
+            }
+            else 
+            {
+                gcode.writeRetraction(path.config->retraction_config);
+            }
         }
         if (path.config != &travelConfig && lastConfig != path.config)
         {
@@ -380,7 +392,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     {
         gcode.writeComment("Small layer, adding delay");
         if (lastConfig)
-            gcode.writeRetraction(lastConfig->retraction_config, true);
+            gcode.writeRetraction(lastConfig->retraction_config, true); // TODO: check whether we should do a retractoin_extruderSwitch; is the next path with a different extruder?
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), travelConfig.getSpeed(), 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.getSpeed(), 0);
@@ -404,9 +416,16 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     GCodePath& path_next = paths[path_idx + 1];
     
     if (path_next.retract)
-    {
+    {            
+        bool extruder_switch_retract = false;
+        for (unsigned int path_idx2 = 0; path_idx2 < paths.size(); path_idx2++)
+        {
+            if (paths[path_idx2].getExtrusionMM3perMM() > 0) { break; }
+            if (paths[path_idx2].extruder != gcode.getExtruderNr()) { extruder_switch_retract = true; break; }
+        }
+            
         if (coasting_volume_retract <= 0) { return false; }
-        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract);
+        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract, extruder_switch_retract);
     }
     else
     {
@@ -414,7 +433,7 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
         return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move);
     }
 }  
-bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
+bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract)
 {
 
     int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
@@ -502,7 +521,14 @@ bool GCodePlanner::writePathWithCoasting(GCodePath& path, GCodePath& path_next, 
     
     if (path_next.retract)
     {
-        gcode.writeRetraction(path.config->retraction_config);
+        if (extruder_switch_retract)
+        {
+            gcode.writeRetraction_extruderSwitch();
+        }
+        else 
+        {
+            gcode.writeRetraction(path.config->retraction_config);
+        }
     }
     
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
