@@ -89,7 +89,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     }
 
 
-    
+    if (false) // the code below is for the old prime tower
     { //Add a skirt UNDER the prime tower to make it stick better.
         Polygons prime_tower = storage.primeTower.ground_poly.offset(-primary_extrusion_width / 2);
         std::queue<Polygons> prime_tower_insets;

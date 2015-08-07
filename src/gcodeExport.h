@@ -47,9 +47,9 @@ private:
 public:
     const char* name;
     bool spiralize;
-    RetractionConfig* retraction_config;
+    RetractionConfig *const retraction_config;
     
-    GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
     GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
     void setSpeed(double speed)

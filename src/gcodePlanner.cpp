@@ -14,6 +14,8 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, float 
     paths.push_back(GCodePath());
     GCodePath* ret = &paths[paths.size()-1];
     ret->retract = false;
+    if (config->retraction_config->zHop > 0) // TODO remove this debug code
+        std::cerr << "debug: zhop changed" << std::endl;
     ret->config = config;
     ret->extruder = currentExtruder;
     ret->done = false;

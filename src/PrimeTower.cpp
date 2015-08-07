@@ -182,6 +182,15 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     {
         return;
     }
+    bool prime_tower_added = false;
+    for (int extruder = 0; extruder <  storage.meshgroup->getExtruderCount() && !prime_tower_added; extruder++)
+    {
+        prime_tower_added = last_prime_tower_poly_printed[extruder] == int(layer_nr);
+    }
+    if (prime_tower_added)
+    { // don't print the prime tower if it has been printed already
+        return;
+    }
     addToGcode3(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
 }
 
@@ -199,9 +208,9 @@ void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer
 
     
     GCodePathConfig& config = config_per_extruder[new_extruder];
-    gcodeLayer.addLinesByOptimizer(pattern, &config);
-    int start_idx = 0; // TODO: figure out which idx 
+    int start_idx = 0; // TODO: figure out which idx is closest to the far right corner
     gcodeLayer.addPolygon(ground_poly.back(), start_idx, &config);
+    gcodeLayer.addLinesByOptimizer(pattern, &config);
     
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
     

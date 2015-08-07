@@ -337,16 +337,9 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, false);
 
     { // add prime tower if it hasn't already been added
-        bool prime_tower_added = false;
-        for (int extruder = 0; extruder <  storage.meshgroup->getExtruderCount() && !prime_tower_added; extruder++)
-        {
-            prime_tower_added = last_prime_tower_poly_printed[extruder] == int(layer_nr);
-        }
-        if (!prime_tower_added)
-        { // print the prime tower if it hasn't been printed yet
-            int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
-            addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
-        }
+        // print the prime tower if it hasn't been printed yet
+        int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
+        addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
     }
     processFanSpeedAndMinimalLayerTime(storage, gcode_layer, layer_nr);
     
@@ -378,7 +371,6 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
     Polygons& skirt = storage.skirt[extruder_nr];
-//     gcode_layer.setExtruder(getSettingAsIndex("adhesion_extruder_nr"));
     if (skirt.size() > 0)
         gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
     gcode_layer.addPolygonsByOptimizer(skirt, storage.skirt_config[extruder_nr]);
@@ -724,8 +716,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
     
-    bool print_support_before_rest = ( support_extruder_nr > 0 && support_extruder_nr == extruder_nr_before )
-                                    || ( support_roof_extruder_nr > 0 && support_roof_extruder_nr == extruder_nr_before );
+    bool print_support_before_rest = support_extruder_nr == extruder_nr_before
+                                    || support_roof_extruder_nr == extruder_nr_before;
+    // TODO: always print support after rest when only one nozzle is used for the whole meshgroup
     
     if (print_support_before_rest != before_rest)
         return;
@@ -864,11 +857,14 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
 {
-    if (extruder_nr == -1)
+    if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
         return;
     
     int previous_extruder = gcode_layer.getExtruder();
+    if (previous_extruder == extruder_nr) { return; }
     bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
+    
+    int start_extruder = 0; // TODO make configurable
     
     if (extruder_changed)
     {

@@ -85,13 +85,14 @@ public:
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
-    GCodePathConfig infill_config[MAX_SPARSE_COMBINE];
+    std::vector<GCodePathConfig> infill_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
     : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
+        infill_config.reserve(MAX_SPARSE_COMBINE);
         for(int n=0; n<MAX_SPARSE_COMBINE; n++)
-            infill_config[n] = GCodePathConfig(&retraction_config, "FILL");
+            infill_config.emplace_back(&retraction_config, "FILL");
     }
 };
 

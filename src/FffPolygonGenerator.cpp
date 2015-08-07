@@ -83,11 +83,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
     
-    
+    storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
-        SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
+        SliceMeshStorage& meshStorage = storage.meshes.back();
         createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.getSettingBoolean("meshfix_union_all"), meshStorage.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
