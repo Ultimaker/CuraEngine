@@ -260,6 +260,7 @@ private:
         object->clear();///Clear the mesh data, it is no longer needed after this point, and it saves a lot of memory.
 
         log("Generating layer parts...\n");
+        storage.meshes.reserve(slicerList.size());
         for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
         {
             storage.meshes.emplace_back(&object->meshes[meshIdx]);
