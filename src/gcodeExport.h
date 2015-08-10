@@ -140,6 +140,7 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
+    bool use_extruder_offset_to_offset_coords;
     
     std::ostream* output_stream;
     double extrusion_amount; // in mm or mm^3
@@ -169,6 +170,8 @@ public:
     void setOutputStream(std::ostream* stream);
     
     Point getExtruderOffset(int id);
+    
+    Point getGcodePos(int64_t x, int64_t y, int extruder_train);
     
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor();
@@ -249,6 +252,7 @@ public:
         }
 
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
+        use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
     }
     void finalize(int maxObjectHeight, double moveSpeed, const char* endCode);
     

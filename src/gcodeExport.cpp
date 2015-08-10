@@ -39,6 +39,13 @@ Point GCodeExport::getExtruderOffset(int id)
     return extruder_attr[id].nozzle_offset;
 }
 
+Point GCodeExport::getGcodePos(int64_t x, int64_t y, int extruder_train)
+{
+    if (use_extruder_offset_to_offset_coords) { return Point(x,y); }
+    else { return Point(x,y) - getExtruderOffset(extruder_train); }
+}
+
+
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor = flavor;
@@ -214,6 +221,8 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     {
         extrusion_per_mm = extrusion_mm3_per_mm / getFilamentArea(current_extruder);
     }
+    
+    Point gcode_pos = getGcodePos(x,y, current_extruder);
 
     if (flavor == GCODE_FLAVOR_BFB)
     {
@@ -253,7 +262,10 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 isRetracted = true;
             }
         }
-        *output_stream << std::setprecision(3) << "G1 X" << INT2MM(x - getExtruderOffset(current_extruder).X) << " Y" << INT2MM(y - getExtruderOffset(current_extruder).Y) << " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
+        *output_stream << std::setprecision(3) << 
+            "G1 X" << INT2MM(gcode_pos.X) << 
+            " Y" << INT2MM(gcode_pos.Y) << 
+            " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
     }else{
         //Normal E handling.
         if (extrusion_mm3_per_mm > 0.000001)
@@ -306,7 +318,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             currentSpeed = speed;
         }
 
-        *output_stream << std::setprecision(3) << " X" << INT2MM(x - getExtruderOffset(current_extruder).X) << " Y" << INT2MM(y - getExtruderOffset(current_extruder).Y);
+        *output_stream << std::setprecision(3) << 
+            " X" << INT2MM(gcode_pos.X) << 
+            " Y" << INT2MM(gcode_pos.Y);
         if (z != currentPosition.z)
             *output_stream << " Z" << INT2MM(z);
         if (extrusion_mm3_per_mm > 0.000001)
