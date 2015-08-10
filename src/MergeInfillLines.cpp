@@ -26,6 +26,7 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         {
             GCodePath& last_path = paths[path_idx + 3];
             gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
+            
             writeCompensatedMove(last_middle, speed, last_path, line_width);
         }
         
@@ -86,6 +87,7 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     
     line_width = std::abs( dot(dir_vector_perp, infill_vector) / dir_vector_perp_length );
     if (line_width > max_line_width) return false; // combined lines would be too wide
+    if (line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
     
     { // check whether the two lines are adjacent
         Point ca = first_middle - c;
