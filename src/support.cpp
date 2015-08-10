@@ -9,9 +9,20 @@ namespace cura
 {
     
     
-Polygons join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area)
+Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
-    Polygons joined = supportLayer_this.unionPolygons(supportLayer_up);
+    Polygons joined;
+    if (conical_support)
+    {
+        Polygons insetted = supportLayer_up.offset(-conical_smallest_breadth/2);
+        Polygons small_parts = supportLayer_up.difference(insetted.offset(conical_smallest_breadth/2+20));
+        joined = supportLayer_this.unionPolygons(supportLayer_up.offset(conical_support_offset))
+                                .unionPolygons(small_parts);
+    }
+    else 
+    {
+        joined = supportLayer_this.unionPolygons(supportLayer_up);
+    }
     // join different parts
     if (supportJoinDistance > 0)
     {
@@ -71,6 +82,8 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     int supportXYDistance = object->getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
     
     bool conical_support = object->getSettingBoolean("support_conical_enabled");
+    double conical_support_angle = object->getSettingInAngleRadians("support_conical_angle");
+    int64_t conical_smallest_breadth = object->getSettingInMicrons("support_conical_min_width");
     
     // derived settings:
     
@@ -85,7 +98,17 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int maxDistFromLowerLayer = tanAngle * supportLayerThickness; // max dist which can be bridged
-
+    
+    int64_t conical_support_offset;
+    if (conical_support_angle > 0) 
+    {
+        conical_support_offset = (tan(conical_support_angle) - 0.01) * supportLayerThickness;
+    }
+    else 
+    {
+        conical_support_offset = -(tan(-conical_support_angle) - 0.01) * supportLayerThickness;
+    }
+    
     unsigned int support_layer_count = layer_count;
     
     double tanTowerRoofAngle = tan(supportTowerRoofAngle);
@@ -120,35 +143,24 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
         
-        
-        // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-        Polygons& supportLayer_supportee = joinedLayers[layer_idx+layerZdistanceTop];
-        Polygons& supportLayer_supporter = joinedLayers[layer_idx-1+layerZdistanceTop];
-        
-        Polygons supportLayer_this;
-        if (conical_support)
+        Polygons overhang;
         {
-            int maxDistFromLowerLayer_support = maxDistFromLowerLayer/2;
-            Polygons layer_above = supportLayer_supportee.unionPolygons(supportLayer_last); //join(supportLayer_supportee, supportLayer_last, join_distance, smoothing_distance, min_smoothing_area);
-            Polygons insetted = layer_above.offset(-maxDistFromLowerLayer_support);
-            supportLayer_this = insetted.unionPolygons(
-                                    layer_above.difference(insetted.offset(maxDistFromLowerLayer_support + 100))
-                                ).difference(supportLayer_supporter.offset(maxDistFromLowerLayer));
-        }
-        else 
-        {
+            // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
+            Polygons& supportLayer_supportee = joinedLayers[layer_idx+layerZdistanceTop];
+            Polygons& supportLayer_supporter = joinedLayers[layer_idx-1+layerZdistanceTop];
+            
             Polygons supportLayer_supported =  supportLayer_supporter.offset(maxDistFromLowerLayer);
             Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
         
-    //         Polygons support_extension = basic_overhang.offset(maxDistFromLowerLayer);
-    //         support_extension = support_extension.intersection(supportLayer_supported);
-    //         support_extension = support_extension.intersection(supportLayer_supportee);
-    //         
-    //         Polygons overhang =  basic_overhang.unionPolygons(support_extension);
-    //         presumably the computation above is slower than the one below
+//         Polygons support_extension = basic_overhang.offset(maxDistFromLowerLayer);
+//         support_extension = support_extension.intersection(supportLayer_supported);
+//         support_extension = support_extension.intersection(supportLayer_supportee);
+//         
+//         Polygons overhang =  basic_overhang.unionPolygons(support_extension);
+//         presumably the computation above is slower than the one below
             
             Polygons overhang_extented = basic_overhang.offset(maxDistFromLowerLayer + 100); // +100 for easier joining with support from layer above
-            Polygons overhang = overhang_extented.intersection(supportLayer_supported.unionPolygons(supportLayer_supportee));
+            overhang = overhang_extented.intersection(supportLayer_supported.unionPolygons(supportLayer_supportee));
             
             /*            layer 2
             * layer 1 ______________|
@@ -161,10 +173,9 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
             *         ^^^^^^^^^      overhang extensions
             *         ^^^^^^^^^^^^^^ overhang
             */
-
-            
-            supportLayer_this = overhang; 
         }
+
+        Polygons& supportLayer_this = overhang; 
         
         if (extension_offset)
         {
@@ -180,14 +191,12 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
             // handle towers
             AreaSupport::handleTowers(supportLayer_this, towerRoofs, overhang_points, overhang_points_pos, layer_idx, towerRoofExpansionDistance, supportTowerDiameter, supportMinAreaSqrt, layer_count, z_layer_distance_tower);
         }
-        
-        if (!conical_support)
-        {
-            if (layer_idx+1 < support_layer_count)
-            { // join with support from layer up                
-                supportLayer_this = join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, min_smoothing_area);
-            }
+    
+        if (layer_idx+1 < support_layer_count)
+        { // join with support from layer up                
+            supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, min_smoothing_area, conical_support, conical_support_offset, conical_smallest_breadth);
         }
+        
         
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
