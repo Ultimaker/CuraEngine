@@ -55,6 +55,8 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     int support_bottom_stair_step_height = object->getSettingInMicrons("support_bottom_stair_step_height");
     int smoothing_distance = object->getSettingInMicrons("support_area_smoothing"); 
     
+    int extension_offset = object->getSettingInMicrons("support_offset");
+    
     int supportTowerDiameter = object->getSettingInMicrons("support_tower_diameter");
     int supportMinAreaSqrt = object->getSettingInMicrons("support_minimal_diameter");
     double supportTowerRoofAngle = object->getSettingInAngleRadians("support_tower_roof_angle");
@@ -121,11 +123,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         
         // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
         Polygons& supportLayer_supportee = joinedLayers[layer_idx+layerZdistanceTop];
-//         if (conical_support)
-//         {
-//             supportLayer_supportee = join(supportLayer_supportee, supportLayer_last, join_distance, smoothing_distance, min_smoothing_area);
-//         }
-        Polygons& supportLayer_supporter =  joinedLayers[layer_idx-1+layerZdistanceTop];
+        Polygons& supportLayer_supporter = joinedLayers[layer_idx-1+layerZdistanceTop];
         
         Polygons supportLayer_this;
         if (conical_support)
@@ -166,6 +164,11 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
 
             
             supportLayer_this = overhang; 
+        }
+        
+        if (extension_offset)
+        {
+            supportLayer_this = supportLayer_this.offset(extension_offset);
         }
         
         supportLayer_this = supportLayer_this.simplify(50); // TODO: hardcoded value!
