@@ -191,6 +191,11 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     { // don't print the prime tower if it has been printed already
         return;
     }
+    
+    if (prev_extruder == gcodeLayer.getExtruder())
+    {
+        wipe == false;
+    }
     addToGcode3(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
 }
 
