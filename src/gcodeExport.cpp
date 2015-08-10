@@ -362,6 +362,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 
 void GCodeExport::writeRetraction_extruderSwitch()
 {
+    if (isRetracted) { return; }
+        
     if (flavor == GCODE_FLAVOR_BFB)
     {
         if (!isRetracted)
@@ -378,6 +380,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
     }
+    isRetracted = true;
 }
 
 void GCodeExport::switchExtruder(int new_extruder)

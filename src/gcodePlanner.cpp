@@ -283,13 +283,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
             gcode.switchExtruder(extruder);
         }else if (path.retract)
         {
-            bool extruder_switch_retract = false;
-            for (unsigned int path_idx2 = 0; path_idx2 < paths.size(); path_idx2++)
-            {
-                if (paths[path_idx2].getExtrusionMM3perMM() > 0) { break; }
-                if (paths[path_idx2].extruder != extruder) { extruder_switch_retract = true; break; }
-            }
-            if (extruder_switch_retract)
+            if (makeRetractSwitchRetract(path_idx))
             {
                 gcode.writeRetraction_extruderSwitch();
             }
@@ -400,6 +394,21 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
     }
 }
 
+bool GCodePlanner::makeRetractSwitchRetract(unsigned int path_idx)
+{
+    for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
+    {
+        if (paths[path_idx2].getExtrusionMM3perMM() > 0) 
+        { 
+            if (paths[path_idx2].extruder != gcode.getExtruderNr()) 
+            { 
+                return true; 
+            }
+            return false; 
+        }
+    }
+    
+}
     
 bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract)
 {
@@ -416,16 +425,9 @@ bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThi
     GCodePath& path_next = paths[path_idx + 1];
     
     if (path_next.retract)
-    {            
-        bool extruder_switch_retract = false;
-        for (unsigned int path_idx2 = 0; path_idx2 < paths.size(); path_idx2++)
-        {
-            if (paths[path_idx2].getExtrusionMM3perMM() > 0) { break; }
-            if (paths[path_idx2].extruder != gcode.getExtruderNr()) { extruder_switch_retract = true; break; }
-        }
-            
+    {
         if (coasting_volume_retract <= 0) { return false; }
-        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract, extruder_switch_retract);
+        return writePathWithCoasting(path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract, makeRetractSwitchRetract(path_idx));
     }
     else
     {

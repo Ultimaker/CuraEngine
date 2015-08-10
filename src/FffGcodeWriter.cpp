@@ -495,9 +495,14 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         return;
     }
     
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
-
     SliceLayer* layer = &mesh->layers[layer_nr];
+
+    if (layer->parts.size() == 0)
+    {
+        return;
+    }
+    
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY());
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)

@@ -118,6 +118,15 @@ public:
         return this->travelSpeedFactor;
     }
 
+    /*!
+     * Whether the current retracted path is to be an extruder switch retraction.
+     * This function is used to avoid a G10 S1 after a G10.
+     * 
+     * \param path_idx The index of the current retracted path 
+     * \return Whether the path should be an extgruder switch retracted path
+     */
+    bool makeRetractSwitchRetract(unsigned int path_idx);
+
     void addTravel(Point p);
 
     void addExtrusionMove(Point p, GCodePathConfig* config, float flow = 1.0);
