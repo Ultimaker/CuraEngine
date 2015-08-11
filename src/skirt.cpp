@@ -18,6 +18,8 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     
     Polygons& skirt_primary_extruder = storage.skirt[primary_extruder];
     
+    bool get_convex_hull = count == 1 && distance > 0;
+    
     Polygons first_layer_outline;
     {// add support polygons
         if (storage.support.generated) 
@@ -33,11 +35,11 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
             }
             
             // expand and contract to smooth the final polygon
-            if (count == 1 && distance > 0)
-            {
-                int dist = primary_extrusion_width * 5;
-                first_layer_outline = first_layer_outline.offset(dist).offset(-dist);
-            }
+//             if (get_convex_hull)
+//             {
+//                 int dist = primary_extrusion_width * 5;
+//                 first_layer_outline = first_layer_outline.offset(dist).offset(-dist);
+//             }
         }
     }
     { // add prime tower and part outlines
@@ -61,12 +63,13 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
         }
     }
     
-    Polygons skirt_polygons;
+    std::vector<Polygons> skirts;
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         int offsetDistance = distance + primary_extrusion_width * skirtNr + primary_extrusion_width / 2;
 
-        skirt_polygons = first_layer_outline.offset(offsetDistance, ClipperLib::jtRound);
+        skirts.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
+        Polygons& skirt_polygons = skirts.back();
         
         //Remove small inner skirt holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
         for(unsigned int n=0; n<skirt_polygons.size(); n++)
@@ -76,7 +79,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
                 skirt_polygons.remove(n--);
         }
     
-        if (count == 1 && distance > 0)
+        if (get_convex_hull)
         {
             skirt_polygons = skirt_polygons.convexHull(); 
         } 
@@ -117,7 +120,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
             last_width = width;
             while (storage.skirt[extruder].polygonLength() < minLength)
             {
-                storage.skirt[extruder].add(skirt_polygons.offset(offset_distance, ClipperLib::jtRound));
+                storage.skirt[extruder].add(skirts.back().offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
         }
