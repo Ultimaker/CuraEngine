@@ -407,7 +407,7 @@ bool GCodePlanner::makeRetractSwitchRetract(unsigned int path_idx)
             return false; 
         }
     }
-    
+    return false;
 }
     
 bool GCodePlanner::writePathWithCoasting(unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract)
