@@ -252,15 +252,6 @@ public:
     
     //! Utility function for `boundary_inside.inside(p)`.
     bool inside(const Point p) { return boundary_inside.inside(p); }
-    
-    /*!
-     * Moves the point \p from inside the comb boundary or leaves the point as-is, when the comb boundary is not within 3 mm distance.
-     * 
-     * \param from The point to move.
-     * \param distance The distance by which to offset the point from the boundary.
-     * \return Whether we succeeded in moving inside the comb boundary
-     */
-    unsigned int moveInside_(Point& from, int distance = 100);
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths

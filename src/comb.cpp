@@ -73,12 +73,6 @@ Comb::~Comb()
         delete boundary_outside;
 }
 
-unsigned int Comb::moveInside_(Point& from, int distance)
-{
-    return moveInside(boundary_inside, from, distance, max_moveInside_distance2);
-}
-
-
 bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
@@ -94,7 +88,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
     unsigned int start_inside_poly = boundary_inside.findInside(startPoint, true);
     if (start_inside_poly == NO_INDEX)
     {
-        start_inside_poly = moveInside_(boundary_inside, startPoint, offset_extra_start_end);
+        start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
         if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
         {   
             startInside = false;
@@ -103,7 +97,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
     unsigned int end_inside_poly = boundary_inside.findInside(endPoint, true);
     if (end_inside_poly == NO_INDEX)
     {
-        end_inside_poly = moveInside_(boundary_inside, endPoint, offset_extra_start_end);
+        end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
         if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
         {
             endInside = false;
@@ -173,12 +167,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             Point from_outside = middle_from;
             if (startInside || middle.inside(from_outside, true))
             { // move outside
-                moveInside_(middle, from_outside, -offset_extra_start_end);
+                moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
             Point to_outside = middle_to;
             if (endInside || middle.inside(to_outside, true))
             { // move outside
-                moveInside_(middle, to_outside, -offset_extra_start_end);
+                moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
