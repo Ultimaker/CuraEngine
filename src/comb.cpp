@@ -85,8 +85,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
     bool endInside = true;
     
     //Move start and end point inside the comb boundary
-    unsigned int start_inside_poly = boundary_inside.findInside(startPoint, true);
-    if (start_inside_poly == NO_INDEX)
+    unsigned int start_inside_poly; // = boundary_inside.findInside(startPoint, true);
+//     if (start_inside_poly == NO_INDEX)
     {
         start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
         if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
@@ -94,8 +94,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
             startInside = false;
         }
     }
-    unsigned int end_inside_poly = boundary_inside.findInside(endPoint, true);
-    if (end_inside_poly == NO_INDEX)
+    unsigned int end_inside_poly; // = boundary_inside.findInside(endPoint, true);
+//     if (end_inside_poly == NO_INDEX)
     {
         end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
         if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
