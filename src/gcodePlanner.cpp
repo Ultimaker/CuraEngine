@@ -268,127 +268,137 @@ void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
     }
 }
 
-void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
+GCodePathConfig* GCodePlanner::writePath(unsigned int path_idx, int layerThickness, GCodePathConfig* last_config)
 {
-    GCodePathConfig* lastConfig = nullptr;
     int extruder = gcode.getExtruderNr();
-
     
-    for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
+    GCodePath& path = paths[path_idx];
+    if (extruder != path.extruder)
     {
-        GCodePath& path = paths[path_idx];
-        if (extruder != path.extruder)
+        extruder = path.extruder;
+        gcode.switchExtruder(extruder);
+    }else if (path.retract)
+    {
+        if (makeRetractSwitchRetract(path_idx))
         {
-            extruder = path.extruder;
-            gcode.switchExtruder(extruder);
-        }else if (path.retract)
+            gcode.writeRetraction_extruderSwitch();
+        }
+        else 
         {
-            if (makeRetractSwitchRetract(path_idx))
+            gcode.writeRetraction(path.config->retraction_config);
+        }
+    }
+    if (path.config != &travelConfig && last_config != path.config)
+    {
+        gcode.writeTypeComment(path.config->name);
+        last_config = path.config;
+    }
+    double speed = path.config->getSpeed();
+
+    if (path.getExtrusionMM3perMM() != 0)// Only apply the extrudeSpeed to extrusion moves
+        speed *= getExtrudeSpeedFactor();
+    else
+        speed *= getExtrudeSpeedFactor();
+
+    int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
+    
+    if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+    { // !! has effect on path_idx !!
+        // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
+        return last_config;
+    }
+    
+    if (path.config == &travelConfig)
+    { // early comp for travel paths, which are handled more simply
+        // note that this is also used in spiralize, so travel moves dont gradually move up
+        for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+        {
+            gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+        }
+        return last_config;
+    }
+    
+    bool spiralize = path.config->spiralize;
+    if (spiralize)
+    {
+        //Check if we are the last spiralize path in the list, if not, do not spiralize.
+        for(unsigned int m=path_idx+1; m<paths.size(); m++)
+        {
+            if (paths[m].config->spiralize)
+                spiralize = false;
+        }
+    }
+    if (!spiralize) // normal (extrusion) move (with coasting
+    { 
+        bool coasting = coasting_config.coasting_enable; 
+        if (coasting)
+        {
+            coasting = writePathWithCoasting(path_idx, layerThickness
+                        , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move
+                        , coasting_config.coasting_volume_retract, coasting_config.coasting_speed_retract, coasting_config.coasting_min_volume_retract);
+        }
+        if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
+        { // normal path to gcode algorithm
+            if (  // change   ||||||   to  /\/\/\/\/ ...
+                false &&
+                path_idx + 2 < paths.size() // has a next move
+                && paths[path_idx+1].points.size() == 1 // is single extruded line
+                && paths[path_idx+1].config != &travelConfig // next move is extrusion
+                && paths[path_idx+2].config == &travelConfig // next next move is travel
+                && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
+                && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
+                && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
+            )
             {
-                gcode.writeRetraction_extruderSwitch();
+                gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
+                path_idx += 2;
             }
             else 
             {
-                gcode.writeRetraction(path.config->retraction_config);
-            }
-        }
-        if (path.config != &travelConfig && lastConfig != path.config)
-        {
-            gcode.writeTypeComment(path.config->name);
-            lastConfig = path.config;
-        }
-        double speed = path.config->getSpeed();
-
-        if (path.getExtrusionMM3perMM() != 0)// Only apply the extrudeSpeed to extrusion moves
-            speed *= getExtrudeSpeedFactor();
-        else
-            speed *= getExtrudeSpeedFactor();
-
-        int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
-        
-        if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
-        { // !! has effect on path_idx !!
-            // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
-            continue;
-        }
-        
-        if (path.config == &travelConfig)
-        { // early comp for travel paths, which are handled more simply
-            for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-            {
-                gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
-            }
-            continue;
-        }
-        
-        bool spiralize = path.config->spiralize;
-        if (spiralize)
-        {
-            //Check if we are the last spiralize path in the list, if not, do not spiralize.
-            for(unsigned int m=path_idx+1; m<paths.size(); m++)
-            {
-                if (paths[m].config->spiralize)
-                    spiralize = false;
-            }
-        }
-        if (!spiralize) // normal (extrusion) move (with coasting
-        { 
-            bool coasting = coasting_config.coasting_enable; 
-            if (coasting)
-            {
-                coasting = writePathWithCoasting(path_idx, layerThickness
-                            , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move
-                            , coasting_config.coasting_volume_retract, coasting_config.coasting_speed_retract, coasting_config.coasting_min_volume_retract);
-            }
-            if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
-            { // normal path to gcode algorithm
-                if (  // change   ||||||   to  /\/\/\/\/ ...
-                    false &&
-                    path_idx + 2 < paths.size() // has a next move
-                    && paths[path_idx+1].points.size() == 1 // is single extruded line
-                    && paths[path_idx+1].config != &travelConfig // next move is extrusion
-                    && paths[path_idx+2].config == &travelConfig // next next move is travel
-                    && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
-                    && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
-                    && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
-                )
+                for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
-                    gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
-                    path_idx += 2;
-                }
-                else 
-                {
-                    for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-                    {
-                        gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
-                    }
+                    gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                 }
             }
         }
-        else
-        { // SPIRALIZE
-            //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
-            float totalLength = 0.0;
-            int z = gcode.getPositionZ();
-            Point p0 = gcode.getPositionXY();
-            for(unsigned int i=0; i<path.points.size(); i++)
-            {
-                Point p1 = path.points[i];
-                totalLength += vSizeMM(p0 - p1);
-                p0 = p1;
-            }
-
-            float length = 0.0;
-            p0 = gcode.getPositionXY();
-            for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-            {
-                Point p1 = path.points[point_idx];
-                length += vSizeMM(p0 - p1);
-                p0 = p1;
-                gcode.setZ(z + layerThickness * length / totalLength);
-                gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
-            }
+    }
+    else
+    { // SPIRALIZE
+        //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
+        float totalLength = 0.0;
+        int z = gcode.getPositionZ();
+        Point p0 = gcode.getPositionXY();
+        for(unsigned int i=0; i<path.points.size(); i++)
+        {
+            Point p1 = path.points[i];
+            totalLength += vSizeMM(p0 - p1);
+            p0 = p1;
         }
+
+        float length = 0.0;
+        p0 = gcode.getPositionXY();
+        for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+        {
+            Point p1 = path.points[point_idx];
+            length += vSizeMM(p0 - p1);
+            p0 = p1;
+            gcode.setZ(z + layerThickness * length / totalLength);
+            gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+        }
+    }
+    
+    return last_config;
+}
+
+
+void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
+{
+    GCodePathConfig* lastConfig = nullptr;
+    
+    for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
+    {
+        lastConfig = 
+            writePath(path_idx, layerThickness, lastConfig);
     }
 
     gcode.updateTotalPrintTime();
