@@ -308,6 +308,16 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         
         if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
         { // !! has effect on path_idx !!
+            // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
+            continue;
+        }
+        
+        if (path.config == &travelConfig)
+        { // early comp for travel paths, which are handled more simply
+            for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+            {
+                gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+            }
             continue;
         }
         
