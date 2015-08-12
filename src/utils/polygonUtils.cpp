@@ -56,11 +56,15 @@ Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_
     return p1 + n;
 }
 
+/*
+ * Implementation assumes moving inside, but moving outside should just as well be possible.
+ */
 unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
 {
     Point ret = from;
-    int64_t bestDist2 = maxDist2;
+    int64_t bestDist2 = std::numeric_limits<int64_t>::max();
     unsigned int bestPoly = NO_INDEX;
+    bool is_inside = false;
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         PolygonRef poly = polygons[poly_idx];
@@ -91,9 +95,14 @@ unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t m
                     if (dist2 < bestDist2)
                     {
                         bestDist2 = dist2;
-                        if (distance == 0) { ret = x; }
-                        else { ret = x + normal(crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4)), distance); } // *4 to retain more precision for the eventual normalization 
                         bestPoly = poly_idx;
+                        if (distance == 0) { ret = x; }
+                        else 
+                        { 
+                            Point inward_dir = crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4));
+                            ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+                            is_inside = dot(inward_dir, p - x) >= 0;
+                        } 
                     }
                 }
                 else
@@ -116,13 +125,18 @@ unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t m
                 projected_p_beyond_prev_segment = false;
                 Point x = a + ab * ax_length / ab_length;
                 
-                int64_t dist2 = vSize2(x - from);
+                int64_t dist2 = vSize2(p - x);
                 if (dist2 < bestDist2)
                 {
                     bestDist2 = dist2;
-                    if (distance == 0) { ret = x; }
-                    else { ret = x + crossZ(normal(ab, distance)); }
                     bestPoly = poly_idx;
+                    if (distance == 0) { ret = x; }
+                    else 
+                    { 
+                        Point inward_dir = crossZ(normal(ab, distance));
+                        ret = x + inward_dir; 
+                        is_inside = dot(inward_dir, p - x) >= 0;
+                    }
                 }
             }
             
@@ -131,7 +145,19 @@ unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t m
             p1 = p2;
         }
     }
-    if (bestDist2 < maxDist2)
+    if (is_inside)
+    {
+        if (bestDist2 < distance * distance)
+        {
+            from = ret;
+        } 
+        else 
+        {
+//            from = from; // original point stays unaltered. It is already inside by enough distance
+        }
+        return bestPoly;
+    }
+    else if (bestDist2 < maxDist2)
     {
         from = ret;
         return bestPoly;

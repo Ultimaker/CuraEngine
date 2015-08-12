@@ -29,6 +29,8 @@ Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_
 /*!
  * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
  * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+ * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+ * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
  * 
  * \param polygons The polygons onto which to move the point
  * \param from The point to move.

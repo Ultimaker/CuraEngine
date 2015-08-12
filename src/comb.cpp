@@ -23,16 +23,16 @@ Polygons Comb::getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr
     return layer_outlines;
 }
 
-Polygons Comb::getLayerOuterWalls()
+Polygons Comb::getLayerSecondWalls()
 {
     Polygons layer_walls;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
         {
-            if (part.insets.size() > 0)
+            if (part.insets.size() >= 2)
             {
-                layer_walls.add(part.insets[0]);
+                layer_walls.add(part.insets[1]);
             }
             else 
             {
@@ -53,17 +53,17 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
-, boundary_inside( getLayerOuterWalls() )
-// , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
-, boundary_outside(nullptr)
-, partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside 
-, offset_from_outlines(wall_line_width_0) // between outer two walls
-, max_moveInside_distance2(wall_line_width_0 * wall_line_width_0 * 4)
+, offset_from_outlines(wall_line_width_0 + wall_line_width_x) // between second wall and infill / other walls
+, max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , avoid_other_parts(travel_avoid_other_parts)
+// , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
+, boundary_inside( getLayerSecondWalls() )
+, boundary_outside(nullptr)
+, partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
 }
 
@@ -80,24 +80,32 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         return true;
     }
     
+    if (vSize(endPoint - Point(32016, 34279)) < 1000)
+        std::cerr << "debug: long move" << std::endl;
     
     bool startInside = true;
     bool endInside = true;
     
     //Move start and end point inside the comb boundary
-    unsigned int start_inside_poly; // = boundary_inside.findInside(startPoint, true);
-//     if (start_inside_poly == NO_INDEX)
+    unsigned int start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+    if (!inside(start_inside_poly) || start_inside_poly == NO_INDEX)
     {
-        start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+        if (start_inside_poly != NO_INDEX)
+        { // if not yet inside because of overshoot, try again
+            start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+        }
         if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
-        {   
+        {
             startInside = false;
         }
     }
-    unsigned int end_inside_poly; // = boundary_inside.findInside(endPoint, true);
-//     if (end_inside_poly == NO_INDEX)
+    unsigned int end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+    if (!inside(endPoint) || end_inside_poly == NO_INDEX)
     {
-        end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+        if (end_inside_poly != NO_INDEX)
+        { // if not yet inside because of overshoot, try again
+            end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+        }
         if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
         {
             endInside = false;
@@ -294,16 +302,16 @@ void LinePolygonsCrossings::getCombingPath(CombPath& combPath)
 
 void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath) 
 {
-    for (PolyCrossings crossing = getNextPolygonAlongScanline(transformed_startPoint.X)
-        ; crossing.poly_idx != NO_INDEX
-        ; crossing = getNextPolygonAlongScanline(crossing.max.x))
+    for (PolyCrossings* crossing = getNextPolygonAlongScanline(transformed_startPoint.X)
+        ; crossing != nullptr
+        ; crossing = getNextPolygonAlongScanline(crossing->max.x))
     {
-        getBasicCombingPath(crossing, combPath);
+        getBasicCombingPath(*crossing, combPath);
     }
     combPath.push_back(endPoint);
 }
 
-void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings polyCrossings, CombPath& combPath) 
+void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
     PolygonRef poly = boundary[polyCrossings.poly_idx];
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x, transformed_startPoint.Y)));
@@ -332,14 +340,14 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings polyCrossings, Com
 
 
 
-LinePolygonsCrossings::PolyCrossings LinePolygonsCrossings::getNextPolygonAlongScanline(int64_t x)
+LinePolygonsCrossings::PolyCrossings* LinePolygonsCrossings::getNextPolygonAlongScanline(int64_t x)
 {
-    PolyCrossings ret(NO_INDEX);
+    PolyCrossings* ret = nullptr;
     for(PolyCrossings& crossing : crossings)
     {
-        if (crossing.min.x > x && crossing.min.x < ret.min.x)
+        if (crossing.min.x > x && (ret == nullptr || crossing.min.x < ret->min.x) )
         {
-            ret = crossing;
+            ret = &crossing;
         }
     }
     return ret;

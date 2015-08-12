@@ -135,7 +135,7 @@ private:
      * 
      * \param combPath Output parameter: where to add the points along the combing path.
      */
-    void getBasicCombingPath(PolyCrossings crossings, CombPath& combPath);
+    void getBasicCombingPath(PolyCrossings& crossings, CombPath& combPath);
     
     /*!
      * Find the first polygon cutting the scanline after \p x.
@@ -146,7 +146,7 @@ private:
      * \param x The point on the scanline from where to look.
      * \return The next PolyCrossings fully beyond \p x or one with PolyCrossings::poly_idx set to NO_INDEX if there's none left.
      */
-    PolyCrossings getNextPolygonAlongScanline(int64_t x);
+    PolyCrossings* getNextPolygonAlongScanline(int64_t x);
     
     /*!
      * Optimize the \p comb_path: skip each point we could already reach by not crossing a boundary. This smooths out the path and makes it skip some unneeded corners.
@@ -207,10 +207,6 @@ private:
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     unsigned int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
-    Polygons boundary_inside; //!< The boundary within which to comb.
-    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
-    
     int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
     int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
@@ -221,6 +217,10 @@ private:
     
     bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
+    Polygons boundary_inside; //!< The boundary within which to comb.
+    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    
     /*!
      * Collects the outlines for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
@@ -229,9 +229,9 @@ private:
     static Polygons getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr);
     
     /*!
-     * Collects the outer walls for every mesh in the layer (not support) or computes them from the outlines.
+     * Collects the inner most walls for every mesh in the layer (not support) or computes them from the outlines using Comb::offset_from_outlines.
      */
-    Polygons getLayerOuterWalls();
+    Polygons getLayerSecondWalls();
 
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
@@ -246,7 +246,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
     
