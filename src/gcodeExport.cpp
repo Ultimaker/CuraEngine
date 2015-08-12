@@ -41,8 +41,8 @@ Point GCodeExport::getExtruderOffset(int id)
 
 Point GCodeExport::getGcodePos(int64_t x, int64_t y, int extruder_train)
 {
-    if (use_extruder_offset_to_offset_coords) { return Point(x,y); }
-    else { return Point(x,y) - getExtruderOffset(extruder_train); }
+    if (use_extruder_offset_to_offset_coords) { return Point(x,y) - getExtruderOffset(extruder_train); }
+    else { return Point(x,y); }
 }
 
 
