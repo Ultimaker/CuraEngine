@@ -306,8 +306,8 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 
         int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
         
-        if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx))
-        { // !! has effect on path_idx
+        if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+        { // !! has effect on path_idx !!
             continue;
         }
         

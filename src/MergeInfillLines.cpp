@@ -24,8 +24,13 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
     {
         //   path_idx + 3 is the index of the second extrusion move to be converted in combination with the first
         {
-            GCodePath& last_path = paths[path_idx + 3];
+            GCodePath& move_path = paths[path_idx];
+            for(unsigned int point_idx = 0; point_idx < move_path.points.size() - 1; point_idx++)
+            {
+                gcode.writeMove(move_path.points[point_idx], speed, move_path.getExtrusionMM3perMM());
+            }
             gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
+            GCodePath& last_path = paths[path_idx + 3];
             
             writeCompensatedMove(last_middle, speed, last_path, line_width);
         }

@@ -80,9 +80,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
         return true;
     }
     
-    if (vSize(endPoint - Point(32016, 34279)) < 1000)
-        std::cerr << "debug: long move" << std::endl;
-    
     bool startInside = true;
     bool endInside = true;
     
