@@ -182,16 +182,6 @@ public:
      */
     bool writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract = false);
     
-    /*!
-     * Write a single path from GCodePlanner::paths into the gcode.
-     * 
-     * \param path_idx The index of the path in GCodePlanner::paths 
-     * \param layerThickness the layerThickness
-     * \param last_config The configuration of the previous path (or nullptr)
-     * \return the updated \p last_config
-     */
-    GCodePathConfig* writePath(unsigned int path_idx, int layerThickness, GCodePathConfig* last_config);
-    
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };
 
