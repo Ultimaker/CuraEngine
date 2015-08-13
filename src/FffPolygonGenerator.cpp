@@ -156,6 +156,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
+    
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         generateSupportAreas(storage, &mesh, total_layers, commandSocket);
@@ -171,9 +172,17 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
+    int mesh_max_bottom_layer_count = 0;
+    if (getSettingBoolean("magic_spiralize"))
+    {
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
+        }
+    }
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
-        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < getSettingAsCount("bottom_layers"))    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkins(storage, layer_number);
         }

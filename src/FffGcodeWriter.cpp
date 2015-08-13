@@ -511,7 +511,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    bool skin_alternate_rotation = getSettingBoolean("skin_alternate_rotation") && ( getSettingAsCount("top_layers") >= 4 || getSettingAsCount("bottom_layers") >= 4 );
+    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
     
     for(int order_idx : part_order_optimizer.polyOrder)
     {
@@ -620,13 +620,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 {
     bool compensate_overlap = getSettingBoolean("travel_compensate_overlapping_walls_enabled");
     
-    if (getSettingAsCount("wall_line_count") > 0)
+    if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
-        if (getSettingBoolean("magic_spiralize"))
+        if (mesh->getSettingBoolean("magic_spiralize"))
         {
-            if (static_cast<int>(layer_nr) >= getSettingAsCount("bottom_layers"))
+            if (static_cast<int>(layer_nr) >= mesh->getSettingAsCount("bottom_layers"))
                 mesh->inset0_config.spiralize = true;
-            if (static_cast<int>(layer_nr) == getSettingAsCount("bottom_layers") && part.insets.size() > 0)
+            if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config);
         }
         for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)

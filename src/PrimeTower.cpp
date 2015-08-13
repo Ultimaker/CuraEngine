@@ -104,7 +104,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
 void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLayers)
 {
     if (storage.max_object_height_second_to_last_extruder >= 0 
-        && storage.getSettingInMicrons("prime_tower_distance") > 0 
+//         && storage.getSettingInMicrons("prime_tower_distance") > 0 
         && storage.getSettingInMicrons("prime_tower_size") > 0)
     {
         generatePaths3(storage);
@@ -177,7 +177,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
 void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
 {
     if (!( storage.max_object_height_second_to_last_extruder >= 0 
-        && storage.getSettingInMicrons("prime_tower_distance") > 0 
+//         && storage.getSettingInMicrons("prime_tower_distance") > 0 
         && storage.getSettingInMicrons("prime_tower_size") > 0) )
     {
         return;

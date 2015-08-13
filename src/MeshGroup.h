@@ -110,7 +110,7 @@ public:
         for(Mesh& mesh : meshes)
         {
             Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));
-            if (getSettingBoolean("center_object"))
+            if (mesh.getSettingBoolean("center_object"))
             {
                 Point3 object_min = mesh.min();
                 Point3 object_max = mesh.max();

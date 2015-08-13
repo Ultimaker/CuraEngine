@@ -102,10 +102,6 @@ public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
     
     Point3 model_size, model_min, model_max;
-    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
-    Polygons skirt[MAX_EXTRUDERS]; //!< Skirt polygons per extruder, ordered from inner to outer polygons
-    Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
-    std::vector<Polygons> oozeShield;        //oozeShield per layer
     std::vector<SliceMeshStorage> meshes;
 
     RetractionConfig retraction_config;
@@ -114,17 +110,23 @@ public:
     GCodePathConfig support_roof_config;
     
     SupportStorage support;
+    
+    Polygons skirt[MAX_EXTRUDERS]; //!< Skirt polygons per extruder, ordered from inner to outer polygons
+    Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
+    
+    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
     PrimeTower primeTower;
     
+    std::vector<Polygons> oozeShield;        //oozeShield per layer
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
     SliceDataStorage(MeshGroup* meshgroup)
     : SettingsMessenger(meshgroup)
     , meshgroup(meshgroup)
-    , max_object_height_second_to_last_extruder(-1)
     , support_config(&retraction_config, "SUPPORT")
     , support_roof_config(&retraction_config, "SKIN")
+    , max_object_height_second_to_last_extruder(-1)
     , primeTower(meshgroup, &retraction_config)
     {
         for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
