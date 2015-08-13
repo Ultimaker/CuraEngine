@@ -720,7 +720,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         return;
     
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
     
     bool print_support_before_rest = support_extruder_nr == extruder_nr_before
                                     || support_roof_extruder_nr == extruder_nr_before;
@@ -764,7 +764,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     double infill_overlap = getSettingInPercentage("fill_overlap");
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     
-    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_1") : getSettingAsIndex("support_extruder_nr");
+    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
     setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
     
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;

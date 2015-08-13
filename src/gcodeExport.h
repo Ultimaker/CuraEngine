@@ -244,9 +244,9 @@ public:
             extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
             extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
             
-            extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("machine_switch_extruder_retraction_amount")); 
-            extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("machine_switch_extruder_retraction_speed");
-            extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("material_switch_extruder_prime_speed");
+            extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
+            extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
+            extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
             extruder_attr[n].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
             extruder_attr[n].retraction_count_max = train->getSettingAsCount("retraction_count_max");
         }
