@@ -184,7 +184,7 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
             } // arrays are ignored because machine_extruder_trains needs to be handled separately
             else 
             {
-                logError("Unrecognized data type in JSON: %i\n", int(dflt.GetType()));
+                logError("Unrecognized data type in JSON: %s has type %i\n", setting_iterator->name.GetString(), int(dflt.GetType()));
             }
         }
         if (data.HasMember("unit") && data["unit"].IsString())
