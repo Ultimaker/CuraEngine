@@ -78,6 +78,7 @@ public:
      */
     void offset(Point3 offset)
     {
+        if (offset == Point3(0,0,0)) { return; }
         for(MeshVertex& v : vertices)
             v.p += offset;
         aabb.offset(offset);
