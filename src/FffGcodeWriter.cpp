@@ -96,9 +96,22 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
+    for (unsigned int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    {
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        storage.retraction_config_per_extruder[extruder].amount = INT2MM(train->getSettingInMicrons("retraction_amount"));
+        storage.retraction_config_per_extruder[extruder].primeAmount = INT2MM(train->getSettingInMicrons("retraction_extra_prime_amount"));
+        storage.retraction_config_per_extruder[extruder].speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
+        storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
+        storage.retraction_config_per_extruder[extruder].zHop = train->getSettingInMicrons("retraction_hop");
+    }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config = storage.retraction_config;
+        mesh.retraction_config.amount = INT2MM(mesh.getSettingInMicrons("retraction_amount"));
+        mesh.retraction_config.primeAmount = INT2MM(mesh.getSettingInMicrons("retraction_extra_prime_amount"));
+        mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
+        mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
+        mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
     }
 }
 
@@ -107,10 +120,10 @@ void FffGcodeWriter::setConfigSkirt(SliceDataStorage& storage, int layer_thickne
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     {
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.skirt_config[extruder]->setSpeed(train->getSettingInMillimetersPerSecond("skirt_speed"));
-        storage.skirt_config[extruder]->setLineWidth(train->getSettingInMicrons("skirt_line_width"));
-        storage.skirt_config[extruder]->setFlow(train->getSettingInPercentage("material_flow"));
-        storage.skirt_config[extruder]->setLayerHeight(layer_thickness);
+        storage.skirt_config[extruder].setSpeed(train->getSettingInMillimetersPerSecond("skirt_speed"));
+        storage.skirt_config[extruder].setLineWidth(train->getSettingInMicrons("skirt_line_width"));
+        storage.skirt_config[extruder].setFlow(train->getSettingInPercentage("material_flow"));
+        storage.skirt_config[extruder].setLayerHeight(layer_thickness);
     }
 }
 
@@ -118,12 +131,12 @@ void FffGcodeWriter::setConfigSupport(SliceDataStorage& storage, int layer_thick
 {
     storage.support_config.setLineWidth(getSettingInMicrons("support_line_width"));
     storage.support_config.setSpeed(getSettingInMillimetersPerSecond("speed_support_lines"));
-    storage.support_config.setFlow(getSettingInPercentage("material_flow"));
+    storage.support_config.setFlow(storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_extruder_nr"))->getSettingInPercentage("material_flow"));
     storage.support_config.setLayerHeight(layer_thickness);
     
     storage.support_roof_config.setLineWidth(getSettingInMicrons("support_roof_line_width"));
     storage.support_roof_config.setSpeed(getSettingInMillimetersPerSecond("speed_support_roof"));
-    storage.support_roof_config.setFlow(getSettingInPercentage("material_flow"));
+    storage.support_roof_config.setFlow(storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_roof_extruder_nr"))->getSettingInPercentage("material_flow"));
     storage.support_roof_config.setLayerHeight(layer_thickness);
 }
 
@@ -204,28 +217,29 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     
 void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLayers)
 {
-    GCodePathConfig raft_base_config(&storage.retraction_config, "SUPPORT");
+    int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+    
+    GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
     raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
     raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
     raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_base_config.setFlow(getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_interface_config(&storage.retraction_config, "SUPPORT");
+    raft_base_config.setFlow(train->getSettingInPercentage("material_flow"));
+    GCodePathConfig raft_interface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
     raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
     raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
     raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_interface_config.setFlow(getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_surface_config(&storage.retraction_config, "SUPPORT");
+    raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
+    GCodePathConfig raft_surface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
     raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
     raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
     raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_surface_config.setFlow(getSettingInPercentage("material_flow"));
+    raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
 
-    int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
-    ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     { // raft base layer
         gcode.writeLayerComment(-3);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), train->getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), train->getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcodeLayer.setExtruder(extruder_nr);
         gcode.setZ(getSettingInMicrons("raft_base_thickness"));
@@ -243,7 +257,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { // raft interface layer
         gcode.writeLayerComment(-2);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness"));
 
         Polygons raftLines;
@@ -258,7 +272,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { // raft surface layers
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config, coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), train->getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMicrons("retraction_min_travel"), train->getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("wall_line_width_0"), train->getSettingInMicrons("wall_line_width_x"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
 
         Polygons raft_lines;
@@ -286,7 +300,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     setConfigSupport(storage, layer_thickness);
     
-    storage.primeTower.setConfigs(storage.meshgroup, &storage.retraction_config, layer_thickness);
+    storage.primeTower.setConfigs(storage.meshgroup, storage.retraction_config_per_extruder, layer_thickness);
     
     for(SliceMeshStorage& mesh : storage.meshes)
     {
@@ -326,7 +340,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
     for(SliceMeshStorage* mesh : mesh_order)
     {
-        if (getSettingBoolean("magic_mesh_surface_mode"))
+        if (mesh->getSettingBoolean("magic_mesh_surface_mode"))
         {
             addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcode_layer, layer_nr);
         }
@@ -374,7 +388,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
         gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
-    gcode_layer.addPolygonsByOptimizer(skirt, storage.skirt_config[extruder_nr]);
+    gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
 }
 
@@ -383,7 +397,7 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
     if (storage.oozeShield.size() > 0)
     {
         gcode_layer.setAlwaysRetract(true);
-        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
+        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
         gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     }
 }
@@ -407,7 +421,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     }
     
     gcode_layer.setAlwaysRetract(true);
-    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
+    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
     gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     
 }
@@ -520,7 +534,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int fill_angle = 45;
         if (layer_nr & 1)
             fill_angle += 90;
-        int extrusion_width =  mesh->infill_config[0].getLineWidth(); //getSettingInMicrons("infill_line_width");
+        int extrusion_width =  mesh->infill_config[0].getLineWidth();
         
         int sparse_infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         double infill_overlap = mesh->getSettingInPercentage("fill_overlap");
@@ -545,7 +559,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
         for(unsigned int n=1; n<part.sparse_outline.size(); n++)
         {
             Polygons fill_polygons;
-            switch(getSettingAsFillMethod("fill_pattern"))
+            switch(mesh->getSettingAsFillMethod("fill_pattern"))
             {
             case Fill_Grid:
                 generateGridInfill(part.sparse_outline[n], 0, fill_polygons, extrusion_width, sparse_infill_line_distance * 2, infill_overlap, fill_angle);
@@ -580,7 +594,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
     Polygons infill_lines;
-    EFillMethod pattern = getSettingAsFillMethod("fill_pattern");
+    EFillMethod pattern = mesh->getSettingAsFillMethod("fill_pattern");
     if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
     {
         switch(pattern)
@@ -608,7 +622,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == Fill_Grid || pattern == Fill_Lines || pattern == Fill_Triangles)
     {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], getSettingInMicrons("infill_wipe_dist")); 
+        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], mesh->getSettingInMicrons("infill_wipe_dist")); 
     }
     else 
     {
@@ -666,7 +680,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             generateLineInfill(skin_part.outline, 0, skin_lines, extrusion_width, extrusion_width, infill_overlap, bridge);
         }else{
-            switch(getSettingAsFillMethod("top_bottom_pattern"))
+            switch(mesh->getSettingAsFillMethod("top_bottom_pattern"))
             {
             case Fill_Lines:
                 for (Polygons& skin_perimeter : skin_part.insets)
@@ -676,7 +690,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 if (skin_part.insets.size() > 0)
                 {
                     generateLineInfill(skin_part.insets.back(), -extrusion_width/2, skin_lines, extrusion_width, extrusion_width, infill_overlap, fill_angle);
-                    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                    if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
                     {
                         generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, fill_angle);
                     }
@@ -689,10 +703,10 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             case Fill_Concentric:
                 {
                     Polygons in_outline;
-                    offsetSafe(skin_part.outline, -extrusion_width/2, extrusion_width, in_outline, getSettingBoolean("remove_overlapping_walls_x_enabled"));
-                    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+                    offsetSafe(skin_part.outline, -extrusion_width/2, extrusion_width, in_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                    if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
                     {
-                        generateConcentricInfillDense(in_outline, skin_polygons, &part.perimeterGaps, extrusion_width, getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                        generateConcentricInfillDense(in_outline, skin_polygons, &part.perimeterGaps, extrusion_width, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"));
                     }
                 }
                 break;
@@ -704,7 +718,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     }
     
     // handle gaps between perimeters etc.
-    if (getSettingString("fill_perimeter_gaps") != "Nowhere")
+    if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
     {
         generateLineInfill(part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, fill_angle);
     }
@@ -761,10 +775,12 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     
     int support_line_distance = getSettingInMicrons("support_line_distance");
     int extrusion_width = storage.support_config.getLineWidth();
-    double infill_overlap = getSettingInPercentage("fill_overlap");
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
+    
+    double infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("fill_overlap");
+    
     setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
     
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;

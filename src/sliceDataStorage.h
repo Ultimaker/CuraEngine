@@ -103,9 +103,13 @@ public:
     
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;
-
-    RetractionConfig retraction_config;
-    GCodePathConfig* skirt_config[MAX_EXTRUDERS] = {nullptr}; //!< config for skirt per extruder
+    
+    std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
+    RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
+    
+    std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
+    
+    
     GCodePathConfig support_config;
     GCodePathConfig support_roof_config;
     
@@ -121,26 +125,36 @@ public:
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
+    std::vector<RetractionConfig> initializeRetractionConfigs()
+    {
+        std::vector<RetractionConfig> ret;
+        ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
+        return ret;
+    }
+    std::vector<GCodePathConfig> initializeSkirtConfigs()
+    {
+        std::vector<GCodePathConfig> ret;
+        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+        {
+            RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
+            skirt_config.emplace_back(extruder_retraction_config, "SKIRT");
+        }
+        return ret;
+    }
     SliceDataStorage(MeshGroup* meshgroup)
     : SettingsMessenger(meshgroup)
     , meshgroup(meshgroup)
-    , support_config(&retraction_config, "SUPPORT")
-    , support_roof_config(&retraction_config, "SKIN")
+    , retraction_config_per_extruder(initializeRetractionConfigs())
+    , skirt_config(initializeSkirtConfigs())
+    , support_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT")
+    , support_roof_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN")
     , max_object_height_second_to_last_extruder(-1)
-    , primeTower(meshgroup, &retraction_config)
+//     , primeTower()
     {
-        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-        {
-            skirt_config[extruder] = new GCodePathConfig(&retraction_config, "SKIRT");
-        }
     }
     
     ~SliceDataStorage()
     {
-        for (int e =0; e < meshgroup->getExtruderCount(); e++)
-        {
-            delete skirt_config[e];
-        }
     }
 };
 

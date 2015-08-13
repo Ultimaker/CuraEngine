@@ -88,7 +88,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
-        createLayerParts(meshStorage, slicerList[meshIdx], meshStorage.getSettingBoolean("meshfix_union_all"), meshStorage.getSettingBoolean("meshfix_union_all_remove_holes"));
+        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
         bool has_raft = meshStorage.getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;

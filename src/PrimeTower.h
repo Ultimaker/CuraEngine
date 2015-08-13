@@ -26,7 +26,7 @@ private:
         
     };
 public:
-    void setConfigs(MeshGroup* configs, RetractionConfig* retraction_config, int layer_thickness);
+    void setConfigs(MeshGroup* configs, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness);
     
     Polygons ground_poly;
     
@@ -51,7 +51,7 @@ public:
 
     void computePrimeTowerMax(SliceDataStorage& storage);
     
-    PrimeTower(MeshGroup* configs, RetractionConfig* retraction_config);
+    PrimeTower();
 
     void addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
     void addToGcode_OLD(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);

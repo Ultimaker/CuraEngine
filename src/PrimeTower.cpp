@@ -10,18 +10,18 @@ namespace cura
 {
     
     
-PrimeTower::PrimeTower(MeshGroup* configs, RetractionConfig* retraction_config)
+PrimeTower::PrimeTower()
 {
 }
 
 
 
-void PrimeTower::setConfigs(MeshGroup* meshgroup, RetractionConfig* retraction_config, int layer_thickness)
+void PrimeTower::setConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness)
 {
     for (int extr = 0; extr < extruder_count; extr++)
     {
         ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
-        config_per_extruder.emplace_back(retraction_config, "WALL-INNER");// so that visualization in the old Cura still works (TODO)
+        config_per_extruder.emplace_back(&retraction_config_per_extruder[extr], "WALL-INNER");// so that visualization in the old Cura still works (TODO)
         GCodePathConfig& conf = config_per_extruder.back();
         
         conf.setSpeed(train->getSettingInMillimetersPerSecond("speed_prime_tower"));
