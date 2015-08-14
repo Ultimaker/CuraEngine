@@ -18,7 +18,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     if (command_socket)
         command_socket->beginGCode();
 
-    setConfigCoasting();
+    setConfigCoasting(storage);
 
     setConfigRetraction(storage);
 
@@ -77,16 +77,21 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 }
 
 
-void FffGcodeWriter::setConfigCoasting() 
+void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
 {
-    coasting_config.coasting_enable = getSettingBoolean("coasting_enable"); 
-    coasting_config.coasting_volume_move = getSettingInCubicMillimeters("coasting_volume_move"); 
-    coasting_config.coasting_min_volume_move = getSettingInCubicMillimeters("coasting_min_volume_move"); 
-    coasting_config.coasting_speed_move = getSettingInPercentage("coasting_speed_move"); 
-
-    coasting_config.coasting_volume_retract = getSettingInCubicMillimeters("coasting_volume_retract");
-    coasting_config.coasting_min_volume_retract = getSettingInCubicMillimeters("coasting_min_volume_retract");
-    coasting_config.coasting_speed_retract = getSettingInPercentage("coasting_speed_retract");
+    for (int extr = 0; extr < storage.meshgroup->getExtruderCount(); extr++)
+    {
+        storage.coasting_config.emplace_back();
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
+        CoastingConfig& coasting_config = storage.coasting_config.back();
+        coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
+        coasting_config.coasting_volume_move = train->getSettingInCubicMillimeters("coasting_volume_move"); 
+        coasting_config.coasting_min_volume_move = train->getSettingInCubicMillimeters("coasting_min_volume_move"); 
+        coasting_config.coasting_speed_move = train->getSettingInPercentage("coasting_speed_move"); 
+        coasting_config.coasting_volume_retract = train->getSettingInCubicMillimeters("coasting_volume_retract");
+        coasting_config.coasting_min_volume_retract = train->getSettingInCubicMillimeters("coasting_min_volume_retract");
+        coasting_config.coasting_speed_retract = train->getSettingInPercentage("coasting_speed_retract");
+    }
 }
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
@@ -248,7 +253,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { // raft base layer
         gcode.writeLayerComment(-3);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcodeLayer.setExtruder(extruder_nr);
         gcode.setZ(getSettingInMicrons("raft_base_thickness"));
@@ -266,7 +271,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { // raft interface layer
         gcode.writeLayerComment(-2);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness"));
 
         Polygons raftLines;
@@ -281,7 +286,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     { // raft surface layers
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], coasting_config, train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcodeLayer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
 
         Polygons raft_lines;
@@ -323,7 +328,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     gcode.writeLayerComment(layer_nr);
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
-    GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config, coasting_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), layer_nr, comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), layer_nr, comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (!getSettingBoolean("retraction_combing")) 
         gcode_layer.setAlwaysRetract(true);

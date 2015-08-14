@@ -108,7 +108,7 @@ public:
     RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
     
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
-    
+    std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
     
     GCodePathConfig support_config;
     GCodePathConfig support_roof_config;

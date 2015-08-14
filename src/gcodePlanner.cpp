@@ -31,9 +31,9 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, CoastingConfig& coasting_config, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : gcode(gcode), storage(storage)
-, travelConfig(retraction_config_travel, "MOVE"), coasting_config(coasting_config)
+, travelConfig(retraction_config_travel, "MOVE")
 {
     lastPosition = gcode.getPositionXY();
     travelConfig.setSpeed(travelSpeed);
@@ -330,6 +330,7 @@ void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
         }
         if (!spiralize) // normal (extrusion) move (with coasting
         { 
+            CoastingConfig& coasting_config = storage.coasting_config[extruder];
             bool coasting = coasting_config.coasting_enable; 
             if (coasting)
             {
