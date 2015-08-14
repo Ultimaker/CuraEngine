@@ -381,6 +381,7 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
         storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
         for(SliceMeshStorage& mesh : storage.meshes)
         {
+            initial_layer_speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
             mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
