@@ -243,10 +243,11 @@ public:
      * Initializes the combing areas for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
+     * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
     

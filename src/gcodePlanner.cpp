@@ -31,7 +31,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, CoastingConfig& coasting_config, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, CoastingConfig& coasting_config, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : gcode(gcode), storage(storage)
 , travelConfig(retraction_config_travel, "MOVE"), coasting_config(coasting_config)
 {
@@ -46,7 +46,7 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     if (retraction_combing)
-        comb = new Comb(storage, layer_nr, wall_line_width_0, wall_line_width_0, travel_avoid_other_parts, travel_avoid_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     else
         comb = nullptr;
 }

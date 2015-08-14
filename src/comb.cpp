@@ -53,10 +53,10 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
-, offset_from_outlines(wall_line_width_0 + wall_line_width_x) // between second wall and infill / other walls
+, offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , avoid_other_parts(travel_avoid_other_parts)
