@@ -22,6 +22,21 @@ void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polyg
             in_between->add(poly.offset(distance/2).difference(result.offset(-distance/2)));
     }
 }
+void offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+{
+    int direction = (distance > 0)? 1 : -1;
+    if (!removeOverlappingPerimeters)
+    {
+        result = poly.offset(distance);
+        return;
+    } 
+    else
+    {
+        result = poly.offset(distance + direction*extrusion_width / 2).offset(-direction*extrusion_width/2); // overshoot by half the extrusionWidth
+        if (in_between) // if a pointer for in_between is given
+            in_between->add(poly.offset(offset_first_boundary).difference(result.offset(-direction * extrusion_width/2)));
+    }
+}
 
 
 void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
