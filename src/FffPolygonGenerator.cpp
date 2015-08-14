@@ -217,7 +217,7 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
         int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
             inset_count += layer_nr % 2; 
-        generateInsets(layer, line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
 
         for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
         {

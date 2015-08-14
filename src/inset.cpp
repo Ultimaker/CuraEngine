@@ -4,7 +4,7 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     if (insetCount == 0)
     {
@@ -17,10 +17,10 @@ void generateInsets(SliceLayerPart* part, int line_width_0, int line_width_x, in
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            offsetSafe(part->outline, - line_width_x/2, line_width_x, part->insets[i], avoidOverlappingPerimeters_0);
+            offsetSafe(part->outline, - nozzle_width/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
         } else if (i == 1)
         {
-            offsetExtrusionWidth(part->insets[i-1], true, line_width_0, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+            offsetSafe(part->outline, - line_width_0 - line_width_x, line_width_x, part->insets[1], avoidOverlappingPerimeters);
         } else
         {
             offsetExtrusionWidth(part->insets[i-1], true, line_width_x, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
@@ -35,11 +35,11 @@ void generateInsets(SliceLayerPart* part, int line_width_0, int line_width_x, in
     }
 }
 
-void generateInsets(SliceLayer* layer, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], line_width_0, line_width_x, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
+        generateInsets(&layer->parts[partNr], nozzle_width, line_width_0, line_width_x, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
