@@ -197,7 +197,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
     else 
     {
-        if (getSettingInDegreeCelsius("material_bed_temperature") > 0)
+        if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
         
         for(SliceMeshStorage& mesh : storage.meshes)
