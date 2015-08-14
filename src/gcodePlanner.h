@@ -20,7 +20,7 @@ class GCodePath
 public:
     GCodePathConfig* config; //!< The configuration settings of the path.
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
-    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
+    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     int extruder; //!< The extruder used for this path.
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
@@ -46,12 +46,14 @@ private:
     std::vector<GCodePath> paths;
     Comb* comb;
 
+    RetractionConfig* last_retraction_config;
+    
     GCodePathConfig travelConfig;
     CoastingConfig& coasting_config;
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
     int currentExtruder;
-    int retractionMinimalDistance;
+    
     bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
@@ -84,7 +86,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config, CoastingConfig& coasting_config, double travelSpeed, int retractionMinimalDistance, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, CoastingConfig& coasting_config, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t wall_line_width_0, int64_t wall_line_width_x, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     bool setExtruder(int extruder);
@@ -181,6 +183,19 @@ public:
      * \return Whether any GCode has been written for the path.
      */
     bool writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract = false);
+    
+    /*!
+     * Write a retraction: either an extruder switch retraction or a normal retraction based on the last extrusion paths retraction config.
+     * \param path_idx_travel_after Index in GCodePlanner::paths to the travel move before which to do the retraction
+     */
+    void writeRetraction(unsigned int path_idx_travel_after);
+    
+    /*!
+     * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
+     * \param extruder_switch_retract Whether to write an extruder switch retract
+     * \param retraction_config The config used.
+     */
+    void writeRetraction(bool extruder_switch_retract, RetractionConfig* retraction_config);
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
 };

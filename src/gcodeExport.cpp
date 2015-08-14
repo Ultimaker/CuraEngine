@@ -341,8 +341,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     if (config->amount <= 0)
         return;
     
-    if (!force && extruder_attr[current_extruder].retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == extruder_attr[current_extruder].retraction_count_max - 1 
-        && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + extruder_attr[current_extruder].retraction_extrusion_window) 
+    if (!force && config->retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
+        && extrusion_amount < extrusion_amount_at_previous_n_retractions.back() + config->retraction_extrusion_window) 
         return;
 
     if (config->primeAmount > 0)
@@ -366,7 +366,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         isZHopped = true;
     }
     extrusion_amount_at_previous_n_retractions.push_front(extrusion_amount);
-    if (int(extrusion_amount_at_previous_n_retractions.size()) == extruder_attr[current_extruder].retraction_count_max)
+    if (int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max)
     {
         extrusion_amount_at_previous_n_retractions.pop_back();
     }

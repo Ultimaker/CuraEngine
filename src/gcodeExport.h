@@ -33,6 +33,9 @@ public:
     double primeSpeed; //!< the speed with which to unretract
     double primeAmount; //!< the amount of material primed after unretracting
     int zHop; //!< the amount with which to lift the head during a retraction-travel
+    int retraction_min_travel_distance; //!< 
+    double retraction_extrusion_window;
+    int retraction_count_max;
 };
 
 //The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
@@ -118,8 +121,6 @@ private:
         double extruderSwitchRetraction;
         int extruderSwitchRetractionSpeed;
         int extruderSwitchPrimeSpeed;
-        double retraction_extrusion_window;
-        int retraction_count_max;
         
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
@@ -133,8 +134,6 @@ private:
         , extruderSwitchRetraction(0.0)
         , extruderSwitchRetractionSpeed(0)
         , extruderSwitchPrimeSpeed(0)
-        , retraction_extrusion_window(0.0)
-        , retraction_count_max(1)
         , totalFilament(0)
         , currentTemperature(0)
         { }
@@ -247,8 +246,6 @@ public:
             extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
             extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
             extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-            extruder_attr[n].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
-            extruder_attr[n].retraction_count_max = train->getSettingAsCount("retraction_count_max");
         }
 
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
