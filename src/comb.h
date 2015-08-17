@@ -264,6 +264,15 @@ public:
      */    
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths);
     
+    /*!
+     * Move \p p to inside the inner comb boundary with a \p distance from the boundary.
+     * 
+     * \param p the point to change/move
+     * \param distance the distance from the resulting point to the boundary on the inside
+     * \return whether the point has been moved inside
+     */
+    bool moveInsideBoundary(Point* p, int distance);
+    
 };
 
 }//namespace cura

@@ -7,8 +7,12 @@
 namespace cura 
 {
 
+int64_t offset_safe_allowance = 20; // make all offset safe operations a bit less safe to allow for small variations in walls which are supposed to be exactly x perimeters thick
+int64_t in_between_min_dist_half = 10;
+
 void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
+    int direction = (inward)? -1 : 1;
     int distance = (inward)? -extrusionWidth : extrusionWidth;
     if (!removeOverlappingPerimeters)
     {
@@ -17,9 +21,9 @@ void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polyg
     } 
     else
     {
-        result = poly.offset(distance*3/2).offset(-distance/2); // overshoot by half the extrusionWidth
+        result = poly.offset(distance*3/2 - direction*offset_safe_allowance).offset(-distance/2 + direction*offset_safe_allowance); // overshoot by half the extrusionWidth
         if (in_between) // if a pointer for in_between is given
-            in_between->add(poly.offset(distance/2).difference(result.offset(-distance/2)));
+            in_between->add(poly.offset(distance/2 + direction*in_between_min_dist_half).difference(result.offset(-distance/2 - direction*in_between_min_dist_half)));
     }
 }
 void offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
@@ -32,9 +36,9 @@ void offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int ext
     } 
     else
     {
-        result = poly.offset(distance + direction*extrusion_width / 2).offset(-direction*extrusion_width/2); // overshoot by half the extrusionWidth
+        result = poly.offset(distance + direction*extrusion_width / 2 - direction*offset_safe_allowance).offset(-direction*extrusion_width/2 + direction*offset_safe_allowance); // overshoot by half the extrusionWidth
         if (in_between) // if a pointer for in_between is given
-            in_between->add(poly.offset(offset_first_boundary).difference(result.offset(-direction * extrusion_width/2)));
+            in_between->add(poly.offset(offset_first_boundary + direction*in_between_min_dist_half).difference(result.offset(-direction * extrusion_width/2 - direction*in_between_min_dist_half)));
     }
 }
 
@@ -49,7 +53,7 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
     } 
     else
     {
-        result = poly.offset(distance + direction*extrusionWidth/2).offset(-direction * extrusionWidth/2);
+        result = poly.offset(distance + direction*extrusionWidth/2 - direction*offset_safe_allowance).offset(-direction * extrusionWidth/2 + direction*offset_safe_allowance);
     }
 }
 

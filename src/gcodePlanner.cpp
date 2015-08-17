@@ -79,6 +79,22 @@ bool GCodePlanner::setExtruder(int extruder)
     return true;
 }
 
+void GCodePlanner::moveInsideCombBoundary(int distance)
+{
+    if (!comb) return;
+    Point p = lastPosition;
+    if (comb->moveInsideBoundary(&p, distance))
+    {
+        //Move inside again, so we move out of tight 90deg corners
+        comb->moveInsideBoundary(&p, distance);
+        if (comb->inside(p))
+        {
+            addTravel(p);
+            //Make sure the that any retraction happens after this move, not before it by starting a new move path.
+            forceNewPathStart();
+        }
+    }
+}
 
 void GCodePlanner::addTravel(Point p)
 {

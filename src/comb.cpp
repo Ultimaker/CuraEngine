@@ -8,6 +8,10 @@
 
 namespace cura {
 
+bool Comb::moveInsideBoundary(Point* p, int distance)
+{
+    return moveInside(boundary_inside, *p, distance) != NO_INDEX;
+}
 
 
 Polygons Comb::getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr)

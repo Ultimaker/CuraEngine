@@ -562,9 +562,18 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             fill_angle -= 45;
-        processSkin(gcode_layer, mesh, part, layer_nr, infill_overlap, fill_angle, extrusion_width);    
+        
+        int64_t skin_overlap = 0;
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, fill_angle, extrusion_width);    
+        
+        //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
+        if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
+            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons("machine_nozzle_size") * 1);
     }
 }
+
+
+            
 
 
 void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fill_angle, int extrusion_width)

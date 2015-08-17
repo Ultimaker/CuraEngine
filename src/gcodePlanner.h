@@ -197,6 +197,7 @@ public:
     void writeRetraction(bool extruder_switch_retract, RetractionConfig* retraction_config);
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
+    void moveInsideCombBoundary(int arg1);
 };
 
 }//namespace cura
