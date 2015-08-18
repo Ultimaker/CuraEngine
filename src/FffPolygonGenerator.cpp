@@ -193,7 +193,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
     {
         for(SliceMeshStorage& mesh : storage.meshes)
-            combineSparseLayers(layer_number, mesh, mesh.getSettingAsCount("fill_sparse_combine"));
+            combineSparseLayers(layer_number, mesh, mesh.getSettingAsCount("infill_sparse_combine"));
     }
 
     storage.primeTower.computePrimeTowerMax(storage);

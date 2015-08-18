@@ -168,8 +168,8 @@ void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons&
 
 void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags, bool use_endPieces)
 {
-    if (use_endPieces) return generateZigZagInfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connect_zigzags);
-    else return generateZigZagInfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
+    if (use_endPieces) return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connect_zigzags);
+    else return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
 }
 
 /*!
@@ -221,7 +221,7 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
  *   ^     ^     ^    scanlines
  *                 ^  disconnected end piece
  */
-void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags)
+void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags)
 {
 //     if (in_outline.size() == 0) return;
 //     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
@@ -355,7 +355,7 @@ void generateZigZagInfill_endPieces(const Polygons& in_outline, Polygons& result
 }
 
 
-void generateZigZagInfill_noEndPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
+void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
     if (in_outline.size() == 0) return;
     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);

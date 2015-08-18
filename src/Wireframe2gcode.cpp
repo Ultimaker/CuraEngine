@@ -393,16 +393,16 @@ void Wireframe2gcode::handle_roof_segment(WeaveRoofPart& inset, WeaveConnectionP
 
 
 
-void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& roof_outlines
+void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& roof_outlines
     , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
     , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler)
 {
         
     // bottom:
     gcode.writeTypeComment("FILL");
-    for (unsigned int inset_idx = 0; inset_idx < fill_insets.size(); inset_idx++)
+    for (unsigned int inset_idx = 0; inset_idx < infill_insets.size(); inset_idx++)
     {
-        WeaveRoofPart& inset = fill_insets[inset_idx];
+        WeaveRoofPart& inset = infill_insets[inset_idx];
         
         
         for (unsigned int inset_part_nr = 0; inset_part_nr < inset.connections.size(); inset_part_nr++)

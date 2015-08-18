@@ -261,7 +261,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_base_line_width"), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("fill_overlap"), 0);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_base_line_width"), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
         gcodeLayer.addLinesByOptimizer(raftLines, &raft_base_config);
 
         gcode.writeFanCommand(train->getSettingInPercentage("raft_base_fan_speed"));
@@ -276,7 +276,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("fill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
         gcodeLayer.addLinesByOptimizer(raftLines, &raft_interface_config);
 
         gcodeLayer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
@@ -291,7 +291,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
 
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("fill_overlap"), 90 * raftSurfaceLayer);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
         gcodeLayer.addLinesByOptimizer(raft_lines, &raft_surface_config);
 
         gcodeLayer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
@@ -547,24 +547,24 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         SliceLayerPart& part = layer->parts[order_idx];
 
-        int fill_angle = 45;
+        int infill_angle = 45;
         if (layer_nr & 1)
-            fill_angle += 90;
+            infill_angle += 90;
         int extrusion_width =  mesh->infill_config[0].getLineWidth();
         
         int sparse_infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
-        double infill_overlap = mesh->getSettingInPercentage("fill_overlap");
+        double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
         
-        processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, fill_angle, extrusion_width);
-        processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, fill_angle, extrusion_width);
+        processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+        processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
 
         processInsets(gcode_layer, mesh, part, layer_nr);
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
-            fill_angle -= 45;
+            infill_angle -= 45;
         
         int64_t skin_overlap = 0;
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, fill_angle, extrusion_width);    
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, extrusion_width);    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
@@ -576,59 +576,59 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fill_angle, int extrusion_width)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
     if (sparse_infill_line_distance > 0)
     {
         //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int n=1; n<part.sparse_outline.size(); n++)
         {
-            Polygons fill_polygons;
-            switch(mesh->getSettingAsFillMethod("fill_pattern"))
+            Polygons infill_polygons;
+            switch(mesh->getSettingAsFillMethod("infill_pattern"))
             {
             case Fill_Grid:
-                generateGridInfill(part.sparse_outline[n], 0, fill_polygons, extrusion_width, sparse_infill_line_distance * 2, infill_overlap, fill_angle);
-                gcode_layer.addLinesByOptimizer(fill_polygons, &mesh->infill_config[n]);
+                generateGridInfill(part.sparse_outline[n], 0, infill_polygons, extrusion_width, sparse_infill_line_distance * 2, infill_overlap, infill_angle);
+                gcode_layer.addLinesByOptimizer(infill_polygons, &mesh->infill_config[n]);
                 break;
             case Fill_Lines:
-                generateLineInfill(part.sparse_outline[n], 0, fill_polygons, extrusion_width, sparse_infill_line_distance, infill_overlap, fill_angle);
-                gcode_layer.addLinesByOptimizer(fill_polygons, &mesh->infill_config[n]);
+                generateLineInfill(part.sparse_outline[n], 0, infill_polygons, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle);
+                gcode_layer.addLinesByOptimizer(infill_polygons, &mesh->infill_config[n]);
                 break;
             case Fill_Triangles:
-                generateTriangleInfill(part.sparse_outline[n], 0, fill_polygons, extrusion_width, sparse_infill_line_distance * 3, infill_overlap, 0);
-                gcode_layer.addLinesByOptimizer(fill_polygons, &mesh->infill_config[n]);
+                generateTriangleInfill(part.sparse_outline[n], 0, infill_polygons, extrusion_width, sparse_infill_line_distance * 3, infill_overlap, 0);
+                gcode_layer.addLinesByOptimizer(infill_polygons, &mesh->infill_config[n]);
                 break;
             case Fill_Concentric:
-                generateConcentricInfill(part.sparse_outline[n], fill_polygons, sparse_infill_line_distance);
-                gcode_layer.addPolygonsByOptimizer(fill_polygons, &mesh->infill_config[n]);
+                generateConcentricInfill(part.sparse_outline[n], infill_polygons, sparse_infill_line_distance);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
                 break;
             case Fill_ZigZag:
-                generateZigZagInfill(part.sparse_outline[n], fill_polygons, extrusion_width, sparse_infill_line_distance, infill_overlap, fill_angle, false, false);
-                gcode_layer.addPolygonsByOptimizer(fill_polygons, &mesh->infill_config[n]);
+                generateZigZagInfill(part.sparse_outline[n], infill_polygons, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle, false, false);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
                 break;
             default:
-                logError("fill_pattern has unknown value.\n");
+                logError("infill_pattern has unknown value.\n");
                 break;
             }
         }
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fill_angle, int extrusion_width)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
     Polygons infill_lines;
-    EFillMethod pattern = mesh->getSettingAsFillMethod("fill_pattern");
+    EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
     if (sparse_infill_line_distance > 0 && part.sparse_outline.size() > 0)
     {
         switch(pattern)
         {
         case Fill_Grid:
-            generateGridInfill(part.sparse_outline[0], 0, infill_lines, extrusion_width, sparse_infill_line_distance * 2, infill_overlap, fill_angle);
+            generateGridInfill(part.sparse_outline[0], 0, infill_lines, extrusion_width, sparse_infill_line_distance * 2, infill_overlap, infill_angle);
             break;
         case Fill_Lines:
-            generateLineInfill(part.sparse_outline[0], 0, infill_lines, extrusion_width, sparse_infill_line_distance, infill_overlap, fill_angle);
+            generateLineInfill(part.sparse_outline[0], 0, infill_lines, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle);
             break;
         case Fill_Triangles:
             generateTriangleInfill(part.sparse_outline[0], 0, infill_lines, extrusion_width, sparse_infill_line_distance * 3, infill_overlap, 0);
@@ -637,10 +637,10 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
             generateConcentricInfill(part.sparse_outline[0], infill_polygons, sparse_infill_line_distance);
             break;
         case Fill_ZigZag:
-            generateZigZagInfill(part.sparse_outline[0], infill_lines, extrusion_width, sparse_infill_line_distance, infill_overlap, fill_angle, false, false);
+            generateZigZagInfill(part.sparse_outline[0], infill_lines, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle, false, false);
             break;
         default:
-            logError("fill_pattern has unknown value.\n");
+            logError("infill_pattern has unknown value.\n");
             break;
         }
     }
@@ -692,7 +692,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int fill_angle, int extrusion_width)
+void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int infill_angle, int extrusion_width)
 {
     Polygons skin_polygons;
     Polygons skin_lines;
@@ -714,15 +714,15 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 }
                 if (skin_part.insets.size() > 0)
                 {
-                    generateLineInfill(skin_part.insets.back(), -extrusion_width/2, skin_lines, extrusion_width, extrusion_width, infill_overlap, fill_angle);
+                    generateLineInfill(skin_part.insets.back(), -extrusion_width/2, skin_lines, extrusion_width, extrusion_width, infill_overlap, infill_angle);
                     if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
                     {
-                        generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, fill_angle);
+                        generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
                     }
                 } 
                 else
                 {
-                    generateLineInfill(skin_part.outline, 0, skin_lines, extrusion_width, extrusion_width, infill_overlap, fill_angle);
+                    generateLineInfill(skin_part.outline, 0, skin_lines, extrusion_width, extrusion_width, infill_overlap, infill_angle);
                 }
                 break;
             case Fill_Concentric:
@@ -745,7 +745,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     // handle gaps between perimeters etc.
     if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
     {
-        generateLineInfill(part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, fill_angle);
+        generateLineInfill(part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
     }
     
     
@@ -804,7 +804,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
     
-    double infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("fill_overlap");
+    double infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("infill_overlap");
     
     setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
     

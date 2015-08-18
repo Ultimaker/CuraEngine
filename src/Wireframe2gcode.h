@@ -90,7 +90,7 @@ private:
      */
     void finalize(int maxObjectHeight);
     
-    void writeFill(std::vector<WeaveRoofPart>& fill_insets, Polygons& outlines
+    void writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& outlines
         , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler
         , std::function<void (Wireframe2gcode& thiss, WeaveConnectionSegment& p)> flatHandler);
     

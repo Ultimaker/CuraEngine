@@ -237,7 +237,7 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int fill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int infill_angle, int extrusion_width);
     
     /*!
      * Add the support to the gcode of the current layer.
