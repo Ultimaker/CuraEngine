@@ -19,13 +19,13 @@ public:
     : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
     }
-    AABB(Polygons polys)
+    AABB(Polygons& polys)
     : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
     {
         calculate(polys);
     }
 
-    void calculate(Polygons polys)
+    void calculate(Polygons& polys)
     {
         min = Point(POINT_MAX, POINT_MAX);
         max = Point(POINT_MIN, POINT_MIN);
