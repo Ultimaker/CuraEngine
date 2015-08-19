@@ -679,25 +679,52 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config);
         }
-        for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+        if (mesh->getSettingBoolean("outer_inset_first"))
         {
-            if (inset_number == 0)
+            for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)
             {
-                if (!compensate_overlap)
+                if (inset_number == 0)
                 {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
+                    if (!compensate_overlap)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[0];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+                    }
                 }
                 else
                 {
-                    Polygons& outer_wall = part.insets[0];
-                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
                 }
             }
-            else
+        }
+        else
+        {
+            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
             {
-                gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                if (inset_number == 0)
+                {
+                    if (!compensate_overlap)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[0];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+                    }
+                }
+                else
+                {
+                    gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                }
             }
+
         }
     }
 }
