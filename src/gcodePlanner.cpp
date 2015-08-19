@@ -46,7 +46,11 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     if (retraction_combing)
+    {
+        was_combing = true; // means it will try to get inside the comb boundary first
+        is_going_to_comb = true; // means it will try to get inside the comb boundary 
         comb = new Comb(storage, layer_nr, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
+    }
     else
         comb = nullptr;
 }
@@ -56,6 +60,12 @@ GCodePlanner::~GCodePlanner()
     if (comb)
         delete comb;
 }
+
+void GCodePlanner::setCombing(bool going_to_comb)
+{
+    is_going_to_comb = going_to_comb;
+}
+
 
 bool GCodePlanner::setExtruder(int extruder)
 {
@@ -89,7 +99,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
         comb->moveInsideBoundary(&p, distance);
         if (comb->inside(p))
         {
-            addTravel(p);
+            addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
             forceNewPathStart();
         }
@@ -103,7 +113,7 @@ void GCodePlanner::addTravel(Point p)
     if (comb != nullptr && lastPosition != Point(0,0))
     {
         CombPaths combPaths;
-        if (comb->calc(lastPosition, p, combPaths))
+        if (comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb))
         {
             bool retract = combPaths.size() > 1;
             { // check whether we want to retract
@@ -152,8 +162,15 @@ void GCodePlanner::addTravel(Point p)
                 path->retract = true;
             }
         }
+        was_combing = is_going_to_comb;
     }
-    else if (alwaysRetract)
+    
+    addTravel_simple(p, path);
+}
+
+void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
+{
+    if (alwaysRetract)
     {
         path = getLatestPathWithConfig(&travelConfig);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
@@ -168,6 +185,7 @@ void GCodePlanner::addTravel(Point p)
     path->points.push_back(p);
     lastPosition = p;
 }
+
 
 void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, float flow)
 {

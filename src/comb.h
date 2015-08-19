@@ -260,9 +260,11 @@ public:
      * \param startPoint Where to start moving from
      * \param endPoint Where to move to
      * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
+     * \param startInside Whether we want to start inside the comb boundary
+     * \param endInside Whether we want to end up inside the comb boundary
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths);
+    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false);
     
     /*!
      * Move \p p to inside the inner comb boundary with a \p distance from the boundary.

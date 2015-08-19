@@ -44,6 +44,9 @@ private:
 
     Point lastPosition;
     std::vector<GCodePath> paths;
+    
+    bool was_combing;
+    bool is_going_to_comb;
     Comb* comb;
 
     RetractionConfig* last_retraction_config;
@@ -88,6 +91,8 @@ public:
     GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    void setCombing(bool going_to_comb);
+    
     bool setExtruder(int extruder);
 
     int getExtruder()
@@ -128,8 +133,22 @@ public:
      */
     bool makeRetractSwitchRetract(unsigned int path_idx);
 
+    /*!
+     * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
+     * avoiding obstacles and comb along the boundary of parts.
+     * 
+     * \param p The point to travel to
+     */
     void addTravel(Point p);
-
+    
+    /*!
+     * Add a travel path to a certain point and retract if needed.
+     * 
+     * \param p The point to travel to
+     * \param path (optional) The travel path to which to add the point \p p
+     */
+    void addTravel_simple(Point p, GCodePath* path = nullptr);
+    
     void addExtrusionMove(Point p, GCodePathConfig* config, float flow = 1.0);
 
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);

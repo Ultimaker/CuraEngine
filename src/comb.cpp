@@ -77,48 +77,54 @@ Comb::~Comb()
         delete boundary_outside;
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
         return true;
     }
     
-    bool startInside = true;
-    bool endInside = true;
+
     
     //Move start and end point inside the comb boundary
-    unsigned int start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
-    if (!inside(start_inside_poly) || start_inside_poly == NO_INDEX)
+    unsigned int start_inside_poly = NO_INDEX;
+    if (startInside) 
     {
-        if (start_inside_poly != NO_INDEX)
-        { // if not yet inside because of overshoot, try again
-            start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
-        }
-        if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
+        start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+        if (!inside(start_inside_poly) || start_inside_poly == NO_INDEX)
         {
-            startInside = false;
+            if (start_inside_poly != NO_INDEX)
+            { // if not yet inside because of overshoot, try again
+                start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+            }
+            if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
+            {
+                startInside = false;
+            }
         }
     }
-    unsigned int end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
-    if (!inside(endPoint) || end_inside_poly == NO_INDEX)
+    unsigned int end_inside_poly = NO_INDEX;
+    if (endInside)
     {
-        if (end_inside_poly != NO_INDEX)
-        { // if not yet inside because of overshoot, try again
-            end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
-        }
-        if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
+        end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+        if (!inside(endPoint) || end_inside_poly == NO_INDEX)
         {
-            endInside = false;
+            if (end_inside_poly != NO_INDEX)
+            { // if not yet inside because of overshoot, try again
+                end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+            }
+            if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
+            {
+                endInside = false;
+            }
         }
     }
-    
 
     
     unsigned int start_part_boundary_poly_idx;
     unsigned int end_part_boundary_poly_idx;
-    unsigned int start_part_idx = partsView_inside.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
-    unsigned int end_part_idx = partsView_inside.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
+    unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
+    unsigned int end_part_idx =     (end_inside_poly == NO_INDEX)?      NO_INDEX : partsView_inside.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
     
     if (startInside && endInside && start_part_idx == end_part_idx)
     { // normal combing within part
