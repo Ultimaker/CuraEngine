@@ -1,9 +1,11 @@
 #ifndef AABB_H
 #define AABB_H
 
+
 #include <limits>
 #include "intpoint.h"
 #include "polygon.h"
+
 
 namespace cura
 {
@@ -17,6 +19,10 @@ public:
 
     AABB()
     : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
+    {
+    }
+    AABB(Point&min, Point& max)
+    : min(min), max(max)
     {
     }
     AABB(Polygons& polys)

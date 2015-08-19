@@ -1,9 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#include <stdio.h>
 
 #include "layerPart.h"
 #include "settings.h"
 #include "Progress.h"
+
+#include "utils/SVG.h" // debug output
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -41,7 +42,6 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
-
 void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
@@ -53,36 +53,45 @@ void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_laye
     }
 }
 
-void layerparts2HTML(SliceDataStorage& storage, const char* filename)
+void layerparts2HTML(SliceDataStorage& storage, const char* filename, bool all_layers, int layer_nr)
 {
+    
     FILE* out = fopen(filename, "w");
     fprintf(out, "<!DOCTYPE html><html><body>");
     Point3 modelSize = storage.model_size;
     Point3 modelMin = storage.model_min;
     
+    Point model_min_2d = Point(modelMin.x, modelMin.y);
+    Point model_max_2d = Point(modelSize.x, modelSize.y) + model_min_2d;
+    AABB aabb(model_min_2d, model_max_2d);
+    
+    SVG svg(filename, aabb);
+    
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        for(SliceLayer& layer : mesh.layers)
+        for(unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
         {
-            fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
+            if (!(all_layers || int(layer_idx) == layer_nr)) { continue; }
+            SliceLayer& layer = mesh.layers[layer_idx];
+//             fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
             for(SliceLayerPart& part : layer.parts)
             {
-                for(unsigned int j=0;j<part.outline.size();j++)
-                {
-                    fprintf(out, "<polygon points=\"");
-                    for(unsigned int k=0;k<part.outline[j].size();k++)
-                        fprintf(out, "%f,%f ", float(part.outline[j][k].X - modelMin.x)/modelSize.x*500, float(part.outline[j][k].Y - modelMin.y)/modelSize.y*500);
-                    if (j == 0)
-                        fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-                    else
-                        fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-                }
+                svg.writeAreas(part.outline);
+                svg.writePoints(part.outline);
+//                 for(unsigned int j=0;j<part.outline.size();j++)
+//                 {
+//                     fprintf(out, "<polygon points=\"");
+//                     for(unsigned int k=0;k<part.outline[j].size();k++)
+//                         fprintf(out, "%f,%f ", float(part.outline[j][k].X - modelMin.x)/modelSize.x*500, float(part.outline[j][k].Y - modelMin.y)/modelSize.y*500);
+//                     if (j == 0)
+//                         fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
+//                     else
+//                         fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
+//                 }
             }
-            fprintf(out, "</svg>\n");
+//             fprintf(out, "</svg>\n");
         }
     }
-    fprintf(out, "</body></html>");
-    fclose(out);
 }
 
 }//namespace cura

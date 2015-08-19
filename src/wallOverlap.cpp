@@ -1,9 +1,10 @@
 #include "wallOverlap.h"
 
-#include <stdio.h> // for output to HTML
 #include <cmath> // isfinite
 
 #include "debug.h"
+#include "utils/AABB.h" // for debug output svg html
+#include "utils/SVG.h"
 
 namespace cura 
 {
@@ -326,20 +327,14 @@ void WallOverlapComputation::debugCheck()
 
 
 void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
-{
-    FILE* out = fopen(filename, "w");
-    fprintf(out, "<!DOCTYPE html><html><body>");
+{   
+    AABB aabb(polygons);
     
-    int canvasSize = 5000;
+    SVG svg(filename, aabb);
     
     
-    Point min = polygons.min();
-    Point size = polygons.max() - min;
-    
-    auto transform = [&](Point& p) { return (p-min)*canvasSize/size + Point(10,10); };
-    
-    fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: %dpx; height:%dpx\">\n", canvasSize+20, canvasSize+20);
-    
+    svg.writeAreas(polygons);
+    /*
     for(PolygonsPart part : polygons.splitIntoParts())
     {
         for (unsigned int j = 0; j < part.size(); j++)
@@ -355,46 +350,32 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
             else
                 fprintf(out, "\" style=\"fill:white; stroke:black;stroke-width:1\" />\n");
         }
-    }
+    }*/
     
     for (ListPolygon poly : list_polygons)
     {
-        int pp = 0;
         for (Point& p : poly)
         {
-            pp++;
-            Point pf = transform(p);
-            fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"black\" stroke-width=\"1\" fill=\"black\" />",pf.Y, pf.X, 1);
-            
-            // number:
-//             fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli</text>",pf.Y, pf.X, pp);
-            // coords:
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>",pf.Y, pf.X, p.X, p.Y);
-            
+            svg.writePoint(p, true);
         }
     }
+    
+    
     for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
     {
         WallOverlapPointLink& link = link_pair.first;
-        Point a = transform(link.a.p());
-        Point b = transform(link.b.p());
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        Point a = svg.transform(link.a.p());
+        Point b = svg.transform(link.b.p());
+        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
     }
     
     for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links_endings)
     {
         WallOverlapPointLink& link = link_pair.first;
-        Point a = transform(link.a.p());
-        Point b = transform(link.b.p());
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        Point a = svg.transform(link.a.p());
+        Point b = svg.transform(link.b.p());
+        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
     }
-    
-    fprintf(out, "</svg>\n");
-    
-    
-    fprintf(out, "</body></html>");
-    fclose(out);
-    
 }
     
 }//namespace cura 

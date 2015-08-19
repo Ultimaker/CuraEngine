@@ -238,40 +238,6 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     }
 }
 
-void Polygons::debugOutputHTML(const char* filename, bool dotTheVertices)
-{
-    FILE* out = fopen(filename, "w");
-    fprintf(out, "<!DOCTYPE html><html><body>");
-    Point modelSize = max() - min();
-    modelSize.X = std::max(modelSize.X, modelSize.Y);
-    modelSize.Y = std::max(modelSize.X, modelSize.Y);
-    Point modelMin = min();
-
-    fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
-    for(PolygonsPart& parts : splitIntoParts())
-    {
-        for(unsigned int j=0;j<parts.size();j++)
-        {
-            Polygon poly = parts[j];
-            fprintf(out, "<polygon points=\"");
-            for(Point& p : poly)
-            {
-                fprintf(out, "%f,%f ", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
-            }
-            if (j == 0)
-                fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-            else
-                fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-            
-            if (dotTheVertices)
-                for(Point& p : poly)
-                    fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"2\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" />", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
-        }
-    }
-    fprintf(out, "</svg>\n");
-    fprintf(out, "</body></html>");
-    fclose(out);
-}
 
 
 }//namespace cura

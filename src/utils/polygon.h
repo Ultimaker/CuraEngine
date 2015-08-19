@@ -142,7 +142,6 @@ public:
         return ret;
     }
 
-
     double area() const
     {
         return ClipperLib::Area(*polygon);
@@ -736,8 +735,6 @@ public:
             }
         }
     }
-    
-    void debugOutputHTML(const char* filename, bool dotTheVertices = false);
 };
 
 /*!
