@@ -1,278 +1,236 @@
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
+#include <sstream> // ostringstream
 #include "utils/logoutput.h"
-#include "utils/string.h"
 
 #include "settings.h"
+#include "settingRegistry.h"
 
-#define LTRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[0])) { (s).erase(0, 1); } } while(0)
-#define RTRIM_STRING(s) do { while(((s).length() > 0) && isspace((s)[(s).length() - 1])) { (s).erase((s).length() - 1); } } while(0)
-#define TRIM_STRING(s) do { LTRIM_STRING(s); RTRIM_STRING(s); } while(0)
-#define STRINGIFY(_s) #_s
-#define SETTING(name, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); name = (default); } while(0)
-#define SETTING2(name, altname, default) do { _index.push_back(_ConfigSettingIndex(STRINGIFY(name), &name)); _index.push_back(_ConfigSettingIndex(STRINGIFY(altname), &name)); name = (default); } while(0)
-
-ConfigSettings *ConfigSettings::config = NULL;
-
-ConfigSettings::ConfigSettings()
+namespace cura
 {
-    config = this;
-    SETTING(layerThickness, 100);
-    SETTING(initialLayerThickness, 300);
-    SETTING(filamentDiameter, 2890);
-    SETTING(filamentFlow, 100);
-    SETTING(layer0extrusionWidth, 600);
-    SETTING(extrusionWidth, 400);
-    SETTING(insetCount, 2);
-    SETTING(downSkinCount, 6);
-    SETTING(upSkinCount, 6);
-    SETTING(skirtDistance, 6000);
-    SETTING(skirtLineCount, 1);
-    SETTING(skirtMinLength, 0);
-    SETTING(outerInsetFirst, 0);
+//c++11 no longer defines M_PI, so add our own constant.
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
-    SETTING(initialSpeedupLayers, 4);
-    SETTING(initialLayerSpeed, 20);
-    SETTING(printSpeed, 50);
-    SETTING(inset0Speed, 50);
-    SETTING(insetXSpeed, 50);
-    SETTING(moveSpeed, 150);
-    SETTING(fanFullOnLayerNr, 2);
-
-    SETTING(sparseInfillLineDistance, 100 * extrusionWidth / 20);
-    SETTING(infillOverlap, 15);
-    SETTING(infillSpeed, 50);
-    SETTING(infillPattern, INFILL_AUTOMATIC);
-    SETTING(skinSpeed, 50);
-    SETTING(perimeterBeforeInfill, 0);
-
-    SETTING(supportType, SUPPORT_TYPE_GRID);
-    SETTING(supportAngle, -1);
-    SETTING(supportEverywhere, 0);
-    SETTING(supportLineDistance, sparseInfillLineDistance);
-    SETTING(supportXYDistance, 700);
-    SETTING(supportZDistance, 150);
-    SETTING(supportExtruder, -1);
-
-    SETTING(retractionAmount, 4500);
-    SETTING(retractionAmountPrime, 0);
-    SETTING(retractionSpeed, 45);
-    SETTING(retractionAmountExtruderSwitch, 14500);
-    SETTING(retractionMinimalDistance, 1500);
-    SETTING(minimalExtrusionBeforeRetraction, 100);
-    SETTING(retractionZHop, 0);
-
-    SETTING(enableCombing, COMBING_ALL);
-    SETTING(enableOozeShield, 0);
-    SETTING(wipeTowerSize, 0);
-    SETTING(multiVolumeOverlap, 0);
-    SETTING2(objectPosition.X, posx, 102500);
-    SETTING2(objectPosition.Y, posy, 102500);
-    SETTING(objectSink, 0);
-    SETTING(autoCenter, 1);
-
-    SETTING(raftMargin, 5000);
-    SETTING(raftLineSpacing, 1000);
-    SETTING(raftBaseThickness, 0);
-    SETTING(raftBaseLinewidth, 0);
-    SETTING(raftInterfaceThickness, 0);
-    SETTING(raftInterfaceLinewidth, 0);
-    SETTING(raftInterfaceLineSpacing, 0);
-    SETTING(raftAirGap, 0);
-    SETTING(raftAirGapLayer0, 0);
-    SETTING(raftBaseSpeed, 0);
-    SETTING(raftFanSpeed, 0);
-    SETTING(raftSurfaceThickness, 0);
-    SETTING(raftSurfaceLinewidth, 0);
-    SETTING(raftSurfaceLineSpacing, 0);
-    SETTING(raftSurfaceLayers, 0);
-    SETTING(raftSurfaceSpeed, 0);
-
-    SETTING(minimalLayerTime, 5);
-    SETTING(minimalFeedrate, 10);
-    SETTING(coolHeadLift, 0);
-    SETTING(fanSpeedMin, 100);
-    SETTING(fanSpeedMax, 100);
-
-    SETTING(fixHorrible, 0);
-    SETTING(spiralizeMode, 0);
-    SETTING(simpleMode, 0);
-    SETTING(gcodeFlavor, GCODE_FLAVOR_REPRAP);
-
-    memset(extruderOffset, 0, sizeof(extruderOffset));
-    SETTING(extruderOffset[0].X, 0); // No one says that extruder 0 can not have an offset!
-    SETTING(extruderOffset[0].Y, 0);
-    SETTING(extruderOffset[1].X, 0);
-    SETTING(extruderOffset[1].Y, 0);
-    SETTING(extruderOffset[2].X, 0);
-    SETTING(extruderOffset[2].Y, 0);
-    SETTING(extruderOffset[3].X, 0);
-    SETTING(extruderOffset[3].Y, 0);
-    SETTING(extruderOffset[4].X, 0);
-    SETTING(extruderOffset[4].Y, 0);
-    SETTING(extruderOffset[5].X, 0);
-    SETTING(extruderOffset[5].Y, 0);
-    SETTING(extruderOffset[6].X, 0);
-    SETTING(extruderOffset[6].Y, 0);
-    SETTING(extruderOffset[7].X, 0);
-    SETTING(extruderOffset[7].Y, 0);
-    SETTING(extruderOffset[8].X, 0);
-    SETTING(extruderOffset[8].Y, 0);
-    SETTING(extruderOffset[9].X, 0);
-    SETTING(extruderOffset[9].Y, 0);
-    SETTING(extruderOffset[10].X, 0);
-    SETTING(extruderOffset[10].Y, 0);
-    SETTING(extruderOffset[11].X, 0);
-    SETTING(extruderOffset[11].Y, 0);
-    SETTING(extruderOffset[12].X, 0);
-    SETTING(extruderOffset[12].Y, 0);
-    SETTING(extruderOffset[13].X, 0);
-    SETTING(extruderOffset[13].Y, 0);
-    SETTING(extruderOffset[14].X, 0);
-    SETTING(extruderOffset[14].Y, 0);
-    SETTING(extruderOffset[15].X, 0);
-    SETTING(extruderOffset[15].Y, 0);
-
-    startCode =
-        "M109 S210     ;Heatup to 210C\n"
-        "G21           ;metric values\n"
-        "G90           ;absolute positioning\n"
-        "G28           ;Home\n"
-        "G1 Z15.0 F300 ;move the platform down 15mm\n"
-        "G92 E0        ;zero the extruded length\n"
-        "G1 F200 E5    ;extrude 5mm of feed stock\n"
-        "G92 E0        ;zero the extruded length again\n";
-    endCode =
-        "M104 S0                     ;extruder heater off\n"
-        "M140 S0                     ;heated bed heater off (if you have it)\n"
-        "G91                            ;relative positioning\n"
-        "G1 E-1 F300                    ;retract the filament a bit before lifting the nozzle, to release some of the pressure\n"
-        "G1 Z+0.5 E-5 X-20 Y-20 F9000   ;move Z up a bit and retract filament even more\n"
-        "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n"
-        "M84                         ;steppers off\n"
-        "G90                         ;absolute positioning\n";
+SettingsBaseVirtual::SettingsBaseVirtual()
+: parent(NULL)
+{
 }
 
-#undef STRINGIFY
-#undef SETTING
-
-bool ConfigSettings::setSetting(const char* key, const char* value)
+SettingsBaseVirtual::SettingsBaseVirtual(SettingsBaseVirtual* parent)
+: parent(parent)
 {
-    for(unsigned int n=0; n < _index.size(); n++)
+}
+
+SettingsBase::SettingsBase()
+: SettingsBaseVirtual(NULL)
+{
+}
+
+SettingsBase::SettingsBase(SettingsBaseVirtual* parent)
+: SettingsBaseVirtual(parent)
+{
+}
+
+SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
+: SettingsBaseVirtual(parent)
+{
+}
+
+void SettingsBase::setSetting(std::string key, std::string value)
+{
+    if (SettingRegistry::getInstance()->settingExists(key))
     {
-        if (stringcasecompare(key, _index[n].key) == 0)
+        setting_values[key] = value;
+    }
+    else
+    {
+        cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
+        setting_values[key] = value; // Handy when programmers are in the process of introducing a new setting
+    }
+}
+
+std::string SettingsBase::getSettingString(std::string key)
+{
+    if (setting_values.find(key) != setting_values.end())
+    {
+        return setting_values[key];
+    }
+    if (parent)
+    {
+        return parent->getSettingString(key);
+    }
+    
+    if (SettingRegistry::getInstance()->settingExists(key))
+    {
+        setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
+    }
+    else
+    {
+        setting_values[key] = "";
+        cura::logError("Unregistered setting %s\n", key.c_str());
+    }
+    return setting_values[key];
+}
+
+void SettingsMessenger::setSetting(std::string key, std::string value)
+{
+    parent->setSetting(key, value);
+}
+
+std::string SettingsMessenger::getSettingString(std::string key)
+{
+    return parent->getSettingString(key);
+}
+
+
+void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
+{
+    const SettingCategory* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
+    
+    if (!machine_extruder_trains) 
+    {
+        logWarning("Error: no machine_extruder_trains category found in JSON!\n");
+        return;
+    }
+    
+    const SettingConfig* train = machine_extruder_trains->getChild(extruder_nr);
+    
+    if (!train)
+    {
+        logError("Not enough extruder trains specified in JSON: %i\n", extruder_nr);
+        return;
+    }
+    
+    for (const SettingConfig& setting : train->getChildren())
+    {
+        if (setting_values.find(setting.getKey()) == setting_values.end())
         {
-            *_index[n].ptr = atoi(value);
-            return true;
+            setSetting(setting.getKey(), setting.getDefaultValue());
         }
     }
-    if (stringcasecompare(key, "startCode") == 0)
-    {
-        this->startCode = value;
-        return true;
-    }
-    if (stringcasecompare(key, "endCode") == 0)
-    {
-        this->endCode = value;
-        return true;
-    }
-    if (stringcasecompare(key, "preSwitchExtruderCode") == 0)
-    {
-        this->preSwitchExtruderCode = value;
-        return true;
-    }
-    if (stringcasecompare(key, "postSwitchExtruderCode") == 0)
-    {
-        this->postSwitchExtruderCode = value;
-        return true;
-    }
-    return false;
 }
 
-bool ConfigSettings::readSettings(void) {
-    return readSettings(DEFAULT_CONFIG_PATH);
+int SettingsBaseVirtual::getSettingAsIndex(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atoi(value.c_str());
 }
 
-bool ConfigSettings::readSettings(const char* path) {
-    std::ifstream config(path);
-    std::string line;
-    size_t line_number = 0;
-
-    if(!config.good()) return false;
-
-    while(config.good()) {
-        bool multilineContent = false;
-        size_t pos = std::string::npos;
-        std::getline(config, line);
-        line_number += 1;
-
-        // De-comment and trim, skipping anything that shows up empty
-        pos = line.find_first_of('#');
-        if(pos != std::string::npos) line.erase(pos);
-        TRIM_STRING(line);
-        if(line.length() == 0) continue;
-
-        // Split into key = val
-        std::string key(""), val("");
-        pos = line.find_first_of('=');
-        if(pos != std::string::npos && line.length() > (pos + 1)) {
-            key = line.substr(0, pos);
-            val = line.substr(pos + 1);
-            TRIM_STRING(key);
-            TRIM_STRING(val);
-        }
-
-        // Are we about to read a multiline string?
-        if(val == CONFIG_MULTILINE_SEPARATOR) {
-            val = "";
-            multilineContent = true;
-            bool done_multiline = false;
-
-            while(config.good() && !done_multiline) {
-                std::getline(config, line);
-                line_number += 1;
-
-                // We RTRIM the line for two reasons:
-                //
-                // 1) Make sure that a direct == comparison with '"""' works without
-                //    worrying about trailing space.
-                // 2) Nobody likes trailing whitespace anyway
-                RTRIM_STRING(line);
-
-                // Either accumuliate or terminate
-                if(line == CONFIG_MULTILINE_SEPARATOR) {
-                    done_multiline = true;
-                    // Make sure we don't add an extra trailing newline
-                    // to the parsed value
-                    RTRIM_STRING(val);
-                }
-                else {
-                    line += "\n";
-                    val += line;
-                }
-            }
-
-            // If we drop out but didn't finish reading, something failed
-            if(!done_multiline) {
-                cura::logError("Config(%s):L%zd: Failed while reading multiline string.\n", path, line_number);
-                return false;
-            }
-
-        }
-
-        // Fail if we don't get a key and val
-        if(key.length() == 0 || (val.length() == 0 && !multilineContent)) {
-            cura::logError("Config(%s): Line %zd: No key value pair found\n", path, line_number);
-            return false;
-        }
-
-        // Set a config setting for the current K=V
-        if(!setSetting(key.c_str(), val.c_str())) {
-            cura::logError("Config(%s):L%zd: Failed to set '%s' to '%s'\n", path, line_number, key.c_str(), val.c_str());
-            return false;
-        }
-    }
-
-    return true;
+int SettingsBaseVirtual::getSettingAsCount(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atoi(value.c_str());
 }
+
+int SettingsBaseVirtual::getSettingInMicrons(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) * 1000.0;
+}
+
+double SettingsBaseVirtual::getSettingInAngleRadians(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) / 180.0 * M_PI;
+}
+
+bool SettingsBaseVirtual::getSettingBoolean(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "on")
+        return true;
+    if (value == "yes")
+        return true;
+    if (value == "true" or value == "True") //Python uses "True"
+        return true;
+    return atoi(value.c_str()) != 0;
+}
+
+double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key)
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str());
+}
+
+double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(1.0, atof(value.c_str()));
+}
+
+double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
+double SettingsBaseVirtual::getSettingInPercentage(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
+double SettingsBaseVirtual::getSettingInSeconds(std::string key)
+{
+    std::string value = getSettingString(key);
+    return std::max(0.0, atof(value.c_str()));
+}
+
+EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "RepRap")
+        return GCODE_FLAVOR_REPRAP;
+    else if (value == "UltiGCode")
+        return GCODE_FLAVOR_ULTIGCODE;
+    else if (value == "Makerbot")
+        return GCODE_FLAVOR_MAKERBOT;
+    else if (value == "BFB")
+        return GCODE_FLAVOR_BFB;
+    else if (value == "MACH3")
+        return GCODE_FLAVOR_MACH3;
+    else if (value == "RepRap (Volumatric)")
+        return GCODE_FLAVOR_REPRAP_VOLUMATRIC;
+    return GCODE_FLAVOR_REPRAP;
+}
+
+EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Lines")
+        return Fill_Lines;
+    if (value == "Grid")
+        return Fill_Grid;
+    if (value == "Triangles")
+        return Fill_Triangles;
+    if (value == "Concentric")
+        return Fill_Concentric;
+    if (value == "ZigZag")
+        return Fill_ZigZag;
+    return Fill_None;
+}
+
+EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Brim")
+        return Adhesion_Brim;
+    if (value == "Raft")
+        return Adhesion_Raft;
+    return Adhesion_Skirt;
+}
+
+ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Everywhere")
+        return Support_Everywhere;
+    if (value == "Touching Buildplate")
+        return Support_PlatformOnly;
+    return Support_None;
+}
+
+}//namespace cura

@@ -2,9 +2,9 @@
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
-#include "sliceDataStorage.h"
-
 namespace cura {
+    class Polygons;
+    class SliceLayer;
 
 int bridgeAngle(Polygons outline, SliceLayer* prevLayer);
 

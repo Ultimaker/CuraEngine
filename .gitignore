@@ -18,3 +18,8 @@ build/*
 NUL
 CuraEngine.layout
 CuraEngine.cbp
+documentation/html/*
+documentation/latex/*
+
+*kdev*
+*.kate-swp

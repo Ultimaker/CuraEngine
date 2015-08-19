@@ -9,6 +9,8 @@
 #include <stddef.h>
 #endif
 
+namespace cura
+{
 static inline double getTime()
 {
 #ifdef __WIN32
@@ -30,4 +32,5 @@ public:
     double restart();
 };
 
+}//namespace cura
 #endif//GETTIME_H

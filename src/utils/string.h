@@ -1,6 +1,11 @@
 #ifndef STRING_H
 #define STRING_H
 
+#include <ctype.h>
+
+namespace cura
+{
+    
 //c++11 no longer supplies a strcasecmp, so define our own version.
 static inline int stringcasecompare(const char* a, const char* b)
 {
@@ -14,4 +19,5 @@ static inline int stringcasecompare(const char* a, const char* b)
     return *a - *b;
 }
 
+}//namespace cura
 #endif//STRING_H

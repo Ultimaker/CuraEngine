@@ -6,19 +6,20 @@ namespace cura {
 
 void generateRaft(SliceDataStorage& storage, int distance)
 {
-    for(unsigned int volumeIdx = 0; volumeIdx < storage.volumes.size(); volumeIdx++)
+    for(SliceMeshStorage& mesh : storage.meshes)
     {
-        if (storage.volumes[volumeIdx].layers.size() < 1) continue;
-        SliceLayer* layer = &storage.volumes[volumeIdx].layers[0];
-        for(unsigned int i=0; i<layer->parts.size(); i++)
-        {
-            storage.raftOutline = storage.raftOutline.unionPolygons(layer->parts[i].outline.offset(distance));
-        }
+        if (mesh.layers.size() < 1) continue;
+        SliceLayer* layer = &mesh.layers[0];
+        for(SliceLayerPart& part : layer->parts)
+            storage.raftOutline = storage.raftOutline.unionPolygons(part.outline.offset(distance));
     }
 
-    SupportPolyGenerator supportGenerator(storage.support, 0);
-    storage.raftOutline = storage.raftOutline.unionPolygons(supportGenerator.polygons.offset(distance));
-    storage.raftOutline = storage.raftOutline.unionPolygons(storage.wipeTower.offset(distance));
+    Polygons support;
+    if (storage.support.generated) 
+        support = storage.support.supportLayers[0].supportAreas;
+    storage.raftOutline = storage.raftOutline.unionPolygons(support.offset(distance));
+    storage.raftOutline = storage.raftOutline.unionPolygons(storage.primeTower.ground_poly.offset(distance));
+    storage.raftOutline = storage.raftOutline.unionPolygons(storage.draft_protection_shield.offset(distance));
 }
 
 }//namespace cura

@@ -14,6 +14,9 @@
 #include "socket.h"
 #include "logoutput.h"
 
+namespace cura
+{
+    
 #ifdef __WIN32
 bool wsaStartupDone = false;
 #endif
@@ -43,7 +46,7 @@ void ClientSocket::connectTo(std::string host, int port)
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
     serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
-    // TODO: Check this: C style cast replaced by reinterpret_cast!!
+
     if (connect(sockfd, reinterpret_cast<struct sockaddr*>(&serv_addr), sizeof(serv_addr)) < 0)
     {
         printf("Connect to %s:%d failed\n", host.c_str(), port);
@@ -57,10 +60,16 @@ ClientSocket::~ClientSocket()
     close();
 }
 
-void ClientSocket::sendNr(int nr)
+void ClientSocket::sendInt32(int32_t nr)
 {
-    sendAll(&nr, sizeof(int));
+    sendAll(&nr, sizeof(int32_t));
 }
+
+void ClientSocket::sendFloat32(float f)
+{
+    sendAll(&f, sizeof(float));
+}
+
 
 void ClientSocket::sendAll(const void* data, int length)
 {
@@ -80,10 +89,17 @@ void ClientSocket::sendAll(const void* data, int length)
     }
 }
 
-int ClientSocket::recvNr()
+int32_t ClientSocket::recvInt32()
 {
-    int ret = 0;
-    recvAll(&ret, 4);
+    int32_t ret = -1;
+    recvAll(&ret, sizeof(int32_t));
+    return ret;
+}
+
+float ClientSocket::recvFloat32()
+{
+    float ret = 0;
+    recvAll(&ret, sizeof(float));
     return ret;
 }
 
@@ -95,9 +111,14 @@ void ClientSocket::recvAll(void* data, int length)
     while(length > 0)
     {
         int n = recv(sockfd, ptr, length, 0);
-        if (n <= 0)
+        if (n == 0)
         {
-            cura::log("ClientSocket::recvAll error...");
+            close();
+            return;
+        }
+        if (n < 0)
+        {
+            cura::logError("ClientSocket::recvAll error...");
             close();
             return;
         }
@@ -117,3 +138,5 @@ void ClientSocket::close()
 #endif
     sockfd = -1;
 }
+
+}//namespace cura

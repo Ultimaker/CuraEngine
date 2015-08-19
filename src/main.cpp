@@ -13,11 +13,12 @@
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/string.h"
 #include "sliceDataStorage.h"
 
-#include "modelFile/modelFile.h"
+#include "MeshGroup.h"
 #include "settings.h"
-#include "optimizedModel.h"
+#include "settingRegistry.h"
 #include "multiVolumes.h"
 #include "polygonOptimizer.h"
 #include "slicer.h"
@@ -33,10 +34,36 @@
 #include "comb.h"
 #include "gcodeExport.h"
 #include "fffProcessor.h"
+#include "Progress.h"
 
+namespace cura
+{
+    
 void print_usage()
 {
-    cura::logError("usage: CuraEngine [-h] [-v] [-m 3x3matrix] [-c <config file>] [-s <settingkey>=<value>] -o <output.gcode> <model.stl>\n");
+    cura::logError("\n");
+    cura::logError("usage:\n");
+    cura::logError("CuraEngine help\n");
+    cura::logError("\tShow this help message\n");
+    cura::logError("\n");
+    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.json>]\n");
+    cura::logError("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
+    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults\n");
+    cura::logError("\n");
+    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    cura::logError("  -v\n\tIncrease the verbose level (show log messages).\n");
+    cura::logError("  -p\n\tLog progress information.\n");
+    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults.\n");
+    cura::logError("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
+    cura::logError("  -l <model_file>\n\tLoad an STL model. \n");
+    cura::logError("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
+    cura::logError("  -e\n\tAdd a new extruder train.\n");
+    cura::logError("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
+    cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
+    cura::logError("\n");
+    cura::logError("The settings are appended to the last supplied object:\n");
+    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("\n");
 }
 
 //Signal handler for a "floating point exception", which can also be integer division by zero errors.
@@ -47,6 +74,205 @@ void signal_FPE(int n)
     exit(1);
 }
 
+
+void connect(fffProcessor& processor, int argc, char **argv)
+{
+    CommandSocket* commandSocket = new CommandSocket(&processor);
+    std::string ip;
+    int port = 49674;
+    
+    std::string ip_port(argv[2]);
+    if (ip_port.find(':') != std::string::npos)
+    {
+        ip = ip_port.substr(0, ip_port.find(':'));
+        port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
+    }
+
+    
+    for(int argn = 3; argn < argc; argn++)
+    {
+        char* str = argv[argn];
+        if (str[0] == '-')
+        {
+            for(str++; *str; str++)
+            {
+                switch(*str)
+                {
+                case 'v':
+                    cura::increaseVerboseLevel();
+                    break;
+                case 'j':
+                    argn++;
+                    if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                    {
+                        cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
+                    }
+                    break;
+                default:
+                    cura::logError("Unknown option: %c\n", *str);
+                    break;
+                }
+            }
+        }
+    }
+    
+    commandSocket->connect(ip, port);
+}
+
+void slice(fffProcessor& processor, int argc, char **argv)
+{   
+    processor.time_keeper.restart();
+    
+    FMatrix3x3 transformation; // the transformation applied to a model when loaded
+                        
+    MeshGroup meshgroup(&processor);
+    
+    int extruder_train_nr = 0;
+
+    SettingsBase* last_extruder_train = meshgroup.getExtruderTrain(0);
+    SettingsBase* last_settings_object = &processor;
+    for(int argn = 2; argn < argc; argn++)
+    {
+        char* str = argv[argn];
+        if (str[0] == '-')
+        {
+            if (str[1] == '-')
+            {
+                if (stringcasecompare(str, "--next") == 0)
+                {
+                    try {
+                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+                        meshgroup.finalize();
+                        log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
+                        
+                        for (int extruder_nr = 0; extruder_nr < processor.getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                        { // initialize remaining extruder trains and load the defaults
+                            meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
+                        }
+                        //start slicing
+                        processor.processMeshGroup(&meshgroup);
+                        
+                        // initialize loading of new meshes
+                        processor.time_keeper.restart();
+                        meshgroup = MeshGroup(&processor);
+                        last_settings_object = &meshgroup;
+                    }catch(...){
+                        cura::logError("Unknown exception\n");
+                        exit(1);
+                    }
+                    break;
+                }else{
+                    cura::logError("Unknown option: %s\n", str);
+                }
+            }else{
+                for(str++; *str; str++)
+                {
+                    switch(*str)
+                    {
+                    case 'v':
+                        cura::increaseVerboseLevel();
+                        break;
+                    case 'p':
+                        cura::enableProgressLogging();
+                        break;
+                    case 'j':
+                        argn++;
+                        if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                        {
+                            cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
+                        }
+                        break;
+                    case 'e':
+                        str++;
+                        extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
+                        last_settings_object = meshgroup.getExtruderTrain(extruder_train_nr);
+                        last_extruder_train = meshgroup.getExtruderTrain(extruder_train_nr);
+                        break;
+                    case 'l':
+                        argn++;
+                        
+                        log("Loading %s from disk...\n", argv[argn]);
+                        // transformation = // TODO: get a transformation from somewhere
+                        
+                        if (!loadMeshIntoMeshGroup(&meshgroup, argv[argn], transformation, last_extruder_train))
+                        {
+                            logError("Failed to load model: %s\n", argv[argn]);
+                        }
+                        else 
+                        {
+                            last_settings_object = &(meshgroup.meshes.back()); // pointer is valid until a new object is added, so this is OK
+                        }
+                        break;
+                    case 'o':
+                        argn++;
+                        if (!processor.setTargetFile(argv[argn]))
+                        {
+                            cura::logError("Failed to open %s for output.\n", argv[argn]);
+                            exit(1);
+                        }
+                        break;
+                    case 's':
+                        {
+                            //Parse the given setting and store it.
+                            argn++;
+                            char* valuePtr = strchr(argv[argn], '=');
+                            if (valuePtr)
+                            {
+                                *valuePtr++ = '\0';
+
+                                last_settings_object->setSetting(argv[argn], valuePtr);
+                            }
+                        }
+                        break;
+                    default:
+                        cura::logError("Unknown option: %c\n", *str);
+                        print_usage();
+                        exit(1);
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            
+            cura::logError("Unknown option: %s\n", argv[argn]);
+            print_usage();
+            exit(1);
+        }
+    }
+
+    for (extruder_train_nr = 0; extruder_train_nr < processor.getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
+    { // initialize remaining extruder trains and load the defaults
+        meshgroup.getExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // also initializes yet uninitialized extruder trains
+    }
+    
+    
+#ifndef DEBUG
+    try {
+#endif
+        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
+        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
+        meshgroup.finalize();
+        log("Loaded from disk in %5.3fs\n", processor.time_keeper.restart());
+        
+        //start slicing
+        processor.processMeshGroup(&meshgroup);
+        
+#ifndef DEBUG
+    }catch(...){
+        cura::logError("Unknown exception\n");
+        exit(1);
+    }
+#endif
+    //Finalize the processor, this adds the end.gcode. And reports statistics.
+    processor.finalize();
+    
+}
+
+}//namespace cura
+
 using namespace cura;
 
 int main(int argc, char **argv)
@@ -56,147 +282,53 @@ int main(int argc, char **argv)
     setpriority(PRIO_PROCESS, 0, 10);
 #endif
 
+#ifndef DEBUG
     //Register the exception handling for arithmic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
     signal(SIGFPE, signal_FPE);
+#endif
 
-    ConfigSettings config;
-    fffProcessor processor(config);
-    std::vector<std::string> files;
+    Progress::init();
+    
+    fffProcessor processor;
 
-    cura::logError("Cura_SteamEngine version %s\n", VERSION);
-    cura::logError("Copyright (C) 2014 David Braam\n");
-    cura::logError("\n");
-    cura::logError("This program is free software: you can redistribute it and/or modify\n");
-    cura::logError("it under the terms of the GNU Affero General Public License as published by\n");
-    cura::logError("the Free Software Foundation, either version 3 of the License, or\n");
-    cura::logError("(at your option) any later version.\n");
-    cura::logError("\n");
-    cura::logError("This program is distributed in the hope that it will be useful,\n");
-    cura::logError("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
-    cura::logError("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
-    cura::logError("GNU Affero General Public License for more details.\n");
-    cura::logError("\n");
-    cura::logError("You should have received a copy of the GNU Affero General Public License\n");
-    cura::logError("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
+    logCopyright("\n");
+    logCopyright("Cura_SteamEngine version %s\n", VERSION);
+    logCopyright("Copyright (C) 2014 David Braam\n");
+    logCopyright("\n");
+    logCopyright("This program is free software: you can redistribute it and/or modify\n");
+    logCopyright("it under the terms of the GNU Affero General Public License as published by\n");
+    logCopyright("the Free Software Foundation, either version 3 of the License, or\n");
+    logCopyright("(at your option) any later version.\n");
+    logCopyright("\n");
+    logCopyright("This program is distributed in the hope that it will be useful,\n");
+    logCopyright("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
+    logCopyright("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
+    logCopyright("GNU Affero General Public License for more details.\n");
+    logCopyright("\n");
+    logCopyright("You should have received a copy of the GNU Affero General Public License\n");
+    logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
-    if(!config.readSettings()) {
-        cura::logError("Default config '%s' not used\n", DEFAULT_CONFIG_PATH);
-    }
-    for(int argn = 1; argn < argc; argn++)
-        cura::log("Arg: %s\n", argv[argn]);
 
-    for(int argn = 1; argn < argc; argn++)
+    if (argc < 2)
     {
-        char* str = argv[argn];
-        if (str[0] == '-')
-        {
-            for(str++; *str; str++)
-            {
-                switch(*str)
-                {
-                case 'h':
-                    print_usage();
-                    exit(1);
-                case 'v':
-                    cura::increaseVerboseLevel();
-                    break;
-                case 'p':
-                    cura::enableProgressLogging();
-                    break;
-                case 'g':
-                    argn++;
-                    //Connect the GUI socket to the given port number.
-                    processor.guiConnect(atoi(argv[argn]));
-                    break;
-                case 'b':
-                    argn++;
-                    //The binaryMeshBlob is depricated and will be removed in the future.
-                    binaryMeshBlob = fopen(argv[argn], "rb");
-                    break;
-                case 'o':
-                    argn++;
-                    if (!processor.setTargetFile(argv[argn]))
-                    {
-                        cura::logError("Failed to open %s for output.\n", argv[argn]);
-                        exit(1);
-                    }
-                    break;
-                case 'c':
-                    {
-                        // Read a config file from the given path
-                        argn++;
-                        if(!config.readSettings(argv[argn])) {
-                            cura::logError("Failed to read config '%s'\n", argv[argn]);
-                        }
-                    }
-                    break;
-                case 's':
-                    {
-                        //Parse the given setting and store it.
-                        argn++;
-                        char* valuePtr = strchr(argv[argn], '=');
-                        if (valuePtr)
-                        {
-                            *valuePtr++ = '\0';
-
-                            if (!config.setSetting(argv[argn], valuePtr))
-                                cura::logError("Setting not found: %s %s\n", argv[argn], valuePtr);
-                        }
-                    }
-                    break;
-                case 'm':
-                    //Read the given rotation/scale matrix
-                    argn++;
-                    sscanf(argv[argn], "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf",
-                        &config.matrix.m[0][0], &config.matrix.m[0][1], &config.matrix.m[0][2],
-                        &config.matrix.m[1][0], &config.matrix.m[1][1], &config.matrix.m[1][2],
-                        &config.matrix.m[2][0], &config.matrix.m[2][1], &config.matrix.m[2][2]);
-                    break;
-                case '-':
-                    try {
-                        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        if (files.size() > 0)
-                            processor.processFile(files);
-                        files.clear();
-                    }catch(...){
-                        cura::logError("Unknown exception\n");
-                        exit(1);
-                    }
-                    break;
-                default:
-                    cura::logError("Unknown option: %c\n", *str);
-                    break;
-                }
-            }
-        }else{
-            if (argv[argn][0] == '$')
-            {
-                try {
-                    //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-                    // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                    std::vector<std::string> tmp;
-                    tmp.push_back(argv[argn]);
-                    processor.processFile(tmp);
-                }catch(...){
-                    cura::logError("Unknown exception\n");
-                    exit(1);
-                }
-            }else{
-                files.push_back(argv[argn]);
-            }
-        }
-    }
-    try {
-        //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
-        // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        if (files.size() > 0)
-            processor.processFile(files);
-    }catch(...){
-        cura::logError("Unknown exception\n");
+        print_usage();
         exit(1);
     }
-    //Finalize the processor, this adds the end.gcode. And reports statistics.
-    processor.finalize();
+    
+    if (stringcasecompare(argv[1], "connect") == 0)
+    {
+        connect(processor, argc, argv);
+    } 
+    else if (stringcasecompare(argv[1], "slice") == 0)
+    {
+        slice(processor, argc, argv);
+    }
+    else
+    {
+        cura::logError("Unknown command: %s\n", argv[1]);
+        print_usage();
+        exit(1);
+    }
+    
     return 0;
 }
