@@ -6,6 +6,7 @@ package cura.proto;
 message ObjectList 
 {
     repeated Object objects = 1;
+    repeated Setting settings = 2;
 }
 
 // typeid 1

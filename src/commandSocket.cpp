@@ -169,6 +169,12 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         d->object_ids.push_back(object.id());
         mesh.finish();
     }
+
+    for(auto setting : list->settings())
+    {
+        object_to_slice->setSetting(setting.name(), setting.value());
+    }
+
     d->object_count++;
     object_to_slice->finalize();
 }
