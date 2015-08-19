@@ -144,6 +144,8 @@ public:
     /*!
      * Add a travel path to a certain point and retract if needed.
      * 
+     * No combing is performed.
+     * 
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
