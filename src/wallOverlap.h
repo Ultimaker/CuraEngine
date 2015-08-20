@@ -10,7 +10,7 @@
 
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
-#include "utils/polygonUtils.h"
+#include "utils/linearAlg2D.h"
 
 #include "debug.h" // TODO remove
 

@@ -89,7 +89,7 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
             last_it = it;
             continue;
         }
-        Point closest = getClosestOnLineSegment(from, last_point, point);
+        Point closest = LinearAlg2D::getClosestOnLineSegment(from, last_point, point);
         
         int64_t dist2 = vSize2(closest - from);
         

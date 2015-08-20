@@ -3,6 +3,7 @@
 
 #include <list>
 
+#include "linearAlg2D.h"
 #include "../debug.h"
 namespace cura 
 {
@@ -272,7 +273,7 @@ ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start
         Point& p1 = polygon[p1_idx];
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLineSegment(from, p1 ,p2);
+        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {
@@ -341,7 +342,7 @@ ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
         if (p2_idx >= polygon.size()) p2_idx = 0;
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLineSegment(from, p1 ,p2);
+        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {

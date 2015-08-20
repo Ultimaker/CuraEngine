@@ -246,7 +246,7 @@ public:
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      * \param result Where the result is stored
      */
-    void simplified(int allowed_error_distance_squared, PolygonRef result);
+    void simplify(int allowed_error_distance_squared, PolygonRef result);
     
     /*! 
      * removes consecutive line segments with same orientation and changes this polygon
@@ -506,7 +506,7 @@ public:
         Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
         {
-            thiss[p].simplified(allowed_error_distance_squared, ret.newPoly());
+            thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
         }
         return ret;
     }

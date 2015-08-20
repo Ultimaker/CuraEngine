@@ -1,7 +1,7 @@
 /** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
 #include "polygon.h"
 
-#include "linearAlg2D.h" // pointLiesOnTheRightOfLine, getDist2FromLineSegment
+#include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
 #include "../debug.h"
 
@@ -22,7 +22,7 @@ bool PolygonRef::inside(Point p, bool border_result)
     {
         Point p1 = thiss[n];
         // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
-        short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+        short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
         if (comp == 1)
         {
             crossings++;
@@ -50,7 +50,7 @@ bool Polygons::inside(Point p, bool border_result)
         Point p0 = poly.back();
         for(Point& p1 : poly)
         {
-            short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings++;
@@ -84,7 +84,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
         Point p0 = poly.back();
         for(Point& p1 : poly)
         {
-            short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings[poly_idx]++;
@@ -129,7 +129,9 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-void PolygonRef::simplified(int allowed_error_distance_squared, PolygonRef result)
+
+
+void PolygonRef::simplify(int allowed_error_distance_squared, PolygonRef result)
 {
     PolygonRef& thiss = *this;
     ClipperLib::Path* poly = result.polygon;
@@ -152,7 +154,7 @@ void PolygonRef::simplified(int allowed_error_distance_squared, PolygonRef resul
             continue;
         }
         Point& next = thiss[(poly_idx+1) % size()];
-        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
         if (error2 < allowed_error_distance_squared)
         {
             std::cerr << "skipped vertex"<< std::endl;
@@ -178,7 +180,7 @@ void PolygonRef::simplified(int allowed_error_distance_squared, PolygonRef resul
             poly->erase(poly->begin());
         }
         Point& next = (*poly)[1];
-        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
         if (error2 < allowed_error_distance_squared)
         {
             poly->erase(poly->begin());
@@ -195,8 +197,7 @@ void PolygonRef::simplified(int allowed_error_distance_squared, PolygonRef resul
     }
 }
 
-void PolygonRef::simplify(int allowed_error_distance_squared)
-{
+void PolygonRef::simplify(int allowed_error_distance_squared){
     PolygonRef& thiss = *this;
 //         ClipperLib::Path* poly = polygon;
     
@@ -217,7 +218,7 @@ void PolygonRef::simplify(int allowed_error_distance_squared)
             continue;
         }
         Point& next = thiss[(poly_idx+1) % size()];
-        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
         if (error2 < allowed_error_distance_squared)
         {
             // don't add the point to the result
@@ -245,7 +246,7 @@ void PolygonRef::simplify(int allowed_error_distance_squared)
             remove(0);
         }
         Point& next = thiss[1];
-        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
         if (error2 < allowed_error_distance_squared)
         {
             remove(0);
@@ -261,7 +262,6 @@ void PolygonRef::simplify(int allowed_error_distance_squared)
         return;
     }
 }
-
 
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 {
