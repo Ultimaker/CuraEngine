@@ -241,14 +241,6 @@ public:
     }
 
     /*! 
-     * removes consecutive line segments with same orientation and stores the result
-     * 
-     * \param result Where the result is stored
-     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
-     */
-    void simplify(PolygonRef result, int allowed_error_distance_squared = 100);
-    
-    /*! 
      * removes consecutive line segments with same orientation and changes this polygon
      * 
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
@@ -496,20 +488,6 @@ public:
         }
     }
     
-    /*!
-     * removes points connected to similarly oriented lines
-     */
-    Polygons simplified(int allowed_error_distance = 10) 
-    {
-        int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        Polygons ret;
-        Polygons& thiss = *this;
-        for (unsigned int p = 0; p < size(); p++)
-        {
-            thiss[p].simplify(ret.newPoly(), allowed_error_distance_squared);
-        }
-        return ret;
-    }
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
