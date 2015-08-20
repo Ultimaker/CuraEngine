@@ -168,9 +168,9 @@ private:
      * Calculate in which order to print the meshes.
      * \param storage Input: where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
-     * \return A vector of meshes ordered on print order.
+     * \return A vector of mesh indices ordered on print order.
      */
-    std::vector<SliceMeshStorage*> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
+    std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
         
     /*!
      * Add a single layer from a single mesh-volume to the GCode in magic polygon mode.
