@@ -69,7 +69,7 @@ public:
     * \param maxDist2 The squared maximal allowed distance from the point to the nearest polygon.
     * \return The index to the polygon onto which we have moved the point.
     */
-    static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t maxDist2 = std::numeric_limits<int64_t>::min());
+    static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t maxDist2 = std::numeric_limits<int64_t>::max());
 
     /*!
     * Find the two points in two polygons with the smallest distance.
