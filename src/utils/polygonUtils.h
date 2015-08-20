@@ -2,6 +2,7 @@
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
+#include "linearAlg2D.h"
 #include "polygon.h"
 
 namespace cura 
@@ -118,11 +119,6 @@ ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
  * Find the point closest to \p from in the polygon \p polygon.
  */
 ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
-    
-/*!
- * Find the point closest to \p from on the line from \p p0 to \p p1
- */
-Point getClosestOnLine(Point from, Point p0, Point p1);
 
 /*!
  * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
@@ -134,8 +130,6 @@ Point getClosestOnLine(Point from, Point p0, Point p1);
  * \param poly_start_idx The index of the point in the polygon which is to be handled as the start of the polygon. No point further than this point will be the result.
  */
 bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result);
-
-
 
 /*!
  * Checks whether a given line segment collides with a given polygon(s).

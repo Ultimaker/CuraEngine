@@ -272,7 +272,7 @@ ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start
         Point& p1 = polygon[p1_idx];
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLine(from, p1 ,p2);
+        Point closestHere = getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {
@@ -341,7 +341,7 @@ ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
         if (p2_idx >= polygon.size()) p2_idx = 0;
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLine(from, p1 ,p2);
+        Point closestHere = getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {
@@ -353,40 +353,6 @@ ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
 
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
-
-
-Point getClosestOnLine(Point from, Point p0, Point p1)
-{
-    Point direction = p1 - p0;
-    Point toFrom = from-p0;
-    int64_t projected_x = dot(toFrom, direction) ;
-
-    int64_t x_p0 = 0;
-    int64_t x_p1 = vSize2(direction);
-
-    if (projected_x <= x_p0)
-    {
-        return p0;
-    }
-    if (projected_x >= x_p1)
-    {
-        return p1;
-    }
-    else
-    {
-        if (vSize2(direction) == 0)
-        {
-            std::cout << "warning! too small segment" << std::endl;
-            return p0;
-        }
-        Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-        return ret ;
-    }
-
-}
-
-
-
 
 
 

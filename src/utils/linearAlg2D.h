@@ -62,9 +62,85 @@ short pointLiesOnTheRightOfLine(Point p, Point p0, Point p1)
             
 }
 
+/*!
+ * Find the point closest to \p from on the line from \p p0 to \p p1
+ */
+Point getClosestOnLineSegment(Point from, Point p0, Point p1)
+{
+    Point direction = p1 - p0;
+    Point toFrom = from-p0;
+    int64_t projected_x = dot(toFrom, direction) ;
 
+    int64_t x_p0 = 0;
+    int64_t x_p1 = vSize2(direction);
+
+    if (x_p1 == 0)
+    {
+//         std::cout << "warning! too small segment" << std::endl;
+        return p0;
+    }
+    if (projected_x <= x_p0)
+    {
+        return p0;
+    }
+    if (projected_x >= x_p1)
+    {
+        return p1;
+    }
+    else
+    {
+        Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
+        return ret ;
+    }
+
+}
+
+
+
+
+/*!
+ * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
+ * Note that 
+ * 
+ *     a,
+ *     /|
+ *    / |
+ * b,/__|, x
+ *   \  |
+ *    \ |
+ *     \|
+ *      'c
+ * 
+ * x = b projected on ac
+ * ax = ab dot ac / vSize(ac)
+ * xb = ab - ax
+ * error = vSize(xb)
+ */
+int64_t getDist2FromLineSegment(Point& a, Point& b, Point& c)
+{
+    Point ac = c - a;
+    int64_t ac_size = vSize(ac);
+    if (ac_size == 0) { return 0; }
+    
+    Point ab = b - a;
+    int64_t projected_x = dot(ab, ac);
+    int64_t ax_size = projected_x / ac_size;
+    
+    if (ax_size < 0) 
+    {// b is 'before' segment ac 
+        return vSize2(ab);
+    }
+    if (ax_size > ac_size)
+    {// b is 'after' segment ac
+        return vSize2(b - c);
+    }
+    
+    Point ax = ac * ax_size / ac_size;
+    Point bx = ab - ax;
+    return vSize2(bx);
+}
 
 
 
 }//namespace cura
-#endif//LINEAR_ALG_2D_H
+#endif//UTILS_LINEAR_ALG_2D_H

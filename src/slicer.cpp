@@ -303,6 +303,8 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     optimizePolygons(polygonList);
     
+    polygonList.simplify(10);
+    
     polygonList.removeDegenerateVerts(); // remove verts connected to overlapping line segments
     
     int xy_offset = mesh->getSettingInMicrons("xy_offset");

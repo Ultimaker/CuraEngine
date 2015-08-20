@@ -1,7 +1,7 @@
 /** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
 #include "polygon.h"
 
-#include "linearAlg2D.h" // pointLiesOnTheRightOfLine
+#include "linearAlg2D.h" // pointLiesOnTheRightOfLine, getDist2FromLineSegment
 
 #include "../debug.h"
 
@@ -128,6 +128,140 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     if (n_unevens % 2 == 0) { ret = NO_INDEX; }
     return ret;
 }
+
+void PolygonRef::simplified(int allowed_error_distance_squared, PolygonRef result)
+{
+    PolygonRef& thiss = *this;
+    ClipperLib::Path* poly = result.polygon;
+    
+    if (size() < 4)
+    {
+        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+            poly->push_back(thiss[poly_idx]);
+        return;
+    }
+    
+    Point* last = &thiss[0];
+    result.add(*last);
+    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+    {
+        Point& here = thiss[poly_idx];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            // don't add the point to the result
+            continue;
+        }
+        Point& next = thiss[(poly_idx+1) % size()];
+        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        if (error2 < allowed_error_distance_squared)
+        {
+            std::cerr << "skipped vertex"<< std::endl;
+            // don't add the point to the result
+        } else 
+        {
+            poly->push_back(here);
+            last = &here;
+        }
+    }
+        
+    if (result.size() < 3)
+    {
+        poly->clear();
+        return;
+    }
+    
+    {
+        Point* last = &poly->back();
+        Point& here = (*poly)[0];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            poly->erase(poly->begin());
+        }
+        Point& next = (*poly)[1];
+        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        if (error2 < allowed_error_distance_squared)
+        {
+            poly->erase(poly->begin());
+        } else 
+        {
+            // leave it in
+        }
+    }
+    
+    if (result.size() < 3)
+    {
+        poly->clear();
+        return;
+    }
+}
+
+void PolygonRef::simplify(int allowed_error_distance_squared)
+{
+    PolygonRef& thiss = *this;
+//         ClipperLib::Path* poly = polygon;
+    
+    if (size() <= 2)
+    {
+        clear();
+        return; 
+    }
+    
+    Point* last = &thiss[0];
+    unsigned int writing_idx = 1;
+    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+    {
+        Point& here = thiss[poly_idx];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            // don't add the point to the result
+            continue;
+        }
+        Point& next = thiss[(poly_idx+1) % size()];
+        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        if (error2 < allowed_error_distance_squared)
+        {
+            // don't add the point to the result
+        } else 
+        {
+            thiss[writing_idx] = here;
+            writing_idx++;
+            last = &here;
+        }
+    }
+    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    
+            
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+    
+    {
+        Point* last = &thiss.back();
+        Point& here = thiss[0];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            remove(0);
+        }
+        Point& next = thiss[1];
+        int64_t error2 = getDist2FromLineSegment(*last, here, next);
+        if (error2 < allowed_error_distance_squared)
+        {
+            remove(0);
+        } else 
+        {
+            // leave it in
+        }
+    }
+    
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+}
+
 
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 {
