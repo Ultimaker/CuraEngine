@@ -131,7 +131,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
 
 
 
-void PolygonRef::simplify(int allowed_error_distance_squared, PolygonRef result)
+void PolygonRef::simplify(PolygonRef result, int allowed_error_distance_squared)
 {
     PolygonRef& thiss = *this;
     ClipperLib::Path* poly = result.polygon;

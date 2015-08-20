@@ -41,8 +41,10 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
         {
             offsetExtrusionWidth(part->insets[i-1], true, line_width_x, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
         }
-            
-        optimizePolygons(part->insets[i]);
+        
+        
+        //Finally optimize all the polygons. Every point removed saves time in the long run.
+        part->insets[i].simplify();
         if (part->insets[i].size() < 1)
         {
             part->insets.pop_back();

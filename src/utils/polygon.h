@@ -243,17 +243,17 @@ public:
     /*! 
      * removes consecutive line segments with same orientation and stores the result
      * 
-     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      * \param result Where the result is stored
+     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int allowed_error_distance_squared, PolygonRef result);
+    void simplify(PolygonRef result, int allowed_error_distance_squared = 100);
     
     /*! 
      * removes consecutive line segments with same orientation and changes this polygon
      * 
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
-    void simplify(int allowed_error_distance_squared);
+    void simplify(int allowed_error_distance_squared = 100);
 
     void pop_back()
     { 
@@ -481,7 +481,7 @@ public:
     /*!
      * removes points connected to similarly oriented lines
      */
-    void simplify(int allowed_error_distance) 
+    void simplify(int allowed_error_distance = 10) 
     {
         int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         Polygons& thiss = *this;
@@ -499,14 +499,14 @@ public:
     /*!
      * removes points connected to similarly oriented lines
      */
-    Polygons simplified(int allowed_error_distance) 
+    Polygons simplified(int allowed_error_distance = 10) 
     {
         int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
         Polygons ret;
         Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
         {
-            thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
+            thiss[p].simplify(ret.newPoly(), allowed_error_distance_squared);
         }
         return ret;
     }
