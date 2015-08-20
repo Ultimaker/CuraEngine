@@ -129,7 +129,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
-void PolygonRef::simplify(int allowed_error_distance_squared){
+void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared){
     PolygonRef& thiss = *this;
     
     if (size() <= 2)
@@ -149,7 +149,7 @@ void PolygonRef::simplify(int allowed_error_distance_squared){
         for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
         {
             Point& here = thiss[poly_idx];
-            if (vSize2(*last - here) < allowed_error_distance_squared)
+            if (vSize2(*last - here) < smallest_line_segment_squared)
             {
                 // don't add the point
             }
