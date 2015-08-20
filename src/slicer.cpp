@@ -5,7 +5,6 @@
 #include "utils/logoutput.h"
 
 #include "slicer.h"
-#include "polygonOptimizer.h"
 #include "debug.h" // TODO remove
 
 namespace cura {

@@ -38,7 +38,6 @@ set(engine_SRCS
     src/MeshGroup.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
-    src/polygonOptimizer.cpp
     src/PrimeTower.cpp
     src/Progress.cpp
     src/raft.cpp
