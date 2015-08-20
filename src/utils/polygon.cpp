@@ -138,6 +138,31 @@ void PolygonRef::simplify(int allowed_error_distance_squared){
         return; 
     }
     
+    { // remove segments smaller than allowed_error_distance
+    // this is neccesary in order to avoid the case where a long segment is followed by a lot of small segments would get simplified to a long segment going to the wrong end point
+    //  .......                _                 _______
+    // |                      /                 |
+    // |     would become    /    instead of    |
+    // |                    /                   |
+        Point* last = &thiss.back();
+        unsigned int writing_idx = 0;
+        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+        {
+            Point& here = thiss[poly_idx];
+            if (vSize2(*last - here) < allowed_error_distance_squared)
+            {
+                // don't add the point
+            }
+            else 
+            {
+                thiss[writing_idx] = here;
+                writing_idx++;
+                last = &here;
+            }
+        }
+        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    }
+    
     Point* last = &thiss[0];
     unsigned int writing_idx = 1;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
@@ -151,23 +176,8 @@ void PolygonRef::simplify(int allowed_error_distance_squared){
         Point& next = thiss[(poly_idx+1) % size()];
         char here_is_beyond_line;
         int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next, &here_is_beyond_line);
-        if (error2 < allowed_error_distance_squared)
-        {
-            if (here_is_beyond_line == 1)
-            { // leave point here; remove next point
-                // this is neccesary in order to avoid the case where a long segment is followed by a lot of small segments would get simplified to a long segment going to the wrong end point
-                //  .......                _                 _______
-                // |                      /                 |
-                // |     would become    /    instead of    |
-                // |                    /                   |
-                thiss[writing_idx] = here;
-                writing_idx++;
-                last = &here;
-                poly_idx++;
-            }
-            else 
-            {// don't add the point to the result
-            }
+        if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
+        {// don't add the point to the result
         } else 
         {
             thiss[writing_idx] = here;
@@ -184,7 +194,7 @@ void PolygonRef::simplify(int allowed_error_distance_squared){
         return;
     }
     
-    {
+    { // handle the line segments spanning the vector end and begin
         Point* last = &thiss.back();
         Point& here = thiss[0];
         if ( vSize2(here-*last) < allowed_error_distance_squared )

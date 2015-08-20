@@ -441,6 +441,32 @@ int main()
         poly.emplace_back(Point(140000,100000));
         poly.emplace_back(Point(141000,100000));
     }
+    {
+        PolygonRef poly = outline.newPoly();
+        poly.emplace_back(Point(136000,110000));
+        poly.emplace_back(Point(136000,120000));
+        poly.emplace_back(Point(136005,120000));
+        poly.emplace_back(Point(136010,120000));
+        poly.emplace_back(Point(136015,120000));
+        poly.emplace_back(Point(136020,120000));
+        poly.emplace_back(Point(136025,120000));
+        poly.emplace_back(Point(136030,120000));
+        poly.emplace_back(Point(136035,120000));
+        poly.emplace_back(Point(136040,120000));
+        poly.emplace_back(Point(136045,120000));
+        poly.emplace_back(Point(136050,120000));
+        poly.emplace_back(Point(136055,120000));
+        poly.emplace_back(Point(136060,120000));
+        poly.emplace_back(Point(136065,120000));
+        poly.emplace_back(Point(136070,120000));
+        poly.emplace_back(Point(136075,120000));
+        poly.emplace_back(Point(136080,120000));
+        poly.emplace_back(Point(136085,120000));
+        poly.emplace_back(Point(136090,120000));
+        poly.emplace_back(Point(136095,120000));
+        poly.emplace_back(Point(136100,120000));
+        poly.emplace_back(Point(137000,120000));
+    }
     
 //     optimizePolygons(outline);
     
