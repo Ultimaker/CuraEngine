@@ -136,10 +136,8 @@ void PolygonRef::simplify(PolygonRef result, int allowed_error_distance_squared)
     PolygonRef& thiss = *this;
     ClipperLib::Path* poly = result.polygon;
     
-    if (size() < 4)
+    if (size() <= 2)
     {
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-            poly->push_back(thiss[poly_idx]);
         return;
     }
     
@@ -157,7 +155,6 @@ void PolygonRef::simplify(PolygonRef result, int allowed_error_distance_squared)
         int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
         if (error2 < allowed_error_distance_squared)
         {
-            std::cerr << "skipped vertex"<< std::endl;
             // don't add the point to the result
         } else 
         {
@@ -199,7 +196,6 @@ void PolygonRef::simplify(PolygonRef result, int allowed_error_distance_squared)
 
 void PolygonRef::simplify(int allowed_error_distance_squared){
     PolygonRef& thiss = *this;
-//         ClipperLib::Path* poly = polygon;
     
     if (size() <= 2)
     {

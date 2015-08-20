@@ -102,8 +102,15 @@ public:
 
     /*!
     * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
-    * Note that 
     * 
+    * \param a the first point of the line segment
+    * \param b the point to measure the distance from
+    * \param c the second point on the line segment
+    * \param b_is_beyond_ac optional output parameter: whether \p b is closest to the line segment (0), to \p a (-1) or \p b (1)
+    */
+    static int64_t getDist2FromLineSegment(Point& a, Point& b, Point& c, char* b_is_beyond_ac)
+    {
+    /* 
     *     a,
     *     /|
     *    / |
@@ -118,8 +125,6 @@ public:
     * xb = ab - ax
     * error = vSize(xb)
     */
-    static int64_t getDist2FromLineSegment(Point& a, Point& b, Point& c)
-    {
         Point ac = c - a;
         int64_t ac_size = vSize(ac);
         if (ac_size == 0) { return 0; }
@@ -130,15 +135,18 @@ public:
         
         if (ax_size < 0) 
         {// b is 'before' segment ac 
+            if (b_is_beyond_ac) { *b_is_beyond_ac = -1; }
             return vSize2(ab);
         }
         if (ax_size > ac_size)
         {// b is 'after' segment ac
+            if (b_is_beyond_ac) { *b_is_beyond_ac = 1; }
             return vSize2(b - c);
         }
         
         Point ax = ac * ax_size / ac_size;
         Point bx = ab - ax;
+        if (b_is_beyond_ac) { *b_is_beyond_ac = 0; }
         return vSize2(bx);
     }
 
