@@ -1,6 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "skin.h"
-#include "polygonOptimizer.h"
 #include "utils/polygonUtils.h"
 
 namespace cura 
@@ -77,15 +76,16 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             skin_part.insets.push_back(Polygons());
             if (i == 0)
             {
-                offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters_0);
+                PolygonUtils::offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters_0);
                 Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
                 skin_part.perimeterGaps.add(in_between);
             } else
             {
-                offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &skin_part.perimeterGaps, avoidOverlappingPerimeters);
+                PolygonUtils::offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &skin_part.perimeterGaps, avoidOverlappingPerimeters);
             }
-                
-            optimizePolygons(skin_part.insets[i]);
+            
+            // optimize polygons: remove unnnecesary verts
+            skin_part.insets[i].simplify();
             if (skin_part.insets[i].size() < 1)
             {
                 skin_part.insets.pop_back();

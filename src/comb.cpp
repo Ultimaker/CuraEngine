@@ -10,7 +10,7 @@ namespace cura {
 
 bool Comb::moveInsideBoundary(Point* p, int distance)
 {
-    return moveInside(boundary_inside, *p, distance) != NO_INDEX;
+    return PolygonUtils::moveInside(boundary_inside, *p, distance) != NO_INDEX;
 }
 
 
@@ -90,12 +90,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     unsigned int start_inside_poly = NO_INDEX;
     if (startInside) 
     {
-        start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+        start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
         if (!inside(start_inside_poly) || start_inside_poly == NO_INDEX)
         {
             if (start_inside_poly != NO_INDEX)
             { // if not yet inside because of overshoot, try again
-                start_inside_poly = moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
+                start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
             }
             if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
             {
@@ -106,12 +106,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     unsigned int end_inside_poly = NO_INDEX;
     if (endInside)
     {
-        end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+        end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
         if (!inside(endPoint) || end_inside_poly == NO_INDEX)
         {
             if (end_inside_poly != NO_INDEX)
             { // if not yet inside because of overshoot, try again
-                end_inside_poly = moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
+                end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
             }
             if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
             {
@@ -140,8 +140,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         
         if (startInside && endInside)
         {
-            ClosestPolygonPoint middle_from_cp = findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
-            ClosestPolygonPoint middle_to_cp = findClosest(middle_from_cp.location, boundary_inside[end_part_boundary_poly_idx]);
+            ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
+            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from_cp.location, boundary_inside[end_part_boundary_poly_idx]);
 //             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
             middle_from = middle_from_cp.location;
             middle_to = middle_to_cp.location;
@@ -156,13 +156,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             else if (!startInside && endInside)
             {
                 middle_from = startPoint;
-                ClosestPolygonPoint middle_to_cp = findClosest(middle_from, boundary_inside[end_part_boundary_poly_idx]);
+                ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from, boundary_inside[end_part_boundary_poly_idx]);
                 middle_to = middle_to_cp.location;
             }
             else if (startInside && !endInside)
             {
                 middle_to = endPoint;
-                ClosestPolygonPoint middle_from_cp = findClosest(middle_to, boundary_inside[start_part_boundary_poly_idx]);
+                ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to, boundary_inside[start_part_boundary_poly_idx]);
                 middle_from = middle_from_cp.location;
             }
         }
@@ -182,12 +182,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             Point from_outside = middle_from;
             if (startInside || middle.inside(from_outside, true))
             { // move outside
-                moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
+                PolygonUtils::moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
             Point to_outside = middle_to;
             if (endInside || middle.inside(to_outside, true))
             { // move outside
-                moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
+                PolygonUtils::moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
@@ -329,7 +329,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
             ; point_idx != polyCrossings.max.point_idx
             ; point_idx = (point_idx < poly.size() - 1) ? (point_idx + 1) : (0))
         {
-            combPath.push_back(getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
+            combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
         }
     }
     else
@@ -339,7 +339,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
         
         for(unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
         {
-            combPath.push_back(getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
+            combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
         }
     }
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x, transformed_startPoint.Y))); 
@@ -366,9 +366,9 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
     {
         Point& current_point = optimized_comb_path.back();
-        if (polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
+        if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
         {
-            if (polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx - 1]))
+            if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx - 1]))
             {
                 comb_path.cross_boundary = true;
             }
@@ -381,7 +381,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             // TODO: add the below extra optimization? (+/- 7% extra computation time, +/- 2% faster print for Dual_extrusion_support_generation.stl)
             while (optimized_comb_path.size() > 1)
             {
-                if (polygonCollidesWithlineSegment(boundary, optimized_comb_path[optimized_comb_path.size() - 2], comb_path[point_idx]))
+                if (PolygonUtils::polygonCollidesWithlineSegment(boundary, optimized_comb_path[optimized_comb_path.size() - 2], comb_path[point_idx]))
                 {
                     break;
                 }

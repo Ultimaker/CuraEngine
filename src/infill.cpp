@@ -18,7 +18,7 @@ void generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons*
             result.add(r);
         }
         Polygons next_outline;
-        offsetExtrusionWidth(outline, true, extrusionWidth, next_outline, in_between, avoidOverlappingPerimeters);
+        PolygonUtils::offsetExtrusionWidth(outline, true, extrusionWidth, next_outline, in_between, avoidOverlappingPerimeters);
         outline = next_outline;
     } 
 

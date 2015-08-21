@@ -182,7 +182,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
             supportLayer_this = supportLayer_this.offset(extension_offset);
         }
         
-        supportLayer_this = supportLayer_this.simplify(50); // TODO: hardcoded value!
+        supportLayer_this.simplify(50); // TODO: hardcoded value!
         
         if (supportMinAreaSqrt > 0)
         {

@@ -3,6 +3,7 @@
 
 #include <list>
 
+#include "linearAlg2D.h"
 #include "../debug.h"
 namespace cura 
 {
@@ -10,7 +11,7 @@ namespace cura
 int64_t offset_safe_allowance = 20; // make all offset safe operations a bit less safe to allow for small variations in walls which are supposed to be exactly x perimeters thick
 int64_t in_between_min_dist_half = 10;
 
-void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (inward)? -1 : 1;
     int distance = (inward)? -extrusionWidth : extrusionWidth;
@@ -26,7 +27,8 @@ void offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polyg
             in_between->add(poly.offset(distance/2 + direction*in_between_min_dist_half).difference(result.offset(-distance/2 - direction*in_between_min_dist_half)));
     }
 }
-void offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+
+void PolygonUtils::offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -43,7 +45,7 @@ void offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int ext
 }
 
 
-void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -57,12 +59,12 @@ void offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& resu
     }
 }
 
-void removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
+void PolygonUtils::removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
 {
     result = poly.offset(extrusionWidth/2).offset(-extrusionWidth).offset(extrusionWidth/2);
 }
 
-Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
 {
     Point p0 = poly[(point_idx > 0) ? (point_idx - 1) : (poly.size() - 1)];
     Point p1 = poly[point_idx];
@@ -78,7 +80,7 @@ Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_
 /*
  * Implementation assumes moving inside, but moving outside should just as well be possible.
  */
-unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
+unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
 {
     Point ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
@@ -185,7 +187,7 @@ unsigned int moveInside(Polygons& polygons, Point& from, int distance, int64_t m
 }
 
 
-void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
+void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
     PolygonRef poly1 = poly1_result.poly;
     PolygonRef poly2 = poly2_result.poly;
@@ -215,7 +217,7 @@ void findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoi
     walkToNearestSmallestConnection(poly1_result, poly2_result);    
 }
 
-void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
+void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result)
 {
     PolygonRef poly1 = poly1_result.poly;
     PolygonRef poly2 = poly2_result.poly;
@@ -239,7 +241,7 @@ void walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestP
     }
 }
 
-ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx)
+ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef polygon, int start_idx)
 {
     ClosestPolygonPoint forth = findNearestClosest(from, polygon, start_idx, 1);
     ClosestPolygonPoint back = findNearestClosest(from, polygon, start_idx, -1);
@@ -253,7 +255,7 @@ ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start
     }
 }
 
-ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction)
+ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction)
 {
     if (polygon.size() == 0)
     {
@@ -272,7 +274,7 @@ ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start
         Point& p1 = polygon[p1_idx];
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLine(from, p1 ,p2);
+        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {
@@ -289,7 +291,7 @@ ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-ClosestPolygonPoint findClosest(Point from, Polygons& polygons)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons)
 {
 
     Polygon emptyPoly;
@@ -321,7 +323,7 @@ ClosestPolygonPoint findClosest(Point from, Polygons& polygons)
     return best;
 }
 
-ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
 {
     if (polygon.size() == 0)
     {
@@ -341,7 +343,7 @@ ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
         if (p2_idx >= polygon.size()) p2_idx = 0;
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = getClosestOnLine(from, p1 ,p2);
+        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
         int64_t dist = vSize2(from - closestHere);
         if (dist < closestDist)
         {
@@ -355,35 +357,6 @@ ClosestPolygonPoint findClosest(Point from, PolygonRef polygon)
 }
 
 
-Point getClosestOnLine(Point from, Point p0, Point p1)
-{
-    Point direction = p1 - p0;
-    Point toFrom = from-p0;
-    int64_t projected_x = dot(toFrom, direction) ;
-
-    int64_t x_p0 = 0;
-    int64_t x_p1 = vSize2(direction);
-
-    if (projected_x <= x_p0)
-    {
-        return p0;
-    }
-    if (projected_x >= x_p1)
-    {
-        return p1;
-    }
-    else
-    {
-        if (vSize2(direction) == 0)
-        {
-            std::cout << "warning! too small segment" << std::endl;
-            return p0;
-        }
-        Point ret = p0 + projected_x / vSize(direction) * direction  / vSize(direction);
-        return ret ;
-    }
-
-}
 
 
 
@@ -393,12 +366,7 @@ Point getClosestOnLine(Point from, Point p0, Point p1)
 
 
 
-
-
-
-
-
-bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
+bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, int start_idx, int poly_start_idx, GivenDistPoint& result)
 {
     
     Point prev_poly_point = poly[(start_idx + poly_start_idx) % poly.size()];
@@ -475,7 +443,7 @@ bool getNextPointWithDistance(Point from, int64_t dist, const PolygonRef poly, i
 
 
 
-bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
     Point p0 = transformation_matrix.apply(poly.back());
     for(Point p1_ : poly)
@@ -494,7 +462,7 @@ bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoi
 }
 
 
-bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 
@@ -502,15 +470,15 @@ bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& e
     Point transformed_startPoint = transformation_matrix.apply(startPoint);
     Point transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    return polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
+    return PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
-bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+bool PolygonUtils::polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
     for(PolygonRef poly : polys)
     {
         if (poly.size() == 0) { continue; }
-        if (polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
+        if (PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
         {
             return true;
         }
@@ -520,7 +488,7 @@ bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoi
 }
 
 
-bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 

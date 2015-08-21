@@ -22,7 +22,7 @@ bool PolygonRef::inside(Point p, bool border_result)
     {
         Point p1 = thiss[n];
         // no tests unless the segment p0-p1 is at least partly at, or to right of, p.X
-        short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+        short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
         if (comp == 1)
         {
             crossings++;
@@ -50,7 +50,7 @@ bool Polygons::inside(Point p, bool border_result)
         Point p0 = poly.back();
         for(Point& p1 : poly)
         {
-            short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings++;
@@ -84,7 +84,7 @@ unsigned int Polygons::findInside(Point p, bool border_result)
         Point p0 = poly.back();
         for(Point& p1 : poly)
         {
-            short comp = pointLiesOnTheRightOfLine(p, p0, p1);
+            short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
             {
                 crossings[poly_idx]++;
@@ -127,6 +127,96 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     }
     if (n_unevens % 2 == 0) { ret = NO_INDEX; }
     return ret;
+}
+
+void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared){
+    PolygonRef& thiss = *this;
+    
+    if (size() <= 2)
+    {
+        clear();
+        return; 
+    }
+    
+    { // remove segments smaller than allowed_error_distance
+    // this is neccesary in order to avoid the case where a long segment is followed by a lot of small segments would get simplified to a long segment going to the wrong end point
+    //  .......                _                 _______
+    // |                      /                 |
+    // |     would become    /    instead of    |
+    // |                    /                   |
+        Point* last = &thiss.back();
+        unsigned int writing_idx = 0;
+        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+        {
+            Point& here = thiss[poly_idx];
+            if (vSize2(*last - here) < smallest_line_segment_squared)
+            {
+                // don't add the point
+            }
+            else 
+            {
+                thiss[writing_idx] = here;
+                writing_idx++;
+                last = &here;
+            }
+        }
+        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    }
+    
+    Point* last = &thiss[0];
+    unsigned int writing_idx = 1;
+    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+    {
+        Point& here = thiss[poly_idx];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            // don't add the point to the result
+            continue;
+        }
+        Point& next = thiss[(poly_idx+1) % size()];
+        char here_is_beyond_line;
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next, &here_is_beyond_line);
+        if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
+        {// don't add the point to the result
+        } else 
+        {
+            thiss[writing_idx] = here;
+            writing_idx++;
+            last = &here;
+        }
+    }
+    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    
+            
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+    
+    { // handle the line segments spanning the vector end and begin
+        Point* last = &thiss.back();
+        Point& here = thiss[0];
+        if ( vSize2(here-*last) < allowed_error_distance_squared )
+        {
+            remove(0);
+        }
+        Point& next = thiss[1];
+        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
+        if (error2 < allowed_error_distance_squared)
+        {
+            remove(0);
+        } else 
+        {
+            // leave it in
+        }
+    }
+    
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
 }
 
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
@@ -238,40 +328,6 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     }
 }
 
-void Polygons::debugOutputHTML(const char* filename, bool dotTheVertices)
-{
-    FILE* out = fopen(filename, "w");
-    fprintf(out, "<!DOCTYPE html><html><body>");
-    Point modelSize = max() - min();
-    modelSize.X = std::max(modelSize.X, modelSize.Y);
-    modelSize.Y = std::max(modelSize.X, modelSize.Y);
-    Point modelMin = min();
-
-    fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width: 500px; height:500px\">\n");
-    for(PolygonsPart& parts : splitIntoParts())
-    {
-        for(unsigned int j=0;j<parts.size();j++)
-        {
-            Polygon poly = parts[j];
-            fprintf(out, "<polygon points=\"");
-            for(Point& p : poly)
-            {
-                fprintf(out, "%f,%f ", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
-            }
-            if (j == 0)
-                fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-            else
-                fprintf(out, "\" style=\"fill:red; stroke:black;stroke-width:1\" />\n");
-            
-            if (dotTheVertices)
-                for(Point& p : poly)
-                    fprintf(out, "<circle cx=\"%f\" cy=\"%f\" r=\"2\" stroke=\"black\" stroke-width=\"3\" fill=\"black\" />", float(p.X - modelMin.X)/modelSize.X*500, float(p.Y - modelMin.Y)/modelSize.Y*500);
-        }
-    }
-    fprintf(out, "</svg>\n");
-    fprintf(out, "</body></html>");
-    fclose(out);
-}
 
 
 }//namespace cura

@@ -142,7 +142,6 @@ public:
         return ret;
     }
 
-
     double area() const
     {
         return ClipperLib::Area(*polygon);
@@ -217,6 +216,13 @@ public:
      */
     bool inside(Point p, bool border_result = false);
     
+    /*!
+     * Smooth out the polygon and store the result in \p result.
+     * Smoothing is performed by removing line segments smaller than \p remove_length
+     * 
+     * \param remove_length The length of the largest segment removed
+     * \param result (output) The result polygon, assumed to be empty
+     */
     void smooth(int remove_length, PolygonRef result)
     {
         PolygonRef& thiss = *this;
@@ -234,68 +240,13 @@ public:
         }
     }
 
-    void simplify(int allowed_error_distance_squared, PolygonRef result) //!< removes consecutive line segments with same orientation
-    {
-        PolygonRef& thiss = *this;
-        ClipperLib::Path* poly = result.polygon;
-        
-        if (size() < 4)
-        {
-            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-                poly->push_back(thiss[poly_idx]);
-            return;
-        }
-        
-        Point& last = thiss[0];
-        result.add(last);
-        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
-        {
-            /*
-             *    /|
-             * c / | a
-             *  /__|
-             *  \ b|
-             * e \ | d
-             *    \|
-             * 
-             * b^2 = c^2 - a^2
-             * b^2 = e^2 - d^2
-             * 
-             * approximately: (this is asymptotically true for d -> 0)
-             * a/d = c/e
-             * a/(a+d) = c/(c+e)
-             * a^2 / (a+d)^2 = c^2 / (c+e)^2
-             * a^2 = c^2 * (a+d)^2/ (c+e)^2
-             * 
-             */
-            if ( vSize2(thiss[poly_idx]-last) < allowed_error_distance_squared )
-            {
-                continue;
-            }
-            Point& next = thiss[(poly_idx+1) % size()];
-            auto square = [](double in) { return in*in; };
-            int64_t a2 = vSize2(next-thiss[poly_idx]) * vSize2(next-last) /  static_cast<int64_t>(square(vSizeMM(next-last) + vSizeMM(thiss[poly_idx]-last))*1000*1000);
-            
-            int64_t error2 = vSize2(next-thiss[poly_idx]) - a2;
-            if (error2 < allowed_error_distance_squared)
-            {
-                // don't add the point to the result
-            } else 
-            {
-                poly->push_back(thiss[poly_idx]);
-                last = thiss[poly_idx];
-            }
-        }
-        
-        if (result.size() < 3)
-        {
-            poly->clear();
-        
-            for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-                poly->push_back(thiss[poly_idx]);
-            return;
-        }
-    }
+    /*! 
+     * removes consecutive line segments with same orientation and changes this polygon
+     * 
+     * \param smallest_line_segment_squared maximal squared length of removed line segments
+     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     */
+    void simplify(int smallest_line_segment_squared = 100, int allowed_error_distance_squared = 25);
 
     void pop_back()
     { 
@@ -520,17 +471,28 @@ public:
         return ret;
     }
     
-    Polygons simplify(int allowed_error_distance) //!< removes points connected to similarly oriented lines
+    /*!
+     * removes points connected to similarly oriented lines
+     * 
+     * \param smallest_line_segment_squared maximal squared length of removed line segments
+     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     */
+    void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
     {
         int allowed_error_distance_squared = allowed_error_distance * allowed_error_distance;
-        Polygons ret;
+        int smallest_line_segment_squared = smallest_line_segment * smallest_line_segment;
         Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
         {
-            thiss[p].simplify(allowed_error_distance_squared, ret.newPoly());
+            thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
+            if (thiss[p].size() < 3)
+            {
+                remove(p);
+                p--;
+            }
         }
-        return ret;
     }
+    
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
@@ -736,8 +698,6 @@ public:
             }
         }
     }
-    
-    void debugOutputHTML(const char* filename, bool dotTheVertices = false);
 };
 
 /*!

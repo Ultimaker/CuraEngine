@@ -1,6 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "inset.h"
-#include "polygonOptimizer.h"
 #include "utils/polygonUtils.h"
 namespace cura {
 
@@ -19,11 +18,11 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
         {
             if (line_width_0 < nozzle_width)
             {
-                offsetSafe(part->outline, - nozzle_width/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
+                PolygonUtils::offsetSafe(part->outline, - nozzle_width/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
             }
             else 
             {
-                offsetSafe(part->outline, - line_width_0/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
+                PolygonUtils::offsetSafe(part->outline, - line_width_0/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
             }
         } else if (i == 1)
         {
@@ -31,18 +30,20 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
             {
                 int offset_from_first_boundary_for_edge_of_outer_wall = -nozzle_width/2; 
                 // ideally this /\ should be: nozzle_width/2 - line_width_0; however, factually, the nozzle will fill up part of the perimeter gaps
-                offsetSafe(part->insets[0], nozzle_width/2 - line_width_0 - line_width_x/2, offset_from_first_boundary_for_edge_of_outer_wall, line_width_x, part->insets[1], &part->perimeterGaps, avoidOverlappingPerimeters);
+                PolygonUtils::offsetSafe(part->insets[0], nozzle_width/2 - line_width_0 - line_width_x/2, offset_from_first_boundary_for_edge_of_outer_wall, line_width_x, part->insets[1], &part->perimeterGaps, avoidOverlappingPerimeters);
             }
             else 
             {
-                offsetSafe(part->insets[0], -line_width_0/2 - line_width_x/2, -line_width_0/2, line_width_x, part->insets[1], &part->perimeterGaps, avoidOverlappingPerimeters);
+                PolygonUtils::offsetSafe(part->insets[0], -line_width_0/2 - line_width_x/2, -line_width_0/2, line_width_x, part->insets[1], &part->perimeterGaps, avoidOverlappingPerimeters);
             }
         } else
         {
-            offsetExtrusionWidth(part->insets[i-1], true, line_width_x, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+            PolygonUtils::offsetExtrusionWidth(part->insets[i-1], true, line_width_x, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
         }
-            
-        optimizePolygons(part->insets[i]);
+        
+        
+        //Finally optimize all the polygons. Every point removed saves time in the long run.
+        part->insets[i].simplify();
         if (part->insets[i].size() < 1)
         {
             part->insets.pop_back();

@@ -1,4 +1,6 @@
 
+#include <list>
+
 #include "FffGcodeWriter.h"
 #include "Progress.h"
 #include "wallOverlap.h"
@@ -357,10 +359,11 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     processDraftShield(storage, gcode_layer, layer_nr);
 
     //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
-    std::vector<SliceMeshStorage*> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
+    std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
     gcode_layer.setCombing(true);
-    for(SliceMeshStorage* mesh : mesh_order)
+    for(unsigned int mesh_idx : mesh_order)
     {
+        SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
         if (mesh->getSettingBoolean("magic_mesh_surface_mode"))
         {
             addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcode_layer, layer_nr);
@@ -453,31 +456,33 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     
 }
 
-std::vector<SliceMeshStorage*> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
 {
-    std::vector<SliceMeshStorage*> ret;
-    std::vector<SliceMeshStorage*> add_list;
-    for(SliceMeshStorage& mesh : storage.meshes)
-        add_list.push_back(&mesh);
+    std::vector<unsigned int> ret;
+    std::list<unsigned int> add_list;
+    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        add_list.push_back(mesh_idx);
 
     int add_extruder_nr = current_extruder;
     while(add_list.size() > 0)
     {
-        for(unsigned int idx=0; idx<add_list.size(); idx++)
+        for(auto add_it = add_list.begin(); add_it != add_list.end(); )
         {
-            if (add_list[idx]->getSettingAsIndex("extruder_nr") == add_extruder_nr)
+            if (storage.meshes[*add_it].getSettingAsIndex("extruder_nr") == add_extruder_nr)
             {
-                ret.push_back(add_list[idx]);
-                add_list.erase(add_list.begin() + idx);
-                idx--;
+                ret.push_back(*add_it);
+                add_it = add_list.erase(add_it);
+            } 
+            else 
+            {
+                ++add_it;
             }
         }
         if (add_list.size() > 0)
-            add_extruder_nr = add_list[0]->getSettingAsIndex("extruder_nr");
+            add_extruder_nr = storage.meshes[*add_list.begin()].getSettingAsIndex("extruder_nr");
     }
     return ret;
 }
-
 
 void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
 {
@@ -669,7 +674,32 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
 {
     bool compensate_overlap = mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
+    /*
     
+    problem: 
+    code below should be here!
+    addPolygonsByOptimizer should itself compute the polyStart differently 
+    
+    Point* start = nullptr;
+    bool vertical_z_seam = true; // TODO
+    bool randomized_z_seam = false;
+    if (vertical_z_seam)
+    {
+        int64_t highest_x = std::numeric_limits<int64_t>::min();
+        for (Point& point : part.insets[0])
+        {
+            if (point.X > highest_x)
+            {
+                start = &point;
+                highest_x = point.X;
+            }
+        }
+    }
+    else if (randomized_z_seam)
+    {
+        start = &part->insets[0][random];
+    }
+    */
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         if (mesh->getSettingBoolean("magic_spiralize"))
@@ -766,7 +796,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             case Fill_Concentric:
                 {
                     Polygons in_outline;
-                    offsetSafe(skin_part.outline, -extrusion_width/2, extrusion_width, in_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                    PolygonUtils::offsetSafe(skin_part.outline, -extrusion_width/2, extrusion_width, in_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"));
                     if (mesh->getSettingString("fill_perimeter_gaps") != "Nowhere")
                     {
                         generateConcentricInfillDense(in_outline, skin_polygons, &part.perimeterGaps, extrusion_width, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"));

@@ -381,7 +381,7 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
     {
         const PolygonRef upperPart = parts1[prt];
         
-        ClosestPolygonPoint closestInPoly = findClosest(start_close_to, upperPart);
+        ClosestPolygonPoint closestInPoly = PolygonUtils::findClosest(start_close_to, upperPart);
 
         
         PolygonRef part_top = result.newPoly();
@@ -392,7 +392,7 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
         
         for (Point upper_point = upperPart[closestInPoly.pos]; found; upper_point = next_upper.location)
         {
-            found = getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, idx, closestInPoly.pos, next_upper);
+            found = PolygonUtils::getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, idx, closestInPoly.pos, next_upper);
 
             
             if (!found) 
@@ -442,7 +442,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
         for (const Point& upper_point : upperPart)
         {
             
-            ClosestPolygonPoint lowerPolyPoint = findClosest(upper_point, supporting);
+            ClosestPolygonPoint lowerPolyPoint = PolygonUtils::findClosest(upper_point, supporting);
             Point& lower = lowerPolyPoint.location;
             
             Point3 lower3 = Point3(lower.X, lower.Y, z0);

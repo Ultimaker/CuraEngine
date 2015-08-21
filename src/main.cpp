@@ -14,27 +14,9 @@
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
-#include "sliceDataStorage.h"
 
-#include "MeshGroup.h"
-#include "settings.h"
-#include "settingRegistry.h"
-#include "multiVolumes.h"
-#include "polygonOptimizer.h"
-#include "slicer.h"
-#include "layerPart.h"
-#include "inset.h"
-#include "skin.h"
-#include "infill.h"
-#include "bridge.h"
-#include "support.h"
-#include "pathOrderOptimizer.h"
-#include "skirt.h"
-#include "raft.h"
-#include "comb.h"
-#include "gcodeExport.h"
 #include "fffProcessor.h"
-#include "Progress.h"
+#include "settingRegistry.h"
 
 namespace cura
 {
