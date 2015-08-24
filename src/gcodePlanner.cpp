@@ -43,7 +43,6 @@ GCodePlanner::GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, Retrac
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
     totalPrintTime = 0.0;
-    alwaysRetract = false;
     currentExtruder = gcode.getExtruderNr();
     if (retraction_combing)
     {
@@ -170,14 +169,6 @@ void GCodePlanner::addTravel(Point p)
 
 void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
-    if (alwaysRetract)
-    {
-        path = getLatestPathWithConfig(&travelConfig);
-        if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
-        {
-            path->retract = true;
-        }
-    }
     if (path == nullptr)
     {
         path = getLatestPathWithConfig(&travelConfig);

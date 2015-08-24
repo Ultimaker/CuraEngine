@@ -336,9 +336,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), layer_nr, comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-    
-    if (!getSettingBoolean("retraction_combing")) 
-        gcode_layer.setAlwaysRetract(true);
 
     int z = storage.meshes[0].layers[layer_nr].printZ;         
     gcode.setZ(z);
@@ -415,25 +412,24 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     gcode_layer.setCombing(false);
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
+    {
         gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+    }
     gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
 }
 
 void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
 {
-    gcode_layer.setCombing(false);
     if (storage.oozeShield.size() > 0)
     {
-        gcode_layer.setAlwaysRetract(true);
+        gcode_layer.setCombing(false);
         gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
-        gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     }
 }
 
 void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
 {
-    gcode_layer.setCombing(false);
     if (storage.draft_protection_shield.size() == 0)
     {
         return;
@@ -450,9 +446,8 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
         return;
     }
     
-    gcode_layer.setAlwaysRetract(true);
+    gcode_layer.setCombing(false);
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
-    gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     
 }
 

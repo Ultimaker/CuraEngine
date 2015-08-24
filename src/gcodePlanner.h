@@ -56,7 +56,6 @@ private:
     double travelSpeedFactor; // TODO: remove this unused var?
     int currentExtruder;
     
-    bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
     
@@ -98,11 +97,6 @@ public:
     int getExtruder()
     {
         return currentExtruder;
-    }
-
-    void setAlwaysRetract(bool alwaysRetract)
-    {
-        this->alwaysRetract = alwaysRetract;
     }
 
     void setExtrudeSpeedFactor(double speedFactor)
