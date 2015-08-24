@@ -138,6 +138,18 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
     {
         const rapidjson::Value& data = setting_iterator->value;
         
+        if (data.HasMember("type") && data["type"].IsString() && 
+            (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
+        {
+            logWarning("Loading polygon setting %s not implemented...\n", setting_iterator->name.GetString());
+            /// When this setting has children, add those children to the parent setting.
+            if (data.HasMember("children") && data["children"].IsObject())
+            {
+                _addSettingsToCategory(category, data["children"], parent);
+            }
+            continue;
+        }
+        
         std::string label;
         if (!setting_iterator->value.HasMember("label") || !data["label"].IsString())
         {
