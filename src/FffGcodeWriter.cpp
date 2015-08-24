@@ -98,7 +98,7 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
+    storage.retraction_config.amount = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
     storage.retraction_config.primeAmount = INT2MM(getSettingInMicrons("retraction_extra_prime_amount"));
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -109,7 +109,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.retraction_config_per_extruder[extruder].amount = INT2MM(train->getSettingInMicrons("retraction_amount"));
+        storage.retraction_config_per_extruder[extruder].amount = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
         storage.retraction_config_per_extruder[extruder].primeAmount = INT2MM(train->getSettingInMicrons("retraction_extra_prime_amount"));
         storage.retraction_config_per_extruder[extruder].speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
