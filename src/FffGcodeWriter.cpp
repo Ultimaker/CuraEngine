@@ -120,7 +120,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config.amount = INT2MM(mesh.getSettingInMicrons("retraction_amount"));
+        mesh.retraction_config.amount = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
         mesh.retraction_config.primeAmount = INT2MM(mesh.getSettingInMicrons("retraction_extra_prime_amount"));
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
