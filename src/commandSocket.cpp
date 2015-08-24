@@ -193,7 +193,7 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
     {
         return;
     }
-
+    
     cura::proto::Layer* layer = d->getLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(height);
