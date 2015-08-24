@@ -98,6 +98,8 @@ travel_avoid_distance
 travel_avoid_other_parts
 travel_compensate_overlapping_walls_enabled
 
+z_seam_type
+
 
 [ DUAL EXTRUSION ]
 extruder_nr

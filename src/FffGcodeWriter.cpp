@@ -550,7 +550,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
-    PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY());
+    
+    EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
+    PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY(), z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
@@ -574,7 +576,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
 
-        processInsets(gcode_layer, mesh, part, layer_nr);
+        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             infill_angle -= 45;
@@ -671,35 +673,9 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     }
 }
 
-void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
+void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
 {
     bool compensate_overlap = mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
-    /*
-    
-    problem: 
-    code below should be here!
-    addPolygonsByOptimizer should itself compute the polyStart differently 
-    
-    Point* start = nullptr;
-    bool vertical_z_seam = true; // TODO
-    bool randomized_z_seam = false;
-    if (vertical_z_seam)
-    {
-        int64_t highest_x = std::numeric_limits<int64_t>::min();
-        for (Point& point : part.insets[0])
-        {
-            if (point.X > highest_x)
-            {
-                start = &point;
-                highest_x = point.X;
-            }
-        }
-    }
-    else if (randomized_z_seam)
-    {
-        start = &part->insets[0][random];
-    }
-    */
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         if (mesh->getSettingBoolean("magic_spiralize"))
@@ -715,13 +691,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 if (!compensate_overlap)
                 {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type);
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type);
                 }
             }
             else

@@ -233,4 +233,17 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
     return Support_None;
 }
 
+EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Random")
+        return EZSeamType::RANDOM;
+    if (value == "Shortest")
+        return EZSeamType::SHORTEST;
+    if (value == "Back")
+        return EZSeamType::BACK;
+    return EZSeamType::SHORTEST;
+}
+
+
 }//namespace cura

@@ -210,10 +210,9 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type)
 {
-    //log("addPolygonsByOptimizer");
-    PathOrderOptimizer orderOptimizer(lastPosition);
+    PathOrderOptimizer orderOptimizer(lastPosition, z_seam_type);
     for(unsigned int i=0;i<polygons.size();i++)
         orderOptimizer.addPolygon(polygons[i]);
     orderOptimizer.optimize();
