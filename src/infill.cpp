@@ -30,7 +30,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
             PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
             outline = &outline_offsetted;
         }
-        if (shorterThen(extrusion_width - line_distance, 10))
+        if (abs(extrusion_width - line_distance) < 10)
         {
             generateConcentricInfillDense(*outline, result_polygons, in_between, extrusion_width, avoidOverlappingPerimeters);
         }
