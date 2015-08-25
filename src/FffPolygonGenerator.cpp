@@ -23,6 +23,9 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
+    if (commandSocket)
+        commandSocket->beginSendSlicedObject();
+    
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
         return false;
@@ -120,7 +123,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
                 
             if (commandSocket)
+            {
                 commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 && !has_raft? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+            }
         }
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
@@ -132,9 +137,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    if (commandSocket)
-        commandSocket->beginSendSlicedObject();
-    
     // const 
     unsigned int total_layers = storage.meshes.at(0).layers.size();
     //layerparts2HTML(storage, "output/output.html");

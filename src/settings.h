@@ -109,6 +109,13 @@ enum ESupportType
     Support_Everywhere
 };
 
+enum class EZSeamType
+{
+    RANDOM,
+    SHORTEST,
+    BACK
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of sparse layers that can be combined into a single sparse extrusion.
@@ -154,6 +161,7 @@ public:
     EFillMethod getSettingAsFillMethod(std::string key);
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
     ESupportType getSettingAsSupportType(std::string key);
+    EZSeamType getSettingAsZSeamType(std::string key);
 };
 
 /*!

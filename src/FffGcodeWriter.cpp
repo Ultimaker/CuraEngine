@@ -98,7 +98,7 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
+    storage.retraction_config.amount = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
     storage.retraction_config.primeAmount = INT2MM(getSettingInMicrons("retraction_extra_prime_amount"));
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -109,7 +109,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.retraction_config_per_extruder[extruder].amount = INT2MM(train->getSettingInMicrons("retraction_amount"));
+        storage.retraction_config_per_extruder[extruder].amount = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
         storage.retraction_config_per_extruder[extruder].primeAmount = INT2MM(train->getSettingInMicrons("retraction_extra_prime_amount"));
         storage.retraction_config_per_extruder[extruder].speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -120,7 +120,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config.amount = INT2MM(mesh.getSettingInMicrons("retraction_amount"));
+        mesh.retraction_config.amount = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
         mesh.retraction_config.primeAmount = INT2MM(mesh.getSettingInMicrons("retraction_extra_prime_amount"));
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -336,9 +336,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), layer_nr, comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-    
-    if (!getSettingBoolean("retraction_combing")) 
-        gcode_layer.setAlwaysRetract(true);
 
     int z = storage.meshes[0].layers[layer_nr].printZ;         
     gcode.setZ(z);
@@ -415,25 +412,24 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     gcode_layer.setCombing(false);
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
+    {
         gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+    }
     gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
 }
 
 void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
 {
-    gcode_layer.setCombing(false);
     if (storage.oozeShield.size() > 0)
     {
-        gcode_layer.setAlwaysRetract(true);
+        gcode_layer.setCombing(false);
         gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
-        gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     }
 }
 
 void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
 {
-    gcode_layer.setCombing(false);
     if (storage.draft_protection_shield.size() == 0)
     {
         return;
@@ -450,9 +446,8 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
         return;
     }
     
-    gcode_layer.setAlwaysRetract(true);
+    gcode_layer.setCombing(false);
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
-    gcode_layer.setAlwaysRetract(!getSettingBoolean("retraction_combing"));
     
 }
 
@@ -550,7 +545,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
-    PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY());
+    
+    EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
+    PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY(), z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
@@ -574,7 +571,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
 
-        processInsets(gcode_layer, mesh, part, layer_nr);
+        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             infill_angle -= 45;
@@ -671,35 +668,9 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     }
 }
 
-void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr)
+void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
 {
     bool compensate_overlap = mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
-    /*
-    
-    problem: 
-    code below should be here!
-    addPolygonsByOptimizer should itself compute the polyStart differently 
-    
-    Point* start = nullptr;
-    bool vertical_z_seam = true; // TODO
-    bool randomized_z_seam = false;
-    if (vertical_z_seam)
-    {
-        int64_t highest_x = std::numeric_limits<int64_t>::min();
-        for (Point& point : part.insets[0])
-        {
-            if (point.X > highest_x)
-            {
-                start = &point;
-                highest_x = point.X;
-            }
-        }
-    }
-    else if (randomized_z_seam)
-    {
-        start = &part->insets[0][random];
-    }
-    */
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         if (mesh->getSettingBoolean("magic_spiralize"))
@@ -711,51 +682,50 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
         }
         if (mesh->getSettingBoolean("outer_inset_first"))
         {
-            for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)
-            {
-                if (inset_number == 0)
-                {
-                    if (!compensate_overlap)
-                    {
-                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
-                    }
-                    else
-                    {
-                        Polygons& outer_wall = part.insets[0];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
-                    }
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
-                }
-            }
+			for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)			
+			{
+				if (inset_number == 0)
+				{
+					if (!compensate_overlap)
+					{
+						gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type);
+					}
+					else
+					{
+						Polygons& outer_wall = part.insets[0];
+						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type);
+					}
+				}
+				else
+				{
+					gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+				}
+			}
         }
         else
         {
-            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
-            {
-                if (inset_number == 0)
-                {
-                    if (!compensate_overlap)
-                    {
-                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config);
-                    }
-                    else
-                    {
-                        Polygons& outer_wall = part.insets[0];
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation);
-                    }
-                }
-                else
-                {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
-                }
-            }
-
-        }
+			for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+			{
+				if (inset_number == 0)
+				{
+					if (!compensate_overlap)
+					{
+						gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type);
+					}
+					else
+					{
+						Polygons& outer_wall = part.insets[0];
+						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type);
+					}
+				}
+				else
+				{
+					gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+				}
+			}
+		}
     }
 }
 

@@ -56,7 +56,6 @@ private:
     double travelSpeedFactor; // TODO: remove this unused var?
     int currentExtruder;
     
-    bool alwaysRetract;
     double extraTime;
     double totalPrintTime;
     
@@ -98,11 +97,6 @@ public:
     int getExtruder()
     {
         return currentExtruder;
-    }
-
-    void setAlwaysRetract(bool alwaysRetract)
-    {
-        this->alwaysRetract = alwaysRetract;
     }
 
     void setExtrudeSpeedFactor(double speedFactor)
@@ -155,7 +149,7 @@ public:
 
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST);
 
     /*!
      * Add lines to the gcode with optimized order.

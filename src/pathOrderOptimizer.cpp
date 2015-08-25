@@ -76,18 +76,30 @@ void PathOrderOptimizer::optimize()
     prev_point = startPoint;
     for(unsigned int n=0; n<polyOrder.size(); n++) /// decide final starting points in each polygon
     {
-        int i_polygon = polyOrder[n];
-        int best = getClosestPointInPolygon(prev_point, i_polygon);
-        polyStart[i_polygon] = best;
-        prev_point = polygons[i_polygon][best];
+        int poly_idx = polyOrder[n];
+        int point_idx = getPolyStart(prev_point, poly_idx);
+        polyStart[poly_idx] = point_idx;
+        prev_point = polygons[poly_idx][point_idx];
 
     }
 }
 
-inline int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int i_polygon)
+int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
 {
-    PolygonRef poly = polygons[i_polygon];
-    int best = -1;
+    switch (type)
+    {
+        case EZSeamType::BACK:      return getFarthestPointInPolygon(poly_idx); 
+        case EZSeamType::RANDOM:    return getRandomPointInPolygon(poly_idx); 
+        case EZSeamType::SHORTEST:  return getClosestPointInPolygon(prev_point, poly_idx);
+        default:                    return getClosestPointInPolygon(prev_point, poly_idx);
+    }
+}
+
+
+int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
+{
+    PolygonRef poly = polygons[poly_idx];
+    int best_point_idx = -1;
     float bestDist = std::numeric_limits<float>::infinity();
     bool orientation = poly.orientation();
     for(unsigned int i_point=0 ; i_point<poly.size() ; i_point++)
@@ -100,11 +112,33 @@ inline int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int i_
             dot_score = -dot_score;
         if (dist + dot_score < bestDist)
         {
-            best = i_point;
+            best_point_idx = i_point;
             bestDist = dist;
         }
     }
-    return best;
+    return best_point_idx;
+}
+
+int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
+{
+    return rand() % polygons[poly_idx].size();
+}
+
+
+int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
+{
+    PolygonRef poly = polygons[poly_idx];
+    int best_point_idx = -1;
+    float best_y = std::numeric_limits<float>::min();
+    for(unsigned int point_idx=0 ; point_idx<poly.size() ; point_idx++)
+    {
+        if (poly[point_idx].Y > best_y)
+        {
+            best_point_idx = point_idx;
+            best_y = poly[point_idx].Y;
+        }
+    }
+    return best_point_idx;
 }
 
 

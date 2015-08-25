@@ -97,6 +97,11 @@ public:
         polygon->clear();
     }
 
+    /*!
+     * On Y-axis positive upward displays, Orientation will return true if the polygon's orientation is counter-clockwise.
+     * 
+     * from http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/Orientation.htm
+     */
     bool orientation() const
     {
         return ClipperLib::Orientation(*polygon);
