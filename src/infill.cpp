@@ -7,8 +7,12 @@
 
 namespace cura {
 
-void generateInfill(EFillMethod pattern, const Polygons& in_outline, int outlineOffset, Polygons& result_polygons, Polygons& result_lines, Polygons* in_between, int extrusion_width, int line_distance, double infill_overlap, double fill_angle, bool connect_zigzags, bool use_endPieces)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between)
 {
+    if (in_outline.size() == 0) return;
+    if (line_distance == 0) return;
+    const Polygons* outline = &in_outline;
+    Polygons outline_offsetted;
     switch(pattern)
     {
     case Fill_Grid:
@@ -21,13 +25,30 @@ void generateInfill(EFillMethod pattern, const Polygons& in_outline, int outline
         generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
         break;
     case Fill_Concentric:
-        generateConcentricInfill(in_outline, result_polygons, line_distance);
+        if (outlineOffset != 0)
+        {
+            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
+            outline = &outline_offsetted;
+        }
+        if (shorterThen(extrusion_width - line_distance, 10))
+        {
+            generateConcentricInfillDense(*outline, result_polygons, in_between, extrusion_width, avoidOverlappingPerimeters);
+        }
+        else 
+        {
+            generateConcentricInfill(*outline, result_polygons, line_distance);
+        }
         break;
     case Fill_ZigZag:
-        generateZigZagInfill(in_outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connect_zigzags, use_endPieces);
+        if (outlineOffset != 0)
+        {
+            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
+            outline = &outline_offsetted;
+        }
+        generateZigZagInfill(*outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connect_zigzags, use_endPieces);
         break;
     default:
-        logError("infill_pattern has unknown value.\n");
+        logError("Fill pattern has unknown value.\n");
         break;
     }
 }
