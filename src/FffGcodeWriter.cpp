@@ -743,7 +743,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     int current_extruder_nr = gcode_layer.getExtruder();
     
     if (getSettingBoolean("support_roof_enable"))
-    {   
+    {
         if (support_roof_extruder_nr != support_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {
             addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
@@ -818,6 +818,9 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
         return;
     }
     
+    EFillMethod pattern = getSettingAsFillMethod("support_roof_pattern");
+    int support_line_distance = getSettingInMicrons("support_roof_line_distance");
+    
     int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
     
@@ -831,11 +834,15 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
     double infill_overlap = 0;
-    int outline_offset =  0; // - roofConfig.getLineWidth() / 2;
+    int outline_offset =  0; 
     
-    Polygons skinLines;
-    generateLineInfill(storage.support.supportLayers[layer_nr].roofs, outline_offset, skinLines, storage.support_roof_config.getLineWidth(), storage.support_roof_config.getLineWidth(), infill_overlap, fillAngle);
-    gcode_layer.addLinesByOptimizer(skinLines, &storage.support_roof_config);
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, false, storage.support_roof_config.getLineWidth(), support_line_distance, infill_overlap, fillAngle, false, true);
+    Polygons support_polygons;
+    Polygons support_lines;
+    infill_comp.generate(support_polygons, support_lines, nullptr);
+
+    gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
+    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config);
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
