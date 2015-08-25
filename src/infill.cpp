@@ -3,8 +3,34 @@
 #include "functional"
 #include "utils/polygonUtils.h"
 #include "utils/AABB.h"
+#include "utils/logoutput.h"
 
 namespace cura {
+
+void generateInfill(EFillMethod pattern, const Polygons& in_outline, int outlineOffset, Polygons& result_polygons, Polygons& result_lines, Polygons* in_between, int extrusion_width, int line_distance, double infill_overlap, double fill_angle, bool connect_zigzags, bool use_endPieces)
+{
+    switch(pattern)
+    {
+    case Fill_Grid:
+        generateGridInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 2, infill_overlap, fill_angle);
+        break;
+    case Fill_Lines:
+        generateLineInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle);
+        break;
+    case Fill_Triangles:
+        generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
+        break;
+    case Fill_Concentric:
+        generateConcentricInfill(in_outline, result_polygons, line_distance);
+        break;
+    case Fill_ZigZag:
+        generateZigZagInfill(in_outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connect_zigzags, use_endPieces);
+        break;
+    default:
+        logError("infill_pattern has unknown value.\n");
+        break;
+    }
+}
 
     
       
