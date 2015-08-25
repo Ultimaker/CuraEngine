@@ -11,7 +11,7 @@ namespace cura
 int64_t offset_safe_allowance = 20; // make all offset safe operations a bit less safe to allow for small variations in walls which are supposed to be exactly x perimeters thick
 int64_t in_between_min_dist_half = 10;
 
-void PolygonUtils::offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetExtrusionWidth(const Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (inward)? -1 : 1;
     int distance = (inward)? -extrusionWidth : extrusionWidth;
@@ -28,7 +28,7 @@ void PolygonUtils::offsetExtrusionWidth(Polygons& poly, bool inward, int extrusi
     }
 }
 
-void PolygonUtils::offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetSafe(const Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -45,7 +45,7 @@ void PolygonUtils::offsetSafe(Polygons& poly, int distance, int offset_first_bou
 }
 
 
-void PolygonUtils::offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetSafe(const Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -59,7 +59,7 @@ void PolygonUtils::offsetSafe(Polygons& poly, int distance, int extrusionWidth, 
     }
 }
 
-void PolygonUtils::removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
+void PolygonUtils::removeOverlapping(const Polygons& poly, int extrusionWidth, Polygons& result)
 {
     result = poly.offset(extrusionWidth/2).offset(-extrusionWidth).offset(extrusionWidth/2);
 }
