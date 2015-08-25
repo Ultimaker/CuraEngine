@@ -163,10 +163,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         generateSupportAreas(storage, &mesh, total_layers, commandSocket);
-        for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+        if (storage.support.generated)
         {
-            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
+            for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+            {
+                Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
+                sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
+            }
         }
     }
     if (getSettingBoolean("support_roof_enable"))
