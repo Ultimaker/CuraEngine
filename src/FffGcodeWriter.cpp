@@ -106,7 +106,9 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     storage.retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
     storage.retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
     storage.retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
-    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
+    
+    int extruder_count = storage.meshgroup->getExtruderCount();
+    for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         storage.retraction_config_per_extruder[extruder].amount = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;

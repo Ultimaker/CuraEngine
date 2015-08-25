@@ -158,6 +158,7 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
  */
 void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
+    if (lineSpacing == 0) return;
     if (in_outline.size() == 0) return;
     Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(extrusionWidth * infillOverlap / 100);
     if (outline.size() == 0) return;

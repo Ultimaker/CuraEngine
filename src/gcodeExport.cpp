@@ -267,6 +267,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
     }else{
         //Normal E handling.
+        
         if (extrusion_mm3_per_mm > 0.000001)
         {
             Point3 diff = Point3(x,y,z) - getPosition();
@@ -346,7 +347,9 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
 
     if (config->primeAmount > 0)
+    {
         extrusion_amount += config->primeAmount;
+    }
     retractionPrimeSpeed = config->primeSpeed;
     
     if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
