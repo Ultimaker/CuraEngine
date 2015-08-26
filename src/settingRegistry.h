@@ -152,16 +152,40 @@ public:
     
     bool settingsLoaded();
     /*!
-     * Load settings from a json file.
+     * Load settings from a json file and all the parents it inherits from.
+     * 
+     * Uses recursion to load the parent json file.
      * 
      * \param filename The filename of the json file to parse
      * \return an error code or zero of succeeded
      */
-    int loadJSON(std::string filename);
+    int loadJSONsettings(std::string filename);
+    
 private:
+    /*!
+     * Load a json document.
+     * 
+     * \param filename The filename of the json file to parse
+     * \param json_document (output) the document to be loaded
+     * \return an error code or zero of succeeded
+     */
+    int loadJSON(std::string filename, rapidjson::Document& json_document);
+    
+    /*!
+     * Load settings from a single json file.
+     * 
+     * \param filename The filename of the json file to parse
+     * \param warn_duplicates whether to warn for duplicate definitions
+     * \return an error code or zero of succeeded
+     */
+    int loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates);
+    
     SettingRegistry();
     
-    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool add_to_settings = true);
+    /*!
+     * \param warn_duplicates whether to warn for duplicate definitions
+     */
+    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool warn_duplicates, bool add_to_settings = true);
 };
 
 }//namespace cura

@@ -92,7 +92,7 @@ void connect(fffProcessor& processor, int argc, char **argv)
                     break;
                 case 'j':
                     argn++;
-                    if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn]))
                     {
                         cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                     }
@@ -169,7 +169,7 @@ void slice(fffProcessor& processor, int argc, char **argv)
                         break;
                     case 'j':
                         argn++;
-                        if (SettingRegistry::getInstance()->loadJSON(argv[argn]))
+                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn]))
                         {
                             cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                         }

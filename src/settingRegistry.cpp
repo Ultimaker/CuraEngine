@@ -2,6 +2,8 @@
 
 #include <sstream>
 #include <iostream> // debug IO
+#include <libgen.h> // dirname
+
 #include "utils/logoutput.h"
 
 #include "rapidjson/rapidjson.h"
@@ -46,28 +48,52 @@ bool SettingRegistry::settingsLoaded()
     return settings.size() > 0;
 }
 
-int SettingRegistry::loadJSON(std::string filename)
+int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_document)
+{
+    FILE* f = fopen(filename.c_str(), "rb");
+    if (!f)
+    {
+        cura::logError("Couldn't open JSON file.\n");
+        return 1;
+    }
+    char read_buffer[4096];
+    rapidjson::FileReadStream reader_stream(f, read_buffer, sizeof(read_buffer));
+    json_document.ParseStream(reader_stream);
+    fclose(f);
+    if (json_document.HasParseError())
+    {
+        cura::logError("Error parsing JSON(offset %u): %s\n", (unsigned)json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
+        return 2;
+    }
+    
+    return 0;
+}
+
+int SettingRegistry::loadJSONsettings(std::string filename)
 {
     rapidjson::Document json_document;
     
+    int err = loadJSON(filename, json_document);
+    if (err) { return err; }
+    
+    if (json_document.HasMember("inherits"))
     {
-        FILE* f = fopen(filename.c_str(), "rb");
-        if (!f)
-        {
-            cura::logError("Couldn't open JSON file.\n");
-            return 1;
-        }
-        char read_buffer[4096];
-        rapidjson::FileReadStream reader_stream(f, read_buffer, sizeof(read_buffer));
-        json_document.ParseStream(reader_stream);
-        fclose(f);
-        if (json_document.HasParseError())
-        {
-            cura::logError("Error(offset %u): %s\n", (unsigned)json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
-            return 2;
-        }
+        std::string filename_copy = std::string(filename.c_str()); // copy the string because dirname(.) changes the input string!!!
+        char* filename_cstr = (char*)filename_copy.c_str();
+        int err = loadJSONsettings(std::string(dirname(filename_cstr)) + std::string("/") + json_document["inherits"].GetString());
+        if (err) { return err; }
+        return loadJSONsettingsFromDoc(json_document, false);
     }
+    else 
+    {
+        return loadJSONsettingsFromDoc(json_document, true);
+    }
+    
+}
 
+int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
+{
+    
     if (!json_document.IsObject())
     {
         cura::logError("JSON file is not an object.\n");
@@ -87,7 +113,7 @@ int SettingRegistry::loadJSON(std::string filename)
                 for (auto it = trains.Begin(); it != trains.End(); ++it)
                 {
                     SettingConfig* child = category_trains->addChild(std::to_string(idx), std::to_string(idx));
-                    _addSettingsToCategory(category_trains, *it, child, false);
+                    _addSettingsToCategory(category_trains, *it, child, warn_duplicates, false);
                     
                     idx++;
                 }
@@ -102,7 +128,7 @@ int SettingRegistry::loadJSON(std::string filename)
     {
         categories.emplace_back("machine_settings", "Machine Settings");
         SettingCategory* category_machine_settings = &categories.back();
-        _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL);
+        _addSettingsToCategory(category_machine_settings, json_document["machine_settings"], NULL, warn_duplicates);
     }
     
     if (json_document.HasMember("categories"))
@@ -125,14 +151,14 @@ int SettingRegistry::loadJSON(std::string filename)
             categories.emplace_back(category_iterator->name.GetString(), category_iterator->value["label"].GetString());
             SettingCategory* category = &categories.back();
             
-            _addSettingsToCategory(category, category_iterator->value["settings"], NULL);
+            _addSettingsToCategory(category, category_iterator->value["settings"], NULL, warn_duplicates);
         }
     }
     
     return 0;
 }
 #include <string>
-void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool add_to_settings)
+void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool warn_duplicates, bool add_to_settings)
 {
     for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object.MemberBegin(); setting_iterator != json_object.MemberEnd(); ++setting_iterator)
     {
@@ -145,7 +171,7 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
             /// When this setting has children, add those children to the parent setting.
             if (data.HasMember("children") && data["children"].IsObject())
             {
-                _addSettingsToCategory(category, data["children"], parent);
+                _addSettingsToCategory(category, data["children"], parent, warn_duplicates);
             }
             continue;
         }
@@ -205,7 +231,7 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         }
         
         /// Register the setting in the settings map lookup.
-        if (settingExists(config->getKey()))
+        if (warn_duplicates && settingExists(config->getKey()))
         {
             cura::logError("Duplicate definition of setting: %s\n", config->getKey().c_str());
         }
@@ -218,7 +244,7 @@ void SettingRegistry::_addSettingsToCategory(SettingCategory* category, const ra
         /// When this setting has children, add those children to this setting.
         if (data.HasMember("children") && data["children"].IsObject())
         {
-            _addSettingsToCategory(category, data["children"], config);
+            _addSettingsToCategory(category, data["children"], config, warn_duplicates);
         }
     }
 }
