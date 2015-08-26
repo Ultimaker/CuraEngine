@@ -50,9 +50,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processLayer(storage, layer_nr, total_layers, has_raft);
     }
-    
-//     gcode.writeRetraction(&storage.retraction_config, true);
-    gcode.writeRetraction_extruderSwitch();
 
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
     
