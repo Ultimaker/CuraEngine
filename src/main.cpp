@@ -56,6 +56,13 @@ void signal_FPE(int n)
     exit(1);
 }
 
+void print_call(int argc, char **argv)
+{
+    cura::logError("Command called:\n");
+    for (int idx= 0; idx < argc; idx++)
+        cura::logError("%s ", argv[idx]);
+    cura::logError("\n");
+}
 
 void connect(fffProcessor& processor, int argc, char **argv)
 {
@@ -92,6 +99,8 @@ void connect(fffProcessor& processor, int argc, char **argv)
                     break;
                 default:
                     cura::logError("Unknown option: %c\n", *str);
+                    print_call(argc, argv);
+                    print_usage();
                     break;
                 }
             }
@@ -209,6 +218,7 @@ void slice(fffProcessor& processor, int argc, char **argv)
                         break;
                     default:
                         cura::logError("Unknown option: %c\n", *str);
+                        print_call(argc, argv);
                         print_usage();
                         exit(1);
                         break;
@@ -220,6 +230,7 @@ void slice(fffProcessor& processor, int argc, char **argv)
         {
             
             cura::logError("Unknown option: %s\n", argv[argn]);
+            print_call(argc, argv);
             print_usage();
             exit(1);
         }
@@ -272,7 +283,7 @@ int main(int argc, char **argv)
     Progress::init();
     
     fffProcessor processor;
-
+    
     logCopyright("\n");
     logCopyright("Cura_SteamEngine version %s\n", VERSION);
     logCopyright("Copyright (C) 2014 David Braam\n");
@@ -308,6 +319,7 @@ int main(int argc, char **argv)
     else
     {
         cura::logError("Unknown command: %s\n", argv[1]);
+        print_call(argc, argv);
         print_usage();
         exit(1);
     }
