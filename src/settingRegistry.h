@@ -61,17 +61,12 @@ public:
 class SettingConfig : public SettingContainer
 {
 private:
-//     std::string label;
-//     std::string key;
     std::string type;
     std::string default_value;
     std::string unit;
     SettingContainer* parent;
-//     std::list<SettingConfig> children;
 public:
     SettingConfig(std::string key, std::string label, SettingContainer* parent);
-
-//     SettingConfig* addChild(std::string key, std::string label);
     
     /*!
      * Get the SettingConfig::children.

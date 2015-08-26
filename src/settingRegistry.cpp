@@ -53,12 +53,6 @@ SettingConfig::SettingConfig(std::string key, std::string label, SettingContaine
 //     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
 }
 
-// SettingConfig* SettingConfig::addChild(std::string key, std::string label)
-// {
-//     children.emplace_back(key, label, this);
-//     return &children.back();
-// }
-
 bool SettingRegistry::settingExists(std::string key) const
 {
     return settings.find(key) != settings.end();
