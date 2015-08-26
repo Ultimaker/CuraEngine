@@ -88,7 +88,7 @@ std::string SettingsMessenger::getSettingString(std::string key)
 
 void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
 {
-    const SettingCategory* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
+    const SettingContainer* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
     
     if (!machine_extruder_trains) 
     {
@@ -244,6 +244,7 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
         return EZSeamType::BACK;
     return EZSeamType::SHORTEST;
 }
+
 
 
 }//namespace cura

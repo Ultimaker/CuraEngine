@@ -18,15 +18,17 @@ class SettingConfig;
  * Setting category.
  * Filled from the fdmprinter.json file. Contains one or more children settings.
  */
-class SettingCategory
+class SettingContainer
 {
+    friend class SettingConfig;
 private:
-    std::string label;
     std::string key;
+    std::string label;
     std::list<SettingConfig> children;
 public:
     std::string getKey() const { return key; }
-    SettingCategory(std::string key, std::string label);
+    std::string getLabel() const { return label; }
+    SettingContainer(std::string key, std::string label);
     
     SettingConfig* addChild(std::string key, std::string label);
     
@@ -56,20 +58,20 @@ public:
  * Filled from the fdmprinter.json file. Can contain child settings, and is registered in the
  * setting registry with it's key.
  */
-class SettingConfig
+class SettingConfig : public SettingContainer
 {
 private:
-    std::string label;
-    std::string key;
+//     std::string label;
+//     std::string key;
     std::string type;
     std::string default_value;
     std::string unit;
-    SettingConfig* parent;
-    std::list<SettingConfig> children;
+    SettingContainer* parent;
+//     std::list<SettingConfig> children;
 public:
-    SettingConfig(std::string key, std::string label, SettingConfig* parent);
+    SettingConfig(std::string key, std::string label, SettingContainer* parent);
 
-    SettingConfig* addChild(std::string key, std::string label);
+//     SettingConfig* addChild(std::string key, std::string label);
     
     /*!
      * Get the SettingConfig::children.
@@ -128,7 +130,7 @@ private:
     static SettingRegistry instance;
 
     std::unordered_map<std::string, SettingConfig*> settings;
-    std::list<SettingCategory> categories;
+    std::list<SettingContainer> categories;
 public:
     /*!
      * Get the SettingRegistry.
@@ -140,7 +142,7 @@ public:
     static SettingRegistry* getInstance() { return &instance; }
     
     bool settingExists(std::string key) const;
-    const SettingConfig* getSettingConfig(std::string key);
+    SettingConfig* getSettingConfig(std::string key);
     
     /*!
      * Return the first category with the given key as name, or a null pointer.
@@ -148,7 +150,7 @@ public:
      * \param key the key as it is in the JSON file
      * \return The first category in the list having the \p key
      */
-    SettingCategory* getCategory(std::string key);
+    SettingContainer* getCategory(std::string key);
     
     bool settingsLoaded();
     /*!
@@ -162,6 +164,7 @@ public:
     int loadJSONsettings(std::string filename);
     
 private:
+    std::string toString(rapidjson::Type type);
     /*!
      * Load a json document.
      * 
@@ -185,7 +188,7 @@ private:
     /*!
      * \param warn_duplicates whether to warn for duplicate definitions
      */
-    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool warn_duplicates, bool add_to_settings = true);
+    void _addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 };
 
 }//namespace cura
