@@ -570,16 +570,16 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         }
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
@@ -598,7 +598,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
     if (infill_line_distance > 0)
     {
@@ -611,11 +611,12 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
             infill_comp.generate(infill_polygons, infill_lines, nullptr);
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
             gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n]);
+            sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
         }
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
     
     if (infill_line_distance == 0 || part.infill_area.size() == 0)
@@ -639,6 +640,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
     }
+    sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
 }
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
