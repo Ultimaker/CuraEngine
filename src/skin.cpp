@@ -2,9 +2,12 @@
 #include "skin.h"
 #include "utils/polygonUtils.h"
 
+#define MIN_AREA_SIZE (INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) 
+
 namespace cura 
 {
 
+        
 void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
     generateSkinAreas(layerNr, storage, extrusionWidth, downSkinCount, upSkinCount);
@@ -50,8 +53,7 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
         
         Polygons skin = upskin.unionPolygons(downskin);
           
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value! = circle area * 8 * 0.3  !?!??!
-        skin.removeSmallAreas(minAreaSize);
+        skin.removeSmallAreas(MIN_AREA_SIZE);
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())
         {
@@ -113,7 +115,7 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
                 }
             }
         }
-        sparse.removeSmallAreas(3.0);//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
+        sparse.removeSmallAreas(MIN_AREA_SIZE);
         
         part.sparse_outline.push_back(sparse.offset(infill_skin_overlap));
     }
@@ -176,8 +178,7 @@ void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusio
             }
             part.perimeterGaps = part.perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
         }
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
-        part.perimeterGaps.removeSmallAreas(minAreaSize);
+        part.perimeterGaps.removeSmallAreas(MIN_AREA_SIZE);
     }
 }
 
