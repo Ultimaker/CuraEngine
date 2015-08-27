@@ -313,6 +313,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
+        int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
         generateSkins(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
@@ -321,7 +322,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
             {
                 infill_skin_overlap = extrusionWidth / 2;
             }
-            generateSparse(layer_nr, mesh, extrusionWidth, infill_skin_overlap);
+            generateSparse(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
             if (mesh.getSettingString("fill_perimeter_gaps") == "Skin")
             {
                 generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
@@ -335,6 +336,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
         SliceLayer& layer = mesh.layers[layer_nr];
         for(SliceLayerPart& part : layer.parts)
         {
+            sendPolygons(InfillType, layer_nr, part.sparse_outline[0], extrusionWidth_infill);
             for (SkinPart& skin_part : part.skin_parts)
             {
                 sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
