@@ -10,6 +10,8 @@
 #include "Progress.h"
 #include "utils/gettime.h"
 
+#define SHOW_ALL_SETTINGS true
+
 namespace cura {
 
 //FusedFilamentFabrication processor.
@@ -19,13 +21,44 @@ private:
     FffPolygonGenerator polygon_generator;
     FffGcodeWriter gcode_writer;
     CommandSocket* command_socket;
-
+    
+    bool first_meshgroup;
+    
+    std::string profile_string = "";
+    
+    std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup)
+    {
+        std::stringstream sstream;
+        if (first_meshgroup)
+        {
+            sstream << " -g";
+        }
+        else 
+        {
+            sstream << " --next";
+        }
+        sstream << meshgroup.getAllLocalSettingsString();
+        for (int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
+        {
+            ExtruderTrain* train = meshgroup.getExtruderTrain(extruder_nr);
+            sstream << " -e" << extruder_nr << train->getAllLocalSettingsString();
+        }
+        for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
+        {
+            Mesh& mesh = meshgroup.meshes[mesh_idx];
+            sstream << " -e" << mesh.getSettingAsCount("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
+        }
+        sstream << "\n";
+        return sstream.str();
+    }
+    
 public:
     TimeKeeper time_keeper; // TODO: use singleton time keeper
     
     fffProcessor()
     : polygon_generator(this)
     , gcode_writer(this)
+    , first_meshgroup(true)
     {
         command_socket = NULL;
     }
@@ -70,7 +103,7 @@ public:
     
     void finalize()
     {
-        gcode_writer.finalize();
+        gcode_writer.finalize(this, profile_string);
     }
 
     bool processFiles(const std::vector<std::string> &files)
@@ -98,6 +131,7 @@ public:
     
     bool processMeshGroup(MeshGroup* meshgroup)
     {
+        if (SHOW_ALL_SETTINGS) { logWarning(getAllSettingsString(*meshgroup, first_meshgroup).c_str()); }
         time_keeper.restart();
         if (!meshgroup)
             return false;
@@ -133,6 +167,8 @@ public:
         Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
+        profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
+        first_meshgroup = false;
         return true;
     }
 };

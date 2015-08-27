@@ -921,11 +921,17 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
     gcode.writeFanCommand(fanSpeed);
 }
 
-void FffGcodeWriter::finalize()
+void FffGcodeWriter::finalize(SettingsBase* processor, std::string profile_string)
 {
     gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
+    gcode.writeCode("M25 ;Stop reading from this point on.");
+    if (processor)
+    {
+        gcode.writeComment("Cura profile string:");
+        gcode.writeComment(processor->getAllLocalSettingsString() + profile_string);
+    }
 }
 
 

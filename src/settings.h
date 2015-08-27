@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <unordered_map>
+#include <sstream>
 
 #include "utils/floatpoint.h"
 
@@ -191,6 +192,19 @@ public:
     
     void setSetting(std::string key, std::string value);
     std::string getSettingString(std::string key); //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+    
+    std::string getAllLocalSettingsString()
+    {
+        std::stringstream sstream;
+        for (auto pair : setting_values)
+        {
+            if (!pair.second.empty())
+            {
+                sstream << " -s " << pair.first << "=\"" << pair.second << "\"";
+            }
+        }
+        return sstream.str();
+    }
     
     void debugOutputAllLocalSettings() 
     {

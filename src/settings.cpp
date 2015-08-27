@@ -246,5 +246,4 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
 }
 
 
-
 }//namespace cura
