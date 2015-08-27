@@ -179,7 +179,7 @@ void FffGcodeWriter::setConfigSkin(SliceMeshStorage& mesh, int layer_thickness)
 
 void FffGcodeWriter::setConfigInfill(SliceMeshStorage& mesh, int layer_thickness)
 {
-    for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
+    for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
     {
         mesh.infill_config[idx].setLineWidth(mesh.getSettingInMicrons("infill_line_width") * (idx + 1));
         mesh.infill_config[idx].setSpeed(mesh.getSettingInMillimetersPerSecond("speed_infill"));
@@ -399,7 +399,7 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
             mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-            for(unsigned int idx=0; idx<MAX_SPARSE_COMBINE; idx++)
+            for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
             {
                 mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             }
@@ -565,21 +565,21 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             infill_angle += 90;
         int extrusion_width =  mesh->infill_config[0].getLineWidth();
         
-        int sparse_infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
+        int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, sparse_infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
         }
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
@@ -598,14 +598,14 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
-    if (sparse_infill_line_distance > 0)
+    if (infill_line_distance > 0)
     {
-        //Print the thicker sparse lines first. (double or more layer thickness, infill combined with previous layers)
-        for(unsigned int n=1; n<part.sparse_outline.size(); n++)
+        //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
+        for(unsigned int n=1; n<part.infill_area.size(); n++)
         {
-            Infill infill_comp(mesh->getSettingAsFillMethod("infill_pattern"), part.sparse_outline[n], 0, false, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle, false, false);
+            Infill infill_comp(mesh->getSettingAsFillMethod("infill_pattern"), part.infill_area[n], 0, false, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
             Polygons infill_polygons;
             Polygons infill_lines;
             infill_comp.generate(infill_polygons, infill_lines, nullptr);
@@ -615,10 +615,10 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
 {
     
-    if (sparse_infill_line_distance == 0 || part.sparse_outline.size() == 0)
+    if (infill_line_distance == 0 || part.infill_area.size() == 0)
     {
         return;
     }
@@ -628,7 +628,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     Polygons infill_lines;
     
     EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    Infill infill_comp(pattern, part.sparse_outline[0], 0, false, extrusion_width, sparse_infill_line_distance, infill_overlap, infill_angle, false, false);
+    Infill infill_comp(pattern, part.infill_area[0], 0, false, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
     infill_comp.generate(infill_polygons, infill_lines, nullptr);
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == Fill_Grid || pattern == Fill_Lines || pattern == Fill_Triangles)

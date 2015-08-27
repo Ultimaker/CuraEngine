@@ -198,24 +198,24 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
      * \param part The part for which to create gcode
-     * \param sparse_infill_line_distance The distance between the infill lines
+     * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth); 
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth); 
     
     /*!
      * Add normal sparse infill for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
      * \param part The part for which to create gcode
-     * \param sparse_infill_line_distance The distance between the infill lines
+     * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth);
     
     /*!
      * Generate the insets for the walls of a given layer part.

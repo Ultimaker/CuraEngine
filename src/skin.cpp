@@ -97,13 +97,13 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
+void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
 {
     SliceLayer& layer = storage.layers[layerNr];
 
     for(SliceLayerPart& part : layer.parts)
     {
-        Polygons sparse = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
+        Polygons infill = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
@@ -111,17 +111,17 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
             {
                 for(SkinPart& skin_part : part2.skin_parts)
                 {
-                    sparse = sparse.difference(skin_part.outline);
+                    infill = infill.difference(skin_part.outline);
                 }
             }
         }
-        sparse.removeSmallAreas(MIN_AREA_SIZE);
+        infill.removeSmallAreas(MIN_AREA_SIZE);
         
-        part.sparse_outline.push_back(sparse.offset(infill_skin_overlap));
+        part.infill_area.push_back(infill.offset(infill_skin_overlap));
     }
 }
 
-void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount)
+void combineInfillLayers(int layerNr, SliceMeshStorage& storage, int amount)
 {
     SliceLayer* layer = &storage.layers[layerNr];
 
@@ -138,14 +138,14 @@ void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount)
             {
                 if (part.boundaryBox.hit(part2.boundaryBox))
                 {
-                    Polygons intersection = part.sparse_outline[n - 1].intersection(part2.sparse_outline[0]).offset(-200).offset(200);
+                    Polygons intersection = part.infill_area[n - 1].intersection(part2.infill_area[0]).offset(-200).offset(200);
                     result.add(intersection);
-                    part.sparse_outline[n - 1] = part.sparse_outline[n - 1].difference(intersection);
-                    part2.sparse_outline[0] = part2.sparse_outline[0].difference(intersection);
+                    part.infill_area[n - 1] = part.infill_area[n - 1].difference(intersection);
+                    part2.infill_area[0] = part2.infill_area[0].difference(intersection);
                 }
             }
             
-            part.sparse_outline.push_back(result);
+            part.infill_area.push_back(result);
         }
     }
 }

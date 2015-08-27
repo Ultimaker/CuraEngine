@@ -119,8 +119,8 @@ enum class EZSeamType
 
 #define MAX_EXTRUDERS 16
 
-//Maximum number of sparse layers that can be combined into a single sparse extrusion.
-#define MAX_SPARSE_COMBINE 8
+//Maximum number of infill layers that can be combined into a single infill extrusion area.
+#define MAX_INFILL_COMBINE 8
 
 class SettingsBase;
 

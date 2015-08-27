@@ -62,8 +62,8 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
  * \param extrusionWidth width of the wall lines
  * \param infill_skin_overlap overlap distance between infill and skin
  */
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap);
-void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount);
+void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap);
+void combineInfillLayers(int layerNr, SliceMeshStorage& storage, int amount);
 
 }//namespace cura
 

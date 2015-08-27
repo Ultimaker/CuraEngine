@@ -198,7 +198,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
     {
         for(SliceMeshStorage& mesh : storage.meshes)
-            combineSparseLayers(layer_number, mesh, mesh.getSettingAsCount("infill_sparse_combine"));
+            combineInfillLayers(layer_number, mesh, mesh.getSettingAsCount("infill_sparse_combine"));
     }
 
     storage.primeTower.computePrimeTowerMax(storage);
@@ -322,7 +322,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
             {
                 infill_skin_overlap = extrusionWidth / 2;
             }
-            generateSparse(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
+            generateInfill(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
             if (mesh.getSettingString("fill_perimeter_gaps") == "Skin")
             {
                 generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
@@ -336,7 +336,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
         SliceLayer& layer = mesh.layers[layer_nr];
         for(SliceLayerPart& part : layer.parts)
         {
-            sendPolygons(InfillType, layer_nr, part.sparse_outline[0], extrusionWidth_infill);
+            sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill);
             for (SkinPart& skin_part : part.skin_parts)
             {
                 sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
