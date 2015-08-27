@@ -16,12 +16,12 @@
 namespace cura {
 
 //FusedFilamentFabrication processor. Singleton class
-class fffProcessor : public SettingsBase , NoCopy
+class FffProcessor : public SettingsBase , NoCopy
 {
 private:
-    static fffProcessor instance; 
+    static FffProcessor instance; 
     
-    fffProcessor()
+    FffProcessor()
     : polygon_generator(this)
     , gcode_writer(this)
     , first_meshgroup(true)
@@ -29,7 +29,7 @@ private:
         command_socket = NULL;
     }
 public:
-    static fffProcessor* getInstance() 
+    static FffProcessor* getInstance() 
     { 
         return &instance; 
     }

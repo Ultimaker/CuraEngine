@@ -1,6 +1,6 @@
 #include "utils/logoutput.h"
 #include "commandSocket.h"
-#include "fffProcessor.h"
+#include "FffProcessor.h"
 #include "Progress.h"
 
 #include <thread>
@@ -57,7 +57,7 @@ public:
 CommandSocket::CommandSocket()
     : d(new Private)
 {
-    fffProcessor::getInstance()->setCommandSocket(this);
+    FffProcessor::getInstance()->setCommandSocket(this);
 }
 
 void CommandSocket::connect(const std::string& ip, int port)
@@ -82,7 +82,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         {
             for(auto object : d->objects_to_slice)
             {
-                fffProcessor::getInstance()->processMeshGroup(object.get());
+                FffProcessor::getInstance()->processMeshGroup(object.get());
             }
             d->objects_to_slice.clear();
             sendPrintTime();
@@ -135,7 +135,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     FMatrix3x3 matrix;
     //d->object_count = 0;
     //d->object_ids.clear();
-    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(fffProcessor::getInstance()));
+    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* object_to_slice = d->objects_to_slice.back().get();
     for(auto object : list->objects())
     {
@@ -179,7 +179,7 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 {
     for(auto setting : list->settings())
     {
-        fffProcessor::getInstance()->setSetting(setting.name(), setting.value());
+        FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
     }
 }
 
@@ -233,8 +233,8 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 void CommandSocket::sendPrintTime()
 {
     auto message = std::make_shared<cura::proto::ObjectPrintTime>();
-    message->set_time(fffProcessor::getInstance()->getTotalPrintTime());
-    message->set_material_amount(fffProcessor::getInstance()->getTotalFilamentUsed(0));
+    message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
+    message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
 }
 
@@ -273,7 +273,7 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::beginGCode()
 {
-    fffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
+    FffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
 }
 
 void CommandSocket::sendGCodeLayer()

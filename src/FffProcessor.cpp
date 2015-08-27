@@ -1,9 +1,9 @@
-#include "fffProcessor.h" 
+#include "FffProcessor.h" 
 
 namespace cura 
 {
 
-fffProcessor fffProcessor::instance; // definition
+FffProcessor FffProcessor::instance; // definition
 
 
 

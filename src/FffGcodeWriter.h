@@ -28,7 +28,7 @@ namespace cura
  */
 class FffGcodeWriter : public SettingsMessenger
 {
-    friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
+    friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
     int max_object_height;
     int meshgroup_number; //!< used for sequential printing of objects

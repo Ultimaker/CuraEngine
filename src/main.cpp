@@ -15,7 +15,7 @@
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
-#include "fffProcessor.h"
+#include "FffProcessor.h"
 #include "settingRegistry.h"
 
 namespace cura
@@ -112,16 +112,16 @@ void connect(int argc, char **argv)
 
 void slice(int argc, char **argv)
 {   
-    fffProcessor::getInstance()->time_keeper.restart();
+    FffProcessor::getInstance()->time_keeper.restart();
     
     FMatrix3x3 transformation; // the transformation applied to a model when loaded
                         
-    MeshGroup meshgroup(fffProcessor::getInstance());
+    MeshGroup meshgroup(FffProcessor::getInstance());
     
     int extruder_train_nr = 0;
 
     SettingsBase* last_extruder_train = meshgroup.getExtruderTrain(0);
-    SettingsBase* last_settings_object = fffProcessor::getInstance();
+    SettingsBase* last_settings_object = FffProcessor::getInstance();
     for(int argn = 2; argn < argc; argn++)
     {
         char* str = argv[argn];
@@ -135,18 +135,18 @@ void slice(int argc, char **argv)
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
                         meshgroup.finalize();
-                        log("Loaded from disk in %5.3fs\n", fffProcessor::getInstance()->time_keeper.restart());
+                        log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
                         
-                        for (int extruder_nr = 0; extruder_nr < fffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
+                        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
                             meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
                         }
                         //start slicing
-                        fffProcessor::getInstance()->processMeshGroup(&meshgroup);
+                        FffProcessor::getInstance()->processMeshGroup(&meshgroup);
                         
                         // initialize loading of new meshes
-                        fffProcessor::getInstance()->time_keeper.restart();
-                        meshgroup = MeshGroup(fffProcessor::getInstance());
+                        FffProcessor::getInstance()->time_keeper.restart();
+                        meshgroup = MeshGroup(FffProcessor::getInstance());
                         last_settings_object = &meshgroup;
                     }catch(...){
                         cura::logError("Unknown exception\n");
@@ -197,7 +197,7 @@ void slice(int argc, char **argv)
                         break;
                     case 'o':
                         argn++;
-                        if (!fffProcessor::getInstance()->setTargetFile(argv[argn]))
+                        if (!FffProcessor::getInstance()->setTargetFile(argv[argn]))
                         {
                             cura::logError("Failed to open %s for output.\n", argv[argn]);
                             exit(1);
@@ -238,7 +238,7 @@ void slice(int argc, char **argv)
         }
     }
 
-    for (extruder_train_nr = 0; extruder_train_nr < fffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
+    for (extruder_train_nr = 0; extruder_train_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
         meshgroup.getExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // also initializes yet uninitialized extruder trains
     }
@@ -250,10 +250,10 @@ void slice(int argc, char **argv)
         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
         meshgroup.finalize();
-        log("Loaded from disk in %5.3fs\n", fffProcessor::getInstance()->time_keeper.restart());
+        log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
         
         //start slicing
-        fffProcessor::getInstance()->processMeshGroup(&meshgroup);
+        FffProcessor::getInstance()->processMeshGroup(&meshgroup);
         
 #ifndef DEBUG
     }catch(...){
@@ -262,7 +262,7 @@ void slice(int argc, char **argv)
     }
 #endif
     //Finalize the processor, this adds the end.gcode. And reports statistics.
-    fffProcessor::getInstance()->finalize();
+    FffProcessor::getInstance()->finalize();
     
 }
 

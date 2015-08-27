@@ -14,7 +14,7 @@ namespace cura
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
- * It's filled during fffProcessor.processSliceData(.) and used in fffProcessor.writeGCode(.) to generate the final gcode.
+ * It's filled during FffProcessor.processSliceData(.) and used in FffProcessor.writeGCode(.) to generate the final gcode.
  */    
 class SkinPart
 {
@@ -25,8 +25,8 @@ public:
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
-    It's filled during the fffProcessor.processSliceData(.), where each step uses data from the previous steps.
-    Finally it's used in the fffProcessor.writeGCode(.) to generate the final gcode.
+    It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
+    Finally it's used in the FffProcessor.writeGCode(.) to generate the final gcode.
  */
 class SliceLayerPart
 {
