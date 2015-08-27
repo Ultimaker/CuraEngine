@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 
+#include "utils/NoCopy.h"
 #include "rapidjson/document.h"
 
 namespace cura
@@ -119,11 +120,13 @@ public:
  * This registry contains all known setting keys.
  * The registry also contains the settings categories to build up the setting hiarcy from the json file.
  */
-class SettingRegistry
+class SettingRegistry : NoCopy
 {
 private:
     static SettingRegistry instance;
 
+    SettingRegistry();
+    
     std::unordered_map<std::string, SettingConfig*> settings;
     std::list<SettingContainer> categories;
 public:
@@ -177,8 +180,6 @@ private:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates);
-    
-    SettingRegistry();
     
     /*!
      * \param warn_duplicates whether to warn for duplicate definitions

@@ -13,11 +13,10 @@
 namespace cura {
 
 
-class fffProcessor;
 class CommandSocket
 {
 public:
-    CommandSocket(fffProcessor* processor);
+    CommandSocket();
     /*!
      * Connect with the GUI
      * This creates and initialises the arcus socket and then continues listening for messages. 

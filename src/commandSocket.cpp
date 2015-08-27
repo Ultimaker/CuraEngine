@@ -22,16 +22,13 @@ class CommandSocket::Private
 {
 public:
     Private()
-        : processor(nullptr)
-        , socket(nullptr)
+        : socket(nullptr)
         , object_count(0)
         , current_sliced_object(nullptr)
         , sliced_objects(0)
     { }
 
     cura::proto::Layer* getLayerById(int id);
-
-    fffProcessor* processor;
 
     Arcus::Socket* socket;
     
@@ -57,11 +54,10 @@ public:
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 };
 
-CommandSocket::CommandSocket(fffProcessor* processor)
+CommandSocket::CommandSocket()
     : d(new Private)
 {
-    d->processor = processor;
-    d->processor->setCommandSocket(this);
+    fffProcessor::getInstance()->setCommandSocket(this);
 }
 
 void CommandSocket::connect(const std::string& ip, int port)
@@ -86,7 +82,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         {
             for(auto object : d->objects_to_slice)
             {
-                d->processor->processMeshGroup(object.get());
+                fffProcessor::getInstance()->processMeshGroup(object.get());
             }
             d->objects_to_slice.clear();
             sendPrintTime();
@@ -139,7 +135,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     FMatrix3x3 matrix;
     //d->object_count = 0;
     //d->object_ids.clear();
-    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(d->processor));
+    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(fffProcessor::getInstance()));
     MeshGroup* object_to_slice = d->objects_to_slice.back().get();
     for(auto object : list->objects())
     {
@@ -183,7 +179,7 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 {
     for(auto setting : list->settings())
     {
-        d->processor->setSetting(setting.name(), setting.value());
+        fffProcessor::getInstance()->setSetting(setting.name(), setting.value());
     }
 }
 
@@ -237,8 +233,8 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 void CommandSocket::sendPrintTime()
 {
     auto message = std::make_shared<cura::proto::ObjectPrintTime>();
-    message->set_time(d->processor->getTotalPrintTime());
-    message->set_material_amount(d->processor->getTotalFilamentUsed(0));
+    message->set_time(fffProcessor::getInstance()->getTotalPrintTime());
+    message->set_material_amount(fffProcessor::getInstance()->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
 }
 
@@ -277,7 +273,7 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::beginGCode()
 {
-    d->processor->setTargetStream(&d->gcode_output_stream);
+    fffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
 }
 
 void CommandSocket::sendGCodeLayer()

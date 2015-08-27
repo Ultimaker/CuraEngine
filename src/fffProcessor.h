@@ -9,14 +9,31 @@
 #include "Wireframe2gcode.h"
 #include "Progress.h"
 #include "utils/gettime.h"
+#include "utils/NoCopy.h"
 
 #define SHOW_ALL_SETTINGS true
 
 namespace cura {
 
-//FusedFilamentFabrication processor.
-class fffProcessor : public SettingsBase
+//FusedFilamentFabrication processor. Singleton class
+class fffProcessor : public SettingsBase , NoCopy
 {
+private:
+    static fffProcessor instance; 
+    
+    fffProcessor()
+    : polygon_generator(this)
+    , gcode_writer(this)
+    , first_meshgroup(true)
+    {
+        command_socket = NULL;
+    }
+public:
+    static fffProcessor* getInstance() 
+    { 
+        return &instance; 
+    }
+    
 private:
     FffPolygonGenerator polygon_generator;
     FffGcodeWriter gcode_writer;
@@ -54,14 +71,6 @@ private:
     
 public:
     TimeKeeper time_keeper; // TODO: use singleton time keeper
-    
-    fffProcessor()
-    : polygon_generator(this)
-    , gcode_writer(this)
-    , first_meshgroup(true)
-    {
-        command_socket = NULL;
-    }
     
     void resetFileNumber()
     {

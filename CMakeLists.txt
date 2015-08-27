@@ -27,6 +27,7 @@ set(engine_SRCS
     src/commandSocket.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
+    src/FffProcessor.cpp
     src/gcodeExport.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
