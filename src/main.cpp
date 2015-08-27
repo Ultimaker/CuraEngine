@@ -203,6 +203,8 @@ void slice(fffProcessor& processor, int argc, char **argv)
                             exit(1);
                         }
                         break;
+                    case 'g':
+                        last_settings_object = &meshgroup;
                     case 's':
                         {
                             //Parse the given setting and store it.
