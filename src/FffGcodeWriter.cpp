@@ -2,6 +2,7 @@
 #include <list>
 
 #include "FffGcodeWriter.h"
+#include "FffProcessor.h"
 #include "Progress.h"
 #include "wallOverlap.h"
 
@@ -921,17 +922,14 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
     gcode.writeFanCommand(fanSpeed);
 }
 
-void FffGcodeWriter::finalize(SettingsBase* processor, std::string profile_string)
+void FffGcodeWriter::finalize()
 {
     gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
     gcode.writeCode("M25 ;Stop reading from this point on.");
-    if (processor)
-    {
-        gcode.writeComment("Cura profile string:");
-        gcode.writeComment(processor->getAllLocalSettingsString() + profile_string);
-    }
+    gcode.writeComment("Cura profile string:");
+    gcode.writeComment(FffProcessor::getInstance()->getAllLocalSettingsString() + FffProcessor::getInstance()->getProfileString());
 }
 
 

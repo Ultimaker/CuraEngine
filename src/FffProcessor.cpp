@@ -3,7 +3,7 @@
 namespace cura 
 {
 
-FffProcessor FffProcessor::instance; // definition
+FffProcessor FffProcessor::instance; // definition must be in cpp
 
 
 std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup)
@@ -31,7 +31,6 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     sstream << "\n";
     return sstream.str();
 }
-
 
 bool FffProcessor::processFiles(const std::vector< std::string >& files)
 {

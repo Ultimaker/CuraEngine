@@ -46,6 +46,8 @@ private:
     std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup);
     
 public:
+    std::string getProfileString() { return profile_string; }
+    
     TimeKeeper time_keeper; // TODO: use singleton time keeper
     
     void resetFileNumber()
@@ -88,7 +90,7 @@ public:
     
     void finalize()
     {
-        gcode_writer.finalize(this, profile_string);
+        gcode_writer.finalize();
     }
 
     bool processFiles(const std::vector<std::string> &files);

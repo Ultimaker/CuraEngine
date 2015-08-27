@@ -296,7 +296,7 @@ private:
     /*!
      * Add the end gcode and set all temperatures to zero.
      */
-    void finalize(SettingsBase* processor = nullptr, std::string profile_string = "");
+    void finalize();
 };
 
 }//namespace cura
