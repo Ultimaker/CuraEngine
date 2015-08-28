@@ -19,9 +19,12 @@ Polygons Comb::getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr
     Polygons layer_outlines;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+        if (!mesh->getSettingBoolean("magic_mesh_surface_mode") && !mesh->getSettingBoolean("magic_spiralize"))
         {
-            layer_outlines.add(part.outline);
+            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+            {
+                layer_outlines.add(part.outline);
+            }
         }
     }
     return layer_outlines;
