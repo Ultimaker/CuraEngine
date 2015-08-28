@@ -33,7 +33,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     
     if (getSettingBoolean("magic_mesh_surface_mode"))
     {
-        slices2polygons_magicPolygonMode(storage, timeKeeper);
+        slices2polygons_meshSurfaceMode(storage, timeKeeper);
     }
     else
     {
@@ -117,10 +117,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
     
  
-            if (layer.parts.size() > 0)
+            if (layer.parts.size() > 0 || (mesh.getSettingBoolean("magic_mesh_surface_mode") && layer.openPolyLines.size() > 0) )
             {
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
-            }
+            } 
                 
             if (commandSocket)
             {
@@ -402,7 +402,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     sendPolygons(SkirtType, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
 
-void FffPolygonGenerator::slices2polygons_magicPolygonMode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
+void FffPolygonGenerator::slices2polygons_meshSurfaceMode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
 {
     // const 
     unsigned int totalLayers = storage.meshes[0].layers.size();

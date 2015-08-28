@@ -13,6 +13,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 {
     Polygons openPolygonList;
     
+    // connect line segments
     for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
     {
         if (segmentList[startSegment].addedToPolygon)
@@ -60,6 +61,8 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     }
     //Clear the segmentList to save memory, it is no longer needed after this point.
     segmentList.clear();
+    
+    // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
     //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
     //First link up polygon ends that are within 2 microns.
@@ -90,9 +93,11 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         }
     }
 
-    //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
-    while(1)
+    if (!mesh->getSettingBoolean("magic_mesh_surface_mode"))
     {
+        //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
+        while(1)
+        {
         int64_t bestScore = MM2INT(10.0) * MM2INT(10.0);
         unsigned int bestA = -1;
         unsigned int bestB = -1;
@@ -156,7 +161,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             }
         }
     }
-
+    }
     if (extensive_stitching)
     {
         //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
@@ -277,7 +282,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     for(unsigned int i=0;i<openPolygonList.size();i++)
     {
         if (openPolygonList[i].size() > 0)
-            openPolygons.newPoly() = openPolygonList[i];
+            openPolylines.add(openPolygonList[i]);
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.

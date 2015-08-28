@@ -18,6 +18,9 @@ PrimeTower::PrimeTower()
 
 void PrimeTower::setConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness)
 {
+    
+    extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
+    
     for (int extr = 0; extr < extruder_count; extr++)
     {
         ExtruderTrain* train = meshgroup->getExtruderTrain(extr);

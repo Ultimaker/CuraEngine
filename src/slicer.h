@@ -44,7 +44,7 @@ public:
     
     int z;
     Polygons polygonList;
-    Polygons openPolygons;
+    Polygons openPolylines;
     
     void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 

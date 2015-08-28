@@ -51,7 +51,6 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     // given settings
     ESupportType support_type = object->getSettingAsSupportType("support_type");
     
-    storage.support.generated = false;
     if (!object->getSettingBoolean("support_enable"))
         return;
     if (support_type == Support_None)

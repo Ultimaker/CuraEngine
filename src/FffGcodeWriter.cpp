@@ -496,37 +496,21 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     Polygons polygons;
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
-        for(unsigned int n=0; n<layer->parts[partNr].outline.size(); n++)
-        {
-            for(unsigned int m=1; m<layer->parts[partNr].outline[n].size(); m++)
-            {
-                Polygon p;
-                p.add(layer->parts[partNr].outline[n][m-1]);
-                p.add(layer->parts[partNr].outline[n][m]);
-                polygons.add(p);
-            }
-            if (layer->parts[partNr].outline[n].size() > 0)
-            {
-                Polygon p;
-                p.add(layer->parts[partNr].outline[n][layer->parts[partNr].outline[n].size()-1]);
-                p.add(layer->parts[partNr].outline[n][0]);
-                polygons.add(p);
-            }
-        }
+        polygons.add(layer->parts[partNr].outline);
     }
-    if (mesh->getSettingBoolean("magic_spiralize")) // TODO: why isthis code here?
+    if (mesh->getSettingBoolean("magic_spiralize")) // TODO: why is this code here?
         mesh->inset0_config.spiralize = true;
 
     gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
     
     Polygons lines;
-    for(unsigned int n=0; n<layer->openLines.size(); n++)
+    for(PolygonRef polyline : layer->openPolyLines)
     {
-        for(unsigned int m=1; m<layer->openLines[n].size(); m++)
+        for(unsigned int point_idx = 1; point_idx<polyline.size(); point_idx++)
         {
             Polygon p;
-            p.add(layer->openLines[n][m-1]);
-            p.add(layer->openLines[n][m]);
+            p.add(polyline[point_idx-1]);
+            p.add(polyline[point_idx]);
             lines.add(p);
         }
     }
@@ -742,7 +726,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
 void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before, bool before_rest)
 {
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
-        return;
+        return; 
     
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");

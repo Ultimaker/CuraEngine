@@ -49,7 +49,7 @@ public:
     // TODO: remove this /\ unused member!
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    Polygons openLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
 };
 
 /******************/
@@ -69,7 +69,7 @@ public:
     
     std::vector<SupportLayer> supportLayers;
 
-    SupportStorage() : layer_nr_max_filled_layer(-1) { }
+    SupportStorage() : generated(false), layer_nr_max_filled_layer(-1) { }
     ~SupportStorage(){ supportLayers.clear(); }
 };
 /******************/

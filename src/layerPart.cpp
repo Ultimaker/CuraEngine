@@ -22,7 +22,7 @@ namespace cura {
 
 void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool union_layers, bool union_all_remove_holes)
 {
-    storageLayer.openLines = layer->openPolygons;
+    storageLayer.openPolyLines = layer->openPolylines;
 
     if (union_all_remove_holes)
     {
@@ -39,7 +39,6 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
     {
         storageLayer.parts.emplace_back();
         storageLayer.parts[i].outline = result[i];
-        assert(result[i].size() > 2);
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
