@@ -244,7 +244,8 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
         bool layer_is_empty = true;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            if (mesh.layers[layer_idx].parts.size() > 0)
+            SliceLayer& layer = mesh.layers[layer_idx];
+            if (layer.parts.size() > 0 || (mesh.getSettingBoolean("magic_mesh_surface_mode") && layer.openPolyLines.size() > 0) )
             {
                 layer_is_empty = false;
                 break;
