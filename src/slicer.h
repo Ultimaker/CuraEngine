@@ -18,7 +18,7 @@ public:
     bool addedToPolygon;
 };
 
-class closePolygonResult
+class ClosePolygonResult
 {   //The result of trying to find a point on a closed polygon line. This gives back the point index, the polygon index, and the point of the connection.
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
@@ -26,7 +26,7 @@ public:
     int polygonIdx;
     unsigned int pointIdx;
 };
-class gapCloserResult
+class GapCloserResult
 {
 public:
     int64_t len;
@@ -49,11 +49,11 @@ public:
     void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
 private:
-    gapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
+    GapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
     {
-        gapCloserResult ret;
-        closePolygonResult c1 = findPolygonPointClosestTo(ip0);
-        closePolygonResult c2 = findPolygonPointClosestTo(ip1);
+        GapCloserResult ret;
+        ClosePolygonResult c1 = findPolygonPointClosestTo(ip0);
+        ClosePolygonResult c2 = findPolygonPointClosestTo(ip1);
         if (c1.polygonIdx < 0 || c1.polygonIdx != c2.polygonIdx)
         {
             ret.len = -1;
@@ -102,9 +102,9 @@ private:
         return ret;
     }
 
-    closePolygonResult findPolygonPointClosestTo(Point input)
+    ClosePolygonResult findPolygonPointClosestTo(Point input)
     {
-        closePolygonResult ret;
+        ClosePolygonResult ret;
         for(unsigned int n=0; n<polygonList.size(); n++)
         {
             Point p0 = polygonList[n][polygonList[n].size()-1];

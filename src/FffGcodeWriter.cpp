@@ -364,7 +364,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         if (mesh->getSettingBoolean("magic_mesh_surface_mode"))
         {
             gcode_layer.setCombing(false);
-            addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcode_layer, layer_nr);
+            addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
         }
         else
         {
@@ -481,7 +481,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -514,6 +514,12 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
             }
         }
     }
+    if (mesh->getSettingBoolean("magic_spiralize")) // TODO: why isthis code here?
+        mesh->inset0_config.spiralize = true;
+
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
+    
+    Polygons lines;
     for(unsigned int n=0; n<layer->openLines.size(); n++)
     {
         for(unsigned int m=1; m<layer->openLines[n].size(); m++)
@@ -521,13 +527,10 @@ void FffGcodeWriter::addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& stor
             Polygon p;
             p.add(layer->openLines[n][m-1]);
             p.add(layer->openLines[n][m]);
-            polygons.add(p);
+            lines.add(p);
         }
     }
-    if (mesh->getSettingBoolean("magic_spiralize"))
-        mesh->inset0_config.spiralize = true;
-
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
+    gcode_layer.addLinesByOptimizer(lines, &mesh->inset0_config);
     
 }
 

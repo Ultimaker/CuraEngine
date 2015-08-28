@@ -168,7 +168,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         {
             unsigned int bestA = -1;
             unsigned int bestB = -1;
-            gapCloserResult bestResult;
+            GapCloserResult bestResult;
             bestResult.len = POINT_MAX;
             bestResult.polygonIdx = -1;
             bestResult.pointIdxA = -1;
@@ -179,7 +179,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                 if (openPolygonList[i].size() < 1) continue;
                 
                 {
-                    gapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[i][openPolygonList[i].size()-1]);
+                    GapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[i][openPolygonList[i].size()-1]);
                     if (res.len > 0 && res.len < bestResult.len)
                     {
                         bestA = i;
@@ -192,7 +192,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                 {
                     if (openPolygonList[j].size() < 1 || i == j) continue;
                     
-                    gapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[j][openPolygonList[j].size()-1]);
+                    GapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[j][openPolygonList[j].size()-1]);
                     if (res.len > 0 && res.len < bestResult.len)
                     {
                         bestA = i;
