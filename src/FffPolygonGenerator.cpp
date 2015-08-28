@@ -416,6 +416,16 @@ void FffPolygonGenerator::slices2polygons_meshSurfaceMode(SliceDataStorage& stor
             {
                 sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
             }
+            for (PolygonRef polyline : layer->openPolyLines)
+            {
+                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
+                {
+                    Polygon segment;
+                    segment.add(polyline[point_idx-1]);
+                    segment.add(polyline[point_idx]);
+                    sendPolygons(Inset0Type, layer_nr, segment, mesh.getSettingInMicrons("wall_line_width_0"));
+                }
+            }
         }
     }
 }
