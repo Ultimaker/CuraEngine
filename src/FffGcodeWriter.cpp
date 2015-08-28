@@ -363,10 +363,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
         if (mesh->getSettingBoolean("magic_mesh_surface_mode"))
         {
+            gcode_layer.setCombing(false);
             addMeshLayerToGCode_magicPolygonMode(storage, mesh, gcode_layer, layer_nr);
         }
         else
         {
+            gcode_layer.setCombing(true); // needed when the last mesh was spiralized
             addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
         }
     }
