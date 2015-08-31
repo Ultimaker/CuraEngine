@@ -263,7 +263,7 @@ void AreaSupport::joinMeshesAndDetectOverhangPoints(
                 {
                     Polygons part_poly_computed;
                     Polygons& part_poly = (part.insets.size() > 0)? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
-                    if (part.insets.size() > 0) { part_poly_computed = part.outline.offset(-extrusionWidth/2); }
+                    if (part.insets.size() == 0) { part_poly_computed = part.outline.offset(-extrusionWidth/2); }
                     
                     if (part_poly.size() > 0)
                     {
