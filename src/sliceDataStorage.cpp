@@ -28,8 +28,11 @@ Polygons SliceDataStorage::getLayerOutlines(unsigned int layer_nr, bool include_
     }
     if (include_helper_parts)
     {
-        total.add(support.supportLayers[layer_nr].supportAreas);
-        total.add(support.supportLayers[layer_nr].roofs);
+        if (support.generated) 
+        {
+            total.add(support.supportLayers[layer_nr].supportAreas);
+            total.add(support.supportLayers[layer_nr].roofs);
+        }
         total.add(primeTower.ground_poly);
     }
     return total;
