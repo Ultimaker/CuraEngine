@@ -294,36 +294,6 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
         totalLayers -= n_empty_first_layers;
     }
 }
-
-void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int totalLayers)
-{
-    if (!getSettingBoolean("ooze_shield_enabled"))
-    {
-        return;
-    }
-    
-    int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
-    
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
-    {
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
-    }
-    
-    int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
-    {
-        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
-    }
-    int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
-    for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
-    {
-        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
-    }
-    for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
-    {
-        storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
-    }
-}
   
 void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int layer_nr) 
 {
@@ -361,6 +331,36 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
                 sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
             }
         }
+    }
+}
+
+void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int totalLayers)
+{
+    if (!getSettingBoolean("ooze_shield_enabled"))
+    {
+        return;
+    }
+    
+    int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
+    
+    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    {
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
+    }
+    
+    int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
+    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    {
+        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
+    }
+    int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
+    for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
+    {
+        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
+    }
+    for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+    {
+        storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
     }
 }
 
