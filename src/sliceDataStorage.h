@@ -56,7 +56,7 @@ public:
 class SupportLayer
 {
 public:
-    Polygons supportAreas;
+    Polygons supportAreas; //!< normal support areas, the boundaries correspond to the 
     Polygons roofs;
 };
 
@@ -157,6 +157,13 @@ public:
     {
     }
     
+    /*!
+     * Get all outlines within a given layer.
+     * 
+     * \param layer_nr the index of the layer for which to get the outlines
+     * \param include_helper_parts whether to include support and prime tower
+     * \param external_polys_only whether to disregard all hole polygons
+     */
     Polygons getLayerOutlines(unsigned int layer_nr, bool include_helper_parts, bool external_polys_only = false);
 };
 

@@ -220,14 +220,7 @@ private:
     Polygons boundary_inside; //!< The boundary within which to comb.
     Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
-    
-    /*!
-     * Collects the outlines for every mesh in the layer (not support)
-     * \param storage Where the layer polygon data is stored
-     * \param layer_nr The number of the layer for which to generate the combing areas.
-     */
-    static Polygons getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr);
-    
+        
     /*!
      * Collects the inner most walls for every mesh in the layer (not support) or computes them from the outlines using Comb::offset_from_outlines.
      */

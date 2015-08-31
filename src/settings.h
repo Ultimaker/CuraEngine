@@ -117,11 +117,18 @@ enum class EZSeamType
     BACK
 };
 
+enum class ESurfaceMode
+{
+    NORMAL,
+    SURFACE,
+    BOTH
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8
-
+    
 class SettingsBase;
 
 /*!
@@ -163,6 +170,7 @@ public:
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
     ESupportType getSettingAsSupportType(std::string key);
     EZSeamType getSettingAsZSeamType(std::string key);
+    ESurfaceMode getSettingAsSurfaceMode(std::string key);
 };
 
 /*!

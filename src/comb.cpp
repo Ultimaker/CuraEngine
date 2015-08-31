@@ -13,23 +13,6 @@ bool Comb::moveInsideBoundary(Point* p, int distance)
     return PolygonUtils::moveInside(boundary_inside, *p, distance) != NO_INDEX;
 }
 
-
-Polygons Comb::getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr)
-{
-    Polygons layer_outlines;
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        if (!mesh.getSettingBoolean("magic_mesh_surface_mode") && !mesh.getSettingBoolean("magic_spiralize"))
-        {
-            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
-            {
-                layer_outlines.add(part.outline);
-            }
-        }
-    }
-    return layer_outlines;
-}
-
 Polygons Comb::getLayerSecondWalls()
 {
     Polygons layer_walls;

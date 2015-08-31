@@ -178,7 +178,7 @@ private:
     std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
         
     /*!
-     * Add a single layer from a single mesh-volume to the GCode in magic polygon mode.
+     * Add a single layer from a single mesh-volume to the GCode in mesh surface mode.
      * \param storage Input: where the slice data is stored.
      * \param mesh The mesh to add to the gcode.
      * \param gcodeLayer The initial planning of the gcode of the layer.
@@ -187,6 +187,15 @@ private:
      */
     void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
+    /*!
+     * Add the open polylines from a single layer from a single mesh-volume to the GCode for mesh surface mode.
+     * \param storage Input: where the slice data is stored.
+     * \param mesh The mesh for which to add to the gcode.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * 
+     */
+    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add a single layer from a single mesh-volume to the GCode.

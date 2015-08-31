@@ -245,5 +245,17 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
     return EZSeamType::SHORTEST;
 }
 
+ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "Normal")
+        return ESurfaceMode::NORMAL;
+    if (value == "Surface")
+        return ESurfaceMode::SURFACE;
+    if (value == "Both")
+        return ESurfaceMode::BOTH;
+    return ESurfaceMode::NORMAL;
+}
+
 
 }//namespace cura

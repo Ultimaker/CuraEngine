@@ -110,7 +110,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
     
  
-            if (layer.parts.size() > 0 || (mesh.getSettingBoolean("magic_mesh_surface_mode") && layer.openPolyLines.size() > 0) )
+            if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
             {
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             } 
@@ -207,31 +207,12 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.getSettingBoolean("magic_mesh_surface_mode"))
-        { // only send polygon data
-            SliceLayer* layer = &mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer->parts)
-            {
-                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
-            }
-            for (PolygonRef polyline : layer->openPolyLines)
-            {
-                Polygons segments;
-                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
-                {
-                    PolygonRef segment = segments.newPoly();
-                    segment.add(polyline[point_idx-1]);
-                    segment.add(polyline[point_idx]);
-                }
-                sendPolygons(Inset0Type, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
-            }
-        }
-        else 
+        SliceLayer* layer = &mesh.layers[layer_nr];
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
         {
             int inset_count = mesh.getSettingAsCount("wall_line_count");
             if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
                 inset_count += 5;
-            SliceLayer* layer = &mesh.layers[layer_nr];
             int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
             int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             if (mesh.getSettingBoolean("alternate_extra_perimeter"))
@@ -248,6 +229,28 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                 }
             }
         }
+        else 
+        { // only send polygon data
+            SliceLayer* layer = &mesh.layers[layer_nr];
+            for(SliceLayerPart& part : layer->parts)
+            {
+                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
+            }
+        }
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+        {
+            for (PolygonRef polyline : layer->openPolyLines)
+            {
+                Polygons segments;
+                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
+                {
+                    PolygonRef segment = segments.newPoly();
+                    segment.add(polyline[point_idx-1]);
+                    segment.add(polyline[point_idx]);
+                }
+                sendPolygons(Inset0Type, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
+            }
+        }
     }
 }
 
@@ -260,7 +263,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_idx];
-            if (layer.parts.size() > 0 || (mesh.getSettingBoolean("magic_mesh_surface_mode") && layer.openPolyLines.size() > 0) )
+            if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
             {
                 layer_is_empty = false;
                 break;
@@ -326,7 +329,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        if (mesh.getSettingBoolean("magic_mesh_surface_mode")) { continue; }
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
         
         int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");

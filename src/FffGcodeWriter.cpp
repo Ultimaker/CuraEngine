@@ -361,7 +361,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     for(unsigned int mesh_idx : mesh_order)
     {
         SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
-        if (mesh->getSettingBoolean("magic_mesh_surface_mode"))
+        if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
         {
             gcode_layer.setCombing(false);
             addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
@@ -498,10 +498,17 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     {
         polygons.add(layer->parts[partNr].outline);
     }
-    if (mesh->getSettingBoolean("magic_spiralize")) // TODO: why is this code here?
+    if (mesh->getSettingBoolean("magic_spiralize")) 
         mesh->inset0_config.spiralize = true;
 
     gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config);
+    
+    addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
+}
+
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr)
+{
+    SliceLayer* layer = &mesh->layers[layer_nr];
     
     Polygons lines;
     for(PolygonRef polyline : layer->openPolyLines)
@@ -580,6 +587,10 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
             gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons("machine_nozzle_size") * 1);
+    }
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    {
+        addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
     }
 }
 

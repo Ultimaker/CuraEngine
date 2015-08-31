@@ -93,7 +93,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         }
     }
 
-    if (!mesh->getSettingBoolean("magic_mesh_surface_mode"))
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     {
         //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
         while(1)

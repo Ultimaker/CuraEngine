@@ -21,7 +21,7 @@ Polygons SliceDataStorage::getLayerOutlines(unsigned int layer_nr, bool include_
                 total.add(part.outline);
             }
         }
-        if (mesh.getSettingBoolean("magic_mesh_surface_mode"))
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
             total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
         }
