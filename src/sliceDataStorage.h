@@ -156,6 +156,8 @@ public:
     ~SliceDataStorage()
     {
     }
+    
+    Polygons getLayerOutlines(unsigned int layer_nr, bool include_helper_parts, bool external_polys_only = false);
 };
 
 }//namespace cura

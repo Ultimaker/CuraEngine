@@ -46,6 +46,7 @@ set(engine_SRCS
     src/settings.cpp
     src/skin.cpp
     src/skirt.cpp
+    src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
