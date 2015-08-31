@@ -21,7 +21,7 @@ GCodeExport::GCodeExport()
     isRetracted = false;
     isZHopped = false;
     last_coasted_amount_mm3 = 0;
-    setFlavor(GCODE_FLAVOR_REPRAP);
+    setFlavor(EGCodeFlavor::REPRAP);
 }
 
 GCodeExport::~GCodeExport()
@@ -49,13 +49,13 @@ Point GCodeExport::getGcodePos(int64_t x, int64_t y, int extruder_train)
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor = flavor;
-    if (flavor == GCODE_FLAVOR_MACH3)
+    if (flavor == EGCodeFlavor::MACH3)
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruder_attr[n].extruderCharacter = 'A' + n;
     else
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruder_attr[n].extruderCharacter = 'E';
-    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
     {
         is_volumatric = true;
     }
@@ -181,7 +181,7 @@ void GCodeExport::writeLine(const char* line)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (extrusion_amount != 0.0 && flavor != GCODE_FLAVOR_MAKERBOT && flavor != GCODE_FLAVOR_BFB)
+    if (extrusion_amount != 0.0 && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
         *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0\n";
         extruder_attr[current_extruder].totalFilament += getExtrusionAmountMM3(current_extruder);
@@ -223,7 +223,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
 
-    if (flavor == GCODE_FLAVOR_BFB)
+    if (flavor == EGCodeFlavor::BFB)
     {
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
         float fspeed = speed * 60;
@@ -279,7 +279,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             extrusion_amount += (is_volumatric) ? last_coasted_amount_mm3 : last_coasted_amount_mm3 / getFilamentArea(current_extruder);   
             if (isRetracted)
             {
-                if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
+                if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
                 {
                     *output_stream << "G11\n";
                     //Assume default UM2 retraction settings.
@@ -335,7 +335,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
 
 void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 {
-    if (flavor == GCODE_FLAVOR_BFB)//BitsFromBytes does automatic retraction.
+    if (flavor == EGCodeFlavor::BFB)//BitsFromBytes does automatic retraction.
         return;
     if (isRetracted)
         return;
@@ -352,7 +352,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     retractionPrimeSpeed = config->primeSpeed;
     
-    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
@@ -380,7 +380,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
 {
     if (isRetracted) { return; }
         
-    if (flavor == GCODE_FLAVOR_BFB)
+    if (flavor == EGCodeFlavor::BFB)
     {
         if (!isRetracted)
             *output_stream << "M103\r\n";
@@ -389,7 +389,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         return;
     }
     resetExtrusionValue();
-    if (flavor == GCODE_FLAVOR_ULTIGCODE || flavor == GCODE_FLAVOR_REPRAP_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
     {
         *output_stream << "G10 S1\n";
     }else{
@@ -411,11 +411,11 @@ void GCodeExport::switchExtruder(int new_extruder)
     
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
-    if (flavor == GCODE_FLAVOR_MACH3)
+    if (flavor == EGCodeFlavor::MACH3)
         resetExtrusionValue();
     isRetracted = true;
     writeCode(extruder_attr[old_extruder].end_code.c_str());
-    if (flavor == GCODE_FLAVOR_MAKERBOT)
+    if (flavor == EGCodeFlavor::MAKERBOT)
         *output_stream << "M135 T" << current_extruder << "\n";
     else
         *output_stream << "T" << current_extruder << "\n";
@@ -428,7 +428,7 @@ void GCodeExport::switchExtruder(int new_extruder)
 void GCodeExport::writeCode(const char* str)
 {
     *output_stream << str;
-    if (flavor == GCODE_FLAVOR_BFB)
+    if (flavor == EGCodeFlavor::BFB)
         *output_stream << "\r\n";
     else
         *output_stream << "\n";
@@ -440,14 +440,14 @@ void GCodeExport::writeFanCommand(double speed)
         return;
     if (speed > 0)
     {
-        if (flavor == GCODE_FLAVOR_MAKERBOT)
+        if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M126 T0\n"; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
         else
             *output_stream << "M106 S" << (speed * 255 / 100) << "\n";
     }
     else
     {
-        if (flavor == GCODE_FLAVOR_MAKERBOT)
+        if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M127 T0\n";
         else
             *output_stream << "M107\n";

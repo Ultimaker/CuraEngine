@@ -53,11 +53,11 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     
     if (!object->getSettingBoolean("support_enable"))
         return;
-    if (support_type == Support_None)
+    if (support_type == ESupportType::NONE)
         return;
     
     double supportAngle = object->getSettingInAngleRadians("support_angle");
-    bool supportOnBuildplateOnly = support_type == Support_PlatformOnly;
+    bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
     int supportZDistance = object->getSettingInMicrons("support_z_distance");
     int supportZDistanceBottom = object->getSettingInMicrons("support_bottom_distance");
     int supportZDistanceTop = object->getSettingInMicrons("support_top_distance");

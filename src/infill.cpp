@@ -15,16 +15,16 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     Polygons outline_offsetted;
     switch(pattern)
     {
-    case Fill_Grid:
+    case EFillMethod::GRID:
         generateGridInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 2, infill_overlap, fill_angle);
         break;
-    case Fill_Lines:
+    case EFillMethod::LINES:
         generateLineInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle);
         break;
-    case Fill_Triangles:
+    case EFillMethod::TRIANGLES:
         generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
         break;
-    case Fill_Concentric:
+    case EFillMethod::CONCENTRIC:
         if (outlineOffset != 0)
         {
             PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
@@ -39,7 +39,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
             generateConcentricInfill(*outline, result_polygons, line_distance);
         }
         break;
-    case Fill_ZigZag:
+    case EFillMethod::ZIG_ZAG:
         if (outlineOffset != 0)
         {
             PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);

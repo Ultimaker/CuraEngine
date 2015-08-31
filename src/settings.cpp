@@ -183,54 +183,54 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "RepRap")
-        return GCODE_FLAVOR_REPRAP;
+        return EGCodeFlavor::REPRAP;
     else if (value == "UltiGCode")
-        return GCODE_FLAVOR_ULTIGCODE;
+        return EGCodeFlavor::ULTIGCODE;
     else if (value == "Makerbot")
-        return GCODE_FLAVOR_MAKERBOT;
+        return EGCodeFlavor::MAKERBOT;
     else if (value == "BFB")
-        return GCODE_FLAVOR_BFB;
+        return EGCodeFlavor::BFB;
     else if (value == "MACH3")
-        return GCODE_FLAVOR_MACH3;
+        return EGCodeFlavor::MACH3;
     else if (value == "RepRap (Volumatric)")
-        return GCODE_FLAVOR_REPRAP_VOLUMATRIC;
-    return GCODE_FLAVOR_REPRAP;
+        return EGCodeFlavor::REPRAP_VOLUMATRIC;
+    return EGCodeFlavor::REPRAP;
 }
 
 EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Lines")
-        return Fill_Lines;
+        return EFillMethod::LINES;
     if (value == "Grid")
-        return Fill_Grid;
+        return EFillMethod::GRID;
     if (value == "Triangles")
-        return Fill_Triangles;
+        return EFillMethod::TRIANGLES;
     if (value == "Concentric")
-        return Fill_Concentric;
+        return EFillMethod::CONCENTRIC;
     if (value == "ZigZag")
-        return Fill_ZigZag;
-    return Fill_None;
+        return EFillMethod::ZIG_ZAG;
+    return EFillMethod::NONE;
 }
 
 EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Brim")
-        return Adhesion_Brim;
+        return EPlatformAdhesion::BRIM;
     if (value == "Raft")
-        return Adhesion_Raft;
-    return Adhesion_Skirt;
+        return EPlatformAdhesion::RAFT;
+    return EPlatformAdhesion::SKIRT;
 }
 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "Everywhere")
-        return Support_Everywhere;
+        return ESupportType::EVERYWHERE;
     if (value == "Touching Buildplate")
-        return Support_PlatformOnly;
-    return Support_None;
+        return ESupportType::PLATFORM_ONLY;
+    return ESupportType::NONE;
 }
 
 EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)

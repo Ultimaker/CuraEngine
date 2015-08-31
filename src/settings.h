@@ -19,7 +19,7 @@ namespace cura
  * Different flavors of GCode. Some machines require different types of GCode.
  * The GCode flavor definition handles this as a big setting to make major or minor modifications to the GCode.
  */
-enum EGCodeFlavor
+enum class EGCodeFlavor
 {
 /**
  * RepRap flavored GCode is Marlin/Sprinter/Repetier based GCode.
@@ -29,7 +29,7 @@ enum EGCodeFlavor
  *  Retraction is done on E values with G1. Start/end code is added.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-    GCODE_FLAVOR_REPRAP = 0,
+    REPRAP = 0,
 /**
  * UltiGCode flavored is Marlin based GCode.
  *  UltiGCode uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -39,7 +39,7 @@ enum EGCodeFlavor
  *  Start/end code is not added.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-    GCODE_FLAVOR_ULTIGCODE = 1,
+    ULTIGCODE = 1,
 /**
  * Makerbot flavored GCode.
  *  Looks a lot like RepRap GCode with a few changes. Requires MakerWare to convert to X3G files.
@@ -49,7 +49,7 @@ enum EGCodeFlavor
  *   Fan OFF is M127 T0
  *   Homing is done with G162 X Y F2000
  **/
-    GCODE_FLAVOR_MAKERBOT = 2,
+    MAKERBOT = 2,
 
 /**
  * Bits From Bytes GCode.
@@ -57,13 +57,13 @@ enum EGCodeFlavor
  *  Need X,Y,Z,F on every line.
  *  Needs extruder ON/OFF (M101, M103), has auto-retrection (M227 S[2560*mm] P[2560*mm])
  **/
-    GCODE_FLAVOR_BFB = 3,
+    BFB = 3,
 
 /**
  * MACH3 GCode
  *  MACH3 is CNC control software, which expects A/B/C/D for extruders, instead of E.
  **/
-    GCODE_FLAVOR_MACH3 = 4,
+    MACH3 = 4,
 /**
  * RepRap volumatric flavored GCode is Marlin based GCode.
  *  Volumatric uses less settings on the slicer and puts more settings in the firmware. This makes for more hardware/material independed GCode.
@@ -72,7 +72,7 @@ enum EGCodeFlavor
  *  Retraction is done with G10 and G11. Retraction settings are ignored. G10 S1 is used for multi-extruder switch retraction.
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
-    GCODE_FLAVOR_REPRAP_VOLUMATRIC = 5,
+    REPRAP_VOLUMATRIC = 5,
 };
 
 /*!
@@ -80,34 +80,34 @@ enum EGCodeFlavor
  * This enum defines which fill patterns are available to get a uniform naming troughout the engine.
  * The different methods are used for top/bottom, support and sparse infill.
  */
-enum EFillMethod
+enum class EFillMethod
 {
-    Fill_Lines,
-    Fill_Grid,
-    Fill_Triangles,
-    Fill_Concentric,
-    Fill_ZigZag,
-    Fill_None
+    LINES,
+    GRID,
+    TRIANGLES,
+    CONCENTRIC,
+    ZIG_ZAG,
+    NONE
 };
 
 /*!
  * Type of platform adheasion
  */
-enum EPlatformAdhesion
+enum class EPlatformAdhesion
 {
-    Adhesion_Skirt,
-    Adhesion_Brim,
-    Adhesion_Raft
+    SKIRT,
+    BRIM,
+    RAFT
 };
 
 /*!
  * Type of support material to generate
  */
-enum ESupportType
+enum class ESupportType
 {
-    Support_None,
-    Support_PlatformOnly,
-    Support_Everywhere
+    NONE,
+    PLATFORM_ONLY,
+    EVERYWHERE
 };
 
 enum class EZSeamType

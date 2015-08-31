@@ -38,7 +38,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     unsigned int total_layers = storage.meshes[0].layers.size();
     //gcode.writeComment("Layer count: %d", totalLayers);
 
-    bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+    bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
         processRaft(storage, total_layers);
@@ -64,7 +64,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         finalize();
         command_socket->sendGCodeLayer();
         command_socket->endSendSlicedObject();
-        if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
         {
             std::ostringstream prefix;
             prefix << ";FLAVOR:UltiGCode\n";
@@ -190,7 +190,7 @@ void FffGcodeWriter::setConfigInfill(SliceMeshStorage& mesh, int layer_thickness
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
-    if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
         if (!command_socket)
         {
@@ -213,7 +213,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
-    if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
+    if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
@@ -632,7 +632,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     Infill infill_comp(pattern, part.infill_area[0], 0, false, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
     infill_comp.generate(infill_polygons, infill_lines, nullptr);
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
-    if (pattern == Fill_Grid || pattern == Fill_Lines || pattern == Fill_Triangles)
+    if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], mesh->getSettingInMicrons("infill_wipe_dist")); 
     }
@@ -691,11 +691,11 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
         if (bridge > -1)
         {
-            pattern = Fill_Lines;
+            pattern = EFillMethod::LINES;
         } 
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
-        if (pattern == Fill_Concentric)
+        if (pattern == EFillMethod::CONCENTRIC)
         {
             offset_from_inner_skin_outline = -extrusion_width/2;
         }
@@ -784,7 +784,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     int support_line_distance = getSettingInMicrons("support_line_distance");
     int extrusion_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
-    if (layer_nr == 0 && (support_pattern == Fill_Lines || support_pattern == Fill_ZigZag)) { support_pattern = Fill_Grid; }
+    if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
     
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
     
@@ -813,7 +813,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines, nullptr);
 
-        if (support_pattern == Fill_Grid || support_pattern == Fill_Triangles)
+        if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
             gcode_layer.addPolygonsByOptimizer(island, &storage.support_config);
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
         gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config);

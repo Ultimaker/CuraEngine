@@ -47,7 +47,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     log("Slicing model...\n");
     int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
-    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft) 
+    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
     { 
         initial_layer_thickness = layer_thickness; 
     }
@@ -88,7 +88,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
-        bool has_raft = meshStorage.getSettingAsPlatformAdhesion("adhesion_type") == Adhesion_Raft;
+        bool has_raft = meshStorage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         //Add the raft offset to each layer.
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
@@ -393,16 +393,16 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
-    case Adhesion_Skirt:
+    case EPlatformAdhesion::SKIRT:
         if (getSettingInMicrons("draft_shield_height") == 0)
         { // draft screen replaces skirt
             generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
         }
         break;
-    case Adhesion_Brim:
+    case EPlatformAdhesion::BRIM:
         generateSkirt(storage, 0, getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
         break;
-    case Adhesion_Raft:
+    case EPlatformAdhesion::RAFT:
         generateRaft(storage, getSettingInMicrons("raft_margin"));
         break;
     }

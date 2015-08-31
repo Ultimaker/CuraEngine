@@ -540,7 +540,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 
 void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 {
-    if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
         if (!command_socket)
         {
@@ -562,7 +562,7 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
     
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
-    if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
+    if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
