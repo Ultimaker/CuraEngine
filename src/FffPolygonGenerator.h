@@ -84,14 +84,6 @@ private:
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
     void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
-
-    /*!
-     * Processes the outline information as stored in the \p storage when in magic mesh surface mode: generates inset perimeter polygons
-     * 
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param timeKeeper Object which keeps track of timings of each stage.
-     */    
-    void slices2polygons_meshSurfaceMode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
     /*!
      * Remove all bottom layers which are empty.

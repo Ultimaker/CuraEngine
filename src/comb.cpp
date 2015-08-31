@@ -50,12 +50,13 @@ Polygons Comb::getLayerSecondWalls()
     return layer_walls;
 }
   
+// boundary_outside is only computed when it's needed!
 Polygons* Comb::getBoundaryOutside()
 {
     if (!boundary_outside)
     {
         boundary_outside = new Polygons();
-        *boundary_outside = getLayerOutlines(storage, layer_nr).offset(offset_from_outlines_outside);
+        *boundary_outside =  storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
     }
     return boundary_outside;
 }

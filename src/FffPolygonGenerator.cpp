@@ -31,14 +31,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
         return false;
     }
     
-    if (getSettingBoolean("magic_mesh_surface_mode"))
-    {
-        slices2polygons_meshSurfaceMode(storage, timeKeeper);
-    }
-    else
-    {
-        slices2polygons(storage, timeKeeper);
-    }
+    slices2polygons(storage, timeKeeper);
     
     return true;
 }
@@ -214,23 +207,45 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        int inset_count = mesh.getSettingAsCount("wall_line_count");
-        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
-            inset_count += 5;
-        SliceLayer* layer = &mesh.layers[layer_nr];
-        int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
-        int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
-        if (mesh.getSettingBoolean("alternate_extra_perimeter"))
-            inset_count += layer_nr % 2; 
-        generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
-
-        for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-        {
-            if (layer->parts[partNr].insets.size() > 0)
+        if (mesh.getSettingBoolean("magic_mesh_surface_mode"))
+        { // only send polygon data
+            SliceLayer* layer = &mesh.layers[layer_nr];
+            for(SliceLayerPart& part : layer->parts)
             {
-                sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0);
-                for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                    sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
+                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
+            }
+            for (PolygonRef polyline : layer->openPolyLines)
+            {
+                Polygons segments;
+                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
+                {
+                    PolygonRef segment = segments.newPoly();
+                    segment.add(polyline[point_idx-1]);
+                    segment.add(polyline[point_idx]);
+                }
+                sendPolygons(Inset0Type, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
+            }
+        }
+        else 
+        {
+            int inset_count = mesh.getSettingAsCount("wall_line_count");
+            if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+                inset_count += 5;
+            SliceLayer* layer = &mesh.layers[layer_nr];
+            int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+            int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+            if (mesh.getSettingBoolean("alternate_extra_perimeter"))
+                inset_count += layer_nr % 2; 
+            generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+
+            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+            {
+                if (layer->parts[partNr].insets.size() > 0)
+                {
+                    sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0);
+                    for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
+                        sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
+                }
             }
         }
     }
@@ -288,15 +303,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
     
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
     {
-        Polygons oozeShield;
-        for(SliceMeshStorage& mesh : storage.meshes)
-        {
-            for(SliceLayerPart& part : mesh.layers[layer_nr].parts)
-            {
-                oozeShield = oozeShield.unionPolygons(part.outline.offset(ooze_shield_dist)); 
-            }
-        }
-        storage.oozeShield.push_back(oozeShield);
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
     }
     
     int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
@@ -313,6 +320,8 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
+        if (mesh.getSettingBoolean("magic_mesh_surface_mode")) { continue; }
+        
         int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
         generateSkins(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
@@ -365,15 +374,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
-            {
-                draft_shield = draft_shield.unionPolygons(part.outline);
-            }
-        }
-        draft_shield = draft_shield.unionPolygons(storage.support.supportLayers[layer_nr].supportAreas);
-//         draft_shield = draft_shield.unionPolygons(storage.support.supportLayers[layer_nr].roofs); // will already be included by supportAreas below, and if the roof is at a low level, the screen will most likely avoid it at a higher level
+        draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }
     
     storage.draft_protection_shield = draft_shield.convexHull(draft_shield_dist);
@@ -401,34 +402,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         skirt_sent.add(storage.skirt[extruder]);
     sendPolygons(SkirtType, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
-}
-
-void FffPolygonGenerator::slices2polygons_meshSurfaceMode(SliceDataStorage& storage, TimeKeeper& timeKeeper)
-{
-    // const 
-    unsigned int totalLayers = storage.meshes[0].layers.size();
-    
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
-    {
-        for(SliceMeshStorage& mesh : storage.meshes)
-        {
-            SliceLayer* layer = &mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer->parts)
-            {
-                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
-            }
-            for (PolygonRef polyline : layer->openPolyLines)
-            {
-                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
-                {
-                    Polygon segment;
-                    segment.add(polyline[point_idx-1]);
-                    segment.add(polyline[point_idx]);
-                    sendPolygons(Inset0Type, layer_nr, segment, mesh.getSettingInMicrons("wall_line_width_0"));
-                }
-            }
-        }
-    }
 }
 
 }//namespace cura
