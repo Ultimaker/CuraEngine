@@ -406,6 +406,17 @@ public:
         return ret;
     }
     
+    Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
+    {
+        Polygons ret;
+        double miterLimit = 1.2;
+        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
+        clipper.AddPaths(polygons, joinType, ClipperLib::etOpenSquare);
+        clipper.MiterLimit = miterLimit;
+        clipper.Execute(ret.polygons, distance);
+        return ret;
+    }
+    
     /*!
      * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
      * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
