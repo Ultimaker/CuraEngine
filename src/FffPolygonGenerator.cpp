@@ -147,8 +147,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no layers.\n");
         return;
     }
-        
-    processOozeShield(storage, total_layers);
     
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
@@ -197,6 +195,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     storage.primeTower.computePrimeTowerMax(storage);
     storage.primeTower.generatePaths(storage, total_layers);
     
+    processOozeShield(storage, total_layers);
+        
     processDraftShield(storage, total_layers);
     
     processPlatformAdhesion(storage);
@@ -308,12 +308,18 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
     
     int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
     for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
+    }
     int offsetAngle = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
     for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
+    {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-offsetAngle));
+    }
     for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+    {
         storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-offsetAngle));
+    }
 }
   
 void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int layer_nr) 
