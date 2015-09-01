@@ -204,11 +204,11 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
-    connectOpenPolylines(mesh, open_polylines);
+    connectOpenPolylines(open_polylines);
 
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     {
-        stitch(mesh, open_polylines);
+        stitch(open_polylines);
     }
     
     if (extensive_stitching)
