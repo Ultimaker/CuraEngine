@@ -74,93 +74,11 @@ public:
     void stitch(Polygons open_polylines);
     
 private:
-    GapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
-    {
-        GapCloserResult ret;
-        ClosePolygonResult c1 = findPolygonPointClosestTo(ip0);
-        ClosePolygonResult c2 = findPolygonPointClosestTo(ip1);
-        if (c1.polygonIdx < 0 || c1.polygonIdx != c2.polygonIdx)
-        {
-            ret.len = -1;
-            return ret;
-        }
-        ret.polygonIdx = c1.polygonIdx;
-        ret.pointIdxA = c1.pointIdx;
-        ret.pointIdxB = c2.pointIdx;
-        ret.AtoB = true;
-        
-        if (ret.pointIdxA == ret.pointIdxB)
-        {
-            //Connection points are on the same line segment.
-            ret.len = vSize(ip0 - ip1);
-        }else{
-            //Find out if we have should go from A to B or the other way around.
-            Point p0 = polygons[ret.polygonIdx][ret.pointIdxA];
-            int64_t lenA = vSize(p0 - ip0);
-            for(unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygons[ret.polygonIdx].size())
-            {
-                Point p1 = polygons[ret.polygonIdx][i];
-                lenA += vSize(p0 - p1);
-                p0 = p1;
-            }
-            lenA += vSize(p0 - ip1);
+    GapCloserResult findPolygonGapCloser(Point ip0, Point ip1);
 
-            p0 = polygons[ret.polygonIdx][ret.pointIdxB];
-            int64_t lenB = vSize(p0 - ip1);
-            for(unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygons[ret.polygonIdx].size())
-            {
-                Point p1 = polygons[ret.polygonIdx][i];
-                lenB += vSize(p0 - p1);
-                p0 = p1;
-            }
-            lenB += vSize(p0 - ip0);
-            
-            if (lenA < lenB)
-            {
-                ret.AtoB = true;
-                ret.len = lenA;
-            }else{
-                ret.AtoB = false;
-                ret.len = lenB;
-            }
-        }
-        return ret;
-    }
-
-    ClosePolygonResult findPolygonPointClosestTo(Point input)
-    {
-        ClosePolygonResult ret;
-        for(unsigned int n=0; n<polygons.size(); n++)
-        {
-            Point p0 = polygons[n][polygons[n].size()-1];
-            for(unsigned int i=0; i<polygons[n].size(); i++)
-            {
-                Point p1 = polygons[n][i];
-                
-                //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
-                Point pDiff = p1 - p0;
-                int64_t lineLength = vSize(pDiff);
-                if (lineLength > 1)
-                {
-                    int64_t distOnLine = dot(pDiff, input - p0) / lineLength;
-                    if (distOnLine >= 0 && distOnLine <= lineLength)
-                    {
-                        Point q = p0 + pDiff * distOnLine / lineLength;
-                        if (shorterThen(q - input, 100))
-                        {
-                            ret.intersectionPoint = q;
-                            ret.polygonIdx = n;
-                            ret.pointIdx = i;
-                            return ret;
-                        }
-                    }
-                }
-                p0 = p1;
-            }
-        }
-        ret.polygonIdx = -1;
-        return ret;
-    }
+    ClosePolygonResult findPolygonPointClosestTo(Point input);
+    
+    void stitch_extensive(Polygons open_polylines);
 };
 
 class Slicer

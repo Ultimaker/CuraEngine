@@ -173,17 +173,17 @@ void SlicerLayer::stitch(Polygons open_polylines)
             {
                 if (polyline_1.size() > polyline_2.size()) // decide which polygon to copy into the other
                 {
-                    for(unsigned int poly_idx = polyline_2.size()-1; int(poly_idx)>=0; poly_idx--)
+                    for(int poly_idx = polyline_2.size()-1; poly_idx >= 0; poly_idx--)
                         polyline_1.add(polyline_2[poly_idx]);
                     polyline_2.clear();
                 } 
                 else
                 {
-                    for(unsigned int poly_idx = polyline_1.size()-1; int(poly_idx)>=0; poly_idx--)
+                    for(int poly_idx = polyline_1.size()-1; poly_idx >= 0; poly_idx--)
                         polyline_2.add(polyline_1[poly_idx]);
                     polyline_1.clear();
                 }
-                // note that either way we end up with the end of polyline_1 next to the start of polyline_2
+                // note that either way we end up with the end of former polyline_1 next to the start of former polyline_2
             }
             else
             {
@@ -195,143 +195,235 @@ void SlicerLayer::stitch(Polygons open_polylines)
     }
 }
 
+void SlicerLayer::stitch_extensive(Polygons open_polylines)
+{
+    //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
+    // Then find the sortest path over this polygon that can be used to connect the open polygons,
+    // And generate a path over this shortest bit to link up the 2 open polygons.
+    // (If these 2 open polygons are the same polygon, then the final result is a closed polyon)
+    
+    while(1)
+    {
+        unsigned int bestA = -1;
+        unsigned int bestB = -1;
+        GapCloserResult bestResult;
+        bestResult.len = POINT_MAX;
+        bestResult.polygonIdx = -1;
+        bestResult.pointIdxA = -1;
+        bestResult.pointIdxB = -1;
+        
+        for(unsigned int i=0; i<open_polylines.size(); i++)
+        {
+            if (open_polylines[i].size() < 1) continue;
+            
+            {
+                GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[i][open_polylines[i].size()-1]);
+                if (res.len > 0 && res.len < bestResult.len)
+                {
+                    bestA = i;
+                    bestB = i;
+                    bestResult = res;
+                }
+            }
+
+            for(unsigned int j=0; j<open_polylines.size(); j++)
+            {
+                if (open_polylines[j].size() < 1 || i == j) continue;
+                
+                GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[j][open_polylines[j].size()-1]);
+                if (res.len > 0 && res.len < bestResult.len)
+                {
+                    bestA = i;
+                    bestB = j;
+                    bestResult = res;
+                }
+            }
+        }
+        
+        if (bestResult.len < POINT_MAX)
+        {
+            if (bestA == bestB)
+            {
+                if (bestResult.pointIdxA == bestResult.pointIdxB)
+                {
+                    polygons.add(open_polylines[bestA]);
+                    open_polylines[bestA].clear();
+                }
+                else if (bestResult.AtoB)
+                {
+                    PolygonRef poly = polygons.newPoly();
+                    for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygons[bestResult.polygonIdx].size())
+                        poly.add(polygons[bestResult.polygonIdx][j]);
+                    for(unsigned int j = open_polylines[bestA].size() - 1; int(j) >= 0; j--)
+                        poly.add(open_polylines[bestA][j]);
+                    open_polylines[bestA].clear();
+                }
+                else
+                {
+                    unsigned int n = polygons.size();
+                    polygons.add(open_polylines[bestA]);
+                    for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygons[bestResult.polygonIdx].size())
+                        polygons[n].add(polygons[bestResult.polygonIdx][j]);
+                    open_polylines[bestA].clear();
+                }
+            }
+            else
+            {
+                if (bestResult.pointIdxA == bestResult.pointIdxB)
+                {
+                    for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
+                        open_polylines[bestB].add(open_polylines[bestA][n]);
+                    open_polylines[bestA].clear();
+                }
+                else if (bestResult.AtoB)
+                {
+                    Polygon poly;
+                    for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygons[bestResult.polygonIdx].size())
+                        poly.add(polygons[bestResult.polygonIdx][n]);
+                    for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
+                        open_polylines[bestB].add(poly[n]);
+                    for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
+                        open_polylines[bestB].add(open_polylines[bestA][n]);
+                    open_polylines[bestA].clear();
+                }
+                else
+                {
+                    for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygons[bestResult.polygonIdx].size())
+                        open_polylines[bestB].add(polygons[bestResult.polygonIdx][n]);
+                    for(unsigned int n = open_polylines[bestA].size() - 1; int(n) >= 0; n--)
+                        open_polylines[bestB].add(open_polylines[bestA][n]);
+                    open_polylines[bestA].clear();
+                }
+            }
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+GapCloserResult SlicerLayer::findPolygonGapCloser(Point ip0, Point ip1)
+{
+    GapCloserResult ret;
+    ClosePolygonResult c1 = findPolygonPointClosestTo(ip0);
+    ClosePolygonResult c2 = findPolygonPointClosestTo(ip1);
+    if (c1.polygonIdx < 0 || c1.polygonIdx != c2.polygonIdx)
+    {
+        ret.len = -1;
+        return ret;
+    }
+    ret.polygonIdx = c1.polygonIdx;
+    ret.pointIdxA = c1.pointIdx;
+    ret.pointIdxB = c2.pointIdx;
+    ret.AtoB = true;
+    
+    if (ret.pointIdxA == ret.pointIdxB)
+    {
+        //Connection points are on the same line segment.
+        ret.len = vSize(ip0 - ip1);
+    }else{
+        //Find out if we have should go from A to B or the other way around.
+        Point p0 = polygons[ret.polygonIdx][ret.pointIdxA];
+        int64_t lenA = vSize(p0 - ip0);
+        for(unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygons[ret.polygonIdx].size())
+        {
+            Point p1 = polygons[ret.polygonIdx][i];
+            lenA += vSize(p0 - p1);
+            p0 = p1;
+        }
+        lenA += vSize(p0 - ip1);
+
+        p0 = polygons[ret.polygonIdx][ret.pointIdxB];
+        int64_t lenB = vSize(p0 - ip1);
+        for(unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygons[ret.polygonIdx].size())
+        {
+            Point p1 = polygons[ret.polygonIdx][i];
+            lenB += vSize(p0 - p1);
+            p0 = p1;
+        }
+        lenB += vSize(p0 - ip0);
+        
+        if (lenA < lenB)
+        {
+            ret.AtoB = true;
+            ret.len = lenA;
+        }else{
+            ret.AtoB = false;
+            ret.len = lenB;
+        }
+    }
+    return ret;
+}
+
+ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
+{
+    ClosePolygonResult ret;
+    for(unsigned int n=0; n<polygons.size(); n++)
+    {
+        Point p0 = polygons[n][polygons[n].size()-1];
+        for(unsigned int i=0; i<polygons[n].size(); i++)
+        {
+            Point p1 = polygons[n][i];
+            
+            //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+            Point pDiff = p1 - p0;
+            int64_t lineLength = vSize(pDiff);
+            if (lineLength > 1)
+            {
+                int64_t distOnLine = dot(pDiff, input - p0) / lineLength;
+                if (distOnLine >= 0 && distOnLine <= lineLength)
+                {
+                    Point q = p0 + pDiff * distOnLine / lineLength;
+                    if (shorterThen(q - input, 100))
+                    {
+                        ret.intersectionPoint = q;
+                        ret.polygonIdx = n;
+                        ret.pointIdx = i;
+                        return ret;
+                    }
+                }
+            }
+            p0 = p1;
+        }
+    }
+    ret.polygonIdx = -1;
+    return ret;
+}
+
 void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
     Polygons open_polylines;
     
     makeBasicPolygonLoops(mesh, open_polylines);
     
+    connectOpenPolylines(open_polylines);
     
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
-    connectOpenPolylines(open_polylines);
-
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
-    {
+    { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be open will be closed
         stitch(open_polylines);
     }
     
     if (extensive_stitching)
     {
-        //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
-        // Then find the sortest path over this polygon that can be used to connect the open polygons,
-        // And generate a path over this shortest bit to link up the 2 open polygons.
-        // (If these 2 open polygons are the same polygon, then the final result is a closed polyon)
-        
-        while(1)
-        {
-            unsigned int bestA = -1;
-            unsigned int bestB = -1;
-            GapCloserResult bestResult;
-            bestResult.len = POINT_MAX;
-            bestResult.polygonIdx = -1;
-            bestResult.pointIdxA = -1;
-            bestResult.pointIdxB = -1;
-            
-            for(unsigned int i=0; i<open_polylines.size(); i++)
-            {
-                if (open_polylines[i].size() < 1) continue;
-                
-                {
-                    GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[i][open_polylines[i].size()-1]);
-                    if (res.len > 0 && res.len < bestResult.len)
-                    {
-                        bestA = i;
-                        bestB = i;
-                        bestResult = res;
-                    }
-                }
-
-                for(unsigned int j=0; j<open_polylines.size(); j++)
-                {
-                    if (open_polylines[j].size() < 1 || i == j) continue;
-                    
-                    GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[j][open_polylines[j].size()-1]);
-                    if (res.len > 0 && res.len < bestResult.len)
-                    {
-                        bestA = i;
-                        bestB = j;
-                        bestResult = res;
-                    }
-                }
-            }
-            
-            if (bestResult.len < POINT_MAX)
-            {
-                if (bestA == bestB)
-                {
-                    if (bestResult.pointIdxA == bestResult.pointIdxB)
-                    {
-                        polygons.add(open_polylines[bestA]);
-                        open_polylines[bestA].clear();
-                    }
-                    else if (bestResult.AtoB)
-                    {
-                        PolygonRef poly = polygons.newPoly();
-                        for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygons[bestResult.polygonIdx].size())
-                            poly.add(polygons[bestResult.polygonIdx][j]);
-                        for(unsigned int j = open_polylines[bestA].size() - 1; int(j) >= 0; j--)
-                            poly.add(open_polylines[bestA][j]);
-                        open_polylines[bestA].clear();
-                    }
-                    else
-                    {
-                        unsigned int n = polygons.size();
-                        polygons.add(open_polylines[bestA]);
-                        for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygons[bestResult.polygonIdx].size())
-                            polygons[n].add(polygons[bestResult.polygonIdx][j]);
-                        open_polylines[bestA].clear();
-                    }
-                }
-                else
-                {
-                    if (bestResult.pointIdxA == bestResult.pointIdxB)
-                    {
-                        for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
-                            open_polylines[bestB].add(open_polylines[bestA][n]);
-                        open_polylines[bestA].clear();
-                    }
-                    else if (bestResult.AtoB)
-                    {
-                        Polygon poly;
-                        for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygons[bestResult.polygonIdx].size())
-                            poly.add(polygons[bestResult.polygonIdx][n]);
-                        for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
-                            open_polylines[bestB].add(poly[n]);
-                        for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
-                            open_polylines[bestB].add(open_polylines[bestA][n]);
-                        open_polylines[bestA].clear();
-                    }
-                    else
-                    {
-                        for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygons[bestResult.polygonIdx].size())
-                            open_polylines[bestB].add(polygons[bestResult.polygonIdx][n]);
-                        for(unsigned int n = open_polylines[bestA].size() - 1; int(n) >= 0; n--)
-                            open_polylines[bestB].add(open_polylines[bestA][n]);
-                        open_polylines[bestA].clear();
-                    }
-                }
-            }
-            else
-            {
-                break;
-            }
-        }
+        stitch_extensive(open_polylines);
     }
 
     if (keep_none_closed)
     {
-        for(unsigned int n=0; n<open_polylines.size(); n++)
+        for(PolygonRef polyline : open_polylines)
         {
-            if (open_polylines[n].size() > 0)
-                polygons.add(open_polylines[n]);
+            if (polyline.size() > 0)
+                openPolylines.add(polyline);
         }
     }
     
-    for(unsigned int i=0;i<open_polylines.size();i++)
+    for(PolygonRef polyline : open_polylines)
     {
-        if (open_polylines[i].size() > 0)
-            openPolylines.add(open_polylines[i]);
+        if (polyline.size() > 0)
+            openPolylines.add(polyline);
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
