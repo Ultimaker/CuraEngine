@@ -110,6 +110,18 @@ public:
         return length;
     }
     
+    bool shorterThan(int64_t check_length)
+    {
+        PolygonRef& polygon = *this;
+        for(unsigned int n=1; n<polygon.size(); n++)
+        {
+            check_length += vSize(polygon[n] - polygon[n-1]);
+            if (check_length >= check_length)
+                return false;
+        }
+        return true;
+    }
+    
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
@@ -340,6 +352,10 @@ public:
     {
         POLY_ASSERT(index < size());
         paths.erase(paths.begin() + index);
+    }
+    void erase(ClipperLib::Paths::iterator start, ClipperLib::Paths::iterator end)
+    {
+        paths.erase(start, end);
     }
     void clear()
     {

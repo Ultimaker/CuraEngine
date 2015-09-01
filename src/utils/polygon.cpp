@@ -224,7 +224,7 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     std::vector<PolygonsPart> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -298,7 +298,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
