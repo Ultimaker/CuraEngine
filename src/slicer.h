@@ -39,15 +39,22 @@ public:
 class SlicerLayer
 {
 public:
-    std::vector<SlicerSegment> segmentList;
-    std::unordered_map<int, int> face_idx_to_segment_index; // topology
+    std::vector<SlicerSegment> segments;
+    std::unordered_map<int, int> face_idx_to_segment_idx; // topology
     
     int z;
-    Polygons polygonList;
+    Polygons polygons;
     Polygons openPolylines;
     
     void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
+    void makeBasicPolygonLoops(Mesh* mesh, Polygons& openPolygonList);
+    
+    void makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polygons, unsigned int start_segment_idx);
+    
+    int getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned int start_segment_idx);
+    
+    
 private:
     GapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
     {
@@ -70,21 +77,21 @@ private:
             ret.len = vSize(ip0 - ip1);
         }else{
             //Find out if we have should go from A to B or the other way around.
-            Point p0 = polygonList[ret.polygonIdx][ret.pointIdxA];
+            Point p0 = polygons[ret.polygonIdx][ret.pointIdxA];
             int64_t lenA = vSize(p0 - ip0);
-            for(unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygonList[ret.polygonIdx].size())
+            for(unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygons[ret.polygonIdx].size())
             {
-                Point p1 = polygonList[ret.polygonIdx][i];
+                Point p1 = polygons[ret.polygonIdx][i];
                 lenA += vSize(p0 - p1);
                 p0 = p1;
             }
             lenA += vSize(p0 - ip1);
 
-            p0 = polygonList[ret.polygonIdx][ret.pointIdxB];
+            p0 = polygons[ret.polygonIdx][ret.pointIdxB];
             int64_t lenB = vSize(p0 - ip1);
-            for(unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygonList[ret.polygonIdx].size())
+            for(unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygons[ret.polygonIdx].size())
             {
-                Point p1 = polygonList[ret.polygonIdx][i];
+                Point p1 = polygons[ret.polygonIdx][i];
                 lenB += vSize(p0 - p1);
                 p0 = p1;
             }
@@ -105,12 +112,12 @@ private:
     ClosePolygonResult findPolygonPointClosestTo(Point input)
     {
         ClosePolygonResult ret;
-        for(unsigned int n=0; n<polygonList.size(); n++)
+        for(unsigned int n=0; n<polygons.size(); n++)
         {
-            Point p0 = polygonList[n][polygonList[n].size()-1];
-            for(unsigned int i=0; i<polygonList[n].size(); i++)
+            Point p0 = polygons[n][polygons[n].size()-1];
+            for(unsigned int i=0; i<polygons[n].size(); i++)
             {
-                Point p1 = polygonList[n][i];
+                Point p1 = polygons[n][i];
                 
                 //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
                 Point pDiff = p1 - p0;

@@ -8,86 +8,111 @@
 #include "debug.h" // TODO remove
 
 namespace cura {
+    
+int largest_neglected_gap = MM2INT(0.01); //!< distance between two line segments regarded as connected
+
+void SlicerLayer::makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines)
+{
+    for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
+    {
+        if (!segments[start_segment_idx].addedToPolygon)
+        {
+            makeBasicPolygonLoop(mesh, open_polylines, start_segment_idx);
+        }
+    }
+    //Clear the segmentList to save memory, it is no longer needed after this point.
+    segments.clear();
+}
+
+void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx)
+{
+    
+    Polygon poly;
+    poly.add(segments[start_segment_idx].start);
+    
+    
+    int next_segment_idx = -1;
+    for (unsigned int segment_idx = start_segment_idx; next_segment_idx != -1; segment_idx = next_segment_idx)
+    {
+        SlicerSegment& segment = segments[segment_idx];
+        Point p0 = segment.end;
+        poly.add(p0);
+        segment.addedToPolygon = true;
+        next_segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
+        if (next_segment_idx == static_cast<int>(start_segment_idx)) 
+        { // polyon is closed
+            polygons.add(poly);
+            return;
+        }
+    }
+    // polygon couldn't be closed
+    open_polylines.add(poly);
+}
+
+int SlicerLayer::getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned int start_segment_idx)
+{
+    int next_segment_idx = -1;
+    const MeshFace& face = mesh->faces[segment.faceIndex];
+    for(unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
+    { // check segments in connected faces
+        decltype(face_idx_to_segment_idx.begin()) it;
+        if (face.connected_face_index[face_edge_idx] > -1 && (it = face_idx_to_segment_idx.find(face.connected_face_index[face_edge_idx])) != face_idx_to_segment_idx.end())
+        {
+            int segment_idx = (*it).second;
+            Point p1 = segments[segment_idx].start;
+            Point diff = segment.end - p1;
+            if (shorterThen(diff, largest_neglected_gap))
+            {
+                if (segment_idx == static_cast<int>(start_segment_idx))
+                    return start_segment_idx;
+                if (segments[segment_idx].addedToPolygon)
+                    continue;
+                next_segment_idx = segment_idx;
+            }
+        }
+    }
+    return next_segment_idx;
+}
 
 void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
-    Polygons openPolygonList;
+    Polygons open_polylines;
     
-    // connect line segments
-    for(unsigned int startSegment=0; startSegment < segmentList.size(); startSegment++)
-    {
-        if (segmentList[startSegment].addedToPolygon)
-            continue;
-        
-        Polygon poly;
-        poly.add(segmentList[startSegment].start);
-        
-        unsigned int segmentIndex = startSegment;
-        bool canClose;
-        while(true)
-        {
-            canClose = false;
-            segmentList[segmentIndex].addedToPolygon = true;
-            Point p0 = segmentList[segmentIndex].end;
-            poly.add(p0);
-            int nextIndex = -1;
-            const MeshFace& face = mesh->faces[segmentList[segmentIndex].faceIndex];
-            for(unsigned int i=0;i<3;i++)
-            {
-                decltype(face_idx_to_segment_index.begin()) it;
-                if (face.connected_face_index[i] > -1 && (it = face_idx_to_segment_index.find(face.connected_face_index[i])) != face_idx_to_segment_index.end())
-                {
-                    int index = (*it).second;
-                    Point p1 = segmentList[index].start;
-                    Point diff = p0 - p1;
-                    if (shorterThen(diff, MM2INT(0.01)))
-                    {
-                        if (index == static_cast<int>(startSegment))
-                            canClose = true;
-                        if (segmentList[index].addedToPolygon)
-                            continue;
-                        nextIndex = index;
-                    }
-                }
-            }
-            if (nextIndex == -1)
-                break;
-            segmentIndex = nextIndex;
-        }
-        if (canClose)
-            polygonList.add(poly);
-        else
-            openPolygonList.add(poly);
-    }
-    //Clear the segmentList to save memory, it is no longer needed after this point.
-    segmentList.clear();
+    makeBasicPolygonLoops(mesh, open_polylines);
+    
     
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
     //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
     //First link up polygon ends that are within 2 microns.
-    for(unsigned int i=0;i<openPolygonList.size();i++)
+    for(unsigned int open_polyline_idx = 0; open_polyline_idx < open_polylines.size(); open_polyline_idx++)
     {
-        if (openPolygonList[i].size() < 1) continue;
-        for(unsigned int j=0;j<openPolygonList.size();j++)
+        PolygonRef open_polyline = open_polylines[open_polyline_idx];
+        
+        if (open_polyline.size() < 1) continue;
+        for(unsigned int open_polyline_other_idx = 0; open_polyline_other_idx < open_polylines.size(); open_polyline_other_idx++)
         {
-            if (openPolygonList[j].size() < 1) continue;
+            PolygonRef open_polyline_other = open_polylines[open_polyline_other_idx];
             
-            Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
-            int64_t distSquared = vSize2(diff);
+            if (open_polyline_other.size() < 1) continue;
+            
+            Point diff = open_polyline.back() - open_polyline_other[0];
 
-            if (distSquared < MM2INT(0.02) * MM2INT(0.02))
+            if (shorterThen(diff,  MM2INT(0.02)))
             {
-                if (i == j)
+                if (open_polyline_idx == open_polyline_other_idx)
                 {
-                    polygonList.add(openPolygonList[i]);
-                    openPolygonList[i].clear();
+                    polygons.add(open_polyline);
+                    open_polyline.clear();
                     break;
-                }else{
-                    for(unsigned int n=0; n<openPolygonList[j].size(); n++)
-                        openPolygonList[i].add(openPolygonList[j][n]);
-
-                    openPolygonList[j].clear();
+                }
+                else
+                {
+                    for(unsigned int line_idx = 0; line_idx<open_polyline_other.size(); line_idx++)
+                    {
+                        open_polyline.add(open_polyline_other[line_idx]);
+                    }
+                    open_polyline_other.clear();
                 }
             }
         }
@@ -102,14 +127,14 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         unsigned int bestA = -1;
         unsigned int bestB = -1;
         bool reversed = false;
-        for(unsigned int i=0;i<openPolygonList.size();i++)
+        for(unsigned int i=0;i<open_polylines.size();i++)
         {
-            if (openPolygonList[i].size() < 1) continue;
-            for(unsigned int j=0;j<openPolygonList.size();j++)
+            if (open_polylines[i].size() < 1) continue;
+            for(unsigned int j=0;j<open_polylines.size();j++)
             {
-                if (openPolygonList[j].size() < 1) continue;
+                if (open_polylines[j].size() < 1) continue;
                 
-                Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][0];
+                Point diff = open_polylines[i][open_polylines[i].size()-1] - open_polylines[j][0];
                 int64_t distSquared = vSize2(diff);
                 if (distSquared < bestScore)
                 {
@@ -121,7 +146,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 
                 if (i != j)
                 {
-                    Point diff = openPolygonList[i][openPolygonList[i].size()-1] - openPolygonList[j][openPolygonList[j].size()-1];
+                    Point diff = open_polylines[i][open_polylines[i].size()-1] - open_polylines[j][open_polylines[j].size()-1];
                     int64_t distSquared = vSize2(diff);
                     if (distSquared < bestScore)
                     {
@@ -139,25 +164,25 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         
         if (bestA == bestB)
         {
-            polygonList.add(openPolygonList[bestA]);
-            openPolygonList[bestA].clear();
+            polygons.add(open_polylines[bestA]);
+            open_polylines[bestA].clear();
         }else{
             if (reversed)
             {
-                if (openPolygonList[bestA].polygonLength() > openPolygonList[bestB].polygonLength())
+                if (open_polylines[bestA].polygonLength() > open_polylines[bestB].polygonLength())
                 {
-                    for(unsigned int n=openPolygonList[bestB].size()-1; int(n)>=0; n--)
-                        openPolygonList[bestA].add(openPolygonList[bestB][n]);
-                    openPolygonList[bestB].clear();
+                    for(unsigned int n=open_polylines[bestB].size()-1; int(n)>=0; n--)
+                        open_polylines[bestA].add(open_polylines[bestB][n]);
+                    open_polylines[bestB].clear();
                 }else{
-                    for(unsigned int n=openPolygonList[bestA].size()-1; int(n)>=0; n--)
-                        openPolygonList[bestB].add(openPolygonList[bestA][n]);
-                    openPolygonList[bestA].clear();
+                    for(unsigned int n=open_polylines[bestA].size()-1; int(n)>=0; n--)
+                        open_polylines[bestB].add(open_polylines[bestA][n]);
+                    open_polylines[bestA].clear();
                 }
             }else{
-                for(unsigned int n=0; n<openPolygonList[bestB].size(); n++)
-                    openPolygonList[bestA].add(openPolygonList[bestB][n]);
-                openPolygonList[bestB].clear();
+                for(unsigned int n=0; n<open_polylines[bestB].size(); n++)
+                    open_polylines[bestA].add(open_polylines[bestB][n]);
+                open_polylines[bestB].clear();
             }
         }
     }
@@ -179,12 +204,12 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             bestResult.pointIdxA = -1;
             bestResult.pointIdxB = -1;
             
-            for(unsigned int i=0; i<openPolygonList.size(); i++)
+            for(unsigned int i=0; i<open_polylines.size(); i++)
             {
-                if (openPolygonList[i].size() < 1) continue;
+                if (open_polylines[i].size() < 1) continue;
                 
                 {
-                    GapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[i][openPolygonList[i].size()-1]);
+                    GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[i][open_polylines[i].size()-1]);
                     if (res.len > 0 && res.len < bestResult.len)
                     {
                         bestA = i;
@@ -193,11 +218,11 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                     }
                 }
 
-                for(unsigned int j=0; j<openPolygonList.size(); j++)
+                for(unsigned int j=0; j<open_polylines.size(); j++)
                 {
-                    if (openPolygonList[j].size() < 1 || i == j) continue;
+                    if (open_polylines[j].size() < 1 || i == j) continue;
                     
-                    GapCloserResult res = findPolygonGapCloser(openPolygonList[i][0], openPolygonList[j][openPolygonList[j].size()-1]);
+                    GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[j][open_polylines[j].size()-1]);
                     if (res.len > 0 && res.len < bestResult.len)
                     {
                         bestA = i;
@@ -213,53 +238,53 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
                 {
                     if (bestResult.pointIdxA == bestResult.pointIdxB)
                     {
-                        polygonList.add(openPolygonList[bestA]);
-                        openPolygonList[bestA].clear();
+                        polygons.add(open_polylines[bestA]);
+                        open_polylines[bestA].clear();
                     }
                     else if (bestResult.AtoB)
                     {
-                        PolygonRef poly = polygonList.newPoly();
-                        for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
-                            poly.add(polygonList[bestResult.polygonIdx][j]);
-                        for(unsigned int j = openPolygonList[bestA].size() - 1; int(j) >= 0; j--)
-                            poly.add(openPolygonList[bestA][j]);
-                        openPolygonList[bestA].clear();
+                        PolygonRef poly = polygons.newPoly();
+                        for(unsigned int j = bestResult.pointIdxA; j != bestResult.pointIdxB; j = (j + 1) % polygons[bestResult.polygonIdx].size())
+                            poly.add(polygons[bestResult.polygonIdx][j]);
+                        for(unsigned int j = open_polylines[bestA].size() - 1; int(j) >= 0; j--)
+                            poly.add(open_polylines[bestA][j]);
+                        open_polylines[bestA].clear();
                     }
                     else
                     {
-                        unsigned int n = polygonList.size();
-                        polygonList.add(openPolygonList[bestA]);
-                        for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygonList[bestResult.polygonIdx].size())
-                            polygonList[n].add(polygonList[bestResult.polygonIdx][j]);
-                        openPolygonList[bestA].clear();
+                        unsigned int n = polygons.size();
+                        polygons.add(open_polylines[bestA]);
+                        for(unsigned int j = bestResult.pointIdxB; j != bestResult.pointIdxA; j = (j + 1) % polygons[bestResult.polygonIdx].size())
+                            polygons[n].add(polygons[bestResult.polygonIdx][j]);
+                        open_polylines[bestA].clear();
                     }
                 }
                 else
                 {
                     if (bestResult.pointIdxA == bestResult.pointIdxB)
                     {
-                        for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
-                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
-                        openPolygonList[bestA].clear();
+                        for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
+                            open_polylines[bestB].add(open_polylines[bestA][n]);
+                        open_polylines[bestA].clear();
                     }
                     else if (bestResult.AtoB)
                     {
                         Polygon poly;
-                        for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
-                            poly.add(polygonList[bestResult.polygonIdx][n]);
+                        for(unsigned int n = bestResult.pointIdxA; n != bestResult.pointIdxB; n = (n + 1) % polygons[bestResult.polygonIdx].size())
+                            poly.add(polygons[bestResult.polygonIdx][n]);
                         for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
-                            openPolygonList[bestB].add(poly[n]);
-                        for(unsigned int n=0; n<openPolygonList[bestA].size(); n++)
-                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
-                        openPolygonList[bestA].clear();
+                            open_polylines[bestB].add(poly[n]);
+                        for(unsigned int n=0; n<open_polylines[bestA].size(); n++)
+                            open_polylines[bestB].add(open_polylines[bestA][n]);
+                        open_polylines[bestA].clear();
                     }
                     else
                     {
-                        for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygonList[bestResult.polygonIdx].size())
-                            openPolygonList[bestB].add(polygonList[bestResult.polygonIdx][n]);
-                        for(unsigned int n = openPolygonList[bestA].size() - 1; int(n) >= 0; n--)
-                            openPolygonList[bestB].add(openPolygonList[bestA][n]);
-                        openPolygonList[bestA].clear();
+                        for(unsigned int n = bestResult.pointIdxB; n != bestResult.pointIdxA; n = (n + 1) % polygons[bestResult.polygonIdx].size())
+                            open_polylines[bestB].add(polygons[bestResult.polygonIdx][n]);
+                        for(unsigned int n = open_polylines[bestA].size() - 1; int(n) >= 0; n--)
+                            open_polylines[bestB].add(open_polylines[bestA][n]);
+                        open_polylines[bestA].clear();
                     }
                 }
             }
@@ -272,47 +297,47 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 
     if (keep_none_closed)
     {
-        for(unsigned int n=0; n<openPolygonList.size(); n++)
+        for(unsigned int n=0; n<open_polylines.size(); n++)
         {
-            if (openPolygonList[n].size() > 0)
-                polygonList.add(openPolygonList[n]);
+            if (open_polylines[n].size() > 0)
+                polygons.add(open_polylines[n]);
         }
     }
     
-    for(unsigned int i=0;i<openPolygonList.size();i++)
+    for(unsigned int i=0;i<open_polylines.size();i++)
     {
-        if (openPolygonList[i].size() > 0)
-            openPolylines.add(openPolygonList[i]);
+        if (open_polylines[i].size() > 0)
+            openPolylines.add(open_polylines[i]);
     }
 
     //Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
     int snapDistance = MM2INT(1.0);
-    for(unsigned int i=0;i<polygonList.size();i++)
+    for(unsigned int i=0;i<polygons.size();i++)
     {
         int length = 0;
 
-        for(unsigned int n=1; n<polygonList[i].size(); n++)
+        for(unsigned int n=1; n<polygons[i].size(); n++)
         {
-            length += vSize(polygonList[i][n] - polygonList[i][n-1]);
+            length += vSize(polygons[i][n] - polygons[i][n-1]);
             if (length > snapDistance)
                 break;
         }
         if (length < snapDistance)
         {
-            polygonList.remove(i);
+            polygons.remove(i);
             i--;
         }
     }
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygonList.simplify();
+    polygons.simplify();
     
-    polygonList.removeDegenerateVerts(); // remove verts connected to overlapping line segments
+    polygons.removeDegenerateVerts(); // remove verts connected to overlapping line segments
     
     int xy_offset = mesh->getSettingInMicrons("xy_offset");
     if (xy_offset != 0)
     {
-        polygonList = polygonList.offset(xy_offset);
+        polygons = polygons.offset(xy_offset);
     }
 }
 
@@ -368,10 +393,10 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(mesh_idx, layers[layer_nr].segmentList.size()));
+            layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
             s.addedToPolygon = false;
-            layers[layer_nr].segmentList.push_back(s);
+            layers[layer_nr].segments.push_back(s);
         }
     }
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
