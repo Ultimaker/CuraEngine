@@ -200,15 +200,15 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
 EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Lines")
+    if (value == "lines")
         return EFillMethod::LINES;
-    if (value == "Grid")
+    if (value == "grid")
         return EFillMethod::GRID;
-    if (value == "Triangles")
+    if (value == "triangles")
         return EFillMethod::TRIANGLES;
-    if (value == "Concentric")
+    if (value == "concentric")
         return EFillMethod::CONCENTRIC;
-    if (value == "ZigZag")
+    if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
     return EFillMethod::NONE;
 }
@@ -216,9 +216,9 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
 EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Brim")
+    if (value == "brim")
         return EPlatformAdhesion::BRIM;
-    if (value == "Raft")
+    if (value == "raft")
         return EPlatformAdhesion::RAFT;
     return EPlatformAdhesion::SKIRT;
 }
@@ -226,9 +226,9 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Everywhere")
+    if (value == "everywhere")
         return ESupportType::EVERYWHERE;
-    if (value == "Touching Buildplate")
+    if (value == "touching_buildplate")
         return ESupportType::PLATFORM_ONLY;
     return ESupportType::NONE;
 }
@@ -236,11 +236,11 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
 EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Random")
+    if (value == "random")
         return EZSeamType::RANDOM;
-    if (value == "Shortest")
+    if (value == "shortest")
         return EZSeamType::SHORTEST;
-    if (value == "Back")
+    if (value == "back")
         return EZSeamType::BACK;
     return EZSeamType::SHORTEST;
 }
@@ -248,11 +248,11 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
 ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Normal")
+    if (value == "normal")
         return ESurfaceMode::NORMAL;
-    if (value == "Surface")
+    if (value == "surface")
         return ESurfaceMode::SURFACE;
-    if (value == "Both")
+    if (value == "both")
         return ESurfaceMode::BOTH;
     return ESurfaceMode::NORMAL;
 }
