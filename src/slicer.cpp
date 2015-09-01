@@ -212,29 +212,31 @@ void SlicerLayer::stitch_extensive(Polygons open_polylines)
         bestResult.pointIdxA = -1;
         bestResult.pointIdxB = -1;
         
-        for(unsigned int i=0; i<open_polylines.size(); i++)
+        for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
         {
-            if (open_polylines[i].size() < 1) continue;
+            PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+            if (polyline_1.size() < 1) continue;
             
             {
-                GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[i][open_polylines[i].size()-1]);
+                GapCloserResult res = findPolygonGapCloser(polyline_1[0], polyline_1.back());
                 if (res.len > 0 && res.len < bestResult.len)
                 {
-                    bestA = i;
-                    bestB = i;
+                    bestA = polyline_1_idx;
+                    bestB = polyline_1_idx;
                     bestResult = res;
                 }
             }
 
-            for(unsigned int j=0; j<open_polylines.size(); j++)
+            for(unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
             {
-                if (open_polylines[j].size() < 1 || i == j) continue;
+                PolygonRef polyline_2 = open_polylines[polyline_2_idx];
+                if (polyline_2.size() < 1 || polyline_1_idx == polyline_2_idx) continue;
                 
-                GapCloserResult res = findPolygonGapCloser(open_polylines[i][0], open_polylines[j][open_polylines[j].size()-1]);
+                GapCloserResult res = findPolygonGapCloser(polyline_1[0], polyline_2.back());
                 if (res.len > 0 && res.len < bestResult.len)
                 {
-                    bestA = i;
-                    bestB = j;
+                    bestA = polyline_1_idx;
+                    bestB = polyline_2_idx;
                     bestResult = res;
                 }
             }
