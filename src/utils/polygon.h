@@ -29,37 +29,37 @@ const static int clipper_init = (0);
 
 class PolygonRef
 {
-    ClipperLib::Path* polygon;
+    ClipperLib::Path* path;
     PolygonRef()
-    : polygon(nullptr)
+    : path(nullptr)
     {}
 public:
     PolygonRef(ClipperLib::Path& polygon)
-    : polygon(&polygon)
+    : path(&polygon)
     {}
     
     unsigned int size() const
     {
-        return polygon->size();
+        return path->size();
     }
 
     Point& operator[] (unsigned int index) const
     {
         POLY_ASSERT(index < size());
-        return (*polygon)[index];
+        return (*path)[index];
     }
 
     void* data()
     {
-        return polygon->data();
+        return path->data();
     }
 
     void add(const Point p)
     {
-        polygon->push_back(p);
+        path->push_back(p);
     }
     
-    PolygonRef& operator=(const PolygonRef& other) { polygon = other.polygon; return *this; }
+    PolygonRef& operator=(const PolygonRef& other) { path = other.path; return *this; }
 
     bool operator==(const PolygonRef& other) const =delete;
 
@@ -68,18 +68,18 @@ public:
     template <typename... Args>
     void emplace_back(Args&&... args)
     {
-        polygon->emplace_back(args...);
+        path->emplace_back(args...);
     }
 
     void remove(unsigned int index)
     {
         POLY_ASSERT(index < size());
-        polygon->erase(polygon->begin() + index);
+        path->erase(path->begin() + index);
     }
 
     void clear()
     {
-        polygon->clear();
+        path->clear();
     }
 
     /*!
@@ -89,21 +89,21 @@ public:
      */
     bool orientation() const
     {
-        return ClipperLib::Orientation(*polygon);
+        return ClipperLib::Orientation(*path);
     }
 
     void reverse()
     {
-        ClipperLib::ReversePath(*polygon);
+        ClipperLib::ReversePath(*path);
     }
 
     int64_t polygonLength() const
     {
         int64_t length = 0;
-        Point p0 = (*polygon)[polygon->size()-1];
-        for(unsigned int n=0; n<polygon->size(); n++)
+        Point p0 = (*path)[path->size()-1];
+        for(unsigned int n=0; n<path->size(); n++)
         {
-            Point p1 = (*polygon)[n];
+            Point p1 = (*path)[n];
             length += vSize(p0 - p1);
             p0 = p1;
         }
@@ -113,7 +113,7 @@ public:
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
-        for(Point p : *polygon)
+        for(Point p : *path)
         {
             ret.X = std::min(ret.X, p.X);
             ret.Y = std::min(ret.Y, p.Y);
@@ -124,7 +124,7 @@ public:
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
-        for(Point p : *polygon)
+        for(Point p : *path)
         {
             ret.X = std::max(ret.X, p.X);
             ret.Y = std::max(ret.Y, p.Y);
@@ -134,7 +134,7 @@ public:
 
     double area() const
     {
-        return ClipperLib::Area(*polygon);
+        return ClipperLib::Area(*path);
     }
     
     /*!
@@ -153,10 +153,10 @@ public:
     Point centerOfMass() const
     {
         double x = 0, y = 0;
-        Point p0 = (*polygon)[polygon->size()-1];
-        for(unsigned int n=0; n<polygon->size(); n++)
+        Point p0 = (*path)[path->size()-1];
+        for(unsigned int n=0; n<path->size(); n++)
         {
-            Point p1 = (*polygon)[n];
+            Point p1 = (*path)[n];
             double second_factor = (p0.X * p1.Y) - (p1.X * p0.Y);
 
             x += double(p0.X + p1.X) * second_factor;
@@ -164,7 +164,7 @@ public:
             p0 = p1;
         }
 
-        double area = Area(*polygon);
+        double area = Area(*path);
         
         x = x / 6 / area;
         y = y / 6 / area;
@@ -176,12 +176,12 @@ public:
     {
         Point ret = p;
         float bestDist = FLT_MAX;
-        for(unsigned int n=0; n<polygon->size(); n++)
+        for(unsigned int n=0; n<path->size(); n++)
         {
-            float dist = vSize2f(p - (*polygon)[n]);
+            float dist = vSize2f(p - (*path)[n]);
             if (dist < bestDist)
             {
-                ret = (*polygon)[n];
+                ret = (*path)[n];
                 bestDist = dist;
             }
         }
@@ -216,7 +216,7 @@ public:
     void smooth(int remove_length, PolygonRef result)
     {
         PolygonRef& thiss = *this;
-        ClipperLib::Path* poly = result.polygon;
+        ClipperLib::Path* poly = result.path;
         if (size() > 0)
         {
             poly->push_back(thiss[0]);
@@ -251,32 +251,32 @@ public:
 
     void pop_back()
     { 
-        polygon->pop_back();
+        path->pop_back();
     }
     
     ClipperLib::Path::reference back() const
     {
-        return polygon->back();
+        return path->back();
     }
     
     ClipperLib::Path::iterator begin()
     {
-        return polygon->begin();
+        return path->begin();
     }
 
     ClipperLib::Path::iterator end()
     {
-        return polygon->end();
+        return path->end();
     }
 
     ClipperLib::Path::const_iterator begin() const
     {
-        return polygon->begin();
+        return path->begin();
     }
 
     ClipperLib::Path::const_iterator end() const
     {
-        return polygon->end();
+        return path->end();
     }
 
     friend class Polygons;
@@ -295,7 +295,7 @@ public:
     Polygon(const PolygonRef& other)
     : PolygonRef(poly)
     {
-        poly = *other.polygon;
+        poly = *other.path;
     }
 };
 
@@ -304,17 +304,17 @@ class PolygonsPart;
 class Polygons
 {
 protected:
-    ClipperLib::Paths polygons;
+    ClipperLib::Paths paths;
 public:
     unsigned int size() const
     {
-        return polygons.size();
+        return paths.size();
     }
 
     PolygonRef operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size());
-        return PolygonRef(polygons[index]);
+        return PolygonRef(paths[index]);
     }
     const PolygonRef operator[] (unsigned int index) const
     {
@@ -322,7 +322,7 @@ public:
     }
     ClipperLib::Paths::iterator begin()
     {
-        return polygons.begin();
+        return paths.begin();
     }
     ClipperLib::Paths::const_iterator begin() const
     {
@@ -330,7 +330,7 @@ public:
     }
     ClipperLib::Paths::iterator end()
     {
-        return polygons.end();
+        return paths.end();
     }
     ClipperLib::Paths::const_iterator end() const
     {
@@ -339,29 +339,29 @@ public:
     void remove(unsigned int index)
     {
         POLY_ASSERT(index < size());
-        polygons.erase(polygons.begin() + index);
+        paths.erase(paths.begin() + index);
     }
     void clear()
     {
-        polygons.clear();
+        paths.clear();
     }
     void add(const PolygonRef& poly)
     {
-        polygons.push_back(*poly.polygon);
+        paths.push_back(*poly.path);
     }
     void add(const Polygons& other)
     {
-        for(unsigned int n=0; n<other.polygons.size(); n++)
-            polygons.push_back(other.polygons[n]);
+        for(unsigned int n=0; n<other.paths.size(); n++)
+            paths.push_back(other.paths[n]);
     }
     PolygonRef newPoly()
     {
-        polygons.push_back(ClipperLib::Path());
-        return PolygonRef(polygons[polygons.size()-1]);
+        paths.emplace_back();
+        return PolygonRef(paths.back());
     }
     PolygonRef back()
     {
-        return polygons[polygons.size()-1];
+        return PolygonRef(paths.back());
     }
 
     Polygons() {}
@@ -375,18 +375,18 @@ public:
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
-        clipper.Execute(ClipperLib::ctDifference, ret.polygons);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
+        clipper.Execute(ClipperLib::ctDifference, ret.paths);
         return ret;
     }
     Polygons unionPolygons(const Polygons& other) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        clipper.AddPaths(other.polygons, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptSubject, true);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         return ret;
     }
     /*!
@@ -400,27 +400,27 @@ public:
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
-        clipper.Execute(ClipperLib::ctIntersection, ret.polygons);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
+        clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        clipper.AddPaths(other.polygons, ClipperLib::ptClip, true);
-        clipper.Execute(ClipperLib::ctXor, ret.polygons);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
+        clipper.Execute(ClipperLib::ctXor, ret.paths);
         return ret;
     }
     Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const
     {
         Polygons ret;
         ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        clipper.AddPaths(polygons, joinType, ClipperLib::etClosedPolygon);
+        clipper.AddPaths(paths, joinType, ClipperLib::etClosedPolygon);
         clipper.MiterLimit = miter_limit;
-        clipper.Execute(ret.polygons, distance);
+        clipper.Execute(ret.paths, distance);
         return ret;
     }
     
@@ -429,9 +429,9 @@ public:
         Polygons ret;
         double miterLimit = 1.2;
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
-        clipper.AddPaths(polygons, joinType, ClipperLib::etOpenSquare);
+        clipper.AddPaths(paths, joinType, ClipperLib::etOpenSquare);
         clipper.MiterLimit = miterLimit;
-        clipper.Execute(ret.polygons, distance);
+        clipper.Execute(ret.paths, distance);
         return ret;
     }
     
@@ -486,7 +486,7 @@ public:
         Polygons ret;
         for (unsigned int p = 0; p < size(); p++)
         {
-            PolygonRef poly(polygons[p]);
+            PolygonRef poly(paths[p]);
             if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
             {
                 ret.add(poly);
@@ -673,20 +673,20 @@ public:
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
-        clipper.Execute(ClipperLib::ctUnion, ret.polygons);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+        clipper.Execute(ClipperLib::ctUnion, ret.paths);
         return ret;
     }
 
     int64_t polygonLength() const
     {
         int64_t length = 0;
-        for(unsigned int i=0; i<polygons.size(); i++)
+        for(unsigned int i=0; i<paths.size(); i++)
         {
-            Point p0 = polygons[i][polygons[i].size()-1];
-            for(unsigned int n=0; n<polygons[i].size(); n++)
+            Point p0 = paths[i][paths[i].size()-1];
+            for(unsigned int n=0; n<paths[i].size(); n++)
             {
-                Point p1 = polygons[i][n];
+                Point p1 = paths[i][n];
                 length += vSize(p0 - p1);
                 p0 = p1;
             }
@@ -697,7 +697,7 @@ public:
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
-        for(const ClipperLib::Path& polygon : polygons)
+        for(const ClipperLib::Path& polygon : paths)
         {
             for(Point p : polygon)
             {
@@ -711,7 +711,7 @@ public:
     Point max() const
     {
         Point ret = Point(POINT_MIN, POINT_MIN);
-        for(const ClipperLib::Path& polygon : polygons)
+        for(const ClipperLib::Path& polygon : paths)
         {
             for(Point p : polygon)
             {
@@ -724,11 +724,11 @@ public:
 
     void applyMatrix(const PointMatrix& matrix)
     {
-        for(unsigned int i=0; i<polygons.size(); i++)
+        for(unsigned int i=0; i<paths.size(); i++)
         {
-            for(unsigned int j=0; j<polygons[i].size(); j++)
+            for(unsigned int j=0; j<paths[i].size(); j++)
             {
-                polygons[i][j] = matrix.apply(polygons[i][j]);
+                paths[i][j] = matrix.apply(paths[i][j]);
             }
         }
     }
@@ -754,7 +754,7 @@ public:
             return false;
         if (!(*this)[0].inside(p))
             return false;
-        for(unsigned int n=1; n<polygons.size(); n++)
+        for(unsigned int n=1; n<paths.size(); n++)
         {
             if ((*this)[n].inside(p))
                 return false;

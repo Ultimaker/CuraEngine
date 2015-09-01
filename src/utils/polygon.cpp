@@ -160,7 +160,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 last = &here;
             }
         }
-        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+        path->erase(path->begin() + writing_idx , path->end());
     }
     
     Point* last = &thiss[0];
@@ -185,7 +185,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             last = &here;
         }
     }
-    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    path->erase(path->begin() + writing_idx , path->end());
     
             
     if (size() < 3)
