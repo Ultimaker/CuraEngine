@@ -31,7 +31,7 @@ void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, uns
     poly.add(segments[start_segment_idx].start);
     
     
-    int next_segment_idx = -1;
+    int next_segment_idx = 666; // unused untill getNextSegmentIdx is called. cannot be -1 cause then the loop below wouldn't be executed
     for (unsigned int segment_idx = start_segment_idx; next_segment_idx != -1; segment_idx = next_segment_idx)
     {
         SlicerSegment& segment = segments[segment_idx];
