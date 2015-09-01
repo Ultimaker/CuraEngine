@@ -171,8 +171,7 @@ void SlicerLayer::stitch(Polygons open_polylines)
         { // connect two polylines
             if (reversed)
             {
-                if (polyline_1.polygonLength() > polyline_2.polygonLength()) // old code loked at actual length?!
-//                 if (polyline_1.size() > polyline_2.size())
+                if (polyline_1.size() > polyline_2.size()) // decide which polygon to copy into the other
                 {
                     for(unsigned int poly_idx = polyline_2.size()-1; int(poly_idx)>=0; poly_idx--)
                         polyline_1.add(polyline_2[poly_idx]);
@@ -184,6 +183,7 @@ void SlicerLayer::stitch(Polygons open_polylines)
                         polyline_2.add(polyline_1[poly_idx]);
                     polyline_1.clear();
                 }
+                // note that either way we end up with the end of polyline_1 next to the start of polyline_2
             }
             else
             {
