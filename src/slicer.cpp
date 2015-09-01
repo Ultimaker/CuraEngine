@@ -9,7 +9,9 @@
 
 namespace cura {
     
-int largest_neglected_gap = MM2INT(0.01); //!< distance between two line segments regarded as connected
+int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two line segments regarded as connected
+int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
+int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 void SlicerLayer::makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines)
 {
@@ -30,16 +32,14 @@ void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, uns
     Polygon poly;
     poly.add(segments[start_segment_idx].start);
     
-    
-    int next_segment_idx = 666; // unused untill getNextSegmentIdx is called. cannot be -1 cause then the loop below wouldn't be executed
-    for (unsigned int segment_idx = start_segment_idx; next_segment_idx != -1; segment_idx = next_segment_idx)
+    for (int segment_idx = start_segment_idx; segment_idx != -1; )
     {
         SlicerSegment& segment = segments[segment_idx];
         Point p0 = segment.end;
         poly.add(p0);
         segment.addedToPolygon = true;
-        next_segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
-        if (next_segment_idx == static_cast<int>(start_segment_idx)) 
+        segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
+        if (segment_idx == static_cast<int>(start_segment_idx)) 
         { // polyon is closed
             polygons.add(poly);
             return;
@@ -61,30 +61,22 @@ int SlicerLayer::getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned 
             int segment_idx = (*it).second;
             Point p1 = segments[segment_idx].start;
             Point diff = segment.end - p1;
-            if (shorterThen(diff, largest_neglected_gap))
+            if (shorterThen(diff, largest_neglected_gap_first_phase))
             {
                 if (segment_idx == static_cast<int>(start_segment_idx))
                     return start_segment_idx;
                 if (segments[segment_idx].addedToPolygon)
                     continue;
-                next_segment_idx = segment_idx;
+                next_segment_idx = segment_idx; // not immediately returned since we might still encounter the start_segment_idx
             }
         }
     }
     return next_segment_idx;
 }
 
-void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
+void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
 {
-    Polygons open_polylines;
-    
-    makeBasicPolygonLoops(mesh, open_polylines);
-    
-    
-    // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
-
-    //Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons
-    //First link up polygon ends that are within 2 microns.
+    // TODO use some space partitioning data structure to make this run faster than O(n^2)
     for(unsigned int open_polyline_idx = 0; open_polyline_idx < open_polylines.size(); open_polyline_idx++)
     {
         PolygonRef open_polyline = open_polylines[open_polyline_idx];
@@ -98,7 +90,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             
             Point diff = open_polyline.back() - open_polyline_other[0];
 
-            if (shorterThen(diff,  MM2INT(0.02)))
+            if (shorterThen(diff, largest_neglected_gap_second_phase))
             {
                 if (open_polyline_idx == open_polyline_other_idx)
                 {
@@ -117,76 +109,108 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             }
         }
     }
+}
 
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
+void SlicerLayer::stitch(Polygons open_polylines)
+{ // TODO This is an inefficient implementation which can run in O(n^3) time.
+    // below code closes smallest gaps first
+    while(1)
     {
-        //Next link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
-        while(1)
-        {
-        int64_t bestScore = MM2INT(10.0) * MM2INT(10.0);
-        unsigned int bestA = -1;
-        unsigned int bestB = -1;
+        int64_t best_dist2 = max_stitch1 * max_stitch1;
+        unsigned int best_polyline_1_idx = -1;
+        unsigned int best_polyline_2_idx = -1;
         bool reversed = false;
-        for(unsigned int i=0;i<open_polylines.size();i++)
+        for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
         {
-            if (open_polylines[i].size() < 1) continue;
-            for(unsigned int j=0;j<open_polylines.size();j++)
+            PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+            
+            if (polyline_1.size() < 1) continue;
+            for(unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
             {
-                if (open_polylines[j].size() < 1) continue;
+                PolygonRef polyline_2 = open_polylines[polyline_2_idx];
                 
-                Point diff = open_polylines[i][open_polylines[i].size()-1] - open_polylines[j][0];
-                int64_t distSquared = vSize2(diff);
-                if (distSquared < bestScore)
+                if (polyline_2.size() < 1) continue;
+                
+                Point diff = polyline_1.back() - polyline_2[0];
+                int64_t dist2 = vSize2(diff);
+                if (dist2 < best_dist2)
                 {
-                    bestScore = distSquared;
-                    bestA = i;
-                    bestB = j;
+                    best_dist2 = dist2;
+                    best_polyline_1_idx = polyline_1_idx;
+                    best_polyline_2_idx = polyline_2_idx;
                     reversed = false;
                 }
 
-                if (i != j)
+                if (polyline_1_idx != polyline_2_idx)
                 {
-                    Point diff = open_polylines[i][open_polylines[i].size()-1] - open_polylines[j][open_polylines[j].size()-1];
-                    int64_t distSquared = vSize2(diff);
-                    if (distSquared < bestScore)
+                    Point diff = polyline_1.back() - polyline_2.back();
+                    int64_t dist2 = vSize2(diff);
+                    if (dist2 < best_dist2)
                     {
-                        bestScore = distSquared;
-                        bestA = i;
-                        bestB = j;
+                        best_dist2 = dist2;
+                        best_polyline_1_idx = polyline_1_idx;
+                        best_polyline_2_idx = polyline_2_idx;
                         reversed = true;
                     }
                 }
             }
         }
         
-        if (bestScore >= MM2INT(10.0) * MM2INT(10.0))
-            break;
+        if (best_dist2 >= max_stitch1 * max_stitch1)
+            break; // this code is reached if there was nothing to stitch within the distance limits
         
-        if (bestA == bestB)
-        {
-            polygons.add(open_polylines[bestA]);
-            open_polylines[bestA].clear();
-        }else{
+        PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
+        PolygonRef polyline_2 = open_polylines[best_polyline_2_idx];
+        
+        if (best_polyline_1_idx == best_polyline_2_idx)
+        { // connect last piece of 'circle'
+            polygons.add(polyline_1);
+            polyline_1.clear();
+        }
+        else
+        { // connect two polylines
             if (reversed)
             {
-                if (open_polylines[bestA].polygonLength() > open_polylines[bestB].polygonLength())
+                if (polyline_1.polygonLength() > polyline_2.polygonLength()) // old code loked at actual length?!
+//                 if (polyline_1.size() > polyline_2.size())
                 {
-                    for(unsigned int n=open_polylines[bestB].size()-1; int(n)>=0; n--)
-                        open_polylines[bestA].add(open_polylines[bestB][n]);
-                    open_polylines[bestB].clear();
-                }else{
-                    for(unsigned int n=open_polylines[bestA].size()-1; int(n)>=0; n--)
-                        open_polylines[bestB].add(open_polylines[bestA][n]);
-                    open_polylines[bestA].clear();
+                    for(unsigned int poly_idx = polyline_2.size()-1; int(poly_idx)>=0; poly_idx--)
+                        polyline_1.add(polyline_2[poly_idx]);
+                    polyline_2.clear();
+                } 
+                else
+                {
+                    for(unsigned int poly_idx = polyline_1.size()-1; int(poly_idx)>=0; poly_idx--)
+                        polyline_2.add(polyline_1[poly_idx]);
+                    polyline_1.clear();
                 }
-            }else{
-                for(unsigned int n=0; n<open_polylines[bestB].size(); n++)
-                    open_polylines[bestA].add(open_polylines[bestB][n]);
-                open_polylines[bestB].clear();
+            }
+            else
+            {
+                for(Point& p : polyline_2)
+                    polyline_1.add(p);
+                polyline_2.clear();
             }
         }
     }
+}
+
+void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
+{
+    Polygons open_polylines;
+    
+    makeBasicPolygonLoops(mesh, open_polylines);
+    
+    
+    // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
+
+    connectOpenPolylines(mesh, open_polylines);
+
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
+    {
+        stitch(mesh, open_polylines);
     }
+    
     if (extensive_stitching)
     {
         //For extensive stitching find 2 open polygons that are touching 2 closed polygons.

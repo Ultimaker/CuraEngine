@@ -48,12 +48,30 @@ public:
     
     void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
-    void makeBasicPolygonLoops(Mesh* mesh, Polygons& openPolygonList);
+    /*!
+     * 
+     * \param open_polylines (output parameter)
+     */
+    void makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines);
     
-    void makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polygons, unsigned int start_segment_idx);
+    /*!
+     * \param open_polylines (output parameter)
+     */
+    void makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
     
     int getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned int start_segment_idx);
     
+    /*!
+     * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
+     * First link up polygon ends that are within 2 microns.
+     * 
+     */
+    void connectOpenPolylines(Polygons& open_polylines);
+    
+    /*!
+     * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
+     */
+    void stitch(Polygons open_polylines);
     
 private:
     GapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
