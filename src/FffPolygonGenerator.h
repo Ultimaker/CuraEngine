@@ -128,6 +128,13 @@ private:
     void processPlatformAdhesion(SliceDataStorage& storage);
     
     
+    
+    /*!
+     * Make the outer wall 'fuzzy'
+     */
+    void processFuzzySkin(SliceMeshStorage& mesh);
+    
+    
 
     
 };

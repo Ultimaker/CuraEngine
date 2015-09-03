@@ -201,6 +201,14 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     processPlatformAdhesion(storage);
 
+    
+    for(SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
+        {
+            processFuzzySkin(mesh);
+        }
+    }
 }
 
 void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int layer_nr) 
@@ -416,5 +424,49 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         skirt_sent.add(storage.skirt[extruder]);
     sendPolygons(SkirtType, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
+
+
+void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
+{
+    int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
+    int64_t min_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_smoothness") - fuzziness/2;
+    for (SliceLayer& layer : mesh.layers)
+    {
+        for (SliceLayerPart& part : layer.parts)
+        {
+            Polygons results;
+            Polygons& skin = (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0];
+            for (PolygonRef poly : skin)
+            {
+                // generate points in between p0 and p1
+                PolygonRef result = results.newPoly();
+                
+                int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
+                Point* p0 = &poly.back();
+                for (Point& p1 : poly)
+                { // 'a' is the (next) new point between p0 and p1
+                    Point p0p1 = p1 - *p0;
+                    int64_t p0p1_size = vSize(p0p1);    
+                    int64_t dist_last_point = 0;
+                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % fuzziness)
+                    {
+                        int r = rand() % (fuzziness * 2) - fuzziness;
+                        Point perp_to_p0p1 = crossZ(p0p1);
+                        Point fuzz = normal(perp_to_p0p1, r);
+                        Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
+                        result.add(pa);
+                        dist_last_point = p0pa_dist;
+                    }
+                    dist_left_over = p0p1_size - dist_last_point;
+                    
+                    p0 = &p1;
+                }
+                poly = result;
+            }
+            skin = results;
+        }
+    }
+}
+
 
 }//namespace cura
