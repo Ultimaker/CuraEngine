@@ -897,7 +897,7 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
 { 
     double travelTime;
     double extrudeTime;
-    gcodeLayer.getTimes(travelTime, extrudeTime);
+    gcodeLayer.getNaiveTimeEstimates(travelTime, extrudeTime);
     gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("cool_min_layer_time"), getSettingInMillimetersPerSecond("cool_min_speed"), travelTime, extrudeTime);
 
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)

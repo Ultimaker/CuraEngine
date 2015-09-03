@@ -51,7 +51,7 @@ private:
 
     RetractionConfig* last_retraction_config;
     
-    GCodePathConfig travelConfig;
+    GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
     int currentExtruder;
@@ -161,7 +161,7 @@ public:
 
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     
-    void getTimes(double& travelTime, double& extrudeTime);
+    void getNaiveTimeEstimates(double& travelTime, double& extrudeTime);
 
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.

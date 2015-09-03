@@ -276,7 +276,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
     }
 }
 
-void GCodePlanner::getTimes(double& travelTime, double& extrudeTime)
+void GCodePlanner::getNaiveTimeEstimates(double& travelTime, double& extrudeTime)
 {
     travelTime = 0.0;
     extrudeTime = 0.0;

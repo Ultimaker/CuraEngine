@@ -137,6 +137,10 @@ double GCodeExport::getTotalFilamentUsed(int e)
     return extruder_attr[e].totalFilament;
 }
 
+double GCodeExport::getTotalPrintTime(EPrintFeature print_feature)
+{
+    return total_print_time_per_feature[(unsigned int)print_feature];
+}
 double GCodeExport::getTotalPrintTime()
 {
     return totalPrintTime;
@@ -145,6 +149,10 @@ double GCodeExport::getTotalPrintTime()
 void GCodeExport::resetTotalPrintTimeAndFilament()
 {
     totalPrintTime = 0;
+    for (unsigned int feat_idx = 0; feat_idx < (unsigned int)EPrintFeature::ENUM_COUNT; feat_idx++)
+    {
+        total_print_time_per_feature[feat_idx] = 0.0;
+    }
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
     {
         extruder_attr[e].totalFilament = 0.0;
@@ -154,9 +162,11 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
     estimateCalculator.reset();
 }
 
-void GCodeExport::updateTotalPrintTime()
+void GCodeExport::updateTotalPrintTime(EPrintFeature print_feature)
 {
-    totalPrintTime += estimateCalculator.calculate();
+    double time = estimateCalculator.calculate();
+    totalPrintTime += time;
+    total_print_time_per_feature[(unsigned int)print_feature] += time;
     estimateCalculator.reset();
 }
 
@@ -212,6 +222,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
     
+    assert(speed*60 < 10000 && speed*60 > 100); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
+    
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
     
@@ -265,7 +278,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             "G1 X" << INT2MM(gcode_pos.X) << 
             " Y" << INT2MM(gcode_pos.Y) << 
             " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
-    }else{
+    }
+    else
+    {
         //Normal E handling.
         
         if (extrusion_mm3_per_mm > 0.000001)
