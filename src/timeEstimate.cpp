@@ -24,8 +24,15 @@ void TimeEstimateCalculator::setPosition(Position newPos)
     currentPosition = newPos;
 }
 
+void TimeEstimateCalculator::addTime(double time)
+{
+    extra_time += time;
+}
+
+
 void TimeEstimateCalculator::reset()
 {
+    extra_time = 0.0;
     blocks.clear();
 }
 
@@ -190,7 +197,7 @@ double TimeEstimateCalculator::calculate()
     forward_pass();
     recalculate_trapezoids();
     
-    double totalTime = 0;
+    double totalTime = extra_time;
     for(unsigned int n=0; n<blocks.size(); n++)
     {
         Block& block = blocks[n];

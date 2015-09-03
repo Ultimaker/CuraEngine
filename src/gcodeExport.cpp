@@ -142,10 +142,6 @@ double GCodeExport::getTotalFilamentUsed(int e)
     return extruder_attr[e].totalFilament;
 }
 
-double GCodeExport::getTotalPrintTime(EPrintFeature print_feature)
-{
-    return total_print_time_per_feature[(unsigned int)print_feature];
-}
 double GCodeExport::getTotalPrintTime()
 {
     return totalPrintTime;
@@ -154,10 +150,6 @@ double GCodeExport::getTotalPrintTime()
 void GCodeExport::resetTotalPrintTimeAndFilament()
 {
     totalPrintTime = 0;
-    for (unsigned int feat_idx = 0; feat_idx < (unsigned int)EPrintFeature::ENUM_COUNT; feat_idx++)
-    {
-        total_print_time_per_feature[feat_idx] = 0.0;
-    }
     for(unsigned int e=0; e<MAX_EXTRUDERS; e++)
     {
         extruder_attr[e].totalFilament = 0.0;
@@ -167,11 +159,9 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
     estimateCalculator.reset();
 }
 
-void GCodeExport::updateTotalPrintTime(EPrintFeature print_feature)
+void GCodeExport::updateTotalPrintTime()
 {
-    double time = estimateCalculator.calculate();
-    totalPrintTime += time;
-    total_print_time_per_feature[(unsigned int)print_feature] += time;
+    totalPrintTime += estimateCalculator.calculate();
     estimateCalculator.reset();
 }
 
@@ -214,7 +204,7 @@ void GCodeExport::resetExtrusionValue()
 void GCodeExport::writeDelay(double timeAmount)
 {
     *output_stream << "G4 P" << int(timeAmount * 1000) << "\n";
-    totalPrintTime += timeAmount;
+    estimateCalculator.addTime(timeAmount);
 }
 
 void GCodeExport::writeMove(Point p, double speed, double extrusion_mm3_per_mm)
