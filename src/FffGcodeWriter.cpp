@@ -884,8 +884,8 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
     gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(support_lines, &storage.support_roof_config);
-    sendPolygons(SupportInfillType, layer_nr, support_polygons, storage.support_roof_config.getLineWidth());
-    sendPolygons(SupportInfillType, layer_nr, support_lines, storage.support_roof_config.getLineWidth());
+    sendPolygons(SupportType, layer_nr, support_polygons, storage.support_roof_config.getLineWidth());
+    sendPolygons(SupportType, layer_nr, support_lines, storage.support_roof_config.getLineWidth());
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)

@@ -10,7 +10,6 @@
 #include "utils/intpoint.h"
 #include "timeEstimate.h"
 #include "MeshGroup.h"
-#include "PrintFeature.h"
 #include "commandSocket.h"
 
 namespace cura {
@@ -165,7 +164,6 @@ private:
     EGCodeFlavor flavor;
 
     double totalPrintTime;
-    double total_print_time_per_feature[(unsigned int)EPrintFeature::ENUM_COUNT];
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -214,8 +212,7 @@ public:
     double getTotalFilamentUsed(int e);
 
     double getTotalPrintTime();
-    double getTotalPrintTime(EPrintFeature print_feature);
-    void updateTotalPrintTime(EPrintFeature print_feature = EPrintFeature::UNCLASSIFIED);
+    void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
     
     void writeComment(std::string comment);
