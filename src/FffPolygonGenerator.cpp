@@ -447,7 +447,7 @@ void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
                 { // 'a' is the (next) new point between p0 and p1
                     Point p0p1 = p1 - *p0;
                     int64_t p0p1_size = vSize(p0p1);    
-                    int64_t dist_last_point = 0;
+                    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
                     for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % fuzziness)
                     {
                         int r = rand() % (fuzziness * 2) - fuzziness;
@@ -461,7 +461,19 @@ void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
                     
                     p0 = &p1;
                 }
-                poly = result;
+                while (result.size() < 3 )
+                {
+                    unsigned int point_idx = poly.size() - 2;
+                    result.add(poly[point_idx]);
+                    if (point_idx == 0) { break; }
+                    point_idx--;
+                }
+                if (result.size() < 3)
+                {
+                    result.clear();
+                    for (Point& p : poly)
+                        result.add(p);
+                }
             }
             skin = results;
         }
