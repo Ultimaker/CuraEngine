@@ -1,5 +1,7 @@
 #include "MergeInfillLines.h"
 
+#include <algorithm> // min
+
 namespace cura
 {
     
@@ -9,7 +11,8 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
     double new_line_width_mm = INT2MM(new_line_width);
     double speed_mod = old_line_width / new_line_width_mm;
     double extrusion_mod = new_line_width_mm / old_line_width;
-    gcode.writeMove(to, speed * speed_mod, last_path.getExtrusionMM3perMM() * extrusion_mod);
+    double new_speed = std::min(speed * speed_mod, 150.0); // TODO: hardcoded value: max extrusion speed is 150 mm/s = 9000 mm/min
+    gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
 bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
