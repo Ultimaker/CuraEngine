@@ -146,7 +146,8 @@ bool SettingsBaseVirtual::getSettingBoolean(std::string key)
         return true;
     if (value == "true" or value == "True") //Python uses "True"
         return true;
-    return atoi(value.c_str()) != 0;
+    int num = atoi(value.c_str());
+    return num != 0;
 }
 
 double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key)
