@@ -429,7 +429,9 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
 {
     int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
-    int64_t min_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_smoothness") - fuzziness/2;
+    int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
+    int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    int64_t range_random_point_dist = avg_dist_between_points / 2;
     for (SliceLayer& layer : mesh.layers)
     {
         for (SliceLayerPart& part : layer.parts)
@@ -448,7 +450,7 @@ void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
                     Point p0p1 = p1 - *p0;
                     int64_t p0p1_size = vSize(p0p1);    
                     int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % fuzziness)
+                    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
                         int r = rand() % (fuzziness * 2) - fuzziness;
                         Point perp_to_p0p1 = crossZ(p0p1);
