@@ -703,6 +703,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
+                sendPolygons(SkinType, layer_nr, skin_perimeter, mesh->skin_config.getLineWidth());
                 gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
             }
             if (skin_part.insets.size() > 0)
@@ -723,6 +724,9 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"), extrusion_width, extrusion_width, infill_overlap, infill_angle, false, false);
         infill_comp.generate(skin_polygons, skin_lines, &part.perimeterGaps);
         
+        
+        sendPolygons(SkinType, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
+        sendPolygons(SkinType, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
         gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
     }

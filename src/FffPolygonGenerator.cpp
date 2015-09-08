@@ -322,13 +322,17 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
             }
         }
 
-        SliceLayer& layer = mesh.layers[layer_nr];
-        for(SliceLayerPart& part : layer.parts)
+        bool frontend_can_show_polygon_as_filled_polygon = false;
+        if (frontend_can_show_polygon_as_filled_polygon)
         {
-//             sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
-            for (SkinPart& skin_part : part.skin_parts)
+            SliceLayer& layer = mesh.layers[layer_nr];
+            for(SliceLayerPart& part : layer.parts)
             {
-                sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
+//                  sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
+                }
             }
         }
     }
