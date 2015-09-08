@@ -309,24 +309,25 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     {
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
         
-        int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
+        int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
+        int innermost_wall_extrusion_width = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
-        generateSkins(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
             if (mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") + 10)
             {
-                infill_skin_overlap = extrusionWidth / 2;
+                infill_skin_overlap = skin_extrusion_width / 2;
             }
             generateInfill(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
             if (mesh.getSettingString("fill_perimeter_gaps") == "Skin")
             {
-                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
+                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
             }
             else if (mesh.getSettingString("fill_perimeter_gaps") == "Everywhere")
             {
-                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
+                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
             }
         }
 
@@ -339,7 +340,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
 //                  sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
                 for (SkinPart& skin_part : part.skin_parts)
                 {
-                    sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
+                    sendPolygons(SkinType, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
                 }
             }
         }
