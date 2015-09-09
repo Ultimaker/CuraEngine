@@ -24,12 +24,18 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
 {
     SliceLayer& layer = storage.layers[layer_nr];
     
+    if (downSkinCount == 0 && upSkinCount == 0)
+    {
+        return;
+    }
+    
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
         
         Polygons upskin = part.insets.back().offset(-innermost_wall_extrusion_width/2);
-        Polygons downskin = upskin;
+        Polygons downskin = (downSkinCount == 0)? Polygons() : upskin;
+        if (upSkinCount == 0) upskin = Polygons();
 
         auto getInsidePolygons = [&part](SliceLayer& layer2)
             {
@@ -56,7 +62,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
         }
         else 
         {
-            if (layer_nr > 0)
+            if (layer_nr > 0 && downSkinCount > 0)
             {
                 Polygons not_air = getInsidePolygons(storage.layers[layer_nr - 1]);
                 for (int downskin_layer_nr = std::max(0, layer_nr - downSkinCount); downskin_layer_nr < layer_nr - 1; downskin_layer_nr++)
@@ -66,7 +72,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
                 downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
             
-            if (layer_nr < static_cast<int>(storage.layers.size()) - 1)
+            if (layer_nr < static_cast<int>(storage.layers.size()) - 1 && upSkinCount > 0)
             {
                 Polygons not_air = getInsidePolygons(storage.layers[layer_nr + 1]);
                 for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < std::min(static_cast<int>(storage.layers.size()) - 1, layer_nr + upSkinCount); upskin_layer_nr++)
