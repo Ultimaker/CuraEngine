@@ -753,7 +753,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     
     int current_extruder_nr = gcode_layer.getExtruder();
     
-    if (getSettingBoolean("support_roof_enable"))
+    if (storage.support.supportLayers[layer_nr].roofs.size() > 0)
     {
         if (support_roof_extruder_nr != support_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {

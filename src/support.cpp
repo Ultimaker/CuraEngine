@@ -43,12 +43,21 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        generateSupportAreas(storage, &mesh, layer_count, commandSocket);
-        // TODO
-//         if (mesh.getSettingBoolean("support_roof_enable"))
-//         {
-//             generateSupportRoofs(storage, commandSocket, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"));
-//         }
+        std::vector<Polygons> supportAreas;
+        supportAreas.resize(layer_count, Polygons());
+        generateSupportAreas(storage, &mesh, layer_count, supportAreas, commandSocket);
+        
+        if (mesh.getSettingBoolean("support_roof_enable"))
+        {
+            generateSupportRoofs(storage, supportAreas, layer_count, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"), commandSocket);
+        }
+        else 
+        {
+            for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+            {
+                storage.support.supportLayers[layer_idx].supportAreas.add(supportAreas[layer_idx]);
+            }
+        }
     }
     
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
@@ -70,7 +79,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket)
 {
     // given settings
     ESupportType support_type = object->getSettingAsSupportType("support_type");
@@ -153,9 +162,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStora
     std::vector<std::pair<int, std::vector<Polygons>>> overhang_points; // stores overhang_points along with the layer index at which the overhang point occurs
     AreaSupport::detectOverhangPoints(storage, *object, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
         
-    
-    std::vector<Polygons> supportAreas;
-    supportAreas.resize(layer_count, Polygons());
     
     bool still_in_upper_empty_layers = true;
     int overhang_points_pos = overhang_points.size() - 1;
@@ -258,12 +264,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStora
             
             supportAreas[layer_idx] = touching_buildplate;
         }
-    }
-    
-    
-    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
-    {
-        storage.support.supportLayers[layer_idx].supportAreas.add(supportAreas[layer_idx]);
     }
 }
 
@@ -406,24 +406,27 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket)
 {
     int roof_layer_count = support_roof_height / layerThickness;
     
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
-    for (unsigned int layer_idx = 0; layer_idx < supportLayers.size(); layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
         
-        Polygons non_roof;
         if (layer_idx + roof_layer_count < supportLayers.size())
         {
-            non_roof = supportLayers[layer_idx + roof_layer_count].supportAreas;
+            Polygons roofs = supportAreas[layer_idx].difference(supportAreas[layer_idx + roof_layer_count]);
+            roofs.removeSmallAreas(1.0);
+            layer.roofs.add(roofs);
+            layer.supportAreas.add(supportAreas[layer_idx].difference(layer.roofs));
+        }
+        else 
+        {
+            layer.roofs.add(layer.supportAreas);
         }
         
-        layer.roofs = layer.supportAreas.difference(non_roof);
-        layer.roofs.removeSmallAreas(1.0);
-        layer.supportAreas = layer.supportAreas.difference(layer.roofs);
         
     }
 }

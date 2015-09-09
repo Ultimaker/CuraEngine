@@ -24,7 +24,7 @@ private:
     * \param layer_count total number of layers
     * \param commandSocket Socket over which to report the progress
     */
-    static void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
 
 
 
@@ -36,7 +36,7 @@ private:
     * \param layerThickness The layer height
     * \param support_roof_height The thickness of the hammock in z directiontt
     */
-    static void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height);
+    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
