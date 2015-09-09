@@ -377,6 +377,13 @@ public:
         clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         return ret;
     }
+    /*!
+     * Union all polygons with each other (When polygons.add(polygon) has been called for overlapping polygons)
+     */
+    Polygons unionPolygons() const
+    {
+        return unionPolygons(Polygons());
+    }
     Polygons intersection(const Polygons& other) const
     {
         Polygons ret;

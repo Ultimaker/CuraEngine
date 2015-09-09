@@ -35,6 +35,39 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
     return joined;
 }
 
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* commandSocket)
+{
+    // initialization of supportAreasPerLayer
+    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+        storage.support.supportLayers.emplace_back();
+    
+    for(SliceMeshStorage& mesh : storage.meshes)
+    {
+        std::vector<Polygons> supportAreas;
+        supportAreas.resize(layer_count, Polygons());
+        generateSupportAreas(storage, &mesh, layer_count, supportAreas, commandSocket);
+        
+        if (mesh.getSettingBoolean("support_roof_enable"))
+        {
+            generateSupportRoofs(storage, supportAreas, layer_count, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"), commandSocket);
+        }
+        else 
+        {
+            for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+            {
+                storage.support.supportLayers[layer_idx].supportAreas.add(supportAreas[layer_idx]);
+            }
+        }
+    }
+    
+    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
+    {
+        storage.support.supportLayers[layer_idx].supportAreas = storage.support.supportLayers[layer_idx].supportAreas.unionPolygons();
+    }
+    
+    storage.support.generated = true;
+}
+
 /* 
  * Algorithm:
  * From top layer to bottom layer:
@@ -46,7 +79,7 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket)
 {
     // given settings
     ESupportType support_type = object->getSettingAsSupportType("support_type");
@@ -126,15 +159,10 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     // computation
         
     
-    std::vector<Polygons> joinedLayers; // join model layers of all meshes into polygons and store small areas which need tower support
     std::vector<std::pair<int, std::vector<Polygons>>> overhang_points; // stores overhang_points along with the layer index at which the overhang point occurs
-    AreaSupport::joinMeshesAndDetectOverhangPoints(storage, joinedLayers, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
+    AreaSupport::detectOverhangPoints(storage, *object, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
         
     
-    // initialization of supportAreasPerLayer
-    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
-        storage.support.supportLayers.emplace_back();
-
     bool still_in_upper_empty_layers = true;
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
@@ -145,8 +173,8 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         Polygons overhang;
         {
             // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-            Polygons& supportLayer_supportee = joinedLayers[layer_idx+layerZdistanceTop];
-            Polygons& supportLayer_supporter = joinedLayers[layer_idx-1+layerZdistanceTop];
+            Polygons supportLayer_supportee = object->layers[layer_idx+layerZdistanceTop].getOutlines();
+            Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1+layerZdistanceTop, false);
             
             Polygons supportLayer_supported =  supportLayer_supporter.offset(maxDistFromLowerLayer);
             Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
@@ -202,7 +230,7 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         {
             int stepHeight = support_bottom_stair_step_height / supportLayerThickness + 1;
             int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
-            supportLayer_this = supportLayer_this.difference(joinedLayers[bottomLayer]);
+            supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
         }
         
         
@@ -211,9 +239,9 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
         
         // inset using X/Y distance
         if (supportLayer_this.size() > 0)
-            supportLayer_this = supportLayer_this.difference(joinedLayers[layer_idx].offset(supportXYDistance));
+            supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(layer_idx, false).offset(supportXYDistance));
         
-        storage.support.supportLayers[layer_idx].supportAreas = supportLayer_this;
+        supportAreas[layer_idx] = supportLayer_this;
         
         if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
         {
@@ -227,23 +255,21 @@ void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, u
     // do stuff for when support on buildplate only
     if (supportOnBuildplateOnly)
     {
-        Polygons touching_buildplate = storage.support.supportLayers[0].supportAreas;
+        Polygons touching_buildplate = supportAreas[0]; // TODO: not working for conical support!
         for (unsigned int layer_idx = 1 ; layer_idx < storage.support.supportLayers.size() ; layer_idx++)
         {
-            Polygons& supportLayer = storage.support.supportLayers[layer_idx].supportAreas;
+            Polygons& supportLayer = supportAreas[layer_idx];
             
             touching_buildplate = supportLayer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
             
-            storage.support.supportLayers[layer_idx].supportAreas = touching_buildplate;
+            supportAreas[layer_idx] = touching_buildplate;
         }
     }
-
-    storage.support.generated = true;
 }
 
-void AreaSupport::joinMeshesAndDetectOverhangPoints(
+void AreaSupport::detectOverhangPoints(
     SliceDataStorage& storage,
-    std::vector<Polygons>& joinedLayers,
+    SliceMeshStorage& mesh, 
     std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
     int layer_count,
     int supportMinAreaSqrt,
@@ -252,33 +278,26 @@ void AreaSupport::joinMeshesAndDetectOverhangPoints(
 {
     for (int layer_idx = 0 ; layer_idx < layer_count ; layer_idx++)
     {
-        joinedLayers.emplace_back();
-        for (SliceMeshStorage& mesh : storage.meshes)
+        SliceLayer& layer = mesh.layers[layer_idx];
+        for (SliceLayerPart& part : layer.parts)
         {
-            SliceLayer& layer = mesh.layers[layer_idx];
-            for (SliceLayerPart& part : layer.parts)
+            if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
             {
+                Polygons part_poly_computed;
+                Polygons& part_poly = (part.insets.size() > 0)? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
+                if (part.insets.size() == 0) { part_poly_computed = part.outline.offset(-extrusionWidth/2); }
                 
-                if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
+                if (part_poly.size() > 0)
                 {
-                    Polygons part_poly_computed;
-                    Polygons& part_poly = (part.insets.size() > 0)? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
-                    if (part.insets.size() == 0) { part_poly_computed = part.outline.offset(-extrusionWidth/2); }
-                    
-                    if (part_poly.size() > 0)
+                    if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
+                        overhang_points.back().second.push_back(part_poly);
+                    else 
                     {
-                        if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
-                            overhang_points.back().second.push_back(part_poly);
-                        else 
-                        {
-                            std::vector<Polygons> small_part_polys;
-                            small_part_polys.push_back(part_poly);
-                            overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
-                        }
+                        std::vector<Polygons> small_part_polys;
+                        small_part_polys.push_back(part_poly);
+                        overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
                     }
-                    
                 }
-                joinedLayers.back() = joinedLayers.back().unionPolygons(part.outline);
                 
             }
         }
@@ -387,25 +406,26 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket)
 {
     int roof_layer_count = support_roof_height / layerThickness;
     
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
-    for (unsigned int layer_idx = 0; layer_idx < supportLayers.size(); layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
         
-        Polygons non_roof;
         if (layer_idx + roof_layer_count < supportLayers.size())
         {
-            non_roof = supportLayers[layer_idx + roof_layer_count].supportAreas;
+            Polygons roofs = supportAreas[layer_idx].difference(supportAreas[layer_idx + roof_layer_count]);
+            roofs.removeSmallAreas(1.0);
+            layer.roofs.add(roofs);
+            layer.supportAreas.add(supportAreas[layer_idx].difference(layer.roofs));
         }
-        
-        layer.roofs = layer.supportAreas.difference(non_roof);
-        layer.roofs.removeSmallAreas(1.0);
-        layer.supportAreas = layer.supportAreas.difference(layer.roofs);
-        
+        else 
+        {
+            layer.roofs.add(layer.supportAreas);
+        }
     }
 }
 

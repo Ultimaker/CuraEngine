@@ -50,6 +50,9 @@ public:
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    
+    Polygons getOutlines(bool external_polys_only = false);
+    void getOutlines(Polygons& result, bool external_polys_only = false);
 };
 
 /******************/

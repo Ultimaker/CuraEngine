@@ -12,6 +12,40 @@ class AreaSupport {
 public:
 
     /*!
+     * Generate the support areas and support roof areas for all models.
+     * \param storage data storage containing the input layer outline data and containing the output support storage per layer
+     * \param layer_count total number of layers
+     * \param commandSocket Socket over which to report the progress
+     */
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* commandSocket);
+        
+private:
+    /*!
+     * Generate support polygons over all layers for one object.
+     * 
+     * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
+     * 
+     * \param storage data storage containing the input layer outline data
+     * \param object The object for which to generate support areas
+     * \param layer_count total number of layers
+     * \param commandSocket Socket over which to report the progress
+     */
+    static void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
+
+
+
+    /*!
+     * Generate support roof areas and non-roof areas for a given mesh.
+     * 
+     * \param storage Output storage: support area + support roof area output
+     * \param supportAreas The basic support areas for the current mesh
+     * \param commandSocket Socket over which to report the progress
+     * \param layerThickness The layer height
+     * \param support_roof_height The thickness of the hammock in z directiontt
+     */
+    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket);
+
+    /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
      * 
      * \param supportLayer_up The support areas the layer above
@@ -35,9 +69,9 @@ public:
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
      * \param extrusionWidth extrusionWidth
      */
-    static void joinMeshesAndDetectOverhangPoints(
+    static void detectOverhangPoints(
         SliceDataStorage& storage,
-        std::vector<Polygons>& joinedLayers,
+        SliceMeshStorage& mesh,
         std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
         int layer_count,
         int supportMinAreaSqrt,
@@ -83,29 +117,6 @@ public:
         int supportTowerDiameter
     );
 };
-
-        
-/*!
-* Generate support polygons over all layers.
-* 
-* This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
-* 
-* \param storage data storage containing the input layer outline data and containing the output support storage per layer
-* \param object The object for which to generate support areas
-* \param layer_count total number of layers
-* \param commandSocket Socket over which to report the progress
-*/
-void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, CommandSocket* commandSocket);
-
-/*!
- * Generate support roof areas and adjust non-roof areas.
- * 
-* \param storage Input + output storage: support area data input and support area + support roof area output
-* \param commandSocket Socket over which to report the progress
-* \param layerThickness The layer height
-* \param support_roof_height The thickness of the hammock in z directiontt
- */
-void generateSupportRoofs(SliceDataStorage& storage, CommandSocket* commandSocket, int layerThickness, int support_roof_height);
 
 
 }//namespace cura
