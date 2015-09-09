@@ -10,6 +10,8 @@ else()
     set(CMAKE_CXX_FLAGS "-std=c++11")
 endif()
 
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 # Add warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
