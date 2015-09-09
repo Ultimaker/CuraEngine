@@ -426,8 +426,6 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Po
         {
             layer.roofs.add(layer.supportAreas);
         }
-        
-        
     }
 }
 
