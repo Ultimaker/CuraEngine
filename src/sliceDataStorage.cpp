@@ -3,6 +3,28 @@
 namespace cura
 {
 
+Polygons SliceLayer::getOutlines(bool external_polys_only)
+{
+    Polygons ret;
+    getOutlines(ret, external_polys_only);
+    return ret;
+}
+
+void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
+{
+    for (SliceLayerPart& part : parts)
+    {
+        if (external_polys_only)
+        {
+            result.add(part.outline.outerPolygon());
+        }
+        else 
+        {
+            result.add(part.outline);
+        }
+    }
+}
+
 
 Polygons SliceDataStorage::getLayerOutlines(unsigned int layer_nr, bool include_helper_parts, bool external_polys_only)
 {
@@ -10,17 +32,7 @@ Polygons SliceDataStorage::getLayerOutlines(unsigned int layer_nr, bool include_
     for (SliceMeshStorage& mesh : meshes)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
-        for (SliceLayerPart& part : layer.parts)
-        {
-            if (external_polys_only)
-            {
-                total.add(part.outline.outerPolygon());
-            }
-            else 
-            {
-                total.add(part.outline);
-            }
-        }
+        layer.getOutlines(total, external_polys_only);
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
             total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));

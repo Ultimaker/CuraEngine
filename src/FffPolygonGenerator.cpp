@@ -150,22 +150,14 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
-    
-    for(SliceMeshStorage& mesh : storage.meshes)
+    AreaSupport::generateSupportAreas(storage, total_layers, commandSocket);
+    if (storage.support.generated)
     {
-        generateSupportAreas(storage, &mesh, total_layers, commandSocket);
-        if (storage.support.generated)
+        for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
-            for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
-            {
-                Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-                sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
-            }
+            Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
+            sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
         }
-    }
-    if (getSettingBoolean("support_roof_enable"))
-    {
-        generateSupportRoofs(storage, commandSocket, getSettingInMicrons("layer_height"), getSettingInMicrons("support_roof_height"));
     }
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
