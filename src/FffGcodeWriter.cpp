@@ -559,30 +559,30 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_angle = 45;
         if (layer_nr & 1)
             infill_angle += 90;
-        int extrusion_width =  mesh->infill_config[0].getLineWidth();
+        int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             infill_angle -= 45;
         
         int64_t skin_overlap = 0;
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, extrusion_width);    
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, mesh->skin_config.getLineWidth());    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
