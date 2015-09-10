@@ -200,6 +200,17 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processFuzzyWalls(mesh);
         }
+        else 
+        { // only send polygon data
+            for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+            {
+                SliceLayer* layer = &mesh.layers[layer_nr];
+                for(SliceLayerPart& part : layer->parts)
+                {
+                    sendPolygons(Inset0Type, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
+                }
+            }
+        }
     }
 }
 
@@ -227,14 +238,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                     for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
                         sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
                 }
-            }
-        }
-        else 
-        { // only send polygon data
-            SliceLayer* layer = &mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer->parts)
-            {
-                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
