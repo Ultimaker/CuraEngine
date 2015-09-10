@@ -198,7 +198,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
         {
-            processFuzzySkin(mesh);
+            processFuzzyWalls(mesh);
         }
     }
 }
@@ -223,7 +223,7 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             {
                 if (layer->parts[partNr].insets.size() > 0)
                 {
-                    sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0);
+//                     sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
                     for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
                         sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
                 }
@@ -419,14 +419,15 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 }
 
 
-void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
+void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 {
     int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     int64_t range_random_point_dist = avg_dist_between_points / 2;
-    for (SliceLayer& layer : mesh.layers)
+    for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
     {
+        SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
             Polygons results;
@@ -471,6 +472,7 @@ void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
                 }
             }
             skin = results;
+            sendPolygons(Inset0Type, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
         }
     }
 }

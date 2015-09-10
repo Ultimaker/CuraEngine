@@ -132,7 +132,7 @@ private:
     /*!
      * Make the outer wall 'fuzzy'
      */
-    void processFuzzySkin(SliceMeshStorage& mesh);
+    void processFuzzyWalls(SliceMeshStorage& mesh);
     
     
 
