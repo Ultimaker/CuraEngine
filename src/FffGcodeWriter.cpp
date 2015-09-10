@@ -236,70 +236,90 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     
-    GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
-    raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
-    raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_base_config.setFlow(train->getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_interface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
-    raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
-    raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_surface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
-    raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
-    raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
-
     bool retraction_combing = false; // the raft isn't added to the parts to avoid
     
+    int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
+    
     { // raft base layer
-        gcode.writeLayerComment(-3);
+        GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+        raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
+        raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
+        raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_base_config.setFlow(train->getSettingInPercentage("material_flow"));
+        
+        int layer_nr = -n_raft_surface_layers - 2;
+        gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
-        gcode.setZ(getSettingInMicrons("raft_base_thickness"));
+        int64_t z = getSettingInMicrons("raft_base_thickness"); 
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_base_config.getLayerHeight());
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_base_line_width"), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
         gcode_layer.addLinesByOptimizer(raftLines, &raft_base_config);
+        sendPolygons(SupportType, layer_nr, raftLines, raft_base_config.getLineWidth());
 
         gcode.writeFanCommand(train->getSettingInPercentage("raft_base_fan_speed"));
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_base_thickness"));
     }
 
     { // raft interface layer
-        gcode.writeLayerComment(-2);
+        GCodePathConfig raft_interface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+        raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
+        raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
+        raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
+        
+        int layer_nr = -n_raft_surface_layers - 1;
+        gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
-        gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness"));
-
+        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness");
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_interface_config.getLayerHeight());
+        
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
         gcode_layer.addLinesByOptimizer(raftLines, &raft_interface_config);
+        sendPolygons(SupportType, layer_nr, raftLines, raft_interface_config.getLineWidth());
 
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
 
-    for (int raftSurfaceLayer=1; raftSurfaceLayer<=train->getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
+    
+    GCodePathConfig raft_surface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+    raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
+    raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
+    raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+    raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
+
+    for (int raftSurfaceLayer=1; raftSurfaceLayer <= n_raft_surface_layers; raftSurfaceLayer++)
     { // raft surface layers
+        int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
-        gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
-
+        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer;
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_surface_config.getLayerHeight());
+        
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
         gcode_layer.addLinesByOptimizer(raft_lines, &raft_surface_config);
+        sendPolygons(SupportType, layer_nr, raft_lines, raft_surface_config.getLineWidth());
 
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
