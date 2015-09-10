@@ -41,11 +41,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
         storage.support.supportLayers.emplace_back();
     
-    for(SliceMeshStorage& mesh : storage.meshes)
+    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, &mesh, layer_count, supportAreas, commandSocket);
+        generateSupportAreas(storage, mesh_idx, layer_count, supportAreas, commandSocket);
         
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
@@ -79,43 +80,45 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket)
 {
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        
     // given settings
-    ESupportType support_type = object->getSettingAsSupportType("support_type");
+    ESupportType support_type = mesh.getSettingAsSupportType("support_type");
     
-    if (!object->getSettingBoolean("support_enable"))
+    if (!mesh.getSettingBoolean("support_enable"))
         return;
     if (support_type == ESupportType::NONE)
         return;
     
-    double supportAngle = object->getSettingInAngleRadians("support_angle");
+    double supportAngle = mesh.getSettingInAngleRadians("support_angle");
     bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    int supportZDistance = object->getSettingInMicrons("support_z_distance");
-    int supportZDistanceBottom = object->getSettingInMicrons("support_bottom_distance");
-    int supportZDistanceTop = object->getSettingInMicrons("support_top_distance");
-    int join_distance = object->getSettingInMicrons("support_join_distance");
-    int support_bottom_stair_step_height = object->getSettingInMicrons("support_bottom_stair_step_height");
-    int smoothing_distance = object->getSettingInMicrons("support_area_smoothing"); 
+    int supportZDistance = mesh.getSettingInMicrons("support_z_distance");
+    int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
+    int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
+    int join_distance = mesh.getSettingInMicrons("support_join_distance");
+    int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
+    int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
     
-    int extension_offset = object->getSettingInMicrons("support_offset");
+    int extension_offset = mesh.getSettingInMicrons("support_offset");
     
-    int supportTowerDiameter = object->getSettingInMicrons("support_tower_diameter");
-    int supportMinAreaSqrt = object->getSettingInMicrons("support_minimal_diameter");
-    double supportTowerRoofAngle = object->getSettingInAngleRadians("support_tower_roof_angle");
+    int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
+    int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
+    double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
     
     //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
     
     int min_smoothing_area = 100*100; // minimal area for which to perform smoothing
     int z_layer_distance_tower = 1; // start tower directly below overhang point
         
-    int layerThickness = object->getSettingInMicrons("layer_height");
-    int extrusionWidth = object->getSettingInMicrons("support_line_width"); 
-    int supportXYDistance = object->getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
+    int layerThickness = mesh.getSettingInMicrons("layer_height");
+    int extrusionWidth = mesh.getSettingInMicrons("support_line_width"); 
+    int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
     
-    bool conical_support = object->getSettingBoolean("support_conical_enabled");
-    double conical_support_angle = object->getSettingInAngleRadians("support_conical_angle");
-    int64_t conical_smallest_breadth = object->getSettingInMicrons("support_conical_min_width");
+    bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
+    double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
+    int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
     
     // derived settings:
     
@@ -160,7 +163,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStora
         
     
     std::vector<std::pair<int, std::vector<Polygons>>> overhang_points; // stores overhang_points along with the layer index at which the overhang point occurs
-    AreaSupport::detectOverhangPoints(storage, *object, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
+    AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
         
     
     bool still_in_upper_empty_layers = true;
@@ -173,7 +176,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStora
         Polygons overhang;
         {
             // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-            Polygons supportLayer_supportee = object->layers[layer_idx+layerZdistanceTop].getOutlines();
+            Polygons supportLayer_supportee = mesh.layers[layer_idx+layerZdistanceTop].getOutlines();
             Polygons supportLayer_supporter = storage.getLayerOutlines(layer_idx-1+layerZdistanceTop, false);
             
             Polygons supportLayer_supported =  supportLayer_supporter.offset(maxDistFromLowerLayer);
@@ -249,7 +252,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, SliceMeshStora
             still_in_upper_empty_layers = false;
         }
         
-        Progress::messageProgress(Progress::Stage::SUPPORT, support_layer_count - layer_idx, support_layer_count, commandSocket);
+        Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size(), commandSocket);
     }
     
     // do stuff for when support on buildplate only
