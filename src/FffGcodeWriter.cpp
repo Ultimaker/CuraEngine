@@ -16,7 +16,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     gcode.preSetup(storage.meshgroup);
     
-    gcode.resetTotalPrintTimeAndFilament();
+    if (meshgroup_number == 1)
+    {
+        gcode.resetTotalPrintTimeAndFilament();
+    }
     
     if (command_socket)
         command_socket->beginGCode();
@@ -61,18 +64,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     if (command_socket)
     {
-        finalize();
         command_socket->sendGCodeLayer();
         command_socket->endSendSlicedObject();
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            std::ostringstream prefix;
-            prefix << ";FLAVOR:UltiGCode\n";
-            prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
-            prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
-            prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
-            command_socket->sendGCodePrefix(prefix.str());
-        }
     }
 }
 
@@ -950,6 +943,16 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
 
 void FffGcodeWriter::finalize()
 {
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE && command_socket)
+    {
+        std::ostringstream prefix;
+        prefix << ";FLAVOR:UltiGCode\n";
+        prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
+        prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+        prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+        command_socket->sendGCodePrefix(prefix.str());
+    }
+
     gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
