@@ -8,6 +8,7 @@
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
+#include "commandSocket.h"
 
 
 namespace cura 
@@ -87,7 +88,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(CommandSocket* commandSocket, GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     void setCombing(bool going_to_comb);
