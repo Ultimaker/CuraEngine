@@ -30,7 +30,9 @@ enum PolygonType
     SupportType,
     SkirtType,
     InfillType,
-    SupportInfillType
+    SupportInfillType,
+    MoveCombingType,
+    MoveRetractionType
 };
 
 
