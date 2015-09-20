@@ -164,6 +164,12 @@ void GCodePlanner::addTravel(Point p)
         was_combing = is_going_to_comb;
     }
     
+    if(comb == nullptr) {
+        // no combing? always retract!
+        path = getLatestPathWithConfig(&travelConfig);
+        path->retract = true;
+    }
+    
     addTravel_simple(p, path);
 }
 
