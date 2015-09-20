@@ -352,7 +352,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 PolygonRef travel = travelPoly.newPoly();
                 travel.add(Point(currentPosition.x, currentPosition.y));
                 travel.add(Point(x, y));
-                commandSocket->sendPolygons(isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, MM2INT(0.1));
+                commandSocket->sendPolygons(isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, isRetracted ? MM2INT(0.2) : MM2INT(0.1));
             }                    
         }
 
