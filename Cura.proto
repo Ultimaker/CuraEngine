@@ -62,6 +62,8 @@ message Polygon {
         SkirtType = 5;
         InfillType = 6;
         SupportInfillType = 7;
+        MoveCombingType = 8;
+        MoveRetractionType = 9;
     }
     Type type = 1;
     bytes points = 2;
