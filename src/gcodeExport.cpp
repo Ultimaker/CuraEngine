@@ -19,7 +19,7 @@ GCodeExport::GCodeExport()
     currentSpeed = 1;
     retractionPrimeSpeed = 1;
     isRetracted = false;
-    isZHopped = false;
+    isZHopped = 0;
     last_coasted_amount_mm3 = 0;
     setFlavor(EGCodeFlavor::REPRAP);
 }
@@ -294,7 +294,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             if (isZHopped > 0)
             {
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
-                isZHopped = false;
+                isZHopped = 0;
             }
             extrusion_amount += (is_volumatric) ? last_coasted_amount_mm3 : last_coasted_amount_mm3 / getFilamentArea(current_extruder);   
             if (isRetracted)
@@ -342,7 +342,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             " X" << INT2MM(gcode_pos.X) << 
             " Y" << INT2MM(gcode_pos.Y);
         if (z != currentPosition.z)
-            *output_stream << " Z" << INT2MM(z);
+            *output_stream << " Z" << INT2MM(z + isZHopped);
         if (extrusion_mm3_per_mm > 0.000001)
             *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << extrusion_amount;
         *output_stream << "\n";
@@ -385,8 +385,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     if (config->zHop > 0)
     {
-        *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + config->zHop) << "\n";
-        isZHopped = true;
+        isZHopped = config->zHop;
+        *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << "\n";
     }
     extrusion_amount_at_previous_n_retractions.push_front(extrusion_amount);
     if (int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max)
