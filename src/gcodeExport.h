@@ -11,6 +11,7 @@
 #include "timeEstimate.h"
 #include "MeshGroup.h"
 #include "PrintFeature.h"
+#include "commandSocket.h"
 
 namespace cura {
 
@@ -163,10 +164,17 @@ private:
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
+
+    // for sending jump data
+    CommandSocket* commandSocket; 
+    unsigned int layer_nr;
+    
 public:
     
     GCodeExport();
     ~GCodeExport();
+    
+    void setCommandSocketAndLayerNr(CommandSocket* commandSocket, unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
     

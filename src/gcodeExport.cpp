@@ -8,7 +8,7 @@
 namespace cura {
 
 GCodeExport::GCodeExport()
-: output_stream(&std::cout), currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
+: commandSocket(nullptr), output_stream(&std::cout), layer_nr(0), currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
 {
     extrusion_amount = 0;
     current_extruder = 0;
@@ -26,6 +26,11 @@ GCodeExport::GCodeExport()
 
 GCodeExport::~GCodeExport()
 {
+}
+
+void GCodeExport::setCommandSocketAndLayerNr(CommandSocket* commandSocket_, unsigned int layer_nr_) {
+    commandSocket = commandSocket_;
+    layer_nr = layer_nr_;
 }
 
 void GCodeExport::setOutputStream(std::ostream* stream)
@@ -325,6 +330,15 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             *output_stream << "G1";
         }else{
             *output_stream << "G0";
+                    
+            if (commandSocket) {
+                // we should send this travel as a non-retraction move
+                cura::Polygons travelPoly;
+                PolygonRef travel = travelPoly.newPoly();
+                travel.add(Point(currentPosition.x, currentPosition.y));
+                travel.add(Point(x, y));
+                commandSocket->sendPolygons(isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, isRetracted ? MM2INT(0.2) : MM2INT(0.1));
+            }                    
         }
 
         if (currentSpeed != speed)
