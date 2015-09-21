@@ -20,14 +20,26 @@ Polygons Comb::getLayerSecondWalls()
     {
         for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
         {
-            if (part.insets.size() >= 2)
-            {
+            // we want the 2nd inner walls
+            if (part.insets.size() >= 2) {
                 layer_walls.add(part.insets[1]);
+                continue;
             }
-            else 
-            {
-                layer_walls.add(part.outline.offset(-offset_from_outlines));
+            // but we'll also take the inner wall if the 2nd doesn't exist
+            if (part.insets.size() >= 1) {
+                layer_walls.add(part.insets[0]);
+                continue;
             }
+            // and if there is no walls, we'll try to move inside from the outline
+            Polygons newOutline = part.outline.offset(-offset_from_outlines);
+            if(newOutline.polygonLength() > 0) {
+                layer_walls.add(newOutline);
+                continue;
+            }
+            // offset_from_outlines was so large that it completely destroyed our isle,
+            // so we'll just use the regular outline
+            layer_walls.add(part.outline);
+            continue;
         }
     }
     return layer_walls;
