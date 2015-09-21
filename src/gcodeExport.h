@@ -151,7 +151,7 @@ private:
     double currentSpeed;
     int zPos;
     bool isRetracted;
-    bool isZHopped;
+    int isZHopped;
 
     double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
