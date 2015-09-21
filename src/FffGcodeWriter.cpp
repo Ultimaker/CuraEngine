@@ -16,7 +16,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     gcode.preSetup(storage.meshgroup);
     
-    gcode.resetTotalPrintTimeAndFilament();
+    if (meshgroup_number == 1)
+    {
+        gcode.resetTotalPrintTimeAndFilament();
+    }
     
     if (command_socket)
         command_socket->beginGCode();
@@ -61,18 +64,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     if (command_socket)
     {
-        finalize();
         command_socket->sendGCodeLayer();
         command_socket->endSendSlicedObject();
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            std::ostringstream prefix;
-            prefix << ";FLAVOR:UltiGCode\n";
-            prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
-            prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
-            prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
-            command_socket->sendGCodePrefix(prefix.str());
-        }
     }
 }
 
@@ -236,70 +229,90 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLa
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     
-    GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
-    raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
-    raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_base_config.setFlow(train->getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_interface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
-    raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
-    raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
-    GCodePathConfig raft_surface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
-    raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
-    raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
-    raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
-    raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
-
     bool retraction_combing = false; // the raft isn't added to the parts to avoid
     
+    int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
+    
     { // raft base layer
-        gcode.writeLayerComment(-3);
+        GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+        raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
+        raft_base_config.setLineWidth(getSettingInMicrons("raft_base_line_width"));
+        raft_base_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_base_config.setFlow(train->getSettingInPercentage("material_flow"));
+        
+        int layer_nr = -n_raft_surface_layers - 2;
+        gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
-        gcode.setZ(getSettingInMicrons("raft_base_thickness"));
+        int64_t z = getSettingInMicrons("raft_base_thickness"); 
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_base_config.getLayerHeight());
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_base_line_width"), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
         gcode_layer.addLinesByOptimizer(raftLines, &raft_base_config);
+        sendPolygons(SupportType, layer_nr, raftLines, raft_base_config.getLineWidth());
 
         gcode.writeFanCommand(train->getSettingInPercentage("raft_base_fan_speed"));
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_base_thickness"));
     }
 
     { // raft interface layer
-        gcode.writeLayerComment(-2);
+        GCodePathConfig raft_interface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+        raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
+        raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
+        raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
+        
+        int layer_nr = -n_raft_surface_layers - 1;
+        gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
-        gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness"));
-
+        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness");
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_interface_config.getLayerHeight());
+        
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
         gcode_layer.addLinesByOptimizer(raftLines, &raft_interface_config);
+        sendPolygons(SupportType, layer_nr, raftLines, raft_interface_config.getLineWidth());
 
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
 
-    for (int raftSurfaceLayer=1; raftSurfaceLayer<=train->getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
+    
+    GCodePathConfig raft_surface_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
+    raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
+    raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
+    raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+    raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
+
+    for (int raftSurfaceLayer=1; raftSurfaceLayer <= n_raft_surface_layers; raftSurfaceLayer++)
     { // raft surface layers
+        int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
         GCodePlanner gcode_layer(gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
-        gcode.setZ(train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer);
-
+        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer;
+        gcode.setZ(z);
+        if (command_socket)
+            command_socket->sendLayerInfo(layer_nr, z, raft_surface_config.getLayerHeight());
+        
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, train->getSettingInMicrons("raft_surface_line_width"), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
         gcode_layer.addLinesByOptimizer(raft_lines, &raft_surface_config);
+        sendPolygons(SupportType, layer_nr, raft_lines, raft_surface_config.getLineWidth());
 
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
@@ -559,30 +572,30 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_angle = 45;
         if (layer_nr & 1)
             infill_angle += 90;
-        int extrusion_width =  mesh->infill_config[0].getLineWidth();
+        int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, extrusion_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
 
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             infill_angle -= 45;
         
         int64_t skin_overlap = 0;
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, extrusion_width);    
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, mesh->skin_config.getLineWidth());    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
@@ -703,6 +716,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
+                sendPolygons(SkinType, layer_nr, skin_perimeter, mesh->skin_config.getLineWidth());
                 gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
             }
             if (skin_part.insets.size() > 0)
@@ -723,6 +737,9 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"), extrusion_width, extrusion_width, infill_overlap, infill_angle, false, false);
         infill_comp.generate(skin_polygons, skin_lines, &part.perimeterGaps);
         
+        
+        sendPolygons(SkinType, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
+        sendPolygons(SkinType, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
         gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
     }
@@ -926,6 +943,16 @@ void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storag
 
 void FffGcodeWriter::finalize()
 {
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE && command_socket)
+    {
+        std::ostringstream prefix;
+        prefix << ";FLAVOR:UltiGCode\n";
+        prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
+        prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+        prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+        command_socket->sendGCodePrefix(prefix.str());
+    }
+
     gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);

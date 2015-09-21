@@ -80,11 +80,14 @@ void CommandSocket::connect(const std::string& ip, int port)
         //If there is an object to slice, do so.
         if(d->objects_to_slice.size())
         {
+            FffProcessor::getInstance()->resetFileNumber();
             for(auto object : d->objects_to_slice)
             {
                 FffProcessor::getInstance()->processMeshGroup(object.get());
             }
             d->objects_to_slice.clear();
+            FffProcessor::getInstance()->finalize();
+            sendGCodeLayer();
             sendPrintTime();
             //TODO: Support all-at-once/one-at-a-time printing
             //d->processor->processModel(d->object_to_slice.get());

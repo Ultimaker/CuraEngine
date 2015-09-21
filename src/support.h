@@ -26,11 +26,11 @@ private:
      * This function also handles small overhang areas (creates towers with larger diameter than just the overhang area) and single walls which could otherwise fall over.
      * 
      * \param storage data storage containing the input layer outline data
-     * \param object The object for which to generate support areas
+     * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
      * \param commandSocket Socket over which to report the progress
      */
-    static void generateSupportAreas(SliceDataStorage& storage, SliceMeshStorage* object, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
 
 
 

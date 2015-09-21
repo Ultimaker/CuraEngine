@@ -99,6 +99,11 @@ public:
         return line_width;
     }
 
+    int getLayerHeight()
+    {
+        return layer_thickness;
+    }
+    
 private:
     void calculateExtrusion()
     {
