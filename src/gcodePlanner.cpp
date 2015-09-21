@@ -113,7 +113,7 @@ void GCodePlanner::addTravel(Point p)
     if (comb != nullptr && lastPosition != Point(0,0))
     {
         CombPaths combPaths;
-        if (comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb))
+        if (comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance))
         {
             bool retract = combPaths.size() > 1;
             { // check whether we want to retract
