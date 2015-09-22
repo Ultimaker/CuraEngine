@@ -258,5 +258,22 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
     return ESurfaceMode::NORMAL;
 }
 
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "nowhere")
+    {
+        return FillNowhere;
+    }
+    if (value == "everywhere")
+    {
+        return FillEverywhere;
+    }
+    if (value == "skin")
+    {
+        return FillSkin;
+    }
+    return FillNowhere;
+}
 
 }//namespace cura
