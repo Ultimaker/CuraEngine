@@ -39,7 +39,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     meshgroup_number++;
 
     unsigned int total_layers = storage.meshes[0].layers.size();
-    //gcode.writeComment("Layer count: %d", totalLayers);
+    gcode.writeComment("LAYER_COUNT: %d", totalLayers);
 
     bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
