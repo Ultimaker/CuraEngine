@@ -229,7 +229,7 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
     std::string value = getSettingString(key);
     if (value == "everywhere")
         return ESupportType::EVERYWHERE;
-    if (value == "touching_buildplate")
+    if (value == "buildplate")
         return ESupportType::PLATFORM_ONLY;
     return ESupportType::NONE;
 }
