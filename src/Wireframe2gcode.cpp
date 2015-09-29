@@ -27,7 +27,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     processSkirt(commandSocket);
     
             
-    unsigned int totalLayers = wireFrame.layers.size();
+    unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
     gcode.writeTypeComment("SKIRT");
 
@@ -71,7 +71,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, commandSocket);
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
-        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
+        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
         

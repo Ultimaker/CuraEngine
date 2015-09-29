@@ -104,7 +104,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
     storage.wipePoint = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);   
 }
 
-void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLayers)
+void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_layers)
 {
     if (storage.max_object_height_second_to_last_extruder >= 0 
 //         && storage.getSettingInMicrons("prime_tower_distance") > 0 
@@ -113,7 +113,7 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int totalLaye
         generatePaths3(storage);
     }
 }
-void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int totalLayers)
+void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int total_layers)
 {
     
     if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_distance") > 0 && storage.getSettingInMicrons("prime_tower_size") > 0)

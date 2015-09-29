@@ -224,7 +224,7 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInMillimetersPerSecond("speed_travel"), 0);
 }
     
-void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int totalLayers)
+void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_layers)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);

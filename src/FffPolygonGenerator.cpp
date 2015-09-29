@@ -257,10 +257,10 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
     }
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int totalLayers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int total_layers)
 { 
     int n_empty_first_layers = 0;
-    for (unsigned int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     { 
         bool layer_is_empty = true;
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -294,7 +294,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
                 layer.printZ -= n_empty_first_layers * layer_height;
             }
         }
-        totalLayers -= n_empty_first_layers;
+        total_layers -= n_empty_first_layers;
     }
 }
   
@@ -342,7 +342,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     }
 }
 
-void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int total_layers)
 {
     if (!getSettingBoolean("ooze_shield_enabled"))
     {
@@ -351,28 +351,28 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
     
     int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
     
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
     }
     
     int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
     }
     int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
-    for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=1; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
     }
-    for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+    for(unsigned int layer_nr=total_layers-1; layer_nr>0; layer_nr--)
     {
         storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
     }
 }
 
-void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
     int draft_shield_height = getSettingInMicrons("draft_shield_height");
     int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
@@ -389,7 +389,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     int layer_skip = 500 / layer_height + 1;
     
     Polygons& draft_shield = storage.draft_protection_shield;
-    for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
+    for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }

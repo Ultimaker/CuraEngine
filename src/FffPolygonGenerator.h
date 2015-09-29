@@ -89,9 +89,9 @@ private:
      * Remove all bottom layers which are empty.
      * \param storage Input and Ouput parameter: stores all layers
      * \param layer_height The height of each layer
-     * \param totalLayers The total number of layers
+     * \param total_layers The total number of layers
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int totalLayers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int total_layers);
     
     /*!
      * Generate the inset polygons which form the walls.
@@ -103,9 +103,9 @@ private:
     /*!
      * Generate the outline of the ooze shield.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param totalLayers The total number of layers 
+     * \param total_layers The total number of layers 
      */
-    void processOozeShield(SliceDataStorage& storage, unsigned int totalLayers);
+    void processOozeShield(SliceDataStorage& storage, unsigned int total_layers);
     
     /*!
      * Generate the skin areas.
@@ -118,9 +118,9 @@ private:
      * Generate the polygons where the draft screen should be.
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param totalLayers The total number of layers 
+     * \param total_layers The total number of layers 
      */
-    void processDraftShield(SliceDataStorage& storage, unsigned int totalLayers);
+    void processDraftShield(SliceDataStorage& storage, unsigned int total_layers);
     /*!
      * Generate the skirt/brim/raft areas/insets.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
