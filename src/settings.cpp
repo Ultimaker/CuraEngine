@@ -263,17 +263,17 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     std::string value = getSettingString(key);
     if (value == "nowhere")
     {
-        return FillNowhere;
+        return FillPerimeterGapMode::NOWHERE;
     }
     if (value == "everywhere")
     {
-        return FillEverywhere;
+        return FillPerimeterGapMode::EVERYWHERE;
     }
     if (value == "skin")
     {
-        return FillSkin;
+        return FillPerimeterGapMode::SKIN;
     }
-    return FillNowhere;
+    return FillPerimeterGapMode::NOWHERE;
 }
 
 }//namespace cura

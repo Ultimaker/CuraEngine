@@ -723,7 +723,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             {
                 inner_skin_outline = &skin_part.insets.back();
                 offset_from_inner_skin_outline = -extrusion_width/2;
-                if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillNowhere)
+                if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
                 {
                     generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
                 }
@@ -745,7 +745,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     }
     
     // handle gaps between perimeters etc.
-    if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillNowhere)
+    if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::Nowhere)
     {
         generateLineInfill(part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
     }

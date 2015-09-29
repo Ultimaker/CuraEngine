@@ -124,11 +124,11 @@ enum class ESurfaceMode
     BOTH
 };
 
-enum FillPerimeterGapMode
+enum class FillPerimeterGapMode
 {
-    FillNowhere,
-    FillEverywhere,
-    FillSkin
+    NOWHERE,
+    EVERYWHERE,
+    SKIN
 };
 
 #define MAX_EXTRUDERS 16
