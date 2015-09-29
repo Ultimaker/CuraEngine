@@ -130,8 +130,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    // const 
-    unsigned int total_layers = storage.meshes.at(0).layers.size();
+    long unsigned int total_layers = 0;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        total_layers = std::max(total_layers, mesh.layers.size());
+    }
+    
     //layerparts2HTML(storage, "output/output.html");
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
