@@ -213,6 +213,7 @@ public:
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
     void writeLayerComment(int layer_nr);
+    void writeLayerCountComment(int layer_count);
     
     void writeLine(const char* line);
     
