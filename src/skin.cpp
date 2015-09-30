@@ -84,7 +84,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
         }
         
         Polygons skin = upskin.unionPolygons(downskin);
-          
+        
         skin.removeSmallAreas(MIN_AREA_SIZE);
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())

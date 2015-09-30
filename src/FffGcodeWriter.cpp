@@ -699,10 +699,11 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 
 void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int infill_angle, int extrusion_width)
 {
-    Polygons skin_polygons;
-    Polygons skin_lines;
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
+        Polygons skin_polygons;
+        Polygons skin_lines;
+        
         EFillMethod pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
         int bridge = -1;
         if (layer_nr > 0)
@@ -734,6 +735,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 }
             } 
         }
+        
         if (inner_skin_outline == nullptr)
         {
             inner_skin_outline = &skin_part.outline;
@@ -742,17 +744,18 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, mesh->getSettingBoolean("remove_overlapping_walls_x_enabled"), extrusion_width, extrusion_width, infill_overlap, infill_angle, false, false);
         infill_comp.generate(skin_polygons, skin_lines, &part.perimeterGaps);
         
-        
-        sendPolygons(SkinType, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
-        sendPolygons(SkinType, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
         gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
+        sendPolygons(SkinType, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
+        sendPolygons(SkinType, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
     }
     
     // handle gaps between perimeters etc.
     if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
     {
-        generateLineInfill(part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
+        Polygons perimeter_gap_lines;
+        generateLineInfill(part.perimeterGaps, 0, perimeter_gap_lines, extrusion_width, extrusion_width, 0, infill_angle);
+        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config);
     }
 }
 
