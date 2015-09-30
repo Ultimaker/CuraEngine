@@ -38,7 +38,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     meshgroup_number++;
 
-    long unsigned int total_layers = 0;
+    size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max(total_layers, mesh.layers.size());
