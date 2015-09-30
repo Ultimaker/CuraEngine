@@ -155,6 +155,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
     AreaSupport::generateSupportAreas(storage, total_layers, commandSocket);
+    /*
     if (storage.support.generated)
     {
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
@@ -163,6 +164,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
         }
     }
+    */
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
     int mesh_max_bottom_layer_count = 0;

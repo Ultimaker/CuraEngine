@@ -836,9 +836,14 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
         infill_comp.generate(support_polygons, support_lines, nullptr);
 
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
+        {
             gcode_layer.addPolygonsByOptimizer(island, &storage.support_config);
+            sendPolygons(SupportType, layer_nr, island, storage.support_config.getLineWidth());
+        }
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
         gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config);
+        sendPolygons(SupportInfillType, layer_nr, support_polygons, storage.support_config.getLineWidth());
+        sendPolygons(SupportInfillType, layer_nr, support_lines, storage.support_config.getLineWidth());
     }
 }
 
