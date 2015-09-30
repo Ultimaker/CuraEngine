@@ -227,7 +227,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
     
-    assert(speed*60 < 10000 && speed*60 > 100); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
     
     if (extrusion_mm3_per_mm < 0)

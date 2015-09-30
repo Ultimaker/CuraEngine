@@ -85,10 +85,10 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
         coasting_config.coasting_enable = train->getSettingBoolean("coasting_enable"); 
         coasting_config.coasting_volume_move = train->getSettingInCubicMillimeters("coasting_volume_move"); 
         coasting_config.coasting_min_volume_move = train->getSettingInCubicMillimeters("coasting_min_volume_move"); 
-        coasting_config.coasting_speed_move = train->getSettingInPercentage("coasting_speed_move"); 
+        coasting_config.coasting_speed_move = train->getSettingInPercentage("coasting_speed_move") / 100.0; 
         coasting_config.coasting_volume_retract = train->getSettingInCubicMillimeters("coasting_volume_retract");
         coasting_config.coasting_min_volume_retract = train->getSettingInCubicMillimeters("coasting_min_volume_retract");
-        coasting_config.coasting_speed_retract = train->getSettingInPercentage("coasting_speed_retract");
+        coasting_config.coasting_speed_retract = train->getSettingInPercentage("coasting_speed_retract") / 100.0;
     }
 }
 
