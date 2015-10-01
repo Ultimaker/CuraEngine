@@ -168,13 +168,12 @@ void GCodePlanner::addTravel(Point p)
             path->retract = true;
         }
     }
-    }
     
     if(comb == nullptr) {
         // no combing? always retract!
         path = getLatestPathWithConfig(&travelConfig);
         path->retract = true;
-    
+    }
     addTravel_simple(p, path);
 }
 
