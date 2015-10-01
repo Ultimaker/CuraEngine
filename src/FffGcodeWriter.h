@@ -125,18 +125,18 @@ private:
     /*!
      * Add raft gcode.
      * \param storage Input: where the slice data is stored.
-     * \param totalLayers The total number of layers.
+     * \param total_layers The total number of layers.
      */
-    void processRaft(SliceDataStorage& storage, unsigned int totalLayers);
+    void processRaft(SliceDataStorage& storage, unsigned int total_layers);
     
     /*!
      * Add a layer to the gcode.
      * \param storage Input: where the slice data is stored.
      * \param layer_nr The index of the layer to write the gcode of.
-     * \param totalLayers The total number of layers.
+     * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int totalLayers, bool has_raft);
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
      * Interpolate between the initial layer speeds and the eventual speeds.

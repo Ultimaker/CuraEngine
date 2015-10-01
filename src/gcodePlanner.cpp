@@ -109,11 +109,14 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
-
+    
+    bool combed = false;
+    
     if (comb != nullptr && lastPosition != Point(0,0))
     {
         CombPaths combPaths;
-        if (comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance))
+        combed = comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance);
+        if (combed)
         {
             bool retract = combPaths.size() > 1;
             { // check whether we want to retract
@@ -154,22 +157,23 @@ void GCodePlanner::addTravel(Point p)
                 }
             }
         }
-        else
-        {
-            path = getLatestPathWithConfig(&travelConfig);
-            if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
-            {
-                path->retract = true;
-            }
-        }
         was_combing = is_going_to_comb;
+    }
+    
+    if(!combed) {
+        // no combing? always retract!
+        path = getLatestPathWithConfig(&travelConfig);
+        if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
+        {
+            path->retract = true;
+        }
+    }
     }
     
     if(comb == nullptr) {
         // no combing? always retract!
         path = getLatestPathWithConfig(&travelConfig);
         path->retract = true;
-    }
     
     addTravel_simple(p, path);
 }

@@ -130,8 +130,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    // const 
-    unsigned int total_layers = storage.meshes.at(0).layers.size();
+    size_t total_layers = 0;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
+    }
+    
     //layerparts2HTML(storage, "output/output.html");
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
@@ -151,6 +155,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
             
     AreaSupport::generateSupportAreas(storage, total_layers, commandSocket);
+    /*
     if (storage.support.generated)
     {
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
@@ -159,6 +164,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
         }
     }
+    */
     
     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
     int mesh_max_bottom_layer_count = 0;
@@ -198,7 +204,18 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
         {
-            processFuzzySkin(mesh);
+            processFuzzyWalls(mesh);
+        }
+        else 
+        { // only send polygon data
+            for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+            {
+                SliceLayer* layer = &mesh.layers[layer_nr];
+                for(SliceLayerPart& part : layer->parts)
+                {
+                    sendPolygons(Inset0Type, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
+                }
+            }
         }
     }
 }
@@ -223,18 +240,10 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             {
                 if (layer->parts[partNr].insets.size() > 0)
                 {
-                    sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0);
+//                     sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
                     for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
                         sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
                 }
-            }
-        }
-        else 
-        { // only send polygon data
-            SliceLayer* layer = &mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer->parts)
-            {
-                sendPolygons(Inset0Type, layer_nr, part.outline, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
@@ -254,10 +263,10 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
     }
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int totalLayers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int total_layers)
 { 
     int n_empty_first_layers = 0;
-    for (unsigned int layer_idx = 0; layer_idx < totalLayers; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     { 
         bool layer_is_empty = true;
         for (SliceMeshStorage& mesh : storage.meshes)
@@ -291,7 +300,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
                 layer.printZ -= n_empty_first_layers * layer_height;
             }
         }
-        totalLayers -= n_empty_first_layers;
+        total_layers -= n_empty_first_layers;
     }
 }
   
@@ -301,40 +310,45 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
     {
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
         
-        int extrusionWidth = mesh.getSettingInMicrons("wall_line_width_x");
+        int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
+        int innermost_wall_extrusion_width = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
-        generateSkins(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
             if (mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") + 10)
             {
-                infill_skin_overlap = extrusionWidth / 2;
+                infill_skin_overlap = skin_extrusion_width / 2;
             }
             generateInfill(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
-            if (mesh.getSettingString("fill_perimeter_gaps") == "Skin")
+            if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::SKIN)
             {
-                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
+                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
             }
-            else if (mesh.getSettingString("fill_perimeter_gaps") == "Everywhere")
+            else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
             {
-                generatePerimeterGaps(layer_nr, mesh, extrusionWidth, 0, 0);
+                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
             }
         }
 
-        SliceLayer& layer = mesh.layers[layer_nr];
-        for(SliceLayerPart& part : layer.parts)
+        bool frontend_can_show_polygon_as_filled_polygon = false;
+        if (frontend_can_show_polygon_as_filled_polygon)
         {
-//             sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
-            for (SkinPart& skin_part : part.skin_parts)
+            SliceLayer& layer = mesh.layers[layer_nr];
+            for(SliceLayerPart& part : layer.parts)
             {
-                sendPolygons(SkinType, layer_nr, skin_part.outline, extrusionWidth);
+//                  sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    sendPolygons(SkinType, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
+                }
             }
         }
     }
 }
 
-void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int total_layers)
 {
     if (!getSettingBoolean("ooze_shield_enabled"))
     {
@@ -343,28 +357,28 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
     
     int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
     
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
     }
     
     int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
-    for(unsigned int layer_nr=0; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
     }
     int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
-    for(unsigned int layer_nr=1; layer_nr<totalLayers; layer_nr++)
+    for(unsigned int layer_nr=1; layer_nr<total_layers; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
     }
-    for(unsigned int layer_nr=totalLayers-1; layer_nr>0; layer_nr--)
+    for(unsigned int layer_nr=total_layers-1; layer_nr>0; layer_nr--)
     {
         storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
     }
 }
 
-void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int totalLayers)
+void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
     int draft_shield_height = getSettingInMicrons("draft_shield_height");
     int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
@@ -381,7 +395,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     int layer_skip = 500 / layer_height + 1;
     
     Polygons& draft_shield = storage.draft_protection_shield;
-    for (unsigned int layer_nr = 0; layer_nr < totalLayers && layer_nr < max_screen_layer; layer_nr += layer_skip)
+    for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }
@@ -414,14 +428,15 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 }
 
 
-void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
+void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 {
     int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     int64_t range_random_point_dist = avg_dist_between_points / 2;
-    for (SliceLayer& layer : mesh.layers)
+    for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
     {
+        SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
             Polygons results;
@@ -466,6 +481,7 @@ void FffPolygonGenerator::processFuzzySkin(SliceMeshStorage& mesh)
                 }
             }
             skin = results;
+            sendPolygons(Inset0Type, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
         }
     }
 }
