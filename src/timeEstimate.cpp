@@ -287,7 +287,7 @@ void TimeEstimateCalculator::recalculate_trapezoids()
     Block *current;
     Block *next = nullptr;
 
-    for(unsigned int n=0; n<blocks.size(); n--)
+    for(unsigned int n=0; n<blocks.size(); n++)
     {
         current = next;
         next = &blocks[n];
