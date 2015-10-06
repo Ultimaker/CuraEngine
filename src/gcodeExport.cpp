@@ -172,7 +172,17 @@ void GCodeExport::updateTotalPrintTime(EPrintFeature print_feature)
 
 void GCodeExport::writeComment(std::string comment)
 {
-    *output_stream << ";" << comment << "\n";
+    *output_stream << ";";
+    for (unsigned int i = 0; i < comment.length(); i++)
+    {
+        if (comment[i] == '\n')
+        {
+            *output_stream << "\\n";
+        }else{
+            *output_stream << comment[i];
+        }
+    }
+    *output_stream << "\n";
 }
 
 void GCodeExport::writeTypeComment(const char* type)
