@@ -145,9 +145,8 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
-     * \param buffer The buffer to store the gcode_layer in
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer);
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
      * Interpolate between the initial layer speeds and the eventual speeds.

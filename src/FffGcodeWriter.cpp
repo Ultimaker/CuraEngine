@@ -57,29 +57,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
     
-    { // process all layers
-        std::list<GCodePlanner> buffer;
-        for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
-        {
-            processLayer(storage, layer_nr, total_layers, has_raft, buffer);
-                
-            while (buffer.size() > 0)
-            {
-                GCodePlanner& gcode_layer = buffer.front();
-                gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-                if (command_socket)
-                    command_socket->sendGCodeLayer();
-                buffer.pop_front();
-            }
-        }
-        while (buffer.size() > 0)
-        {
-            GCodePlanner& gcode_layer = buffer.front();
-            gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 1 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-            if (command_socket)
-                command_socket->sendGCodeLayer();
-            buffer.pop_front();
-        }
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
+    {
+        processLayer(storage, layer_nr, total_layers, has_raft);
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
@@ -363,7 +343,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     }
 }
 
-void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer)
+void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
 {
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket);
 
@@ -389,8 +369,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     processInitialLayersSpeedup(storage, layer_nr);
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
-    buffer.emplace_back(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-    GCodePlanner& gcode_layer = buffer.back();
+    GCodePlanner gcode_layer(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
 
     int z = storage.meshes[0].layers[layer_nr].printZ;         
     gcode.setZ(z);
@@ -439,6 +418,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     last_position_planned = gcode_layer.getLastPosition();
     current_extruder_planned = gcode_layer.getExtruder();
+    
+    gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+    if (command_socket)
+        command_socket->sendGCodeLayer();
 }
 
 void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr)
