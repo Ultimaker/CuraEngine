@@ -344,6 +344,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
     
     gcode.writeLayerComment(layer_nr);
     
+    int z = storage.meshes[0].layers[layer_nr].printZ; 
+    gcode.setZ(z);
+    
     processFanSpeedAndMinimalLayerTime(gcode);
     
     GCodePathConfig* last_extrusion_config = nullptr;
@@ -472,7 +475,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         }
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), travelConfig.getSpeed(), 0);
-        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.getSpeed(), 0);
+        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
         gcode.writeDelay(extraTime);
     }
 }

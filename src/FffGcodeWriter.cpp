@@ -370,10 +370,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     GCodePlanner gcode_layer(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-
-    int z = storage.meshes[0].layers[layer_nr].printZ;         
-    gcode.setZ(z);
-    gcode.resetStartPosition();
     
     if (layer_nr == 0)
     {
@@ -579,7 +575,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
     
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    PathOrderOptimizer part_order_optimizer(gcode.getStartPositionXY(), z_seam_type);
+    PathOrderOptimizer part_order_optimizer(last_position_planned, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);

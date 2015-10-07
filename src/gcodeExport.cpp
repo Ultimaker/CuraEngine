@@ -8,7 +8,10 @@
 namespace cura {
 
 GCodeExport::GCodeExport()
-: commandSocket(nullptr), output_stream(&std::cout), layer_nr(0), currentPosition(0,0,0), startPosition(INT32_MIN,INT32_MIN,0)
+: output_stream(&std::cout)
+, commandSocket(nullptr)
+, currentPosition(INT32_MIN,INT32_MIN,0)
+, layer_nr(0)
 {
     extrusion_amount = 0;
     current_extruder = 0;
@@ -92,17 +95,6 @@ Point GCodeExport::getPositionXY()
 int GCodeExport::getPositionZ()
 {
     return currentPosition.z;
-}
-
-void GCodeExport::resetStartPosition()
-{
-    startPosition.x = INT32_MIN;
-    startPosition.y = INT32_MIN;
-}
-
-Point GCodeExport::getStartPositionXY()
-{
-    return Point(startPosition.x, startPosition.y);
 }
 
 int GCodeExport::getExtruderNr()
@@ -353,7 +345,6 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     }
     
     currentPosition = Point3(x, y, z);
-    startPosition = currentPosition;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), speed);
 }
 
