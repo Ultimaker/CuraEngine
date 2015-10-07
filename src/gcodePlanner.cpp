@@ -344,7 +344,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
     
     gcode.writeLayerComment(layer_nr);
     
-//     processFanSpeedAndMinimalLayerTime();
+    processFanSpeedAndMinimalLayerTime(gcode);
     
     GCodePathConfig* last_extrusion_config = nullptr;
     int extruder = gcode.getExtruderNr();
