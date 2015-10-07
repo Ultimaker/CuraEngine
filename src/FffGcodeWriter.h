@@ -45,9 +45,14 @@ private:
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
     
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings;
+    
+    Point last_position_planned; //!< The position of the head before planning the next layer
+    int current_extruder_planned; //!< The extruder train in use before planning the next layer
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
+    , last_position_planned(0,0)
+    , current_extruder_planned(0) // TODO: make configurable
     {
         meshgroup_number = 1;
         max_object_height = 0;
@@ -141,9 +146,8 @@ private:
      * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
      * \param buffer The buffer to store the gcode_layer in
-     * \param last_position The position of the head before printing this layer
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer, Point& last_position);
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer);
     
     /*!
      * Interpolate between the initial layer speeds and the eventual speeds.
