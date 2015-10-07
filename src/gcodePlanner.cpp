@@ -31,12 +31,15 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(CommandSocket* commandSocket, GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
-: gcode(gcode), storage(storage)
+GCodePlanner::GCodePlanner(CommandSocket* commandSocket, GCodeExport& gcode, SliceDataStorage& storage, unsigned int layer_nr, Point last_position, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+: gcode(gcode)
+, storage(storage)
+, layer_nr(layer_nr)
+, lastPosition(last_position)
+, fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , travelConfig(retraction_config_travel, "MOVE")
 {
     gcode.setCommandSocketAndLayerNr(commandSocket, layer_nr);
-    lastPosition = gcode.getPositionXY();
     travelConfig.setSpeed(travelSpeed);
     comb = nullptr;
     last_retraction_config = &storage.retraction_config; // start with general config
@@ -306,8 +309,41 @@ void GCodePlanner::getNaiveTimeEstimates(double& travelTime, double& extrudeTime
     }
 }
 
+void GCodePlanner::processFanSpeedAndMinimalLayerTime()
+{ 
+    FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
+    double travelTime;
+    double extrudeTime;
+    getNaiveTimeEstimates(travelTime, extrudeTime);
+    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, travelTime, extrudeTime);
+
+    // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
+    double fanSpeed = fsml.cool_fan_speed_min;
+    double totalLayerTime = travelTime + extrudeTime;
+    if (totalLayerTime < fsml.cool_min_layer_time)
+    {
+        fanSpeed = fsml.cool_fan_speed_max;
+    }
+    else if (totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
+    { 
+        // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
+        fanSpeed = fsml.cool_fan_speed_max - (fsml.cool_fan_speed_max-fsml.cool_fan_speed_min) * (totalLayerTime - fsml.cool_min_layer_time) / (fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time);
+    }
+    if (layer_nr < fsml.cool_fan_full_layer)
+    {
+        //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
+        fanSpeed = fanSpeed * layer_nr / fsml.cool_fan_full_layer;
+    }
+    gcode.writeFanCommand(fanSpeed);
+}
+
+
 void GCodePlanner::writeGCode(bool liftHeadIfNeeded, int layerThickness)
 {
+    gcode.writeLayerComment(layer_nr);
+    
+//     processFanSpeedAndMinimalLayerTime();
+    
     GCodePathConfig* last_extrusion_config = nullptr;
     int extruder = gcode.getExtruderNr();
 

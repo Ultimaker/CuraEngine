@@ -15,6 +15,7 @@
 #include "commandSocket.h"
 #include "utils/polygonUtils.h"
 #include "PrimeTower.h"
+#include "FanSpeedLayerTime.h"
 
 namespace cura 
 {
@@ -42,6 +43,8 @@ private:
      * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
+    
+    FanSpeedLayerTimeSettings fan_speed_layer_time_settings;
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
@@ -95,6 +98,8 @@ public:
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
 private:
+    void setConfigFanSpeedLayerTime();
+    
     void setConfigCoasting(SliceDataStorage& storage);
 
     //Setup the retraction parameters.
@@ -135,8 +140,10 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
+     * \param buffer The buffer to store the gcode_layer in
+     * \param last_position The position of the head before printing this layer
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer, Point& last_position);
     
     /*!
      * Interpolate between the initial layer speeds and the eventual speeds.
@@ -300,14 +307,6 @@ private:
      * \param prev_extruder The current extruder with which we last printed.
      */
     void addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder);
-    
-    /*!
-     * Finish the layer by applying speed corrections for minimal layer times and determine the fanSpeed.
-     * \param storage Input: where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     */
-    void processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
     
     /*!
      * Add the end gcode and set all temperatures to zero.

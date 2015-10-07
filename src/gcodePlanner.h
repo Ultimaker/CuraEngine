@@ -9,7 +9,7 @@
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
 #include "commandSocket.h"
-
+#include "FanSpeedLayerTime.h"
 
 namespace cura 
 {
@@ -43,6 +43,8 @@ private:
     GCodeExport& gcode;
     SliceDataStorage& storage;
 
+    int layer_nr;
+    
     Point lastPosition;
     std::vector<GCodePath> paths;
     
@@ -51,6 +53,8 @@ private:
     Comb* comb;
 
     RetractionConfig* last_retraction_config;
+    
+    FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
     
     GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
     double extrudeSpeedFactor;
@@ -83,14 +87,25 @@ private:
      */
     void forceNewPathStart();
 public:
-    /*
+    /*!
      * 
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
+     * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(CommandSocket* commandSocket, GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(CommandSocket* commandSocket, GCodeExport& gcode, SliceDataStorage& storage, unsigned int layer_nr, Point last_position, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    int getLayerNr()
+    {
+        return layer_nr;
+    }
+    
+    Point getLastPosition()
+    {
+        return lastPosition;
+    }
+    
     void setCombing(bool going_to_comb);
     
     bool setExtruder(int extruder);
@@ -211,6 +226,11 @@ public:
      * \param retraction_config The config used.
      */
     void writeRetraction(bool extruder_switch_retract, RetractionConfig* retraction_config);
+    
+    /*!
+     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     */
+    void processFanSpeedAndMinimalLayerTime();
     
     void writeGCode(bool liftHeadIfNeeded, int layerThickness);
     void moveInsideCombBoundary(int arg1);

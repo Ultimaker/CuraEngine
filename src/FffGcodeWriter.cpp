@@ -24,6 +24,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     if (command_socket)
         command_socket->beginGCode();
 
+    setConfigFanSpeedLayerTime();
+    
     setConfigCoasting(storage);
 
     setConfigRetraction(storage);
@@ -55,11 +57,33 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
     
-    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
-    {
-        processLayer(storage, layer_nr, total_layers, has_raft);
+    { // process all layers
+        Point last_position(0,0);
+        
+        std::list<GCodePlanner> buffer;
+        for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
+        {
+            processLayer(storage, layer_nr, total_layers, has_raft, buffer, last_position);
+                
+            while (buffer.size() > 0)
+            {
+                GCodePlanner& gcode_layer = buffer.front();
+                gcode_layer.writeGCode(getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+                if (command_socket)
+                    command_socket->sendGCodeLayer();
+                buffer.pop_front();
+            }
+        }
+        while (buffer.size() > 0)
+        {
+            GCodePlanner& gcode_layer = buffer.front();
+            gcode_layer.writeGCode(getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 1 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+            if (command_socket)
+                command_socket->sendGCodeLayer();
+            buffer.pop_front();
+        }
     }
-
+    
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
     
     gcode.writeFanCommand(0);
@@ -74,6 +98,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 }
 
+void FffGcodeWriter::setConfigFanSpeedLayerTime()
+{
+    fan_speed_layer_time_settings.cool_min_layer_time = getSettingInSeconds("cool_min_layer_time");
+    fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = getSettingInSeconds("cool_min_layer_time_fan_speed_max");
+    fan_speed_layer_time_settings.cool_fan_speed_min = getSettingInPercentage("cool_fan_speed_min");
+    fan_speed_layer_time_settings.cool_fan_speed_max = getSettingInPercentage("cool_fan_speed_max");
+    fan_speed_layer_time_settings.cool_min_speed = getSettingInMillimetersPerSecond("cool_min_speed");
+    fan_speed_layer_time_settings.cool_fan_full_layer = getSettingAsCount("cool_fan_full_layer");
+}
 
 void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage) 
 {
@@ -238,6 +271,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     
     int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
     
+    Point last_position(0,0);
     { // raft base layer
         GCodePathConfig raft_base_config(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
@@ -248,7 +282,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 2;
         gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcode_layer(command_socket, gcode, storage, layer_nr, last_position, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
@@ -264,6 +298,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         gcode_layer.addLinesByOptimizer(raftLines, &raft_base_config);
         sendPolygons(SupportType, layer_nr, raftLines, raft_base_config.getLineWidth());
 
+        last_position = gcode_layer.getLastPosition();
+        
         gcode.writeFanCommand(train->getSettingInPercentage("raft_base_fan_speed"));
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_base_thickness"));
     }
@@ -278,7 +314,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 1;
         gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcode_layer(command_socket, gcode, storage, layer_nr, last_position, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness");
         gcode.setZ(z);
@@ -290,6 +326,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, train->getSettingInMicrons("raft_interface_line_width"), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
         gcode_layer.addLinesByOptimizer(raftLines, &raft_interface_config);
         sendPolygons(SupportType, layer_nr, raftLines, raft_interface_config.getLineWidth());
+        
+        last_position = gcode_layer.getLastPosition();
 
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
@@ -306,7 +344,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, gcode, storage, &storage.retraction_config_per_extruder[extruder_nr], train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, 0, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner gcode_layer(command_socket, gcode, storage, layer_nr, last_position, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer;
         gcode.setZ(z);
@@ -319,11 +357,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         gcode_layer.addLinesByOptimizer(raft_lines, &raft_surface_config);
         sendPolygons(SupportType, layer_nr, raft_lines, raft_surface_config.getLineWidth());
 
+        last_position = gcode_layer.getLastPosition();
+        
         gcode_layer.writeGCode(false, train->getSettingInMicrons("raft_interface_thickness"));
     }
 }
 
-void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
+void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer, Point& last_position)
 {
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket);
 
@@ -332,8 +372,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
-    
-    
 
     setConfigSkirt(storage, layer_thickness);
 
@@ -350,10 +388,9 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     processInitialLayersSpeedup(storage, layer_nr);
 
-    gcode.writeLayerComment(layer_nr);
-
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
-    GCodePlanner gcode_layer(command_socket, gcode, storage, &storage.retraction_config, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), layer_nr, comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    buffer.emplace_back(command_socket, gcode, storage, layer_nr, last_position, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    GCodePlanner& gcode_layer = buffer.back();
 
     int z = storage.meshes[0].layers[layer_nr].printZ;         
     gcode.setZ(z);
@@ -399,11 +436,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
         addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
     }
-    processFanSpeedAndMinimalLayerTime(storage, gcode_layer, layer_nr);
-    
-    gcode_layer.writeGCode(getSettingBoolean("cool_lift_head"), layer_nr > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-    if (command_socket)
-        command_socket->sendGCodeLayer();
 }
 
 void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr)
@@ -923,37 +955,6 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
     bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
     
     storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
-}
-
-void FffGcodeWriter::processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr)
-{ 
-    double travelTime;
-    double extrudeTime;
-    gcodeLayer.getNaiveTimeEstimates(travelTime, extrudeTime);
-    gcodeLayer.forceMinimalLayerTime(getSettingInSeconds("cool_min_layer_time"), getSettingInMillimetersPerSecond("cool_min_speed"), travelTime, extrudeTime);
-
-    // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    double fanSpeed = getSettingInPercentage("cool_fan_speed_min");
-    double totalLayerTime = travelTime + extrudeTime;
-    if (totalLayerTime < getSettingInSeconds("cool_min_layer_time"))
-    {
-        fanSpeed = getSettingInPercentage("cool_fan_speed_max");
-    }
-    else if (totalLayerTime < getSettingInSeconds("cool_min_layer_time_fan_speed_max"))
-    { 
-        // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double minTime = (getSettingInSeconds("cool_min_layer_time"));
-        double maxTime = (getSettingInSeconds("cool_min_layer_time_fan_speed_max"));
-        double fanSpeedMin = getSettingInPercentage("cool_fan_speed_min");
-        double fanSpeedMax = getSettingInPercentage("cool_fan_speed_max");
-        fanSpeed = fanSpeedMax - (fanSpeedMax-fanSpeedMin) * (totalLayerTime - minTime) / (maxTime - minTime);
-    }
-    if (static_cast<int>(layer_nr) < getSettingAsCount("cool_fan_full_layer"))
-    {
-        //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fanSpeed = fanSpeed * layer_nr / getSettingAsCount("cool_fan_full_layer");
-    }
-    gcode.writeFanCommand(fanSpeed);
 }
 
 void FffGcodeWriter::finalize()
