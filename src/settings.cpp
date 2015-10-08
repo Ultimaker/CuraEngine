@@ -18,6 +18,7 @@ ConfigSettings *ConfigSettings::config = NULL;
 ConfigSettings::ConfigSettings()
 {
     config = this;
+    SETTING(nozzleSize, 400);
     SETTING(layerThickness, 100);
     SETTING(initialLayerThickness, 300);
     SETTING(filamentDiameter, 2890);

@@ -344,6 +344,8 @@ private:
                 gcode.writeComment("TIME:<__TIME__>");
                 gcode.writeComment("MATERIAL:<FILAMENT>");
                 gcode.writeComment("MATERIAL2:<FILAMEN2>");
+                gcode.writeComment("NOZZLE_DIAMETER:%f", float(config.nozzleSize) / 1000);
+                gcode.writeComment("NOZZLE_DIAMETER2:%f", float(config.nozzleSize) / 1000);
             }
             gcode.writeCode(config.startCode.c_str());
             if (gcode.getFlavor() == GCODE_FLAVOR_BFB)

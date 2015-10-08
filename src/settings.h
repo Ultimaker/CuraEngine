@@ -126,6 +126,7 @@ private:
     std::vector<_ConfigSettingIndex> _index;
 public:
     static ConfigSettings *config; // allow access to config settings from everywhere
+    int nozzleSize;
     int layerThickness;
     int initialLayerThickness;
     int filamentDiameter;
