@@ -11,6 +11,7 @@
 #include "commandSocket.h"
 #include "FanSpeedLayerTime.h"
 
+
 namespace cura 
 {
 
@@ -32,6 +33,7 @@ public:
     }
 };
 
+class LayerPlanBuffer; // forward declaration to prevent circular dependency
 /*! 
  * The GCodePlanner class stores multiple moves that are planned.
  * It facilitates the combing to keep the head inside the print.
@@ -39,6 +41,7 @@ public:
  */
 class GCodePlanner
 {
+    friend class LayerPlanBuffer;
 private:
     SliceDataStorage& storage;
 

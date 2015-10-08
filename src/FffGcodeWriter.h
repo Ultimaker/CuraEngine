@@ -17,6 +17,10 @@
 #include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
 
+
+#include "LayerPlanBuffer.h" // temp!
+
+
 namespace cura 
 {
 
