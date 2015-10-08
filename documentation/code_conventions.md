@@ -1,6 +1,6 @@
 Code Conventions
 =======
-Note that the code convention described here have not all yet been fully implemented.
+Note that not all the code convention described here have been fully implemented yet.
 
 Bracketing and indenting
 -----
@@ -63,6 +63,15 @@ class Example
     void function3();
 };
 ~~~~~~~~~~~~~~~
+
+Pointers vs. References
+-----
+Use reference wherever you can, pointers wherever you must.
+
+Examples of where pointers can be used are:
+- optional values
+- variable values
+- class members not known at construction yet
 
 Documentation
 ----
