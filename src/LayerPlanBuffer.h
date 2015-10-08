@@ -106,13 +106,13 @@ public:
     void findExtruderIdleZones()
     {
         std::vector<ExtruderPlanZone> zones;
-        zones.emplace_back(begin()->extruder, begin());
+        zones.emplace_back(*this, begin()->extruder, begin());
         for (iterator it = begin(); it != end(); it++)
         {
             if (it->extruder != zones.back().extruder)
             {
                 zones.back().end = it;
-                zones.emplace_back(it_extruder, it);
+                zones.emplace_back(*this, it->extruder, it);
             }
         }
         
