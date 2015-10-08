@@ -138,24 +138,6 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
     }
 }
 
-/*!
- * generate lines within the area of \p in_outline, at regular intervals of \p lineSpacing
- * 
- * idea:
- * intersect a regular grid of 'scanlines' with the area inside \p in_outline
- * 
- * we call the areas between two consecutive scanlines a 'scansegment'.
- * Scansegment x is the area between scanline x and scanline x+1
- * 
- * algorithm:
- * 1) for each line segment of each polygon:
- *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
- *      (zigzag): add boundary segments to result
- * 2) for each scanline:
- *      sort the associated intersections 
- *      and connect them using the even-odd rule
- * 
- */
 void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
     if (lineSpacing == 0) return;
@@ -220,55 +202,6 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
     else return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
 }
 
-/*!
- * adapted from generateLineInfill(.)
- * 
- * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
- * idea:
- * intersect a regular grid of 'scanlines' with the area inside [in_outline]
- * sigzag:
- * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
- * 
- * we call the areas between two consecutive scanlines a 'scansegment'
- * 
- * algorithm:
- * 1. for each line segment of each polygon:
- *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
- *      (zigzag): add boundary segments to result
- * 2. for each scanline:
- *      sort the associated intersections 
- *      and connect them using the even-odd rule
- * 
- * zigzag algorithm:
- * while walking around (each) polygon (1.)
- *  if polygon intersects with even scanline
- *      start boundary segment (add each following segment to the [result])
- *  when polygon intersects with a scanline again
- *      stop boundary segment (stop adding segments to the [result])
- *      if polygon intersects with even scanline again (instead of odd)
- *          dont add the last line segment to the boundary (unless [connect_zigzags])
- * 
- * 
- *     <--
- *     ___
- *    |   |   |
- *    |   |   |
- *    |   |___|
- *         -->
- * 
- *        ^ = even scanline
- * 
- * start boundary from even scanline! :D
- * 
- * 
- *          _____
- *   |     |     | ,
- *   |     |     |  |
- *   |_____|     |__/
- * 
- *   ^     ^     ^    scanlines
- *                 ^  disconnected end piece
- */
 void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags)
 {
 //     if (in_outline.size() == 0) return;
