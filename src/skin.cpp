@@ -153,35 +153,36 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
     }
 }
 
-void combineInfillLayers(int layerNr, SliceMeshStorage& storage, int amount)
+void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
-    if(layerNr % amount != 0) //In order to sync up all different parts of infill, only compute infill on modulo-0 layers.
+    for(size_t layer_index = storage.layers.size() - 1 - ((storage.layers.size() - 1) % amount);layer_index > 0;layer_index -= amount) //Always start at a layer divisible by infill_sparse_combine.
     {
-        return;
-    }
-    SliceLayer* layer = &storage.layers[layerNr];
+        SliceLayer* layer = &storage.layers[layer_index];
 
-    for(int n=1; n<amount; n++)
-    {
-        if (layerNr < n)
-            break;
-        
-        SliceLayer* layer2 = &storage.layers[layerNr - n];
-        for(SliceLayerPart& part : layer->parts)
+        for(unsigned int n = 1;n < amount;n++)
         {
-            Polygons result;
-            for(SliceLayerPart& part2 : layer2->parts)
+            if(layer_index < n)
             {
-                if (part.boundaryBox.hit(part2.boundaryBox))
-                {
-                    Polygons intersection = part.infill_area[n - 1].intersection(part2.infill_area[0]).offset(-200).offset(200);
-                    result.add(intersection);
-                    part.infill_area[n - 1] = part.infill_area[n - 1].difference(intersection);
-                    part2.infill_area[0] = part2.infill_area[0].difference(intersection);
-                }
+                break;
             }
-            
-            part.infill_area.push_back(result);
+
+            SliceLayer* layer2 = &storage.layers[layer_index - n];
+            for(SliceLayerPart& part : layer->parts)
+            {
+                Polygons result;
+                for(SliceLayerPart& part2 : layer2->parts)
+                {
+                    if(part.boundaryBox.hit(part2.boundaryBox))
+                    {
+                        Polygons intersection = part.infill_area[n - 1].intersection(part2.infill_area[0]).offset(-200).offset(200);
+                        result.add(intersection);
+                        part.infill_area[n - 1] = part.infill_area[n - 1].difference(intersection);
+                        part2.infill_area[0] = part2.infill_area[0].difference(intersection);
+                    }
+                }
+
+                part.infill_area.push_back(result);
+            }
         }
     }
 }
