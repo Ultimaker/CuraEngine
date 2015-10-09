@@ -184,10 +184,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
     }
     
-    for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
+    for(SliceMeshStorage& mesh : storage.meshes)
     {
-        for(SliceMeshStorage& mesh : storage.meshes)
-            combineInfillLayers(layer_number, mesh, mesh.getSettingAsCount("infill_sparse_combine"));
+        combineInfillLayers(mesh,storage.getSettingAsCount("infill_sparse_combine"));
     }
 
     storage.primeTower.computePrimeTowerMax(storage);
