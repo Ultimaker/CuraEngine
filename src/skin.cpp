@@ -155,6 +155,10 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
 
 void combineInfillLayers(int layerNr, SliceMeshStorage& storage, int amount)
 {
+    if(layerNr % amount != 0) //In order to sync up all different parts of infill, only compute infill on modulo-0 layers.
+    {
+        return;
+    }
     SliceLayer* layer = &storage.layers[layerNr];
 
     for(int n=1; n<amount; n++)
