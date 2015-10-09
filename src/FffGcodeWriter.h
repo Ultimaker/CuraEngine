@@ -51,7 +51,7 @@ private:
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
-    , last_position_planned(0,0)
+    , last_position_planned(no_point)
     , current_extruder_planned(0) // TODO: make configurable
     {
         meshgroup_number = 1;
