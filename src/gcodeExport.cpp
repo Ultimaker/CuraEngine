@@ -1,6 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdarg.h>
 #include <iomanip>
+#include <cmath>
 
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
@@ -215,6 +216,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         return;
     
     assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(currentPosition != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
     
     if (extrusion_mm3_per_mm < 0)
@@ -280,6 +282,11 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             Point3 diff = Point3(x,y,z) - getPosition();
             if (isZHopped > 0)
             {
+                if (isinf(currentPosition.z))
+                {
+                    logError("Error! No Z position set yet!");
+                    assert(!isinf(currentPosition.z));
+                }
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = 0;
             }
@@ -509,3 +516,4 @@ void GCodeExport::finalize(int maxObjectHeight, double moveSpeed, const char* en
 }
 
 }//namespace cura
+
