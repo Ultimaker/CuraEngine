@@ -12,6 +12,9 @@
 #include <windows.h>
 #endif
 
+#define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x) 
+// std::cerr << x;
+
 namespace cura {
 
 #define BYTES_PER_FLOAT 4
@@ -142,6 +145,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     MeshGroup* object_to_slice = d->objects_to_slice.back().get();
     for(auto object : list->objects())
     {
+        DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
         object_to_slice->meshes.push_back(object_to_slice); //Construct a new mesh (with object_to_slice as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = object_to_slice->meshes.back();
 
@@ -158,8 +162,17 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             verts[1] = matrix.apply(float_vertices[1]);
             verts[2] = matrix.apply(float_vertices[2]);
             mesh.addFace(verts[0], verts[1], verts[2]);
+            
+            
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  facet normal -1 0 0\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("    outer loop\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[0].x) <<" " << INT2MM(verts[0].y) <<" " << INT2MM(verts[0].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[1].x) <<" " << INT2MM(verts[1].y) <<" " << INT2MM(verts[1].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[2].x) <<" " << INT2MM(verts[2].y) <<" " << INT2MM(verts[2].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("    endloop\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  endfacet\n");
         }
-
+        DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("endsolid Cura_out\n");
         for(auto setting : object.settings())
         {
             mesh.setSetting(setting.name(), setting.value());

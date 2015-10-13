@@ -1,25 +1,32 @@
 *.tar.bz2
 *.tar.gz
 *.7z
-*.pyc
 *.zip
-*.exe
-.idea
 .DS_Store
-_bin
-_obj
-*.depend
-*.o
-.*.swp
-*.gcode
-CuraEngine
-build/*
 *~
 NUL
+*.gcode
+
+## Building result.
+build/*
+*.pyc
+*.exe
+*.o
+CuraEngine
+_bin
+_obj
+
+## IDE project files.
 CuraEngine.layout
 CuraEngine.cbp
+*kdev*
+*.kate-swp
+nbproject/*
+.idea
+*.depend
+.*.swp
+
+## Documentation.
 documentation/html/*
 documentation/latex/*
 
-*kdev*
-*.kate-swp

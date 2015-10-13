@@ -66,7 +66,18 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
  * \param infill_skin_overlap overlap distance between infill and skin
  */
 void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap);
-void combineInfillLayers(int layerNr, SliceMeshStorage& storage, int amount);
+
+/*!
+ * \brief Combines the infill of multiple layers for a specified mesh.
+ * 
+ * The infill layers are combined while the thickness of each layer is
+ * multiplied such that the infill should fill up again to the full height of
+ * all combined layers.
+ * 
+ * \param storage The mesh to combine the infill layers of.
+ * \param amount The number of layers to combine.
+ */
+void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount);
 
 }//namespace cura
 

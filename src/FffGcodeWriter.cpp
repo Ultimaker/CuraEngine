@@ -57,29 +57,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
     
-    { // process all layers
-        std::list<GCodePlanner> buffer;
-        for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
-        {
-            processLayer(storage, layer_nr, total_layers, has_raft, buffer);
-                
-            while (buffer.size() > 0)
-            {
-                GCodePlanner& gcode_layer = buffer.front();
-                gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-                if (command_socket)
-                    command_socket->sendGCodeLayer();
-                buffer.pop_front();
-            }
-        }
-        while (buffer.size() > 0)
-        {
-            GCodePlanner& gcode_layer = buffer.front();
-            gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 1 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-            if (command_socket)
-                command_socket->sendGCodeLayer();
-            buffer.pop_front();
-        }
+    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
+    {
+        processLayer(storage, layer_nr, total_layers, has_raft);
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
@@ -265,7 +245,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     
-    bool retraction_combing = false; // the raft isn't added to the parts to avoid
+    bool retraction_combing = true; 
     
     int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
     
@@ -279,12 +259,11 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 2;
         gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        int64_t z = getSettingInMicrons("raft_base_thickness");
+        GCodePlanner gcode_layer(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setCombing(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
-        int64_t z = getSettingInMicrons("raft_base_thickness"); 
-        gcode.setZ(z);
         if (command_socket)
             command_socket->sendLayerInfo(layer_nr, z, raft_base_config.getLayerHeight());
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
@@ -312,10 +291,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 1;
         gcode.writeLayerComment(layer_nr);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
-        gcode_layer.setCombing(false);
         int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness");
-        gcode.setZ(z);
+        GCodePlanner gcode_layer(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        gcode_layer.setCombing(false);
         if (command_socket)
             command_socket->sendLayerInfo(layer_nr, z, raft_interface_config.getLayerHeight());
         
@@ -343,10 +321,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         gcode.writeLayerComment(-1);
         gcode.writeComment("RAFT");
-        GCodePlanner gcode_layer(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
-        gcode_layer.setCombing(false);
         int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer;
-        gcode.setZ(z);
+        GCodePlanner gcode_layer(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        gcode_layer.setCombing(false);
         if (command_socket)
             command_socket->sendLayerInfo(layer_nr, z, raft_surface_config.getLayerHeight());
         
@@ -363,12 +340,12 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     }
 }
 
-void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft, std::list<GCodePlanner>& buffer)
+void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
 {
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket);
 
     int layer_thickness = getSettingInMicrons("layer_height");
-    if (layer_nr == 0 && !has_raft)
+    if (layer_nr == 0)
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
@@ -389,8 +366,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     processInitialLayersSpeedup(storage, layer_nr);
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
-    buffer.emplace_back(command_socket, storage, layer_nr, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
-    GCodePlanner& gcode_layer = buffer.back();
+    int64_t z = storage.meshes[0].layers[layer_nr].printZ;
+    GCodePlanner gcode_layer(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (layer_nr == 0)
     {
@@ -435,6 +412,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     last_position_planned = gcode_layer.getLastPosition();
     current_extruder_planned = gcode_layer.getExtruder();
+    
+    gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+    if (command_socket)
+        command_socket->sendGCodeLayer();
 }
 
 void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr)

@@ -31,10 +31,11 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, Point last_position, int currentExtruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int currentExtruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , commandSocket(commandSocket)
 , layer_nr(layer_nr)
+, z(z)
 , start_position(last_position)
 , lastPosition(last_position)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
@@ -115,7 +116,7 @@ void GCodePlanner::addTravel(Point p)
     
     bool combed = false;
     
-    if (comb != nullptr && lastPosition != Point(0,0))
+    if (comb != nullptr && lastPosition != no_point)
     {
         CombPaths combPaths;
         combed = comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance);
@@ -344,7 +345,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
     
     gcode.writeLayerComment(layer_nr);
     
-    int z = storage.meshes[0].layers[layer_nr].printZ;         
     gcode.setZ(z);
     
     processFanSpeedAndMinimalLayerTime(gcode);

@@ -16,7 +16,7 @@ void generateRaft(SliceDataStorage& storage, int distance)
     }
     else 
     {
-        storage.raftOutline = storage.getLayerOutlines(0, true);
+        storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance);
     }
 }
 

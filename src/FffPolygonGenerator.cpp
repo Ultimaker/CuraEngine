@@ -45,13 +45,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    int layer_height_0 = meshgroup->getSettingInMicrons("layer_height_0");
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
-    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
-    { 
-        initial_layer_thickness = layer_thickness; 
-    }
-    int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
+    int initial_slice_z = layer_height_0 - layer_thickness / 2;
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
 
     std::vector<Slicer*> slicerList;
@@ -117,7 +113,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 
             if (commandSocket)
             {
-                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0 && !has_raft? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
             }
         }
         
@@ -184,10 +180,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
     }
     
-    for(unsigned int layer_number = total_layers-1; layer_number > 0; layer_number--)
+    for(SliceMeshStorage& mesh : storage.meshes)
     {
-        for(SliceMeshStorage& mesh : storage.meshes)
-            combineInfillLayers(layer_number, mesh, mesh.getSettingAsCount("infill_sparse_combine"));
+        combineInfillLayers(mesh,storage.getSettingAsCount("infill_sparse_combine"));
     }
 
     storage.primeTower.computePrimeTowerMax(storage);
