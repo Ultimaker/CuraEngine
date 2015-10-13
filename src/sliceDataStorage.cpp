@@ -26,7 +26,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
 }
 
 
-Polygons SliceDataStorage::getLayerOutlines(unsigned int layer_nr, bool include_helper_parts, bool external_polys_only)
+Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only)
 {
     if (layer_nr < 0)
     { // when processing raft

@@ -17,7 +17,7 @@ Polygons Comb::getLayerSecondWalls()
 {
     if (layer_nr < 0)
     { // when a raft is present
-        return storage.raftOutline;
+        return storage.raftOutline.offset(MM2INT(0.1));
     }
     else 
     {
@@ -63,7 +63,7 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls

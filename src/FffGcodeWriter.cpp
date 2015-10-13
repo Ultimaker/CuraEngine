@@ -234,7 +234,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     
-    bool retraction_combing = false; // the raft isn't added to the parts to avoid
+    bool retraction_combing = true; 
     
     int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
     
