@@ -103,19 +103,63 @@ public:
         { }
     };
     
-    void findExtruderIdleZones()
+    /*!
+     * Retrieves the zones of the plan which are printed with a single extruder
+     * \param zones (output) The resulting zones
+     * \return returns the index of the first zone in the current layer, i.e. the middle (or first) layer in the buffer
+     */
+    int findExtruderPlanZones(std::vector<ExtruderPlanZone>& zones)
     {
-        std::vector<ExtruderPlanZone> zones;
+        assert(buffer.size() >= 2);
+        std::list<GCodePlanner>::iterator next_layer = --buffer.end();
+        std::list<GCodePlanner>::iterator this_layer = --next_layer;
+        int first_zone_in_this_layer = -1;
         zones.emplace_back(*this, begin()->extruder, begin());
         for (iterator it = begin(); it != end(); it++)
         {
-            if (it->extruder != zones.back().extruder)
+            if (it->getExtrusionMM3perMM() == 0 && it->extruder != zones.back().extruder)
             {
                 zones.back().end = it;
                 zones.emplace_back(*this, it->extruder, it);
+                if (it.layer_plan_it == this_layer)
+                {
+                    if (first_zone_in_this_layer == -1)
+                    {
+                        first_zone_in_this_layer = zones.size() - 1;
+                    }
+                }
+                else if (it.layer_plan_it == next_layer)
+                {
+                    break;
+                }
             }
         }
         
+    }
+    
+    void insertPreheatCommands()
+    {
+        std::vector<ExtruderPlanZone> zones;
+        int first_zone_in_this_layer = findExtruderPlanZones(zones);
+        for (unsigned int zone_idx = static_cast<unsigned int>(first_zone_in_this_layer); zone_idx < zones.size(); zone_idx++)
+        {
+            int extruder = zones[zone_idx].extruder;
+            
+            // TODO: find time and material of this zone
+            
+            
+            unsigned int prev_zone_idx;
+            for (prev_zone_idx = zone_idx - 1; int(prev_zone_idx) >= 0; prev_zone_idx--)
+            {
+                if (zones[prev_zone_idx].extruder == extruder)
+                {
+                    break;
+                }
+            }
+            unsigned int start_zone_other_extruders = prev_zone_idx + 1;
+            
+            // TODO: add up all times of the extruder zones from [start_zone_other_extruders] to [zone_idx]
+        }
     }
     
     /*!
