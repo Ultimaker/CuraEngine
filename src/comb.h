@@ -205,7 +205,7 @@ class Comb
     friend class LinePolygonsCrossings;
 private:
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    unsigned int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
+    int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
@@ -239,7 +239,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(SliceDataStorage& storage, int layer_nr, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
     
