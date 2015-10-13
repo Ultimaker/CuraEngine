@@ -345,7 +345,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket);
 
     int layer_thickness = getSettingInMicrons("layer_height");
-    if (layer_nr == 0 && !has_raft)
+    if (layer_nr == 0)
     {
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
