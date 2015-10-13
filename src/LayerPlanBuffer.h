@@ -27,7 +27,7 @@ public:
     , gcode(gcode)
     { }
     
-    
+    /*
     class iterator
     {
     public:
@@ -79,7 +79,7 @@ public:
     {
         return iterator(buffer.end(), 0);
     }
-    
+    */
     void flush()
     {
         for (GCodePlanner& layer_plan : buffer)
@@ -89,7 +89,7 @@ public:
                 command_socket->sendGCodeLayer();
         }
     }
-    
+    /*
     struct ExtruderPlanZone
     {
         iterator start;
@@ -102,12 +102,13 @@ public:
         , extruder(extruder)
         { }
     };
-    
+    */
     /*!
      * Retrieves the zones of the plan which are printed with a single extruder
      * \param zones (output) The resulting zones
      * \return returns the index of the first zone in the current layer, i.e. the middle (or first) layer in the buffer
      */
+    /*
     int findExtruderPlanZones(std::vector<ExtruderPlanZone>& zones)
     {
         assert(buffer.size() >= 2);
@@ -161,7 +162,7 @@ public:
             // TODO: add up all times of the extruder zones from [start_zone_other_extruders] to [zone_idx]
         }
     }
-    
+    */
     /*!
      * Inserts pre-heating commands for the middle layer
      */

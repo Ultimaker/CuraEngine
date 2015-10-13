@@ -23,13 +23,24 @@ public:
     GCodePathConfig* config; //!< The configuration settings of the path.
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
-    int extruder; //!< The extruder used for this path.
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     
     double getExtrusionMM3perMM()
     {
         return flow * config->getExtrusionMM3perMM();
+    }
+};
+
+class ExtruderPlan 
+{
+public:
+    std::vector<GCodePath> paths;
+    int extruder; //!< The extruder used for this paths in the current plan.
+    
+    ExtruderPlan(int extruder)
+    : extruder(extruder)
+    {
     }
 };
 
@@ -53,7 +64,8 @@ private:
     
     Point start_position;
     Point lastPosition;
-    std::vector<GCodePath> paths;
+    
+    std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
     
     bool was_combing;
     bool is_going_to_comb;
@@ -66,7 +78,6 @@ private:
     GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
-    int currentExtruder;
     
     double extraTime;
     double totalPrintTime;
@@ -100,7 +111,7 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int currentExtruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int current_extruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     int getLayerNr()
@@ -119,7 +130,7 @@ public:
 
     int getExtruder()
     {
-        return currentExtruder;
+        return extruder_plans.back().extruder;
     }
 
     void setExtrudeSpeedFactor(double speedFactor)
@@ -189,10 +200,11 @@ public:
      * This function is used to avoid a G10 S1 after a G10.
      * 
      * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index of the current retracted path 
      * \return Whether the path should be an extgruder switch retracted path
      */
-    bool makeRetractSwitchRetract(GCodeExport& gcode, unsigned int path_idx);
+    bool makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx);
     
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
@@ -200,6 +212,7 @@ public:
      * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
      * 
      * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index into GCodePlanner::paths for the next path to be written to GCode.
      * \param layerThickness The height of the current layer.
      * \param coasting_volume_move The volume otherwise leaked during a normal move.
@@ -210,7 +223,7 @@ public:
      * \param coasting_min_volume_retract The minimal volume a path should have which builds up enough pressure to ooze as much as \p coasting_volume_retract.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodeExport& gcode, unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract);
+    bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract);
 
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
@@ -234,9 +247,10 @@ public:
     /*!
      * Write a retraction: either an extruder switch retraction or a normal retraction based on the last extrusion paths retraction config.
      * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx_travel_after Index in GCodePlanner::paths to the travel move before which to do the retraction
      */
-    void writeRetraction(GCodeExport& gcode, unsigned int path_idx_travel_after);
+    void writeRetraction(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx_travel_after);
     
     /*!
      * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
