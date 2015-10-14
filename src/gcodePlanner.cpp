@@ -282,6 +282,16 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             setExtrudeSpeedFactor(factor);
         else
             factor = getExtrudeSpeedFactor();
+        
+        // Adjust stored naive time estimates
+        for(ExtruderPlan& extr_plan : extruder_plans)
+        {
+            extr_plan.estimates.extrude_time /= factor;
+            for (GCodePath& path : extr_plan.paths)
+            {
+                path.estimates.extrude_time /= factor;
+            }
+        }
 
         if (minTime - (extrudeTime / factor) - travelTime > 0.1)
         {
@@ -323,30 +333,29 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
     return ret;
 }
 
-void GCodePlanner::processFanSpeedAndMinimalLayerTime(GCodeExport& gcode)
+void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 { 
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
     forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.travel_time, estimates.extrude_time);
 
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
-    double fanSpeed = fsml.cool_fan_speed_min;
+    fan_speed = fsml.cool_fan_speed_min;
     double totalLayerTime = estimates.travel_time + estimates.extrude_time;
     if (totalLayerTime < fsml.cool_min_layer_time)
     {
-        fanSpeed = fsml.cool_fan_speed_max;
+        fan_speed = fsml.cool_fan_speed_max;
     }
     else if (totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        fanSpeed = fsml.cool_fan_speed_max - (fsml.cool_fan_speed_max-fsml.cool_fan_speed_min) * (totalLayerTime - fsml.cool_min_layer_time) / (fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time);
+        fan_speed = fsml.cool_fan_speed_max - (fsml.cool_fan_speed_max-fsml.cool_fan_speed_min) * (totalLayerTime - fsml.cool_min_layer_time) / (fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time);
     }
     if (layer_nr < fsml.cool_fan_full_layer)
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fanSpeed = fanSpeed * layer_nr / fsml.cool_fan_full_layer;
+        fan_speed = fan_speed * layer_nr / fsml.cool_fan_full_layer;
     }
-    gcode.writeFanCommand(fanSpeed);
 }
 
 
@@ -358,7 +367,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
     
     gcode.setZ(z);
     
-    processFanSpeedAndMinimalLayerTime(gcode);
+    gcode.writeFanCommand(fan_speed);
     
     GCodePathConfig* last_extrusion_config = nullptr;
     int extruder = gcode.getExtruderNr();

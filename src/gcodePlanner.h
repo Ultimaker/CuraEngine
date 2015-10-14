@@ -121,8 +121,11 @@ private:
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
     
     GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
+    
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
+    
+    double fan_speed;
     
     double extraTime;
     double totalPrintTime;
@@ -195,6 +198,11 @@ public:
     double getTravelSpeedFactor()
     {
         return this->travelSpeedFactor;
+    }
+    
+    void setFanSpeed(double _fan_speed)
+    {
+        fan_speed = _fan_speed;
     }
 
     /*!
@@ -313,9 +321,8 @@ public:
     
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
-     * \param gcode The gcode to write the planned paths to
      */
-    void processFanSpeedAndMinimalLayerTime(GCodeExport& gcode);
+    void processFanSpeedAndMinimalLayerTime();
     
     void moveInsideCombBoundary(int arg1);
 };

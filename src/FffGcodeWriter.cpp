@@ -277,7 +277,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
         
-        gcode.writeFanCommand(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_base_thickness"));
     }
 
@@ -306,6 +307,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
 
+        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
     }
 
@@ -336,6 +339,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
         
+        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
     }
 }
@@ -413,6 +418,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     last_position_planned = gcode_layer.getLastPosition();
     current_extruder_planned = gcode_layer.getExtruder();
     
+    gcode_layer.processFanSpeedAndMinimalLayerTime();
     gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
     if (command_socket)
         command_socket->sendGCodeLayer();
