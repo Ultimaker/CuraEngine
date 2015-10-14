@@ -17,6 +17,47 @@ namespace cura
 
 class SliceDataStorage;
 
+class TimeMaterialEstimates
+{
+public:
+    double extrude_time;
+    double travel_time;
+    double material;
+    
+    TimeMaterialEstimates(double extrude_time, double travel_time, double material)
+    : extrude_time(extrude_time)
+    , travel_time(travel_time)
+    , material(material)
+    {
+    }
+    TimeMaterialEstimates()
+    : extrude_time(0.0)
+    , travel_time(0.0)
+    , material(0.0)
+    {
+    }
+    
+    void reset() 
+    {
+        extrude_time = 0.0;
+        travel_time = 0.0;
+        material = 0.0;
+    }
+    
+    TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
+    {
+        return TimeMaterialEstimates(extrude_time+other.extrude_time, travel_time+other.travel_time, material+other.material);
+    }
+    
+    TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
+    {
+        extrude_time += other.extrude_time;
+        travel_time += other.travel_time;
+        material += other.material;
+        return *this;
+    }
+};
+
 class GCodePath
 {
 public:
@@ -25,6 +66,8 @@ public:
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
+    
+    TimeMaterialEstimates estimates; //!< Naive time and material estimates
     
     double getExtrusionMM3perMM()
     {
@@ -37,6 +80,8 @@ class ExtruderPlan
 public:
     std::vector<GCodePath> paths;
     int extruder; //!< The extruder used for this paths in the current plan.
+    
+    TimeMaterialEstimates estimates;
     
     ExtruderPlan(int extruder)
     : extruder(extruder)
@@ -184,7 +229,13 @@ public:
      */
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist = 0);
 
-    void getNaiveTimeEstimates(double& travelTime, double& extrudeTime);
+    /*!
+     * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * and store them in each ExtruderPlan and each GCodePath.
+     * 
+     * \return the total estimates of this layer
+     */
+    TimeMaterialEstimates computeNaiveTimeEstimates();
     
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     

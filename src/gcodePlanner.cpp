@@ -293,40 +293,45 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
     }
 }
 
-void GCodePlanner::getNaiveTimeEstimates(double& travelTime, double& extrudeTime)
+TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
 {
-    travelTime = 0.0;
-    extrudeTime = 0.0;
+    TimeMaterialEstimates ret;
     Point p0 = start_position;
 
     for(ExtruderPlan& extr_plan : extruder_plans)
     {
         for (GCodePath& path : extr_plan.paths)
         {
+            bool is_travel_path = path.getExtrusionMM3perMM() == 0;
+            double& path_time_estimate = (is_travel_path)? path.estimates.travel_time : path.estimates.extrude_time;
+            double& material_estimate = path.estimates.material;
             for(Point& p1 : path.points)
             {
-                double thisTime = vSizeMM(p0 - p1) / path.config->getSpeed();
-                if (path.getExtrusionMM3perMM() != 0)
-                    extrudeTime += thisTime;
-                else
-                    travelTime += thisTime;
+                double length = vSizeMM(p0 - p1);
+                if (!is_travel_path)
+                {
+                    material_estimate += length * INT2MM(path.config->getLayerHeight()) * INT2MM(path.config->getLineWidth());
+                }
+                double thisTime = length / path.config->getSpeed();
+                path_time_estimate += thisTime;
                 p0 = p1;
             }
+            extr_plan.estimates += path.estimates;
         }
+        ret += extr_plan.estimates;
     }
+    return ret;
 }
 
 void GCodePlanner::processFanSpeedAndMinimalLayerTime(GCodeExport& gcode)
 { 
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
-    double travelTime;
-    double extrudeTime;
-    getNaiveTimeEstimates(travelTime, extrudeTime);
-    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, travelTime, extrudeTime);
+    TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
+    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.travel_time, estimates.extrude_time);
 
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     double fanSpeed = fsml.cool_fan_speed_min;
-    double totalLayerTime = travelTime + extrudeTime;
+    double totalLayerTime = estimates.travel_time + estimates.extrude_time;
     if (totalLayerTime < fsml.cool_min_layer_time)
     {
         fanSpeed = fsml.cool_fan_speed_max;
