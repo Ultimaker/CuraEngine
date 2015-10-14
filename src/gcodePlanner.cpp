@@ -116,7 +116,7 @@ void GCodePlanner::addTravel(Point p)
     
     bool combed = false;
     
-    if (comb != nullptr && lastPosition != no_point)
+    if (comb != nullptr && lastPosition != Point(0,0))
     {
         CombPaths combPaths;
         combed = comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance);
