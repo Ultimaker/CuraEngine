@@ -10,7 +10,7 @@ namespace cura {
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , commandSocket(nullptr)
-, currentPosition(INT32_MIN,INT32_MIN,0)
+, currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
 {
     extrusion_amount = 0;
