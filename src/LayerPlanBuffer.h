@@ -20,8 +20,64 @@ class LayerPlanBuffer : SettingsMessenger
     
     GCodeExport& gcode;
     
+    Preheat preheat_config;
+    
 public:
     std::list<GCodePlanner> buffer;
+    
+    class iterator
+    {
+        std::vector<GCodePlanner*>& layers;
+    public:
+        unsigned int layer_plan_idx;
+        unsigned int extruder_plan_idx;
+        iterator(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+        : layers(layers)
+        , layer_plan_idx(layer_plan_idx)
+        , extruder_plan_idx(extruder_plan_idx)
+        { }
+        
+        iterator operator++(int) // int so that we declare postfix
+        { 
+            extruder_plan_idx++;
+            if (extruder_plan_idx == layers[layer_plan_idx]->extruder_plans.size())
+            {
+                extruder_plan_idx = 0;
+                layer_plan_idx++;    
+            }
+            return *this; 
+        }
+        iterator operator--(int) // int so that we declare postfix
+        {
+            if (extruder_plan_idx == 0)
+            {
+                layer_plan_idx--;
+                extruder_plan_idx = layers[layer_plan_idx]->extruder_plans.size();
+            }
+            extruder_plan_idx--;
+            return *this;
+        }
+        GCodePath& operator*()
+        {
+            return layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
+        }
+        GCodePath* operator->()
+        {
+            return &layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
+        }
+        bool operator==(const iterator b) { return layer_plan_idx == b.layer_plan_idx && extruder_plan_idx == b.extruder_plan_idx && &layers == &b.layers; }
+        bool operator!=(const iterator b) { return !(*this == b); }
+    };
+    
+    iterator begin(std::vector<GCodePlanner*>& layers)
+    {
+        return iterator(layers, 0, 0);
+    }
+    
+    iterator end(std::vector<GCodePlanner*>& layers)
+    {
+        return iterator(layers, buffer.size(), 0);
+    }
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, CommandSocket* command_socket, GCodeExport& gcode)
     : SettingsMessenger(settings)
