@@ -136,47 +136,79 @@ public:
 
 
     /*!
-    * Checks whether a given line segment collides with a given polygon(s).
-    * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
-    * 
-    * \param poly The polygon
-    * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
-    * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
-    * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
-    * \return whether the line segment collides with the boundary of the polygon(s)
-    */
+     * Checks whether a given line segment collides with a given polygon(s).
+     * The transformed_startPoint and transformed_endPoint should have the same
+     * Y coordinate.
+     * 
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     * 
+     * \param poly The polygon
+     * \param transformed_startPoint The start point transformed such that it is
+     * on the same horizontal line as the end point
+     * \param transformed_endPoint The end point transformed such that it is on
+     * the same horizontal line as the start point
+     * \param transformation_matrix The transformation applied to the start and
+     * end point to be applied to the polygon(s)
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
     static bool polygonCollidesWithlineSegment(PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
-    * Checks whether a given line segment collides with a given polygon(s).
-    * 
-    * \param poly The polygon
-    * \param startPoint The start point 
-    * \param endPoint The end point 
-    * \return whether the line segment collides with the boundary of the polygon(s)
-    */
+     * Checks whether a given line segment collides with a given polygon(s).
+     * 
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     * 
+     * \param poly The polygon
+     * \param startPoint The start point
+     * \param endPoint The end point
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
     static bool polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint);
 
     /*!
-    * Checks whether a given line segment collides with a given polygon(s).
-    * The transformed_startPoint and transformed_endPoint should have the same Y coordinate.
-    * 
-    * \param poly The polygon
-    * \param transformed_startPoint The start point transformed such that it is on the same horizontal line as the end point
-    * \param transformed_endPoint The end point transformed such that it is on the same horizontal line as the start point
-    * \param transformation_matrix The transformation applied to the start and end point to be applied to the polygon(s)
-    * \return whether the line segment collides with the boundary of the polygon(s)
-    */
+     * Checks whether a given line segment collides with a given polygon(s).
+     * The transformed_startPoint and transformed_endPoint should have the same
+     * Y coordinate.
+     * 
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     * 
+     * \param poly The polygon
+     * \param transformed_startPoint The start point transformed such that it is
+     * on the same horizontal line as the end point
+     * \param transformed_endPoint The end point transformed such that it is on
+     * the same horizontal line as the start point
+     * \param transformation_matrix The transformation applied to the start and
+     * end point to be applied to the polygon(s)
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
     static bool polygonCollidesWithlineSegment(Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
-    * Checks whether a given line segment collides with a given polygon(s).
-    * 
-    * \param poly The polygon
-    * \param startPoint The start point 
-    * \param endPoint The end point 
-    * \return whether the line segment collides with the boundary of the polygon(s)
-    */
+     * Checks whether a given line segment collides with a given polygon(s).
+     * 
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     * 
+     * \param poly The polygon
+     * \param startPoint The start point
+     * \param endPoint The end point
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
     static bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint);
 };
 
