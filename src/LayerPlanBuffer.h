@@ -37,6 +37,14 @@ public:
         , extruder_plan_idx(extruder_plan_idx)
         { }
         
+        iterator& operator=(const iterator& b)
+        {
+//             layers = b.layers;
+            layer_plan_idx = b.layer_plan_idx;
+            extruder_plan_idx = b.extruder_plan_idx;
+            return *this;
+        }
+        
         iterator operator++(int) // int so that we declare postfix
         { 
             extruder_plan_idx++;
@@ -115,12 +123,15 @@ public:
     void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
         ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
+        
+        
         int extruder = extruder_plan.extruder;
 
         TimeMaterialEstimates extruder_plan_estimates = extruder_plan.estimates;
 
-        unsigned int layer_plan_before = layer_plan_idx;
-        unsigned int extruder_plan_before = extruder_plan_idx - 1;
+        iterator last_extruder_plan_different_extruder(layers, layer_plan_idx, extruder_plan_idx - 1);
+
+        // check whether this extruder plan needs to be latched with the last one of the prev layer
 
         if (extruder_plan_idx == 0 && layer_plan_idx > 0)
         {
@@ -128,29 +139,39 @@ public:
             if (prev_extruder_plan.extruder == extruder_plan.extruder)
             {
                 extruder_plan_estimates += prev_extruder_plan.estimates;
-                layer_plan_before = layer_plan_idx - 1; 
-                extruder_plan_before = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
+                last_extruder_plan_different_extruder.layer_plan_idx = layer_plan_idx - 1; 
+                last_extruder_plan_different_extruder.extruder_plan_idx = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
             }
         }
-        
+
         double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
 
+        // find time in between two extruder plans of the same extruder
         double time_in_between = 0.0;
-        for (iterator extruder_plan_it = iterator(layers, layer_plan_before, extruder_plan_before);
-             extruder_plan_it != begin(layers);
-             extruder_plan--)
+        iterator prev_extruder_plan_same_extruder = begin(layers)--; // the reverse-iterator equivalent of end()
+        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != begin(layers)--; extruder_plan_before_it--)
         {
-            if (extruder_plan_it->extruder == extruder)
+            if (extruder_plan_before_it->extruder == extruder)
             {
+                prev_extruder_plan_same_extruder = extruder_plan_before_it;
                 break;
             }
-            
-            time_in_between += extruder_plan_it->estimates.extrude_time + extruder_plan_it->estimates.travel_time;
+            time_in_between += extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
         }
         
         double time_before_extruder_plan = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, avg_flow);
         
-        
+        // insert preheat command in the right place in the right extruder plan
+        double acc_time = 0.0;
+        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != prev_extruder_plan_same_extruder; extruder_plan_before_it--)
+        {
+            double extruder_plan_time = extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
+            if (acc_time + extruder_plan_time > time_before_extruder_plan)
+            {
+                // TODO: insert preheat command in this extruder plan
+            }
+            acc_time += extruder_plan_time;
+        }
     }
     
     void insertPreheatCommands()
