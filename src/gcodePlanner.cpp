@@ -311,7 +311,7 @@ void GCodePlanner::getNaiveTimeEstimates(double& travelTime, double& extrudeTime
 }
 
 void GCodePlanner::processFanSpeedAndMinimalLayerTime(GCodeExport& gcode)
-{ 
+{
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     double travelTime;
     double extrudeTime;

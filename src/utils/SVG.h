@@ -166,7 +166,7 @@ public:
     }
 
     template<typename... Args>
-    void printf(const char* txt, Args... args)
+    void printf(const char* txt, Args&&... args)
     {
         fprintf(out, txt, args...);
     }
