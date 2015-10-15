@@ -9,6 +9,8 @@
 #include "gcodeExport.h"
 #include "gcodePlanner.h"
 
+#include "Preheat.h"
+
 namespace cura 
 {
 
