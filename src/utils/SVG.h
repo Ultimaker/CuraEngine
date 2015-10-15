@@ -161,8 +161,9 @@ public:
     
     void writeLine(Point& a, Point& b, Color color = Color::BLACK)
     {
-        
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", a.Y, a.X, b.Y, b.X, toString(color).c_str());
+        Point fa = transform(a);
+        Point fb = transform(b);
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", fa.Y, fa.X, fb.Y, fb.X, toString(color).c_str());
     }
 
     template<typename... Args>
