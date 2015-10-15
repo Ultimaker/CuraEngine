@@ -6,6 +6,9 @@
 #include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
 
+#include "utils/SVG.h"
+#include "utils/AABB.h"
+
 namespace cura {
 
 bool Comb::moveInsideBoundary(Point* p, int distance)
@@ -238,18 +241,26 @@ void LinePolygonsCrossings::calcScanlineCrossings()
     {
         PolyCrossings minMax(poly_idx); 
         PolygonRef poly = boundary[poly_idx];
-        Point p0 = transformation_matrix.apply(poly.back());
+        Point p0 = transformation_matrix.apply(PolygonUtils::getBoundaryPointWithOffset(poly,poly.size() - 1,dist_to_move_boundary_point_outside));
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point p1 = transformation_matrix.apply(poly[point_idx]);
+            Point p1 = transformation_matrix.apply(PolygonUtils::getBoundaryPointWithOffset(poly,point_idx,dist_to_move_boundary_point_outside));
             if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
             {
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    if (x < minMax.min.x) { minMax.min.x = x; minMax.min.point_idx = point_idx; }
-                    if (x > minMax.max.x) { minMax.max.x = x; minMax.max.point_idx = point_idx; }
+                    if(x < minMax.min.x)
+                    {
+                        minMax.min.x = x;
+                        minMax.min.point_idx = point_idx;
+                    }
+                    if(x > minMax.max.x)
+                    {
+                        minMax.max.x = x;
+                        minMax.max.point_idx = point_idx;
+                    }
                 }
             }
             p0 = p1;
@@ -367,7 +378,7 @@ LinePolygonsCrossings::PolyCrossings* LinePolygonsCrossings::getNextPolygonAlong
 }
 
 bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 
-{   
+{
     optimized_comb_path.push_back(startPoint);
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
     {
