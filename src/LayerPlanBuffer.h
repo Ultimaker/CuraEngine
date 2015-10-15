@@ -57,11 +57,11 @@ public:
             extruder_plan_idx--;
             return *this;
         }
-        GCodePath& operator*()
+        ExtruderPlan& operator*()
         {
             return layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         }
-        GCodePath* operator->()
+        ExtruderPlan* operator->()
         {
             return &layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         }
