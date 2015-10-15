@@ -60,11 +60,24 @@ public:
         ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         int extruder = extruder_plan.extruder;
         
+        TimeMaterialEstimates extruder_plan_estimates = extruder_plan.estimates;
         
         TimeMaterialEstimates in_between;
-        unsigned int prev_layer_plan_same_extruder_idx;
+        unsigned int prev_layer_plan_same_extruder_idx = layer_plan_idx;
         unsigned int prev_plan_same_extruder_idx = extruder_plan_idx - 1;
-        for (prev_layer_plan_same_extruder_idx = layer_plan_idx; int(prev_layer_plan_same_extruder_idx) >= 0; --prev_layer_plan_same_extruder_idx)
+        
+        if (extruder_plan_idx == 0 && layer_plan_idx > 0)
+        {
+            ExtruderPlan& prev_extruder_plan = layers[layer_plan_idx - 1]->extruder_plans.back();
+            if (prev_extruder_plan.extruder == extruder_plan.extruder)
+            {
+                extruder_plan_estimates += prev_extruder_plan.estimates;
+                prev_layer_plan_same_extruder_idx = layer_plan_idx - 1; 
+                prev_plan_same_extruder_idx = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
+            }
+        }
+        
+        for (prev_layer_plan_same_extruder_idx; int(prev_layer_plan_same_extruder_idx) >= 0; --prev_layer_plan_same_extruder_idx)
         {
             GCodePlanner& prev_layer_plan_same_extruder = *layers[prev_layer_plan_same_extruder_idx];
             if (prev_plan_same_extruder_idx < 0)
