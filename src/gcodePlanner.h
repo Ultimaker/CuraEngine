@@ -122,6 +122,8 @@ private:
     
     GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
     
+    GCodePathConfig* raft_config; //!< The config for printing the raft on this layer. Owned (and deleted) by this layer plan.
+    
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
     
@@ -205,6 +207,16 @@ public:
         fan_speed = _fan_speed;
     }
 
+    template<typename... Args>
+    GCodePathConfig& getRaftConfig(Args... args)
+    {
+        if (!raft_config)
+        {
+            raft_config = new GCodePathConfig(args...);
+        }
+        return *raft_config;
+    }
+    
     /*!
      * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
      * avoiding obstacles and comb along the boundary of parts.

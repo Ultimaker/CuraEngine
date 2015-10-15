@@ -41,6 +41,7 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
 , lastPosition(last_position)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , travelConfig(retraction_config_travel, "MOVE")
+, raft_config(nullptr)
 {
     extruder_plans.emplace_back(current_extruder);
     travelConfig.setSpeed(travelSpeed);
@@ -64,6 +65,8 @@ GCodePlanner::~GCodePlanner()
 {
     if (comb)
         delete comb;
+    if (raft_config)
+        delete raft_config;
 }
 
 void GCodePlanner::setCombing(bool going_to_comb)

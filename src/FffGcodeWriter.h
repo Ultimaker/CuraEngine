@@ -18,7 +18,7 @@
 #include "FanSpeedLayerTime.h"
 
 
-#include "LayerPlanBuffer.h" // temp!
+#include "LayerPlanBuffer.h"
 
 
 namespace cura 
@@ -37,6 +37,9 @@ class FffGcodeWriter : public SettingsMessenger
 private:
     int max_object_height;
     int meshgroup_number; //!< used for sequential printing of objects
+    
+    LayerPlanBuffer layer_plan_buffer;
+    
     GCodeExport gcode;
     CommandSocket* command_socket;
     std::ofstream output_file;
@@ -55,6 +58,7 @@ private:
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
+    , layer_plan_buffer(this, command_socket, gcode)
     , last_position_planned(no_point)
     , current_extruder_planned(0) // TODO: make configurable
     {

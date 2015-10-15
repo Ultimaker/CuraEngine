@@ -12,7 +12,7 @@
 namespace cura 
 {
 
-class LayerPlanBuffer : SettingsBaseVirtual
+class LayerPlanBuffer : SettingsMessenger
 {
     CommandSocket* command_socket;
     
@@ -22,10 +22,24 @@ public:
     std::list<GCodePlanner> buffer;
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, CommandSocket* command_socket, GCodeExport& gcode)
-    : SettingsBaseVirtual(settings)
+    : SettingsMessenger(settings)
     , command_socket(command_socket)
     , gcode(gcode)
     { }
+    
+    template<typename... Args>
+    GCodePlanner& emplace_back(Args... constructor_args)
+    {
+        buffer.emplace_back(constructor_args...);
+        if (buffer.size() > 3)
+        {
+            buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+            if (command_socket)
+                command_socket->sendGCodeLayer();
+            buffer.pop_front();
+        }
+        return buffer.back();
+    }
     
     /*
     class iterator
