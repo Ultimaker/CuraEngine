@@ -43,6 +43,72 @@ public:
         return buffer.back();
     }
     
+    void flush()
+    {
+        for (GCodePlanner& layer_plan : buffer)
+        {
+            layer_plan.processFanSpeedAndMinimalLayerTime();
+            layer_plan.writeGCode(gcode, getSettingBoolean("cool_lift_head"), layer_plan.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+            if (command_socket)
+                command_socket->sendGCodeLayer();
+        }
+    }
+    
+    
+    void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+    {
+        ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
+        int extruder = extruder_plan.extruder;
+        
+        
+        TimeMaterialEstimates in_between;
+        unsigned int prev_layer_plan_same_extruder_idx;
+        unsigned int prev_plan_same_extruder_idx = extruder_plan_idx - 1;
+        for (prev_layer_plan_same_extruder_idx = layer_plan_idx; int(prev_layer_plan_same_extruder_idx) >= 0; --prev_layer_plan_same_extruder_idx)
+        {
+            GCodePlanner& prev_layer_plan_same_extruder = *layers[prev_layer_plan_same_extruder_idx];
+            if (prev_plan_same_extruder_idx < 0)
+            { // for all iterations except the first
+                prev_plan_same_extruder_idx = prev_layer_plan_same_extruder.extruder_plans.size() - 1;
+            }
+            
+            for (; int(prev_plan_same_extruder_idx) >= 0; --prev_plan_same_extruder_idx)
+            {
+                ExtruderPlan& other_extruder_plan = prev_layer_plan_same_extruder.extruder_plans[prev_plan_same_extruder_idx];
+                if (other_extruder_plan.extruder == extruder)
+                {
+                    break;
+                }
+                
+                in_between += other_extruder_plan.estimates;
+            }
+        }
+        
+        
+        
+    }
+    
+    void insertPreheatCommands()
+    {
+        std::vector<GCodePlanner*> layers;
+        for (GCodePlanner& layer_plan : buffer)
+        {
+            layers.push_back(&layer_plan);
+        }
+        
+        unsigned int last_layer_idx = layers.size() - 1;
+        // process all extruder plans for the last layer except the last one, and process the last one of the previous layer
+        for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layers[last_layer_idx]->extruder_plans.size() - 1; ++extruder_plan_idx)
+        {
+            insertPreheatCommand(layers, last_layer_idx, extruder_plan_idx);
+        }
+        unsigned int second_last_layer_idx = last_layer_idx - 1;
+        if (second_last_layer_idx >= 0)
+        {
+            insertPreheatCommand(layers, second_last_layer_idx, layers[second_last_layer_idx]->extruder_plans.size() - 1);
+        }
+        
+    }
     /*
     class iterator
     {
@@ -96,16 +162,6 @@ public:
         return iterator(buffer.end(), 0);
     }
     */
-    void flush()
-    {
-        for (GCodePlanner& layer_plan : buffer)
-        {
-            layer_plan.processFanSpeedAndMinimalLayerTime();
-            layer_plan.writeGCode(gcode, getSettingBoolean("cool_lift_head"), layer_plan.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-            if (command_socket)
-                command_socket->sendGCodeLayer();
-        }
-    }
     /*
     struct ExtruderPlanZone
     {
