@@ -449,18 +449,25 @@ bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& transf
     for(Point p1_ : poly)
     {
         Point p1 = transformation_matrix.apply(p1_);
-        if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+        if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
         {
-            int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+            int64_t x;
+            if(p1.Y == p0.Y)
+            {
+                x = p0.X;
+            }
+            else
+            {
+                x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+            }
             
-            if (x > transformed_startPoint.X && x < transformed_endPoint.X)
+            if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 return true;
         }
         p0 = p1;
     }
     return false;
 }
-
 
 bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint)
 {
