@@ -1,8 +1,46 @@
 #ifndef PREHEAT_H
 #define PREHEAT_H
 
+#include "utils/logoutput.h"
+
 namespace cura 
 {
+
+class FlowTempGraph
+{
+public:
+    struct Datum
+    {
+        double flow;
+        double temp;
+    };
+    std::vector<Datum> data;
+    
+    double getTemp(double flow)
+    {
+        if (flow < data.front().flow)
+        {
+            logError("flow too low"); // TODO
+            return data.front().temp;
+        }
+        if (flow > data.back().flow)
+        {
+            logError("flow too high"); // TODO
+            return data.back().temp;
+        }
+        Datum* last_datum = data.front();
+        for (unsigned int datum_idx = 1; datum_idx < data.size(); datum_idx++)
+        {
+            Datum& datum = data[datum_idx];
+            if (datum.flow > flow)
+            {
+                return last_datum->temp + (datum.temp - last_datum->temp) * (flow - last_datum->flow) / (datum.flow - last_datum->flow);
+            }
+            last_datum = &datum;
+        }
+        
+    };
+};
 
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to the printing temperature.
