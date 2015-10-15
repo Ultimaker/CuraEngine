@@ -111,48 +111,65 @@ public:
     }
     
     
+    /*!
+     * 
+     * \param layer_plan_before (in + output) 
+     * \param extruder_plan_before (in + output)
+     * \return the time estimate of the plans between the two
+     */
+    double findPreviousLayerPlanSameExtruder(std::vector<GCodePlanner*>& layers, int extruder, unsigned int& layer_plan_before, unsigned int& extruder_plan_before)
+    {
+        double in_between;
+        
+        for (layer_plan_before; int(layer_plan_before) >= 0; --layer_plan_before)
+        {
+            GCodePlanner& prev_layer_plan_same_extruder = *layers[layer_plan_before];
+            if (extruder_plan_before < 0)
+            { // for all iterations except the first
+                extruder_plan_before = prev_layer_plan_same_extruder.extruder_plans.size() - 1;
+            }
+
+            for (; int(extruder_plan_before) >= 0; --extruder_plan_before)
+            {
+                ExtruderPlan& other_extruder_plan = prev_layer_plan_same_extruder.extruder_plans[extruder_plan_before];
+                if (other_extruder_plan.extruder == extruder)
+                {
+                    break;
+                }
+                
+                in_between += other_extruder_plan.estimates.extrude_time + other_extruder_plan.estimates.travel_time;
+            }
+        }
+        
+        return in_between;
+    }
+    
     void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
         ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         int extruder = extruder_plan.extruder;
-        
+
         TimeMaterialEstimates extruder_plan_estimates = extruder_plan.estimates;
-        
-        TimeMaterialEstimates in_between;
-        unsigned int prev_layer_plan_same_extruder_idx = layer_plan_idx;
-        unsigned int prev_plan_same_extruder_idx = extruder_plan_idx - 1;
-        
+
+        unsigned int layer_plan_before = layer_plan_idx;
+        unsigned int extruder_plan_before = extruder_plan_idx - 1;
+
         if (extruder_plan_idx == 0 && layer_plan_idx > 0)
         {
             ExtruderPlan& prev_extruder_plan = layers[layer_plan_idx - 1]->extruder_plans.back();
             if (prev_extruder_plan.extruder == extruder_plan.extruder)
             {
                 extruder_plan_estimates += prev_extruder_plan.estimates;
-                prev_layer_plan_same_extruder_idx = layer_plan_idx - 1; 
-                prev_plan_same_extruder_idx = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
+                layer_plan_before = layer_plan_idx - 1; 
+                extruder_plan_before = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
             }
         }
         
-        for (prev_layer_plan_same_extruder_idx; int(prev_layer_plan_same_extruder_idx) >= 0; --prev_layer_plan_same_extruder_idx)
-        {
-            GCodePlanner& prev_layer_plan_same_extruder = *layers[prev_layer_plan_same_extruder_idx];
-            if (prev_plan_same_extruder_idx < 0)
-            { // for all iterations except the first
-                prev_plan_same_extruder_idx = prev_layer_plan_same_extruder.extruder_plans.size() - 1;
-            }
-            
-            for (; int(prev_plan_same_extruder_idx) >= 0; --prev_plan_same_extruder_idx)
-            {
-                ExtruderPlan& other_extruder_plan = prev_layer_plan_same_extruder.extruder_plans[prev_plan_same_extruder_idx];
-                if (other_extruder_plan.extruder == extruder)
-                {
-                    break;
-                }
-                
-                in_between += other_extruder_plan.estimates;
-            }
-        }
+        double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
+
+        double time_in_between = findPreviousLayerPlanSameExtruder(layers, extruder, layer_plan_before, extruder_plan_before);
         
+        double time_before_extruder_plan = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, avg_flow);
         
         
     }
