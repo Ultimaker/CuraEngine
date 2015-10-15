@@ -28,7 +28,7 @@ public:
     { }
     
     template<typename... Args>
-    GCodePlanner& emplace_back(Args... constructor_args)
+    GCodePlanner& emplace_back(Args&&... constructor_args)
     {
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > 3)

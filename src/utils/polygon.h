@@ -83,7 +83,7 @@ public:
     ClipperLib::Path& operator*() { return *polygon; }
     
     template <typename... Args>
-    void emplace_back(Args... args)
+    void emplace_back(Args&&... args)
     {
         polygon->emplace_back(args...);
     }

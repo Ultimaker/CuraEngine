@@ -208,7 +208,7 @@ public:
     }
 
     template<typename... Args>
-    GCodePathConfig& getRaftConfig(Args... args)
+    GCodePathConfig& getRaftConfig(Args&&... args)
     {
         if (!raft_config)
         {

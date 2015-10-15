@@ -337,7 +337,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
 }
 
 void GCodePlanner::processFanSpeedAndMinimalLayerTime()
-{ 
+{
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
     forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.travel_time, estimates.extrude_time);
