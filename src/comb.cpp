@@ -382,6 +382,10 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
     optimized_comb_path.push_back(startPoint);
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
     {
+        if(comb_path[point_idx] == comb_path[point_idx - 1]) //Two points are the same. Skip the second.
+        {
+            continue;
+        }
         Point& current_point = optimized_comb_path.back();
         if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
         {
