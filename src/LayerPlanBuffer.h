@@ -61,7 +61,10 @@ public:
             if (extruder_plan_idx == 0)
             {
                 layer_plan_idx--;
-                extruder_plan_idx = layers[layer_plan_idx]->extruder_plans.size();
+                if (int(layer_plan_idx) >= 0)
+                {
+                    extruder_plan_idx = layers[layer_plan_idx]->extruder_plans.size();
+                } // otherwise keep arbitrary extruder_plan_idx
             }
             extruder_plan_idx--;
             return *this;
@@ -74,13 +77,29 @@ public:
         {
             return &layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         }
-        bool operator==(const iterator b) { return layer_plan_idx == b.layer_plan_idx && extruder_plan_idx == b.extruder_plan_idx && &layers == &b.layers; }
+        bool operator==(const iterator b) 
+        { 
+            if (int(layer_plan_idx) > 0)
+            {
+                return layer_plan_idx == b.layer_plan_idx && extruder_plan_idx == b.extruder_plan_idx && &layers == &b.layers; 
+            }
+            else 
+            {
+                return int(layer_plan_idx) < 0 && int(b.layer_plan_idx) < 0;
+            }
+        }
         bool operator!=(const iterator b) { return !(*this == b); }
     };
     
     iterator begin(std::vector<GCodePlanner*>& layers)
     {
         return iterator(layers, 0, 0);
+    }
+    
+    
+    iterator start(std::vector<GCodePlanner*>& layers)
+    {
+        return iterator(layers, -1, 0);
     }
     
     iterator end(std::vector<GCodePlanner*>& layers)
@@ -152,6 +171,15 @@ public:
 
         TimeMaterialEstimates extruder_plan_estimates = extruder_plan.estimates;
 
+        if (layer_plan_idx == 0 && extruder_plan_idx == 0)
+        {
+            double time_before_extruder_plan_end = 99999;
+            double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
+            double temp = preheat_config.getTemp(extruder, avg_flow);
+            insertPreheatCommand(extruder_plan, time_before_extruder_plan_end, temp);
+            return;
+        }
+        
         iterator last_extruder_plan_different_extruder(layers, layer_plan_idx, extruder_plan_idx - 1);
 
         // check whether this extruder plan needs to be latched with the last one of the prev layer
@@ -163,7 +191,8 @@ public:
             {
                 extruder_plan_estimates += prev_extruder_plan.estimates;
                 last_extruder_plan_different_extruder.layer_plan_idx = layer_plan_idx - 1; 
-                last_extruder_plan_different_extruder.extruder_plan_idx = layers[layer_plan_idx - 1]->extruder_plans.size() - 2; // start from the one before the last extruder plan of the previous layer
+                last_extruder_plan_different_extruder.extruder_plan_idx = layers[layer_plan_idx - 1]->extruder_plans.size() - 1; // start from the one before the last extruder plan of the previous layer
+                last_extruder_plan_different_extruder--;
             }
         }
 
@@ -171,8 +200,8 @@ public:
 
         // find time in between two extruder plans of the same extruder
         double time_in_between = 0.0;
-        iterator prev_extruder_plan_same_extruder = begin(layers)--; // the reverse-iterator equivalent of end()
-        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != begin(layers)--; extruder_plan_before_it--)
+        iterator prev_extruder_plan_same_extruder = begin(layers); // the reverse-iterator equivalent of end()
+        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != start(layers); extruder_plan_before_it--)
         {
             if (extruder_plan_before_it->extruder == extruder)
             {
@@ -180,18 +209,23 @@ public:
                 break;
             }
             time_in_between += extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
+//             if (extruder_plan_before_it == begin(layers))
+//             {
+//                 break;
+//             }
         }
         
         double temp = preheat_config.getTemp(extruder, avg_flow);
         double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, temp);
         
         // insert preheat command in the right place in the right extruder plan
-        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != prev_extruder_plan_same_extruder; extruder_plan_before_it--)
+        for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != prev_extruder_plan_same_extruder && extruder_plan_before_it != start(layers); extruder_plan_before_it--)
         {
             double extruder_plan_time = extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
             if (extruder_plan_time > time_before_extruder_plan_end)
             {
                 insertPreheatCommand(*extruder_plan_before_it, time_before_extruder_plan_end, temp);
+                return;
             }
             time_before_extruder_plan_end -= extruder_plan_time;
         }
@@ -212,7 +246,7 @@ public:
             insertPreheatCommand(layers, last_layer_idx, extruder_plan_idx);
         }
         unsigned int second_last_layer_idx = last_layer_idx - 1;
-        if (second_last_layer_idx >= 0)
+        if (int(second_last_layer_idx) >= 0)
         {
             insertPreheatCommand(layers, second_last_layer_idx, layers[second_last_layer_idx]->extruder_plans.size() - 1);
         }
