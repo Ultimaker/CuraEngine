@@ -258,28 +258,7 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     if (data.HasMember("default"))
     {
         const rapidjson::Value& dflt = data["default"];
-        if (dflt.IsString())
-        {
-            config->setDefault(dflt.GetString());
-        }
-        else if (dflt.IsTrue())
-        {
-            config->setDefault("true");
-        }
-        else if (dflt.IsFalse())
-        {
-            config->setDefault("false");
-        }
-        else if (dflt.IsNumber())
-        {
-            std::ostringstream ss;
-            ss << dflt.GetDouble();
-            config->setDefault(ss.str());
-        } // arrays are ignored because machine_extruder_trains needs to be handled separately
-        else 
-        {
-            logError("Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
-        }
+        config->setDefault(toString(dflt, json_object_it->name.GetString()));
     }
     if (data.HasMember("unit") && data["unit"].IsString())
     {
@@ -308,5 +287,49 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     }
 }
 
+
+std::string SettingRegistry::toString(const rapidjson::Value& dflt, std::string setting_name)
+{
+    if (dflt.IsString())
+    {
+        return dflt.GetString();
+    }
+    else if (dflt.IsTrue())
+    {
+        return "true";
+    }
+    else if (dflt.IsFalse())
+    {
+        return "false";
+    }
+    else if (dflt.IsNumber())
+    {
+        std::ostringstream ss;
+        ss << dflt.GetDouble();
+        return ss.str();
+    } 
+    else if (dflt.IsArray())
+    {
+        std::stringstream ss;
+        ss << "[";
+        bool first = true;
+        for (auto it = dflt.Begin(); it != dflt.End(); ++it)
+        {
+            if (!first)
+            {
+                ss << ",";
+            }
+            ss << toString(*it);
+            first = false;
+        }
+        ss << "]";
+        return ss.str();
+    }
+    else 
+    {
+        logError("Unrecognized data type in JSON: %s has type %s\n", setting_name.c_str(), toString(dflt.GetType()).c_str());
+        return "";
+    }
+}
 
 }//namespace cura
