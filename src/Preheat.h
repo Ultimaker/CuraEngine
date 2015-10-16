@@ -66,9 +66,9 @@ class Preheat
 
     std::vector<Config> config_per_extruder;
 
-    double timeToHeatFromIdleToPrintTemp(unsigned int extruder, double flow)
+    double timeToHeatFromIdleToPrintTemp(unsigned int extruder, double temp)
     {
-        return (config_per_extruder[extruder].flow_temp_graph.getTemp(flow) - config_per_extruder[extruder].idle_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
+        return (temp - config_per_extruder[extruder].idle_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
     }
 
     /*!
@@ -81,16 +81,21 @@ class Preheat
     }
 
 public:
+    
+    double getTemp(unsigned int extruder, double flow)
+    {
+        return config_per_extruder[extruder].flow_temp_graph.getTemp(flow);
+    }
     /*!
      * 
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
      */
-    double timeBeforeEndToInsertPreheatCommand(double time_window, unsigned int extruder, double flow)
+    double timeBeforeEndToInsertPreheatCommand(double time_window, unsigned int extruder, double temp)
     {
         double time_ratio_cooldown_heatup = timeRatioCooldownHeatup(extruder);
-        double time_to_heat_from_idle_to_print_temp = timeToHeatFromIdleToPrintTemp(extruder, flow);
-        double time_needed_to_reach_idle_temp = timeToHeatFromIdleToPrintTemp(extruder, flow) * (1.0 + time_ratio_cooldown_heatup);
+        double time_to_heat_from_idle_to_print_temp = timeToHeatFromIdleToPrintTemp(extruder, temp);
+        double time_needed_to_reach_idle_temp = time_to_heat_from_idle_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
         if (time_needed_to_reach_idle_temp < time_window)
         {
             return time_to_heat_from_idle_to_print_temp;

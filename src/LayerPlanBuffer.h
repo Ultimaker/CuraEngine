@@ -118,7 +118,20 @@ public:
         }
     }
     
-    
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, double temp)
+    {
+        double acc_time = 0.0;
+        for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        {
+            GCodePath& path = extruder_plan_before.paths[path_idx];
+            acc_time += path.estimates.extrude_time + path.estimates.travel_time;
+            if (acc_time > time_before_extruder_plan_end)
+            {
+                // TODO: do the actual insert!
+                return;
+            }
+        }
+    }
     
     void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
@@ -159,18 +172,18 @@ public:
             time_in_between += extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
         }
         
-        double time_before_extruder_plan = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, avg_flow);
+        double temp = preheat_config.getTemp(extruder, avg_flow);
+        double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, temp);
         
         // insert preheat command in the right place in the right extruder plan
-        double acc_time = 0.0;
         for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != prev_extruder_plan_same_extruder; extruder_plan_before_it--)
         {
             double extruder_plan_time = extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
-            if (acc_time + extruder_plan_time > time_before_extruder_plan)
+            if (extruder_plan_time > time_before_extruder_plan_end)
             {
-                // TODO: insert preheat command in this extruder plan
+                insertPreheatCommand(*extruder_plan_before_it, time_before_extruder_plan_end, temp);
             }
-            acc_time += extruder_plan_time;
+            time_before_extruder_plan_end -= extruder_plan_time;
         }
     }
     
