@@ -162,7 +162,12 @@ public:
     int loadJSONsettings(std::string filename);
     
 private:
-    std::string toString(rapidjson::Type type);
+    
+    /*!
+     * \param type type to convert to string
+     * \return human readable version of json type
+     */
+    static std::string toString(rapidjson::Type type);
     /*!
      * Load a json document.
      * 
@@ -180,6 +185,14 @@ private:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates);
+    
+    /*!
+     * Get the string from a json value (generally the default value field of a setting)
+     * \param dflt The value to convert to string
+     * \param setting_name The name of the setting (in case we need to display an error message)
+     * \return The string
+     */
+    static std::string toString(const rapidjson::Value& dflt, std::string setting_name = "?");
     
     /*!
      * \param warn_duplicates whether to warn for duplicate definitions
