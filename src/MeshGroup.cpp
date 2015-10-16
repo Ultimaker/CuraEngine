@@ -140,15 +140,12 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        if (object_parent_settings)
+        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
         {
-            meshgroup->meshes.emplace_back(object_parent_settings); // make new mesh with [object_parent_settings] as parent settings object
+            meshgroup->meshes.push_back(mesh);
+            return true;
         }
-        else 
-        {
-            meshgroup->meshes.emplace_back(meshgroup); // make new mesh with [meshgroup] as parent settings object
-        }
-        return loadMeshSTL(&meshgroup->meshes[meshgroup->meshes.size()-1], filename, transformation);
     }
     return false;
 }
