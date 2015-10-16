@@ -8,6 +8,8 @@
 
 #include "utils/floatpoint.h"
 
+#include "TempFlowGraph.h"
+
 namespace cura
 {
 
@@ -172,7 +174,7 @@ public:
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
     
-    std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key);
+    TempFlowGraph getSettingAsTempFlowGraph(std::string key);
     
     EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
     EFillMethod getSettingAsFillMethod(std::string key);

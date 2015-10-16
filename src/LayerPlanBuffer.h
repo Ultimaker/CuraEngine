@@ -8,6 +8,7 @@
 
 #include "gcodeExport.h"
 #include "gcodePlanner.h"
+#include "MeshGroup.h"
 
 #include "Preheat.h"
 
@@ -93,9 +94,18 @@ public:
     , gcode(gcode)
     { }
     
+    void setPreheatConfig(MeshGroup& settings)
+    {
+        preheat_config.setConfig(settings);
+    }
+    
     template<typename... Args>
     GCodePlanner& emplace_back(Args&&... constructor_args)
     {
+        if (buffer.size() > 0)
+        {
+            insertPreheatCommands();
+        }
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > 3)
         {

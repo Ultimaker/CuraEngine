@@ -4,49 +4,14 @@
 #include <cassert>
 
 #include "utils/logoutput.h"
+#include "MeshGroup.h"
+
+#include "TempFlowGraph.h"
 
 namespace cura 
 {
 
-class FlowTempGraph
-{
-public:
-    struct Datum
-    {
-        double flow;
-        double temp;
-    };
-    std::vector<Datum> data;
 
-    double getTemp(double flow)
-    {
-        assert(data.size() > 0);
-        if (data.size() == 1)
-        {
-            return data.front().temp;
-        }
-        if (flow < data.front().flow)
-        {
-            logError("flow too low"); // TODO
-            return data.front().temp;
-        }
-        if (flow > data.back().flow)
-        {
-            logError("flow too high"); // TODO
-            return data.back().temp;
-        }
-        Datum* last_datum = &data.front();
-        for (unsigned int datum_idx = 1; datum_idx < data.size(); datum_idx++)
-        {
-            Datum& datum = data[datum_idx];
-            if (datum.flow > flow)
-            {
-                return last_datum->temp + (datum.temp - last_datum->temp) * (flow - last_datum->flow) / (datum.flow - last_datum->flow);
-            }
-            last_datum = &datum;
-        }
-    };
-};
 
 /*!
  * Class for computing heatup and cooldown times used for computing the time the printer needs to heat up to the printing temperature.
@@ -56,16 +21,36 @@ class Preheat
     class Config
     {
     public:
-        double time_to_heatup_1_degree = 0.6; // TODO 
-        double time_to_cooldown_1_degree = 0.4; // TODO
+        double time_to_heatup_1_degree;
+        double time_to_cooldown_1_degree;
 
         double idle_temp = 150; // TODO
 
-        FlowTempGraph flow_temp_graph;
+        double material_print_temperature; // default print temp
+    
+        TempFlowGraph temp_flow_graph;
     };
 
     std::vector<Config> config_per_extruder;
-
+public:
+    void setConfig(MeshGroup& settings)
+    {
+        for (int extruder_nr = 0; extruder_nr < settings.getExtruderCount(); extruder_nr++)
+        {
+            assert(settings.getExtruderTrain(extruder_nr) != nullptr);
+            ExtruderTrain& extruder_train = *settings.getExtruderTrain(extruder_nr);
+            config_per_extruder.emplace_back();
+            Config& config = config_per_extruder.back();
+            config.time_to_cooldown_1_degree = 0.6; // TODO
+            config.time_to_cooldown_1_degree = 0.4; // TODO
+            config.idle_temp = 150; // TODO
+            
+            config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
+            
+            config.temp_flow_graph = extruder_train.getSettingAsTempFlowGraph("temp_flow_graph");
+        }
+    }
+private:
     double timeToHeatFromIdleToPrintTemp(unsigned int extruder, double temp)
     {
         return (temp - config_per_extruder[extruder].idle_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
@@ -84,7 +69,7 @@ public:
     
     double getTemp(unsigned int extruder, double flow)
     {
-        return config_per_extruder[extruder].flow_temp_graph.getTemp(flow);
+        return config_per_extruder[extruder].temp_flow_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature);
     }
     /*!
      * 

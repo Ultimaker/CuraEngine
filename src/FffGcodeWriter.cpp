@@ -29,6 +29,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     setConfigCoasting(storage);
 
     setConfigRetraction(storage);
+    
+    layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
 
     if (meshgroup_number == 1)
     {
