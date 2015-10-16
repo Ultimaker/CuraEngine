@@ -218,86 +218,13 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
 }
 void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
-        const rapidjson::Value& data = json_object_it->value;
-        
-        if (data.HasMember("type") && data["type"].IsString() && 
-            (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
-        {
-            logWarning("Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
-            /// When this setting has children, add those children to the parent setting.
-            if (data.HasMember("children") && data["children"].IsObject())
-            {
-                const rapidjson::Value& json_object_container = data["children"];
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
-                {
-                    _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
-                }
-            }
-            return;
-        }
-        
-        std::string label;
-        if (!json_object_it->value.HasMember("label") || !data["label"].IsString())
-        {
-            label = "N/A";
-        }
-        else
-        {
-            label = data["label"].GetString();
-        }
-
-        /// Create the new setting config object.
-        SettingConfig* config = parent->addChild(json_object_it->name.GetString(), label);
-        
-        
-        /// Fill the setting config object with data we have in the json file.
-        if (data.HasMember("type") && data["type"].IsString())
-        {
-            config->setType(data["type"].GetString());
-        }
-        if (data.HasMember("default"))
-        {
-            const rapidjson::Value& dflt = data["default"];
-            if (dflt.IsString())
-            {
-                config->setDefault(dflt.GetString());
-            }
-            else if (dflt.IsTrue())
-            {
-                config->setDefault("true");
-            }
-            else if (dflt.IsFalse())
-            {
-                config->setDefault("false");
-            }
-            else if (dflt.IsNumber())
-            {
-                std::ostringstream ss;
-                ss << dflt.GetDouble();
-                config->setDefault(ss.str());
-            } // arrays are ignored because machine_extruder_trains needs to be handled separately
-            else 
-            {
-                logError("Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
-            }
-        }
-        if (data.HasMember("unit") && data["unit"].IsString())
-        {
-            config->setUnit(data["unit"].GetString());
-        }
-        
-        /// Register the setting in the settings map lookup.
-        if (warn_duplicates && settingExists(config->getKey()))
-        {
-            cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", config->getKey().c_str(), config->getLabel().c_str(), getSettingConfig(config->getKey())->getLabel().c_str());
-        }
-        
-        if (add_to_settings)
-        {
-            settings[config->getKey()] = config;
-        }
-
-        /// When this setting has children, add those children to this setting.
+    const rapidjson::Value& data = json_object_it->value;
+    
+    if (data.HasMember("type") && data["type"].IsString() && 
+        (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
+    {
+        logWarning("Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+        /// When this setting has children, add those children to the parent setting.
         if (data.HasMember("children") && data["children"].IsObject())
         {
             const rapidjson::Value& json_object_container = data["children"];
@@ -306,6 +233,79 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
                 _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
             }
         }
+        return;
+    }
+    
+    std::string label;
+    if (!json_object_it->value.HasMember("label") || !data["label"].IsString())
+    {
+        label = "N/A";
+    }
+    else
+    {
+        label = data["label"].GetString();
+    }
+
+    /// Create the new setting config object.
+    SettingConfig* config = parent->addChild(json_object_it->name.GetString(), label);
+    
+    
+    /// Fill the setting config object with data we have in the json file.
+    if (data.HasMember("type") && data["type"].IsString())
+    {
+        config->setType(data["type"].GetString());
+    }
+    if (data.HasMember("default"))
+    {
+        const rapidjson::Value& dflt = data["default"];
+        if (dflt.IsString())
+        {
+            config->setDefault(dflt.GetString());
+        }
+        else if (dflt.IsTrue())
+        {
+            config->setDefault("true");
+        }
+        else if (dflt.IsFalse())
+        {
+            config->setDefault("false");
+        }
+        else if (dflt.IsNumber())
+        {
+            std::ostringstream ss;
+            ss << dflt.GetDouble();
+            config->setDefault(ss.str());
+        } // arrays are ignored because machine_extruder_trains needs to be handled separately
+        else 
+        {
+            logError("Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+        }
+    }
+    if (data.HasMember("unit") && data["unit"].IsString())
+    {
+        config->setUnit(data["unit"].GetString());
+    }
+    
+    /// Register the setting in the settings map lookup.
+    if (warn_duplicates && settingExists(config->getKey()))
+    {
+        cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", config->getKey().c_str(), config->getLabel().c_str(), getSettingConfig(config->getKey())->getLabel().c_str());
+    }
+    
+    if (add_to_settings)
+    {
+        settings[config->getKey()] = config;
+    }
+
+    /// When this setting has children, add those children to this setting.
+    if (data.HasMember("children") && data["children"].IsObject())
+    {
+        const rapidjson::Value& json_object_container = data["children"];
+        for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+        {
+            _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
+        }
+    }
 }
 
 
