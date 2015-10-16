@@ -180,6 +180,48 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
+std::vector<std::pair<double, double>> SettingsBaseVirtual::getSettingAsPointVector(std::string key)
+{
+    std::vector<std::pair<double, double>> ret;
+    const char* c_str = key.c_str();
+    char const* char_p = c_str;
+    while (*char_p != '[')
+    {
+        char_p++;
+    }
+    char_p++; // skip the '['
+    for (; *char_p != '\0'; char_p++)
+    {
+        while (*char_p != '[')
+        {
+            char_p++;
+        }
+        char_p++; // skip the '['
+        char* end;
+        double first = strtod(char_p, &end);
+        char_p = end;
+        while (*char_p != ',')
+        {
+            char_p++;
+        }
+        char_p++; // skip the ','
+        double second = strtod(char_p, &end);
+        char_p = end;
+        while (*char_p != ']')
+        {
+            char_p++;
+        }
+        char_p++; // skip the ']'
+        ret.emplace_back(first, second);
+        if (*char_p == ']')
+        {
+            break;
+        }
+    }
+    return ret;
+}
+
+
 EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
