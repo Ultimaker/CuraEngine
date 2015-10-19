@@ -18,7 +18,8 @@ public:
         GRAY,
         RED,
         BLUE,
-        GREEN
+        GREEN,
+        YELLOW
     };
     
 private:
@@ -33,6 +34,7 @@ private:
             case SVG::Color::RED: return "red";
             case SVG::Color::BLUE: return "blue";
             case SVG::Color::GREEN: return "green";
+            case SVG::Color::YELLOW: return "yellow";
             default: return "black";
         }
     }
