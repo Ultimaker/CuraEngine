@@ -113,7 +113,7 @@ private:
      * 
      * \param combPath Output parameter: the points along the combing path.
      */
-    void getCombingPath(CombPath& combPath);
+    void getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored = MM2INT(1.5));
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -178,10 +178,10 @@ public:
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
      */
-    static void comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside)
+    static void comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored = MM2INT(1.5))
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        linePolygonsCrossings.getCombingPath(combPath);
+        linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored);
     };
 };
 
@@ -212,7 +212,6 @@ private:
     int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
-    static const int64_t max_comb_distance_ignored = MM2INT(1.5); //!< If the direct path from start point to end point is shorter than this, go directly without any combing.
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
     
     bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
@@ -257,7 +256,7 @@ public:
      * \param endInside Whether we want to end up inside the comb boundary
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false);
+    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false, int64_t max_comb_distance_ignored = MM2INT(1.5));
     
     /*!
      * Move \p p to inside the inner comb boundary with a \p distance from the boundary.
