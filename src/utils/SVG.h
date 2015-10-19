@@ -52,7 +52,7 @@ public:
     {
         out = fopen(filename, "w");
         fprintf(out, "<!DOCTYPE html><html><body>\n");
-        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.Y, canvas_size.X);
+        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
         
 //         fprintf(out, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
 //         fprintf(out, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
@@ -123,7 +123,7 @@ public:
                 for(Point& p : poly)
                 {
                     Point fp = transform(p);
-                    fprintf(out, "%lli,%lli ", fp.Y, fp.X);
+                    fprintf(out, "%lli,%lli ", fp.X, fp.Y);
                 }
                 if (j == 0)
                     fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:1\" />\n", toString(color).c_str(), toString(outline_color).c_str());
@@ -136,11 +136,11 @@ public:
     void writePoint(Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         Point pf = transform(p);
-        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.Y, pf.X, size, toString(color).c_str(), toString(color).c_str());
+        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.X, pf.Y, size, toString(color).c_str(), toString(color).c_str());
         
         if (write_coords)
         {
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.Y, pf.X, p.X, p.Y);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
@@ -191,7 +191,7 @@ public:
     {
         Point fa = transform(a);
         Point fb = transform(b);
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", fa.Y, fa.X, fb.Y, fb.X, toString(color).c_str());
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
     }
 
     template<typename... Args>
