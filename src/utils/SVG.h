@@ -186,14 +186,30 @@ public:
             transformed = transform(polyline[point]);
             fprintf(out,"L%lli,%lli",transformed.X,transformed.Y); //Write a line segment to the next point.
         }
-        fprintf(out,"\" />"); //Write the end of the tag.
+        fprintf(out,"\" />\n"); //Write the end of the tag.
     }
     
     void writeLine(Point& a, Point& b, Color color = Color::BLACK)
     {
         Point fa = transform(a);
         Point fb = transform(b);
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
+    }
+    
+    /*!
+     * \brief Draws a dashed line on the canvas from point A to point B.
+     * 
+     * This is useful in the case where multiple lines may overlap each other.
+     * 
+     * \param a The starting endpoint of the line.
+     * \param b The ending endpoint of the line.
+     * \param color The stroke colour of the line.
+     */
+    void writeDashedLine(Point& a,Point& b,Color color = Color::BLACK)
+    {
+        Point fa = transform(a);
+        Point fb = transform(b);
+        fprintf(out,"<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",fa.X,fa.Y,fb.X,fb.Y,toString(color).c_str());
     }
 
     template<typename... Args>
