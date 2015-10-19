@@ -159,10 +159,39 @@ public:
         }
     }
     
+    /*!
+     * \brief Draws a polyline on the canvas.
+     * 
+     * The polyline is the set of line segments between each pair of consecutive
+     * points in the specified vector.
+     * 
+     * \param polyline A set of points between which line segments must be
+     * drawn.
+     * \param color The colour of the line segments. If this is not specified,
+     * black will be used.
+     */
+    void writeLines(std::vector<Point> polyline,Color color = Color::BLACK)
+    {
+        if(polyline.size() <= 1) //Need at least 2 points.
+        {
+            return;
+        }
+        
+        Point transformed = transform(polyline[0]); //Element 0 must exist due to the check above.
+        fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
+        for(size_t point = 1;point < polyline.size();point++)
+        {
+            transformed = transform(polyline[point]);
+            fprintf(out,"L%lli,%lli",transformed.X,transformed.Y); //Write a line segment to the next point.
+        }
+        fprintf(out,"\" />"); //Write the end of the tag.
+    }
+    
     void writeLine(Point& a, Point& b, Color color = Color::BLACK)
     {
-        
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", a.Y, a.X, b.Y, b.X, toString(color).c_str());
+        Point fa = transform(a);
+        Point fb = transform(b);
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", fa.Y, fa.X, fb.Y, fb.X, toString(color).c_str());
     }
 
     template<typename... Args>
