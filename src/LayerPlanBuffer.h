@@ -138,6 +138,10 @@ public:
     
     void flush()
     {
+        if (buffer.size() > 0)
+        {
+            insertPreheatCommands();
+        }
         for (GCodePlanner& layer_plan : buffer)
         {
             layer_plan.processFanSpeedAndMinimalLayerTime();
