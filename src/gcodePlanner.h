@@ -17,6 +17,16 @@ namespace cura
 
 class SliceDataStorage;
 
+/*!
+ * A command to insert before a specific path
+ */
+class Insert
+{
+public:
+    const unsigned int path_idx; //!< The path before which to insert this command
+    double temperature; //!< The temperature of the temperature command to insert
+};
+
 class TimeMaterialEstimates
 {
 public:

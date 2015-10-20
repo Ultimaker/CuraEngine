@@ -160,10 +160,15 @@ public:
             acc_time += path.estimates.extrude_time + path.estimates.travel_time;
             if (acc_time > time_before_extruder_plan_end)
             {
+                std::cerr << "INSERT " << temp << "*C at " << path_idx << std::endl;
                 // TODO: do the actual insert!
                 return;
             }
         }
+        
+        std::cerr << "INSERT " << temp << "*C at " << 0 << std::endl;
+        // TODO: do the actual insert!
+        logError("Warning! Couldn't preheat in time.");
     }
     
     void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
