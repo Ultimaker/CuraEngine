@@ -104,6 +104,11 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
             Point ab = b - a;
             Point ap = p - a;
             int64_t ab_length = vSize(ab);
+            if(ab_length <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
+            {
+                p1 = p2; //Skip only one of the points.
+                continue;
+            }
             int64_t ax_length = dot(ab, ap) / ab_length;
             if (ax_length < 0) // x is projected to before ab
             {
