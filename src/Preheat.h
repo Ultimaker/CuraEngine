@@ -28,7 +28,7 @@ class Preheat
 
         double material_print_temperature; // default print temp
     
-        TempFlowGraph temp_flow_graph;
+        FlowTempGraph flow_temp_graph;
     };
 
     std::vector<Config> config_per_extruder;
@@ -47,7 +47,7 @@ public:
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
             
-            config.temp_flow_graph = extruder_train.getSettingAsTempFlowGraph("temp_flow_graph");
+            config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph");
         }
     }
 private:
@@ -69,7 +69,7 @@ public:
     
     double getTemp(unsigned int extruder, double flow)
     {
-        return config_per_extruder[extruder].temp_flow_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature);
+        return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature);
     }
     /*!
      * 

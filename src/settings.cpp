@@ -180,9 +180,9 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
-TempFlowGraph SettingsBaseVirtual::getSettingAsTempFlowGraph(std::string key)
+FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
 {
-    TempFlowGraph ret;
+    FlowTempGraph ret;
     const char* c_str = getSettingString(key).c_str();
     char const* char_p = c_str;
     while (*char_p != '[')

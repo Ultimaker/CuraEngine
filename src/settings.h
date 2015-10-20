@@ -174,7 +174,7 @@ public:
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
     
-    TempFlowGraph getSettingAsTempFlowGraph(std::string key);
+    FlowTempGraph getSettingAsFlowTempGraph(std::string key);
     
     EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
     EFillMethod getSettingAsFillMethod(std::string key);
