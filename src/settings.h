@@ -8,7 +8,7 @@
 
 #include "utils/floatpoint.h"
 
-#include "TempFlowGraph.h"
+#include "FlowTempGraph.h"
 
 namespace cura
 {

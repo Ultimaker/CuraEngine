@@ -6,7 +6,7 @@
 #include "utils/logoutput.h"
 #include "MeshGroup.h"
 
-#include "TempFlowGraph.h"
+#include "FlowTempGraph.h"
 
 namespace cura 
 {
