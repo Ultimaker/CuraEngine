@@ -42,7 +42,7 @@ public:
             config_per_extruder.emplace_back();
             Config& config = config_per_extruder.back();
             config.time_to_cooldown_1_degree = 0.6; // TODO
-            config.time_to_cooldown_1_degree = 0.4; // TODO
+            config.time_to_heatup_1_degree = 0.4; // TODO
             config.idle_temp = 150; // TODO
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
@@ -73,10 +73,13 @@ public:
     }
     /*!
      * 
+     * Assumes from_temp is approximately the same as @p temp
+     * 
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
+     * \param temp The temperature to which to heat
      */
-    double timeBeforeEndToInsertPreheatCommand(double time_window, unsigned int extruder, double temp)
+    double timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
     {
         double time_ratio_cooldown_heatup = timeRatioCooldownHeatup(extruder);
         double time_to_heat_from_idle_to_print_temp = timeToHeatFromIdleToPrintTemp(extruder, temp);
@@ -88,6 +91,24 @@ public:
         else 
         {
             return time_window * config_per_extruder[extruder].time_to_heatup_1_degree / (config_per_extruder[extruder].time_to_cooldown_1_degree + config_per_extruder[extruder].time_to_heatup_1_degree);
+        }
+    }
+    /*!
+     * Calculate time needed to warm up the nozzle from a given temp to a given temp.
+     * 
+     * \param from_temp The temperature at which the nozzle was before
+     * \param extruder The extruder used
+     * \param temp The temperature to which to heat
+     */
+    double timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp)
+    {
+        if (temp < from_temp)
+        {
+            return (temp - from_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
+        }
+        else 
+        {
+            return 0; // Changing the temperature up should be done within the new feature, which requires the higher temperature
         }
     }
 };

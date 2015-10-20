@@ -66,6 +66,10 @@ public:
         material += other.material;
         return *this;
     }
+    double getTotalTime()
+    {
+        return extrude_time + travel_time;
+    }
 };
 
 class GCodePath
@@ -91,10 +95,15 @@ public:
     std::vector<GCodePath> paths;
     int extruder; //!< The extruder used for this paths in the current plan.
     
+    bool preheat_command_inserted;
+    double required_temp;
+    
     TimeMaterialEstimates estimates;
     
     ExtruderPlan(int extruder)
     : extruder(extruder)
+    , preheat_command_inserted(false)
+    , required_temp(-1)
     {
     }
 };

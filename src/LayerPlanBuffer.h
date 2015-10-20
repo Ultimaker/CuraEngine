@@ -151,51 +151,81 @@ public:
         }
     }
     
-    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_before_extruder_plan_end, double temp)
+    /*!
+     * 
+     * \param extruder_plan_before An extruder plan before the extruder plan for which the temperature is computed, in which to insert the preheat command
+     * \param time_after_extruder_plan_start The time after the start of the extruder plan, before which to insert the preheat command
+     * \param extruder The extruder for which to set the temperature
+     * \param temp The temperature of the preheat command
+     */
+    void insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
     {
         double acc_time = 0.0;
-        for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        for (unsigned int path_idx = 0; path_idx < extruder_plan_before.paths.size(); path_idx++)
         {
             GCodePath& path = extruder_plan_before.paths[path_idx];
-            acc_time += path.estimates.extrude_time + path.estimates.travel_time;
-            if (acc_time > time_before_extruder_plan_end)
+            acc_time += path.estimates.getTotalTime();
+            if (acc_time > time_after_extruder_plan_start)
             {
-                std::cerr << "INSERT " << temp << "*C at " << path_idx << std::endl;
+                std::cerr << "INSERT " << temp << "*C for nozzle " << extruder <<" at " << path_idx << std::endl;
                 // TODO: do the actual insert!
                 return;
             }
         }
         
-        std::cerr << "INSERT " << temp << "*C at " << 0 << std::endl;
+        std::cerr << "INSERT " << temp << "*C for nozzle " << extruder <<" at " << 0 << std::endl;
         // TODO: do the actual insert!
-        logError("Warning! Couldn't preheat in time.");
+        logError("Warning! Couldn't preheat in time.\n");
     }
     
-    void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+    /*!
+     * 
+     * \param layers The layers of the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param layer_plan_idx The index of the layer plan for which to generate a preheat command
+     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to generate the preheat command
+     */
+    void insertPreheatCommand_OLD(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
         ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
         
+        if (extruder_plan.preheat_command_inserted)
+        {
+            return;
+        }
         
         int extruder = extruder_plan.extruder;
 
         TimeMaterialEstimates extruder_plan_estimates = extruder_plan.estimates;
 
         if (layer_plan_idx == 0 && extruder_plan_idx == 0)
-        {
-            double time_before_extruder_plan_end = 99999;
+        { // for the very first extruder plan on the first layer (only after the first layer will the buffer consist merely of one layer)
+            double time_after_extruder_plan_start = 0;
             double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
+            std::cerr << "AVERAGE FLOW = " << avg_flow << std::endl;
             double temp = preheat_config.getTemp(extruder, avg_flow);
-            insertPreheatCommand(extruder_plan, time_before_extruder_plan_end, temp);
+            insertPreheatCommand(extruder_plan, time_after_extruder_plan_start, extruder, temp);
             return;
         }
         
-        iterator last_extruder_plan_different_extruder(layers, layer_plan_idx, extruder_plan_idx - 1);
+        iterator last_extruder_plan_different_extruder(layers, layer_plan_idx, extruder_plan_idx);
+        last_extruder_plan_different_extruder--;
 
         // check whether this extruder plan needs to be latched with the last one of the prev layer
 
         if (extruder_plan_idx == 0 && layer_plan_idx > 0)
         {
-            ExtruderPlan& prev_extruder_plan = layers[layer_plan_idx - 1]->extruder_plans.back();
+            GCodePlanner& prev_layer = *layers[layer_plan_idx - 1];
+            ExtruderPlan& prev_extruder_plan = prev_layer.extruder_plans.back();
+            if (prev_layer.extruder_plans.size() == 1 && layers[layer_plan_idx]->extruder_plans.size() == 1) 
+            { // two full single extrusion layers...
+                
+                double time_after_extruder_plan_start = 0000; // prev_extruder_plan.estimates.extrude_time + prev_extruder_plan.estimates.travel_time - preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp();
+                double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
+                std::cerr << "AVERAGE FLOW = " << avg_flow << std::endl;
+                double temp = preheat_config.getTemp(extruder, avg_flow);
+                insertPreheatCommand(prev_extruder_plan, time_after_extruder_plan_start, extruder, temp);
+                return;
+            }
             if (prev_extruder_plan.extruder == extruder_plan.extruder)
             {
                 extruder_plan_estimates += prev_extruder_plan.estimates;
@@ -206,6 +236,7 @@ public:
         }
 
         double avg_flow = extruder_plan_estimates.material / extruder_plan_estimates.extrude_time;
+        std::cerr << "AVERAGE FLOW = " << avg_flow << std::endl;
 
         // find time in between two extruder plans of the same extruder
         double time_in_between = 0.0;
@@ -225,7 +256,7 @@ public:
         }
         
         double temp = preheat_config.getTemp(extruder, avg_flow);
-        double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand(time_in_between, extruder, temp);
+        double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(time_in_between, extruder, temp);
         
         // insert preheat command in the right place in the right extruder plan
         for (iterator extruder_plan_before_it = last_extruder_plan_different_extruder; extruder_plan_before_it != prev_extruder_plan_same_extruder && extruder_plan_before_it != start(layers); extruder_plan_before_it--)
@@ -233,23 +264,142 @@ public:
             double extruder_plan_time = extruder_plan_before_it->estimates.extrude_time + extruder_plan_before_it->estimates.travel_time;
             if (extruder_plan_time > time_before_extruder_plan_end)
             {
-                insertPreheatCommand(*extruder_plan_before_it, time_before_extruder_plan_end, temp);
+                insertPreheatCommand(*extruder_plan_before_it, extruder_plan_time - time_before_extruder_plan_end, extruder, temp);
                 return;
             }
             time_before_extruder_plan_end -= extruder_plan_time;
         }
     }
     
+    double getTimeUntilSameExtruderIsMet(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+    {
+        int extruder = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx].extruder;
+        unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
+        bool first_it = true;
+        double total_time = 0.0;
+        for (unsigned int layer_idx = layers.size() - 1; int(layer_idx) >= 0; layer_idx++)
+        {
+            GCodePlanner& layer = *layers[layer_idx];
+            if (first_it)
+            {
+                extruder_plan_before_idx = layer.extruder_plans.size() - 1;
+                first_it = false;
+            }
+            for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
+            {
+                ExtruderPlan& extruder_plan = layer.extruder_plans[extruder_plan_before_idx];
+                if (extruder_plan.extruder == extruder)
+                {
+                    return total_time;
+                }
+                total_time += extruder_plan.estimates.getTotalTime();
+            }
+        }
+        return total_time; // in case there is no previous extruder plan with the same extruder nr in the buffer
+    }
+    
+    void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+    {
+        ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
+        int extruder = extruder_plan.extruder;
+        double required_temp = extruder_plan.required_temp;
+        
+        
+        ExtruderPlan* prev_extruder_plan = nullptr;
+        if (extruder_plan_idx == 0)
+        {
+            if (layer_plan_idx == 0)
+            {
+                insertPreheatCommand(extruder_plan, 0, extruder, required_temp);
+                return;
+            }
+            prev_extruder_plan = &layers[layer_plan_idx - 1]->extruder_plans.back();
+        }
+        else 
+        {
+            prev_extruder_plan = &layers[layer_plan_idx]->extruder_plans[extruder_plan_idx - 1];
+        }
+        
+        if (prev_extruder_plan->extruder == extruder)
+        {
+            double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan->required_temp, extruder, required_temp);
+            double time_after_extruder_plan_start = prev_extruder_plan->estimates.getTotalTime() - time_before_extruder_plan_end;
+            if (time_after_extruder_plan_start < 0)
+            {
+                time_after_extruder_plan_start = 0; // don't override the extruder plan with same extruder of the previous layer
+            }
+                
+            insertPreheatCommand(*prev_extruder_plan, time_after_extruder_plan_start, extruder, required_temp);
+            return;
+        }
+        // else 
+        double time_until_same_extruder_is_met = getTimeUntilSameExtruderIsMet(layers, layer_plan_idx, extruder_plan_idx);
+        
+        double time_before_extruder_plan_to_insert = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(time_until_same_extruder_is_met, extruder, required_temp);
+        
+        unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
+        bool first_it = true;
+        for (unsigned int layer_idx = layers.size() - 1; int(layer_idx) >= 0; layer_idx++)
+        {
+            GCodePlanner& layer = *layers[layer_idx];
+            if (first_it)
+            {
+                extruder_plan_before_idx = layer.extruder_plans.size() - 1;
+                first_it = false;
+            }
+            for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
+            {
+                ExtruderPlan& extruder_plan_before = layer.extruder_plans[extruder_plan_before_idx];
+                assert (extruder_plan_before.extruder != extruder);
+                
+                double time_here = extruder_plan_before.estimates.getTotalTime();
+                if (time_here > time_before_extruder_plan_to_insert)
+                {
+                    insertPreheatCommand(extruder_plan_before, time_here - time_before_extruder_plan_to_insert, extruder, required_temp);
+                    return;
+                }
+                time_before_extruder_plan_to_insert -= time_here;
+                
+            }
+        }
+    }
+
     void insertPreheatCommands()
     {
         std::vector<GCodePlanner*> layers;
         for (GCodePlanner& layer_plan : buffer)
         {
+            // TODO: disregards empty layers!
+            layers.push_back(&layer_plan);
+        }
+        for (unsigned int layer_idx = 0; layer_idx < layers.size(); layer_idx++)
+        {
+            GCodePlanner& layer_plan = *layers[layer_idx];
+            for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
+            {
+                ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
+                if (extruder_plan.required_temp == 0 || extruder_plan.preheat_command_inserted)
+                {
+                    continue;
+                }
+                double avg_flow = extruder_plan.estimates.material / extruder_plan.estimates.getTotalTime(); // TODO: subtract retracted travel time
+                extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
+                
+                insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
+            }
+        }
+        
+        /*
+        std::vector<GCodePlanner*> layers;
+        for (GCodePlanner& layer_plan : buffer)
+        {
+            // TODO: disregards empty layers!
             layers.push_back(&layer_plan);
         }
         
+        
         unsigned int last_layer_idx = layers.size() - 1;
-        // process all extruder plans for the last layer except the last one, and process the last one of the previous layer
+        // process all extruder plans of the last layer except the last one, and process the last one of the previous layer
         for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layers[last_layer_idx]->extruder_plans.size() - 1; ++extruder_plan_idx)
         {
             insertPreheatCommand(layers, last_layer_idx, extruder_plan_idx);
@@ -259,7 +409,7 @@ public:
         {
             insertPreheatCommand(layers, second_last_layer_idx, layers[second_last_layer_idx]->extruder_plans.size() - 1);
         }
-        
+        */
     }
     /*
     class iterator
