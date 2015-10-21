@@ -126,7 +126,7 @@ public:
             insertPreheatCommands();
         }
         buffer.emplace_back(constructor_args...);
-        if (buffer.size() > 3)
+        if (buffer.size() > 2)
         {
             buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
             if (command_socket)
@@ -382,7 +382,17 @@ public:
                 {
                     continue;
                 }
-                double avg_flow = extruder_plan.estimates.material / extruder_plan.estimates.getTotalTime(); // TODO: subtract retracted travel time
+                double time = extruder_plan.estimates.getTotalTime();
+                if (time <= 0.0)
+                {
+                    continue;
+                }
+                double avg_flow = extruder_plan.estimates.material / time; // TODO: subtract retracted travel time
+                logError("average flow = %f\n", avg_flow);
+                if (avg_flow < 1.0)
+                {
+                    logError("flow = low!\n");
+                }
                 extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
                 
                 insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
