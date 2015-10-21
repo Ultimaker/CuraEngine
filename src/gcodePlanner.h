@@ -204,7 +204,6 @@ public:
 
     void setExtrudeSpeedFactor(double speedFactor)
     {
-        if (speedFactor < 1) speedFactor = 1.0;
         this->extrudeSpeedFactor = speedFactor;
     }
     double getExtrudeSpeedFactor()

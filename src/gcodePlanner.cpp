@@ -280,11 +280,12 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             }
         }
 
-        //Only slow down with the minimal time if that will be slower then a factor already set. First layer slowdown also sets the speed factor.
-        if (factor < getExtrudeSpeedFactor())
+        //Only slow down for the minimal time if that will be slower.
+        assert(getExtrudeSpeedFactor() == 1.0); // The extrude speed factor is assumed not to be changed yet
+        if (factor < 1.0)
             setExtrudeSpeedFactor(factor);
-        else
-            factor = getExtrudeSpeedFactor();
+        else 
+            factor = 1.0;
         
         // Adjust stored naive time estimates
         for(ExtruderPlan& extr_plan : extruder_plans)
