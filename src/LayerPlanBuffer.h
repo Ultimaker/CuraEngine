@@ -322,7 +322,8 @@ public:
         
         if (prev_extruder_plan->extruder == extruder)
         {
-            double time_before_extruder_plan_end = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan->required_temp, extruder, required_temp);
+            // time_before_extruder_plan_end is halved, so that at the layer change the temperature will be half way betewen the two requested temperatures
+            double time_before_extruder_plan_end = 0.5 * preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan->required_temp, extruder, required_temp);
             double time_after_extruder_plan_start = prev_extruder_plan->estimates.getTotalTime() - time_before_extruder_plan_end;
             if (time_after_extruder_plan_start < 0)
             {
@@ -388,11 +389,6 @@ public:
                     continue;
                 }
                 double avg_flow = extruder_plan.estimates.material / time; // TODO: subtract retracted travel time
-                logError("average flow = %f\n", avg_flow);
-                if (avg_flow < 1.0)
-                {
-                    logError("flow = low!\n");
-                }
                 extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
                 
                 insertPreheatCommand(layers, layer_idx, extruder_plan_idx);

@@ -96,19 +96,20 @@ public:
     /*!
      * Calculate time needed to warm up the nozzle from a given temp to a given temp.
      * 
+     * 
      * \param from_temp The temperature at which the nozzle was before
      * \param extruder The extruder used
      * \param temp The temperature to which to heat
      */
     double timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp)
     {
-        if (temp < from_temp)
+        if (temp > from_temp)
         {
             return (temp - from_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
         }
         else 
         {
-            return 0; // Changing the temperature up should be done within the new feature, which requires the higher temperature
+            return (from_temp - temp) * config_per_extruder[extruder].time_to_cooldown_1_degree; 
         }
     }
 };
