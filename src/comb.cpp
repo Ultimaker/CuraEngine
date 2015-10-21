@@ -6,9 +6,6 @@
 #include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
 
-#include "utils/SVG.h"
-#include "utils/AABB.h"
-
 namespace cura {
 
 bool Comb::moveInsideBoundary(Point* p, int distance)
