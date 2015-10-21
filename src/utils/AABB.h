@@ -18,7 +18,7 @@ public:
     Point min, max;
 
     AABB()
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
+    : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
     {
     }
     AABB(Point&min, Point& max)
@@ -26,7 +26,7 @@ public:
     {
     }
     AABB(Polygons& polys)
-    : min(POINT_MIN, POINT_MIN), max(POINT_MIN, POINT_MIN)
+    : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
     {
         calculate(polys);
     }
@@ -39,10 +39,7 @@ public:
         {
             for(unsigned int j=0; j<polys[i].size(); j++)
             {
-                if (min.X > polys[i][j].X) min.X = polys[i][j].X;
-                if (min.Y > polys[i][j].Y) min.Y = polys[i][j].Y;
-                if (max.X < polys[i][j].X) max.X = polys[i][j].X;
-                if (max.Y < polys[i][j].Y) max.Y = polys[i][j].Y;
+                include(polys[i][j]);
             }
         }
     }
@@ -54,6 +51,21 @@ public:
         if (max.Y < other.min.Y) return false;
         if (min.Y > other.max.Y) return false;
         return true;
+    }
+    
+    /*!
+     * \brief Includes the specified point in the bounding box.
+     * 
+     * The bounding box is expanded if the point is not within the bounding box.
+     * 
+     * \param point The point to include in the bounding box.
+     */
+    void include(Point point)
+    {
+        min.X = std::min(min.X,point.X);
+        min.Y = std::min(min.Y,point.Y);
+        max.X = std::max(max.X,point.X);
+        max.Y = std::max(max.Y,point.Y);
     }
 };
 
