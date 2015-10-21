@@ -29,9 +29,11 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     setConfigCoasting(storage);
 
     setConfigRetraction(storage);
+
+    storage.primeTower.initConfigs(storage.meshgroup, storage.retraction_config_per_extruder);
     
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
-
+    
     if (meshgroup_number == 1)
     {
         processStartingCode(storage);
