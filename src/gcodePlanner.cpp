@@ -399,7 +399,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             { // handle inserts
-                // TODO: insert inserts BEFORE mergeInfillLines is completed
+                // TODO: insert inserts during mergeInfillLines instead of after!
                 while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
                 { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
                     Insert& insert = inserts.front();

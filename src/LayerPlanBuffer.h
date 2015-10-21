@@ -108,13 +108,12 @@ public:
         unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
         bool first_it = true;
         double in_between_time = 0.0;
-        for (unsigned int layer_idx = layers.size() - 1; int(layer_idx) >= 0; layer_idx++)
+        for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
         {
             GCodePlanner& layer = *layers[layer_idx];
-            if (first_it)
+            if (!first_it)
             {
                 extruder_plan_before_idx = layer.extruder_plans.size() - 1;
-                first_it = false;
             }
             for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
             {
@@ -125,6 +124,7 @@ public:
                 }
                 in_between_time += extruder_plan.estimates.getTotalTime();
             }
+            first_it = false;
         }
         return preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(assumed_nozzle_temp_after_out_of_buffer_wait_cooldown_start, extruder, required_temp);
         
@@ -176,14 +176,13 @@ public:
         double time_before_extruder_plan_to_insert = timeBeforeExtruderPlanToInsert(layers, layer_plan_idx, extruder_plan_idx);
         
         unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
-        bool first_it = true;
-        for (unsigned int layer_idx = layers.size() - 1; int(layer_idx) >= 0; layer_idx++)
+        bool first_it = true; // Whether it's the first iteration of the for loop below
+        for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
         {
             GCodePlanner& layer = *layers[layer_idx];
-            if (first_it)
+            if (!first_it)
             {
                 extruder_plan_before_idx = layer.extruder_plans.size() - 1;
-                first_it = false;
             }
             for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
             {
@@ -199,6 +198,7 @@ public:
                 time_before_extruder_plan_to_insert -= time_here;
                 
             }
+            first_it = false;
         }
         
         extruder_plan.insertCommand(0, required_temp, true); // just after the extruder switch, wait for the destination temperature to be reached
