@@ -156,7 +156,7 @@ public:
                     }
                     else 
                     {
-                        extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), true);
+                        extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), false);
                     }
                 }
                 
@@ -174,7 +174,7 @@ public:
         
         if (prev_extruder != extruder)
         { // set previous extruder to standby temperature
-            extruder_plan.insertCommand(0, prev_extruder, preheat_config.getStandbyTemp(prev_extruder), true);
+            extruder_plan.insertCommand(0, prev_extruder, preheat_config.getStandbyTemp(prev_extruder), false);
         }
         
         if (prev_extruder == extruder)
@@ -230,7 +230,8 @@ public:
             // TODO: disregards empty layers!
             layers.push_back(&layer_plan);
         }
-        for (unsigned int layer_idx = 0; layer_idx < layers.size(); layer_idx++)
+//         for (unsigned int layer_idx = 0; layer_idx < layers.size(); layer_idx++)
+        unsigned int layer_idx = layers.size() - 1;
         {
             GCodePlanner& layer_plan = *layers[layer_idx];
             for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
