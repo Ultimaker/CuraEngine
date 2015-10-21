@@ -30,6 +30,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetraction(storage);
 
+    storage.primeTower.initConfigs(storage.meshgroup, storage.retraction_config_per_extruder);
+    
+    
     if (meshgroup_number == 1)
     {
         processStartingCode(storage);
