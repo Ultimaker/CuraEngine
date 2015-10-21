@@ -18,13 +18,20 @@ namespace cura
 class SliceDataStorage;
 
 /*!
- * A command to insert before a specific path
+ * A gcode command to insert before a specific path.
+ * 
+ * Currently only used for preheat commands
  */
-class Insert
+struct Insert
 {
-public:
     const unsigned int path_idx; //!< The path before which to insert this command
     double temperature; //!< The temperature of the temperature command to insert
+    bool wait; //!< Whether to wait for the temperature to be reached
+    Insert(unsigned int path_idx, double temperature, bool wait)
+    : path_idx(path_idx)
+    , temperature(temperature)
+    , wait(wait)
+    {}
 };
 
 class TimeMaterialEstimates
@@ -93,6 +100,8 @@ class ExtruderPlan
 {
 public:
     std::vector<GCodePath> paths;
+    std::list<Insert> inserts;
+    
     int extruder; //!< The extruder used for this paths in the current plan.
     
     bool preheat_command_inserted;
@@ -105,6 +114,15 @@ public:
     , preheat_command_inserted(false)
     , required_temp(-1)
     {
+    }
+        
+    /*!
+     * Add a new Insert, constructed with the given arguments
+     */
+    template<typename... Args>
+    void insertCommand(Args&&... contructor_args)
+    {
+        inserts.emplace_back(contructor_args...);
     }
 };
 

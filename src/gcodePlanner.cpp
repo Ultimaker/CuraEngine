@@ -381,18 +381,32 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
     GCodePathConfig* last_extrusion_config = nullptr;
     int extruder = gcode.getExtruderNr();
 
-    
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
-        ExtruderPlan& extr_plan = extruder_plans[extruder_plan_idx];
-        if (extruder != extr_plan.extruder)
+        ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+        if (extruder != extruder_plan.extruder)
         {
-            extruder = extr_plan.extruder;
+            extruder = extruder_plan.extruder;
             gcode.switchExtruder(extruder);
         }
-        std::vector<GCodePath>& paths = extr_plan.paths;
+        std::vector<GCodePath>& paths = extruder_plan.paths;
+        
+        std::list<Insert>& inserts = extruder_plan.inserts;
+        inserts.sort([](const Insert& a, const Insert& b) -> bool { 
+                return  a.path_idx < b.path_idx; 
+            } );
+        
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
+            { // handle inserts
+                // TODO: insert inserts BEFORE mergeInfillLines is completed
+                while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
+                { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+                    Insert& insert = inserts.front();
+                    gcode.writeTemperatureCommand(extruder, insert.temperature, insert.wait);
+                    inserts.pop_front();
+                }
+            }
             GCodePath& path = paths[path_idx];
             if (path.retract)
             {
@@ -447,7 +461,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                                 , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move
                                 , coasting_config.coasting_volume_retract, coasting_config.coasting_speed_retract, coasting_config.coasting_min_volume_retract);
                 }
-                if (! coasting) // not same as 'else', cause we might have changed coasting in the line above...
+                if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
                     if (  // change   ||||||   to  /\/\/\/\/ ...
                         false &&
@@ -495,6 +509,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                     gcode.setZ(z + layerThickness * length / totalLength);
                     gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                 }
+            }
+        }
+    
+        { // handle remaining inserts
+            while ( ! inserts.empty() )
+            { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+                Insert& insert = inserts.front();
+                assert(insert.path_idx == extruder_plan.paths.size());
+                gcode.writeTemperatureCommand(extruder, insert.temperature, insert.wait);
+                inserts.pop_front();
             }
         }
     }
