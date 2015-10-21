@@ -25,10 +25,12 @@ class SliceDataStorage;
 struct Insert
 {
     const unsigned int path_idx; //!< The path before which to insert this command
+    int extruder; //!< The extruder for which to set the temp
     double temperature; //!< The temperature of the temperature command to insert
     bool wait; //!< Whether to wait for the temperature to be reached
-    Insert(unsigned int path_idx, double temperature, bool wait)
+    Insert(unsigned int path_idx, int extruder, double temperature, bool wait)
     : path_idx(path_idx)
+    , extruder(extruder)
     , temperature(temperature)
     , wait(wait)
     {}

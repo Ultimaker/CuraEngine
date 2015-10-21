@@ -24,7 +24,7 @@ class Preheat
         double time_to_heatup_1_degree;
         double time_to_cooldown_1_degree;
 
-        double idle_temp = 150; // TODO
+        double standby_temp = 150; // TODO
 
         double material_print_temperature; // default print temp
     
@@ -33,6 +33,11 @@ class Preheat
 
     std::vector<Config> config_per_extruder;
 public:
+    double getStandbyTemp(int extruder)
+    {
+        return config_per_extruder[extruder].standby_temp;
+    }
+    
     void setConfig(MeshGroup& settings)
     {
         for (int extruder_nr = 0; extruder_nr < settings.getExtruderCount(); extruder_nr++)
@@ -43,7 +48,7 @@ public:
             Config& config = config_per_extruder.back();
             config.time_to_cooldown_1_degree = 0.6; // TODO
             config.time_to_heatup_1_degree = 0.4; // TODO
-            config.idle_temp = 150; // TODO
+            config.standby_temp = 150; // TODO
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
             
@@ -51,14 +56,14 @@ public:
         }
     }
 private:
-    double timeToHeatFromIdleToPrintTemp(unsigned int extruder, double temp)
+    double timeToHeatFromStandbyToPrintTemp(unsigned int extruder, double temp)
     {
-        return (temp - config_per_extruder[extruder].idle_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
+        return (temp - config_per_extruder[extruder].standby_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
     }
 
     /*!
      * Average ratio of cooling down one degree over heating up one degree
-     * within the window between the idle and printing temperature during normal printing.
+     * within the window between the standby and printing temperature during normal printing.
      */
     double timeRatioCooldownHeatup(unsigned int extruder)
     {
@@ -82,11 +87,11 @@ public:
     double timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
     {
         double time_ratio_cooldown_heatup = timeRatioCooldownHeatup(extruder);
-        double time_to_heat_from_idle_to_print_temp = timeToHeatFromIdleToPrintTemp(extruder, temp);
-        double time_needed_to_reach_idle_temp = time_to_heat_from_idle_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
-        if (time_needed_to_reach_idle_temp < time_window)
+        double time_to_heat_from_standby_to_print_temp = timeToHeatFromStandbyToPrintTemp(extruder, temp);
+        double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
+        if (time_needed_to_reach_standby_temp < time_window)
         {
-            return time_to_heat_from_idle_to_print_temp;
+            return time_to_heat_from_standby_to_print_temp;
         }
         else 
         {

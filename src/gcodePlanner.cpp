@@ -403,7 +403,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
                 { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
                     Insert& insert = inserts.front();
-                    gcode.writeTemperatureCommand(extruder, insert.temperature, insert.wait);
+                    gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
                     inserts.pop_front();
                 }
             }
@@ -517,7 +517,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
                 Insert& insert = inserts.front();
                 assert(insert.path_idx == extruder_plan.paths.size());
-                gcode.writeTemperatureCommand(extruder, insert.temperature, insert.wait);
+                gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
                 inserts.pop_front();
             }
         }

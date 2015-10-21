@@ -46,7 +46,7 @@ public:
     {
         if (buffer.size() > 0)
         {
-            insertPreheatCommands();
+            insertPreheatCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > 2)
@@ -63,7 +63,7 @@ public:
     {
         if (buffer.size() > 0)
         {
-            insertPreheatCommands();
+            insertPreheatCommands(); // insert preheat commands of the very last layer
         }
         for (GCodePlanner& layer_plan : buffer)
         {
@@ -91,11 +91,11 @@ public:
             if (acc_time > time_after_extruder_plan_start)
             {
 //                 logError("Inserting %f\t seconds too early!\n", acc_time - time_after_extruder_plan_start);
-                extruder_plan_before.insertCommand(path_idx, temp, false);
+                extruder_plan_before.insertCommand(path_idx, extruder, temp, false);
                 return;
             }
         }
-        extruder_plan_before.insertCommand(extruder_plan_before.paths.size(), temp, false); // insert at end of extruder plan if time_after_extruder_plan_start > extruder_plan.time 
+        extruder_plan_before.insertCommand(extruder_plan_before.paths.size(), extruder, temp, false); // insert at end of extruder plan if time_after_extruder_plan_start > extruder_plan.time 
         // = special insert after all extruder plans
     }
     
@@ -147,9 +147,19 @@ public:
         if (extruder_plan_idx == 0)
         {
             if (layer_plan_idx == 0)
-            {
-//                 insertPreheatCommand(extruder_plan, 0, extruder, required_temp);
-                extruder_plan.insertCommand(0, required_temp, true);
+            { // the very first extruder plan
+                for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
+                { // set temperature of the first nozzle, turn other nozzles down
+                    if (extruder_idx == extruder)
+                    {
+                        extruder_plan.insertCommand(0, extruder, required_temp, true);
+                    }
+                    else 
+                    {
+                        extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), true);
+                    }
+                }
+                
                 return;
             }
             prev_extruder_plan = &layers[layer_plan_idx - 1]->extruder_plans.back();
@@ -158,8 +168,16 @@ public:
         {
             prev_extruder_plan = &layers[layer_plan_idx]->extruder_plans[extruder_plan_idx - 1];
         }
+        assert(prev_extruder_plan != nullptr);
         
-        if (prev_extruder_plan->extruder == extruder)
+        int prev_extruder = prev_extruder_plan->extruder;
+        
+        if (prev_extruder != extruder)
+        { // set previous extruder to standby temperature
+            extruder_plan.insertCommand(0, prev_extruder, preheat_config.getStandbyTemp(prev_extruder), true);
+        }
+        
+        if (prev_extruder == extruder)
         {
             // time_before_extruder_plan_end is halved, so that at the layer change the temperature will be half way betewen the two requested temperatures
             double time_before_extruder_plan_end = 0.5 * preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan->required_temp, extruder, required_temp);
@@ -201,7 +219,7 @@ public:
             first_it = false;
         }
         
-        extruder_plan.insertCommand(0, required_temp, true); // just after the extruder switch, wait for the destination temperature to be reached
+        extruder_plan.insertCommand(0, extruder, required_temp, true); // just after the extruder switch, wait for the destination temperature to be reached
     }
 
     void insertPreheatCommands()
