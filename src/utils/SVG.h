@@ -135,6 +135,17 @@ public:
         }
     }
     
+    void writeAreas(std::vector<Point> polygon,Color color = Color::GRAY,Color outline_color = Color::BLACK)
+    {
+        fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" points=\"",toString(color).c_str(),toString(outline_color).c_str()); //The beginning of the polygon tag.
+        for(Point& point : polygon) //Add every point to the list of points.
+        {
+            Point transformed = transform(point);
+            fprintf(out,"%lli,%lli ",transformed.X,transformed.Y);
+        }
+        fprintf(out,"\" />\n"); //The end of the polygon tag.
+    }
+    
     void writePoint(Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         Point pf = transform(p);
