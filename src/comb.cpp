@@ -243,9 +243,33 @@ void LinePolygonsCrossings::calcScanlineCrossings()
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = transformation_matrix.apply(PolygonUtils::getBoundaryPointWithOffset(poly,point_idx,dist_to_move_boundary_point_outside));
-            if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+            if((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
             {
-                int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+                int64_t x;
+                if(p1.Y == p0.Y) //Line segment is parallel with the scanline. The intersection is also a line segment. So pick any point on the intersection. No guarantees!
+                {
+                    //If they intersect, two of {p0,p1,transformed_startPoint,transformed_endPoint} will be on the intersection.
+                    if(p0.X >= transformed_startPoint.X && p0.X <= transformed_endPoint.X) //p0 is on the intersection.
+                    {
+                        x = p0.X;
+                    }
+                    else if(p1.X >= transformed_startPoint.X && p1.X <= transformed_endPoint.X) //p1 is on the intersection.
+                    {
+                        x = p1.X;
+                    }
+                    else if(transformed_startPoint.X >= p0.X && transformed_startPoint.X <= p1.X) //The start point is on the intersection.
+                    {
+                        x = transformed_startPoint.X;
+                    }
+                    else //The end point is on the intersection, or none are. If the end point is on the intersection, take it. Otherwise, take it anyway but it will fail to trigger an intersection.
+                    {
+                        x = transformed_endPoint.X;
+                    }
+                }
+                else
+                {
+                    x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+                }
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
