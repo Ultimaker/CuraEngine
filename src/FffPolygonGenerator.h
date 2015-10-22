@@ -101,7 +101,10 @@ private:
     void processInsets(SliceDataStorage& storage, unsigned int layer_nr);
 
     /*!
-     * Generate the wall reinforcement extra wall polygons and infill area which form the walls.
+     * Generate the wall reinforcement extra wall polygons and its infill area which form the reinforcement.
+     * 
+     * Also redefines the infill area;
+     * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the insets.
      */
