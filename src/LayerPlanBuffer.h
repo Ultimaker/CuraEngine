@@ -261,7 +261,6 @@ public:
         if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
         { // disregard empty layer
             buffer.pop_back();
-//             logError("empty layer...\n");
             return;
         }
         
@@ -270,28 +269,25 @@ public:
         {
             layers.push_back(&layer_plan);
         }
-//         for (unsigned int layer_idx = 0; layer_idx < layers.size(); layer_idx++)
+        
         unsigned int layer_idx = layers.size() - 1;
+    
+        // insert commands for all extruder plans on this layer
+        GCodePlanner& layer_plan = *layers[layer_idx];
+        for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
         {
-            GCodePlanner& layer_plan = *layers[layer_idx];
-            for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
+            ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
+            double time = extruder_plan.estimates.getTotalTime();
+            if (time <= 0.0 
+                || extruder_plan.estimates.material == 0.0 // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
+            )
             {
-                ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
-                double time = extruder_plan.estimates.getTotalTime();
-                if (time <= 0.0)
-                {
-                    continue;
-                }
-                double avg_flow = extruder_plan.estimates.material / time; // TODO: subtract retracted travel time
-                extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
-                
-                if (extruder_plan.estimates.material == 0.0)
-                { // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
-                    continue;
-                }
-                
-                insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
+                continue;
             }
+            double avg_flow = extruder_plan.estimates.material / time; // TODO: subtract retracted travel time
+            extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
+            
+            insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
         }
     }
 };
