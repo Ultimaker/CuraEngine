@@ -200,6 +200,14 @@ void FffGcodeWriter::setConfigInfill(SliceMeshStorage& mesh, int layer_thickness
     }
 }
 
+void FffGcodeWriter::setConfigWallReinforcement(SliceMeshStorage& mesh, int layer_thickness)
+{
+    mesh.reinforcement_wall_config.setLineWidth(mesh.getSettingInMicrons("reinforcement_wall_line_width"));
+    mesh.reinforcement_wall_config.setSpeed(mesh.getSettingInMillimetersPerSecond("speed_wall_reinforcement"));
+    mesh.reinforcement_wall_config.setFlow(mesh.getSettingInPercentage("material_flow"));
+    mesh.reinforcement_wall_config.setLayerHeight(layer_thickness);
+}
+
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
     if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
@@ -364,6 +372,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         setConfigInsets(mesh, layer_thickness);
         setConfigSkin(mesh, layer_thickness);
         setConfigInfill(mesh, layer_thickness);
+        setConfigWallReinforcement(mesh, layer_thickness);
     }
 
     processInitialLayersSpeedup(storage, layer_nr);
@@ -434,6 +443,7 @@ void FffGcodeWriter::processInitialLayersSpeedup(SliceDataStorage& storage, unsi
             mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            mesh.reinforcement_wall_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
             {
                 mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
@@ -597,16 +607,21 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
         
+        int wall_reinforcement_line_distance = mesh->getSettingInMicrons("reinforcement_wall_line_distance");
+        int wall_reinforcement_line_width = mesh->reinforcement_wall_config.getLineWidth();
+        
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
             processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
             processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processWallReinfocement(gcode_layer, mesh, part, layer_nr, wall_reinforcement_line_distance, infill_overlap, infill_angle, wall_reinforcement_line_width, true);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
+            processWallReinfocement(gcode_layer, mesh, part, layer_nr, wall_reinforcement_line_distance, infill_overlap, infill_angle, wall_reinforcement_line_width, false);
             processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
             processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
@@ -674,6 +689,50 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
     }
     sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
+}
+
+void FffGcodeWriter::processWallReinfocement(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width, bool inside_out)
+{
+    if (wall_reinforcement_line_distance == 0 || (part.wall_reinforcement_area.size() == 0 && part.wall_reinforcement_axtra_walls.size() == 0) )
+    {
+        return;
+    }
+    
+    if (inside_out)
+    {
+        processWallReinfocement_extraWalls(gcode_layer, mesh, part, layer_nr, wall_reinforcement_line_width, inside_out);
+    }
+    
+    processWallReinfocement_infill(gcode_layer, mesh, part, layer_nr, wall_reinforcement_line_distance, infill_overlap, infill_angle, wall_reinforcement_line_width);
+    
+    if (!inside_out)
+    {
+        processWallReinfocement_extraWalls(gcode_layer, mesh, part, layer_nr, wall_reinforcement_line_width, inside_out);
+    }
+}
+
+void FffGcodeWriter::processWallReinfocement_extraWalls(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_width, bool inside_out)
+{
+    bool compensate_overlap = false; // mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
+    if (mesh->getSettingAsCount("reinforcement_wall_line_count") > 0)
+    {
+        for(int inset_number=part.wall_reinforcement_axtra_walls.size()-1; inset_number>-1; inset_number--)
+        {
+            gcode_layer.addPolygonsByOptimizer(part.wall_reinforcement_axtra_walls[inset_number], &mesh->insetX_config);
+        }
+    }
+}
+void FffGcodeWriter::processWallReinfocement_infill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width)
+{
+    Polygons infill_polygons;
+    Polygons infill_lines;
+    
+    EFillMethod pattern = mesh->getSettingAsFillMethod("reinforcement_wall_pattern");
+    Infill infill_comp(pattern, part.infill_area[0], 0, false, wall_reinforcement_line_width, wall_reinforcement_line_distance, infill_overlap, infill_angle, false, false);
+    infill_comp.generate(infill_polygons, infill_lines, nullptr);
+    gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
+    gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
+    sendPolygons(SupportInfillType, layer_nr, infill_lines, wall_reinforcement_line_width);
 }
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)

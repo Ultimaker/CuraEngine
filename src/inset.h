@@ -36,6 +36,26 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
  */ 
 void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
 
+/*!
+ * Generates the ... for a single layer part.
+ * 
+ * \param part The part for which to generate the insets.
+ * \param line_width_x line width of other walls
+ * \param insetCount The number of insets to to generate
+ * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p part)
+ */
+void generateReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters);
+
+/*!
+ * Generates the ... for all parts in a layer.
+ * 
+ * \param layer The layer for which to generate the insets.
+ * \param line_width_x line width of other walls
+ * \param insetCount The number of insets to to generate
+ * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p part)
+ */ 
+void generateReinforcementWalls(SliceLayer* layer, int line_width_x, int insetCount, bool avoidOverlappingPerimeters);
+
 }//namespace cura
 
 #endif//INSET_H

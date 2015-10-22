@@ -176,6 +176,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkins(storage, layer_number);
+            processWallReinforcement(storage, layer_number);
         }
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
     }
@@ -253,6 +254,44 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                     segment.add(polyline[point_idx]);
                 }
                 sendPolygons(Inset0Type, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
+            }
+        }
+    }
+}
+
+
+void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, unsigned int layer_nr)
+{
+    for(SliceMeshStorage& mesh : storage.meshes)
+    {
+        int reinforcement_wall_line_width = mesh.getSettingInMicrons("reinforcement_wall_line_width");
+        SliceLayer* layer = &mesh.layers[layer_nr];
+        for (SliceLayerPart& part : layer->parts)
+        {
+            
+            Polygons outer_reinforcement_wall_edge = part.infill_area[0].offset(-mesh.getSettingInMicrons("reinforcement_wall_thickness"));
+            part.wall_reinforcement_area = part.infill_area[0].difference(outer_reinforcement_wall_edge.offset(reinforcement_wall_line_width / 2));
+            part.wall_reinforcement_axtra_walls.push_back(outer_reinforcement_wall_edge.offset(-reinforcement_wall_line_width/2));
+        }
+        
+    }
+    
+    for(SliceMeshStorage& mesh : storage.meshes)
+    {
+        SliceLayer* layer = &mesh.layers[layer_nr];
+        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
+        {
+            int inset_count = mesh.getSettingAsCount("reinforcement_wall_line_count");
+            int line_width_x = mesh.getSettingInMicrons("reinforcement_wall_line_width");
+            generateReinforcementWalls(layer, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+
+            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
+            {
+                if (layer->parts[partNr].insets.size() > 0)
+                {
+                    for(Polygons& polys : layer->parts[partNr].wall_reinforcement_axtra_walls)
+                        sendPolygons(SupportType, layer_nr, polys, line_width_x);
+                }
             }
         }
     }
