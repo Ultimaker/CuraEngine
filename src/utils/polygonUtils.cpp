@@ -110,7 +110,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                 continue;
             }
             int64_t ax_length = dot(ab, ap) / ab_length;
-            if (ax_length < 0) // x is projected to before ab
+            if (ax_length <= 0) // x is projected to before ab
             {
                 if (projected_p_beyond_prev_segment)
                 { //  case which looks like:   > .
@@ -139,7 +139,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                     continue;
                 }
             }
-            else if (ax_length > ab_length) // x is projected to beyond ab
+            else if (ax_length >= ab_length) // x is projected to beyond ab
             {
                 projected_p_beyond_prev_segment = true;
                 p0 = p1;
