@@ -391,8 +391,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         }
         std::vector<GCodePath>& paths = extruder_plan.paths;
         
-        std::list<Insert>& inserts = extruder_plan.inserts;
-        inserts.sort([](const Insert& a, const Insert& b) -> bool { 
+        std::list<NozzleTempInsert>& inserts = extruder_plan.inserts;
+        inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
         
@@ -402,7 +402,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 // TODO: insert inserts during mergeInfillLines instead of after!
                 while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
                 { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-                    Insert& insert = inserts.front();
+                    NozzleTempInsert& insert = inserts.front();
                     gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
                     inserts.pop_front();
                 }
@@ -515,7 +515,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         { // handle remaining inserts
             while ( ! inserts.empty() )
             { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-                Insert& insert = inserts.front();
+                NozzleTempInsert& insert = inserts.front();
                 assert(insert.path_idx == extruder_plan.paths.size());
                 gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
                 inserts.pop_front();

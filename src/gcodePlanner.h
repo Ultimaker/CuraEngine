@@ -22,13 +22,13 @@ class SliceDataStorage;
  * 
  * Currently only used for preheat commands
  */
-struct Insert
+struct NozzleTempInsert
 {
     const unsigned int path_idx; //!< The path before which to insert this command
     int extruder; //!< The extruder for which to set the temp
     double temperature; //!< The temperature of the temperature command to insert
     bool wait; //!< Whether to wait for the temperature to be reached
-    Insert(unsigned int path_idx, int extruder, double temperature, bool wait)
+    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait)
     : path_idx(path_idx)
     , extruder(extruder)
     , temperature(temperature)
@@ -102,7 +102,7 @@ class ExtruderPlan
 {
 public:
     std::vector<GCodePath> paths;
-    std::list<Insert> inserts;
+    std::list<NozzleTempInsert> inserts;
     
     int extruder; //!< The extruder used for this paths in the current plan.
     
