@@ -65,7 +65,6 @@ public:
         }
         for (GCodePlanner& layer_plan : buffer)
         {
-            layer_plan.processFanSpeedAndMinimalLayerTime();
             layer_plan.writeGCode(gcode, getSettingBoolean("cool_lift_head"), layer_plan.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
             if (command_socket)
                 command_socket->sendGCodeLayer();
