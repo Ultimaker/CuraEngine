@@ -125,7 +125,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4));
+                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
                             ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
