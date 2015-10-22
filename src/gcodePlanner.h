@@ -38,22 +38,29 @@ struct NozzleTempInsert
     {}
 };
 
+class GCodePlanner; // forward declaration so that TimeMaterialEstimates can be a friend
+
 class TimeMaterialEstimates
 {
-public:
+    friend class GCodePlanner;
+private:
     double extrude_time;
-    double travel_time;
+    double unretracted_travel_time;
+    double retracted_travel_time;
     double material; //!< in mm^3
+public:
     
-    TimeMaterialEstimates(double extrude_time, double travel_time, double material)
+    TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material)
     : extrude_time(extrude_time)
-    , travel_time(travel_time)
+    , unretracted_travel_time(unretracted_travel_time)
+    , retracted_travel_time(retracted_travel_time)
     , material(material)
     {
     }
     TimeMaterialEstimates()
     : extrude_time(0.0)
-    , travel_time(0.0)
+    , unretracted_travel_time(0.0)
+    , retracted_travel_time(0.0)
     , material(0.0)
     {
     }
@@ -61,25 +68,43 @@ public:
     void reset() 
     {
         extrude_time = 0.0;
-        travel_time = 0.0;
+        unretracted_travel_time = 0.0;
+        retracted_travel_time = 0.0;
         material = 0.0;
     }
     
     TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
     {
-        return TimeMaterialEstimates(extrude_time+other.extrude_time, travel_time+other.travel_time, material+other.material);
+        return TimeMaterialEstimates(extrude_time+other.extrude_time, unretracted_travel_time+other.unretracted_travel_time, retracted_travel_time+other.retracted_travel_time, material+other.material);
     }
     
     TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
     {
         extrude_time += other.extrude_time;
-        travel_time += other.travel_time;
+        unretracted_travel_time += other.unretracted_travel_time;
+        retracted_travel_time += other.retracted_travel_time;
         material += other.material;
         return *this;
     }
     double getTotalTime()
     {
-        return extrude_time + travel_time;
+        return extrude_time + unretracted_travel_time + retracted_travel_time;
+    }
+    double getTotalUnretractedTime()
+    {
+        return extrude_time + unretracted_travel_time;
+    }
+    double getTravelTime()
+    {
+        return retracted_travel_time + unretracted_travel_time;
+    }
+    double getExtrudeTime()
+    {
+        return extrude_time;
+    }
+    double getMaterial()
+    {
+        return material;
     }
 };
 

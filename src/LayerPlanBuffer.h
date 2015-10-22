@@ -277,14 +277,14 @@ public:
         for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
         {
             ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
-            double time = extruder_plan.estimates.getTotalTime();
+            double time = extruder_plan.estimates.getTotalUnretractedTime();
             if (time <= 0.0 
-                || extruder_plan.estimates.material == 0.0 // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
+                || extruder_plan.estimates.getMaterial() == 0.0 // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
             )
             {
                 continue;
             }
-            double avg_flow = extruder_plan.estimates.material / time; // TODO: subtract retracted travel time
+            double avg_flow = extruder_plan.estimates.getMaterial() / time; // TODO: subtract retracted travel time
             extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
             
             insertPreheatCommand(layers, layer_idx, extruder_plan_idx);

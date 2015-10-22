@@ -317,22 +317,54 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
     TimeMaterialEstimates ret;
     Point p0 = start_position;
 
+    bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     for(ExtruderPlan& extr_plan : extruder_plans)
     {
         for (GCodePath& path : extr_plan.paths)
         {
-            bool is_travel_path = path.getExtrusionMM3perMM() == 0;
-            double& path_time_estimate = (is_travel_path)? path.estimates.travel_time : path.estimates.extrude_time;
+            bool is_extrusion_path = false;
+            double* path_time_estimate;
             double& material_estimate = path.estimates.material;
+            if (path.getExtrusionMM3perMM() > 0)
+            {
+                is_extrusion_path = true;
+                path_time_estimate = &path.estimates.extrude_time;
+            }
+            else 
+            {
+                if (path.retract)
+                {
+                    path_time_estimate = &path.estimates.retracted_travel_time;
+                }
+                else 
+                {
+                    path_time_estimate = &path.estimates.unretracted_travel_time;
+                }
+                if (path.retract != was_retracted)
+                { // handle retraction times
+                    double retract_unretract_time;
+                    RetractionConfig& retraction_config = *path.config->retraction_config;
+                    if (path.retract)
+                    {
+                        retract_unretract_time = retraction_config.amount / retraction_config.speed;
+                    }
+                    else 
+                    {
+                        retract_unretract_time = retraction_config.primeAmount / retraction_config.primeSpeed;
+                    }
+                    path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
+                    path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
+                }
+            }
             for(Point& p1 : path.points)
             {
                 double length = vSizeMM(p0 - p1);
-                if (!is_travel_path)
+                if (is_extrusion_path)
                 {
                     material_estimate += length * INT2MM(path.config->getLayerHeight()) * INT2MM(path.config->getLineWidth());
                 }
                 double thisTime = length / path.config->getSpeed();
-                path_time_estimate += thisTime;
+                *path_time_estimate += thisTime;
                 p0 = p1;
             }
             extr_plan.estimates += path.estimates;
@@ -346,11 +378,11 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 {
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
-    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.travel_time, estimates.extrude_time);
+    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
 
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     fan_speed = fsml.cool_fan_speed_min;
-    double totalLayerTime = estimates.travel_time + estimates.extrude_time;
+    double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
     if (totalLayerTime < fsml.cool_min_layer_time)
     {
         fan_speed = fsml.cool_fan_speed_max;
