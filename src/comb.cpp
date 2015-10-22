@@ -151,26 +151,27 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
 //             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
             middle_from = middle_from_cp.location;
             middle_to = middle_to_cp.location;
+            PolygonUtils::moveInside(boundary_inside,middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
+            PolygonUtils::moveInside(boundary_inside,middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
         }
-        else 
+        else if(!startInside && !endInside)
         {
-            if (!startInside && !endInside) 
-            { 
-                middle_from = startPoint; 
-                middle_to = endPoint; 
-            }
-            else if (!startInside && endInside)
-            {
-                middle_from = startPoint;
-                ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from, boundary_inside[end_part_boundary_poly_idx]);
-                middle_to = middle_to_cp.location;
-            }
-            else if (startInside && !endInside)
-            {
-                middle_to = endPoint;
-                ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to, boundary_inside[start_part_boundary_poly_idx]);
-                middle_from = middle_from_cp.location;
-            }
+            middle_from = startPoint;
+            middle_to = endPoint;
+        }
+        else if(!startInside && endInside)
+        {
+            middle_from = startPoint;
+            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from,boundary_inside[end_part_boundary_poly_idx]);
+            middle_to = middle_to_cp.location;
+            PolygonUtils::moveInside(boundary_inside,middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
+        }
+        else if(startInside && !endInside)
+        {
+            middle_to = endPoint;
+            ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to,boundary_inside[start_part_boundary_poly_idx]);
+            middle_from = middle_from_cp.location;
+            PolygonUtils::moveInside(boundary_inside,middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
         }
         
         if (startInside)
@@ -309,8 +310,8 @@ void LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
     {
         //We're not crossing any boundaries. So skip the comb generation.
         combPath.push_back(startPoint); 
-        combPath.push_back(endPoint); 
-        return; 
+        combPath.push_back(endPoint);
+        return;
     }
     
     calcScanlineCrossings();
@@ -350,7 +351,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
     { // follow the path in the opposite direction of the winding order of the boundary polygon
         unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1: polyCrossings.min.point_idx - 1;
         unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1: polyCrossings.max.point_idx - 1;
-        
+
         for(unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
         {
             combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
