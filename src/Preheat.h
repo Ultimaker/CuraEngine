@@ -53,6 +53,7 @@ public:
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
             
             config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph");
+            config.flow_temp_graph.standby_temp = config.standby_temp;
         }
     }
 private:

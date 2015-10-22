@@ -22,7 +22,11 @@ public:
         {}
     };
     std::vector<Datum> data;
+    double standby_temp;
 
+    FlowTempGraph()
+    : standby_temp(0.0)
+    {}
     
     double getTemp(double flow, double material_print_temperature)
     {

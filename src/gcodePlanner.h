@@ -25,11 +25,13 @@ class SliceDataStorage;
 struct NozzleTempInsert
 {
     const unsigned int path_idx; //!< The path before which to insert this command
+    double time_after_path_start; //!< The time after the start of the path, before which to insert the command // TODO: use this to insert command in between moves in a path!
     int extruder; //!< The extruder for which to set the temp
     double temperature; //!< The temperature of the temperature command to insert
     bool wait; //!< Whether to wait for the temperature to be reached
-    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait)
+    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0)
     : path_idx(path_idx)
+    , time_after_path_start(time_after_path_start)
     , extruder(extruder)
     , temperature(temperature)
     , wait(wait)
@@ -41,7 +43,7 @@ class TimeMaterialEstimates
 public:
     double extrude_time;
     double travel_time;
-    double material;
+    double material; //!< in mm^3
     
     TimeMaterialEstimates(double extrude_time, double travel_time, double material)
     : extrude_time(extrude_time)
@@ -105,15 +107,12 @@ public:
     std::list<NozzleTempInsert> inserts;
     
     int extruder; //!< The extruder used for this paths in the current plan.
-    
-    bool preheat_command_inserted;
     double required_temp;
     
     TimeMaterialEstimates estimates;
     
     ExtruderPlan(int extruder)
     : extruder(extruder)
-    , preheat_command_inserted(false)
     , required_temp(-1)
     {
     }
