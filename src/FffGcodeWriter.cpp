@@ -698,12 +698,11 @@ void FffGcodeWriter::processWallReinforcement(GCodePlanner& gcode_layer, SliceMe
 
 void FffGcodeWriter::processWallReinforcement_extraWalls(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_width, bool inside_out)
 {
-    bool compensate_overlap = false; // mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
     if (mesh->getSettingAsCount("wall_reinforcement_line_count") > 0)
     {
         for(int inset_number=part.wall_reinforcement_axtra_walls.size()-1; inset_number>-1; inset_number--)
         {
-            gcode_layer.addPolygonsByOptimizer(part.wall_reinforcement_axtra_walls[inset_number], &mesh->insetX_config);
+            gcode_layer.addPolygonsByOptimizer(part.wall_reinforcement_axtra_walls[inset_number], &mesh->wall_reinforcement_config);
         }
     }
 }
