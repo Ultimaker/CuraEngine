@@ -191,9 +191,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkinsAndInfill(storage, layer_number);
-            processWallReinforcement(storage, layer_number);
         }
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
+    }
+    
+    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
+    {
+        processWallReinforcement(storage, layer_number);
     }
     
     unsigned int combined_infill_layers = storage.getSettingInMicrons("infill_sparse_thickness") / std::max(storage.getSettingInMicrons("layer_height"),1); //How many infill layers to combine to obtain the requested sparse thickness.
@@ -284,7 +288,10 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
         SliceLayer* layer = &mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer->parts)
         {
-            
+            if (part.infill_area.size() == 0)
+            {
+                continue;
+            }
             Polygons outer_reinforcement_wall_edge = part.infill_area[0].offset(-mesh.getSettingInMicrons("reinforcement_wall_thickness"));
             part.wall_reinforcement_area = part.infill_area[0].difference(outer_reinforcement_wall_edge.offset(reinforcement_wall_line_width / 2));
             part.wall_reinforcement_axtra_walls.push_back(outer_reinforcement_wall_edge.offset(-reinforcement_wall_line_width/2));
@@ -299,7 +306,15 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
         {
             int inset_count = mesh.getSettingAsCount("reinforcement_wall_line_count");
             int line_width_x = mesh.getSettingInMicrons("reinforcement_wall_line_width");
-            generateReinforcementWalls(layer, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+
+            for(SliceLayerPart& part : layer->parts)
+            {
+                if (part.wall_reinforcement_axtra_walls.size() == 0)
+                {
+                    continue;
+                }
+                generateReinforcementWalls(&part, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+            }
 
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
             {

@@ -80,40 +80,28 @@ void generateReinforcementWalls(SliceLayerPart* part, int line_width_x, int inse
         part->wall_reinforcement_axtra_walls.pop_back();
     }
     
-    for(int i=1; i<insetCount; i++)
+    if (part->wall_reinforcement_axtra_walls[0].size() > 0)
     {
-        part->wall_reinforcement_axtra_walls.push_back(Polygons());
-        PolygonUtils::offsetExtrusionWidth(part->wall_reinforcement_axtra_walls[i-1], true, line_width_x, part->wall_reinforcement_axtra_walls[i], &part->perimeterGaps, avoidOverlappingPerimeters);
-        
-        
-        //Finally optimize all the polygons. Every point removed saves time in the long run.
-        part->wall_reinforcement_axtra_walls[i].simplify();
-        if (part->wall_reinforcement_axtra_walls[i].size() < 1)
+        for(int i=1; i<insetCount; i++)
         {
-            part->wall_reinforcement_axtra_walls.pop_back();
-            break;
+            part->wall_reinforcement_axtra_walls.push_back(Polygons());
+            PolygonUtils::offsetExtrusionWidth(part->wall_reinforcement_axtra_walls[i-1], true, line_width_x, part->wall_reinforcement_axtra_walls[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+            
+            
+            //Finally optimize all the polygons. Every point removed saves time in the long run.
+            part->wall_reinforcement_axtra_walls[i].simplify();
+            if (part->wall_reinforcement_axtra_walls[i].size() < 1)
+            {
+                part->wall_reinforcement_axtra_walls.pop_back();
+                break;
+            }
         }
     }
-    part->infill_area[0] = part->wall_reinforcement_axtra_walls.back().offset(-line_width_x/2);
+    if (part->wall_reinforcement_axtra_walls.size() > 0)
+    {
+        part->infill_area[0] = part->wall_reinforcement_axtra_walls.back().offset(-line_width_x/2);
+    }
 }
 
-void generateReinforcementWalls(SliceLayer* layer, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
-{
-    for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
-    {
-        generateReinforcementWalls(&layer->parts[partNr], line_width_x, insetCount, avoidOverlappingPerimeters);
-    }
-    
-    //Remove the parts which did not generate an inset. As these parts are too small to print,
-    // and later code can now assume that there is always minimal 1 inset line.
-    for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
-    {
-        if (layer->parts[partNr].insets.size() < 1)
-        {
-            layer->parts.erase(layer->parts.begin() + partNr);
-            partNr -= 1;
-        }
-    }
-}
 
 }//namespace cura
