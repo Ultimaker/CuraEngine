@@ -728,10 +728,10 @@ void FffGcodeWriter::processWallReinfocement_infill(GCodePlanner& gcode_layer, S
     Polygons infill_lines;
     
     EFillMethod pattern = mesh->getSettingAsFillMethod("reinforcement_wall_pattern");
-    Infill infill_comp(pattern, part.infill_area[0], 0, false, wall_reinforcement_line_width, wall_reinforcement_line_distance, infill_overlap, infill_angle, false, false);
+    Infill infill_comp(pattern, part.wall_reinforcement_area, 0, false, wall_reinforcement_line_width, wall_reinforcement_line_distance, infill_overlap, infill_angle, false, false);
     infill_comp.generate(infill_polygons, infill_lines, nullptr);
-    gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
-    gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
+    gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->reinforcement_wall_config);
+    gcode_layer.addLinesByOptimizer(infill_lines, &mesh->reinforcement_wall_config); 
     sendPolygons(SupportInfillType, layer_nr, infill_lines, wall_reinforcement_line_width);
 }
 
