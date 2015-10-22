@@ -713,7 +713,7 @@ void FffGcodeWriter::processWallReinforcement(GCodePlanner& gcode_layer, SliceMe
 
 void FffGcodeWriter::processWallReinforcement_extraWalls(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_width, bool inside_out)
 {
-    if (mesh->getSettingAsCount("wall_reinforcement_line_count") > 0)
+    if (part.wall_reinforcement_axtra_walls.size() > 0)
     {
         for(int inset_number=part.wall_reinforcement_axtra_walls.size()-1; inset_number>-1; inset_number--)
         {
@@ -723,6 +723,11 @@ void FffGcodeWriter::processWallReinforcement_extraWalls(GCodePlanner& gcode_lay
 }
 void FffGcodeWriter::processWallReinforcement_infill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width)
 {
+    if (part.wall_reinforcement_area.size() == 0)
+    {
+        return;
+    }
+        
     Polygons infill_polygons;
     Polygons infill_lines;
     

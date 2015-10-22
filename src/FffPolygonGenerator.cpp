@@ -268,6 +268,10 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
+        if (mesh.getSettingInMicrons("wall_reinforcement_thickness") == 0.0 && mesh.getSettingAsCount("wall_reinforcement_line_count") == 0)
+        {
+            return;
+        }
         SliceLayer* layer = &mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer->parts)
         {
@@ -277,7 +281,14 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
             }
             Polygons outer_wall_reinforcement_edge = part.infill_area[0].offset(-mesh.getSettingInMicrons("wall_reinforcement_thickness"));
             part.wall_reinforcement_area = part.infill_area[0].difference(outer_wall_reinforcement_edge);
-            part.wall_reinforcement_axtra_walls.push_back(outer_wall_reinforcement_edge.offset(-mesh.getSettingInMicrons("wall_line_width_x")/2));
+            if (mesh.getSettingAsCount("wall_reinforcement_line_count") > 0)
+            {
+                part.wall_reinforcement_axtra_walls.push_back(outer_wall_reinforcement_edge.offset(-mesh.getSettingInMicrons("wall_line_width_x")));
+            }
+            else 
+            {
+                part.infill_area[0] = outer_wall_reinforcement_edge.offset(-mesh.getSettingInMicrons("wall_line_width_x")/2);
+            }
         }
         
     }
