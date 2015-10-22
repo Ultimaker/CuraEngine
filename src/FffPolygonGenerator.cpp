@@ -284,7 +284,7 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        int reinforcement_wall_line_width = mesh.getSettingInMicrons("reinforcement_wall_line_width");
+        int wall_reinforcement_line_width = mesh.getSettingInMicrons("wall_reinforcement_line_width");
         SliceLayer* layer = &mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer->parts)
         {
@@ -292,9 +292,9 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
             {
                 continue;
             }
-            Polygons outer_reinforcement_wall_edge = part.infill_area[0].offset(-mesh.getSettingInMicrons("reinforcement_wall_thickness"));
-            part.wall_reinforcement_area = part.infill_area[0].difference(outer_reinforcement_wall_edge.offset(reinforcement_wall_line_width / 2));
-            part.wall_reinforcement_axtra_walls.push_back(outer_reinforcement_wall_edge.offset(-reinforcement_wall_line_width/2));
+            Polygons outer_wall_reinforcement_edge = part.infill_area[0].offset(-mesh.getSettingInMicrons("wall_reinforcement_thickness"));
+            part.wall_reinforcement_area = part.infill_area[0].difference(outer_wall_reinforcement_edge);
+            part.wall_reinforcement_axtra_walls.push_back(outer_wall_reinforcement_edge.offset(-wall_reinforcement_line_width/2));
         }
         
     }
@@ -304,8 +304,8 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
         SliceLayer* layer = &mesh.layers[layer_nr];
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
         {
-            int inset_count = mesh.getSettingAsCount("reinforcement_wall_line_count");
-            int line_width_x = mesh.getSettingInMicrons("reinforcement_wall_line_width");
+            int inset_count = mesh.getSettingAsCount("wall_reinforcement_line_count");
+            int line_width_x = mesh.getSettingInMicrons("wall_reinforcement_line_width");
 
             for(SliceLayerPart& part : layer->parts)
             {
@@ -313,7 +313,7 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
                 {
                     continue;
                 }
-                generateReinforcementWalls(&part, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                generateWallReinforcementWalls(&part, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
             }
 
             for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)

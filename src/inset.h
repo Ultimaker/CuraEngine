@@ -44,7 +44,7 @@ void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int l
  * \param insetCount The number of insets to to generate
  * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p part)
  */
-void generateReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters);
+void generateWallReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters);
 
 }//namespace cura
 

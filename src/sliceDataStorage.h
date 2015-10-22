@@ -119,10 +119,10 @@ public:
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
-    GCodePathConfig reinforcement_wall_config;
+    GCodePathConfig wall_reinforcement_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
-    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN"), reinforcement_wall_config(&retraction_config, "SUPPORT")
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN"), wall_reinforcement_config(&retraction_config, "SUPPORT")
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)

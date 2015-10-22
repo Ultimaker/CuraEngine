@@ -71,7 +71,7 @@ void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int l
     }
 }
 
-void generateReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
+void generateWallReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
 {
     // optimize all the polygons. Every point removed saves time in the long run.
     part->wall_reinforcement_axtra_walls[0].simplify();
