@@ -102,6 +102,12 @@ private:
     void processInsets(SliceDataStorage& storage, unsigned int layer_nr);
 
     /*!
+     * Generate the wall reinforcement extra wall polygons and infill area which form the walls.
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param layer_nr The layer for which to generate the insets.
+     */
+    void processWallReinforcement(SliceDataStorage& storage, unsigned int layer_nr);
+    /*!
      * Generate the outline of the ooze shield.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param total_layers The total number of layers 

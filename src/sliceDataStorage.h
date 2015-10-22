@@ -37,6 +37,8 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<Polygons> infill_area; //!< The infill_area are the areas which need to be filled with sparse (0-99%) infill. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
+    Polygons wall_reinforcement_area; //!< The infill of the reinforced wall
+    std::vector<Polygons> wall_reinforcement_axtra_walls; //!< The extra walls on the inside of the reinforcement infill
     Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 
@@ -117,9 +119,10 @@ public:
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
+    GCodePathConfig reinforcement_wall_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
-    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN"), reinforcement_wall_config(&retraction_config, "SUPPORT")
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
