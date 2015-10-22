@@ -702,7 +702,7 @@ void FffGcodeWriter::processWallReinforcement_extraWalls(GCodePlanner& gcode_lay
     {
         for(int inset_number=part.wall_reinforcement_axtra_walls.size()-1; inset_number>-1; inset_number--)
         {
-            gcode_layer.addPolygonsByOptimizer(part.wall_reinforcement_axtra_walls[inset_number], &mesh->wall_reinforcement_config);
+            gcode_layer.addPolygonsByOptimizer(part.wall_reinforcement_axtra_walls[inset_number], &mesh->insetX_config);
         }
     }
 }
