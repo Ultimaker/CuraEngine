@@ -36,6 +36,11 @@ struct NozzleTempInsert
     , temperature(temperature)
     , wait(wait)
     {}
+    
+    void write(GCodeExport& gcode)
+    {
+        gcode.writeTemperatureCommand(extruder, temperature, wait);
+    }
 };
 
 class GCodePlanner; // forward declaration so that TimeMaterialEstimates can be a friend

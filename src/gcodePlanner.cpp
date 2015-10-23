@@ -432,11 +432,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             { // handle inserts
-                // TODO: insert inserts during mergeInfillLines instead of after!
                 while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
                 { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-                    NozzleTempInsert& insert = inserts.front();
-                    gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
+                    inserts.front().write(gcode);
                     inserts.pop_front();
                 }
             }
@@ -459,7 +457,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
 
             int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
             
-            if (MergeInfillLines(gcode, paths, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, paths, inserts, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
@@ -550,7 +548,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
                 NozzleTempInsert& insert = inserts.front();
                 assert(insert.path_idx == extruder_plan.paths.size());
-                gcode.writeTemperatureCommand(insert.extruder, insert.temperature, insert.wait);
+                insert.write(gcode);
                 inserts.pop_front();
             }
         }

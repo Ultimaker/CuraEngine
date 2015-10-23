@@ -13,6 +13,8 @@ class MergeInfillLines
 //     void merge(Point& from, Point& p0, Point& p1);
     GCodeExport& gcode; //!<  Where to write the combined line to
     std::vector<GCodePath>& paths; //!< The paths currently under consideration
+    std::list<NozzleTempInsert>& inserts; //!< The temperature command inserts
+    
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
     
@@ -41,8 +43,8 @@ public:
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
-    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths,  GCodePathConfig& travelConfig, int64_t nozzle_size) 
-    : gcode(gcode), paths(paths), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
+    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths, std::list<NozzleTempInsert>& inserts, GCodePathConfig& travelConfig, int64_t nozzle_size) 
+    : gcode(gcode), paths(paths), inserts(inserts), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
     
     /*!
      * Check for lots of small moves and combine them into one large line.
