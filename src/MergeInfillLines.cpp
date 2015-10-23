@@ -21,9 +21,7 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
     Point last_middle;
     int64_t line_width;
     
-    MergeInfillLines merger(gcode, paths, travelConfig, nozzle_size);
-    
-    if (merger.isConvertible(path_idx, prev_middle, last_middle, line_width, false))
+    if (isConvertible(path_idx, prev_middle, last_middle, line_width, false))
     {
         //   path_idx + 3 is the index of the second extrusion move to be converted in combination with the first
         {
@@ -39,7 +37,7 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         }
         
         path_idx += 2;
-        for (; merger.isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
+        for (; isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
         {
             GCodePath& last_path = paths[path_idx + 3];
             writeCompensatedMove(last_middle, speed, last_path, line_width);
