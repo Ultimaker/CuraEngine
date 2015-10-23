@@ -155,6 +155,7 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
 
 void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
+    amount = std::max(amount,1u); //Can't combine 0 layers at a time, so it must be at least 1.
     for(size_t layer_index = storage.layers.size() - 1 - ((storage.layers.size() - 1) % amount);layer_index > 0;layer_index -= amount) //Always start at a layer divisible by infill_sparse_combine.
     {
         SliceLayer* layer = &storage.layers[layer_index];
