@@ -155,19 +155,30 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
 
 void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
-    amount = std::max(amount,1u); //Can't combine 0 layers at a time, so it must be at least 1.
-    for(size_t layer_index = storage.layers.size() - 1 - ((storage.layers.size() - 1) % amount);layer_index > 0;layer_index -= amount) //Always start at a layer divisible by infill_sparse_combine.
+    if(storage.layers.empty() || storage.layers.size() - 1 < (size_t)storage.getSettingAsCount("top_layers")) //All layers are top layers. No infill is even generated.
     {
-        SliceLayer* layer = &storage.layers[layer_index];
+        return;
+    }
+    /* We need to round down the layer index we start at to the nearest
+    divisible index. Otherwise we get some parts that have infill at divisible
+    layers and some at non-divisible layers. Those layers would then miss each
+    other. */
+    size_t min_layer = storage.getSettingAsCount("bottom_layers") + amount - 1;
+    min_layer -= min_layer % amount; //Round upwards to the nearest layer divisible by infill_sparse_combine.
+    size_t max_layer = storage.layers.size() - 1 - storage.getSettingAsCount("top_layers");
+    max_layer -= max_layer % amount; //Round downwards to the nearest layer divisible by infill_sparse_combine.
+    for(size_t layer_idx = min_layer;layer_idx <= max_layer;layer_idx += amount) //Skip every few layers, but extrude more.
+    {
+        SliceLayer* layer = &storage.layers[layer_idx];
 
         for(unsigned int n = 1;n < amount;n++)
         {
-            if(layer_index < n)
+            if(layer_idx < n)
             {
                 break;
             }
 
-            SliceLayer* layer2 = &storage.layers[layer_index - n];
+            SliceLayer* layer2 = &storage.layers[layer_idx - n];
             for(SliceLayerPart& part : layer->parts)
             {
                 Polygons result;
