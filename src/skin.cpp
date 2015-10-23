@@ -155,6 +155,7 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
 
 void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
+    amount = std::max(amount,1u);
     if(storage.layers.empty() || storage.layers.size() - 1 < (size_t)storage.getSettingAsCount("top_layers")) //All layers are top layers. No infill is even generated.
     {
         return;
