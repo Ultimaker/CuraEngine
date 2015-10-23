@@ -291,22 +291,23 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
             factor = 1.0;
         }
         
+        double inv_factor = 1.0 / factor; // cause multiplication is faster than division
         
         // Adjust stored naive time estimates
         for(ExtruderPlan& extr_plan : extruder_plans)
         {
-            extr_plan.estimates.extrude_time /= factor;
+            extr_plan.estimates.extrude_time *= inv_factor;
             for (GCodePath& path : extr_plan.paths)
             {
-                path.estimates.extrude_time /= factor;
+                path.estimates.extrude_time *= inv_factor;
             }
         }
 
-        if (minTime - (extrudeTime / factor) - travelTime > 0.1)
+        if (minTime - (extrudeTime * inv_factor) - travelTime > 0.1)
         {
-            this->extraTime = minTime - (extrudeTime / factor) - travelTime;
+            this->extraTime = minTime - (extrudeTime * inv_factor) - travelTime;
         }
-        this->totalPrintTime = (extrudeTime / factor) + travelTime;
+        this->totalPrintTime = (extrudeTime * inv_factor) + travelTime;
     }else{
         this->totalPrintTime = totalTime;
     }
