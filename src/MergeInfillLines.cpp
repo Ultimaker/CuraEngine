@@ -21,7 +21,7 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
     Point last_middle;
     int64_t line_width;
     
-    auto handle_inserts = [&](unsigned int path_idx)
+    auto handle_temp_inserts = [&](unsigned int path_idx)
         { // handle inserts
             while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
             { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
@@ -46,15 +46,15 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         }
         
         path_idx += 2;
-        handle_inserts(path_idx);
+        handle_temp_inserts(path_idx);
         for (; isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
         {
-            handle_inserts(path_idx);
+            handle_temp_inserts(path_idx);
             GCodePath& last_path = paths[path_idx + 3];
             writeCompensatedMove(last_middle, speed, last_path, line_width);
         }
         path_idx = path_idx + 1; // means that the next path considered is the travel path after the converted extrusion path corresponding to the updated path_idx
-        handle_inserts(path_idx);
+        handle_temp_inserts(path_idx);
         return true;
     }
     return false;
