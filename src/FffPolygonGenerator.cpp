@@ -46,8 +46,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     log("Slicing model...\n");
     int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    initial_layer_thickness = std::max(initial_layer_thickness,1); //Layer thickness of 0 or lower is not allowed. Rather than giving an error, just snap this to the minimum layer height (1 micron).
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
-    layer_thickness = std::max(layer_thickness,1); //Layer thickness of 0 or lower is not allowed. Rather than giving an error, just make snap this to the minimum layer height (1 micron).
+    layer_thickness = std::max(layer_thickness,1); //Layer thickness of 0 or lower is not allowed. Rather than giving an error, just snap this to the minimum layer height (1 micron).
     if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
     { 
         initial_layer_thickness = layer_thickness; 
