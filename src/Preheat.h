@@ -61,15 +61,14 @@ public:
             ExtruderTrain& extruder_train = *settings.getExtruderTrain(extruder_nr);
             config_per_extruder.emplace_back();
             Config& config = config_per_extruder.back();
-            config.time_to_cooldown_1_degree = 0.5 ; // extruder_train.getSettingInSeconds("material_")
-            config.time_to_heatup_1_degree = 0.5; // TODO
-            config.heatup_cooldown_time_mod_while_printing = 0.1;
-            config.standby_temp = 150; // TODO
+            config.time_to_cooldown_1_degree = extruder_train.getSettingInSeconds("machine_time_to_cool_1_degree"); // 0.5
+            config.time_to_heatup_1_degree = extruder_train.getSettingInSeconds("machine_time_to_heat_1_degree"); // 0.5
+            config.heatup_cooldown_time_mod_while_printing = extruder_train.getSettingInSeconds("material_extra_time_to_heat_1_degree_while_printing"); // 0.1
+            config.standby_temp = extruder_train.getSettingInSeconds("material_standby_temperature"); // 150
             
-            config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
+            config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
             
-            config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph");
-            config.flow_temp_graph.standby_temp = config.standby_temp;
+            config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph"); // [[0.1,180],[20,230]]
         }
     }
 private:
