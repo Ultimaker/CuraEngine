@@ -164,7 +164,10 @@ class EngineTest():
     def _runTest(self, suite, class_name, settings):
         test_name = ', '.join("{!s}={!r}".format(key, val) for (key,val) in settings.items())
         for model in self._models:
-            cmd = [self._engine, "slice", "-j", self._json_filename, "-o", "/dev/null", "-l", model]
+            cmd = [self._engine, "slice", "-j", self._json_filename, "-o", "/dev/null"]
+            for key, value in settings.items():
+                cmd += ['-s', '%s=%s' % (key, value)]
+            cmd += ["-l", model]
             if self._runProcess(cmd):
                 suite.failure(class_name, test_name, "Execution failed on model: %s" % (model))
             else:
@@ -204,7 +207,7 @@ if __name__ == "__main__":
     et.testDefaults()
     et.testSingleChanges()
     et.testSingleRandom()
-    et.testDualRandom()
+    #et.testDualRandom()
     et.testAllRandom(1000)
     et.getResults().saveXML("output.xml")
  
