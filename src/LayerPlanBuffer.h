@@ -125,7 +125,7 @@ public:
         }
         // The last extruder plan wit hthe same extruder falls outside of the buffer
         // assume the nozzle has cooled down to strandby temperature already.
-        return preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp);
+        return preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp, false);
         
     }
     
@@ -142,7 +142,7 @@ public:
     void insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, int extruder, double required_temp)
     {
         // time_before_extruder_plan_end is halved, so that at the layer change the temperature will be half way betewen the two requested temperatures
-        double time_before_extruder_plan_end = 0.5 * preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan.required_temp, extruder, required_temp);
+        double time_before_extruder_plan_end = 0.5 * preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(prev_extruder_plan.required_temp, extruder, required_temp, true);
         double time_after_extruder_plan_start = prev_extruder_plan.estimates.getTotalTime() - time_before_extruder_plan_end;
         if (time_after_extruder_plan_start < 0)
         {

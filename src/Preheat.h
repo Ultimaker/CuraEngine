@@ -2,11 +2,13 @@
 #define PREHEAT_H
 
 #include <cassert>
+#include <algorithm> // max
 
 #include "utils/logoutput.h"
 #include "MeshGroup.h"
 
 #include "FlowTempGraph.h"
+
 
 namespace cura 
 {
@@ -21,8 +23,10 @@ class Preheat
     class Config
     {
     public:
-        double time_to_heatup_1_degree;
-        double time_to_cooldown_1_degree;
+        double time_to_heatup_1_degree; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature)
+        double time_to_cooldown_1_degree; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature)
+        
+        double heatup_cooldown_time_mod_while_printing; //!< The time to be added to Preheat::time_to_heatup_1_degree and subtracted from Preheat::time_to_cooldown_1_degree to get the timings while printing
 
         double standby_temp = 150; // TODO
 
@@ -46,8 +50,9 @@ public:
             ExtruderTrain& extruder_train = *settings.getExtruderTrain(extruder_nr);
             config_per_extruder.emplace_back();
             Config& config = config_per_extruder.back();
-            config.time_to_cooldown_1_degree = 0.6; // TODO
-            config.time_to_heatup_1_degree = 0.4; // TODO
+            config.time_to_cooldown_1_degree = 0.5 ; // extruder_train.getSettingInSeconds("material_")
+            config.time_to_heatup_1_degree = 0.5; // TODO
+            config.heatup_cooldown_time_mod_while_printing = 0.1;
             config.standby_temp = 150; // TODO
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
@@ -57,18 +62,13 @@ public:
         }
     }
 private:
-    double timeToHeatFromStandbyToPrintTemp(unsigned int extruder, double temp)
-    {
-        return (temp - config_per_extruder[extruder].standby_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
-    }
-
     /*!
      * Average ratio of cooling down one degree over heating up one degree
      * within the window between the standby and printing temperature during normal printing.
      */
-    double timeRatioCooldownHeatup(unsigned int extruder)
+    double timeToHeatFromStandbyToPrintTemp(unsigned int extruder, double temp)
     {
-        return config_per_extruder[extruder].time_to_cooldown_1_degree / config_per_extruder[extruder].time_to_heatup_1_degree; 
+        return (temp - config_per_extruder[extruder].standby_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
     }
 
 public:
@@ -87,7 +87,7 @@ public:
      */
     double timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
     {
-        double time_ratio_cooldown_heatup = timeRatioCooldownHeatup(extruder);
+        double time_ratio_cooldown_heatup = config_per_extruder[extruder].time_to_cooldown_1_degree / config_per_extruder[extruder].time_to_heatup_1_degree;
         double time_to_heat_from_standby_to_print_temp = timeToHeatFromStandbyToPrintTemp(extruder, temp);
         double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
         if (time_needed_to_reach_standby_temp < time_window)
@@ -107,15 +107,29 @@ public:
      * \param extruder The extruder used
      * \param temp The temperature to which to heat
      */
-    double timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp)
+    double timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp, bool printing)
     {
         if (temp > from_temp)
         {
-            return (temp - from_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
+            if (printing)
+            {
+                return (temp - from_temp) * (config_per_extruder[extruder].time_to_heatup_1_degree + config_per_extruder[extruder].heatup_cooldown_time_mod_while_printing); 
+            }
+            else 
+            {
+                return (temp - from_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
+            }
         }
         else 
         {
-            return (from_temp - temp) * config_per_extruder[extruder].time_to_cooldown_1_degree; 
+            if (printing)
+            {
+                return (from_temp - temp) * config_per_extruder[extruder].time_to_cooldown_1_degree; 
+            }
+            else 
+            {
+                return (from_temp - temp) * std::max(0.0, config_per_extruder[extruder].time_to_cooldown_1_degree - config_per_extruder[extruder].heatup_cooldown_time_mod_while_printing); 
+            }
         }
     }
 };
