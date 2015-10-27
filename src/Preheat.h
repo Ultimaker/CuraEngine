@@ -34,6 +34,8 @@ class Preheat
         double standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
 
         double material_print_temperature; //!< default print temp (backward compatilibily)
+        
+        bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
     
         FlowTempGraph flow_temp_graph; //!< The graph linking flows to corresponding temperatures
     };
@@ -68,6 +70,8 @@ public:
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
             
+            config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
+            
             config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph"); // [[0.1,180],[20,230]]
         }
     }
@@ -94,7 +98,7 @@ public:
      */
     double getTemp(unsigned int extruder, double flow)
     {
-        return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature);
+        return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
     }
     
     /*!

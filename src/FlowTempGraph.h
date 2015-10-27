@@ -39,9 +39,9 @@ public:
      * \param material_print_temperature The default printing temp (backward compatibility for when the graph fails)
      * \return the corresponding temp
      */
-    double getTemp(double flow, double material_print_temperature)
+    double getTemp(double flow, double material_print_temperature, bool flow_dependent_temperature)
     {
-        if (data.size() == 0)
+        if (!flow_dependent_temperature || data.size() == 0)
         {
             return material_print_temperature;
         }
