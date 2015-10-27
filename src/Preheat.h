@@ -72,7 +72,7 @@ public:
             
             config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
             
-            config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("flow_temp_graph"); // [[0.1,180],[20,230]]
+            config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("material_flow_temp_graph"); // [[0.1,180],[20,230]]
         }
     }
 private:
