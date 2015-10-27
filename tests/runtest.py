@@ -8,6 +8,7 @@ import stat
 import argparse
 import random
 import json
+import threading
 from xml.etree import ElementTree
 
 class TestSuite():
@@ -168,15 +169,29 @@ class EngineTest():
             for key, value in settings.items():
                 cmd += ['-s', '%s=%s' % (key, value)]
             cmd += ["-l", model]
-            if self._runProcess(cmd):
-                suite.failure(class_name, test_name, "Execution failed on model: %s" % (model))
+            error = self._runProcess(cmd)
+            if error is not None:
+                suite.failure(class_name, '%s.%s' % (model, test_name), error)
             else:
-                suite.success(class_name, test_name)
+                suite.success(class_name, '%s.%s' % (model, test_name))
 
     def _runProcess(self, cmd):
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p.error = ""
+        t = threading.Thread(target=self._abortProcess, args=(p,))
+        t.start()
         stdout, stderr = p.communicate()
-        return p.wait() != 0
+        if p.error == "Timeout":
+            return "Timeout"
+        if p.wait() != 0:
+            return "Execution failed"
+        return None
+    
+    def _abortProcess(self, p):
+        time.sleep(60)
+        if p.poll() is None:
+            p.terminate()
+            p.error = "Timeout"
 
     def getResults(self):
         return self._test_results
