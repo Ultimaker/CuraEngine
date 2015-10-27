@@ -265,6 +265,7 @@ public:
         }
         
         std::vector<GCodePlanner*> layers;
+        layers.reserve(buffer.size());
         for (GCodePlanner& layer_plan : buffer)
         {
             layers.push_back(&layer_plan);
