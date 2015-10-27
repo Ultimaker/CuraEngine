@@ -317,6 +317,11 @@ int main(int argc, char **argv)
     {
         slice(argc, argv);
     }
+    else if (stringcasecompare(argv[1], "help") == 0)
+    {
+        print_usage();
+        exit(0);
+    }
     else
     {
         cura::logError("Unknown command: %s\n", argv[1]);
