@@ -37,6 +37,10 @@ struct NozzleTempInsert
     , wait(wait)
     {}
     
+    /*!
+     * Write the temperature command at the current position in the gcode.
+     * \param gcode The actual gcode writer
+     */
     void write(GCodeExport& gcode)
     {
         gcode.writeTemperatureCommand(extruder, temperature, wait);
@@ -45,13 +49,16 @@ struct NozzleTempInsert
 
 class GCodePlanner; // forward declaration so that TimeMaterialEstimates can be a friend
 
+/*!
+ * Time and material estimates for a portion of paths, e.g. layer, extruder plan, path.
+ */
 class TimeMaterialEstimates
 {
     friend class GCodePlanner;
 private:
-    double extrude_time;
-    double unretracted_travel_time;
-    double retracted_travel_time;
+    double extrude_time; //!< in seconds
+    double unretracted_travel_time; //!< in seconds 
+    double retracted_travel_time; //!< in seconds
     double material; //!< in mm^3
 public:
     
@@ -70,6 +77,9 @@ public:
     {
     }
     
+    /*!
+     * Set all estimates to zero.
+     */
     void reset() 
     {
         extrude_time = 0.0;

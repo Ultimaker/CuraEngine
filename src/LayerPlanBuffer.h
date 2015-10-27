@@ -21,12 +21,12 @@ class LayerPlanBuffer : SettingsMessenger
     
     GCodeExport& gcode;
     
-    Preheat preheat_config;
+    Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
     
     static constexpr unsigned int buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     
 public:
-    std::list<GCodePlanner> buffer;
+    std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, CommandSocket* command_socket, GCodeExport& gcode)
     : SettingsMessenger(settings)
@@ -39,6 +39,10 @@ public:
         preheat_config.setConfig(settings);
     }
     
+    /*!
+     * Place a new layer plan (GcodePlanner) by constructing it with the given arguments.
+     * Pop back the oldest layer plan is it exceeds the buffer size and write it to gcode.
+     */
     template<typename... Args>
     GCodePlanner& emplace_back(Args&&... constructor_args)
     {
@@ -57,6 +61,9 @@ public:
         return buffer.back();
     }
     
+    /*!
+     * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
+     */
     void flush()
     {
         if (buffer.size() > 0)
@@ -72,6 +79,7 @@ public:
     }
     
     /*!
+     * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 
      * \param extruder_plan_before An extruder plan before the extruder plan for which the temperature is computed, in which to insert the preheat command
      * \param time_after_extruder_plan_start The time after the start of the extruder plan, before which to insert the preheat command
@@ -96,6 +104,15 @@ public:
         // = special insert after all extruder plans
     }
     
+    /*!
+     * Compute the time needed to preheat, based either on the time the extruder has been on standby 
+     * or based on the temp of the previous extruder plan which has the same extruder nr.
+     * 
+     * \param layers The layers in the buffer, moved to a vector
+     * \param layer_plan_idx The index into @p layers in which to find the extruder plan
+     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to find the preheat time needed
+     * \return the time needed to preheat
+     */
     double timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
         ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
@@ -123,7 +140,7 @@ public:
             }
             first_it = false;
         }
-        // The last extruder plan wit hthe same extruder falls outside of the buffer
+        // The last extruder plan with the same extruder falls outside of the buffer
         // assume the nozzle has cooled down to strandby temperature already.
         return preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp, false);
         
@@ -153,7 +170,14 @@ public:
     }
     
     /*!
+     * Insert the preheat command for an extruder plan which is preceded by an extruder plan with a different extruder.
+     * Find the time window in which this extruder hasn't been used
+     * and compute at what time the preheat command needs to be inserted.
+     * Then insert the preheat command in the right extruder plan.
      * 
+     * \param layers The layers in the buffer, moved to a vector
+     * \param layer_plan_idx The index into @p layers in which to find the extruder plan
+     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to find the preheat time needed
      */
     void insertPreheatCommand_multiExtrusion(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
     {
@@ -196,6 +220,7 @@ public:
         first_extruder_plan.insertCommand(0, extruder, required_temp, false); // insert preheat command at verfy beginning of buffer
     }
     /*!
+     * Insert the preheat command for the extruder plan corersponding to @p extruder_plan_idx of the layer corresponding to @p layer_plan_idx.
      * 
      * \param layers The layers of the buffer, moved to a temporary vector (from lower to upper layers)
      * \param layer_plan_idx The index of the layer plan for which to generate a preheat command
