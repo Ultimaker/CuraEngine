@@ -63,9 +63,9 @@ public:
             ExtruderTrain& extruder_train = *settings.getExtruderTrain(extruder_nr);
             config_per_extruder.emplace_back();
             Config& config = config_per_extruder.back();
-            config.time_to_cooldown_1_degree = extruder_train.getSettingInSeconds("machine_time_to_cool_1_degree"); // 0.5
-            config.time_to_heatup_1_degree = extruder_train.getSettingInSeconds("machine_time_to_heat_1_degree"); // 0.5
-            config.heatup_cooldown_time_mod_while_printing = extruder_train.getSettingInSeconds("material_extra_time_to_heat_1_degree_while_printing"); // 0.1
+            config.time_to_cooldown_1_degree = 1.0 / extruder_train.getSettingInSeconds("machine_nozzle_cool_down_speed"); // 0.5
+            config.time_to_heatup_1_degree = 1.0 / extruder_train.getSettingInSeconds("machine_nozzle_heat_up_speed"); // 0.5
+            config.heatup_cooldown_time_mod_while_printing = 1.0 / extruder_train.getSettingInSeconds("material_extrusion_cool_down_speed"); // 0.1
             config.standby_temp = extruder_train.getSettingInSeconds("material_standby_temperature"); // 150
             
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
