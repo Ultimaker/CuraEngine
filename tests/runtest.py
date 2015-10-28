@@ -81,7 +81,7 @@ class Setting():
         if self._type == "boolean":
             return ["True", "False"]
         if self._type == "float" or self._type == "int":
-            ret = []
+            ret = [self._default]
             if self._min_value is not None:
                 ret.append(self._min_value)
             else:
@@ -104,6 +104,8 @@ class Setting():
             return ret
         if self._type == "enum":
             return self._options
+        if self._type == "string":
+            return self._default
         print("Unknown setting type:", self._type)
 
     def getRandomValue(self):
