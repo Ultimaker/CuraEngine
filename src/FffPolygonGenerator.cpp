@@ -48,11 +48,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
     if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
     {
+        logError("Initial layer height %i is disallowed.",initial_layer_thickness);
         return false;
     }
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
     if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
     {
+        logError("Layer height %i is disallowed.",layer_thickness);
         return false;
     }
     if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
