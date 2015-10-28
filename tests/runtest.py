@@ -200,9 +200,9 @@ class EngineTest():
         t.start()
         stdout, stderr = p.communicate()
         if p.error == "Timeout":
-            return "Timeout"
+            return "Timeout: %s" % (' '.join(cmd))
         if p.wait() != 0:
-            return "Execution failed"
+            return "Execution failed: %s" % (' '.join(cmd))
         return None
     
     def _abortProcess(self, p):
