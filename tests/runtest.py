@@ -47,7 +47,7 @@ class TestResults():
         xml = ElementTree.Element("testsuites")
         xml.text = "\n"
         for testsuite in self._testsuites:
-            testsuite_xml = ElementTree.SubElement(xml, "testsuite", {"name": testsuite._name, "errors": "0", "tests": str(testsuite.getTestCount()), "failures": str(testsuite.getFailureCount()), "time": "0", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", gmtime())})
+            testsuite_xml = ElementTree.SubElement(xml, "testsuite", {"name": testsuite._name, "errors": "0", "tests": str(testsuite.getTestCount()), "failures": str(testsuite.getFailureCount()), "time": "0", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())})
             testsuite_xml.text = "\n"
             testsuite_xml.tail = "\n"
             for class_name, test_name in testsuite._successes:
