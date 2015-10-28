@@ -180,10 +180,10 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
-std::vector<std::pair<double, double>> SettingsBaseVirtual::getSettingAsPointVector(std::string key)
+FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
 {
-    std::vector<std::pair<double, double>> ret;
-    const char* c_str = key.c_str();
+    FlowTempGraph ret;
+    const char* c_str = getSettingString(key).c_str();
     char const* char_p = c_str;
     while (*char_p != '[')
     {
@@ -212,7 +212,7 @@ std::vector<std::pair<double, double>> SettingsBaseVirtual::getSettingAsPointVec
             char_p++;
         }
         char_p++; // skip the ']'
-        ret.emplace_back(first, second);
+        ret.data.emplace_back(first, second);
         if (*char_p == ']')
         {
             break;

@@ -8,6 +8,8 @@
 
 #include "utils/floatpoint.h"
 
+#include "FlowTempGraph.h"
+
 namespace cura
 {
 
@@ -171,6 +173,8 @@ public:
     double getSettingInCubicMillimeters(std::string key);
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
+    
+    FlowTempGraph getSettingAsFlowTempGraph(std::string key);
     
     std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key);
     
