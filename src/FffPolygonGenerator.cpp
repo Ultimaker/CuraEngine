@@ -100,20 +100,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
+            meshStorage.layers[layer_nr].printZ += 
+                meshStorage.getSettingInMicrons("layer_height_0")
+                - initial_slice_z;
             if (has_raft)
             {
                 layer.printZ += 
                     meshStorage.getSettingInMicrons("raft_base_thickness") 
                     + meshStorage.getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
-                    + meshStorage.getSettingInMicrons("raft_airgap")
-                    - initial_slice_z;
-            }
-            else 
-            {
-                meshStorage.layers[layer_nr].printZ += 
-                    meshStorage.getSettingInMicrons("layer_height_0")
-                    - initial_slice_z;
+                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness") //raft_surface_thickness") 
+                    + meshStorage.getSettingInMicrons("raft_airgap");
             }
     
  
