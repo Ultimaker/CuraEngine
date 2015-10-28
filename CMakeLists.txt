@@ -12,6 +12,12 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
+# Add a compiler flag to check the output for insane values if we are in debug mode.
+if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+	message("Building debug release of CuraEngine.")
+	add_definitions(-DASSERT_INSANE_OUTPUT)
+endif()
+
 # Add warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
