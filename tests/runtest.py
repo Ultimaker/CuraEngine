@@ -145,7 +145,9 @@ class EngineTest():
                     self._flattenSettings(setting["children"])
 
     def testDefaults(self):
-        self._runTest(self._test_results.addTestSuite("Defaults"), "defaults", {})
+        suite = self._test_results.addTestSuite("Defaults")
+        self._runTest(suite, "defaults", {})
+        return suite.getFailureCount()
 
     def testSingleChanges(self):
         suite = self._test_results.addTestSuite("SingleSetting")
