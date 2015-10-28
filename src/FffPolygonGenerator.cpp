@@ -97,7 +97,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 layer.printZ += 
                     meshStorage.getSettingInMicrons("raft_base_thickness") 
                     + meshStorage.getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness") //raft_surface_thickness") 
+                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
                     + meshStorage.getSettingInMicrons("raft_airgap");
             }
     
