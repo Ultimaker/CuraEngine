@@ -25,6 +25,14 @@ class TestSuite():
         #print('Failure:', class_name, test_name, error_message)
         self._failures.append((class_name, test_name, error_message))
 
+    def getTestCount(self):
+        return self.getSuccessCount() + self.getFailureCount()
+
+    def getSuccessCount(self):
+        return len(self._successes)
+
+    def getFailureCount(self):
+        return len(self._failures)
 
 class TestResults():
     def __init__(self):
@@ -39,7 +47,7 @@ class TestResults():
         xml = ElementTree.Element("testsuites")
         xml.text = "\n"
         for testsuite in self._testsuites:
-            testsuite_xml = ElementTree.SubElement(xml, "testsuite", {"name": testsuite._name, "errors": "0", "tests": str(len(testsuite._successes) + len(testsuite._failures)), "failures": str(len(testsuite._failures)), "time": "0", "timestamp":"2013-05-24T10:23:58"})
+            testsuite_xml = ElementTree.SubElement(xml, "testsuite", {"name": testsuite._name, "errors": "0", "tests": str(testsuite.getTestCount()), "failures": str(testsuite.getFailureCount()), "time": "0", "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime())})
             testsuite_xml.text = "\n"
             testsuite_xml.tail = "\n"
             for class_name, test_name in testsuite._successes:
@@ -77,13 +85,16 @@ class Setting():
             if self._min_value is not None:
                 ret.append(self._min_value)
             else:
-                ret.append(-1)
+                ret.append(-2)
             if self._min_value_warning is not None:
                 ret.append(self._min_value_warning)
             if self._max_value is not None:
                 ret.append(self._max_value)
             else:
-                ret.append(10000)
+                if self._max_value_warning is None:
+                    ret.append(10000)
+                else:
+                    ret.append(100)
             if self._max_value_warning is not None:
                 ret.append(self._max_value_warning)
             
@@ -134,18 +145,22 @@ class EngineTest():
                     self._flattenSettings(setting["children"])
 
     def testDefaults(self):
-        self._runTest(self._test_results.addTestSuite("Defaults"), "defaults", {})
+        suite = self._test_results.addTestSuite("Defaults")
+        self._runTest(suite, "defaults", {})
+        return suite.getFailureCount()
 
     def testSingleChanges(self):
         suite = self._test_results.addTestSuite("SingleSetting")
         for key, setting in self._settings.items():
             for value in setting.getSettingValues():
                 self._runTest(suite, key, {key: value})
+        return suite.getFailureCount()
     
     def testSingleRandom(self):
         suite = self._test_results.addTestSuite("SingleRandom")
         for key, setting in self._settings.items():
             self._runTest(suite, key, {key: setting.getRandomValue()})
+        return suite.getFailureCount()
 
     def testDualRandom(self):
         suite = self._test_results.addTestSuite("DualRandom")
@@ -153,27 +168,30 @@ class EngineTest():
             for key2, setting2 in self._settings.items():
                 if key != key2:
                     self._runTest(suite, key, {key: setting.getRandomValue(), key2: setting2.getRandomValue()})
+        return suite.getFailureCount()
 
     def testAllRandom(self, amount):
-        suite = self._test_results.addTestSuite("AllRandom")
+        suite = self._test_results.addTestSuite("AllRandom_%d" % (amount))
         for n in range(0, amount):
             settings = {}
             for key, setting in self._settings.items():
                 settings[key] = setting.getRandomValue()
             self._runTest(suite, "Random", settings)
+        return suite.getFailureCount()
 
     def _runTest(self, suite, class_name, settings):
         test_name = ', '.join("{!s}={!r}".format(key, val) for (key,val) in settings.items())
         for model in self._models:
+            this_test_name = '%s.%s' % (os.path.basename(model), test_name)
             cmd = [self._engine, "slice", "-j", self._json_filename, "-o", "/dev/null"]
             for key, value in settings.items():
                 cmd += ['-s', '%s=%s' % (key, value)]
             cmd += ["-l", model]
             error = self._runProcess(cmd)
             if error is not None:
-                suite.failure(class_name, '%s.%s' % (model, test_name), error)
+                suite.failure(class_name, this_test_name, error)
             else:
-                suite.success(class_name, '%s.%s' % (model, test_name))
+                suite.success(class_name, this_test_name)
 
     def _runProcess(self, cmd):
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -182,9 +200,9 @@ class EngineTest():
         t.start()
         stdout, stderr = p.communicate()
         if p.error == "Timeout":
-            return "Timeout"
+            return "Timeout: %s" % (' '.join(cmd))
         if p.wait() != 0:
-            return "Execution failed"
+            return "Execution failed: %s" % (' '.join(cmd))
         return None
     
     def _abortProcess(self, p):
@@ -219,10 +237,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     et = EngineTest(args.json, args.engine, args.models)
-    et.testDefaults()
-    et.testSingleChanges()
-    et.testSingleRandom()
-    #et.testDualRandom()
-    et.testAllRandom(1000)
+    if et.testDefaults() == 0:
+        et.testSingleChanges()
+        if et.testSingleRandom() == 0:
+            et.testDualRandom()
+        if et.testAllRandom(10) == 0:
+            et.testAllRandom(100)
     et.getResults().saveXML("output.xml")
  
