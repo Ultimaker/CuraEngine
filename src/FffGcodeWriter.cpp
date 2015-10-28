@@ -302,7 +302,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePathConfig& raft_interface_config = gcode_layer.getRaftConfig(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
         raft_interface_config.setLineWidth(getSettingInMicrons("raft_interface_line_width"));
-        raft_interface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_interface_config.setLayerHeight(getSettingInMicrons("raft_interface_thickness"));
         raft_interface_config.setFlow(train->getSettingInPercentage("material_flow"));
         
         gcode_layer.setCombing(false);
@@ -337,7 +337,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePathConfig& raft_surface_config = gcode_layer.getRaftConfig(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
         raft_surface_config.setLineWidth(getSettingInMicrons("raft_surface_line_width"));
-        raft_surface_config.setLayerHeight(getSettingInMicrons("raft_base_thickness"));
+        raft_surface_config.setLayerHeight(getSettingInMicrons("raft_surface_thickness"));
         raft_surface_config.setFlow(train->getSettingInPercentage("material_flow"));
         
         gcode_layer.setCombing(false);
