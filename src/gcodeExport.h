@@ -49,7 +49,7 @@ private:
     int layer_thickness; //!< layer height
     double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line extruded
 public:
-    const char* name;
+    const char* name; //!< name of the feature type
     bool spiralize;
     RetractionConfig *const retraction_config;
     
@@ -97,11 +97,6 @@ public:
     int getLineWidth()
     {
         return line_width;
-    }
-
-    int getLayerHeight()
-    {
-        return layer_thickness;
     }
     
 private:

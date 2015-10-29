@@ -255,11 +255,14 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     
     int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
     
+    int z = 0;
+    
     { // raft base layer
         
         int layer_nr = -n_raft_surface_layers - 2;
-        int64_t z = getSettingInMicrons("raft_base_thickness");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        int layer_height = getSettingInMicrons("raft_base_thickness");
+        z += layer_height;
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         GCodePathConfig& raft_base_config = gcode_layer.getRaftConfig(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_base_config.setSpeed(getSettingInMillimetersPerSecond("raft_base_speed"));
@@ -271,7 +274,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
         if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, raft_base_config.getLayerHeight());
+            command_socket->sendLayerInfo(layer_nr, z, layer_height);
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &raft_base_config);
 
         Polygons raftLines;
@@ -292,8 +295,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
     { // raft interface layer
         int layer_nr = -n_raft_surface_layers - 1;
-        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        int layer_height = train->getSettingInMicrons("raft_interface_thickness");
+        z += layer_height;
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         GCodePathConfig& raft_interface_config = gcode_layer.getRaftConfig(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_interface_config.setSpeed(getSettingInMillimetersPerSecond("raft_interface_speed"));
@@ -303,7 +307,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setCombing(false);
         if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, raft_interface_config.getLayerHeight());
+            command_socket->sendLayerInfo(layer_nr, z, layer_height);
         
         Polygons raftLines;
         int offset_from_poly_outline = 0;
@@ -322,11 +326,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     }
 
 
+    int layer_height = train->getSettingInMicrons("raft_surface_thickness");
+    
     for (int raftSurfaceLayer=1; raftSurfaceLayer <= n_raft_surface_layers; raftSurfaceLayer++)
     { // raft surface layers
         int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
-        int64_t z = train->getSettingInMicrons("raft_base_thickness") + train->getSettingInMicrons("raft_interface_thickness") + train->getSettingInMicrons("raft_surface_thickness")*raftSurfaceLayer;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        z += layer_height;
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, &storage.retraction_config_per_extruder[extruder_nr], fan_speed_layer_time_settings, train->getSettingInMillimetersPerSecond("speed_travel"), retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         GCodePathConfig& raft_surface_config = gcode_layer.getRaftConfig(&storage.retraction_config_per_extruder[extruder_nr], "SUPPORT");
         raft_surface_config.setSpeed(getSettingInMillimetersPerSecond("raft_surface_speed"));
@@ -336,7 +342,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setCombing(false);
         if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, raft_surface_config.getLayerHeight());
+            command_socket->sendLayerInfo(layer_nr, z, layer_height);
         
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
@@ -382,7 +388,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, &storage.retraction_config, fan_speed_layer_time_settings, getSettingInMillimetersPerSecond("speed_travel"), getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (layer_nr == 0)
     {

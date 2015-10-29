@@ -32,11 +32,12 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int current_extruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , commandSocket(commandSocket)
 , layer_nr(layer_nr)
 , z(z)
+, layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
@@ -362,7 +363,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 double length = vSizeMM(p0 - p1);
                 if (is_extrusion_path)
                 {
-                    material_estimate += length * INT2MM(path.config->getLayerHeight()) * INT2MM(path.config->getLineWidth());
+                    material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
                 }
                 double thisTime = length / path.config->getSpeed();
                 *path_time_estimate += thisTime;
