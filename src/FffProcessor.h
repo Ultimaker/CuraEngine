@@ -37,7 +37,7 @@ public:
 private:
     FffPolygonGenerator polygon_generator;
     FffGcodeWriter gcode_writer;
-    CommandSocket* command_socket;
+    CommandSocket* command_socket; // TODO: replace all refs to command_socket by CommandSocket::getInstance()
     
     bool first_meshgroup;
     
