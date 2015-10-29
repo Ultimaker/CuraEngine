@@ -314,7 +314,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
 
-        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_interface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
 //         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
 //         if (command_socket)
@@ -347,7 +347,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
         
-        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_surface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
 //         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
 //         if (command_socket)
