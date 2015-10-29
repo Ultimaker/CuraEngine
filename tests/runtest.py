@@ -1,5 +1,14 @@
 #!/usr/bin/python3
 
+## runtest.py
+# The runtest.py script runs regression tests on the CuraEngine.
+# It parses the json file for settings to know which settings can be passed towards the engine.
+# It runs the following test:
+# * Defaults
+# * Bounds/possible values
+# * Single random value
+# * All settings random
+
 import sys
 import subprocess
 import os
@@ -11,38 +20,51 @@ import json
 import threading
 from xml.etree import ElementTree
 
+
+## The TestSuite class stores the test results of a single set of tests.
+#  TestSuite objects are created by the TestResults class.
 class TestSuite():
     def __init__(self, name):
         self._name = name
         self._successes = []
         self._failures = []
     
+    ## Add a successfull test result to the test suite.
     def success(self, class_name, test_name):
         #print('Success:', class_name, test_name)
         self._successes.append((class_name, test_name))
 
+    ## Add a failed test result to the test suite.
     def failure(self, class_name, test_name, error_message):
         #print('Failure:', class_name, test_name, error_message)
         self._failures.append((class_name, test_name, error_message))
 
+    ## Return the number of tests in this test suite
     def getTestCount(self):
         return self.getSuccessCount() + self.getFailureCount()
 
+    ## Return the number of successfull tests in this test suite
     def getSuccessCount(self):
         return len(self._successes)
 
+    ## Return the number of failed tests in this test suite
     def getFailureCount(self):
         return len(self._failures)
 
+
+## The TestResults class stores a group of TestSuite objects, each TestSuite object contains failed and successful test.
+#  This class can output the result of the tests in a JUnit xml format for parsing in Jenkins.
 class TestResults():
     def __init__(self):
         self._testsuites = []
     
+    ## Create a new test suite with the name.
     def addTestSuite(self, name):
         suite = TestSuite(name)
         self._testsuites.append(suite)
         return suite
-    
+
+    ## Save the test results to the file given in the filename.
     def saveXML(self, filename):
         xml = ElementTree.Element("testsuites")
         xml.text = "\n"
@@ -77,6 +99,10 @@ class Setting():
         if self._options is not None:
             self._options = list(self._options.keys())
 
+    ## Return a list of possible values for this setting. This list depends on the setting type.
+    #  For number values it contains the minimal and maximal values.
+    #  For enums and booleans it will contain the exact possible values.
+    #  For string settings only the default value is returned.
     def getSettingValues(self):
         if self._type == "boolean":
             return ["True", "False"]
@@ -94,7 +120,8 @@ class Setting():
                 if self._max_value_warning is None:
                     ret.append(10000)
                 else:
-                    ret.append(100)
+                    ret.append(self._max_value_warning + 100)
+                    ret.append(self._max_value_warning * 10)
             if self._max_value_warning is not None:
                 ret.append(self._max_value_warning)
             
@@ -108,9 +135,10 @@ class Setting():
             return self._default
         print("Unknown setting type:", self._type)
 
+    ## Return a random value for this setting. The returned value will be a valid value according to the settings json file.
     def getRandomValue(self):
         if self._type == "float" or self._type == "int":
-            min = -1
+            min = -2
             if self._min_value_warning is not None:
                 min = self._min_value_warning
             if self._min_value is not None:
@@ -237,7 +265,7 @@ if __name__ == "__main__":
     parser.add_argument("engine", type=str, help="Engine executable")
     parser.add_argument("models", type=str, nargs="+", help="List of models to use for testing")
     args = parser.parse_args()
-    
+
     et = EngineTest(args.json, args.engine, args.models)
     if et.testDefaults() == 0:
         et.testSingleChanges()
@@ -246,4 +274,3 @@ if __name__ == "__main__":
         if et.testAllRandom(10) == 0:
             et.testAllRandom(100)
     et.getResults().saveXML("output.xml")
- 
