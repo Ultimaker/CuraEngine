@@ -90,7 +90,10 @@ void CommandSocket::connect(const std::string& ip, int port)
             FffProcessor::getInstance()->resetFileNumber();
             for(auto object : d->objects_to_slice)
             {
-                FffProcessor::getInstance()->processMeshGroup(object.get());
+                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                {
+                    logError("Slicing mesh group failed!");
+                }
             }
             d->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
