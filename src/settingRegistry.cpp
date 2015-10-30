@@ -204,13 +204,15 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         }
     }
     
-    if (false && json_document.HasMember("overrides"))
+    if (json_document.HasMember("overrides"))
     {
         const rapidjson::Value& json_object_container = json_document["overrides"];
         for (rapidjson::Value::ConstMemberIterator override_iterator = json_object_container.MemberBegin(); override_iterator != json_object_container.MemberEnd(); ++override_iterator)
         {
-            SettingConfig* conf = getSettingConfig(override_iterator->name.GetString());
-            _addSettingToContainer(conf, override_iterator, false);
+            std::string setting = override_iterator->name.GetString();
+            logError("%s\n", setting.c_str());
+            SettingConfig* conf = getSettingConfig(setting);
+            _loadSettingValues(conf, override_iterator, false);
         }
     }
     
@@ -249,7 +251,12 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     /// Create the new setting config object.
     SettingConfig* config = parent->addChild(json_object_it->name.GetString(), label);
     
-    
+    _loadSettingValues(config, json_object_it, warn_duplicates, add_to_settings);
+}
+
+void SettingRegistry::_loadSettingValues(SettingConfig* config, rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
+{
+    const rapidjson::Value& data = json_object_it->value;
     /// Fill the setting config object with data we have in the json file.
     if (data.HasMember("type") && data["type"].IsString())
     {
@@ -282,7 +289,7 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
         const rapidjson::Value& json_object_container = data["children"];
         for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
         {
-            _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
+            _addSettingToContainer(config, setting_iterator, warn_duplicates, add_to_settings);
         }
     }
 }

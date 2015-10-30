@@ -18,7 +18,7 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, float 
     ret->config = config;
     ret->done = false;
     ret->flow = flow;
-    if (config != &travelConfig)
+    if (config != &storage.travel_config)
     {
         last_retraction_config = config->retraction_config;
     }
@@ -32,19 +32,17 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int current_extruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , commandSocket(commandSocket)
 , layer_nr(layer_nr)
 , z(z)
+, layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
-, travelConfig(retraction_config_travel, "MOVE")
-, raft_config(nullptr)
 {
     extruder_plans.emplace_back(current_extruder);
-    travelConfig.setSpeed(travelSpeed);
     comb = nullptr;
     last_retraction_config = &storage.retraction_config; // start with general config
     setExtrudeSpeedFactor(1.0);
@@ -65,8 +63,6 @@ GCodePlanner::~GCodePlanner()
 {
     if (comb)
         delete comb;
-    if (raft_config)
-        delete raft_config;
 }
 
 void GCodePlanner::setCombing(bool going_to_comb)
@@ -141,7 +137,7 @@ void GCodePlanner::addTravel(Point p)
             
             if (retract && last_retraction_config->zHop > 0)
             { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
-                path = getLatestPathWithConfig(&travelConfig);
+                path = getLatestPathWithConfig(&storage.travel_config);
                 if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
                 {
                     path->retract = true;
@@ -155,7 +151,7 @@ void GCodePlanner::addTravel(Point p)
                     {
                         continue;
                     }
-                    path = getLatestPathWithConfig(&travelConfig);
+                    path = getLatestPathWithConfig(&storage.travel_config);
                     path->retract = retract;
                     for (Point& combPoint : combPath)
                     {
@@ -170,7 +166,7 @@ void GCodePlanner::addTravel(Point p)
     
     if(!combed) {
         // no combing? always retract!
-        path = getLatestPathWithConfig(&travelConfig);
+        path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
             path->retract = true;
@@ -179,7 +175,7 @@ void GCodePlanner::addTravel(Point p)
     
     if(comb == nullptr) {
         // no combing? always retract!
-        path = getLatestPathWithConfig(&travelConfig);
+        path = getLatestPathWithConfig(&storage.travel_config);
         path->retract = true;
     }
     addTravel_simple(p, path);
@@ -189,7 +185,7 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(&travelConfig);
+        path = getLatestPathWithConfig(&storage.travel_config);
     }
     path->points.push_back(p);
     lastPosition = p;
@@ -362,7 +358,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 double length = vSizeMM(p0 - p1);
                 if (is_extrusion_path)
                 {
-                    material_estimate += length * INT2MM(path.config->getLayerHeight()) * INT2MM(path.config->getLineWidth());
+                    material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
                 }
                 double thisTime = length / path.config->getSpeed();
                 *path_time_estimate += thisTime;
@@ -403,6 +399,8 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 
 void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness)
 {
+    completeConfigs();
+    
     gcode.setCommandSocketAndLayerNr(commandSocket, layer_nr);
     
     gcode.writeLayerComment(layer_nr);
@@ -443,7 +441,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             {
                 writeRetraction(gcode, extruder_plan_idx, path_idx);
             }
-            if (path.config != &travelConfig && last_extrusion_config != path.config)
+            if (path.config != &storage.travel_config && last_extrusion_config != path.config)
             {
                 gcode.writeTypeComment(path.config->name);
                 last_extrusion_config = path.config;
@@ -457,13 +455,13 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
 
             int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
             
-            if (MergeInfillLines(gcode, paths, inserts, travelConfig, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, paths, inserts, storage.travel_config, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
             }
             
-            if (path.config == &travelConfig)
+            if (path.config == &storage.travel_config)
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
@@ -498,8 +496,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                         false &&
                         path_idx + 2 < paths.size() // has a next move
                         && paths[path_idx+1].points.size() == 1 // is single extruded line
-                        && paths[path_idx+1].config != &travelConfig // next move is extrusion
-                        && paths[path_idx+2].config == &travelConfig // next next move is travel
+                        && paths[path_idx+1].config != &storage.travel_config // next move is extrusion
+                        && paths[path_idx+2].config == &storage.travel_config // next next move is travel
                         && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
                         && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
                         && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
@@ -564,9 +562,54 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             writeRetraction(gcode, extruder_switch_retract, last_extrusion_config->retraction_config);
         }
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-        gcode.writeMove(gcode.getPositionXY(), travelConfig.getSpeed(), 0);
-        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), travelConfig.getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
+        gcode.writeMove(gcode.getPositionXY(), storage.travel_config.getSpeed(), 0);
+        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config.getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
         gcode.writeDelay(extraTime);
+    }
+}
+
+void GCodePlanner::completeConfigs()
+{
+    storage.support_config.setLayerHeight(layer_thickness);
+    storage.support_roof_config.setLayerHeight(layer_thickness);
+    
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        mesh.inset0_config.setLayerHeight(layer_thickness);
+
+        mesh.insetX_config.setLayerHeight(layer_thickness);
+        mesh.skin_config.setLayerHeight(layer_thickness);
+        for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
+        {
+            mesh.infill_config[idx].setLayerHeight(layer_thickness);
+        }
+    }
+    
+    storage.primeTower.setConfigs(storage.meshgroup, layer_thickness);
+    
+    processInitialLayersSpeedup();
+}
+
+
+void GCodePlanner::processInitialLayersSpeedup()
+{
+    double initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
+    if (static_cast<int>(layer_nr) < initial_speedup_layers)
+    {
+        double initial_layer_speed = storage.getSettingInMillimetersPerSecond("speed_layer_0");
+        storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+        storage.support_roof_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+        for(SliceMeshStorage& mesh : storage.meshes)
+        {
+            initial_layer_speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
+            mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
+            {
+                mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            }
+        }
     }
 }
 
@@ -582,7 +625,7 @@ void GCodePlanner::writeRetraction(GCodeExport& gcode, unsigned int extruder_pla
         RetractionConfig* extrusion_retraction_config = nullptr;
         for(int extrusion_path_idx = int(path_idx_travel_after) - 1; extrusion_path_idx >= 0; extrusion_path_idx--)
         { // backtrack to find the last extrusion path
-            if (paths[extrusion_path_idx].config != &travelConfig)
+            if (paths[extrusion_path_idx].config != &storage.travel_config)
             {
                 extrusion_retraction_config = paths[extrusion_path_idx].config->retraction_config;
                 break;
@@ -605,7 +648,7 @@ void GCodePlanner::writeRetraction(GCodeExport& gcode, bool extruder_switch_retr
         }
         else 
         {
-            gcode.writeRetraction(travelConfig.retraction_config);
+            gcode.writeRetraction(storage.travel_config.retraction_config);
         }
     }
 }

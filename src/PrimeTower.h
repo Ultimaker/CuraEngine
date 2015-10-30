@@ -27,7 +27,7 @@ private:
     };
 public:
     void initConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder);
-    void setConfigs(MeshGroup* configs, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness);
+    void setConfigs(MeshGroup* configs, int layer_thickness);
     
     Polygons ground_poly;
     

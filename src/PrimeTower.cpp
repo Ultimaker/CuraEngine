@@ -18,28 +18,27 @@ PrimeTower::PrimeTower()
 
 void PrimeTower::initConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder)
 {
-    
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
     
     for (int extr = 0; extr < extruder_count; extr++)
     {
         config_per_extruder.emplace_back(&retraction_config_per_extruder[extr], "SUPPORT");// so that visualization in the old Cura still works (TODO)
     }
+    for (int extr = 0; extr < extruder_count; extr++)
+    {
+        ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
+        config_per_extruder[extr].init(train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMicrons("prime_tower_line_width"), train->getSettingInPercentage("prime_tower_flow"));
+    }
 }
 
-void PrimeTower::setConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness)
+void PrimeTower::setConfigs(MeshGroup* meshgroup, int layer_thickness)
 {
     
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
     
     for (int extr = 0; extr < extruder_count; extr++)
     {
-        ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
         GCodePathConfig& conf = config_per_extruder[extr];
-        
-        conf.setSpeed(train->getSettingInMillimetersPerSecond("speed_prime_tower"));
-        conf.setLineWidth(train->getSettingInMicrons("prime_tower_line_width"));
-        conf.setFlow(train->getSettingInPercentage("prime_tower_flow"));
         conf.setLayerHeight(layer_thickness);
     }
 }

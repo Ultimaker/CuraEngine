@@ -35,6 +35,7 @@ set(engine_SRCS
     src/infill.cpp
     src/inset.cpp
     src/layerPart.cpp
+    src/LayerPlanBuffer.cpp
     src/main.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp

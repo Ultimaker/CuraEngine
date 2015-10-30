@@ -185,6 +185,8 @@ private:
     
     int z; 
     
+    int layer_thickness;
+    
     Point start_position;
     Point lastPosition;
     
@@ -197,11 +199,7 @@ private:
     RetractionConfig* last_retraction_config;
     
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
-    
-    GCodePathConfig travelConfig; //!< The config used for travel moves (only the speed and retraction config are set!)
-    
-    GCodePathConfig* raft_config; //!< The config for printing the raft on this layer. Owned (and deleted) by this layer plan.
-    
+
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
     
@@ -239,7 +237,7 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, Point last_position, int current_extruder, RetractionConfig* retraction_config_travel, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, double travelSpeed, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     int getLayerNr()
@@ -282,16 +280,6 @@ public:
     void setFanSpeed(double _fan_speed)
     {
         fan_speed = _fan_speed;
-    }
-
-    template<typename... Args>
-    GCodePathConfig& getRaftConfig(Args&&... args)
-    {
-        if (!raft_config)
-        {
-            raft_config = new GCodePathConfig(args...);
-        }
-        return *raft_config;
     }
     
     /*!
@@ -342,6 +330,18 @@ public:
      * \param gcode The gcode to write the planned paths to
      */
     void writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness);
+    
+    /*!
+     * Complete all GcodePathConfig s by 
+     * - altering speed to conform to speed_layer_0
+     * - setting the layer_height (and thereby computing the extrusionMM3perMM)
+     */
+    void completeConfigs();
+    
+    /*!
+     * Interpolate between the initial layer speeds and the eventual speeds.
+     */
+    void processInitialLayersSpeedup();
     
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
