@@ -56,26 +56,24 @@ public:
     // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
     GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
-    void setSpeed(double speed)
+    /*!
+     * Initialize some of the member variables.
+     * 
+     * Warning! setLayerHeight still has to be called before this object can be used.
+     */
+    void init(double speed, int line_width, double flow)
     {
         this->speed = speed;
-    }
-    
-    void setLineWidth(int line_width)
-    {
         this->line_width = line_width;
-        calculateExtrusion();
+        this->flow = flow;
     }
-    
+
+    /*!
+     * Set the layer height and (re)compute the extrusion_per_mm
+     */
     void setLayerHeight(int layer_height)
     {
         this->layer_thickness = layer_height;
-        calculateExtrusion();
-    }
-
-    void setFlow(double flow)
-    {
-        this->flow = flow;
         calculateExtrusion();
     }
     

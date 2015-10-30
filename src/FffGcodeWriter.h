@@ -118,15 +118,10 @@ private:
     //Setup the retraction parameters.
     void setConfigRetraction(SliceDataStorage& storage);
     
-    void setConfigSkirt(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigSupport(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigInsets(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigSkin(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigInfill(SliceMeshStorage& mesh, int layer_thickness);
+    /*!
+     * initialize GcodePathConfig config parameters which don't change over all layers
+     */
+    void initConfigs(SliceDataStorage& storage);
     
     /*!
      * Set temperatures and perform initial priming.
@@ -155,13 +150,6 @@ private:
      * \param has_raft Whether a raft is used for this print.
      */
     void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
-    
-    /*!
-     * Interpolate between the initial layer speeds and the eventual speeds.
-     * \param storage Input: where the slice data is stored.
-     * \param layer_nr The index of the layer to write the gcode of.
-     */
-    void processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr);
     
     /*!
      * Add the skirt to the gcode.
