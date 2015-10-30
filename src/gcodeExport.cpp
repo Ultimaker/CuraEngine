@@ -282,10 +282,10 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             Point3 diff = Point3(x,y,z) - getPosition();
             if (isZHopped > 0)
             {
-                if (isinf(currentPosition.z))
+                if (std::isinf(currentPosition.z))
                 {
                     logError("Error! No Z position set yet!");
-                    assert(!isinf(currentPosition.z));
+                    assert(!std::isinf(currentPosition.z));
                 }
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = 0;
