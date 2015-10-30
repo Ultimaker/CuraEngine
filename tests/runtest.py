@@ -119,9 +119,13 @@ class Setting():
             else:
                 if self._max_value_warning is None:
                     ret.append(10000)
-                else:
-                    ret.append(self._max_value_warning + 100)
-                    ret.append(self._max_value_warning * 10)
+                elif self._type == "float":
+                    ret.append(float(self._max_value_warning) + 100)
+                    ret.append(float(self._max_value_warning) * 10)
+                elif self._type == "int":
+                    ret.append(int(self._max_value_warning) + 100)
+                    ret.append(int(self._max_value_warning) * 10)
+                # If the type is boolean, string or enum, the warning values make no sense anyway, so don't test them.
             if self._max_value_warning is not None:
                 ret.append(self._max_value_warning)
             
@@ -274,3 +278,4 @@ if __name__ == "__main__":
         if et.testAllRandom(10) == 0:
             et.testAllRandom(100)
     et.getResults().saveXML("output.xml")
+
