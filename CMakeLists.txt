@@ -68,6 +68,10 @@ set(engine_SRCS
     src/utils/polygon.cpp
 )
 
+set(engine_TEST
+    tests/LinearAlg2DTest.cpp
+)
+
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 
 add_executable(CuraEngine ${engine_SRCS} ${engine_PB_SRCS})
@@ -77,6 +81,15 @@ if (UNIX)
     target_link_libraries(CuraEngine pthread)
 endif()
 
+# Compiling the test environment.
+add_library(CuraEngineLibrary ${engine_SRCS} ${engine_PB_SRCS})
+if (UNIX)
+    target_link_libraries(CuraEngineLibrary pthread)
+endif()
+add_executable(CuraTest ${engine_TEST})
+target_link_libraries(CuraTest cppunit)
+
+# Installing CuraEngine.
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
 include(CPackConfig.cmake)
