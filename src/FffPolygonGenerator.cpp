@@ -45,10 +45,29 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int layer_height_0 = meshgroup->getSettingInMicrons("layer_height_0");
+    int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+    {
+        logError("Initial layer height %i is disallowed.",initial_layer_thickness);
+        return false;
+    }
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
-    int initial_slice_z = layer_height_0 - layer_thickness / 2;
+    if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
+    {
+        logError("Layer height %i is disallowed.",layer_thickness);
+        return false;
+    }
+    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
+    { 
+        initial_layer_thickness = layer_thickness; 
+    }
+    int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
+    if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+    {
+        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper,commandSocket); //Continue directly with the inset stage, which will also immediately stop.
+        return true; //This is NOT an error state!
+    }
 
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
