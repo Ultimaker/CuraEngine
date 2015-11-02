@@ -29,7 +29,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
 
 add_library(clipper STATIC libs/clipper/clipper.cpp)
 
-set(engine_SRCS
+set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
     src/comb.cpp
     src/commandSocket.cpp
@@ -41,7 +41,6 @@ set(engine_SRCS
     src/infill.cpp
     src/inset.cpp
     src/layerPart.cpp
-    src/main.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
@@ -68,13 +67,16 @@ set(engine_SRCS
     src/utils/polygon.cpp
 )
 
+# List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
-    tests/LinearAlg2DTest.cpp
+    LinearAlg2DTest
 )
 
+# Generating ProtoBuf protocol.
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 
-add_executable(CuraEngine ${engine_SRCS} ${engine_PB_SRCS})
+# Compiling CuraEngine itself.
+add_executable(CuraEngine ${engine_SRCS} src/main.cpp ${engine_PB_SRCS})
 target_link_libraries(CuraEngine clipper Arcus)
 
 if (UNIX)
@@ -82,12 +84,19 @@ if (UNIX)
 endif()
 
 # Compiling the test environment.
-add_library(CuraEngineLibrary ${engine_SRCS} ${engine_PB_SRCS})
-if (UNIX)
-    target_link_libraries(CuraEngineLibrary pthread)
+if (BUILD_TESTS)
+    add_library(CuraEngineLibrary ${engine_SRCS} ${engine_PB_SRCS})
+    if (UNIX)
+        target_link_libraries(CuraEngineLibrary pthread)
+    endif()
+    enable_testing()
+    foreach (test ${engine_TEST})
+        add_executable(${test} tests/main.cpp tests/${test}.cpp)
+        target_link_libraries(${test} CuraEngineLibrary)
+        target_link_libraries(${test} cppunit)
+        add_test(${test} ${test})
+    endforeach()
 endif()
-add_executable(CuraTest ${engine_TEST})
-target_link_libraries(CuraTest cppunit)
 
 # Installing CuraEngine.
 include(GNUInstallDirs)
