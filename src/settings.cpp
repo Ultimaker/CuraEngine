@@ -92,7 +92,7 @@ void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
     
     if (!machine_extruder_trains) 
     {
-        logWarning("Error: no machine_extruder_trains category found in JSON!\n");
+        // no machine_extruder_trains setting present; just use defaults for each train..
         return;
     }
     
