@@ -865,7 +865,11 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
     
     double fillAngle;
-    if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height"))
+    if (pattern == EFillMethod::CONCENTRIC)
+    {
+        fillAngle = 0;
+    }
+    else if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height") || pattern == EFillMethod::TRIANGLES)
     {
         fillAngle = 90; // perpendicular to support lines
     }
