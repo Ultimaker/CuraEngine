@@ -155,7 +155,10 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
 
 void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
-    amount = std::max(amount,1u);
+    if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
+    {
+        return;
+    }
     if(storage.layers.empty() || storage.layers.size() - 1 < (size_t)storage.getSettingAsCount("top_layers") || storage.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
