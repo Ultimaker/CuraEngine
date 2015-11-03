@@ -51,7 +51,7 @@ public:
         }
         if (flow < data.front().flow)
         {
-            logError("Warning! Flow too low!\n"); // TODO
+            logWarning("Warning! Flow too low!\n"); // TODO
             return data.front().temp;
         }
         Datum* last_datum = &data.front();
@@ -65,7 +65,7 @@ public:
             last_datum = &datum;
         }
         
-        logError("Warning! Flow too high!\n"); // TODO
+        logWarning("Warning! Flow too high!\n"); // TODO
         return data.back().temp;
     };
 };
