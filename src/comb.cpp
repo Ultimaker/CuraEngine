@@ -249,10 +249,10 @@ void LinePolygonsCrossings::calcScanlineCrossings()
     {
         PolyCrossings minMax(poly_idx); 
         PolygonRef poly = boundary[poly_idx];
-        Point p0 = transformation_matrix.apply(PolygonUtils::getBoundaryPointWithOffset(poly,poly.size() - 1,dist_to_move_boundary_point_outside));
+        Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point p1 = transformation_matrix.apply(PolygonUtils::getBoundaryPointWithOffset(poly,point_idx,dist_to_move_boundary_point_outside));
+            Point p1 = transformation_matrix.apply(poly[point_idx]);
             if((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
             {
                 if(p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
@@ -263,14 +263,15 @@ void LinePolygonsCrossings::calcScanlineCrossings()
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    if(x < minMax.min.x)
+                    if(x - dist_to_move_boundary_point_outside < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
+                                                                               //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
                     {
-                        minMax.min.x = x;
+                        minMax.min.x = x - dist_to_move_boundary_point_outside;
                         minMax.min.point_idx = point_idx;
                     }
-                    if(x > minMax.max.x)
+                    if(x + dist_to_move_boundary_point_outside > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
                     {
-                        minMax.max.x = x;
+                        minMax.max.x = x + dist_to_move_boundary_point_outside;
                         minMax.max.point_idx = point_idx;
                     }
                 }
