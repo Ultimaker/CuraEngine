@@ -422,20 +422,14 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
         }
         std::vector<GCodePath>& paths = extruder_plan.paths;
         
-        std::list<NozzleTempInsert>& inserts = extruder_plan.inserts;
-        inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
+        extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
         
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
-            { // handle inserts
-                while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
-                { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-                    inserts.front().write(gcode);
-                    inserts.pop_front();
-                }
-            }
+            extruder_plan.handleInserts(path_idx, gcode);
+            
             GCodePath& path = paths[path_idx];
             if (path.retract)
             {
@@ -455,7 +449,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
 
             int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
             
-            if (MergeInfillLines(gcode, paths, inserts, storage.travel_config, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, paths, extruder_plan, storage.travel_config, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
@@ -541,15 +535,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             }
         }
     
-        { // handle remaining inserts
-            while ( ! inserts.empty() )
-            { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-                NozzleTempInsert& insert = inserts.front();
-                assert(insert.path_idx == extruder_plan.paths.size());
-                insert.write(gcode);
-                inserts.pop_front();
-            }
-        }
+        extruder_plan.handleAllRemainingInserts(gcode);
     }
     
     gcode.updateTotalPrintTime();

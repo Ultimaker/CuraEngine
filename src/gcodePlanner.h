@@ -165,6 +165,32 @@ public:
     {
         inserts.emplace_back(contructor_args...);
     }
+    
+    /*!
+     * Insert the inserts into gcode which should be inserted before @p path_idx
+     */
+    void handleInserts(unsigned int& path_idx, GCodeExport& gcode)
+    {            
+        while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
+        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+            inserts.front().write(gcode);
+            inserts.pop_front();
+        }
+    }
+    
+    /*!
+     * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
+     */
+    void handleAllRemainingInserts(GCodeExport gcode)
+    { 
+        while ( ! inserts.empty() )
+        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+            NozzleTempInsert& insert = inserts.front();
+            assert(insert.path_idx == paths.size());
+            insert.write(gcode);
+            inserts.pop_front();
+        }
+    }
 };
 
 class LayerPlanBuffer; // forward declaration to prevent circular dependency
