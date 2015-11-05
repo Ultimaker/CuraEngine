@@ -8,6 +8,8 @@
 
 #include "utils/floatpoint.h"
 
+#include "FlowTempGraph.h"
+
 namespace cura
 {
 
@@ -74,6 +76,11 @@ enum class EGCodeFlavor
  **/
     REPRAP_VOLUMATRIC = 5,
 };
+
+/*!
+ * Converts a gcode flavor type to string so that it can be included in the gcode.
+ */
+std::string toString(EGCodeFlavor flavor);
 
 /*!
  * In Cura different infill methods are available.
@@ -171,6 +178,8 @@ public:
     double getSettingInCubicMillimeters(std::string key);
     double getSettingInPercentage(std::string key);
     double getSettingInSeconds(std::string key);
+    
+    FlowTempGraph getSettingAsFlowTempGraph(std::string key);
     
     std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key);
     

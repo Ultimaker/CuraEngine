@@ -198,6 +198,8 @@ private:
      * \param warn_duplicates whether to warn for duplicate definitions
      */
     void _addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
+    
+    void _loadSettingValues(SettingConfig* config, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 };
 
 }//namespace cura

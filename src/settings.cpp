@@ -14,6 +14,26 @@ namespace cura
 #define M_PI 3.14159265358979323846
 #endif
 
+std::string toString(EGCodeFlavor flavor)
+{
+    switch (flavor)
+    {
+        case EGCodeFlavor::BFB:
+            return "BFB";
+        case EGCodeFlavor::MACH3:
+            return "Mach3";
+        case EGCodeFlavor::MAKERBOT:
+            return "Makerbot";
+        case EGCodeFlavor::ULTIGCODE:
+            return "UltiGcode";
+        case EGCodeFlavor::REPRAP_VOLUMATRIC:
+            return "RepRap(Volumentric)";
+        case EGCodeFlavor::REPRAP:
+        default:
+            return "RepRap";
+    }
+}
+
 SettingsBaseVirtual::SettingsBaseVirtual()
 : parent(NULL)
 {
@@ -92,7 +112,7 @@ void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
     
     if (!machine_extruder_trains) 
     {
-        logWarning("Error: no machine_extruder_trains category found in JSON!\n");
+        // no machine_extruder_trains setting present; just use defaults for each train..
         return;
     }
     
@@ -180,10 +200,10 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
-std::vector<std::pair<double, double>> SettingsBaseVirtual::getSettingAsPointVector(std::string key)
+FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
 {
-    std::vector<std::pair<double, double>> ret;
-    const char* c_str = key.c_str();
+    FlowTempGraph ret;
+    const char* c_str = getSettingString(key).c_str();
     char const* char_p = c_str;
     while (*char_p != '[')
     {
@@ -212,7 +232,7 @@ std::vector<std::pair<double, double>> SettingsBaseVirtual::getSettingAsPointVec
             char_p++;
         }
         char_p++; // skip the ']'
-        ret.emplace_back(first, second);
+        ret.data.emplace_back(first, second);
         if (*char_p == ']')
         {
             break;

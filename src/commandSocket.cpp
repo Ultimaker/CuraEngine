@@ -29,6 +29,8 @@ public:
         , object_count(0)
         , current_sliced_object(nullptr)
         , sliced_objects(0)
+        , current_layer_count(0)
+        , current_layer_offset(0)
     { }
 
     cura::proto::Layer* getLayerById(int id);
@@ -46,6 +48,11 @@ public:
     
     // Number of sliced objects for this sliced object list
     int sliced_objects;
+
+    // Number of layers sent to the front end so far
+    // Used for incrementing the current layer in one at a time mode
+    int current_layer_count;
+    int current_layer_offset;
     
     // Ids of the sliced objects
     std::vector<int64_t> object_ids;
@@ -86,7 +93,10 @@ void CommandSocket::connect(const std::string& ip, int port)
             FffProcessor::getInstance()->resetFileNumber();
             for(auto object : d->objects_to_slice)
             {
-                FffProcessor::getInstance()->processMeshGroup(object.get());
+                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                {
+                    logError("Slicing mesh group failed!");
+                }
             }
             d->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
@@ -277,11 +287,18 @@ void CommandSocket::beginSendSlicedObject()
 void CommandSocket::endSendSlicedObject()
 {
     d->sliced_objects++;
+    d->current_layer_offset = d->current_layer_count;
     std::cout << "End sliced object called. sliced objects " << d->sliced_objects << " object count: " << d->object_count << std::endl;
+
+    std::cout << "current layer count" << d->current_layer_count << std::endl;
+    std::cout << "current layer offset" << d->current_layer_offset << std::endl;
+
     if(d->sliced_objects >= d->object_count)
     {
         d->socket->sendMessage(d->sliced_object_list);
         d->sliced_objects = 0;
+        d->current_layer_count = 0;
+        d->current_layer_offset = 0;
         d->sliced_object_list.reset();
         d->current_sliced_object = nullptr;
     }
@@ -311,6 +328,8 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
 
 cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
 {
+    id += current_layer_offset;
+
     auto itr = std::find_if(current_sliced_object->mutable_layers()->begin(), current_sliced_object->mutable_layers()->end(), [id](cura::proto::Layer& l) { return l.id() == id; });
 
     cura::proto::Layer* layer = nullptr;
@@ -322,6 +341,7 @@ cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
     {
         layer = current_sliced_object->add_layers();
         layer->set_id(id);
+        current_layer_count++;
     }
 
     return layer;

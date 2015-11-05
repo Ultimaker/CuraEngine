@@ -45,10 +45,29 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int layer_height_0 = meshgroup->getSettingInMicrons("layer_height_0");
+    int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
+    {
+        logError("Initial layer height %i is disallowed.",initial_layer_thickness);
+        return false;
+    }
     int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
-    int initial_slice_z = layer_height_0 - layer_thickness / 2;
+    if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
+    {
+        logError("Layer height %i is disallowed.",layer_thickness);
+        return false;
+    }
+    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
+    { 
+        initial_layer_thickness = layer_thickness; 
+    }
+    int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
+    if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+    {
+        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper,commandSocket); //Continue directly with the inset stage, which will also immediately stop.
+        return true; //This is NOT an error state!
+    }
 
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
@@ -89,20 +108,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
+            meshStorage.layers[layer_nr].printZ += 
+                meshStorage.getSettingInMicrons("layer_height_0")
+                - initial_slice_z;
             if (has_raft)
             {
                 layer.printZ += 
                     meshStorage.getSettingInMicrons("raft_base_thickness") 
                     + meshStorage.getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("layer_height") //raft_surface_thickness") 
-                    + meshStorage.getSettingInMicrons("raft_airgap")
-                    - initial_slice_z;
-            }
-            else 
-            {
-                meshStorage.layers[layer_nr].printZ += 
-                    meshStorage.getSettingInMicrons("layer_height_0")
-                    - initial_slice_z;
+                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
+                    + meshStorage.getSettingInMicrons("raft_airgap");
             }
     
  
@@ -185,9 +200,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processWallReinforcement(storage, layer_number);
     }
     
+    unsigned int combined_infill_layers = storage.getSettingInMicrons("infill_sparse_thickness") / std::max(storage.getSettingInMicrons("layer_height"),1); //How many infill layers to combine to obtain the requested sparse thickness.
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        combineInfillLayers(mesh,storage.getSettingAsCount("infill_sparse_combine"));
+        combineInfillLayers(mesh,combined_infill_layers);
     }
 
     storage.primeTower.computePrimeTowerMax(storage);
@@ -206,7 +222,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processFuzzyWalls(mesh);
         }
-        else 
+        else if (mesh.getSettingAsCount("wall_line_count") > 0)
         { // only send polygon data
             for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
             {
@@ -489,6 +505,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 {
+    if (mesh.getSettingAsCount("wall_line_count") == 0)
+    {
+        return;
+    }
     int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value

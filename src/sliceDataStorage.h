@@ -113,8 +113,13 @@ public:
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
     RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
     
+    GCodePathConfig travel_config; //!< The config used for travel moves (only the speed and retraction config are set!)
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
+    
+    GCodePathConfig raft_base_config;
+    GCodePathConfig raft_interface_config;
+    GCodePathConfig raft_surface_config;
     
     GCodePathConfig support_config;
     GCodePathConfig support_roof_config;
@@ -151,7 +156,11 @@ public:
     : SettingsMessenger(meshgroup)
     , meshgroup(meshgroup)
     , retraction_config_per_extruder(initializeRetractionConfigs())
+    , travel_config(&retraction_config, "MOVE")
     , skirt_config(initializeSkirtConfigs())
+    , raft_base_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
+    , raft_interface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
+    , raft_surface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
     , support_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT")
     , support_roof_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN")
     , max_object_height_second_to_last_extruder(-1)

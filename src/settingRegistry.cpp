@@ -204,13 +204,15 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         }
     }
     
-    if (false && json_document.HasMember("overrides"))
+    if (json_document.HasMember("overrides"))
     {
         const rapidjson::Value& json_object_container = json_document["overrides"];
         for (rapidjson::Value::ConstMemberIterator override_iterator = json_object_container.MemberBegin(); override_iterator != json_object_container.MemberEnd(); ++override_iterator)
         {
-            SettingConfig* conf = getSettingConfig(override_iterator->name.GetString());
-            _addSettingToContainer(conf, override_iterator, false);
+            std::string setting = override_iterator->name.GetString();
+            logError("%s\n", setting.c_str());
+            SettingConfig* conf = getSettingConfig(setting);
+            _loadSettingValues(conf, override_iterator, false);
         }
     }
     
@@ -219,7 +221,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
 void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
     const rapidjson::Value& data = json_object_it->value;
-    
+
     if (data.HasMember("type") && data["type"].IsString() && 
         (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
     {
@@ -235,7 +237,7 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
         }
         return;
     }
-    
+
     std::string label;
     if (!json_object_it->value.HasMember("label") || !data["label"].IsString())
     {
@@ -248,8 +250,13 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
 
     /// Create the new setting config object.
     SettingConfig* config = parent->addChild(json_object_it->name.GetString(), label);
-    
-    
+
+    _loadSettingValues(config, json_object_it, warn_duplicates, add_to_settings);
+}
+
+void SettingRegistry::_loadSettingValues(SettingConfig* config, rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
+{
+    const rapidjson::Value& data = json_object_it->value;
     /// Fill the setting config object with data we have in the json file.
     if (data.HasMember("type") && data["type"].IsString())
     {
@@ -258,19 +265,40 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     if (data.HasMember("default"))
     {
         const rapidjson::Value& dflt = data["default"];
-        config->setDefault(toString(dflt, json_object_it->name.GetString()));
+        if (dflt.IsString())
+        {
+            config->setDefault(dflt.GetString());
+        }
+        else if (dflt.IsTrue())
+        {
+            config->setDefault("true");
+        }
+        else if (dflt.IsFalse())
+        {
+            config->setDefault("false");
+        }
+        else if (dflt.IsNumber())
+        {
+            std::ostringstream ss;
+            ss << dflt.GetDouble();
+            config->setDefault(ss.str());
+        } // arrays are ignored because machine_extruder_trains needs to be handled separately
+        else 
+        {
+            logError("Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+        }
     }
     if (data.HasMember("unit") && data["unit"].IsString())
     {
         config->setUnit(data["unit"].GetString());
     }
-    
+
     /// Register the setting in the settings map lookup.
     if (warn_duplicates && settingExists(config->getKey()))
     {
         cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", config->getKey().c_str(), config->getLabel().c_str(), getSettingConfig(config->getKey())->getLabel().c_str());
     }
-    
+
     if (add_to_settings)
     {
         settings[config->getKey()] = config;
@@ -282,53 +310,8 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
         const rapidjson::Value& json_object_container = data["children"];
         for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
         {
-            _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
+            _addSettingToContainer(config, setting_iterator, warn_duplicates, add_to_settings);
         }
-    }
-}
-
-
-std::string SettingRegistry::toString(const rapidjson::Value& dflt, std::string setting_name)
-{
-    if (dflt.IsString())
-    {
-        return dflt.GetString();
-    }
-    else if (dflt.IsTrue())
-    {
-        return "true";
-    }
-    else if (dflt.IsFalse())
-    {
-        return "false";
-    }
-    else if (dflt.IsNumber())
-    {
-        std::ostringstream ss;
-        ss << dflt.GetDouble();
-        return ss.str();
-    } 
-    else if (dflt.IsArray())
-    {
-        std::stringstream ss;
-        ss << "[";
-        bool first = true;
-        for (auto it = dflt.Begin(); it != dflt.End(); ++it)
-        {
-            if (!first)
-            {
-                ss << ",";
-            }
-            ss << toString(*it);
-            first = false;
-        }
-        ss << "]";
-        return ss.str();
-    }
-    else 
-    {
-        logError("Unrecognized data type in JSON: %s has type %s\n", setting_name.c_str(), toString(dflt.GetType()).c_str());
-        return "";
     }
 }
 

@@ -104,8 +104,13 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
             Point ab = b - a;
             Point ap = p - a;
             int64_t ab_length = vSize(ab);
+            if(ab_length <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
+            {
+                p1 = p2; //Skip only one of the points.
+                continue;
+            }
             int64_t ax_length = dot(ab, ap) / ab_length;
-            if (ax_length < 0) // x is projected to before ab
+            if (ax_length <= 0) // x is projected to before ab
             {
                 if (projected_p_beyond_prev_segment)
                 { //  case which looks like:   > .
@@ -120,7 +125,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4));
+                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
                             ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
@@ -134,7 +139,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                     continue;
                 }
             }
-            else if (ax_length > ab_length) // x is projected to beyond ab
+            else if (ax_length >= ab_length) // x is projected to beyond ab
             {
                 projected_p_beyond_prev_segment = true;
                 p0 = p1;

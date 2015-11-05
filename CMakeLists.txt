@@ -12,6 +12,12 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
+# Add a compiler flag to check the output for insane values if we are in debug mode.
+if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+	message("Building debug release of CuraEngine.")
+	add_definitions(-DASSERT_INSANE_OUTPUT)
+endif()
+
 # Add warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
@@ -23,7 +29,7 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
 
 add_library(clipper STATIC libs/clipper/clipper.cpp)
 
-set(engine_SRCS
+set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
     src/comb.cpp
     src/commandSocket.cpp
@@ -35,7 +41,7 @@ set(engine_SRCS
     src/infill.cpp
     src/inset.cpp
     src/layerPart.cpp
-    src/main.cpp
+    src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
@@ -62,15 +68,38 @@ set(engine_SRCS
     src/utils/polygon.cpp
 )
 
+# List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
+set(engine_TEST
+    LinearAlg2DTest
+)
+
+# Generating ProtoBuf protocol.
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 
-add_executable(CuraEngine ${engine_SRCS} ${engine_PB_SRCS})
+# Compiling CuraEngine itself.
+add_executable(CuraEngine ${engine_SRCS} src/main.cpp ${engine_PB_SRCS})
 target_link_libraries(CuraEngine clipper Arcus)
 
 if (UNIX)
     target_link_libraries(CuraEngine pthread)
 endif()
 
+# Compiling the test environment.
+if (BUILD_TESTS)
+    add_library(CuraEngineLibrary ${engine_SRCS} ${engine_PB_SRCS})
+    target_link_libraries(CuraEngineLibrary clipper Arcus)
+    if (UNIX)
+        target_link_libraries(CuraEngineLibrary pthread)
+    endif()
+    enable_testing()
+    foreach (test ${engine_TEST})
+        add_executable(${test} tests/main.cpp tests/${test}.cpp)
+        target_link_libraries(${test} CuraEngineLibrary cppunit)
+        add_test(${test} ${test})
+    endforeach()
+endif()
+
+# Installing CuraEngine.
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
 include(CPackConfig.cmake)

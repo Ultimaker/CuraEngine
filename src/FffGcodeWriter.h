@@ -17,6 +17,10 @@
 #include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
 
+
+#include "LayerPlanBuffer.h"
+
+
 namespace cura 
 {
 
@@ -33,6 +37,9 @@ class FffGcodeWriter : public SettingsMessenger
 private:
     int max_object_height;
     int meshgroup_number; //!< used for sequential printing of objects
+    
+    LayerPlanBuffer layer_plan_buffer;
+    
     GCodeExport gcode;
     CommandSocket* command_socket;
     std::ofstream output_file;
@@ -51,6 +58,7 @@ private:
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
+    , layer_plan_buffer(this, command_socket, gcode)
     , last_position_planned(no_point)
     , current_extruder_planned(0) // TODO: make configurable
     {
@@ -110,15 +118,10 @@ private:
     //Setup the retraction parameters.
     void setConfigRetraction(SliceDataStorage& storage);
     
-    void setConfigSkirt(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigSupport(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigInsets(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigSkin(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigInfill(SliceMeshStorage& mesh, int layer_thickness);
+    /*!
+     * initialize GcodePathConfig config parameters which don't change over all layers
+     */
+    void initConfigs(SliceDataStorage& storage);
     
     void setConfigWallReinforcement(SliceMeshStorage& mesh, int layer_thickness);
     
@@ -149,13 +152,6 @@ private:
      * \param has_raft Whether a raft is used for this print.
      */
     void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
-    
-    /*!
-     * Interpolate between the initial layer speeds and the eventual speeds.
-     * \param storage Input: where the slice data is stored.
-     * \param layer_nr The index of the layer to write the gcode of.
-     */
-    void processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr);
     
     /*!
      * Add the skirt to the gcode.

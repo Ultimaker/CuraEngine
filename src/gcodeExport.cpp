@@ -160,7 +160,17 @@ void GCodeExport::updateTotalPrintTime()
 
 void GCodeExport::writeComment(std::string comment)
 {
-    *output_stream << ";" << comment << "\n";
+    *output_stream << ";";
+    for (unsigned int i = 0; i < comment.length(); i++)
+    {
+        if (comment[i] == '\n')
+        {
+            *output_stream << "\\n";
+        }else{
+            *output_stream << comment[i];
+        }
+    }
+    *output_stream << "\n";
 }
 
 void GCodeExport::writeTypeComment(const char* type)
@@ -215,9 +225,11 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
         return;
     
+#ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
+#endif //ASSERT_INSANE_OUTPUT
     
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
@@ -282,10 +294,10 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             Point3 diff = Point3(x,y,z) - getPosition();
             if (isZHopped > 0)
             {
-                if (isinf(currentPosition.z))
+                if (std::isinf(currentPosition.z))
                 {
                     logError("Error! No Z position set yet!");
-                    assert(!isinf(currentPosition.z));
+                    assert(!std::isinf(currentPosition.z));
                 }
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = 0;
