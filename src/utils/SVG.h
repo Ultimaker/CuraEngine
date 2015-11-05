@@ -6,6 +6,7 @@
 #include "polygon.h"
 #include "intpoint.h"
 #include "AABB.h"
+#include "logoutput.h"
 
 namespace cura {
 
@@ -53,6 +54,10 @@ public:
     , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
     {
         out = fopen(filename, "w");
+        if(!out)
+        {
+            logError("The file %s could not be opened for writing.",filename);
+        }
         fprintf(out, "<!DOCTYPE html><html><body>\n");
         fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
         
