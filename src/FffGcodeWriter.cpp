@@ -186,14 +186,19 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
-    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
+    if (!command_socket)
     {
-        if (!command_socket)
+        std::ostringstream prefix;
+        prefix << "FLAVOR:" << toString(gcode.getFlavor());
+        gcode.writeComment(prefix.str().c_str());
+        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
         {
-            gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
+            gcode.writeComment("TIME:666");
+            gcode.writeComment("MATERIAL:666");
+            gcode.writeComment("MATERIAL2:-1");
         }
     }
-    else 
+    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
         if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
             gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
@@ -902,16 +907,19 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
 
 void FffGcodeWriter::finalize()
 {
-    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE && command_socket)
+    if (command_socket)
     {
         std::ostringstream prefix;
-        prefix << ";FLAVOR:UltiGCode\n";
+        prefix << ";FLAVOR:" << toString(gcode.getFlavor()) << "\n";
         prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
-        prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
-        prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
+        {
+            prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+            prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
+        }
         command_socket->sendGCodePrefix(prefix.str());
     }
-
+    
     gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);

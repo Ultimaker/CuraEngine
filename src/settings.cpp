@@ -14,6 +14,26 @@ namespace cura
 #define M_PI 3.14159265358979323846
 #endif
 
+std::string toString(EGCodeFlavor flavor)
+{
+    switch (flavor)
+    {
+        case EGCodeFlavor::BFB:
+            return "BFB";
+        case EGCodeFlavor::MACH3:
+            return "Mach3";
+        case EGCodeFlavor::MAKERBOT:
+            return "Makerbot";
+        case EGCodeFlavor::ULTIGCODE:
+            return "UltiGcode";
+        case EGCodeFlavor::REPRAP_VOLUMATRIC:
+            return "RepRap(Volumentric)";
+        case EGCodeFlavor::REPRAP:
+        default:
+            return "RepRap";
+    }
+}
+
 SettingsBaseVirtual::SettingsBaseVirtual()
 : parent(NULL)
 {
