@@ -24,6 +24,19 @@ public:
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
     Polygons perimeterGaps;         //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
+
+/*!
+ * A ReinforcementWall is like an insulated wall behind the outer walls.
+ * It consists of an area with (generally more dense) infill and perimeters on the inside.
+ * On the outside it has the outer walls, or the inner walls of another ReinforcementWall.
+ */
+class ReinforcementWall
+{
+public:
+    Polygons wall_reinforcement_area; //!< The infill of the reinforced wall
+    std::vector<Polygons> wall_reinforcement_axtra_walls; //!< The extra walls on the inside of the reinforcement infill
+};
+
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
     It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
@@ -37,8 +50,7 @@ public:
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<Polygons> infill_area; //!< The infill_area are the areas which need to be filled with sparse (0-99%) infill. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
-    Polygons wall_reinforcement_area; //!< The infill of the reinforced wall
-    std::vector<Polygons> wall_reinforcement_axtra_walls; //!< The extra walls on the inside of the reinforcement infill
+    std::vector<ReinforcementWall> reinforcement_walls; //!< The reinforcement walls for this part. Order: from outter to inner reinforcement wall.
     Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 
