@@ -25,7 +25,7 @@ std::string toString(EGCodeFlavor flavor)
         case EGCodeFlavor::MAKERBOT:
             return "Makerbot";
         case EGCodeFlavor::ULTIGCODE:
-            return "UltiGcode";
+            return "UltiGCode";
         case EGCodeFlavor::REPRAP_VOLUMATRIC:
             return "RepRap(Volumentric)";
         case EGCodeFlavor::REPRAP:
