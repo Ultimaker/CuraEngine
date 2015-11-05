@@ -5,6 +5,7 @@
 
 #include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
+#include "utils/SVG.h"
 
 namespace cura {
 
@@ -257,21 +258,22 @@ void LinePolygonsCrossings::calcScanlineCrossings()
             {
                 if(p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
                 {
+                    p0 = p1;
                     continue;
                 }
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    if(x - dist_to_move_boundary_point_outside < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
+                    if(x < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
                                                                                //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
                     {
-                        minMax.min.x = x - dist_to_move_boundary_point_outside;
+                        minMax.min.x = x;
                         minMax.min.point_idx = point_idx;
                     }
-                    if(x + dist_to_move_boundary_point_outside > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
+                        if(x > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
                     {
-                        minMax.max.x = x + dist_to_move_boundary_point_outside;
+                        minMax.max.x = x;
                         minMax.max.point_idx = point_idx;
                     }
                 }
@@ -351,7 +353,7 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
     PolygonRef poly = boundary[polyCrossings.poly_idx];
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x, transformed_startPoint.Y)));
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - dist_to_move_boundary_point_outside, transformed_startPoint.Y)));
     if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
         < poly.size() / 2 )
     { // follow the path in the same direction as the winding order of the boundary polygon
@@ -372,7 +374,7 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
             combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
         }
     }
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x, transformed_startPoint.Y))); 
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x + dist_to_move_boundary_point_outside, transformed_startPoint.Y))); 
 }
 
 
