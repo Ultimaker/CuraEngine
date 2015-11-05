@@ -76,6 +76,11 @@ enum class EGCodeFlavor
 };
 
 /*!
+ * Converts a gcode flavor type to string so that it can be included in the gcode.
+ */
+std::string toString(EGCodeFlavor flavor);
+
+/*!
  * In Cura different infill methods are available.
  * This enum defines which fill patterns are available to get a uniform naming troughout the engine.
  * The different methods are used for top/bottom, support and sparse infill.
