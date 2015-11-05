@@ -71,35 +71,35 @@ void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int l
     }
 }
 
-void generateWallReinforcementWalls(SliceLayerPart* part, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
+void generateWallReinforcementWalls(SliceLayerPart* part, ReinforcementWall& reinforcement_wall, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
 {
     // optimize all the polygons. Every point removed saves time in the long run.
-    part->wall_reinforcement_axtra_walls[0].simplify();
-    if (part->wall_reinforcement_axtra_walls[0].size() < 1)
+    reinforcement_wall.wall_reinforcement_axtra_walls[0].simplify();
+    if (reinforcement_wall.wall_reinforcement_axtra_walls[0].size() < 1)
     {
-        part->wall_reinforcement_axtra_walls.pop_back();
+        reinforcement_wall.wall_reinforcement_axtra_walls.pop_back();
     }
     
-    if (part->wall_reinforcement_axtra_walls[0].size() > 0)
+    if (reinforcement_wall.wall_reinforcement_axtra_walls[0].size() > 0)
     {
         for(int i=1; i<insetCount; i++)
         {
-            part->wall_reinforcement_axtra_walls.push_back(Polygons());
-            PolygonUtils::offsetExtrusionWidth(part->wall_reinforcement_axtra_walls[i-1], true, line_width_x, part->wall_reinforcement_axtra_walls[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+            reinforcement_wall.wall_reinforcement_axtra_walls.push_back(Polygons());
+            PolygonUtils::offsetExtrusionWidth(reinforcement_wall.wall_reinforcement_axtra_walls[i-1], true, line_width_x, reinforcement_wall.wall_reinforcement_axtra_walls[i], &part->perimeterGaps, avoidOverlappingPerimeters);
             
             
             //Finally optimize all the polygons. Every point removed saves time in the long run.
-            part->wall_reinforcement_axtra_walls[i].simplify();
-            if (part->wall_reinforcement_axtra_walls[i].size() < 1)
+            reinforcement_wall.wall_reinforcement_axtra_walls[i].simplify();
+            if (reinforcement_wall.wall_reinforcement_axtra_walls[i].size() < 1)
             {
-                part->wall_reinforcement_axtra_walls.pop_back();
+                reinforcement_wall.wall_reinforcement_axtra_walls.pop_back();
                 break;
             }
         }
     }
-    if (part->wall_reinforcement_axtra_walls.size() > 0)
+    if (reinforcement_wall.wall_reinforcement_axtra_walls.size() > 0)
     {
-        part->infill_area[0] = part->wall_reinforcement_axtra_walls.back().offset(-line_width_x/2);
+        part->infill_area[0] = reinforcement_wall.wall_reinforcement_axtra_walls.back().offset(-line_width_x/2); // update the infill area to one reinforcement wall insetted (updated each time a reinforcement wall is generated)
     }
 }
 

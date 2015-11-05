@@ -245,7 +245,7 @@ private:
      * Add wall reinforcement for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
-     * \param part The part for which to create gcode
+     * \param reinforcement_wall The reinforcement wall for which to create gcode
      * \param layer_nr The current layer number.
      * \param wall_reinforcement_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
@@ -253,30 +253,30 @@ private:
      * \param wall_reinforcement_line_width extrusionWidth
      * \param inside_out Whether to print from inside outward or other way around
      */
-    void processWallReinforcement(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width, bool inside_out);
+    void processWallReinforcement(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, ReinforcementWall& reinforcement_wall, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width, bool inside_out);
    
     /*!
      * Add the inner extra walls of the wall reinforcement for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
-     * \param part The part for which to create gcode
+     * \param reinforcement_wall The reinforcement wall for which to create gcode
      * \param layer_nr The current layer number.
      * \param wall_reinforcement_line_width extrusionWidth
      */
-    void processWallReinforcement_extraWalls(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_width, bool inside_out);
+    void processWallReinforcement_extraWalls(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, ReinforcementWall& reinforcement_wall, unsigned int layer_nr, int wall_reinforcement_line_width, bool inside_out);
     
     /*!
      * Add the infill of the wall reinforcement for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
-     * \param part The part for which to create gcode
+     * \param reinforcement_wall The reinforcement wall for which to create gcode
      * \param layer_nr The current layer number.
      * \param wall_reinforcement_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param wall_reinforcement_line_width extrusionWidth
      */
-    void processWallReinforcement_infill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width);
+    void processWallReinforcement_infill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, ReinforcementWall& reinforcement_wall, unsigned int layer_nr, int wall_reinforcement_line_distance, double infill_overlap, int infill_angle, int wall_reinforcement_line_width);
     
     /*!
      * Generate the insets for the walls of a given layer part.
