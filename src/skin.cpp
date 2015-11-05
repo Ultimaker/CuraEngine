@@ -159,7 +159,7 @@ void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
     {
         return;
     }
-    if(storage.layers.empty() || storage.layers.size() - 1 < (size_t)storage.getSettingAsCount("top_layers") || storage.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
+    if(storage.layers.empty() || storage.layers.size() - 1 < static_cast<size_t>(storage.getSettingAsCount("top_layers")) || storage.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
     }
