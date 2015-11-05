@@ -217,7 +217,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processFuzzyWalls(mesh);
         }
-        else 
+        else if (mesh.getSettingAsCount("wall_line_count") > 0)
         { // only send polygon data
             for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
             {
@@ -441,6 +441,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 {
+    if (mesh.getSettingAsCount("wall_line_count") == 0)
+    {
+        return;
+    }
     int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
     int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
     int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
