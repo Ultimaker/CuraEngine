@@ -293,7 +293,7 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
             return;
         }
         int inset_count = mesh.getSettingAsCount("wall_reinforcement_line_count");
-        int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        int wall_line_width = mesh.getSettingInMicrons("wall_line_width_x");
         
         SliceLayer* layer = &mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer->parts)
@@ -305,6 +305,7 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
             int wall_reinforcement_count = mesh.getSettingAsCount("wall_reinforcement_count");
             part.reinforcement_walls.reserve(wall_reinforcement_count);
             
+            
             for (unsigned int wall_idx = 0; int(wall_idx) < wall_reinforcement_count; wall_idx++)
             {
                 part.reinforcement_walls.emplace_back();
@@ -314,11 +315,11 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
                 reinforcement_wall.wall_reinforcement_area = part.infill_area[0].difference(outer_wall_reinforcement_edge);
                 if (mesh.getSettingAsCount("wall_reinforcement_line_count") > 0)
                 {
-                    reinforcement_wall.wall_reinforcement_axtra_walls.push_back(outer_wall_reinforcement_edge.offset(-mesh.getSettingInMicrons("wall_line_width_x")));
+                    reinforcement_wall.wall_reinforcement_axtra_walls.push_back(outer_wall_reinforcement_edge.offset(-wall_line_width/2));
                 }
                 else 
                 {
-                    part.infill_area[0] = outer_wall_reinforcement_edge.offset(-mesh.getSettingInMicrons("wall_line_width_x")/2);
+                    part.infill_area[0] = outer_wall_reinforcement_edge.offset(-wall_line_width/2);
                 }
         
                 // generate reinforcement wall extra walls
@@ -327,11 +328,16 @@ void FffPolygonGenerator::processWallReinforcement(SliceDataStorage& storage, un
                 {
                     continue;
                 }
-                generateWallReinforcementWalls(&part, reinforcement_wall, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                generateWallReinforcementWallExtraWalls(&part, reinforcement_wall, wall_line_width, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+                
+                if (reinforcement_wall.wall_reinforcement_axtra_walls.size() > 0)
+                {
+                    part.infill_area[0] = reinforcement_wall.wall_reinforcement_axtra_walls.back().offset(-wall_line_width/2); // update the infill area to one reinforcement wall insetted (updated each time a reinforcement wall is generated)
+                }
                 if (part.insets.size() > 0)
                 {
                     for(Polygons& polys : reinforcement_wall.wall_reinforcement_axtra_walls)
-                        sendPolygons(SupportType, layer_nr, polys, line_width_x);
+                        sendPolygons(SupportType, layer_nr, polys, wall_line_width);
                 }
             }
         }

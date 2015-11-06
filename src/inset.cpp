@@ -71,7 +71,7 @@ void generateInsets(SliceLayer* layer, int nozzle_width, int line_width_0, int l
     }
 }
 
-void generateWallReinforcementWalls(SliceLayerPart* part, ReinforcementWall& reinforcement_wall, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
+void generateWallReinforcementWallExtraWalls(SliceLayerPart* part, ReinforcementWall& reinforcement_wall, int line_width_x, int insetCount, bool avoidOverlappingPerimeters)
 {
     // optimize all the polygons. Every point removed saves time in the long run.
     reinforcement_wall.wall_reinforcement_axtra_walls[0].simplify();
@@ -96,10 +96,6 @@ void generateWallReinforcementWalls(SliceLayerPart* part, ReinforcementWall& rei
                 break;
             }
         }
-    }
-    if (reinforcement_wall.wall_reinforcement_axtra_walls.size() > 0)
-    {
-        part->infill_area[0] = reinforcement_wall.wall_reinforcement_axtra_walls.back().offset(-line_width_x/2); // update the infill area to one reinforcement wall insetted (updated each time a reinforcement wall is generated)
     }
 }
 
