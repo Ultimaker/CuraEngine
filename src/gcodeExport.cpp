@@ -313,6 +313,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                     if (last_coasted_amount_mm3 > 0)
                     {
                         *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << extrusion_amount << "\n";
+                        currentSpeed = retractionPrimeSpeed;
                     }
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), extrusion_amount), 25.0);
                 }else{
