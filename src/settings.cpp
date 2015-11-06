@@ -120,7 +120,7 @@ void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
     
     if (!train)
     {
-        logError("Not enough extruder trains specified in JSON: %i\n", extruder_nr);
+        // not enough machine_extruder_trains settings present; just use defaults for this train..
         return;
     }
     
