@@ -266,12 +266,12 @@ void LinePolygonsCrossings::calcScanlineCrossings()
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
                     if(x < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
-                                                                               //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
+                                         //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
                     {
                         minMax.min.x = x;
                         minMax.min.point_idx = point_idx;
                     }
-                        if(x > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
+                    if(x > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
                     {
                         minMax.max.x = x;
                         minMax.max.point_idx = point_idx;
