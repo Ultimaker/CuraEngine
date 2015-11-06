@@ -210,7 +210,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         for (rapidjson::Value::ConstMemberIterator override_iterator = json_object_container.MemberBegin(); override_iterator != json_object_container.MemberEnd(); ++override_iterator)
         {
             std::string setting = override_iterator->name.GetString();
-            logError("%s\n", setting.c_str());
             SettingConfig* conf = getSettingConfig(setting);
             _loadSettingValues(conf, override_iterator, false);
         }
