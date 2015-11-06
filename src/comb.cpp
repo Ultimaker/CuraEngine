@@ -164,7 +164,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             middle_from = startPoint;
             inside_middle_from = startPoint;
             middle_to = endPoint;
-            inside_middle_to = startPoint;
+            inside_middle_to = endPoint;
         }
         else if(!startInside && endInside)
         {
