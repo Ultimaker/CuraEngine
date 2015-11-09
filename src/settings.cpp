@@ -27,7 +27,7 @@ std::string toString(EGCodeFlavor flavor)
         case EGCodeFlavor::ULTIGCODE:
             return "UltiGCode";
         case EGCodeFlavor::REPRAP_VOLUMATRIC:
-            return "RepRap(Volumentric)";
+            return "RepRap(Volumetric)";
         case EGCodeFlavor::REPRAP:
         default:
             return "RepRap";
