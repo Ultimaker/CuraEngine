@@ -6,6 +6,7 @@
 #include "polygon.h"
 #include "intpoint.h"
 #include "AABB.h"
+#include "logoutput.h"
 
 namespace cura {
 
@@ -53,6 +54,10 @@ public:
     , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
     {
         out = fopen(filename, "w");
+        if(!out)
+        {
+            logError("The file %s could not be opened for writing.",filename);
+        }
         fprintf(out, "<!DOCTYPE html><html><body>\n");
         fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
         
@@ -71,7 +76,7 @@ public:
     /*!
      * transform a point in real space to canvas space
      */
-    Point transform(Point& p) 
+    Point transform(const Point& p) 
     {
         return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + Point(10,10);
     }
@@ -146,7 +151,7 @@ public:
         fprintf(out,"\" />\n"); //The end of the polygon tag.
     }
     
-    void writePoint(Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
+    void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         Point pf = transform(p);
         fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.X, pf.Y, size, toString(color).c_str(), toString(color).c_str());
@@ -200,7 +205,7 @@ public:
         fprintf(out,"\" />\n"); //Write the end of the tag.
     }
     
-    void writeLine(Point& a, Point& b, Color color = Color::BLACK)
+    void writeLine(const Point& a, const Point& b, Color color = Color::BLACK)
     {
         Point fa = transform(a);
         Point fb = transform(b);
@@ -216,7 +221,7 @@ public:
      * \param b The ending endpoint of the line.
      * \param color The stroke colour of the line.
      */
-    void writeDashedLine(Point& a,Point& b,Color color = Color::BLACK)
+    void writeDashedLine(const Point& a,const Point& b,Color color = Color::BLACK)
     {
         Point fa = transform(a);
         Point fb = transform(b);
