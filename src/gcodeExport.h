@@ -144,7 +144,7 @@ private:
     bool use_extruder_offset_to_offset_coords;
     
     std::ostream* output_stream;
-    double extrusion_amount; // in mm or mm^3
+    double extrusion_amount; //!< The last E value written to gcode (in mm or mm^3)
     std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     double currentSpeed;
