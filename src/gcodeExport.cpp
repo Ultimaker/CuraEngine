@@ -413,8 +413,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 
 void GCodeExport::writeRetraction_extruderSwitch()
 {
-    if (isRetracted) { return; }
-        
+
     if (flavor == EGCodeFlavor::BFB)
     {
         if (!extruder_attr[current_extruder].isRetracted)
@@ -423,13 +422,20 @@ void GCodeExport::writeRetraction_extruderSwitch()
         extruder_attr[current_extruder].isRetracted = true;
         return;
     }
-    resetExtrusionValue();
+    resetExtrusionValue(); // TODO: why do we do this?
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
     {
+        if (extruder_attr[current_extruder].isRetracted) 
+        {
+            return; 
+        }
         *output_stream << "G10 S1\n";
-    }else{
+    }
+    else
+    {
         *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " 
             << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
+            // the E value of the extruder switch retraction 'overwrites' the E value of the normal retraction
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
         retractionPrimeSpeed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
     }
