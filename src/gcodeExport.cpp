@@ -357,7 +357,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         *output_stream << std::setprecision(3) << 
             " X" << INT2MM(gcode_pos.X) << 
             " Y" << INT2MM(gcode_pos.Y);
-        if (z != currentPosition.z)
+        if (z != currentPosition.z + isZHopped)
             *output_stream << " Z" << INT2MM(z + isZHopped);
         if (extrusion_mm3_per_mm > 0.000001)
             *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << extrusion_amount;
