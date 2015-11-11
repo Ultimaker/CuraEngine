@@ -432,6 +432,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " 
             << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
+        retractionPrimeSpeed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
     }
     isRetracted = true;
 }
