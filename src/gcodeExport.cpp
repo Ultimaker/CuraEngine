@@ -241,7 +241,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     }
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
-
+    
     if (flavor == EGCodeFlavor::BFB)
     {
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
@@ -429,7 +429,8 @@ void GCodeExport::writeRetraction_extruderSwitch()
     {
         *output_stream << "G10 S1\n";
     }else{
-        *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
+        *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " 
+            << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << (extrusion_amount - extruder_attr[current_extruder].extruderSwitchRetraction) << "\n";
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
     }
     isRetracted = true;
