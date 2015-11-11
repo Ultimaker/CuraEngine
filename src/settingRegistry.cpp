@@ -4,6 +4,7 @@
 #include <iostream> // debug IO
 #include <libgen.h> // dirname
 #include <string>
+#include <algorithm> // find_if
 
 #include "utils/logoutput.h"
 
@@ -194,22 +195,36 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             {
                 continue;
             }
-            if (!category_iterator->value.HasMember("label") || !category_iterator->value["label"].IsString())
-            {
-                continue;
-            }
             if (!category_iterator->value.HasMember("settings") || !category_iterator->value["settings"].IsObject())
             {
                 continue;
             }
-            
-            categories.emplace_back(category_iterator->name.GetString(), category_iterator->value["label"].GetString());
-            SettingContainer* category = &categories.back();
-            
-            const rapidjson::Value& json_object_container = category_iterator->value["settings"];
-            for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+            std::string cat_name = category_iterator->name.GetString();
+            std::list<SettingContainer>::iterator category_found = std::find_if(categories.begin(), categories.end(), [&cat_name](SettingContainer& cat) { return cat.getKey().compare(cat_name) == 0; });
+            if (category_found != categories.end())
+            { // category is already present; add settings to category
+                SettingContainer* category = &*category_found;
+
+                const rapidjson::Value& json_object_container = category_iterator->value["settings"];
+                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+                {
+                    _addSettingToContainer(category, setting_iterator, warn_duplicates);
+                }
+            }
+            else 
             {
-                _addSettingToContainer(category, setting_iterator, warn_duplicates);
+                if (!category_iterator->value.HasMember("label") || !category_iterator->value["label"].IsString())
+                {
+                    continue;
+                }
+                categories.emplace_back(cat_name, category_iterator->value["label"].GetString());
+                SettingContainer* category = &categories.back();
+                
+                const rapidjson::Value& json_object_container = category_iterator->value["settings"];
+                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+                {
+                    _addSettingToContainer(category, setting_iterator, warn_duplicates);
+                }
             }
         }
     }
