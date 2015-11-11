@@ -108,11 +108,6 @@ void GCodeExport::setFilamentDiameter(unsigned int extruder, int diameter)
     extruder_attr[extruder].filament_area = area;
 }
 
-double GCodeExport::getFilamentArea(unsigned int extruder)
-{
-    return extruder_attr[extruder].filament_area;
-}
-
 double GCodeExport::getExtrusionAmountMM3(unsigned int extruder)
 {
     double extrusion_amount = current_e_value + extruder_attr[current_extruder].isRetracted;
@@ -122,7 +117,7 @@ double GCodeExport::getExtrusionAmountMM3(unsigned int extruder)
     }
     else
     {
-        return extrusion_amount * getFilamentArea(extruder);
+        return extrusion_amount * extruder_attr[extruder].filament_area;
     }
 }
 
@@ -236,7 +231,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     double extrusion_per_mm = extrusion_mm3_per_mm;
     if (!is_volumatric)
     {
-        extrusion_per_mm = extrusion_mm3_per_mm / getFilamentArea(current_extruder);
+        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
     }
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
@@ -304,7 +299,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 isZHopped = 0;
             }
             double& prime_amount = extruder_attr[current_extruder].prime_amount;
-            current_e_value += (is_volumatric) ? prime_amount : prime_amount / getFilamentArea(current_extruder);   
+            current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
             if (extruder_attr[current_extruder].isRetracted)
             {
                 if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)

@@ -200,7 +200,6 @@ public:
     int getExtruderNr();
     
     void setFilamentDiameter(unsigned int n, int diameter);
-    double getFilamentArea(unsigned int extruder);
     
     double getExtrusionAmountMM3(unsigned int extruder);
     
