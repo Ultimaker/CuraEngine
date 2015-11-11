@@ -32,7 +32,7 @@ public:
     double amount; //!< The amount retracted
     double speed; //!< The speed with which to retract
     double primeSpeed; //!< the speed with which to unretract
-    double primeAmount; //!< the amount of material primed after unretracting
+    double primeAmount; //!< the amount of material primed after unretracting (in mm3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 
     double retraction_extrusion_window;
@@ -124,7 +124,9 @@ private:
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
         
-        double isRetracted; //!< The current retracted amount, or zero if it is not currently retracted
+        double isRetracted; //!< The current retracted amount (in mm or mm3), or zero if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
+        
+        double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
         
         ExtruderTrainAttributes()
         : nozzle_offset(0,0)
@@ -144,14 +146,13 @@ private:
     bool use_extruder_offset_to_offset_coords;
     
     std::ostream* output_stream;
-    double extrusion_amount; //!< The last E value written to gcode (in mm or mm^3)
+    double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     double currentSpeed;
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
-    double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
     
     int current_extruder;
@@ -185,7 +186,10 @@ public:
     
     void setZ(int z);
     
-    void setLastCoastedAmountMM3(double last_coasted_amount) { this->last_coasted_amount_mm3 = last_coasted_amount; }
+    void addLastCoastedAmountMM3(double last_coasted_amount) 
+    {
+        extruder_attr[current_extruder].prime_amount += last_coasted_amount; 
+    }
     
     Point3 getPosition();
     

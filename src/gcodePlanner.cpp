@@ -789,7 +789,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GC
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
     
-    gcode.setLastCoastedAmountMM3(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
+    gcode.addLastCoastedAmountMM3(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
     
     return true;
 }
