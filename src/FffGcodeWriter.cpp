@@ -123,7 +123,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
     storage.retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
-    storage.retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
+    storage.retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
     storage.retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
     
     int extruder_count = storage.meshgroup->getExtruderCount();
@@ -136,7 +136,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
         storage.retraction_config_per_extruder[extruder].zHop = train->getSettingInMicrons("retraction_hop");
         storage.retraction_config_per_extruder[extruder].retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
-        storage.retraction_config_per_extruder[extruder].retraction_extrusion_window = train->getSettingInMicrons("retraction_extrusion_window");
+        storage.retraction_config_per_extruder[extruder].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
         storage.retraction_config_per_extruder[extruder].retraction_count_max = train->getSettingInMicrons("retraction_count_max");
     }
     for(SliceMeshStorage& mesh : storage.meshes)
@@ -147,7 +147,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
         mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
         mesh.retraction_config.retraction_min_travel_distance = mesh.getSettingInMicrons("retraction_min_travel");
-        mesh.retraction_config.retraction_extrusion_window = mesh.getSettingInMicrons("retraction_extrusion_window");
+        mesh.retraction_config.retraction_extrusion_window = INT2MM(mesh.getSettingInMicrons("retraction_extrusion_window"));
         mesh.retraction_config.retraction_count_max = mesh.getSettingInMicrons("retraction_count_max");
     }
 }
