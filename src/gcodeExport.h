@@ -124,7 +124,7 @@ private:
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
         
-        bool isRetracted;
+        double isRetracted; //!< The current retracted amount, or zero if it is not currently retracted
         
         ExtruderTrainAttributes()
         : nozzle_offset(0,0)
@@ -137,7 +137,7 @@ private:
         , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
-        , isRetracted(false)
+        , isRetracted(0.0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
