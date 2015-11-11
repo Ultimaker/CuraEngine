@@ -5,6 +5,7 @@
 #include <list>
 #include <unordered_map>
 #include <string>
+#include <iostream> // debug out
 
 #include "utils/NoCopy.h"
 #include "rapidjson/document.h"
@@ -52,6 +53,8 @@ public:
         else 
             return nullptr;
     }
+    
+    void debugOutputAllSettings();
 };
 
 /*!
@@ -112,6 +115,15 @@ public:
     {
         return unit;
     }
+    
+    void debugOutputAllSettings()
+    {
+        std::cerr << key << std::endl;
+        for (SettingConfig& child : children)
+        {
+            child.debugOutputAllSettings();
+        }
+    }
 };
 
 /*!
@@ -160,6 +172,13 @@ public:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettings(std::string filename);
+    void debugOutputAllSettings()
+    {
+        for (SettingContainer& cat : categories)
+        {
+            cat.debugOutputAllSettings();
+        }
+    }
     
 private:
     

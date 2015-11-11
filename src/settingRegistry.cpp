@@ -53,6 +53,16 @@ SettingConfig::SettingConfig(std::string key, std::string label, SettingContaine
 //     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
 }
 
+void SettingContainer::debugOutputAllSettings()
+{
+    std::cerr << "CATEGORY: " << key << std::endl;
+    for (SettingConfig& child : children)
+    {
+        child.debugOutputAllSettings();
+    }
+}
+
+
 bool SettingRegistry::settingExists(std::string key) const
 {
     return settings.find(key) != settings.end();
@@ -217,6 +227,8 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     
     return 0;
 }
+
+
 void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
     const rapidjson::Value& data = json_object_it->value;
