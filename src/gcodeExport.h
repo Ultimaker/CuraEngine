@@ -124,6 +124,8 @@ private:
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
         
+        bool isRetracted;
+        
         ExtruderTrainAttributes()
         : nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -135,6 +137,7 @@ private:
         , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
+        , isRetracted(false)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -145,12 +148,12 @@ private:
     std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     double currentSpeed;
-    int zPos;
-    bool isRetracted;
-    int isZHopped;
+    int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
+    int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
+    
     int current_extruder;
     int currentFanSpeed;
     EGCodeFlavor flavor;

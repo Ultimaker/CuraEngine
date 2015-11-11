@@ -22,7 +22,6 @@ GCodeExport::GCodeExport()
     
     currentSpeed = 1;
     retractionPrimeSpeed = 1;
-    isRetracted = false;
     isZHopped = 0;
     last_coasted_amount_mm3 = 0;
     setFlavor(EGCodeFlavor::REPRAP);
@@ -251,7 +250,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         rpm /= mm_per_rpm;
         if (rpm > 0)
         {
-            if (isRetracted)
+            if (extruder_attr[current_extruder].isRetracted)
             {
                 if (currentSpeed != double(rpm))
                 {
@@ -262,7 +261,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 }
                 //Add M101 or M201 to enable the proper extruder.
                 *output_stream << "M" << int((current_extruder + 1) * 100 + 1) << "\r\n";
-                isRetracted = false;
+                extruder_attr[current_extruder].isRetracted = false;
             }
             //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
             // (Trick copied from KISSlicer, thanks Jonathan)
@@ -274,10 +273,10 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             extrusion_amount += extrusion_per_mm * diff.vSizeMM();
         }else{
             //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
-            if (!isRetracted)
+            if (!extruder_attr[current_extruder].isRetracted)
             {
                 *output_stream << "M103\r\n";
-                isRetracted = true;
+                extruder_attr[current_extruder].isRetracted = true;
             }
         }
         *output_stream << std::setprecision(3) << 
@@ -303,7 +302,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 isZHopped = 0;
             }
             extrusion_amount += (is_volumatric) ? last_coasted_amount_mm3 : last_coasted_amount_mm3 / getFilamentArea(current_extruder);   
-            if (isRetracted)
+            if (extruder_attr[current_extruder].isRetracted)
             {
                 if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
                 {
@@ -322,7 +321,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 }
                 if (getExtrusionAmountMM3(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                     resetExtrusionValue();
-                isRetracted = false;
+                extruder_attr[current_extruder].isRetracted = false;
             }
             else 
             {
@@ -345,7 +344,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 PolygonRef travel = travelPoly.newPoly();
                 travel.add(Point(currentPosition.x, currentPosition.y));
                 travel.add(Point(x, y));
-                commandSocket->sendPolygons(isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, isRetracted ? MM2INT(0.2) : MM2INT(0.1));
+                commandSocket->sendPolygons(extruder_attr[current_extruder].isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].isRetracted ? MM2INT(0.2) : MM2INT(0.1));
             }                    
         }
 
@@ -373,7 +372,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 {
     if (flavor == EGCodeFlavor::BFB)//BitsFromBytes does automatic retraction.
         return;
-    if (isRetracted)
+    if (extruder_attr[current_extruder].isRetracted)
         return;
     if (config->amount <= 0)
         return;
@@ -409,7 +408,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         extrusion_amount_at_previous_n_retractions.pop_back();
     }
-    isRetracted = true;
+    extruder_attr[current_extruder].isRetracted = true;
 }
 
 void GCodeExport::writeRetraction_extruderSwitch()
@@ -418,10 +417,10 @@ void GCodeExport::writeRetraction_extruderSwitch()
         
     if (flavor == EGCodeFlavor::BFB)
     {
-        if (!isRetracted)
+        if (!extruder_attr[current_extruder].isRetracted)
             *output_stream << "M103\r\n";
 
-        isRetracted = true;
+        extruder_attr[current_extruder].isRetracted = true;
         return;
     }
     resetExtrusionValue();
@@ -434,7 +433,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
         retractionPrimeSpeed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
     }
-    isRetracted = true;
+    extruder_attr[current_extruder].isRetracted = true;
 }
 
 void GCodeExport::switchExtruder(int new_extruder)
@@ -442,7 +441,7 @@ void GCodeExport::switchExtruder(int new_extruder)
     if (current_extruder == new_extruder)
         return;
     
-    if (!isRetracted) // assumes the last retraction already was an extruder switch retraction
+    if (!extruder_attr[current_extruder].isRetracted) // assumes the last retraction already was an extruder switch retraction
     {
         writeRetraction_extruderSwitch();
     }
@@ -451,7 +450,7 @@ void GCodeExport::switchExtruder(int new_extruder)
     current_extruder = new_extruder;
     if (flavor == EGCodeFlavor::MACH3)
         resetExtrusionValue();
-    isRetracted = true;
+    extruder_attr[current_extruder].isRetracted = true;
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
         *output_stream << "M135 T" << current_extruder << "\n";
