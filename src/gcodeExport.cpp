@@ -227,49 +227,49 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
     
-        //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
-        float fspeed = speed * 60;
-        float rpm = extrusion_per_mm * speed * 60;
-        const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
-        rpm /= mm_per_rpm;
-        if (rpm > 0)
+    //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
+    float fspeed = speed * 60;
+    float rpm = extrusion_per_mm * speed * 60;
+    const float mm_per_rpm = 4.0; //All BFB machines have 4mm per RPM extrusion.
+    rpm /= mm_per_rpm;
+    if (rpm > 0)
+    {
+        if (extruder_attr[current_extruder].isRetracted)
         {
-            if (extruder_attr[current_extruder].isRetracted)
+            if (currentSpeed != double(rpm))
             {
-                if (currentSpeed != double(rpm))
-                {
-                    //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
-                    //fprintf(f, "M108 S%0.1f\r\n", rpm);
-                    *output_stream << "M108 S" << std::setprecision(1) << rpm << "\r\n";
-                    currentSpeed = double(rpm);
-                }
-                //Add M101 or M201 to enable the proper extruder.
-                *output_stream << "M" << int((current_extruder + 1) * 100 + 1) << "\r\n";
-                extruder_attr[current_extruder].isRetracted = 0.0;
+                //fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
+                //fprintf(f, "M108 S%0.1f\r\n", rpm);
+                *output_stream << "M108 S" << std::setprecision(1) << rpm << "\r\n";
+                currentSpeed = double(rpm);
             }
-            //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
-            // (Trick copied from KISSlicer, thanks Jonathan)
-            fspeed *= (rpm / (roundf(rpm * 100) / 100));
+            //Add M101 or M201 to enable the proper extruder.
+            *output_stream << "M" << int((current_extruder + 1) * 100 + 1) << "\r\n";
+            extruder_attr[current_extruder].isRetracted = 0.0;
+        }
+        //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
+        // (Trick copied from KISSlicer, thanks Jonathan)
+        fspeed *= (rpm / (roundf(rpm * 100) / 100));
 
-            //Increase the extrusion amount to calculate the amount of filament used.
-            Point3 diff = Point3(x,y,z) - getPosition();
-            
-            current_e_value += extrusion_per_mm * diff.vSizeMM();
-        }
-        else
-        {
-            //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
-            if (!extruder_attr[current_extruder].isRetracted)
-            {
-                *output_stream << "M103\r\n";
-                extruder_attr[current_extruder].isRetracted = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
-            }
-        }
-        *output_stream << std::setprecision(3) << 
-            "G1 X" << INT2MM(gcode_pos.X) << 
-            " Y" << INT2MM(gcode_pos.Y) << 
-            " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
+        //Increase the extrusion amount to calculate the amount of filament used.
+        Point3 diff = Point3(x,y,z) - getPosition();
         
+        current_e_value += extrusion_per_mm * diff.vSizeMM();
+    }
+    else
+    {
+        //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
+        if (!extruder_attr[current_extruder].isRetracted)
+        {
+            *output_stream << "M103\r\n";
+            extruder_attr[current_extruder].isRetracted = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
+        }
+    }
+    *output_stream << std::setprecision(3) << 
+        "G1 X" << INT2MM(gcode_pos.X) << 
+        " Y" << INT2MM(gcode_pos.Y) << 
+        " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
+    
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
 }
@@ -302,87 +302,87 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
 
     Point gcode_pos = getGcodePos(x,y, current_extruder);
 
-        if (extrusion_mm3_per_mm > 0.000001)
+    if (extrusion_mm3_per_mm > 0.000001)
+    {
+        Point3 diff = Point3(x,y,z) - getPosition();
+        if (isZHopped > 0)
         {
-            Point3 diff = Point3(x,y,z) - getPosition();
-            if (isZHopped > 0)
+            if (std::isinf(currentPosition.z))
             {
-                if (std::isinf(currentPosition.z))
-                {
-                    logError("Error! No Z position set yet!");
-                    assert(!std::isinf(currentPosition.z));
-                }
-                *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
-                isZHopped = 0;
+                logError("Error! No Z position set yet!");
+                assert(!std::isinf(currentPosition.z));
             }
-            double prime_amount = extruder_attr[current_extruder].prime_amount;
-            current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
-            if (extruder_attr[current_extruder].isRetracted)
+            *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
+            isZHopped = 0;
+        }
+        double prime_amount = extruder_attr[current_extruder].prime_amount;
+        current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
+        if (extruder_attr[current_extruder].isRetracted)
+        {
+            if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
             {
-                if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
+                *output_stream << "G11\n";
+                //Assume default UM2 retraction settings.
+                if (prime_amount > 0)
                 {
-                    *output_stream << "G11\n";
-                    //Assume default UM2 retraction settings.
-                    if (prime_amount > 0)
-                    {
-                        *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
-                        currentSpeed = retractionPrimeSpeed;
-                    }
-                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), 25.0);
-                }
-                else
-                {
-                    current_e_value += extruder_attr[current_extruder].isRetracted;
                     *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                     currentSpeed = retractionPrimeSpeed;
-                    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
                 }
-                if (getCurrentExtrudedVolume(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
-                {
-                    resetExtrusionValue();
-                }
-                extruder_attr[current_extruder].isRetracted = 0.0;
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), 25.0);
             }
-            else if (prime_amount > 0.0)
+            else
             {
                 current_e_value += extruder_attr[current_extruder].isRetracted;
                 *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                 currentSpeed = retractionPrimeSpeed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
             }
-            extruder_attr[current_extruder].prime_amount = 0.0;
-            current_e_value += extrusion_per_mm * diff.vSizeMM();
-            *output_stream << "G1";
-        }
-        else
-        {
-            *output_stream << "G0";
-                    
-            if (commandSocket) 
+            if (getCurrentExtrudedVolume(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
             {
-                // we should send this travel as a non-retraction move
-                cura::Polygons travelPoly;
-                PolygonRef travel = travelPoly.newPoly();
-                travel.add(Point(currentPosition.x, currentPosition.y));
-                travel.add(Point(x, y));
-                commandSocket->sendPolygons(extruder_attr[current_extruder].isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].isRetracted ? MM2INT(0.2) : MM2INT(0.1));
-            }                    
+                resetExtrusionValue();
+            }
+            extruder_attr[current_extruder].isRetracted = 0.0;
         }
-
-        if (currentSpeed != speed)
+        else if (prime_amount > 0.0)
         {
-            *output_stream << " F" << (speed * 60);
-            currentSpeed = speed;
+            current_e_value += extruder_attr[current_extruder].isRetracted;
+            *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
+            currentSpeed = retractionPrimeSpeed;
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
         }
+        extruder_attr[current_extruder].prime_amount = 0.0;
+        current_e_value += extrusion_per_mm * diff.vSizeMM();
+        *output_stream << "G1";
+    }
+    else
+    {
+        *output_stream << "G0";
+                
+        if (commandSocket) 
+        {
+            // we should send this travel as a non-retraction move
+            cura::Polygons travelPoly;
+            PolygonRef travel = travelPoly.newPoly();
+            travel.add(Point(currentPosition.x, currentPosition.y));
+            travel.add(Point(x, y));
+            commandSocket->sendPolygons(extruder_attr[current_extruder].isRetracted ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].isRetracted ? MM2INT(0.2) : MM2INT(0.1));
+        }                    
+    }
 
-        *output_stream << std::setprecision(3) << 
-            " X" << INT2MM(gcode_pos.X) << 
-            " Y" << INT2MM(gcode_pos.Y);
-        if (z != currentPosition.z + isZHopped)
-            *output_stream << " Z" << INT2MM(z + isZHopped);
-        if (extrusion_mm3_per_mm > 0.000001)
-            *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value;
-        *output_stream << "\n";
+    if (currentSpeed != speed)
+    {
+        *output_stream << " F" << (speed * 60);
+        currentSpeed = speed;
+    }
+
+    *output_stream << std::setprecision(3) << 
+        " X" << INT2MM(gcode_pos.X) << 
+        " Y" << INT2MM(gcode_pos.Y);
+    if (z != currentPosition.z + isZHopped)
+        *output_stream << " Z" << INT2MM(z + isZHopped);
+    if (extrusion_mm3_per_mm > 0.000001)
+        *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value;
+    *output_stream << "\n";
     
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
