@@ -126,6 +126,8 @@ private:
         
         double isRetracted; //!< The current retracted amount (in mm or mm3), or zero if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         
+        double retraction_offset_from_zero; //!< The ExtruderTrainAttributes::isRetracted value at E0, i.e. the offset (in mm or mm3) from E0 to the situation where the filament is at the tip of the nozzle.
+        
         double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
         
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
@@ -142,6 +144,8 @@ private:
         , totalFilament(0)
         , currentTemperature(0)
         , isRetracted(0.0)
+        , retraction_offset_from_zero(0.0)
+        , prime_amount(0.0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];

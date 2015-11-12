@@ -122,7 +122,8 @@ double GCodeExport::getCurrentExtrudedVolume()
     double extrusion_amount = current_e_value;
     if (!firmware_retract)
     { // no E values are changed to perform a retraction
-        extrusion_amount += extruder_attr[current_extruder].isRetracted;
+        extrusion_amount -= extruder_attr[current_extruder].retraction_offset_from_zero; // subtract the increment in E which was used for the first unretraction instead of extrusion
+        extrusion_amount += extruder_attr[current_extruder].isRetracted; // add the decrement in E which the filament is behind on extrusion due to the last retraction
     }
     if (is_volumatric)
     {
@@ -211,6 +212,7 @@ void GCodeExport::resetExtrusionValue()
             extruded_volume_at_retraction -= current_extruded_volume;
         }
         current_e_value = 0.0;
+        extruder_attr[current_extruder].retraction_offset_from_zero = extruder_attr[current_extruder].isRetracted;
     }
 }
 
