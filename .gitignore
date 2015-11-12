@@ -30,3 +30,5 @@ nbproject/*
 documentation/html/*
 documentation/latex/*
 
+## Test results.
+tests/output.xml

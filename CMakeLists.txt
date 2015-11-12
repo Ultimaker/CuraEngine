@@ -77,24 +77,20 @@ set(engine_TEST
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 
 # Compiling CuraEngine itself.
-add_executable(CuraEngine ${engine_SRCS} src/main.cpp ${engine_PB_SRCS})
-target_link_libraries(CuraEngine clipper Arcus)
-
+add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
+target_link_libraries(_CuraEngine clipper Arcus)
 if (UNIX)
-    target_link_libraries(CuraEngine pthread)
+    target_link_libraries(_CuraEngine pthread)
 endif()
+add_executable(CuraEngine src/main.cpp) #Then compile main.cpp as separate executable, and link the library to it.
+target_link_libraries(CuraEngine _CuraEngine)
 
 # Compiling the test environment.
 if (BUILD_TESTS)
-    add_library(CuraEngineLibrary ${engine_SRCS} ${engine_PB_SRCS})
-    target_link_libraries(CuraEngineLibrary clipper Arcus)
-    if (UNIX)
-        target_link_libraries(CuraEngineLibrary pthread)
-    endif()
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)
-        target_link_libraries(${test} CuraEngineLibrary cppunit)
+        target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
 endif()
