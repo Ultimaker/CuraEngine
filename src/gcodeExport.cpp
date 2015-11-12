@@ -108,16 +108,20 @@ void GCodeExport::setFilamentDiameter(unsigned int extruder, int diameter)
     extruder_attr[extruder].filament_area = area;
 }
 
-double GCodeExport::getCurrentExtrudedVolume(unsigned int extruder)
+double GCodeExport::getCurrentExtrudedVolume()
 {
-    double extrusion_amount = current_e_value + extruder_attr[current_extruder].isRetracted;
+    double extrusion_amount = current_e_value;
+    if (!firmware_retract)
+    { // no E values are changed to perform a retraction
+        extrusion_amount += extruder_attr[current_extruder].isRetracted;
+    }
     if (is_volumatric)
     {
         return extrusion_amount;
     }
     else
     {
-        return extrusion_amount * extruder_attr[extruder].filament_area;
+        return extrusion_amount * extruder_attr[current_extruder].filament_area;
     }
 }
 
@@ -125,7 +129,7 @@ double GCodeExport::getCurrentExtrudedVolume(unsigned int extruder)
 double GCodeExport::getTotalFilamentUsed(int e)
 {
     if (e == current_extruder)
-        return extruder_attr[e].totalFilament + getCurrentExtrudedVolume(e);
+        return extruder_attr[e].totalFilament + getCurrentExtrudedVolume();
     return extruder_attr[e].totalFilament;
 }
 
@@ -191,7 +195,7 @@ void GCodeExport::resetExtrusionValue()
     if (current_e_value != 0.0 && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
         *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0\n";
-        double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
+        double current_extruded_volume = getCurrentExtrudedVolume();
         extruder_attr[current_extruder].totalFilament += current_extruded_volume;
         for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
         { // update the extruded_volume_at_previous_n_retractions only of the current extruder, since other extruders don't extrude the current volume
@@ -337,7 +341,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 currentSpeed = retractionPrimeSpeed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
             }
-            if (getCurrentExtrudedVolume(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+            if (getCurrentExtrudedVolume() > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
             {
                 resetExtrusionValue();
             }
@@ -403,7 +407,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     }
     
-    double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
+    double current_extruded_volume = getCurrentExtrudedVolume();
     std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
     while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max) 
     {
@@ -464,16 +468,16 @@ void GCodeExport::writeRetraction_extruderSwitch()
     }
 //     resetExtrusionValue(); // TODO: why would we do this?
 
-    
-    double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
-    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
-    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-
     double retraction_amount = extruder_attr[current_extruder].extruderSwitchRetraction;
     if (extruder_attr[current_extruder].isRetracted == retraction_amount)
     {
         return; 
     }
+
+    double current_extruded_volume = getCurrentExtrudedVolume();
+    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
+    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+
     if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
     {
         if (extruder_attr[current_extruder].isRetracted) 
