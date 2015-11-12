@@ -70,6 +70,15 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     {
         is_volumatric = false;
     }
+
+    if (flavor == EGCodeFlavor::BFB || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC || flavor == EGCodeFlavor::ULTIGCODE)
+    {
+        firmware_retract = true;
+    }
+    else 
+    {
+        firmware_retract = false;
+    }
 }
 
 EGCodeFlavor GCodeExport::getFlavor()
@@ -323,8 +332,8 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
         if (extruder_attr[current_extruder].isRetracted)
         {
-            if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
-            {
+            if (firmware_retract)
+            { // note that BFB is handled differently
                 *output_stream << "G11\n";
                 //Assume default UM2 retraction settings.
                 if (prime_amount > 0)
@@ -429,7 +438,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     retractionPrimeSpeed = config->primeSpeed;
     
     double retraction_distance = config->amount;
-    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
+    if (firmware_retract)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
@@ -478,7 +487,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
     std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
     extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
 
-    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::REPRAP_VOLUMATRIC)
+    if (firmware_retract)
     {
         if (extruder_attr[current_extruder].isRetracted) 
         {
