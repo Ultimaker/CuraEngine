@@ -404,16 +404,22 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     
     double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
-    std::deque<double>& extrusion_amount_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
-    if (!force && config->retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
-        && current_extruded_volume < extrusion_amount_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
+    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
+    while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max) 
+    {
+        // extruder switch could have introduced data which falls outside the retraction window
+        // also the retraction_count_max could have changed between the last retraction and this
+        extruded_volume_at_previous_n_retractions.pop_back();
+    }
+    if (!force && config->retraction_count_max > 0 && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
+        && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
     {
         return;
     }
-    extrusion_amount_at_previous_n_retractions.push_front(current_extruded_volume);
-    if (int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max)
+    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+    if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
     {
-        extrusion_amount_at_previous_n_retractions.pop_back();
+        extruded_volume_at_previous_n_retractions.pop_back();
     }
 
     retractionPrimeSpeed = config->primeSpeed;
@@ -457,6 +463,12 @@ void GCodeExport::writeRetraction_extruderSwitch()
         return;
     }
 //     resetExtrusionValue(); // TODO: why would we do this?
+
+    
+    double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
+    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
+    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+
     double retraction_amount = extruder_attr[current_extruder].extruderSwitchRetraction;
     if (extruder_attr[current_extruder].isRetracted == retraction_amount)
     {
