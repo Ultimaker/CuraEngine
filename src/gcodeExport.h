@@ -231,6 +231,10 @@ public:
     void writeMove(Point3 p, double speed, double extrusion_per_mm);
 private:
     void writeMove(int x, int y, int z, double speed, double extrusion_per_mm);
+    /*!
+     * The writeMove when flavor == BFB
+     */
+    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force=false);
     

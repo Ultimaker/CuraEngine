@@ -217,20 +217,8 @@ void GCodeExport::writeMove(Point3 p, double speed, double extrusion_mm3_per_mm)
     writeMove(p.x, p.y, p.z, speed, extrusion_mm3_per_mm);
 }
 
-void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
+void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
 {
-    if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
-        return;
-    
-#ifdef ASSERT_INSANE_OUTPUT
-    assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
-    assert(currentPosition != no_point3);
-    assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
-#endif //ASSERT_INSANE_OUTPUT
-    
-    if (extrusion_mm3_per_mm < 0)
-        logWarning("Warning! Negative extrusion move!");
-    
     double extrusion_per_mm = extrusion_mm3_per_mm;
     if (!is_volumatric)
     {
@@ -239,8 +227,6 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
     
-    if (flavor == EGCodeFlavor::BFB)
-    { // TODO: make writeMove_BFB and call it from here
         //For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
         float fspeed = speed * 60;
         float rpm = extrusion_per_mm * speed * 60;
@@ -283,11 +269,39 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             "G1 X" << INT2MM(gcode_pos.X) << 
             " Y" << INT2MM(gcode_pos.Y) << 
             " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
-    }
-    else
-    {
-        //Normal E handling.
         
+    currentPosition = Point3(x, y, z);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
+}
+
+void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
+{
+    if (currentPosition.x == x && currentPosition.y == y && currentPosition.z == z)
+        return;
+
+#ifdef ASSERT_INSANE_OUTPUT
+    assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(currentPosition != no_point3);
+    assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
+#endif //ASSERT_INSANE_OUTPUT
+
+    if (extrusion_mm3_per_mm < 0)
+        logWarning("Warning! Negative extrusion move!");
+
+    if (flavor == EGCodeFlavor::BFB)
+    {
+        writeMoveBFB(x, y, z, speed, extrusion_mm3_per_mm);
+        return;
+    }
+
+    double extrusion_per_mm = extrusion_mm3_per_mm;
+    if (!is_volumatric)
+    {
+        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
+    }
+
+    Point gcode_pos = getGcodePos(x,y, current_extruder);
+
         if (extrusion_mm3_per_mm > 0.000001)
         {
             Point3 diff = Point3(x,y,z) - getPosition();
@@ -369,7 +383,6 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         if (extrusion_mm3_per_mm > 0.000001)
             *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value;
         *output_stream << "\n";
-    }
     
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
