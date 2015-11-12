@@ -35,7 +35,7 @@ public:
     double primeAmount; //!< the amount of material primed after unretracting (in mm3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 
-    double retraction_extrusion_window;
+    double retraction_extrusion_window; //!< in mm
     int retraction_count_max;
 };
 
@@ -128,6 +128,8 @@ private:
         
         double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
         
+        std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
+        
         ExtruderTrainAttributes()
         : nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -147,7 +149,6 @@ private:
     
     std::ostream* output_stream;
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
-    std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
     Point3 currentPosition;
     double currentSpeed;
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!

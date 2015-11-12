@@ -329,11 +329,12 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             }
             else if (prime_amount > 0.0)
             {
+                current_e_value += extruder_attr[current_extruder].isRetracted;
                 *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                 currentSpeed = retractionPrimeSpeed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
             }
-            prime_amount = 0.0;
+            extruder_attr[current_extruder].prime_amount = 0.0;
             current_e_value += extrusion_per_mm * diff.vSizeMM();
             *output_stream << "G1";
         }
@@ -388,12 +389,13 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     
     double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
+    std::deque<double>& extrusion_amount_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
     if (!force && config->retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
-        && current_e_value < extrusion_amount_at_previous_n_retractions.back() + config->retraction_extrusion_window) 
+        && current_extruded_volume < extrusion_amount_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
     {
         return;
     }
-    extrusion_amount_at_previous_n_retractions.push_front(current_e_value);
+    extrusion_amount_at_previous_n_retractions.push_front(current_extruded_volume);
     if (int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max)
     {
         extrusion_amount_at_previous_n_retractions.pop_back();
