@@ -201,7 +201,7 @@ public:
     
     void setFilamentDiameter(unsigned int n, int diameter);
     
-    double getExtrusionAmountMM3(unsigned int extruder);
+    double getCurrentExtrudedVolume(unsigned int extruder);
     
     double getTotalFilamentUsed(int e);
 

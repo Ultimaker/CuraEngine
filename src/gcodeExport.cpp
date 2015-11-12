@@ -108,7 +108,7 @@ void GCodeExport::setFilamentDiameter(unsigned int extruder, int diameter)
     extruder_attr[extruder].filament_area = area;
 }
 
-double GCodeExport::getExtrusionAmountMM3(unsigned int extruder)
+double GCodeExport::getCurrentExtrudedVolume(unsigned int extruder)
 {
     double extrusion_amount = current_e_value + extruder_attr[current_extruder].isRetracted;
     if (is_volumatric)
@@ -125,7 +125,7 @@ double GCodeExport::getExtrusionAmountMM3(unsigned int extruder)
 double GCodeExport::getTotalFilamentUsed(int e)
 {
     if (e == current_extruder)
-        return extruder_attr[e].totalFilament + getExtrusionAmountMM3(e) + extruder_attr[e].isRetracted;
+        return extruder_attr[e].totalFilament + getCurrentExtrudedVolume(e);
     return extruder_attr[e].totalFilament;
 }
 
@@ -191,9 +191,10 @@ void GCodeExport::resetExtrusionValue()
     if (current_e_value != 0.0 && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
         *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0\n";
-        extruder_attr[current_extruder].totalFilament += getExtrusionAmountMM3(current_extruder);
-        for (unsigned int i = 0; i < extrusion_amount_at_previous_n_retractions.size(); i++)
-            extrusion_amount_at_previous_n_retractions[i] -= current_e_value; // TODO: what should we do here!?!?!?
+        double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
+        extruder_attr[current_extruder].totalFilament += current_extruded_volume;
+        for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
+            extruded_volume_at_retraction -= current_extruded_volume;
         current_e_value = 0.0;
     }
 }
@@ -298,7 +299,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << "\n";
                 isZHopped = 0;
             }
-            double& prime_amount = extruder_attr[current_extruder].prime_amount;
+            double prime_amount = extruder_attr[current_extruder].prime_amount;
             current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
             if (extruder_attr[current_extruder].isRetracted)
             {
@@ -315,11 +316,12 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 }
                 else
                 {
+                    current_e_value += extruder_attr[current_extruder].isRetracted;
                     *output_stream << "G1 F" << (retractionPrimeSpeed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                     currentSpeed = retractionPrimeSpeed;
                     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
                 }
-                if (getExtrusionAmountMM3(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
+                if (getCurrentExtrudedVolume(current_extruder) > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
                 {
                     resetExtrusionValue();
                 }
@@ -385,6 +387,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         return;
     }
     
+    double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
     if (!force && config->retraction_count_max > 0 && int(extrusion_amount_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
         && current_e_value < extrusion_amount_at_previous_n_retractions.back() + config->retraction_extrusion_window) 
     {
