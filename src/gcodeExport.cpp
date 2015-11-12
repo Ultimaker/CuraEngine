@@ -194,7 +194,9 @@ void GCodeExport::resetExtrusionValue()
         double current_extruded_volume = getCurrentExtrudedVolume(current_extruder);
         extruder_attr[current_extruder].totalFilament += current_extruded_volume;
         for (double& extruded_volume_at_retraction : extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions)
+        { // update the extruded_volume_at_previous_n_retractions only of the current extruder, since other extruders don't extrude the current volume
             extruded_volume_at_retraction -= current_extruded_volume;
+        }
         current_e_value = 0.0;
     }
 }
@@ -471,13 +473,19 @@ void GCodeExport::switchExtruder(int new_extruder)
 {
     if (current_extruder == new_extruder)
         return;
-    
+
     writeRetraction_extruderSwitch();
-    
+
+    resetExtrusionValue(); // should be called on the old extruder
+
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
+
     if (flavor == EGCodeFlavor::MACH3)
-        resetExtrusionValue();
+    {
+        resetExtrusionValue(); // also zero the E value on the new extruder
+    }
+    
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
     {

@@ -217,6 +217,11 @@ public:
     
     void writeLine(const char* line);
     
+    /*!
+     * Reset the current_e_value to prevent too high E values.
+     * 
+     * The current extruded volume is added to the current extruder_attr.
+     */
     void resetExtrusionValue();
     
     void writeDelay(double timeAmount);
