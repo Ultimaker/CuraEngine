@@ -22,12 +22,20 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     processStartingCode(commandSocket);
     
-    int maxObjectHeight = wireFrame.layers.back().z1;
+    int maxObjectHeight;
+    if (wireFrame.layers.empty())
+    {
+        maxObjectHeight = 0;
+    }
+    else
+    {
+        maxObjectHeight = wireFrame.layers.back().z1;
+    }
     
     processSkirt(commandSocket);
     
             
-    unsigned int totalLayers = wireFrame.layers.size();
+    unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
     gcode.writeTypeComment("SKIRT");
 
@@ -71,7 +79,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, commandSocket);
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
-        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, totalLayers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
+        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
         
@@ -530,7 +538,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     
     standard_retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
-    standard_retraction_config.primeAmount = INT2MM(getSettingInMicrons("retraction_extra_prime_amount"));
+    standard_retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
@@ -540,7 +548,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 
 void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 {
-    if (gcode.getFlavor() == GCODE_FLAVOR_ULTIGCODE)
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
         if (!command_socket)
         {
@@ -562,7 +570,7 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
     
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
-    if (gcode.getFlavor() == GCODE_FLAVOR_BFB)
+    if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
@@ -575,7 +583,7 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
 {
     Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
-    PathOrderOptimizer order(gcode.getStartPositionXY());
+    PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
     order.addPolygons(skirt);
     order.optimize();
     

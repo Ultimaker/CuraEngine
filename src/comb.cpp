@@ -5,6 +5,7 @@
 
 #include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
+#include "utils/SVG.h"
 
 namespace cura {
 
@@ -13,51 +14,57 @@ bool Comb::moveInsideBoundary(Point* p, int distance)
     return PolygonUtils::moveInside(boundary_inside, *p, distance) != NO_INDEX;
 }
 
-
-Polygons Comb::getLayerOutlines(SliceDataStorage& storage, unsigned int layer_nr)
-{
-    Polygons layer_outlines;
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
-        {
-            layer_outlines.add(part.outline);
-        }
-    }
-    return layer_outlines;
-}
-
 Polygons Comb::getLayerSecondWalls()
 {
-    Polygons layer_walls;
-    for (SliceMeshStorage& mesh : storage.meshes)
+    if (layer_nr < 0)
+    { // when a raft is present
+        return storage.raftOutline.offset(MM2INT(0.1));
+    }
+    else 
     {
-        for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+        Polygons layer_walls;
+        for (SliceMeshStorage& mesh : storage.meshes)
         {
-            if (part.insets.size() >= 2)
+            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
             {
-                layer_walls.add(part.insets[1]);
-            }
-            else 
-            {
-                layer_walls.add(part.outline.offset(-offset_from_outlines));
+                // we want the 2nd inner walls
+                if (part.insets.size() >= 2) {
+                    layer_walls.add(part.insets[1]);
+                    continue;
+                }
+                // but we'll also take the inner wall if the 2nd doesn't exist
+                if (part.insets.size() >= 1) {
+                    layer_walls.add(part.insets[0]);
+                    continue;
+                }
+                // and if there is no walls, we'll try to move inside from the outline
+                Polygons newOutline = part.outline.offset(-offset_from_outlines);
+                if(newOutline.polygonLength() > 0) {
+                    layer_walls.add(newOutline);
+                    continue;
+                }
+                // offset_from_outlines was so large that it completely destroyed our isle,
+                // so we'll just use the regular outline
+                layer_walls.add(part.outline);
+                continue;
             }
         }
+        return layer_walls;
     }
-    return layer_walls;
 }
   
+// boundary_outside is only computed when it's needed!
 Polygons* Comb::getBoundaryOutside()
 {
     if (!boundary_outside)
     {
         boundary_outside = new Polygons();
-        *boundary_outside = getLayerOutlines(storage, layer_nr).offset(offset_from_outlines_outside);
+        *boundary_outside =  storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
     }
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -77,7 +84,7 @@ Comb::~Comb()
         delete boundary_outside;
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
@@ -130,13 +137,15 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     { // normal combing within part
         PolygonsPart part = partsView_inside.assemblePart(start_part_idx);
         combPaths.emplace_back();
-        LinePolygonsCrossings::comb(part, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside);
+        LinePolygonsCrossings::comb(part, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         return true;
     }
     else 
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
         Point middle_from;
         Point middle_to;
+        Point inside_middle_from;
+        Point inside_middle_to;
         
         if (startInside && endInside)
         {
@@ -144,27 +153,36 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from_cp.location, boundary_inside[end_part_boundary_poly_idx]);
 //             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
             middle_from = middle_from_cp.location;
+            inside_middle_from = middle_from_cp.location;
             middle_to = middle_to_cp.location;
+            inside_middle_to = middle_to_cp.location;
+            PolygonUtils::moveInside(boundary_inside,inside_middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
+            PolygonUtils::moveInside(boundary_inside,inside_middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
         }
-        else 
+        else if(!startInside && !endInside)
         {
-            if (!startInside && !endInside) 
-            { 
-                middle_from = startPoint; 
-                middle_to = endPoint; 
-            }
-            else if (!startInside && endInside)
-            {
-                middle_from = startPoint;
-                ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from, boundary_inside[end_part_boundary_poly_idx]);
-                middle_to = middle_to_cp.location;
-            }
-            else if (startInside && !endInside)
-            {
-                middle_to = endPoint;
-                ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to, boundary_inside[start_part_boundary_poly_idx]);
-                middle_from = middle_from_cp.location;
-            }
+            middle_from = startPoint;
+            inside_middle_from = startPoint;
+            middle_to = endPoint;
+            inside_middle_to = endPoint;
+        }
+        else if(!startInside && endInside)
+        {
+            middle_from = startPoint;
+            inside_middle_from = startPoint;
+            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from,boundary_inside[end_part_boundary_poly_idx]);
+            middle_to = middle_to_cp.location;
+            inside_middle_to = middle_to_cp.location;
+            PolygonUtils::moveInside(boundary_inside,inside_middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
+        }
+        else if(startInside && !endInside)
+        {
+            middle_to = endPoint;
+            inside_middle_to = endPoint;
+            ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to,boundary_inside[start_part_boundary_poly_idx]);
+            middle_from = middle_from_cp.location;
+            inside_middle_from = middle_from_cp.location;
+            PolygonUtils::moveInside(boundary_inside,inside_middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
         }
         
         if (startInside)
@@ -172,7 +190,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             // start to boundary
             PolygonsPart part_begin = partsView_inside.assemblePart(start_part_idx); // comb through the starting part only
             combPaths.emplace_back();
-            LinePolygonsCrossings::comb(part_begin, startPoint, middle_from, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside);
+            LinePolygonsCrossings::comb(part_begin, startPoint, inside_middle_from, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
         
         // throught air from boundary to boundary
@@ -191,14 +209,14 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
-            if ( vSize(middle_from - middle_to) < vSize(middle_from - from_outside) + vSize(middle_to - to_outside) )
+            if ( vSize(inside_middle_from - inside_middle_to) < vSize(inside_middle_from - from_outside) + vSize(inside_middle_to - to_outside) )
             { // via outside is a detour
-                combPaths.back().push_back(middle_from);
-                combPaths.back().push_back(middle_to);
+                combPaths.back().push_back(inside_middle_from);
+                combPaths.back().push_back(inside_middle_to);
             }
             else
             {
-                LinePolygonsCrossings::comb(middle, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside);
+                LinePolygonsCrossings::comb(middle, from_outside, to_outside, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
             }
         }
         else 
@@ -206,8 +224,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
             combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
-            combPaths.back().push_back(middle_from);
-            combPaths.back().push_back(middle_to);
+            combPaths.back().push_back(inside_middle_from);
+            combPaths.back().push_back(inside_middle_to);
         }
         
         if (endInside)
@@ -215,7 +233,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             // boundary to end
             PolygonsPart part_end = partsView_inside.assemblePart(end_part_idx); // comb through end part only
             combPaths.emplace_back();
-            LinePolygonsCrossings::comb(part_end, middle_to, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside);
+            LinePolygonsCrossings::comb(part_end, inside_middle_to, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
         
         return true;
@@ -232,18 +250,32 @@ void LinePolygonsCrossings::calcScanlineCrossings()
     {
         PolyCrossings minMax(poly_idx); 
         PolygonRef poly = boundary[poly_idx];
-        Point p0 = transformation_matrix.apply(poly.back());
+        Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = transformation_matrix.apply(poly[point_idx]);
-            if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+            if((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
             {
+                if(p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
+                {
+                    p0 = p1;
+                    continue;
+                }
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    if (x < minMax.min.x) { minMax.min.x = x; minMax.min.point_idx = point_idx; }
-                    if (x > minMax.max.x) { minMax.max.x = x; minMax.max.point_idx = point_idx; }
+                    if(x < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
+                                         //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
+                    {
+                        minMax.min.x = x;
+                        minMax.min.point_idx = point_idx;
+                    }
+                    if(x > minMax.max.x) //For the rightmost intersection, move x right to stay outside of the border.
+                    {
+                        minMax.max.x = x;
+                        minMax.max.point_idx = point_idx;
+                    }
                 }
             }
             p0 = p1;
@@ -289,14 +321,14 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 }
 
 
-void LinePolygonsCrossings::getCombingPath(CombPath& combPath)
+void LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored)
 {
-    if (shorterThen(endPoint - startPoint, Comb::max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
+    if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
     {
         //We're not crossing any boundaries. So skip the comb generation.
         combPath.push_back(startPoint); 
-        combPath.push_back(endPoint); 
-        return; 
+        combPath.push_back(endPoint);
+        return;
     }
     
     calcScanlineCrossings();
@@ -321,7 +353,7 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
     PolygonRef poly = boundary[polyCrossings.poly_idx];
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x, transformed_startPoint.Y)));
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x + dist_to_move_boundary_point_outside, transformed_startPoint.Y)));
     if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
         < poly.size() / 2 )
     { // follow the path in the same direction as the winding order of the boundary polygon
@@ -336,13 +368,13 @@ void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, Co
     { // follow the path in the opposite direction of the winding order of the boundary polygon
         unsigned int min_idx = (polyCrossings.min.point_idx == 0)? poly.size() - 1: polyCrossings.min.point_idx - 1;
         unsigned int max_idx = (polyCrossings.max.point_idx == 0)? poly.size() - 1: polyCrossings.max.point_idx - 1;
-        
+
         for(unsigned int point_idx = min_idx; point_idx != max_idx; point_idx = (point_idx > 0) ? (point_idx - 1) : (poly.size() - 1))
         {
             combPath.push_back(PolygonUtils::getBoundaryPointWithOffset(poly, point_idx, dist_to_move_boundary_point_outside));
         }
     }
-    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x, transformed_startPoint.Y))); 
+    combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.max.x - dist_to_move_boundary_point_outside, transformed_startPoint.Y))); 
 }
 
 
@@ -361,10 +393,14 @@ LinePolygonsCrossings::PolyCrossings* LinePolygonsCrossings::getNextPolygonAlong
 }
 
 bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimized_comb_path) 
-{   
+{
     optimized_comb_path.push_back(startPoint);
     for(unsigned int point_idx = 1; point_idx<comb_path.size(); point_idx++)
     {
+        if(comb_path[point_idx] == comb_path[point_idx - 1]) //Two points are the same. Skip the second.
+        {
+            continue;
+        }
         Point& current_point = optimized_comb_path.back();
         if (PolygonUtils::polygonCollidesWithlineSegment(boundary, current_point, comb_path[point_idx]))
         {

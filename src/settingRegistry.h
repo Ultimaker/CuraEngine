@@ -5,7 +5,9 @@
 #include <list>
 #include <unordered_map>
 #include <string>
+#include <iostream> // debug out
 
+#include "utils/NoCopy.h"
 #include "rapidjson/document.h"
 
 namespace cura
@@ -18,15 +20,17 @@ class SettingConfig;
  * Setting category.
  * Filled from the fdmprinter.json file. Contains one or more children settings.
  */
-class SettingCategory
+class SettingContainer
 {
+    friend class SettingConfig;
 private:
-    std::string label;
     std::string key;
+    std::string label;
     std::list<SettingConfig> children;
 public:
     std::string getKey() const { return key; }
-    SettingCategory(std::string key, std::string label);
+    std::string getLabel() const { return label; }
+    SettingContainer(std::string key, std::string label);
     
     SettingConfig* addChild(std::string key, std::string label);
     
@@ -49,6 +53,8 @@ public:
         else 
             return nullptr;
     }
+    
+    void debugOutputAllSettings();
 };
 
 /*!
@@ -56,20 +62,15 @@ public:
  * Filled from the fdmprinter.json file. Can contain child settings, and is registered in the
  * setting registry with it's key.
  */
-class SettingConfig
+class SettingConfig : public SettingContainer
 {
 private:
-    std::string label;
-    std::string key;
     std::string type;
     std::string default_value;
     std::string unit;
-    SettingConfig* parent;
-    std::list<SettingConfig> children;
+    SettingContainer* parent;
 public:
-    SettingConfig(std::string key, std::string label, SettingConfig* parent);
-
-    SettingConfig* addChild(std::string key, std::string label);
+    SettingConfig(std::string key, std::string label, SettingContainer* parent);
     
     /*!
      * Get the SettingConfig::children.
@@ -114,6 +115,15 @@ public:
     {
         return unit;
     }
+    
+    void debugOutputAllSettings()
+    {
+        std::cerr << key << std::endl;
+        for (SettingConfig& child : children)
+        {
+            child.debugOutputAllSettings();
+        }
+    }
 };
 
 /*!
@@ -122,13 +132,15 @@ public:
  * This registry contains all known setting keys.
  * The registry also contains the settings categories to build up the setting hiarcy from the json file.
  */
-class SettingRegistry
+class SettingRegistry : NoCopy
 {
 private:
     static SettingRegistry instance;
 
+    SettingRegistry();
+    
     std::unordered_map<std::string, SettingConfig*> settings;
-    std::list<SettingCategory> categories;
+    std::list<SettingContainer> categories;
 public:
     /*!
      * Get the SettingRegistry.
@@ -140,7 +152,7 @@ public:
     static SettingRegistry* getInstance() { return &instance; }
     
     bool settingExists(std::string key) const;
-    const SettingConfig* getSettingConfig(std::string key);
+    SettingConfig* getSettingConfig(std::string key);
     
     /*!
      * Return the first category with the given key as name, or a null pointer.
@@ -148,20 +160,65 @@ public:
      * \param key the key as it is in the JSON file
      * \return The first category in the list having the \p key
      */
-    SettingCategory* getCategory(std::string key);
+    SettingContainer* getCategory(std::string key);
     
     bool settingsLoaded();
     /*!
-     * Load settings from a json file.
+     * Load settings from a json file and all the parents it inherits from.
+     * 
+     * Uses recursion to load the parent json file.
      * 
      * \param filename The filename of the json file to parse
      * \return an error code or zero of succeeded
      */
-    int loadJSON(std::string filename);
-private:
-    SettingRegistry();
+    int loadJSONsettings(std::string filename);
+    void debugOutputAllSettings()
+    {
+        for (SettingContainer& cat : categories)
+        {
+            cat.debugOutputAllSettings();
+        }
+    }
     
-    void _addSettingsToCategory(SettingCategory* category, const rapidjson::Value& json_object, SettingConfig* parent, bool add_to_settings = true);
+private:
+    
+    /*!
+     * \param type type to convert to string
+     * \return human readable version of json type
+     */
+    static std::string toString(rapidjson::Type type);
+    /*!
+     * Load a json document.
+     * 
+     * \param filename The filename of the json file to parse
+     * \param json_document (output) the document to be loaded
+     * \return an error code or zero of succeeded
+     */
+    int loadJSON(std::string filename, rapidjson::Document& json_document);
+    
+    /*!
+     * Load settings from a single json file.
+     * 
+     * \param filename The filename of the json file to parse
+     * \param warn_duplicates whether to warn for duplicate definitions
+     * \return an error code or zero of succeeded
+     */
+    int loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates);
+    
+    /*!
+     * Get the string from a json value (generally the default value field of a setting)
+     * \param dflt The value to convert to string
+     * \param setting_name The name of the setting (in case we need to display an error message)
+     * \return The string
+     */
+    static std::string toString(const rapidjson::Value& dflt, std::string setting_name = "?");
+    
+    /*!
+     * \param warn_duplicates whether to warn for duplicate definitions
+     */
+    void _addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
+    
+    void _loadSettingValues(SettingConfig* config, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 };
 
 }//namespace cura

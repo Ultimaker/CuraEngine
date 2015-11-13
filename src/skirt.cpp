@@ -20,48 +20,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     
     bool get_convex_hull = count == 1 && distance > 0;
     
-    Polygons first_layer_outline;
-    {// add support polygons
-        if (storage.support.generated) 
-            first_layer_outline = storage.support.supportLayers[0].supportAreas
-                    .unionPolygons(storage.support.supportLayers[0].roofs);
-        { // get support polygons
-            for(SliceMeshStorage& mesh : storage.meshes)
-            {
-                if (mesh.layers.size() < 1) continue;
-                SliceLayer* layer = &mesh.layers[0];
-                for(unsigned int i=0; i<layer->parts.size(); i++)        
-                    first_layer_outline = first_layer_outline.difference(layer->parts[i].outline);
-            }
-            
-            // expand and contract to smooth the final polygon
-//             if (get_convex_hull)
-//             {
-//                 int dist = primary_extrusion_width * 5;
-//                 first_layer_outline = first_layer_outline.offset(dist).offset(-dist);
-//             }
-        }
-    }
-    { // add prime tower and part outlines
-        first_layer_outline = first_layer_outline.unionPolygons(storage.primeTower.ground_poly);
-        for(SliceMeshStorage& mesh : storage.meshes)
-        {
-            if (mesh.layers.size() < 1) continue;
-            for(SliceLayerPart& part : mesh.layers[0].parts)
-            {
-                if (externalOnly)
-                {
-                    Polygons p;
-                    p.add(part.outline.outerPolygon());
-                    first_layer_outline = first_layer_outline.unionPolygons(p);
-                }
-                else
-                {
-                    first_layer_outline = first_layer_outline.unionPolygons(part.outline);
-                }
-            }
-        }
-    }
+    Polygons first_layer_outline = storage.getLayerOutlines(0, true, externalOnly);
     
     std::vector<Polygons> skirts;
     for(int skirtNr=0; skirtNr<count;skirtNr++)

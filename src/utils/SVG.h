@@ -6,6 +6,7 @@
 #include "polygon.h"
 #include "intpoint.h"
 #include "AABB.h"
+#include "logoutput.h"
 
 namespace cura {
 
@@ -18,7 +19,8 @@ public:
         GRAY,
         RED,
         BLUE,
-        GREEN
+        GREEN,
+        YELLOW
     };
     
 private:
@@ -33,6 +35,7 @@ private:
             case SVG::Color::RED: return "red";
             case SVG::Color::BLUE: return "blue";
             case SVG::Color::GREEN: return "green";
+            case SVG::Color::YELLOW: return "yellow";
             default: return "black";
         }
     }
@@ -51,8 +54,12 @@ public:
     , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
     {
         out = fopen(filename, "w");
+        if(!out)
+        {
+            logError("The file %s could not be opened for writing.",filename);
+        }
         fprintf(out, "<!DOCTYPE html><html><body>\n");
-        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.Y, canvas_size.X);
+        fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
         
 //         fprintf(out, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
 //         fprintf(out, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
@@ -69,7 +76,7 @@ public:
     /*!
      * transform a point in real space to canvas space
      */
-    Point transform(Point& p) 
+    Point transform(const Point& p) 
     {
         return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + Point(10,10);
     }
@@ -123,7 +130,7 @@ public:
                 for(Point& p : poly)
                 {
                     Point fp = transform(p);
-                    fprintf(out, "%lli,%lli ", fp.Y, fp.X);
+                    fprintf(out, "%lli,%lli ", fp.X, fp.Y);
                 }
                 if (j == 0)
                     fprintf(out, "\" style=\"fill:%s;stroke:%s;stroke-width:1\" />\n", toString(color).c_str(), toString(outline_color).c_str());
@@ -133,14 +140,25 @@ public:
         }
     }
     
-    void writePoint(Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
+    void writeAreas(std::vector<Point> polygon,Color color = Color::GRAY,Color outline_color = Color::BLACK)
+    {
+        fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" points=\"",toString(color).c_str(),toString(outline_color).c_str()); //The beginning of the polygon tag.
+        for(Point& point : polygon) //Add every point to the list of points.
+        {
+            Point transformed = transform(point);
+            fprintf(out,"%lli,%lli ",transformed.X,transformed.Y);
+        }
+        fprintf(out,"\" />\n"); //The end of the polygon tag.
+    }
+    
+    void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         Point pf = transform(p);
-        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.Y, pf.X, size, toString(color).c_str(), toString(color).c_str());
+        fprintf(out, "<circle cx=\"%lli\" cy=\"%lli\" r=\"%d\" stroke=\"%s\" stroke-width=\"1\" fill=\"%s\" />\n",pf.X, pf.Y, size, toString(color).c_str(), toString(color).c_str());
         
         if (write_coords)
         {
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.Y, pf.X, p.X, p.Y);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
@@ -159,14 +177,59 @@ public:
         }
     }
     
-    void writeLine(Point& a, Point& b, Color color = Color::BLACK)
+    /*!
+     * \brief Draws a polyline on the canvas.
+     * 
+     * The polyline is the set of line segments between each pair of consecutive
+     * points in the specified vector.
+     * 
+     * \param polyline A set of points between which line segments must be
+     * drawn.
+     * \param color The colour of the line segments. If this is not specified,
+     * black will be used.
+     */
+    void writeLines(std::vector<Point> polyline,Color color = Color::BLACK)
     {
+        if(polyline.size() <= 1) //Need at least 2 points.
+        {
+            return;
+        }
         
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />", a.Y, a.X, b.Y, b.X, toString(color).c_str());
+        Point transformed = transform(polyline[0]); //Element 0 must exist due to the check above.
+        fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
+        for(size_t point = 1;point < polyline.size();point++)
+        {
+            transformed = transform(polyline[point]);
+            fprintf(out,"L%lli,%lli",transformed.X,transformed.Y); //Write a line segment to the next point.
+        }
+        fprintf(out,"\" />\n"); //Write the end of the tag.
+    }
+    
+    void writeLine(const Point& a, const Point& b, Color color = Color::BLACK)
+    {
+        Point fa = transform(a);
+        Point fb = transform(b);
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
+    }
+    
+    /*!
+     * \brief Draws a dashed line on the canvas from point A to point B.
+     * 
+     * This is useful in the case where multiple lines may overlap each other.
+     * 
+     * \param a The starting endpoint of the line.
+     * \param b The ending endpoint of the line.
+     * \param color The stroke colour of the line.
+     */
+    void writeDashedLine(const Point& a,const Point& b,Color color = Color::BLACK)
+    {
+        Point fa = transform(a);
+        Point fb = transform(b);
+        fprintf(out,"<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",fa.X,fa.Y,fb.X,fb.Y,toString(color).c_str());
     }
 
     template<typename... Args>
-    void printf(const char* txt, Args... args)
+    void printf(const char* txt, Args&&... args)
     {
         fprintf(out, txt, args...);
     }

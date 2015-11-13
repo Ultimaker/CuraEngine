@@ -11,7 +11,7 @@ namespace cura
 int64_t offset_safe_allowance = 20; // make all offset safe operations a bit less safe to allow for small variations in walls which are supposed to be exactly x perimeters thick
 int64_t in_between_min_dist_half = 10;
 
-void PolygonUtils::offsetExtrusionWidth(Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetExtrusionWidth(const Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (inward)? -1 : 1;
     int distance = (inward)? -extrusionWidth : extrusionWidth;
@@ -28,7 +28,7 @@ void PolygonUtils::offsetExtrusionWidth(Polygons& poly, bool inward, int extrusi
     }
 }
 
-void PolygonUtils::offsetSafe(Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetSafe(const Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -45,7 +45,7 @@ void PolygonUtils::offsetSafe(Polygons& poly, int distance, int offset_first_bou
 }
 
 
-void PolygonUtils::offsetSafe(Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
+void PolygonUtils::offsetSafe(const Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters)
 {
     int direction = (distance > 0)? 1 : -1;
     if (!removeOverlappingPerimeters)
@@ -59,7 +59,7 @@ void PolygonUtils::offsetSafe(Polygons& poly, int distance, int extrusionWidth, 
     }
 }
 
-void PolygonUtils::removeOverlapping(Polygons& poly, int extrusionWidth, Polygons& result)
+void PolygonUtils::removeOverlapping(const Polygons& poly, int extrusionWidth, Polygons& result)
 {
     result = poly.offset(extrusionWidth/2).offset(-extrusionWidth).offset(extrusionWidth/2);
 }
@@ -104,8 +104,13 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
             Point ab = b - a;
             Point ap = p - a;
             int64_t ab_length = vSize(ab);
+            if(ab_length <= 0) //A = B, i.e. the input polygon had two adjacent points on top of each other.
+            {
+                p1 = p2; //Skip only one of the points.
+                continue;
+            }
             int64_t ax_length = dot(ab, ap) / ab_length;
-            if (ax_length < 0) // x is projected to before ab
+            if (ax_length <= 0) // x is projected to before ab
             {
                 if (projected_p_beyond_prev_segment)
                 { //  case which looks like:   > .
@@ -120,7 +125,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(a, distance*4) + normal(p1 - p0, distance*4));
+                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
                             ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
@@ -134,7 +139,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                     continue;
                 }
             }
-            else if (ax_length > ab_length) // x is projected to beyond ab
+            else if (ax_length >= ab_length) // x is projected to beyond ab
             {
                 projected_p_beyond_prev_segment = true;
                 p0 = p1;
@@ -449,18 +454,25 @@ bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& transf
     for(Point p1_ : poly)
     {
         Point p1 = transformation_matrix.apply(p1_);
-        if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+        if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
         {
-            int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+            int64_t x;
+            if(p1.Y == p0.Y)
+            {
+                x = p0.X;
+            }
+            else
+            {
+                x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+            }
             
-            if (x > transformed_startPoint.X && x < transformed_endPoint.X)
+            if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 return true;
         }
         p0 = p1;
     }
     return false;
 }
-
 
 bool PolygonUtils::polygonCollidesWithlineSegment(PolygonRef poly, Point& startPoint, Point& endPoint)
 {

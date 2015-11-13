@@ -2,12 +2,15 @@
 #include "skin.h"
 #include "utils/polygonUtils.h"
 
+#define MIN_AREA_SIZE (0.4 * 0.4) 
+
 namespace cura 
 {
 
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+        
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
-    generateSkinAreas(layerNr, storage, extrusionWidth, downSkinCount, upSkinCount);
+    generateSkinAreas(layerNr, storage, innermost_wall_extrusion_width, downSkinCount, upSkinCount, no_small_gaps_heuristic);
 
     SliceLayer* layer = &storage.layers[layerNr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -17,41 +20,72 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, bool no_small_gaps_heuristic)
 {
-    SliceLayer& layer = storage.layers[layerNr];
-
+    SliceLayer& layer = storage.layers[layer_nr];
+    
+    if (downSkinCount == 0 && upSkinCount == 0)
+    {
+        return;
+    }
+    
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
         
-        Polygons upskin = part.insets.back().offset(-extrusionWidth/2);
-        Polygons downskin = upskin;
+        Polygons upskin = part.insets.back().offset(-innermost_wall_extrusion_width/2);
+        Polygons downskin = (downSkinCount == 0)? Polygons() : upskin;
+        if (upSkinCount == 0) upskin = Polygons();
 
-        
-        if (static_cast<int>(layerNr - downSkinCount) >= 0)
-        {
-            SliceLayer& layer2 = storage.layers[layerNr - downSkinCount];
-            for(SliceLayerPart& part2 : layer2.parts)
+        auto getInsidePolygons = [&part](SliceLayer& layer2)
             {
-                if (part.boundaryBox.hit(part2.boundaryBox))
-                    downskin = downskin.difference(part2.insets.back());
+                Polygons result;
+                for(SliceLayerPart& part2 : layer2.parts)
+                {
+                    if (part.boundaryBox.hit(part2.boundaryBox))
+                        result.add(part2.insets.back());
+                }
+                return result;
+            };
+            
+        if (no_small_gaps_heuristic)
+        {
+            if (static_cast<int>(layer_nr - downSkinCount) >= 0)
+            {
+                downskin = downskin.difference(getInsidePolygons(storage.layers[layer_nr - downSkinCount])); // skin overlaps with the walls
+            }
+            
+            if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(storage.layers.size()))
+            {
+                upskin = upskin.difference(getInsidePolygons(storage.layers[layer_nr + upSkinCount])); // skin overlaps with the walls
             }
         }
-        if (static_cast<int>(layerNr + upSkinCount) < static_cast<int>(storage.layers.size()))
+        else 
         {
-            SliceLayer& layer2 = storage.layers[layerNr + upSkinCount];
-            for(SliceLayerPart& part2 : layer2.parts)
+            if (layer_nr > 0 && downSkinCount > 0)
             {
-                if (part.boundaryBox.hit(part2.boundaryBox))
-                    upskin = upskin.difference(part2.insets.back());
+                Polygons not_air = getInsidePolygons(storage.layers[layer_nr - 1]);
+                for (int downskin_layer_nr = std::max(0, layer_nr - downSkinCount); downskin_layer_nr < layer_nr - 1; downskin_layer_nr++)
+                {
+                    not_air = not_air.intersection(getInsidePolygons(storage.layers[downskin_layer_nr]));
+                }
+                downskin = downskin.difference(not_air); // skin overlaps with the walls
+            }
+            
+            if (layer_nr < static_cast<int>(storage.layers.size()) - 1 && upSkinCount > 0)
+            {
+                Polygons not_air = getInsidePolygons(storage.layers[layer_nr + 1]);
+                for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < std::min(static_cast<int>(storage.layers.size()) - 1, layer_nr + upSkinCount); upskin_layer_nr++)
+                {
+                    not_air = not_air.intersection(getInsidePolygons(storage.layers[upskin_layer_nr]));
+                }
+                upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
         }
         
         Polygons skin = upskin.unionPolygons(downskin);
-          
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value! = circle area * 8 * 0.3  !?!??!
-        skin.removeSmallAreas(minAreaSize);
+        
+        skin.removeSmallAreas(MIN_AREA_SIZE);
         
         for (PolygonsPart& skin_area_part : skin.splitIntoParts())
         {
@@ -95,13 +129,13 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
+void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
 {
     SliceLayer& layer = storage.layers[layerNr];
 
     for(SliceLayerPart& part : layer.parts)
     {
-        Polygons sparse = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
+        Polygons infill = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
@@ -109,41 +143,62 @@ void generateSparse(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
             {
                 for(SkinPart& skin_part : part2.skin_parts)
                 {
-                    sparse = sparse.difference(skin_part.outline);
+                    infill = infill.difference(skin_part.outline);
                 }
             }
         }
-        sparse.removeSmallAreas(3.0);//(2 * M_PI * INT2MM(config.extrusionWidth) * INT2MM(config.extrusionWidth)) * 3;
+        infill.removeSmallAreas(MIN_AREA_SIZE);
         
-        part.sparse_outline.push_back(sparse.offset(infill_skin_overlap));
+        part.infill_area.push_back(infill.offset(infill_skin_overlap));
     }
 }
 
-void combineSparseLayers(int layerNr, SliceMeshStorage& storage, int amount)
+void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 {
-    SliceLayer* layer = &storage.layers[layerNr];
-
-    for(int n=1; n<amount; n++)
+    if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
-        if (layerNr < n)
-            break;
-        
-        SliceLayer* layer2 = &storage.layers[layerNr - n];
-        for(SliceLayerPart& part : layer->parts)
+        return;
+    }
+    if(storage.layers.empty() || storage.layers.size() - 1 < static_cast<size_t>(storage.getSettingAsCount("top_layers")) || storage.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
+    {
+        return;
+    }
+    /* We need to round down the layer index we start at to the nearest
+    divisible index. Otherwise we get some parts that have infill at divisible
+    layers and some at non-divisible layers. Those layers would then miss each
+    other. */
+    size_t min_layer = storage.getSettingAsCount("bottom_layers") + amount - 1;
+    min_layer -= min_layer % amount; //Round upwards to the nearest layer divisible by infill_sparse_combine.
+    size_t max_layer = storage.layers.size() - 1 - storage.getSettingAsCount("top_layers");
+    max_layer -= max_layer % amount; //Round downwards to the nearest layer divisible by infill_sparse_combine.
+    for(size_t layer_idx = min_layer;layer_idx <= max_layer;layer_idx += amount) //Skip every few layers, but extrude more.
+    {
+        SliceLayer* layer = &storage.layers[layer_idx];
+
+        for(unsigned int n = 1;n < amount;n++)
         {
-            Polygons result;
-            for(SliceLayerPart& part2 : layer2->parts)
+            if(layer_idx < n)
             {
-                if (part.boundaryBox.hit(part2.boundaryBox))
-                {
-                    Polygons intersection = part.sparse_outline[n - 1].intersection(part2.sparse_outline[0]).offset(-200).offset(200);
-                    result.add(intersection);
-                    part.sparse_outline[n - 1] = part.sparse_outline[n - 1].difference(intersection);
-                    part2.sparse_outline[0] = part2.sparse_outline[0].difference(intersection);
-                }
+                break;
             }
-            
-            part.sparse_outline.push_back(result);
+
+            SliceLayer* layer2 = &storage.layers[layer_idx - n];
+            for(SliceLayerPart& part : layer->parts)
+            {
+                Polygons result;
+                for(SliceLayerPart& part2 : layer2->parts)
+                {
+                    if(part.boundaryBox.hit(part2.boundaryBox))
+                    {
+                        Polygons intersection = part.infill_area[n - 1].intersection(part2.infill_area[0]).offset(-200).offset(200);
+                        result.add(intersection);
+                        part.infill_area[n - 1] = part.infill_area[n - 1].difference(intersection);
+                        part2.infill_area[0] = part2.infill_area[0].difference(intersection);
+                    }
+                }
+
+                part.infill_area.push_back(result);
+            }
         }
     }
 }
@@ -176,8 +231,7 @@ void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusio
             }
             part.perimeterGaps = part.perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
         }
-        double minAreaSize = (2 * M_PI * INT2MM(extrusionWidth) * INT2MM(extrusionWidth)) * 0.3; // TODO: hardcoded value!
-        part.perimeterGaps.removeSmallAreas(minAreaSize);
+        part.perimeterGaps.removeSmallAreas(MIN_AREA_SIZE);
     }
 }
 

@@ -27,6 +27,10 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
         cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
     }
+    if (slicerList.empty()) //Wait, there is nothing to slice.
+    {
+        return;
+    }
 
     
     int starting_layer_idx;

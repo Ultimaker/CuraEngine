@@ -15,6 +15,11 @@
 #include "commandSocket.h"
 #include "utils/polygonUtils.h"
 #include "PrimeTower.h"
+#include "FanSpeedLayerTime.h"
+
+
+#include "LayerPlanBuffer.h"
+
 
 namespace cura 
 {
@@ -28,10 +33,13 @@ namespace cura
  */
 class FffGcodeWriter : public SettingsMessenger
 {
-    friend class fffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
+    friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
     int max_object_height;
     int meshgroup_number; //!< used for sequential printing of objects
+    
+    LayerPlanBuffer layer_plan_buffer;
+    
     GCodeExport gcode;
     CommandSocket* command_socket;
     std::ofstream output_file;
@@ -42,9 +50,17 @@ private:
      * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
+    
+    FanSpeedLayerTimeSettings fan_speed_layer_time_settings;
+    
+    Point last_position_planned; //!< The position of the head before planning the next layer
+    int current_extruder_planned; //!< The extruder train in use before planning the next layer
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
+    , layer_plan_buffer(this, command_socket, gcode)
+    , last_position_planned(no_point)
+    , current_extruder_planned(0) // TODO: make configurable
     {
         meshgroup_number = 1;
         max_object_height = 0;
@@ -60,6 +76,11 @@ public:
         command_socket = socket;
     }
 
+    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
+    {
+        if (command_socket)
+            command_socket->sendPolygons(type, layer_nr, polygons, line_width);
+    }
         
     bool setTargetFile(const char* filename)
     {
@@ -90,20 +111,17 @@ public:
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
 private:
+    void setConfigFanSpeedLayerTime();
+    
     void setConfigCoasting(SliceDataStorage& storage);
 
     //Setup the retraction parameters.
     void setConfigRetraction(SliceDataStorage& storage);
     
-    void setConfigSkirt(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigSupport(SliceDataStorage& storage, int layer_thickness);
-    
-    void setConfigInsets(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigSkin(SliceMeshStorage& mesh, int layer_thickness);
-    
-    void setConfigInfill(SliceMeshStorage& mesh, int layer_thickness);
+    /*!
+     * initialize GcodePathConfig config parameters which don't change over all layers
+     */
+    void initConfigs(SliceDataStorage& storage);
     
     /*!
      * Set temperatures and perform initial priming.
@@ -120,25 +138,18 @@ private:
     /*!
      * Add raft gcode.
      * \param storage Input: where the slice data is stored.
-     * \param totalLayers The total number of layers.
+     * \param total_layers The total number of layers.
      */
-    void processRaft(SliceDataStorage& storage, unsigned int totalLayers);
+    void processRaft(SliceDataStorage& storage, unsigned int total_layers);
     
     /*!
      * Add a layer to the gcode.
      * \param storage Input: where the slice data is stored.
      * \param layer_nr The index of the layer to write the gcode of.
-     * \param totalLayers The total number of layers.
+     * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int totalLayers, bool has_raft);
-    
-    /*!
-     * Interpolate between the initial layer speeds and the eventual speeds.
-     * \param storage Input: where the slice data is stored.
-     * \param layer_nr The index of the layer to write the gcode of.
-     */
-    void processInitialLayersSpeedup(SliceDataStorage& storage, unsigned int layer_nr);
+    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
      * Add the skirt to the gcode.
@@ -173,15 +184,24 @@ private:
     std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
         
     /*!
-     * Add a single layer from a single mesh-volume to the GCode in magic polygon mode.
+     * Add a single layer from a single mesh-volume to the GCode in mesh surface mode.
      * \param storage Input: where the slice data is stored.
      * \param mesh The mesh to add to the gcode.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode_magicPolygonMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
+    void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
+    /*!
+     * Add the open polylines from a single layer from a single mesh-volume to the GCode for mesh surface mode.
+     * \param storage Input: where the slice data is stored.
+     * \param mesh The mesh for which to add to the gcode.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * 
+     */
+    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add a single layer from a single mesh-volume to the GCode.
@@ -198,24 +218,26 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
      * \param part The part for which to create gcode
-     * \param sparse_infill_line_distance The distance between the infill lines
+     * \param layer_nr The current layer number.
+     * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth); 
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth); 
     
     /*!
      * Add normal sparse infill for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the gcode.
      * \param part The part for which to create gcode
-     * \param sparse_infill_line_distance The distance between the infill lines
+     * \param layer_nr The current layer number.
+     * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The fraction of the extrusion width by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, int sparse_infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int fillAngle, int extrusionWidth);
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -284,14 +306,6 @@ private:
      * \param prev_extruder The current extruder with which we last printed.
      */
     void addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder);
-    
-    /*!
-     * Finish the layer by applying speed corrections for minimal layer times and determine the fanSpeed.
-     * \param storage Input: where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param layer_nr The index of the layer to write the gcode of.
-     */
-    void processFanSpeedAndMinimalLayerTime(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
     
     /*!
      * Add the end gcode and set all temperatures to zero.

@@ -3,8 +3,55 @@
 #include "functional"
 #include "utils/polygonUtils.h"
 #include "utils/AABB.h"
+#include "utils/logoutput.h"
 
 namespace cura {
+
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between)
+{
+    if (in_outline.size() == 0) return;
+    if (line_distance == 0) return;
+    const Polygons* outline = &in_outline;
+    Polygons outline_offsetted;
+    switch(pattern)
+    {
+    case EFillMethod::GRID:
+        generateGridInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 2, infill_overlap, fill_angle);
+        break;
+    case EFillMethod::LINES:
+        generateLineInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle);
+        break;
+    case EFillMethod::TRIANGLES:
+        generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
+        break;
+    case EFillMethod::CONCENTRIC:
+        if (outlineOffset != 0)
+        {
+            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
+            outline = &outline_offsetted;
+        }
+        if (abs(extrusion_width - line_distance) < 10)
+        {
+            generateConcentricInfillDense(*outline, result_polygons, in_between, extrusion_width, avoidOverlappingPerimeters);
+        }
+        else 
+        {
+            generateConcentricInfill(*outline, result_polygons, line_distance);
+        }
+        break;
+    case EFillMethod::ZIG_ZAG:
+        if (outlineOffset != 0)
+        {
+            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
+            outline = &outline_offsetted;
+        }
+        generateZigZagInfill(*outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connect_zigzags, use_endPieces);
+        break;
+    default:
+        logError("Fill pattern has unknown value.\n");
+        break;
+    }
+}
 
     
       
@@ -91,26 +138,9 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
     }
 }
 
-/*!
- * generate lines within the area of \p in_outline, at regular intervals of \p lineSpacing
- * 
- * idea:
- * intersect a regular grid of 'scanlines' with the area inside \p in_outline
- * 
- * we call the areas between two consecutive scanlines a 'scansegment'.
- * Scansegment x is the area between scanline x and scanline x+1
- * 
- * algorithm:
- * 1) for each line segment of each polygon:
- *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
- *      (zigzag): add boundary segments to result
- * 2) for each scanline:
- *      sort the associated intersections 
- *      and connect them using the even-odd rule
- * 
- */
 void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
+    if (lineSpacing == 0) return;
     if (in_outline.size() == 0) return;
     Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(extrusionWidth * infillOverlap / 100);
     if (outline.size() == 0) return;
@@ -172,55 +202,6 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
     else return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
 }
 
-/*!
- * adapted from generateLineInfill(.)
- * 
- * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
- * idea:
- * intersect a regular grid of 'scanlines' with the area inside [in_outline]
- * sigzag:
- * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
- * 
- * we call the areas between two consecutive scanlines a 'scansegment'
- * 
- * algorithm:
- * 1. for each line segment of each polygon:
- *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
- *      (zigzag): add boundary segments to result
- * 2. for each scanline:
- *      sort the associated intersections 
- *      and connect them using the even-odd rule
- * 
- * zigzag algorithm:
- * while walking around (each) polygon (1.)
- *  if polygon intersects with even scanline
- *      start boundary segment (add each following segment to the [result])
- *  when polygon intersects with a scanline again
- *      stop boundary segment (stop adding segments to the [result])
- *      if polygon intersects with even scanline again (instead of odd)
- *          dont add the last line segment to the boundary (unless [connect_zigzags])
- * 
- * 
- *     <--
- *     ___
- *    |   |   |
- *    |   |   |
- *    |   |___|
- *         -->
- * 
- *        ^ = even scanline
- * 
- * start boundary from even scanline! :D
- * 
- * 
- *          _____
- *   |     |     | ,
- *   |     |     |  |
- *   |_____|     |__/
- * 
- *   ^     ^     ^    scanlines
- *                 ^  disconnected end piece
- */
 void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags)
 {
 //     if (in_outline.size() == 0) return;

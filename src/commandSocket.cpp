@@ -1,6 +1,6 @@
 #include "utils/logoutput.h"
 #include "commandSocket.h"
-#include "fffProcessor.h"
+#include "FffProcessor.h"
 #include "Progress.h"
 
 #include <thread>
@@ -12,6 +12,9 @@
 #include <windows.h>
 #endif
 
+#define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x) 
+// std::cerr << x;
+
 namespace cura {
 
 #define BYTES_PER_FLOAT 4
@@ -22,16 +25,15 @@ class CommandSocket::Private
 {
 public:
     Private()
-        : processor(nullptr)
-        , socket(nullptr)
+        : socket(nullptr)
         , object_count(0)
         , current_sliced_object(nullptr)
         , sliced_objects(0)
+        , current_layer_count(0)
+        , current_layer_offset(0)
     { }
 
     cura::proto::Layer* getLayerById(int id);
-
-    fffProcessor* processor;
 
     Arcus::Socket* socket;
     
@@ -46,6 +48,11 @@ public:
     
     // Number of sliced objects for this sliced object list
     int sliced_objects;
+
+    // Number of layers sent to the front end so far
+    // Used for incrementing the current layer in one at a time mode
+    int current_layer_count;
+    int current_layer_offset;
     
     // Ids of the sliced objects
     std::vector<int64_t> object_ids;
@@ -57,11 +64,10 @@ public:
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 };
 
-CommandSocket::CommandSocket(fffProcessor* processor)
+CommandSocket::CommandSocket()
     : d(new Private)
 {
-    d->processor = processor;
-    d->processor->setCommandSocket(this);
+    FffProcessor::getInstance()->setCommandSocket(this);
 }
 
 void CommandSocket::connect(const std::string& ip, int port)
@@ -84,11 +90,17 @@ void CommandSocket::connect(const std::string& ip, int port)
         //If there is an object to slice, do so.
         if(d->objects_to_slice.size())
         {
+            FffProcessor::getInstance()->resetFileNumber();
             for(auto object : d->objects_to_slice)
             {
-                d->processor->processMeshGroup(object.get());
+                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                {
+                    logError("Slicing mesh group failed!");
+                }
             }
             d->objects_to_slice.clear();
+            FffProcessor::getInstance()->finalize();
+            sendGCodeLayer();
             sendPrintTime();
             //TODO: Support all-at-once/one-at-a-time printing
             //d->processor->processModel(d->object_to_slice.get());
@@ -139,10 +151,11 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     FMatrix3x3 matrix;
     //d->object_count = 0;
     //d->object_ids.clear();
-    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(d->processor));
+    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* object_to_slice = d->objects_to_slice.back().get();
     for(auto object : list->objects())
     {
+        DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
         object_to_slice->meshes.push_back(object_to_slice); //Construct a new mesh (with object_to_slice as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = object_to_slice->meshes.back();
 
@@ -159,8 +172,17 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             verts[1] = matrix.apply(float_vertices[1]);
             verts[2] = matrix.apply(float_vertices[2]);
             mesh.addFace(verts[0], verts[1], verts[2]);
+            
+            
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  facet normal -1 0 0\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("    outer loop\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[0].x) <<" " << INT2MM(verts[0].y) <<" " << INT2MM(verts[0].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[1].x) <<" " << INT2MM(verts[1].y) <<" " << INT2MM(verts[1].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("      vertex "<<INT2MM(verts[2].x) <<" " << INT2MM(verts[2].y) <<" " << INT2MM(verts[2].z) << "\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("    endloop\n");
+            DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  endfacet\n");
         }
-
+        DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("endsolid Cura_out\n");
         for(auto setting : object.settings())
         {
             mesh.setSetting(setting.name(), setting.value());
@@ -183,7 +205,7 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 {
     for(auto setting : list->settings())
     {
-        d->processor->setSetting(setting.name(), setting.value());
+        FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
     }
 }
 
@@ -237,8 +259,8 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 void CommandSocket::sendPrintTime()
 {
     auto message = std::make_shared<cura::proto::ObjectPrintTime>();
-    message->set_time(d->processor->getTotalPrintTime());
-    message->set_material_amount(d->processor->getTotalFilamentUsed(0));
+    message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
+    message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
 }
 
@@ -265,11 +287,18 @@ void CommandSocket::beginSendSlicedObject()
 void CommandSocket::endSendSlicedObject()
 {
     d->sliced_objects++;
+    d->current_layer_offset = d->current_layer_count;
     std::cout << "End sliced object called. sliced objects " << d->sliced_objects << " object count: " << d->object_count << std::endl;
+
+    std::cout << "current layer count" << d->current_layer_count << std::endl;
+    std::cout << "current layer offset" << d->current_layer_offset << std::endl;
+
     if(d->sliced_objects >= d->object_count)
     {
         d->socket->sendMessage(d->sliced_object_list);
         d->sliced_objects = 0;
+        d->current_layer_count = 0;
+        d->current_layer_offset = 0;
         d->sliced_object_list.reset();
         d->current_sliced_object = nullptr;
     }
@@ -277,7 +306,7 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::beginGCode()
 {
-    d->processor->setTargetStream(&d->gcode_output_stream);
+    FffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
 }
 
 void CommandSocket::sendGCodeLayer()
@@ -299,6 +328,8 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
 
 cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
 {
+    id += current_layer_offset;
+
     auto itr = std::find_if(current_sliced_object->mutable_layers()->begin(), current_sliced_object->mutable_layers()->end(), [id](cura::proto::Layer& l) { return l.id() == id; });
 
     cura::proto::Layer* layer = nullptr;
@@ -310,6 +341,7 @@ cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
     {
         layer = current_sliced_object->add_layers();
         layer->set_id(id);
+        current_layer_count++;
     }
 
     return layer;

@@ -26,7 +26,8 @@ private:
         
     };
 public:
-    void setConfigs(MeshGroup* configs, std::vector<RetractionConfig>& retraction_config_per_extruder, int layer_thickness);
+    void initConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>& retraction_config_per_extruder);
+    void setConfigs(MeshGroup* configs, int layer_thickness);
     
     Polygons ground_poly;
     
@@ -44,10 +45,10 @@ public:
      * Generate the area where the prime tower should be.
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param totalLayers The total number of layers 
+     * \param total_layers The total number of layers 
      */
-    void generatePaths(SliceDataStorage& storage, unsigned int totalLayers);
-    void generatePaths_OLD(SliceDataStorage& storage, unsigned int totalLayers);
+    void generatePaths(SliceDataStorage& storage, unsigned int total_layers);
+    void generatePaths_OLD(SliceDataStorage& storage, unsigned int total_layers);
 
     void computePrimeTowerMax(SliceDataStorage& storage);
     

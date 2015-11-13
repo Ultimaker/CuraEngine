@@ -8,6 +8,8 @@
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
+#include "commandSocket.h"
+#include "FanSpeedLayerTime.h"
 
 
 namespace cura 
@@ -15,15 +17,122 @@ namespace cura
 
 class SliceDataStorage;
 
+/*!
+ * A gcode command to insert before a specific path.
+ * 
+ * Currently only used for preheat commands
+ */
+struct NozzleTempInsert
+{
+    const unsigned int path_idx; //!< The path before which to insert this command
+    double time_after_path_start; //!< The time after the start of the path, before which to insert the command // TODO: use this to insert command in between moves in a path!
+    int extruder; //!< The extruder for which to set the temp
+    double temperature; //!< The temperature of the temperature command to insert
+    bool wait; //!< Whether to wait for the temperature to be reached
+    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0)
+    : path_idx(path_idx)
+    , time_after_path_start(time_after_path_start)
+    , extruder(extruder)
+    , temperature(temperature)
+    , wait(wait)
+    {}
+    
+    /*!
+     * Write the temperature command at the current position in the gcode.
+     * \param gcode The actual gcode writer
+     */
+    void write(GCodeExport& gcode)
+    {
+        gcode.writeTemperatureCommand(extruder, temperature, wait);
+    }
+};
+
+class GCodePlanner; // forward declaration so that TimeMaterialEstimates can be a friend
+
+/*!
+ * Time and material estimates for a portion of paths, e.g. layer, extruder plan, path.
+ */
+class TimeMaterialEstimates
+{
+    friend class GCodePlanner;
+private:
+    double extrude_time; //!< in seconds
+    double unretracted_travel_time; //!< in seconds 
+    double retracted_travel_time; //!< in seconds
+    double material; //!< in mm^3
+public:
+    
+    TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material)
+    : extrude_time(extrude_time)
+    , unretracted_travel_time(unretracted_travel_time)
+    , retracted_travel_time(retracted_travel_time)
+    , material(material)
+    {
+    }
+    TimeMaterialEstimates()
+    : extrude_time(0.0)
+    , unretracted_travel_time(0.0)
+    , retracted_travel_time(0.0)
+    , material(0.0)
+    {
+    }
+    
+    /*!
+     * Set all estimates to zero.
+     */
+    void reset() 
+    {
+        extrude_time = 0.0;
+        unretracted_travel_time = 0.0;
+        retracted_travel_time = 0.0;
+        material = 0.0;
+    }
+    
+    TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
+    {
+        return TimeMaterialEstimates(extrude_time+other.extrude_time, unretracted_travel_time+other.unretracted_travel_time, retracted_travel_time+other.retracted_travel_time, material+other.material);
+    }
+    
+    TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
+    {
+        extrude_time += other.extrude_time;
+        unretracted_travel_time += other.unretracted_travel_time;
+        retracted_travel_time += other.retracted_travel_time;
+        material += other.material;
+        return *this;
+    }
+    double getTotalTime()
+    {
+        return extrude_time + unretracted_travel_time + retracted_travel_time;
+    }
+    double getTotalUnretractedTime()
+    {
+        return extrude_time + unretracted_travel_time;
+    }
+    double getTravelTime()
+    {
+        return retracted_travel_time + unretracted_travel_time;
+    }
+    double getExtrudeTime()
+    {
+        return extrude_time;
+    }
+    double getMaterial()
+    {
+        return material;
+    }
+};
+
 class GCodePath
 {
 public:
     GCodePathConfig* config; //!< The configuration settings of the path.
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
-    int extruder; //!< The extruder used for this path.
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
+    
+    TimeMaterialEstimates estimates; //!< Naive time and material estimates
     
     double getExtrusionMM3perMM()
     {
@@ -31,6 +140,60 @@ public:
     }
 };
 
+class ExtruderPlan 
+{
+public:
+    std::vector<GCodePath> paths;
+    std::list<NozzleTempInsert> inserts;
+    
+    int extruder; //!< The extruder used for this paths in the current plan.
+    double required_temp;
+    
+    TimeMaterialEstimates estimates;
+    
+    ExtruderPlan(int extruder)
+    : extruder(extruder)
+    , required_temp(-1)
+    {
+    }
+        
+    /*!
+     * Add a new Insert, constructed with the given arguments
+     */
+    template<typename... Args>
+    void insertCommand(Args&&... contructor_args)
+    {
+        inserts.emplace_back(contructor_args...);
+    }
+    
+    /*!
+     * Insert the inserts into gcode which should be inserted before @p path_idx
+     */
+    void handleInserts(unsigned int& path_idx, GCodeExport& gcode)
+    {            
+        while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
+        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+            inserts.front().write(gcode);
+            inserts.pop_front();
+        }
+    }
+    
+    /*!
+     * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
+     */
+    void handleAllRemainingInserts(GCodeExport gcode)
+    { 
+        while ( ! inserts.empty() )
+        { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+            NozzleTempInsert& insert = inserts.front();
+            assert(insert.path_idx == paths.size());
+            insert.write(gcode);
+            inserts.pop_front();
+        }
+    }
+};
+
+class LayerPlanBuffer; // forward declaration to prevent circular dependency
 /*! 
  * The GCodePlanner class stores multiple moves that are planned.
  * It facilitates the combing to keep the head inside the print.
@@ -38,12 +201,22 @@ public:
  */
 class GCodePlanner
 {
+    friend class LayerPlanBuffer;
 private:
-    GCodeExport& gcode;
     SliceDataStorage& storage;
 
+    CommandSocket* commandSocket;
+    
+    int layer_nr;
+    
+    int z; 
+    
+    int layer_thickness;
+    
+    Point start_position;
     Point lastPosition;
-    std::vector<GCodePath> paths;
+    
+    std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
     
     bool was_combing;
     bool is_going_to_comb;
@@ -51,10 +224,12 @@ private:
 
     RetractionConfig* last_retraction_config;
     
-    GCodePathConfig travelConfig;
+    FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
+
     double extrudeSpeedFactor;
     double travelSpeedFactor; // TODO: remove this unused var?
-    int currentExtruder;
+    
+    double fan_speed;
     
     double extraTime;
     double totalPrintTime;
@@ -82,26 +257,36 @@ private:
      */
     void forceNewPathStart();
 public:
-    /*
+    /*!
      * 
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
+     * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(GCodeExport& gcode, SliceDataStorage& storage, RetractionConfig* retraction_config_travel, double travelSpeed, bool retraction_combing, unsigned int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    int getLayerNr()
+    {
+        return layer_nr;
+    }
+    
+    Point getLastPosition()
+    {
+        return lastPosition;
+    }
+    
     void setCombing(bool going_to_comb);
     
     bool setExtruder(int extruder);
 
     int getExtruder()
     {
-        return currentExtruder;
+        return extruder_plans.back().extruder;
     }
 
     void setExtrudeSpeedFactor(double speedFactor)
     {
-        if (speedFactor < 1) speedFactor = 1.0;
         this->extrudeSpeedFactor = speedFactor;
     }
     double getExtrudeSpeedFactor()
@@ -117,16 +302,12 @@ public:
     {
         return this->travelSpeedFactor;
     }
-
-    /*!
-     * Whether the current retracted path is to be an extruder switch retraction.
-     * This function is used to avoid a G10 S1 after a G10.
-     * 
-     * \param path_idx The index of the current retracted path 
-     * \return Whether the path should be an extgruder switch retracted path
-     */
-    bool makeRetractSwitchRetract(unsigned int path_idx);
-
+    
+    void setFanSpeed(double _fan_speed)
+    {
+        fan_speed = _fan_speed;
+    }
+    
     /*!
      * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
      * avoiding obstacles and comb along the boundary of parts.
@@ -159,15 +340,53 @@ public:
      */
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist = 0);
 
+    /*!
+     * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * and store them in each ExtruderPlan and each GCodePath.
+     * 
+     * \return the total estimates of this layer
+     */
+    TimeMaterialEstimates computeNaiveTimeEstimates();
+    
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     
-    void getTimes(double& travelTime, double& extrudeTime);
-
+    /*!
+     * Write the planned paths to gcode
+     * 
+     * \param gcode The gcode to write the planned paths to
+     */
+    void writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness);
+    
+    /*!
+     * Complete all GcodePathConfig s by 
+     * - altering speed to conform to speed_layer_0
+     * - setting the layer_height (and thereby computing the extrusionMM3perMM)
+     */
+    void completeConfigs();
+    
+    /*!
+     * Interpolate between the initial layer speeds and the eventual speeds.
+     */
+    void processInitialLayersSpeedup();
+    
+    /*!
+     * Whether the current retracted path is to be an extruder switch retraction.
+     * This function is used to avoid a G10 S1 after a G10.
+     * 
+     * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
+     * \param path_idx The index of the current retracted path 
+     * \return Whether the path should be an extgruder switch retracted path
+     */
+    bool makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx);
+    
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
      * 
      * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
      * 
+     * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index into GCodePlanner::paths for the next path to be written to GCode.
      * \param layerThickness The height of the current layer.
      * \param coasting_volume_move The volume otherwise leaked during a normal move.
@@ -178,7 +397,7 @@ public:
      * \param coasting_min_volume_retract The minimal volume a path should have which builds up enough pressure to ooze as much as \p coasting_volume_retract.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract);
+    bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract);
 
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
@@ -187,6 +406,7 @@ public:
      * 
      * Paths shorter than \p coasting_min_volume will use less \p coasting_volume linearly.
      * 
+     * \param gcode The gcode to write the planned paths to
      * \param path The extrusion path to be written to GCode.
      * \param path_next The next travel path to be written to GCode.
      * \param layerThickness The height of the current layer.
@@ -196,22 +416,29 @@ public:
      * \param extruder_switch_retract (optional) For a coasted path followed by a retraction: whether to retract normally, or do an extruder switch retraction.
      * \return Whether any GCode has been written for the path.
      */
-    bool writePathWithCoasting(GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract = false);
+    bool writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract = false);
     
     /*!
      * Write a retraction: either an extruder switch retraction or a normal retraction based on the last extrusion paths retraction config.
+     * \param gcode The gcode to write the planned paths to
+     * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx_travel_after Index in GCodePlanner::paths to the travel move before which to do the retraction
      */
-    void writeRetraction(unsigned int path_idx_travel_after);
+    void writeRetraction(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx_travel_after);
     
     /*!
      * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
+     * \param gcode The gcode to write the planned paths to
      * \param extruder_switch_retract Whether to write an extruder switch retract
      * \param retraction_config The config used.
      */
-    void writeRetraction(bool extruder_switch_retract, RetractionConfig* retraction_config);
+    void writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config);
     
-    void writeGCode(bool liftHeadIfNeeded, int layerThickness);
+    /*!
+     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     */
+    void processFanSpeedAndMinimalLayerTime();
+    
     void moveInsideCombBoundary(int arg1);
 };
 

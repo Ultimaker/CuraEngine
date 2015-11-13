@@ -30,7 +30,9 @@ enum PolygonType
     SupportType,
     SkirtType,
     InfillType,
-    SupportInfillType
+    SupportInfillType,
+    MoveCombingType,
+    MoveRetractionType
 };
 
 
@@ -81,7 +83,7 @@ public:
     ClipperLib::Path& operator*() { return *polygon; }
     
     template <typename... Args>
-    void emplace_back(Args... args)
+    void emplace_back(Args&&... args)
     {
         polygon->emplace_back(args...);
     }
@@ -377,6 +379,13 @@ public:
         clipper.Execute(ClipperLib::ctUnion, ret.polygons, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
         return ret;
     }
+    /*!
+     * Union all polygons with each other (When polygons.add(polygon) has been called for overlapping polygons)
+     */
+    Polygons unionPolygons() const
+    {
+        return unionPolygons(Polygons());
+    }
     Polygons intersection(const Polygons& other) const
     {
         Polygons ret;
@@ -401,6 +410,17 @@ public:
         double miterLimit = 1.2;
         ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
         clipper.AddPaths(polygons, joinType, ClipperLib::etClosedPolygon);
+        clipper.MiterLimit = miterLimit;
+        clipper.Execute(ret.polygons, distance);
+        return ret;
+    }
+    
+    Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
+    {
+        Polygons ret;
+        double miterLimit = 1.2;
+        ClipperLib::ClipperOffset clipper(miterLimit, 10.0);
+        clipper.AddPaths(polygons, joinType, ClipperLib::etOpenSquare);
         clipper.MiterLimit = miterLimit;
         clipper.Execute(ret.polygons, distance);
         return ret;

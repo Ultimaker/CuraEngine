@@ -14,6 +14,26 @@ namespace cura
 #define M_PI 3.14159265358979323846
 #endif
 
+std::string toString(EGCodeFlavor flavor)
+{
+    switch (flavor)
+    {
+        case EGCodeFlavor::BFB:
+            return "BFB";
+        case EGCodeFlavor::MACH3:
+            return "Mach3";
+        case EGCodeFlavor::MAKERBOT:
+            return "Makerbot";
+        case EGCodeFlavor::ULTIGCODE:
+            return "UltiGCode";
+        case EGCodeFlavor::REPRAP_VOLUMATRIC:
+            return "RepRap(Volumetric)";
+        case EGCodeFlavor::REPRAP:
+        default:
+            return "RepRap";
+    }
+}
+
 SettingsBaseVirtual::SettingsBaseVirtual()
 : parent(NULL)
 {
@@ -88,11 +108,11 @@ std::string SettingsMessenger::getSettingString(std::string key)
 
 void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
 {
-    const SettingCategory* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
+    const SettingContainer* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
     
     if (!machine_extruder_trains) 
     {
-        logWarning("Error: no machine_extruder_trains category found in JSON!\n");
+        // no machine_extruder_trains setting present; just use defaults for each train..
         return;
     }
     
@@ -100,7 +120,7 @@ void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
     
     if (!train)
     {
-        logError("Not enough extruder trains specified in JSON: %i\n", extruder_nr);
+        // not enough machine_extruder_trains settings present; just use defaults for this train..
         return;
     }
     
@@ -146,7 +166,8 @@ bool SettingsBaseVirtual::getSettingBoolean(std::string key)
         return true;
     if (value == "true" or value == "True") //Python uses "True"
         return true;
-    return atoi(value.c_str()) != 0;
+    int num = atoi(value.c_str());
+    return num != 0;
 }
 
 double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key)
@@ -179,71 +200,158 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key)
     return std::max(0.0, atof(value.c_str()));
 }
 
+FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
+{
+    FlowTempGraph ret;
+    const char* c_str = getSettingString(key).c_str();
+    char const* char_p = c_str;
+    while (*char_p != '[')
+    {
+        if (*char_p == '\0') //We've reached the end of string without encountering the first opening bracket.
+        {
+            return ret; //Empty at this point.
+        }
+        char_p++;
+    }
+    char_p++; // skip the '['
+    for (; *char_p != '\0'; char_p++)
+    {
+        while (*char_p != '[')
+        {
+            if (*char_p == '\0') //We've reached the end of string without finding the next opening bracket.
+            {
+                return ret; //Don't continue parsing this item then. Just stop and return.
+            }
+            char_p++;
+        }
+        char_p++; // skip the '['
+        char* end;
+        double first = strtod(char_p, &end); //If not a valid number, this becomes zero.
+        char_p = end;
+        while (*char_p != ',')
+        {
+            if (*char_p == '\0') //We've reached the end of string without finding the comma.
+            {
+                return ret; //This entry is incomplete.
+            }
+            char_p++;
+        }
+        char_p++; // skip the ','
+        double second = strtod(char_p, &end); //If not a valid number, this becomes zero.
+        ret.data.emplace_back(first, second);
+        char_p = end;
+        while (*char_p != ']')
+        {
+            if (*char_p == '\0') //We've reached the end of string without finding the closing bracket.
+            {
+                return ret; //This entry is probably complete and has been added, but stop searching.
+            }
+            char_p++;
+        }
+        char_p++; // skip the ']'
+        if (*char_p == ']' || *char_p == '\0')
+        {
+            break;
+        }
+    }
+    return ret;
+}
+
+
 EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
 {
     std::string value = getSettingString(key);
     if (value == "RepRap")
-        return GCODE_FLAVOR_REPRAP;
+        return EGCodeFlavor::REPRAP;
     else if (value == "UltiGCode")
-        return GCODE_FLAVOR_ULTIGCODE;
+        return EGCodeFlavor::ULTIGCODE;
     else if (value == "Makerbot")
-        return GCODE_FLAVOR_MAKERBOT;
+        return EGCodeFlavor::MAKERBOT;
     else if (value == "BFB")
-        return GCODE_FLAVOR_BFB;
+        return EGCodeFlavor::BFB;
     else if (value == "MACH3")
-        return GCODE_FLAVOR_MACH3;
+        return EGCodeFlavor::MACH3;
     else if (value == "RepRap (Volumatric)")
-        return GCODE_FLAVOR_REPRAP_VOLUMATRIC;
-    return GCODE_FLAVOR_REPRAP;
+        return EGCodeFlavor::REPRAP_VOLUMATRIC;
+    return EGCodeFlavor::REPRAP;
 }
 
 EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Lines")
-        return Fill_Lines;
-    if (value == "Grid")
-        return Fill_Grid;
-    if (value == "Triangles")
-        return Fill_Triangles;
-    if (value == "Concentric")
-        return Fill_Concentric;
-    if (value == "ZigZag")
-        return Fill_ZigZag;
-    return Fill_None;
+    if (value == "lines")
+        return EFillMethod::LINES;
+    if (value == "grid")
+        return EFillMethod::GRID;
+    if (value == "triangles")
+        return EFillMethod::TRIANGLES;
+    if (value == "concentric")
+        return EFillMethod::CONCENTRIC;
+    if (value == "zigzag")
+        return EFillMethod::ZIG_ZAG;
+    return EFillMethod::NONE;
 }
 
 EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Brim")
-        return Adhesion_Brim;
-    if (value == "Raft")
-        return Adhesion_Raft;
-    return Adhesion_Skirt;
+    if (value == "brim")
+        return EPlatformAdhesion::BRIM;
+    if (value == "raft")
+        return EPlatformAdhesion::RAFT;
+    return EPlatformAdhesion::SKIRT;
 }
 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Everywhere")
-        return Support_Everywhere;
-    if (value == "Touching Buildplate")
-        return Support_PlatformOnly;
-    return Support_None;
+    if (value == "everywhere")
+        return ESupportType::EVERYWHERE;
+    if (value == "buildplate")
+        return ESupportType::PLATFORM_ONLY;
+    return ESupportType::NONE;
 }
 
 EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
 {
     std::string value = getSettingString(key);
-    if (value == "Random")
+    if (value == "random")
         return EZSeamType::RANDOM;
-    if (value == "Shortest")
+    if (value == "shortest")
         return EZSeamType::SHORTEST;
-    if (value == "Back")
+    if (value == "back")
         return EZSeamType::BACK;
     return EZSeamType::SHORTEST;
 }
 
+ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "normal")
+        return ESurfaceMode::NORMAL;
+    if (value == "surface")
+        return ESurfaceMode::SURFACE;
+    if (value == "both")
+        return ESurfaceMode::BOTH;
+    return ESurfaceMode::NORMAL;
+}
+
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "nowhere")
+    {
+        return FillPerimeterGapMode::NOWHERE;
+    }
+    if (value == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    if (value == "skin")
+    {
+        return FillPerimeterGapMode::SKIN;
+    }
+    return FillPerimeterGapMode::NOWHERE;
+}
 
 }//namespace cura

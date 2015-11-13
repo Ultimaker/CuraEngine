@@ -1,5 +1,7 @@
 #include "MergeInfillLines.h"
 
+#include <algorithm> // min
+
 namespace cura
 {
     
@@ -9,7 +11,8 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
     double new_line_width_mm = INT2MM(new_line_width);
     double speed_mod = old_line_width / new_line_width_mm;
     double extrusion_mod = new_line_width_mm / old_line_width;
-    gcode.writeMove(to, speed * speed_mod, last_path.getExtrusionMM3perMM() * extrusion_mod);
+    double new_speed = std::min(speed * speed_mod, 150.0); // TODO: hardcoded value: max extrusion speed is 150 mm/s = 9000 mm/min
+    gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
 bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
@@ -17,10 +20,8 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
     Point prev_middle;
     Point last_middle;
     int64_t line_width;
-    
-    MergeInfillLines merger(gcode, paths, travelConfig, nozzle_size);
-    
-    if (merger.isConvertible(path_idx, prev_middle, last_middle, line_width, false))
+
+    if (isConvertible(path_idx, prev_middle, last_middle, line_width, false))
     {
         //   path_idx + 3 is the index of the second extrusion move to be converted in combination with the first
         {
@@ -36,12 +37,15 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         }
         
         path_idx += 2;
-        for (; merger.isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
+        extruder_plan.handleInserts(path_idx, gcode);
+        for (; isConvertible(path_idx, prev_middle, last_middle, line_width, true); path_idx += 2)
         {
+            extruder_plan.handleInserts(path_idx, gcode);
             GCodePath& last_path = paths[path_idx + 3];
             writeCompensatedMove(last_middle, speed, last_path, line_width);
         }
         path_idx = path_idx + 1; // means that the next path considered is the travel path after the converted extrusion path corresponding to the updated path_idx
+        extruder_plan.handleInserts(path_idx, gcode);
         return true;
     }
     return false;

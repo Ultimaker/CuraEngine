@@ -126,6 +126,8 @@ public:
 
 };
 
+static Point3 no_point3(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
+    
 inline Point3 operator*(const int32_t i, const Point3& rhs) {
     return rhs * i;
 }
@@ -144,6 +146,8 @@ public:
 };
 #define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
 #define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
+
+static Point no_point(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
@@ -307,3 +311,4 @@ inline Point operator-(const Point& p2, const Point3& p3) {
 
 }//namespace cura
 #endif//INT_POINT_H
+

@@ -10,6 +10,7 @@
 #include "utils/intpoint.h"
 #include "timeEstimate.h"
 #include "MeshGroup.h"
+#include "commandSocket.h"
 
 namespace cura {
 
@@ -31,10 +32,10 @@ public:
     double amount; //!< The amount retracted
     double speed; //!< The speed with which to retract
     double primeSpeed; //!< the speed with which to unretract
-    double primeAmount; //!< the amount of material primed after unretracting
+    double primeAmount; //!< the amount of material primed after unretracting (in mm3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 
-    double retraction_extrusion_window;
+    double retraction_extrusion_window; //!< in mm
     int retraction_count_max;
 };
 
@@ -48,33 +49,31 @@ private:
     int layer_thickness; //!< layer height
     double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line extruded
 public:
-    const char* name;
+    const char* name; //!< name of the feature type
     bool spiralize;
     RetractionConfig *const retraction_config;
     
     // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
     GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
-    void setSpeed(double speed)
+    /*!
+     * Initialize some of the member variables.
+     * 
+     * Warning! setLayerHeight still has to be called before this object can be used.
+     */
+    void init(double speed, int line_width, double flow)
     {
         this->speed = speed;
-    }
-    
-    void setLineWidth(int line_width)
-    {
         this->line_width = line_width;
-        calculateExtrusion();
+        this->flow = flow;
     }
-    
+
+    /*!
+     * Set the layer height and (re)compute the extrusion_per_mm
+     */
     void setLayerHeight(int layer_height)
     {
         this->layer_thickness = layer_height;
-        calculateExtrusion();
-    }
-
-    void setFlow(double flow)
-    {
-        this->flow = flow;
         calculateExtrusion();
     }
     
@@ -97,7 +96,7 @@ public:
     {
         return line_width;
     }
-
+    
 private:
     void calculateExtrusion()
     {
@@ -121,10 +120,17 @@ private:
         double extruderSwitchRetraction;
         int extruderSwitchRetractionSpeed;
         int extruderSwitchPrimeSpeed;
-        
+
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
-        
+
+        double retraction_amount_current; //!< The current retracted amount (in mm or mm3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
+        double retraction_amount_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm3) from E0 to the situation where the filament is at the tip of the nozzle.
+
+        double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
+
+        std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
+
         ExtruderTrainAttributes()
         : nozzle_offset(0,0)
         , extruderCharacter(0)
@@ -136,23 +142,23 @@ private:
         , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
+        , retraction_amount_current(0.0)
+        , retraction_amount_e_start(0.0)
+        , prime_amount(0.0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords;
     
     std::ostream* output_stream;
-    double extrusion_amount; // in mm or mm^3
-    std::deque<double> extrusion_amount_at_previous_n_retractions; // in mm or mm^3
+    double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition;
-    Point3 startPosition;
     double currentSpeed;
-    int zPos;
-    bool isRetracted;
-    bool isZHopped;
+    int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
+    int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
-    double last_coasted_amount_mm3; //!< The coasted amount of filament to be primed on the first next extrusion. (same type as GCodeExport::extrusion_amount)
     double retractionPrimeSpeed;
+    
     int current_extruder;
     int currentFanSpeed;
     EGCodeFlavor flavor;
@@ -161,10 +167,17 @@ private:
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
+    bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
+    
+    CommandSocket* commandSocket; //!< for sending travel data
+    unsigned int layer_nr; //!< for sending travel data
+    
 public:
     
     GCodeExport();
     ~GCodeExport();
+    
+    void setCommandSocketAndLayerNr(CommandSocket* commandSocket, unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
     
@@ -177,24 +190,22 @@ public:
     
     void setZ(int z);
     
-    void setLastCoastedAmountMM3(double last_coasted_amount) { this->last_coasted_amount_mm3 = last_coasted_amount; }
+    void addLastCoastedAmountMM3(double last_coasted_amount) 
+    {
+        extruder_attr[current_extruder].prime_amount += last_coasted_amount; 
+    }
     
     Point3 getPosition();
     
     Point getPositionXY();
-    
-    void resetStartPosition();
-
-    Point getStartPositionXY();
 
     int getPositionZ();
 
     int getExtruderNr();
     
     void setFilamentDiameter(unsigned int n, int diameter);
-    double getFilamentArea(unsigned int extruder);
     
-    double getExtrusionAmountMM3(unsigned int extruder);
+    double getCurrentExtrudedVolume();
     
     double getTotalFilamentUsed(int e);
 
@@ -205,9 +216,15 @@ public:
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
     void writeLayerComment(int layer_nr);
+    void writeLayerCountComment(int layer_count);
     
     void writeLine(const char* line);
     
+    /*!
+     * Reset the current_e_value to prevent too high E values.
+     * 
+     * The current extruded volume is added to the current extruder_attr.
+     */
     void resetExtrusionValue();
     
     void writeDelay(double timeAmount);
@@ -217,6 +234,10 @@ public:
     void writeMove(Point3 p, double speed, double extrusion_per_mm);
 private:
     void writeMove(int x, int y, int z, double speed, double extrusion_per_mm);
+    /*!
+     * The writeMove when flavor == BFB
+     */
+    void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force=false);
     

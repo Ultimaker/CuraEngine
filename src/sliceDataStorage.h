@@ -14,7 +14,7 @@ namespace cura
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin. 
  * Surrounding each non-bridged skin area with an outline may result in better top skins.
- * It's filled during fffProcessor.processSliceData(.) and used in fffProcessor.writeGCode(.) to generate the final gcode.
+ * It's filled during FffProcessor.processSliceData(.) and used in FffProcessor.writeGCode(.) to generate the final gcode.
  */    
 class SkinPart
 {
@@ -25,8 +25,8 @@ public:
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
-    It's filled during the fffProcessor.processSliceData(.), where each step uses data from the previous steps.
-    Finally it's used in the fffProcessor.writeGCode(.) to generate the final gcode.
+    It's filled during the FffProcessor.processSliceData(.), where each step uses data from the previous steps.
+    Finally it's used in the FffProcessor.writeGCode(.) to generate the final gcode.
  */
 class SliceLayerPart
 {
@@ -35,7 +35,7 @@ public:
     PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
-    std::vector<Polygons> sparse_outline; //!< The sparse_outline are the areas which need to be filled with sparse (0-99%) infill. The sparse_outline is an array to support thicker layers of sparse infill. sparse_outline[n] is sparse outline of (n+1) layers thick. 
+    std::vector<Polygons> infill_area; //!< The infill_area are the areas which need to be filled with sparse (0-99%) infill. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
     Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 
@@ -49,15 +49,18 @@ public:
     // TODO: remove this /\ unused member!
     int printZ;     //!< The height at which this layer needs to be printed. Can differ from sliceZ due to the raft.
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
-    Polygons openLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    
+    Polygons getOutlines(bool external_polys_only = false);
+    void getOutlines(Polygons& result, bool external_polys_only = false);
 };
 
 /******************/
 class SupportLayer
 {
 public:
-    Polygons supportAreas;
-    Polygons roofs;
+    Polygons supportAreas; //!< normal support areas
+    Polygons roofs; //!< the support areas which are to be printed as denser roofs. Note that the roof areas and support areas are mutually exclusive.
 };
 
 class SupportStorage
@@ -69,7 +72,7 @@ public:
     
     std::vector<SupportLayer> supportLayers;
 
-    SupportStorage() : layer_nr_max_filled_layer(-1) { }
+    SupportStorage() : generated(false), layer_nr_max_filled_layer(-1) { }
     ~SupportStorage(){ supportLayers.clear(); }
 };
 /******************/
@@ -90,8 +93,8 @@ public:
     SliceMeshStorage(SettingsBaseVirtual* settings)
     : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
     {
-        infill_config.reserve(MAX_SPARSE_COMBINE);
-        for(int n=0; n<MAX_SPARSE_COMBINE; n++)
+        infill_config.reserve(MAX_INFILL_COMBINE);
+        for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(&retraction_config, "FILL");
     }
 };
@@ -107,8 +110,13 @@ public:
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
     RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
     
+    GCodePathConfig travel_config; //!< The config used for travel moves (only the speed and retraction config are set!)
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
+    
+    GCodePathConfig raft_base_config;
+    GCodePathConfig raft_interface_config;
+    GCodePathConfig raft_surface_config;
     
     GCodePathConfig support_config;
     GCodePathConfig support_roof_config;
@@ -145,7 +153,11 @@ public:
     : SettingsMessenger(meshgroup)
     , meshgroup(meshgroup)
     , retraction_config_per_extruder(initializeRetractionConfigs())
+    , travel_config(&retraction_config, "MOVE")
     , skirt_config(initializeSkirtConfigs())
+    , raft_base_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
+    , raft_interface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
+    , raft_surface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
     , support_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT")
     , support_roof_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN")
     , max_object_height_second_to_last_extruder(-1)
@@ -156,6 +168,15 @@ public:
     ~SliceDataStorage()
     {
     }
+    
+    /*!
+     * Get all outlines within a given layer.
+     * 
+     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
+     * \param include_helper_parts whether to include support and prime tower
+     * \param external_polys_only whether to disregard all hole polygons
+     */
+    Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false);
 };
 
 }//namespace cura
