@@ -207,6 +207,10 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
     char const* char_p = c_str;
     while (*char_p != '[')
     {
+        if (*char_p == '\0') //We've reached the end of string without encountering the first opening bracket.
+        {
+            return ret; //Empty at this point.
+        }
         char_p++;
     }
     char_p++; // skip the '['
@@ -214,26 +218,38 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
     {
         while (*char_p != '[')
         {
+            if (*char_p == '\0') //We've reached the end of string without finding the next opening bracket.
+            {
+                return ret; //Don't continue parsing this item then. Just stop and return.
+            }
             char_p++;
         }
         char_p++; // skip the '['
         char* end;
-        double first = strtod(char_p, &end);
+        double first = strtod(char_p, &end); //If not a valid number, this becomes zero.
         char_p = end;
         while (*char_p != ',')
         {
+            if (*char_p == '\0') //We've reached the end of string without finding the comma.
+            {
+                return ret; //This entry is incomplete.
+            }
             char_p++;
         }
         char_p++; // skip the ','
-        double second = strtod(char_p, &end);
+        double second = strtod(char_p, &end); //If not a valid number, this becomes zero.
+        ret.data.emplace_back(first, second);
         char_p = end;
         while (*char_p != ']')
         {
+            if (*char_p == '\0') //We've reached the end of string without finding the closing bracket.
+            {
+                return ret; //This entry is probably complete and has been added, but stop searching.
+            }
             char_p++;
         }
         char_p++; // skip the ']'
-        ret.data.emplace_back(first, second);
-        if (*char_p == ']')
+        if (*char_p == ']' || *char_p == '\0')
         {
             break;
         }
