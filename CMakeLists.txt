@@ -12,6 +12,8 @@ endif()
 
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
+set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
+
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
 	message("Building debug release of CuraEngine.")
@@ -79,6 +81,9 @@ protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 # Compiling CuraEngine itself.
 add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
 target_link_libraries(_CuraEngine clipper Arcus)
+
+set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
+
 if (UNIX)
     target_link_libraries(_CuraEngine pthread)
 endif()
