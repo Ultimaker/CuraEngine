@@ -368,7 +368,7 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
         std::vector<Point> boundarySegment;
         
         bool isFirstBoundarySegment = true;
-        bool firstBoundarySegmentEndsInEven;
+        bool firstBoundarySegmentEndsInEven = true;
         
         bool isEvenScanSegment = false; 
         
