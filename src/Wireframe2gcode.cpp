@@ -22,7 +22,15 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     processStartingCode(commandSocket);
     
-    int maxObjectHeight = wireFrame.layers.back().z1;
+    int maxObjectHeight;
+    if (wireFrame.layers.empty())
+    {
+        maxObjectHeight = 0;
+    }
+    else
+    {
+        maxObjectHeight = wireFrame.layers.back().z1;
+    }
     
     processSkirt(commandSocket);
     
