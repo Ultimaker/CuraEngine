@@ -244,6 +244,9 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
+    retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
+    retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
+    retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 
     double top_retract_pause = 2.0;
     int retract_hop_dist = 1000;
@@ -542,8 +545,9 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
-
-
+    standard_retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
+    standard_retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
+    standard_retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 }
 
 void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
