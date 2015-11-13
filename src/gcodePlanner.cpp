@@ -78,38 +78,38 @@ bool GCodePlanner::setExtruder(int extruder)
         return false;
     }
     { // handle end position of the prev extruder
-    SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder_plans.back().extruder);
-    bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
-    Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-    Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
-    if (!end_pos_absolute)
-    {
-        end_pos += lastPosition;
-    }
-    else 
-    {
-        end_pos += extruder_offset; // absolute end pos is given as a head position
-    }
-    addTravel(end_pos); //  + extruder_offset cause it 
+        SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder_plans.back().extruder);
+        bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
+        Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
+        if (!end_pos_absolute)
+        {
+            end_pos += lastPosition;
+        }
+        else 
+        {
+            end_pos += extruder_offset; // absolute end pos is given as a head position
+        }
+        addTravel(end_pos); //  + extruder_offset cause it 
     }
     extruder_plans.emplace_back(extruder);
 
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
     { // handle starting pos of the new extruder
-    SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
-    bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
-    Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-    Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
-    if (!start_pos_absolute)
-    {
-        start_pos += lastPosition;
-    }
-    else 
-    {
-        start_pos += extruder_offset; // absolute start pos is given as a head position
-    }
-    lastPosition = start_pos;
+        SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
+        bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
+        Point extruder_offset(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
+        if (!start_pos_absolute)
+        {
+            start_pos += lastPosition;
+        }
+        else 
+        {
+            start_pos += extruder_offset; // absolute start pos is given as a head position
+        }
+        lastPosition = start_pos;
     }
     return true;
 }
