@@ -586,6 +586,10 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 
 void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
 {
+    if (wireFrame.bottom_outline.size() == 0) //If we have no layers, don't create a skirt either.
+    {
+        return;
+    }
     Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
     PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
     order.addPolygons(skirt);
