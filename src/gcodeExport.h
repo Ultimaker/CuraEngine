@@ -162,7 +162,6 @@ private:
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
-    
     int current_extruder;
     int currentFanSpeed;
     EGCodeFlavor flavor;

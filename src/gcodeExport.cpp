@@ -408,7 +408,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_amount_current == config->distance)
+    if (extruder_attr[current_extruder].retraction_amount_current == config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0))
     {
         return;
     }
@@ -438,22 +438,22 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
     
-    double retraction_distance = config->distance;
+    double retraction_e_amount = config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
     if (firmware_retract)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value - retraction_distance), 25); // TODO: hardcoded values!
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value - retraction_e_amount), 25); // TODO: hardcoded values!
     }
     else
     {
-        current_e_value -= retraction_distance;
+        current_e_value -= retraction_e_amount;
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
         currentSpeed = config->speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
     }
 
-    extruder_attr[current_extruder].retraction_amount_current = retraction_distance ;
+    extruder_attr[current_extruder].retraction_amount_current = retraction_e_amount ;
     extruder_attr[current_extruder].prime_amount += config->primeAmount;
     
     if (config->zHop > 0)
