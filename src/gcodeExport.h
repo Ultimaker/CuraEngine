@@ -32,7 +32,7 @@ public:
     double distance; //!< The distance retracted (in mm)
     double speed; //!< The speed with which to retract (in mm/s)
     double primeSpeed; //!< the speed with which to unretract (in mm/s)
-    double primeAmount; //!< the amount of material primed after unretracting (in mm3)
+    double primeAmount; //!< the amount of material primed after unretracting (in mm^3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 
     double retraction_extrusion_window; //!< in mm
@@ -127,10 +127,10 @@ private:
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
 
-        double retraction_amount_current; //!< The current retracted amount (in mm or mm3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
-        double retraction_amount_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm3) from E0 to the situation where the filament is at the tip of the nozzle.
+        double retraction_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
+        double retraction_amount_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
 
-        double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
+        double prime_amount; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
