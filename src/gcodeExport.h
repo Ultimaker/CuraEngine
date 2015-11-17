@@ -32,7 +32,7 @@ public:
     double distance; //!< The distance retracted (in mm)
     double speed; //!< The speed with which to retract (in mm/s)
     double primeSpeed; //!< the speed with which to unretract (in mm/s)
-    double primeAmount; //!< the amount of material primed after unretracting (in mm^3)
+    double prime_volume; //!< the amount of material primed after unretracting (in mm^3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 
     double retraction_extrusion_window; //!< in mm
@@ -120,9 +120,9 @@ private:
         std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
-        double extruderSwitchRetraction;
-        int extruderSwitchRetractionSpeed;
-        int extruderSwitchPrimeSpeed;
+        double extruder_switch_retraction_distance; //<! extruder switch retraction distance in mm
+        int extruderSwitchRetractionSpeed; //!< extruder switch retraction speed in mm/s
+        int extruderSwitchPrimeSpeed; //!< prime speed of extruder switch in mm/s
 
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
@@ -130,7 +130,7 @@ private:
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
 
-        double prime_amount; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
+        double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
@@ -141,14 +141,14 @@ private:
         , start_code("")
         , end_code("")
         , filament_area(0)
-        , extruderSwitchRetraction(0.0)
+        , extruder_switch_retraction_distance(0.0)
         , extruderSwitchRetractionSpeed(0)
         , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
-        , prime_amount(0.0)
+        , prime_volume(0.0)
         , last_retraction_prime_speed(1.0)
         { }
     };
@@ -193,9 +193,9 @@ public:
     
     void setZ(int z);
     
-    void addLastCoastedAmountMM3(double last_coasted_amount) 
+    void addLastCoastedVolume(double last_coasted_volume) 
     {
-        extruder_attr[current_extruder].prime_amount += last_coasted_amount; 
+        extruder_attr[current_extruder].prime_volume += last_coasted_volume; 
     }
     
     Point3 getPosition();
@@ -267,7 +267,7 @@ public:
             extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
             extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
             
-            extruder_attr[n].extruderSwitchRetraction = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
+            extruder_attr[n].extruder_switch_retraction_distance = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
             extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
             extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
         }

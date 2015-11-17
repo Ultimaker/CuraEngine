@@ -118,7 +118,7 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
     storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
-    storage.retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
+    storage.retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
@@ -132,7 +132,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
         retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
-        retraction_config.primeAmount = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
         retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
         retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
@@ -143,7 +143,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
-        mesh.retraction_config.primeAmount = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        mesh.retraction_config.prime_volume = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
         mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");

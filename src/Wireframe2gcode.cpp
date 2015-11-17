@@ -240,7 +240,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
     retraction_config.distance = 500; //INT2MM(getSettingInt("retraction_amount"))
-    retraction_config.primeAmount = 0;//INT2MM(getSettingInt("retractionPrime
+    retraction_config.prime_volume = 0;//INT2MM(getSettingInt("retractionPrime
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
@@ -541,7 +541,7 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     
     standard_retraction_config.distance = INT2MM(getSettingInMicrons("retraction_amount"));
-    standard_retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
+    standard_retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
