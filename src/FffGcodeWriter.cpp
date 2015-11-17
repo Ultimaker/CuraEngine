@@ -73,8 +73,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
-    
-    gcode.writeFanCommand(0);
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z);
@@ -369,7 +367,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
 
-    int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
+    int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(current_extruder_planned)->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
@@ -429,7 +427,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
     {
-        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
     }
     gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
@@ -817,7 +815,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     
     std::vector<PolygonsPart> support_islands = support.splitIntoParts();
 
-    PathOrderOptimizer island_order_optimizer(gcode.getPositionXY());
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for(unsigned int n=0; n<support_islands.size(); n++)
     {
         island_order_optimizer.addPolygon(support_islands[n][0]);
