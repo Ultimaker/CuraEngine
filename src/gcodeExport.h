@@ -128,6 +128,7 @@ private:
         double retraction_amount_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm3) from E0 to the situation where the filament is at the tip of the nozzle.
 
         double prime_amount; //!< Amount of material (in mm3) to be primed after an unretration (due to oozing and/or coasting)
+        double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
@@ -145,6 +146,7 @@ private:
         , retraction_amount_current(0.0)
         , retraction_amount_e_start(0.0)
         , prime_amount(0.0)
+        , last_retraction_prime_speed(1.0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -157,7 +159,6 @@ private:
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
-    double retractionPrimeSpeed;
     
     int current_extruder;
     int currentFanSpeed;
