@@ -200,15 +200,21 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
-        if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
-            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-        
-        for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
-        for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
+        if (getSettingBoolean("material_bed_temp_prepend")) {
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+        }
+
+        if (getSettingBoolean("material_print_temp_prepend")) {
+            for(SliceMeshStorage& mesh : storage.meshes)
+                if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                    gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
+            if (getSettingBoolean("material_print_temp_wait")) {
+                for(SliceMeshStorage& mesh : storage.meshes)
+                    if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                        gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
+            }
+        }
     }
     
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
