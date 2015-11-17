@@ -121,8 +121,8 @@ double GCodeExport::getCurrentExtrudedVolume()
     double extrusion_amount = current_e_value;
     if (!firmware_retract)
     { // no E values are changed to perform a retraction
-        extrusion_amount -= extruder_attr[current_extruder].retraction_amount_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
-        extrusion_amount += extruder_attr[current_extruder].retraction_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
+        extrusion_amount -= extruder_attr[current_extruder].retraction_e_amount_at_e_start; // subtract the increment in E which was used for the first unretraction instead of extrusion
+        extrusion_amount += extruder_attr[current_extruder].retraction_e_amount_current; // add the decrement in E which the filament is behind on extrusion due to the last retraction
     }
     if (is_volumatric)
     {
@@ -211,7 +211,7 @@ void GCodeExport::resetExtrusionValue()
             extruded_volume_at_retraction -= current_extruded_volume;
         }
         current_e_value = 0.0;
-        extruder_attr[current_extruder].retraction_amount_e_start = extruder_attr[current_extruder].retraction_amount_current;
+        extruder_attr[current_extruder].retraction_e_amount_at_e_start = extruder_attr[current_extruder].retraction_e_amount_current;
     }
 }
 
@@ -248,7 +248,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     rpm /= mm_per_rpm;
     if (rpm > 0)
     {
-        if (extruder_attr[current_extruder].retraction_amount_current)
+        if (extruder_attr[current_extruder].retraction_e_amount_current)
         {
             if (currentSpeed != double(rpm))
             {
@@ -259,7 +259,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
             }
             //Add M101 or M201 to enable the proper extruder.
             *output_stream << "M" << int((current_extruder + 1) * 100 + 1) << "\r\n";
-            extruder_attr[current_extruder].retraction_amount_current = 0.0;
+            extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
         }
         //Fix the speed by the actual RPM we are asking, because of rounding errors we cannot get all RPM values, but we have a lot more resolution in the feedrate value.
         // (Trick copied from KISSlicer, thanks Jonathan)
@@ -273,10 +273,10 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
     else
     {
         //If we are not extruding, check if we still need to disable the extruder. This causes a retraction due to auto-retraction.
-        if (!extruder_attr[current_extruder].retraction_amount_current)
+        if (!extruder_attr[current_extruder].retraction_e_amount_current)
         {
             *output_stream << "M103\r\n";
-            extruder_attr[current_extruder].retraction_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
+            extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
     *output_stream << std::setprecision(3) << 
@@ -331,7 +331,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         }
         double prime_amount = extruder_attr[current_extruder].prime_amount;
         current_e_value += (is_volumatric) ? prime_amount : prime_amount / extruder_attr[current_extruder].filament_area;   
-        if (extruder_attr[current_extruder].retraction_amount_current)
+        if (extruder_attr[current_extruder].retraction_e_amount_current)
         {
             if (firmware_retract)
             { // note that BFB is handled differently
@@ -346,7 +346,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             }
             else
             {
-                current_e_value += extruder_attr[current_extruder].retraction_amount_current;
+                current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
                 *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
@@ -355,7 +355,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             {
                 resetExtrusionValue();
             }
-            extruder_attr[current_extruder].retraction_amount_current = 0.0;
+            extruder_attr[current_extruder].retraction_e_amount_current = 0.0;
         }
         else if (prime_amount > 0.0)
         {
@@ -379,7 +379,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             PolygonRef travel = travelPoly.newPoly();
             travel.add(Point(currentPosition.x, currentPosition.y));
             travel.add(Point(x, y));
-            commandSocket->sendPolygons(extruder_attr[current_extruder].retraction_amount_current ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].retraction_amount_current ? MM2INT(0.2) : MM2INT(0.1));
+            commandSocket->sendPolygons(extruder_attr[current_extruder].retraction_e_amount_current ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
         }                    
     }
 
@@ -408,7 +408,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_amount_current == config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0))
+    if (extruder_attr[current_extruder].retraction_e_amount_current == config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0))
     {
         return;
     }
@@ -453,7 +453,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
     }
 
-    extruder_attr[current_extruder].retraction_amount_current = retraction_e_amount ;
+    extruder_attr[current_extruder].retraction_e_amount_current = retraction_e_amount ;
     extruder_attr[current_extruder].prime_amount += config->primeAmount;
     
     if (config->zHop > 0)
@@ -467,16 +467,16 @@ void GCodeExport::writeRetraction_extruderSwitch()
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        if (!extruder_attr[current_extruder].retraction_amount_current)
+        if (!extruder_attr[current_extruder].retraction_e_amount_current)
             *output_stream << "M103\r\n";
 
-        extruder_attr[current_extruder].retraction_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
+        extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         return;
     }
 //     resetExtrusionValue(); // TODO: why would we do this?
 
     double retraction_amount = extruder_attr[current_extruder].extruderSwitchRetraction;
-    if (extruder_attr[current_extruder].retraction_amount_current == retraction_amount)
+    if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_amount)
     {
         return; 
     }
@@ -487,7 +487,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
 
     if (firmware_retract)
     {
-        if (extruder_attr[current_extruder].retraction_amount_current) 
+        if (extruder_attr[current_extruder].retraction_e_amount_current) 
         {
             return; 
         }
@@ -502,7 +502,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
         extruder_attr[current_extruder].last_retraction_prime_speed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
     }
-    extruder_attr[current_extruder].retraction_amount_current = retraction_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
+    extruder_attr[current_extruder].retraction_e_amount_current = retraction_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
 }
 
 void GCodeExport::switchExtruder(int new_extruder)
