@@ -364,11 +364,11 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                     RetractionConfig& retraction_config = *path.config->retraction_config;
                     if (path.retract)
                     {
-                        retract_unretract_time = retraction_config.amount / retraction_config.speed;
+                        retract_unretract_time = retraction_config.distance / retraction_config.speed;
                     }
                     else 
                     {
-                        retract_unretract_time = (retraction_config.amount + retraction_config.primeAmount) / retraction_config.primeSpeed;
+                        retract_unretract_time = (retraction_config.distance + retraction_config.primeAmount) / retraction_config.primeSpeed;
                     }
                     path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
                     path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;

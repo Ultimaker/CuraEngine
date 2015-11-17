@@ -409,11 +409,11 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_amount_current == config->amount)
+    if (extruder_attr[current_extruder].retraction_amount_current == config->distance)
     {
         return;
     }
-    if (config->amount <= 0)
+    if (config->distance <= 0)
     {
         return;
     }
@@ -439,7 +439,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 
     retractionPrimeSpeed = config->primeSpeed;
     
-    double retraction_distance = config->amount;
+    double retraction_distance = config->distance;
     if (firmware_retract)
     {
         *output_stream << "G10\n";
@@ -455,11 +455,8 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
 
     extruder_attr[current_extruder].retraction_amount_current = retraction_distance ;
-    if (config->primeAmount > 0)
-    {
-        extruder_attr[current_extruder].prime_amount += config->primeAmount;
-    }
-
+    extruder_attr[current_extruder].prime_amount += config->primeAmount;
+    
     if (config->zHop > 0)
     {
         isZHopped = config->zHop;

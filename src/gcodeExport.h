@@ -29,9 +29,9 @@ struct CoastingConfig
 class RetractionConfig
 {
 public:
-    double amount; //!< The amount retracted
-    double speed; //!< The speed with which to retract
-    double primeSpeed; //!< the speed with which to unretract
+    double distance; //!< The distance retracted (in mm)
+    double speed; //!< The speed with which to retract (in mm/s)
+    double primeSpeed; //!< the speed with which to unretract (in mm/s)
     double primeAmount; //!< the amount of material primed after unretracting (in mm3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
     int retraction_min_travel_distance; //!< 

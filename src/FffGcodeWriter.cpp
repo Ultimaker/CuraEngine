@@ -117,7 +117,7 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.amount = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
+    storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
     storage.retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -130,18 +130,19 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.retraction_config_per_extruder[extruder].amount = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
-        storage.retraction_config_per_extruder[extruder].primeAmount = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
-        storage.retraction_config_per_extruder[extruder].speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
-        storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
-        storage.retraction_config_per_extruder[extruder].zHop = train->getSettingInMicrons("retraction_hop");
-        storage.retraction_config_per_extruder[extruder].retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
-        storage.retraction_config_per_extruder[extruder].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
-        storage.retraction_config_per_extruder[extruder].retraction_count_max = train->getSettingInMicrons("retraction_count_max");
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
+        retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
+        retraction_config.primeAmount = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
+        retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
+        retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
+        retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
+        retraction_config.retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
+        retraction_config.retraction_count_max = train->getSettingInMicrons("retraction_count_max");
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config.amount = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
+        mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
         mesh.retraction_config.primeAmount = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
