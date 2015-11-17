@@ -188,7 +188,7 @@ void LinearAlg2DTest::getDist2FromLineSegmentAssert(Point line_start,Point line_
         ss << " rather than ";
         ss << actual_distance2;
         ss << ".";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),std::abs(supposed_distance - actual_distance2) <= maximum_error);
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),std::fabs(sqrt(double(supposed_distance)) - sqrt(double(actual_distance2))) <= maximum_error);
     }
     {
         std::stringstream ss;
