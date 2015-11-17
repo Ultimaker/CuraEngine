@@ -594,8 +594,6 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 void GCodeExport::finalize(int maxObjectHeight, double moveSpeed, const char* endCode)
 {
     writeFanCommand(0);
-    setZ(maxObjectHeight + 5000);
-    writeMove(Point3(0,0,maxObjectHeight + 5000) + getPositionXY(), moveSpeed, 0);
     writeCode(endCode);
     log("Print time: %d\n", int(getTotalPrintTime()));
     log("Filament: %d\n", int(getTotalFilamentUsed(0)));
