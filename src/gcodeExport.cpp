@@ -591,7 +591,7 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << temperature << "\n";
 }
 
-void GCodeExport::finalize(int maxObjectHeight, double moveSpeed, const char* endCode)
+void GCodeExport::finalize(double moveSpeed, const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);

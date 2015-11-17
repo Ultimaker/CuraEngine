@@ -88,7 +88,7 @@ private:
     /*!
      * End gcode: nozzle temp down
      */
-    void finalize(int maxObjectHeight);
+    void finalize();
     
     void writeFill(std::vector<WeaveRoofPart>& infill_insets, Polygons& outlines
         , std::function<void (Wireframe2gcode& thiss, WeaveRoofPart& inset, WeaveConnectionPart& part, unsigned int segment_idx)> connectionHandler

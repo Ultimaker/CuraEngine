@@ -165,7 +165,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     gcode.writeFanCommand(0);
 
-    finalize(maxObjectHeight);
+    finalize();
     
     if (commandSocket)
     {
@@ -620,9 +620,9 @@ void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
 }
 
 
-void Wireframe2gcode::finalize(int maxObjectHeight)
+void Wireframe2gcode::finalize()
 {
-    gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }

@@ -275,7 +275,7 @@ public:
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
         use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
     }
-    void finalize(int maxObjectHeight, double moveSpeed, const char* endCode);
+    void finalize(double moveSpeed, const char* endCode);
     
 };
 
