@@ -561,17 +561,23 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
     }
     else 
     {
-        if (getSettingBoolean("material_bed_temp_prepend")) {
+        if (getSettingBoolean("material_bed_temp_prepend"))
+        {
             if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            {
                 gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+            }
         }
         
-        if (getSettingBoolean("material_print_temp_prepend")) {
+        if (getSettingBoolean("material_print_temp_prepend"))
+        {
             if (getSettingInDegreeCelsius("material_print_temperature") > 0)
             {
                 gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
                 if (getSettingBoolean("machine_print_temp_wait"))
+                {
                     gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
+                }
             }
         }
         
