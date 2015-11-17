@@ -43,7 +43,7 @@ public:
 class GCodePathConfig
 {
 private:
-    double speed; //!< movement speed
+    double speed; //!< movement speed (mm/s)
     int line_width; //!< width of the line extruded
     double flow; //!< extrusion flow in %
     int layer_thickness; //!< layer height
@@ -87,6 +87,9 @@ public:
         return extrusion_mm3_per_mm;
     }
     
+    /*!
+     * Get the movement speed in mm/s
+     */
     double getSpeed()
     {
         return speed;
@@ -155,7 +158,7 @@ private:
     std::ostream* output_stream;
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition;
-    double currentSpeed;
+    double currentSpeed; //!< The current speed (F values / 60) in mm/s
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
