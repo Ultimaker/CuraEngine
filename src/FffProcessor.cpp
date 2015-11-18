@@ -64,6 +64,15 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 
     TimeKeeper time_keeper_total;
     
+    if (meshgroup->meshes.empty())
+    {
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+        log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
+
+        profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
+        return;
+    }
+    
     if (meshgroup->getSettingBoolean("wireframe_enabled"))
     {
         log("starting Neith Weaver...\n");
