@@ -127,8 +127,12 @@ public:
     */
         Point ac = c - a;
         int64_t ac_size = vSize(ac);
-        if (ac_size == 0) { return 0; }
-        
+        if (ac_size == 0) 
+        {
+//             if (b_is_beyond_ac) { *b_is_beyond_ac = 1; } // variable b_is_beyond_ac remains its value
+            return 0; 
+        }
+
         Point ab = b - a;
         int64_t projected_x = dot(ab, ac);
         int64_t ax_size = projected_x / ac_size;
@@ -144,10 +148,11 @@ public:
             return vSize2(b - c);
         }
         
+        if (b_is_beyond_ac) { *b_is_beyond_ac = 0; }
         Point ax = ac * ax_size / ac_size;
         Point bx = ab - ax;
-        if (b_is_beyond_ac) { *b_is_beyond_ac = 0; }
         return vSize2(bx);
+//         return vSize2(ab) - ax_size*ax_size; // less accurate
     }
 
 

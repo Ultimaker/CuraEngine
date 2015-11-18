@@ -359,6 +359,7 @@ public:
     }
 
     Polygons() {}
+
     Polygons(const Polygons& other) { polygons = other.polygons; }
     Polygons& operator=(const Polygons& other) { polygons = other.polygons; return *this; }
     Polygons difference(const Polygons& other) const

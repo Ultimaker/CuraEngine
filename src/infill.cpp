@@ -236,7 +236,7 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
         std::vector<Point> unevenBoundarySegment; // stored cause for connected_zigzags a boundary segment which ends in an uneven scanline needs to be included
         
         bool isFirstBoundarySegment = true;
-        bool firstBoundarySegmentEndsInEven;
+        bool firstBoundarySegmentEndsInEven = false;
         
         bool isEvenScanSegment = false; 
         
@@ -368,7 +368,7 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
         std::vector<Point> boundarySegment;
         
         bool isFirstBoundarySegment = true;
-        bool firstBoundarySegmentEndsInEven;
+        bool firstBoundarySegmentEndsInEven = true;
         
         bool isEvenScanSegment = false; 
         

@@ -147,7 +147,7 @@ void LinearAlg2DTest::getDist2FromLineSegmentDiagonal2PerpendicularTest()
 void LinearAlg2DTest::getDist2FromLineSegmentZeroNearTest()
 {
     //Since the actual is_beyond may be either -1 or 1, we must make this test more specific.
-    char supposed_is_beyond;
+    char supposed_is_beyond = 0;
     int64_t supposed_distance = LinearAlg2D::getDist2FromLineSegment(Point(0,0),Point(20,0),Point(0,0),&supposed_is_beyond);
     int64_t actual_distance = 40;
     std::stringstream ss;
@@ -188,7 +188,7 @@ void LinearAlg2DTest::getDist2FromLineSegmentAssert(Point line_start,Point line_
         ss << " rather than ";
         ss << actual_distance2;
         ss << ".";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),std::abs(supposed_distance - actual_distance2) <= maximum_error);
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),std::fabs(sqrt(double(supposed_distance)) - sqrt(double(actual_distance2))) <= maximum_error);
     }
     {
         std::stringstream ss;

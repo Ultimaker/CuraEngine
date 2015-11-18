@@ -73,8 +73,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
-    
-    gcode.writeFanCommand(0);
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z);
@@ -117,8 +115,8 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.amount = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
-    storage.retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
+    storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
+    storage.retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
@@ -130,19 +128,20 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.retraction_config_per_extruder[extruder].amount = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
-        storage.retraction_config_per_extruder[extruder].primeAmount = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
-        storage.retraction_config_per_extruder[extruder].speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
-        storage.retraction_config_per_extruder[extruder].primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
-        storage.retraction_config_per_extruder[extruder].zHop = train->getSettingInMicrons("retraction_hop");
-        storage.retraction_config_per_extruder[extruder].retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
-        storage.retraction_config_per_extruder[extruder].retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
-        storage.retraction_config_per_extruder[extruder].retraction_count_max = train->getSettingInMicrons("retraction_count_max");
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
+        retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
+        retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
+        retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
+        retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
+        retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
+        retraction_config.retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
+        retraction_config.retraction_count_max = train->getSettingInMicrons("retraction_count_max");
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config.amount = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
-        mesh.retraction_config.primeAmount = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
+        mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
+        mesh.retraction_config.prime_volume = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
         mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
@@ -200,15 +199,34 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
-        if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
-            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-        
-        for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
-        for(SliceMeshStorage& mesh : storage.meshes)
-            if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
-                gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
+        if (getSettingBoolean("material_bed_temp_prepend")) 
+        {
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            {
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+            }
+        }
+
+        if (getSettingBoolean("material_print_temp_prepend")) 
+        {
+            for(SliceMeshStorage& mesh : storage.meshes)
+            {
+                if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                {
+                    gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
+                }
+            }
+            if (getSettingBoolean("material_print_temp_wait")) 
+            {
+                for(SliceMeshStorage& mesh : storage.meshes)
+                {
+                    if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
+                    {
+                        gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
+                    }
+                }
+            }
+        }
     }
     
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
@@ -349,7 +367,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
 
-    int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
+    int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(current_extruder_planned)->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
@@ -409,7 +427,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
     {
-        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode.getPositionXY()));
+        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
     }
     gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
@@ -823,7 +841,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     
     std::vector<PolygonsPart> support_islands = support.splitIntoParts();
 
-    PathOrderOptimizer island_order_optimizer(gcode.getPositionXY());
+    PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for(unsigned int n=0; n<support_islands.size(); n++)
     {
         island_order_optimizer.addPolygon(support_islands[n][0]);
@@ -946,7 +964,7 @@ void FffGcodeWriter::finalize()
         command_socket->sendGCodePrefix(prefix.str());
     }
     
-    gcode.finalize(max_object_height, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
     

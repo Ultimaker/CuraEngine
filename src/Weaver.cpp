@@ -27,12 +27,7 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
         cura::Slicer* slicer = new cura::Slicer(&mesh, initial_layer_thickness, connectionHeight, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
     }
-    if (slicerList.empty()) //Wait, there is nothing to slice.
-    {
-        return;
-    }
 
-    
     int starting_layer_idx;
     { // find first non-empty layer
         for (starting_layer_idx = 0; starting_layer_idx < layer_count; starting_layer_idx++)
@@ -60,7 +55,14 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
         if (commandSocket)
             commandSocket->sendPolygons(Inset0Type, 0, wireFrame.bottom_outline, 1);
         
-        wireFrame.z_bottom = slicerList[0]->layers[starting_layer_idx].z;
+        if (slicerList.empty()) //Wait, there is nothing to slice.
+        {
+            wireFrame.z_bottom = 0;
+        }
+        else
+        {
+            wireFrame.z_bottom = slicerList[0]->layers[starting_layer_idx].z;
+        }
         
         Point starting_point_in_layer;
         if (wireFrame.bottom_outline.size() > 0)
@@ -140,16 +142,21 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
 
 
     { // roofs:
-        
-        WeaveLayer& top_layer = wireFrame.layers.back();
-        Polygons to_be_supported; // empty for the top layer
-        fillRoofs(top_layer.supported, to_be_supported, -1, top_layer.z1, top_layer.roofs);
+        if (!wireFrame.layers.empty()) //If there are no layers, create no roof.
+        {
+            WeaveLayer& top_layer = wireFrame.layers.back();
+            Polygons to_be_supported; // empty for the top layer
+            fillRoofs(top_layer.supported, to_be_supported, -1, top_layer.z1, top_layer.roofs);
+        }
     }
     
     
     { // bottom:
-        Polygons to_be_supported; // is empty for the bottom layer, cause the order of insets doesn't really matter (in a sense everything is to be supported)
-        fillRoofs(wireFrame.bottom_outline, to_be_supported, -1, wireFrame.layers.front().z0, wireFrame.bottom_infill);
+        if (!wireFrame.layers.empty()) //If there are no layers, create no bottom.
+        {
+            Polygons to_be_supported; // is empty for the bottom layer, cause the order of insets doesn't really matter (in a sense everything is to be supported)
+            fillRoofs(wireFrame.bottom_outline, to_be_supported, -1, wireFrame.layers.front().z0, wireFrame.bottom_infill);
+        }
     }
     
 }

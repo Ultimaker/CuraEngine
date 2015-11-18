@@ -14,9 +14,11 @@ set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 
+option(BUILD_TESTS OFF)
+
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-	message("Building debug release of CuraEngine.")
+	message(STATUS "Building debug release of CuraEngine.")
 	add_definitions(-DASSERT_INSANE_OUTPUT)
 endif()
 
@@ -92,6 +94,7 @@ target_link_libraries(CuraEngine _CuraEngine)
 
 # Compiling the test environment.
 if (BUILD_TESTS)
+    message(STATUS "Building tests...")
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)

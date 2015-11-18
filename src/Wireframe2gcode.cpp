@@ -165,7 +165,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     gcode.writeFanCommand(0);
 
-    finalize(maxObjectHeight);
+    finalize();
     
     if (commandSocket)
     {
@@ -239,11 +239,14 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     
     RetractionConfig retraction_config;
     // TODO: get these from the settings!
-    retraction_config.amount = 500; //INT2MM(getSettingInt("retraction_amount"))
-    retraction_config.primeAmount = 0;//INT2MM(getSettingInt("retractionPrime
+    retraction_config.distance = 500; //INT2MM(getSettingInt("retraction_amount"))
+    retraction_config.prime_volume = 0;//INT2MM(getSettingInt("retractionPrime
     retraction_config.speed = 20; // 40;
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
+    retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
+    retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
+    retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 
     double top_retract_pause = 2.0;
     int retract_hop_dist = 1000;
@@ -537,13 +540,14 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     roof_outer_delay = getSettingInSeconds("wireframe_roof_outer_delay");
     
     
-    standard_retraction_config.amount = INT2MM(getSettingInMicrons("retraction_amount"));
-    standard_retraction_config.primeAmount = getSettingInCubicMillimeters("retraction_extra_prime_amount");
+    standard_retraction_config.distance = INT2MM(getSettingInMicrons("retraction_amount"));
+    standard_retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
-
-
+    standard_retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
+    standard_retraction_config.retraction_extrusion_window = getSettingInMicrons("retraction_extrusion_window");
+    standard_retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 }
 
 void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
@@ -557,13 +561,24 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
     }
     else 
     {
-        if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
-            gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), true);
-        
-        if (getSettingInDegreeCelsius("material_print_temperature") > 0)
+        if (getSettingBoolean("material_bed_temp_prepend"))
         {
-            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
-            gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            {
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+            }
+        }
+        
+        if (getSettingBoolean("material_print_temp_prepend"))
+        {
+            if (getSettingInDegreeCelsius("material_print_temperature") > 0)
+            {
+                gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
+                if (getSettingBoolean("machine_print_temp_wait"))
+                {
+                    gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
+                }
+            }
         }
         
     }
@@ -582,6 +597,10 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 
 void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
 {
+    if (wireFrame.bottom_outline.size() == 0) //If we have no layers, don't create a skirt either.
+    {
+        return;
+    }
     Polygons skirt = wireFrame.bottom_outline.offset(100000+5000).offset(-100000);
     PathOrderOptimizer order(Point(INT32_MIN, INT32_MIN));
     order.addPolygons(skirt);
@@ -601,9 +620,9 @@ void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
 }
 
 
-void Wireframe2gcode::finalize(int maxObjectHeight)
+void Wireframe2gcode::finalize()
 {
-    gcode.finalize(maxObjectHeight, getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }
