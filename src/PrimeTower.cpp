@@ -50,9 +50,8 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
         
     extruder_count = storage.getSettingAsCount("machine_extruder_count");
     
-    int max_object_height_per_extruder[extruder_count];
+    int max_object_height_per_extruder[extruder_count] = { -1 }; // unitialize all as -1
     { // compute max_object_height_per_extruder
-        memset(max_object_height_per_extruder, -1, sizeof(max_object_height_per_extruder));
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             max_object_height_per_extruder[mesh.getSettingAsIndex("extruder_nr")] = 
@@ -81,7 +80,7 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
         for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
         {
             if (extruder_nr == extruder_max_object_height) { continue; }
-            if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
+            if (extruder_second_max_object_height == -1 || max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
             {
                 extruder_second_max_object_height = extruder_nr;
             }
