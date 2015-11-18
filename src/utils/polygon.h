@@ -358,12 +358,8 @@ public:
         return polygons[polygons.size()-1];
     }
 
-    Polygons()
-//     : polygons()
-    {
-//         polygons = ClipperLib::Paths(); //Initialise with empty vector of polygons.
-    }
-    
+    Polygons() {}
+
     Polygons(const Polygons& other) { polygons = other.polygons; }
     Polygons& operator=(const Polygons& other) { polygons = other.polygons; return *this; }
     Polygons difference(const Polygons& other) const
