@@ -70,7 +70,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
         profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
-        return;
+        return true;
     }
     
     if (meshgroup->getSettingBoolean("wireframe_enabled"))

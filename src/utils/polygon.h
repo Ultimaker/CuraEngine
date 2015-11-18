@@ -359,8 +359,9 @@ public:
     }
 
     Polygons()
+//     : polygons()
     {
-        polygons = ClipperLib::Paths(); //Initialise with empty vector of polygons.
+//         polygons = ClipperLib::Paths(); //Initialise with empty vector of polygons.
     }
     
     Polygons(const Polygons& other) { polygons = other.polygons; }
