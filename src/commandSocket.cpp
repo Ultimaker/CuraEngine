@@ -154,16 +154,16 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     //d->object_count = 0;
     //d->object_ids.clear();
     d->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
-    MeshGroup* object_to_slice = d->objects_to_slice.back().get();
+    MeshGroup* meshgroup = d->objects_to_slice.back().get();
     
     for(auto setting : list->settings())
     {
-        object_to_slice->setSetting(setting.name(), setting.value());
+        meshgroup->setSetting(setting.name(), setting.value());
     }
     
     for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
     { // initialize remaining extruder trains and load the defaults
-        object_to_slice->getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
+        meshgroup->getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
     }
     
     for(auto object : list->objects())
@@ -178,10 +178,10 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
                 break;
             }
         }
-        SettingsBase* extruder_train = object_to_slice->getExtruderTrain(extruder_train_nr);
+        SettingsBase* extruder_train = meshgroup->getExtruderTrain(extruder_train_nr);
 
-        object_to_slice->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
-        Mesh& mesh = object_to_slice->meshes.back();
+        meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
+        Mesh& mesh = meshgroup->meshes.back();
 
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int face_count = object.vertices().size() / bytes_per_face;
@@ -216,7 +216,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     }
 
     d->object_count++;
-    object_to_slice->finalize();
+    meshgroup->finalize();
 }
 
 void CommandSocket::handleSettingList(cura::proto::SettingList* list)
