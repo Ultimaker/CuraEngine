@@ -44,12 +44,21 @@ public:
         }
     }
     
-    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr)
+    /*!
+     * Create a new extruder train for the @p extruder_nr, or return the one which already exists.
+     */
+    ExtruderTrain* createExtruderTrain(unsigned int extruder_nr)
     {
         if (!extruders[extruder_nr])
         {
             extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
         }
+        return extruders[extruder_nr];
+    }
+    
+    ExtruderTrain* getExtruderTrain(unsigned int extruder_nr)
+    {
+        assert(extruders[extruder_nr]);
         return extruders[extruder_nr];
     }
     

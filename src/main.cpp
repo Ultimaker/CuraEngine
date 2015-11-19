@@ -120,7 +120,7 @@ void slice(int argc, char **argv)
     
     int extruder_train_nr = 0;
 
-    SettingsBase* last_extruder_train = meshgroup.getExtruderTrain(0);
+    SettingsBase* last_extruder_train = meshgroup.createExtruderTrain(0); 
     SettingsBase* last_settings_object = FffProcessor::getInstance();
     for(int argn = 2; argn < argc; argn++)
     {
@@ -139,7 +139,7 @@ void slice(int argc, char **argv)
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
-                            meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
+                            meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
                         }
                         //start slicing
                         FffProcessor::getInstance()->processMeshGroup(&meshgroup);
@@ -177,8 +177,8 @@ void slice(int argc, char **argv)
                     case 'e':
                         str++;
                         extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
-                        last_settings_object = meshgroup.getExtruderTrain(extruder_train_nr);
-                        last_extruder_train = meshgroup.getExtruderTrain(extruder_train_nr);
+                        last_settings_object = meshgroup.createExtruderTrain(extruder_train_nr);
+                        last_extruder_train = last_settings_object;
                         break;
                     case 'l':
                         argn++;
@@ -240,7 +240,7 @@ void slice(int argc, char **argv)
 
     for (extruder_train_nr = 0; extruder_train_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        meshgroup.getExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // also initializes yet uninitialized extruder trains
+        meshgroup.createExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // create new extruder train objects or use already existing ones
     }
     
     
