@@ -163,7 +163,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     
     for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
     { // initialize remaining extruder trains and load the defaults
-        meshgroup->getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // also initializes yet uninitialized extruder trains
+        meshgroup->createExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
     }
     
     for(auto object : list->objects())
