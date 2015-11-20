@@ -86,8 +86,10 @@ void CommandSocket::connect(const std::string& ip, int port)
 
     d->socket->connect(ip, port);
     
+    bool slice_another_time = true;
+    
     // Start & continue listening as long as socket is not closed and there is no error.
-    while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error)
+    while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error && slice_another_time)
     {
         //If there is an object to slice, do so.
         if(d->objects_to_slice.size())
@@ -104,6 +106,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             FffProcessor::getInstance()->finalize();
             sendGCodeLayer();
             sendPrintTime();
+            slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
             //TODO: Support all-at-once/one-at-a-time printing
             //d->processor->processModel(d->object_to_slice.get());
             //d->object_to_slice.reset();
