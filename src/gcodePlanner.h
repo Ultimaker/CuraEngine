@@ -189,7 +189,7 @@ public:
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
      */
-    void handleAllRemainingInserts(GCodeExport gcode)
+    void handleAllRemainingInserts(GCodeExport& gcode)
     { 
         while ( ! inserts.empty() )
         { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
