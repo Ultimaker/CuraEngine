@@ -139,7 +139,19 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     {
         if (layer_plan_idx == 0)
         { // the very first extruder plan
-            return; // heating commands are handled in the starting gcode.
+            for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
+            { // set temperature of the first nozzle, turn other nozzles down
+                if (extruder_idx == extruder)
+                {
+//                     extruder_plan.insertCommand(0, extruder, required_temp, true);
+                    // the first used extruder should already be set to the required temp in the start gcode
+                }
+                else 
+                {
+                    extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), false);
+                }
+            }
+            return;
         }
         prev_extruder_plan = &layers[layer_plan_idx - 1]->extruder_plans.back();
     }
