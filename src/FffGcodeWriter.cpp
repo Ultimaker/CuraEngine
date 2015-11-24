@@ -297,9 +297,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-//         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_base_thickness"));
-//         if (command_socket)
-//             command_socket->sendGCodeLayer();
     }
 
     { // raft interface layer
@@ -323,9 +320,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_interface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-//         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
-//         if (command_socket)
-//             command_socket->sendGCodeLayer();
     }
     
     int layer_height = train->getSettingInMicrons("raft_surface_thickness");
@@ -351,9 +345,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_surface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
-//         gcode_layer.writeGCode(gcode, false, train->getSettingInMicrons("raft_interface_thickness"));
-//         if (command_socket)
-//             command_socket->sendGCodeLayer();
     }
 }
 
@@ -416,9 +407,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     current_extruder_planned = gcode_layer.getExtruder();
     
     gcode_layer.processFanSpeedAndMinimalLayerTime();
-//     gcode_layer.writeGCode(gcode, getSettingBoolean("cool_lift_head"), gcode_layer.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-//     if (command_socket)
-//         command_socket->sendGCodeLayer();
 }
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
