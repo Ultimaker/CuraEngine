@@ -81,7 +81,10 @@ public:
     {
         speed = (speed*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
-    
+
+    /*!
+     * Can only be called after the layer height has been set (which is done while writing the gcode!)
+     */
     double getExtrusionMM3perMM()
     {
         return extrusion_mm3_per_mm;
@@ -98,6 +101,11 @@ public:
     int getLineWidth()
     {
         return line_width;
+    }
+    
+    bool isTravelPath()
+    {
+        return line_width == 0;
     }
     
 private:

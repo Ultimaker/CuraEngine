@@ -134,6 +134,14 @@ public:
     
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
     
+    bool isTravelPath()
+    {
+        return config->isTravelPath();
+    }
+    
+    /*!
+     * Can only be called after the layer height has been set (which is done while writing the gcode!)
+     */
     double getExtrusionMM3perMM()
     {
         return flow * config->getExtrusionMM3perMM();

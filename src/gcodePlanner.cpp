@@ -289,7 +289,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         {
             for (GCodePath& path : extr_plan.paths)
             {
-                if (path.getExtrusionMM3perMM() == 0)
+                if (path.isTravelPath())
                     continue;
                 double speed = path.config->getSpeed() * factor;
                 if (speed < minimalSpeed)
@@ -343,7 +343,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
             bool is_extrusion_path = false;
             double* path_time_estimate;
             double& material_estimate = path.estimates.material;
-            if (path.getExtrusionMM3perMM() > 0)
+            if (!path.isTravelPath())
             {
                 is_extrusion_path = true;
                 path_time_estimate = &path.estimates.extrude_time;
@@ -463,8 +463,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             }
             double speed = path.config->getSpeed();
 
-            if (path.getExtrusionMM3perMM() != 0)// Only apply the extrudeSpeed to extrusion moves
-                speed *= getExtrudeSpeedFactor();
+            if (path.isTravelPath())// Only apply the extrudeSpeed to extrusion moves
+                speed *= getTravelSpeedFactor();
             else
                 speed *= getExtrudeSpeedFactor();
 
@@ -694,7 +694,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
-        ! (path.getExtrusionMM3perMM() > 0.0 &&  paths[path_idx + 1].config->getExtrusionMM3perMM() == 0.0) 
+        ! (!path.isTravelPath() &&  paths[path_idx + 1].config->isTravelPath()) 
         ||
         path.points.size() < 2
         )
