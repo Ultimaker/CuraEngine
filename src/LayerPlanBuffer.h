@@ -24,6 +24,7 @@ class LayerPlanBuffer : SettingsMessenger
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
     
     static constexpr unsigned int buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
+    // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
     
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
