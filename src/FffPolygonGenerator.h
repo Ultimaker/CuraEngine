@@ -112,7 +112,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
      */
-    void processSkins(SliceDataStorage& storage, unsigned int layer_nr); 
+    void processSkinsAndInfill(SliceDataStorage& storage, unsigned int layer_nr); 
 
     /*!
      * Generate the polygons where the draft screen should be.

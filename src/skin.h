@@ -26,13 +26,14 @@ void generatePerimeterGaps(int layerNr, SliceMeshStorage& storage, int extrusion
  * \param extrusionWidth extrusionWidth
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
+ * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  * \param innermost_wall_extrusion_width The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
  * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
  */
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
 
 /*!
  * Generate the skin areas (outlines)
@@ -42,9 +43,10 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
  * \param extrusionWidth extrusionWidth
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
+ * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  */
-void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, bool no_small_gaps_heuristic);
+void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin insets.
@@ -59,13 +61,17 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidt
 void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
 
 /*!
- * Generate Infill
+ * Generate Infill by offsetting from the last wall.
+ * 
+ * The walls should already be generated.
+ * 
  * \param layerNr The index of the layer for which to generate the infill
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
  * \param extrusionWidth width of the wall lines
  * \param infill_skin_overlap overlap distance between infill and skin
+ * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  */
-void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap);
+void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap, int wall_line_count);
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.

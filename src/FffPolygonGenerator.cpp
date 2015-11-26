@@ -190,7 +190,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            processSkins(storage, layer_number);
+            processSkinsAndInfill(storage, layer_number);
         }
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
     }
@@ -315,16 +315,17 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
     }
 }
   
-void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int layer_nr) 
+void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsigned int layer_nr) 
 {
     for(SliceMeshStorage& mesh : storage.meshes)
     {
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
         
+        int wall_line_count = mesh.getSettingInMicrons("wall_line_count");
         int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
         int innermost_wall_extrusion_width = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
-        generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
@@ -332,7 +333,7 @@ void FffPolygonGenerator::processSkins(SliceDataStorage& storage, unsigned int l
             {
                 infill_skin_overlap = skin_extrusion_width / 2;
             }
-            generateInfill(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap);
+            generateInfill(layer_nr, mesh, extrusionWidth_infill, infill_skin_overlap, wall_line_count);
             if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::SKIN)
             {
                 generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));

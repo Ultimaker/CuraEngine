@@ -8,9 +8,9 @@ namespace cura
 {
 
         
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
-    generateSkinAreas(layerNr, storage, innermost_wall_extrusion_width, downSkinCount, upSkinCount, no_small_gaps_heuristic);
+    generateSkinAreas(layerNr, storage, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
     SliceLayer* layer = &storage.layers[layerNr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
@@ -20,7 +20,7 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, bool no_small_gaps_heuristic)
+void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = storage.layers[layer_nr];
     
@@ -32,7 +32,12 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
-        
+
+        if (int(part.insets.size()) < wall_line_count)
+        {
+            continue; // the last wall is not present, the part should only get inter preimeter gaps, but no skin.
+        }
+
         Polygons upskin = part.insets.back().offset(-innermost_wall_extrusion_width/2);
         Polygons downskin = (downSkinCount == 0)? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
@@ -129,12 +134,16 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap)
+void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap, int wall_line_count)
 {
     SliceLayer& layer = storage.layers[layerNr];
 
     for(SliceLayerPart& part : layer.parts)
     {
+        if (int(part.insets.size()) < wall_line_count)
+        {
+            continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
+        }
         Polygons infill = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
