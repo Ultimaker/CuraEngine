@@ -101,23 +101,23 @@ public:
         material += other.material;
         return *this;
     }
-    double getTotalTime()
+    double getTotalTime() const
     {
         return extrude_time + unretracted_travel_time + retracted_travel_time;
     }
-    double getTotalUnretractedTime()
+    double getTotalUnretractedTime() const
     {
         return extrude_time + unretracted_travel_time;
     }
-    double getTravelTime()
+    double getTravelTime() const
     {
         return retracted_travel_time + unretracted_travel_time;
     }
-    double getExtrudeTime()
+    double getExtrudeTime() const
     {
         return extrude_time;
     }
-    double getMaterial()
+    double getMaterial() const
     {
         return material;
     }
