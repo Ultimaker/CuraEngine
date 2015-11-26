@@ -321,7 +321,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
     {
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
         
-        int wall_line_count = mesh.getSettingInMicrons("wall_line_count");
+        int wall_line_count = mesh.getSettingAsCount("wall_line_count");
         int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
         int innermost_wall_extrusion_width = mesh.getSettingInMicrons("wall_line_width_x");
         int extrusionWidth_infill = mesh.getSettingInMicrons("infill_line_width");
