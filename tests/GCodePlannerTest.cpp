@@ -4,7 +4,6 @@
 #include "GCodePlannerTest.h"
 
 #include "../src/MeshGroup.h" //Needed to construct the GCodePlanner.
-#include "../src/sliceDataStorage.h" //Needed to construct the GCodePlanner.
 
 namespace cura
 {
@@ -13,22 +12,24 @@ CPPUNIT_TEST_SUITE_REGISTRATION(GCodePlannerTest);
 
 void GCodePlannerTest::setUp()
 {
-    SliceDataStorage storage(nullptr); //Empty data.
+    storage = new SliceDataStorage(nullptr); //Empty data.
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;
     fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_fan_speed_min = 0;
     fan_speed_layer_time_settings.cool_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
-    //                              Command  Slice    layer z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
-    //                              socket   storage  nr       height  position    extruder  time settings                  combing     offset  avoid   distance
-    gCodePlanner = new GCodePlanner(nullptr, storage, 0,    0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
+    //                              Command  Slice     layer  z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
+    //                              socket   storage   nr        height  position    extruder  time settings                  combing     offset  avoid   distance
+    gCodePlanner = new GCodePlanner(nullptr, *storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
 }
 
 void GCodePlannerTest::tearDown()
 {
     delete gCodePlanner;
     gCodePlanner = nullptr;
+    delete storage;
+    storage = nullptr;
 }
 
 void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
@@ -36,7 +37,16 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     TimeMaterialEstimates estimate_empty = gCodePlanner->computeNaiveTimeEstimates(); //First try estimating time and material without any content.
     TimeMaterialEstimates estimate_empty_expected(0,0,0,0); //We expect the estimate of all time and material used to be 0.
     verifyEstimates(estimate_empty,estimate_empty_expected,"Empty GCodePlanner");
-    //gCodePlanner.writeRetraction()
+    
+    GCodeExport gcode;
+    GCodePathConfig configuration = storage->travel_config;
+    gCodePlanner->addExtrusionMove(Point(0,0),&configuration,1.0f); //Need to have at least one path to have a configuration.
+    TimeMaterialEstimates before_retract = gCodePlanner->computeNaiveTimeEstimates();
+    gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
+    TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
+    TimeMaterialEstimates estimate_one_retraction = after_retract - before_retract;
+    TimeMaterialEstimates estimate_one_retraction_expected(0,0,0,0);
+    verifyEstimates(estimate_one_retraction,estimate_one_retraction_expected,"One retraction");
 }
 
 void GCodePlannerTest::verifyEstimates(const TimeMaterialEstimates& observed,const TimeMaterialEstimates& expected,std::string test_description)

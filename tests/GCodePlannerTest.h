@@ -8,6 +8,7 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "../src/gcodePlanner.h"
+#include "../src/sliceDataStorage.h"
 
 namespace cura
 {
@@ -45,6 +46,14 @@ private:
      * <em>nullptr</em>.
      */
     GCodePlanner* gCodePlanner;
+    
+    /*!
+     * \brief Slice data storage to construct the <em>GCodePlanner</em> with.
+     * 
+     * It also holds configurations for the paths to add to the
+     * <em>GCodePlanner</em>.
+     */
+    SliceDataStorage* storage;
     
     /*!
      * \brief Asserts that the two time material estimates are equal.
