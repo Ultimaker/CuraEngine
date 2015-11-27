@@ -177,6 +177,21 @@ public:
      * \param external_polys_only whether to disregard all hole polygons
      */
     Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false);
+    
+    /*!
+     * Get the extruder numbers of all extruders used in a given layer.
+     * 
+     * \param layer_nr the index of the layer for which to get the extruders used (negative layer numbers indicate the raft)
+     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     */
+    std::vector<bool> getExtrudersUsed(int layer_nr);
+    
+    /*!
+     * Get the extruders used.
+     * 
+     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     */
+    std::vector<bool> getExtrudersUsed();
 };
 
 }//namespace cura
