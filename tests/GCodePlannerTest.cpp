@@ -13,6 +13,9 @@ CPPUNIT_TEST_SUITE_REGISTRATION(GCodePlannerTest);
 void GCodePlannerTest::setUp()
 {
     storage = new SliceDataStorage(nullptr); //Empty data.
+    storage->retraction_config.speed = 1;
+    storage->retraction_config.primeSpeed = 1;
+    storage->retraction_config.distance = 10;
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;
     fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = 1;
@@ -45,7 +48,8 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
     TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
     TimeMaterialEstimates estimate_one_retraction = after_retract - before_retract;
-    TimeMaterialEstimates estimate_one_retraction_expected(0,0,0,0);
+    double retract_unretract_time = configuration.retraction_config->distance / configuration.retraction_config->primeSpeed;
+    TimeMaterialEstimates estimate_one_retraction_expected(0,retract_unretract_time * 0.5,retract_unretract_time * 0.5,0);
     verifyEstimates(estimate_one_retraction,estimate_one_retraction_expected,"One retraction");
 }
 
