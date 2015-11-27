@@ -75,6 +75,11 @@ public:
             config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("material_flow_temp_graph"); // [[0.1,180],[20,230]]
         }
     }
+    
+    bool usesFlowDependentTemp(int extruder_nr)
+    {
+        return config_per_extruder[extruder_nr].flow_dependent_temperature;
+    }
 private:
     /*!
      * Calculate time to heat up from standby temperature to a given temperature.

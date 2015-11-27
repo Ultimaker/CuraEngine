@@ -170,7 +170,10 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     
     if (prev_extruder == extruder)
     {
-        insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, required_temp);
+        if (preheat_config.usesFlowDependentTemp(extruder))
+        {
+            insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, required_temp);
+        }
     }
     else 
     {
