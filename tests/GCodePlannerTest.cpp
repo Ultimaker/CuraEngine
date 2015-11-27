@@ -5,6 +5,8 @@
 
 #include "../src/MeshGroup.h" //Needed to construct the GCodePlanner.
 
+#define ALLOWED_ESTIMATE_ERROR 0.1 //Fraction of the time estimates that the estimate is allowed to be off from the ground truth.
+
 namespace cura
 {
 
@@ -59,22 +61,22 @@ void GCodePlannerTest::verifyEstimates(const TimeMaterialEstimates& observed,con
     {
         std::stringstream ss;
         ss << test_description << ": Extrude time is " << observed.getExtrudeTime() << " instead of the expected " << expected.getExtrudeTime();
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getExtrudeTime() == expected.getExtrudeTime());
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getExtrudeTime() - expected.getExtrudeTime() < expected.getExtrudeTime() * ALLOWED_ESTIMATE_ERROR + 0.001);
     }
     {
         std::stringstream ss;
         ss << test_description << ": Unretracted travel time is " << (observed.getTotalUnretractedTime() - observed.getExtrudeTime()) << " instead of the expected " << (expected.getTotalUnretractedTime() - expected.getExtrudeTime());
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getTotalUnretractedTime() - observed.getExtrudeTime() == expected.getTotalUnretractedTime() - expected.getExtrudeTime());
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getTotalUnretractedTime() - observed.getExtrudeTime() - (expected.getTotalUnretractedTime() - expected.getExtrudeTime()) < (expected.getTotalUnretractedTime() - expected.getExtrudeTime()) * ALLOWED_ESTIMATE_ERROR + 0.001);
     }
     {
         std::stringstream ss;
         ss << test_description << ": Retracted travel time is " << (observed.getTotalTime() - observed.getTotalUnretractedTime()) << " instead of the expected " << (expected.getTotalTime() - expected.getTotalUnretractedTime());
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getTotalTime() - observed.getTotalUnretractedTime() == expected.getTotalTime() - expected.getTotalUnretractedTime());
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getTotalTime() - observed.getTotalUnretractedTime() - (expected.getTotalTime() - expected.getTotalUnretractedTime()) < (expected.getTotalTime() - expected.getTotalUnretractedTime()) * ALLOWED_ESTIMATE_ERROR + 0.001);
     }
     {
         std::stringstream ss;
         ss << test_description << ": Material used is " << observed.getMaterial() << " instead of the expected " << expected.getMaterial();
-        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getMaterial() == expected.getMaterial());
+        CPPUNIT_ASSERT_MESSAGE(ss.str(),observed.getMaterial() - expected.getMaterial() < expected.getMaterial() * ALLOWED_ESTIMATE_ERROR + 0.001);
     }
 }
 
