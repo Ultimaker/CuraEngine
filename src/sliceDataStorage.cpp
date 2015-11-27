@@ -1,5 +1,7 @@
 #include "sliceDataStorage.h"
 
+#include "FffProcessor.h" //To create a mesh group with if none is provided.
+
 namespace cura
 {
 
@@ -25,6 +27,24 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
     }
 }
 
+SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
+    travel_config(&retraction_config, "MOVE"),
+    raft_base_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
+    raft_interface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
+    raft_surface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
+    support_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT"),
+    support_roof_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN")
+{
+    this->meshgroup = meshgroup;
+    if(!(this->meshgroup))
+    {
+        this->meshgroup = new MeshGroup(FffProcessor::getInstance());
+    }
+    retraction_config_per_extruder = initializeRetractionConfigs();
+    skirt_config = initializeSkirtConfigs();
+    max_object_height_second_to_last_extruder = -1;
+    ;
+}
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only)
 {

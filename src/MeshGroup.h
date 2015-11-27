@@ -28,9 +28,9 @@ public:
         return extruder_count;
     }
 
-    MeshGroup(SettingsBaseVirtual* settings_base) 
+    MeshGroup(SettingsBaseVirtual* settings_base)
     : SettingsBase(settings_base)
-    , extruder_count(-1) 
+    , extruder_count(-1)
     {}
     
     ~MeshGroup() 

@@ -149,21 +149,18 @@ public:
         }
         return ret;
     }
-    SliceDataStorage(MeshGroup* meshgroup)
-    : SettingsMessenger(meshgroup)
-    , meshgroup(meshgroup)
-    , retraction_config_per_extruder(initializeRetractionConfigs())
-    , travel_config(&retraction_config, "MOVE")
-    , skirt_config(initializeSkirtConfigs())
-    , raft_base_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
-    , raft_interface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
-    , raft_surface_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT")
-    , support_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT")
-    , support_roof_config(&retraction_config_per_extruder[meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN")
-    , max_object_height_second_to_last_extruder(-1)
-//     , primeTower()
-    {
-    }
+    
+    /*!
+     * \brief Creates a new slice data storage that stores the slice data of the
+     * specified mesh group.
+     * 
+     * It will obtain the settings from the mesh group too. The mesh group is
+     * not yet sliced in this constructor. If no mesh group is provided, an
+     * empty one will be created.
+     * 
+     * \param meshgroup The mesh group to load into this data storage, if any.
+     */
+    SliceDataStorage(MeshGroup* meshgroup);
     
     ~SliceDataStorage()
     {
