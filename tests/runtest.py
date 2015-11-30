@@ -64,6 +64,12 @@ class TestResults():
         self._testsuites.append(suite)
         return suite
 
+    def getFailureCount(self):
+        result = 0
+        for testsuite in self._testsuites:
+            result += testsuite.getFailureCount()
+        return result
+
     ## Save the test results to the file given in the filename.
     def saveXML(self, filename):
         xml = ElementTree.Element("testsuites")
@@ -248,23 +254,9 @@ class EngineTest():
     def getResults(self):
         return self._test_results
 
-def main(engine, model_path):
-	filenames = sorted(os.listdir(model_path), key=lambda filename: os.stat(os.path.join(model_path, filename)).st_size)
-	filenames = list(filter(lambda filename: filename.lower().endswith(".stl"), filenames))
-	for filename in filenames:
-		print("Slicing: %s (%d/%d)" % (filename, filenames.index(filename), len(filenames)))
-		t = time.time()
-		p = subprocess.Popen([engine, "-vv", os.path.join(model_path, filename)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		stdout, stderr = p.communicate()
-		if p.wait() != 0:
-			print ("Engine failed to report success on test object: %s" % (filename))
-			print(stderr.decode("utf-8", "replace").split("\n")[-5:])
-			sys.exit(1)
-		else:
-			print("Slicing took: %f" % (time.time() - t))
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="CuraEngine testing script")
+    parser.add_argument("--simple", action="store_true", help="Only run the single test, exit")
     parser.add_argument("json", type=str, help="Machine JSON file to use")
     parser.add_argument("engine", type=str, help="Engine executable")
     parser.add_argument("models", type=str, nargs="+", help="List of models to use for testing")
@@ -272,10 +264,13 @@ if __name__ == "__main__":
 
     et = EngineTest(args.json, args.engine, args.models)
     if et.testDefaults() == 0:
-        et.testSingleChanges()
-        if et.testSingleRandom() == 0:
-            et.testDualRandom()
-        if et.testAllRandom(10) == 0:
-            et.testAllRandom(100)
+        if not args.simple:
+            et.testSingleChanges()
+            if et.testSingleRandom() == 0:
+                et.testDualRandom()
+            if et.testAllRandom(10) == 0:
+                et.testAllRandom(100)
     et.getResults().saveXML("output.xml")
-
+    if args.simple:
+        if et.getResults().getFailureCount() > 0:
+            sys.exit(1)
