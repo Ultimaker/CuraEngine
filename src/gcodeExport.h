@@ -43,8 +43,8 @@ public:
 class GCodePathConfig
 {
 private:
-    double speed_iconic; //!< movement speed (mm/s) specific to this print feature
-    double speed; //!< current movement speed (mm/s) (modified by layer_nr etc.)
+    double speed_base; //!< movement speed (mm/s) specific to this print feature
+    double speed_current; //!< current movement speed (mm/s) (modified by layer_nr etc.)
     int line_width; //!< width of the line extruded
     double flow; //!< extrusion flow in %
     int layer_thickness; //!< layer height
@@ -55,7 +55,7 @@ public:
     RetractionConfig *const retraction_config;
     
     // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed_iconic(0), speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig(RetractionConfig* retraction_config, const char* name) : speed_base(0), speed_current(0), line_width(0), extrusion_mm3_per_mm(0.0), name(name), spiralize(false), retraction_config(retraction_config) {}
     
     /*!
      * Initialize some of the member variables.
@@ -64,8 +64,8 @@ public:
      */
     void init(double speed, int line_width, double flow)
     {
-        speed_iconic = speed;
-        this->speed = speed;
+        speed_base = speed;
+        this->speed_current = speed;
         this->line_width = line_width;
         this->flow = flow;
     }
@@ -90,7 +90,7 @@ public:
      */
     void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer) 
     {
-        speed = (speed_iconic*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
+        speed_current = (speed_base*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
     }
 
     /*!
@@ -106,7 +106,7 @@ public:
      */
     double getSpeed()
     {
-        return speed;
+        return speed_current;
     }
     
     int getLineWidth()
