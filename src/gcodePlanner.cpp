@@ -56,6 +56,7 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
 , lastPosition(last_position)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
+    extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder);
     comb = nullptr;
     last_retraction_config = &storage.retraction_config; // start with general config
