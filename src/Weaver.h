@@ -8,6 +8,7 @@
 #include "MeshGroup.h"
 #include "slicer.h"
 
+#include "utils/NoCopy.h"
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
 
@@ -19,7 +20,7 @@ namespace cura
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
  */
-class Weaver : public SettingsMessenger
+class Weaver : public SettingsMessenger, NoCopy
 {
     friend class Wireframe2gcode;
 private:

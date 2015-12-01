@@ -484,8 +484,8 @@ void Wireframe2gcode::writeMoveWithRetract(Point to)
 Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base) 
 : SettingsMessenger(settings_base) 
 , gcode(gcode)
+, wireFrame(weaver.wireFrame)
 {
-    wireFrame = weaver.wireFrame;
     initial_layer_thickness = getSettingInMicrons("layer_height_0");
     connectionHeight = getSettingInMicrons("wireframe_height"); 
     roof_inset = getSettingInMicrons("wireframe_roof_inset"); 

@@ -4,6 +4,8 @@
 
 #include <functional> // passing function pointer or lambda as argument to a function
 
+#include "utils/NoCopy.h"
+
 #include "weaveDataStorage.h"
 #include "commandSocket.h"
 #include "settings.h"
@@ -22,7 +24,7 @@ namespace cura
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
  */
-class Wireframe2gcode : public SettingsMessenger
+class Wireframe2gcode : public SettingsMessenger, NoCopy
 {
 private:
     static const int STRATEGY_COMPENSATE = 0;
@@ -73,7 +75,7 @@ public:
 
 
 private:
-    WireFrame wireFrame;
+    WireFrame& wireFrame;
     
     /*!
      * Startup gcode: nozzle temp up, retraction settings, bed temp

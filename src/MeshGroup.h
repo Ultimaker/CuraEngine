@@ -2,6 +2,7 @@
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
+#include "utils/NoCopy.h"
 #include "mesh.h"
 #include "ExtruderTrain.h"
 
@@ -14,7 +15,7 @@ namespace cura
  * One MeshGroup is a whole which is printed at once.
  * Generally there is one single MeshGroup, though when using one-at-a-time printing, multiple MeshGroups are processed consecutively.
  */
-class MeshGroup : public SettingsBase
+class MeshGroup : public SettingsBase, NoCopy
 {
     ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
     int extruder_count;

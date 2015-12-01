@@ -5,6 +5,8 @@
 #include <fstream>
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/NoCopy.h"
+#include "utils/polygonUtils.h"
 #include "sliceDataStorage.h"
 #include "raft.h"
 #include "infill.h"
@@ -13,7 +15,6 @@
 #include "gcodePlanner.h"
 #include "gcodeExport.h"
 #include "commandSocket.h"
-#include "utils/polygonUtils.h"
 #include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
 
@@ -31,7 +32,7 @@ namespace cura
  * 
  * The main function of this class is FffGcodeWriter::writeGCode().
  */
-class FffGcodeWriter : public SettingsMessenger
+class FffGcodeWriter : public SettingsMessenger, NoCopy
 {
     friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:

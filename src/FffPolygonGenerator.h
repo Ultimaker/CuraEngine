@@ -4,6 +4,7 @@
 
 #include "MeshGroup.h"
 #include "utils/polygonUtils.h"
+#include "utils/NoCopy.h"
 #include "utils/gettime.h"
 #include "settings.h"
 #include "sliceDataStorage.h"
@@ -21,7 +22,7 @@ namespace cura
  * 
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public SettingsMessenger
+class FffPolygonGenerator : public SettingsMessenger, NoCopy
 {
 private:
     CommandSocket* commandSocket;
