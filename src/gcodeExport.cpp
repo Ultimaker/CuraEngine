@@ -474,7 +474,6 @@ void GCodeExport::writeRetraction_extruderSwitch()
         extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         return;
     }
-//     resetExtrusionValue(); // TODO: why would we do this?
 
     double retraction_e_amount = extruder_attr[current_extruder].extruder_switch_retraction_distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
     if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_e_amount)
