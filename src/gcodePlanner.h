@@ -171,7 +171,7 @@ public:
     }
 };
 
-class ExtruderPlan 
+class ExtruderPlan
 {
 public:
     std::vector<GCodePath> paths;
@@ -230,7 +230,7 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
  * It facilitates the combing to keep the head inside the print.
  * It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
  */
-class GCodePlanner
+class GCodePlanner : public NoCopy
 {
     friend class LayerPlanBuffer;
 private:

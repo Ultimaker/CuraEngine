@@ -116,11 +116,11 @@ void slice(int argc, char **argv)
     
     FMatrix3x3 transformation; // the transformation applied to a model when loaded
                         
-    MeshGroup meshgroup(FffProcessor::getInstance());
+    MeshGroup* meshgroup = new MeshGroup(FffProcessor::getInstance());
     
     int extruder_train_nr = 0;
 
-    SettingsBase* last_extruder_train = meshgroup.createExtruderTrain(0); 
+    SettingsBase* last_extruder_train = meshgroup->createExtruderTrain(0); 
     SettingsBase* last_settings_object = FffProcessor::getInstance();
     for(int argn = 2; argn < argc; argn++)
     {
@@ -134,20 +134,21 @@ void slice(int argc, char **argv)
                     try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        meshgroup.finalize();
+                        meshgroup->finalize();
                         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
-                            meshgroup.getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
+                            meshgroup->getExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
                         }
                         //start slicing
-                        FffProcessor::getInstance()->processMeshGroup(&meshgroup);
+                        FffProcessor::getInstance()->processMeshGroup(meshgroup);
                         
                         // initialize loading of new meshes
                         FffProcessor::getInstance()->time_keeper.restart();
-                        meshgroup = MeshGroup(FffProcessor::getInstance());
-                        last_settings_object = &meshgroup;
+                        delete meshgroup;
+                        meshgroup = new MeshGroup(FffProcessor::getInstance());
+                        last_settings_object = meshgroup;
                     }catch(...){
                         cura::logError("Unknown exception\n");
                         exit(1);
@@ -177,7 +178,7 @@ void slice(int argc, char **argv)
                     case 'e':
                         str++;
                         extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
-                        last_settings_object = meshgroup.createExtruderTrain(extruder_train_nr);
+                        last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
                         last_extruder_train = last_settings_object;
                         break;
                     case 'l':
@@ -186,13 +187,13 @@ void slice(int argc, char **argv)
                         log("Loading %s from disk...\n", argv[argn]);
                         // transformation = // TODO: get a transformation from somewhere
                         
-                        if (!loadMeshIntoMeshGroup(&meshgroup, argv[argn], transformation, last_extruder_train))
+                        if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation, last_extruder_train))
                         {
                             logError("Failed to load model: %s\n", argv[argn]);
                         }
                         else 
                         {
-                            last_settings_object = &(meshgroup.meshes.back()); // pointer is valid until a new object is added, so this is OK
+                            last_settings_object = &(meshgroup->meshes.back()); // pointer is valid until a new object is added, so this is OK
                         }
                         break;
                     case 'o':
@@ -204,7 +205,7 @@ void slice(int argc, char **argv)
                         }
                         break;
                     case 'g':
-                        last_settings_object = &meshgroup;
+                        last_settings_object = meshgroup;
                     case 's':
                         {
                             //Parse the given setting and store it.
@@ -240,7 +241,7 @@ void slice(int argc, char **argv)
 
     for (extruder_train_nr = 0; extruder_train_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        meshgroup.createExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // create new extruder train objects or use already existing ones
+        meshgroup->createExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // create new extruder train objects or use already existing ones
     }
     
     
@@ -249,12 +250,12 @@ void slice(int argc, char **argv)
 #endif
         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-        meshgroup.finalize();
+        meshgroup->finalize();
         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
         
         //start slicing
-        FffProcessor::getInstance()->processMeshGroup(&meshgroup);
-        
+        FffProcessor::getInstance()->processMeshGroup(meshgroup);
+
 #ifndef DEBUG
     }catch(...){
         cura::logError("Unknown exception\n");
@@ -263,7 +264,8 @@ void slice(int argc, char **argv)
 #endif
     //Finalize the processor, this adds the end.gcode. And reports statistics.
     FffProcessor::getInstance()->finalize();
-    
+
+    delete meshgroup;
 }
 
 }//namespace cura

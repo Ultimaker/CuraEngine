@@ -8,6 +8,7 @@
 
 #include "settings.h"
 #include "utils/intpoint.h"
+#include "utils/NoCopy.h"
 #include "timeEstimate.h"
 #include "MeshGroup.h"
 #include "commandSocket.h"
@@ -128,7 +129,7 @@ private:
 
 //The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //  Any customizations on GCodes flavors are done in this class.
-class GCodeExport
+class GCodeExport : public NoCopy
 {
 private:
     struct ExtruderTrainAttributes

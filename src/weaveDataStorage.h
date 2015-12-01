@@ -2,6 +2,7 @@
 #ifndef WEAVE_DATA_STORAGE_H
 #define WEAVE_DATA_STORAGE_H
 
+#include "utils/NoCopy.h"
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
@@ -69,7 +70,7 @@ struct WeaveLayer : WeaveConnection
     // [connections] are the vertical connections
     WeaveRoof roofs; //!< parts which are filled horizontally (both roofs and floors...)
 };
-struct WireFrame
+struct WireFrame : public NoCopy
 {
     MeshGroup* meshgroup;
     WeaveRoof bottom_infill;

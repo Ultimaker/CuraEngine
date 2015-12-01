@@ -4,6 +4,7 @@
 
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
+#include "utils/NoCopy.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
@@ -99,7 +100,7 @@ public:
     }
 };
 
-class SliceDataStorage : public SettingsMessenger
+class SliceDataStorage : public SettingsMessenger, NoCopy
 {
 public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)

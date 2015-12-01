@@ -411,26 +411,32 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    
-    double current_extruded_volume = getCurrentExtrudedVolume();
-    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
-    while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max) 
-    {
-        // extruder switch could have introduced data which falls outside the retraction window
-        // also the retraction_count_max could have changed between the last retraction and this
-        extruded_volume_at_previous_n_retractions.pop_back();
-    }
-    if (!force && config->retraction_count_max > 0 && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
-        && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
-    {
-        return;
-    }
-    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-    if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
-    {
-        extruded_volume_at_previous_n_retractions.pop_back();
-    }
 
+    { // handle retraction limitation
+        double current_extruded_volume = getCurrentExtrudedVolume();
+        std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
+        while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        {
+            // extruder switch could have introduced data which falls outside the retraction window
+            // also the retraction_count_max could have changed between the last retraction and this
+            extruded_volume_at_previous_n_retractions.pop_back();
+        }
+        if (!force && config->retraction_count_max <= 0)
+        {
+            return;
+        }
+        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
+            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
+        {
+            return;
+        }
+        extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+        if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
+        {
+            extruded_volume_at_previous_n_retractions.pop_back();
+        }
+    }
+    
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
     
     double retraction_e_amount = config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
@@ -468,7 +474,6 @@ void GCodeExport::writeRetraction_extruderSwitch()
         extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         return;
     }
-//     resetExtrusionValue(); // TODO: why would we do this?
 
     double retraction_e_amount = extruder_attr[current_extruder].extruder_switch_retraction_distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
     if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_e_amount)
