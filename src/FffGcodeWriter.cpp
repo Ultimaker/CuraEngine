@@ -162,8 +162,8 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
     }
 
     { // support 
-        SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_extruder_nr"));
-        storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_lines"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
+        SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
+        storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_infill"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
         
         storage.support_roof_config.init(getSettingInMillimetersPerSecond("speed_support_roof"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
     }
@@ -756,9 +756,9 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         return; 
     
     int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     
-    bool print_support_before_rest = support_extruder_nr == extruder_nr_before
+    bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
                                     || support_roof_extruder_nr == extruder_nr_before;
     // TODO: always print support after rest when only one nozzle is used for the whole meshgroup
     
@@ -771,24 +771,24 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     
     if (storage.support.supportLayers[layer_nr].roofs.size() > 0)
     {
-        if (support_roof_extruder_nr != support_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
+        if (support_roof_extruder_nr != support_infill_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {
             addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
-            addSupportLinesToGCode(storage, gcode_layer, layer_nr);
+            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
         }
         else 
         {
-            addSupportLinesToGCode(storage, gcode_layer, layer_nr);
+            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
             addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
         }
     }
     else
     {
-        addSupportLinesToGCode(storage, gcode_layer, layer_nr);
+        addSupportInfillToGCode(storage, gcode_layer, layer_nr);
     }
 }
 
-void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
@@ -802,11 +802,11 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
     
-    int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     
-    double infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("infill_overlap");
+    double infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInPercentage("infill_overlap");
     
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr);
     
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
     

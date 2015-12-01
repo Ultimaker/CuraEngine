@@ -35,7 +35,7 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     raft_base_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
     raft_interface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
     raft_surface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
-    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_extruder_nr")], "SUPPORT"),
+    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_infill_extruder_nr")], "SUPPORT"),
     support_roof_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN"),
     max_object_height_second_to_last_extruder(-1)
 {
