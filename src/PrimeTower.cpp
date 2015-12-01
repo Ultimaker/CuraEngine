@@ -50,7 +50,8 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
         
     extruder_count = storage.getSettingAsCount("machine_extruder_count");
     
-    int max_object_height_per_extruder[extruder_count] = { -1 }; // unitialize all as -1
+    int max_object_height_per_extruder[extruder_count]; 
+    std::fill_n(max_object_height_per_extruder, extruder_count, -1); // unitialize all as -1
     { // compute max_object_height_per_extruder
         for (SliceMeshStorage& mesh : storage.meshes)
         {
