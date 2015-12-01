@@ -413,28 +413,28 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
 
     { // handle retraction limitation
-    double current_extruded_volume = getCurrentExtrudedVolume();
-    std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
-    while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
-    {
-        // extruder switch could have introduced data which falls outside the retraction window
-        // also the retraction_count_max could have changed between the last retraction and this
-        extruded_volume_at_previous_n_retractions.pop_back();
-    }
-    if (!force && config->retraction_count_max <= 0)
-    {
-        return;
-    }
-    if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
-        && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
-    {
-        return;
-    }
-    extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-    if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
-    {
-        extruded_volume_at_previous_n_retractions.pop_back();
-    }
+        double current_extruded_volume = getCurrentExtrudedVolume();
+        std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
+        while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        {
+            // extruder switch could have introduced data which falls outside the retraction window
+            // also the retraction_count_max could have changed between the last retraction and this
+            extruded_volume_at_previous_n_retractions.pop_back();
+        }
+        if (!force && config->retraction_count_max <= 0)
+        {
+            return;
+        }
+        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
+            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
+        {
+            return;
+        }
+        extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
+        if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
+        {
+            extruded_volume_at_previous_n_retractions.pop_back();
+        }
     }
     
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
