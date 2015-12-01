@@ -122,7 +122,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
     storage.retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
     storage.retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
-    storage.retraction_config.retraction_count_max = getSettingInMicrons("retraction_count_max");
+    storage.retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
     
     int extruder_count = storage.meshgroup->getExtruderCount();
     for (int extruder = 0; extruder < extruder_count; extruder++)
@@ -136,7 +136,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
         retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
         retraction_config.retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
-        retraction_config.retraction_count_max = train->getSettingInMicrons("retraction_count_max");
+        retraction_config.retraction_count_max = train->getSettingAsCount("retraction_count_max");
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
@@ -147,7 +147,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
         mesh.retraction_config.retraction_min_travel_distance = mesh.getSettingInMicrons("retraction_min_travel");
         mesh.retraction_config.retraction_extrusion_window = INT2MM(mesh.getSettingInMicrons("retraction_extrusion_window"));
-        mesh.retraction_config.retraction_count_max = mesh.getSettingInMicrons("retraction_count_max");
+        mesh.retraction_config.retraction_count_max = mesh.getSettingAsCount("retraction_count_max");
     }
 }
 
