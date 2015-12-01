@@ -101,23 +101,46 @@ public:
         material += other.material;
         return *this;
     }
-    double getTotalTime()
+    
+    /*!
+     * \brief Subtracts the specified estimates from these estimates and returns
+     * the result.
+     * 
+     * Each of the estimates in this class are individually subtracted.
+     * 
+     * \param other The estimates to subtract from these estimates.
+     * \return These estimates with the specified estimates subtracted.
+     */
+    TimeMaterialEstimates operator-(const TimeMaterialEstimates& other);
+    
+    /*!
+     * \brief Subtracts the specified elements from these estimates.
+     * 
+     * This causes the estimates in this instance to change. Each of the
+     * estimates in this class are individually subtracted.
+     * 
+     * \param other The estimates to subtract from these estimates.
+     * \return A reference to this instance.
+     */
+    TimeMaterialEstimates& operator-=(const TimeMaterialEstimates& other);
+    
+    double getTotalTime() const
     {
         return extrude_time + unretracted_travel_time + retracted_travel_time;
     }
-    double getTotalUnretractedTime()
+    double getTotalUnretractedTime() const
     {
         return extrude_time + unretracted_travel_time;
     }
-    double getTravelTime()
+    double getTravelTime() const
     {
         return retracted_travel_time + unretracted_travel_time;
     }
-    double getExtrudeTime()
+    double getExtrudeTime() const
     {
         return extrude_time;
     }
-    double getMaterial()
+    double getMaterial() const
     {
         return material;
     }
