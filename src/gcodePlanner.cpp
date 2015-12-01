@@ -92,7 +92,14 @@ bool GCodePlanner::setExtruder(int extruder)
         }
         addTravel(end_pos); //  + extruder_offset cause it 
     }
-    extruder_plans.emplace_back(extruder);
+    if (extruder_plans.back().paths.empty() && extruder_plans.back().inserts.empty())
+    { // first extruder plan in a layer might be empty, cause it is made with the last extruder planned in the previous layer
+        extruder_plans.back().extruder = extruder;
+    }
+    else 
+    {
+        extruder_plans.emplace_back(extruder);
+    }
 
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
