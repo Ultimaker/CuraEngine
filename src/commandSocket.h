@@ -8,10 +8,12 @@
 
 #include <memory>
 
+#ifdef ARCUS
 #include "Cura.pb.h"
+#endif
 
-namespace cura {
-
+namespace cura
+{
 
 class CommandSocket
 {
@@ -24,7 +26,8 @@ public:
      * \param port int of the port to connect with.
      */
     void connect(const std::string& ip, int port);
-    
+
+#ifdef ARCUS
     /*! 
      * Handler for ObjectList message. 
      * Loads all objects from the message and starts the slicing process
@@ -36,6 +39,7 @@ public:
      * This simply sets all the settings by using key value pair
      */
     void handleSettingList(cura::proto::SettingList* list);
+#endif
     
     /*!
      * Does nothing at the moment 
@@ -74,9 +78,11 @@ public:
     void sendGCodeLayer();
     void sendGCodePrefix(std::string prefix);
 
+#ifdef ARCUS
 private:
     class Private;
     const std::unique_ptr<Private> d;
+#endif
 };
 
 }//namespace cura
