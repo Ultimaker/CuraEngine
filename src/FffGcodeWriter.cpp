@@ -565,10 +565,12 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         SliceLayerPart& part = layer->parts[order_idx];
 
-        EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
+        EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
         int infill_angle = 45;
-        if ((pattern==EFillMethod::LINES || pattern==EFillMethod::ZIG_ZAG) && layer_nr & 1)
+        if ((infill_pattern==EFillMethod::LINES || infill_pattern==EFillMethod::ZIG_ZAG) && layer_nr & 1)
+        {
             infill_angle += 90;
+        }
         int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
@@ -588,11 +590,17 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
         }
 
+        EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
+        int skin_angle = 45;
+        if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
+        {
+            skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
+        }
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
-            infill_angle -= 45;
+            skin_angle -= 45;
         
         int64_t skin_overlap = 0;
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, infill_angle, mesh->skin_config.getLineWidth());    
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle, mesh->skin_config.getLineWidth());    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
