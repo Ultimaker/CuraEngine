@@ -234,7 +234,7 @@ void GCodePlanner::addTravel(Point p)
             path->retract = true;
         }
     }
-    
+
     addTravel_simple(p, path);
     was_inside = is_inside;
 }
