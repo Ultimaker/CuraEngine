@@ -129,7 +129,6 @@ public:
         int64_t ac_size = vSize(ac);
         if (ac_size == 0) 
         {
-//             if (b_is_beyond_ac) { *b_is_beyond_ac = 1; } // variable b_is_beyond_ac remains its value
             return 0; 
         }
 
@@ -139,16 +138,25 @@ public:
         
         if (ax_size < 0) 
         {// b is 'before' segment ac 
-            if (b_is_beyond_ac) { *b_is_beyond_ac = -1; }
+            if (b_is_beyond_ac)
+            {
+                *b_is_beyond_ac = -1;
+            }
             return vSize2(ab);
         }
         if (ax_size > ac_size)
         {// b is 'after' segment ac
-            if (b_is_beyond_ac) { *b_is_beyond_ac = 1; }
+            if (b_is_beyond_ac)
+            {
+                *b_is_beyond_ac = 1;
+            }
             return vSize2(b - c);
         }
         
-        if (b_is_beyond_ac) { *b_is_beyond_ac = 0; }
+        if (b_is_beyond_ac)
+        {
+            *b_is_beyond_ac = 0;
+        }
         Point ax = ac * ax_size / ac_size;
         Point bx = ab - ax;
         return vSize2(bx);
