@@ -226,7 +226,10 @@ void GCodePlanner::addTravel(Point p)
         {
             if (is_inside)
             {
-                moveInsideCombBoundary(getExtruder());
+                ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
+                assert (extr != nullptr);
+//                 moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
+                moveInsideCombBoundary(3000);
             }
             path->retract = true;
         }
