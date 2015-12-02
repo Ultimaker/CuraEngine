@@ -103,6 +103,8 @@ public:
     /*!
     * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
     * 
+    * In case \p b is on \p a or \p c, \p b_is_beyond_ac should become 0.
+    * 
     * \param a the first point of the line segment
     * \param b the point to measure the distance from
     * \param c the second point on the line segment
@@ -127,13 +129,18 @@ public:
     */
         Point ac = c - a;
         int64_t ac_size = vSize(ac);
-        if (ac_size == 0) 
-        {
-//             if (b_is_beyond_ac) { *b_is_beyond_ac = 1; } // variable b_is_beyond_ac remains its value
-            return 0; 
-        }
 
         Point ab = b - a;
+        if (ac_size == 0) 
+        {
+            int64_t ab_dist2 = vSize2(ab); 
+            if (ab_dist2 == 0)
+            {
+                *b_is_beyond_ac = 0; // a is on b is on c
+            }
+            // otherwise variable b_is_beyond_ac remains its value; it doesn't make sense to choose between -1 and 1
+            return ab_dist2;
+        }
         int64_t projected_x = dot(ab, ac);
         int64_t ax_size = projected_x / ac_size;
         
