@@ -224,11 +224,9 @@ void GCodePlanner::addTravel(Point p)
         path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
-            if (was_inside)
+            if (is_inside)
             {
-                ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
-                assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
+                moveInsideCombBoundary(getExtruder());
             }
             path->retract = true;
         }
