@@ -249,8 +249,8 @@ private:
     
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
     
-    bool was_combing;
-    bool is_going_to_comb;
+    bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
+    bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Comb* comb;
 
     RetractionConfig* last_retraction_config;
@@ -307,7 +307,7 @@ public:
         return lastPosition;
     }
     
-    void setCombing(bool going_to_comb);
+    void setIsInside(bool going_to_comb);
     
     bool setExtruder(int extruder);
 

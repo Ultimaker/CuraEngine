@@ -66,8 +66,8 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
     totalPrintTime = 0.0;
     if (retraction_combing)
     {
-        was_combing = true; // means it will try to get inside the comb boundary first
-        is_going_to_comb = true; // means it will try to get inside the comb boundary 
+        was_inside = true; // means it will try to get inside the comb boundary first
+        is_inside = true; // means it will try to get inside the comb boundary 
         comb = new Comb(storage, layer_nr, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else
@@ -80,9 +80,15 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-void GCodePlanner::setCombing(bool going_to_comb)
+/*!
+ * Set whether the next destination is inside a layer part or not.
+ * 
+ * Features like infill, walls, skin etc. are considered inside.
+ * Features like prime tower and support are considered outside.
+ */
+void GCodePlanner::setIsInside(bool _is_inside)
 {
-    is_going_to_comb = going_to_comb;
+    is_inside = _is_inside;
 }
 
 
@@ -155,7 +161,7 @@ void GCodePlanner::addTravel(Point p)
     if (comb != nullptr && lastPosition != no_point)
     {
         CombPaths combPaths;
-        combed = comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance);
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_retraction_config->retraction_min_travel_distance);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -197,7 +203,7 @@ void GCodePlanner::addTravel(Point p)
                 }
             }
         }
-        was_combing = is_going_to_comb;
+        was_inside = is_inside;
     }
     
     if (!combed) {
