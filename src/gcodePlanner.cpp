@@ -55,11 +55,14 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
+, comb_boundary_inside(computeCombBoundaryInside())
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder);
     comb = nullptr;
+    was_inside = true; // means it will try to get inside the comb boundary first
+    is_inside = true; // means it will try to get inside the comb boundary 
     last_retraction_config = &storage.retraction_config; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
@@ -67,8 +70,6 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
     totalPrintTime = 0.0;
     if (retraction_combing)
     {
-        was_inside = true; // means it will try to get inside the comb boundary first
-        is_inside = true; // means it will try to get inside the comb boundary 
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else

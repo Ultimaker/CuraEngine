@@ -251,8 +251,8 @@ private:
     
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
-    Comb* comb;
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
+    Comb* comb;
 
     RetractionConfig* last_retraction_config;
     
