@@ -82,8 +82,20 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
+/*!
+ * Set whether the next destination is inside a layer part or not.
+ * 
+ * Features like infill, walls, skin etc. are considered inside.
+ * Features like prime tower and support are considered outside.
+ */
+void GCodePlanner::setIsInside(bool _is_inside)
+{
+    is_inside = _is_inside;
+}
+
 Polygons GCodePlanner::computeCombBoundaryInside()
 {
+
     if (layer_nr < 0)
     { // when a raft is present
         return storage.raftOutline.offset(MM2INT(0.1));
