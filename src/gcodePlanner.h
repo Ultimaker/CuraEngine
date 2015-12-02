@@ -489,9 +489,10 @@ public:
     void processFanSpeedAndMinimalLayerTime();
     
     /*!
-     * Add a travel move to the layer plan to move inside the layer part by a given distance away from the outline.
+     * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.
+     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
      * 
-     * This will work even if there is not comb boundary.
+     * \param distance The distance to the comb boundary after we moved inside it.
      */
     void moveInsideCombBoundary(int distance);
 };
