@@ -200,7 +200,7 @@ void GCodePlanner::addTravel(Point p)
         was_combing = is_going_to_comb;
     }
     
-    if(!combed) {
+    if (!combed) {
         // no combing? always retract!
         path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
@@ -208,12 +208,7 @@ void GCodePlanner::addTravel(Point p)
             path->retract = true;
         }
     }
-    
-    if(comb == nullptr) {
-        // no combing? always retract!
-        path = getLatestPathWithConfig(&storage.travel_config);
-        path->retract = true;
-    }
+
     addTravel_simple(p, path);
 }
 
