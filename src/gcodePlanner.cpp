@@ -223,6 +223,10 @@ void GCodePlanner::addTravel(Point p)
         path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
+            if (is_inside)
+            {
+                moveInsideCombBoundary(getExtruder());
+            }
             path->retract = true;
         }
     }
