@@ -252,6 +252,7 @@ private:
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Comb* comb;
+    Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
 
     RetractionConfig* last_retraction_config;
     
@@ -297,6 +298,14 @@ public:
     GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+private:
+    /*!
+     * Compute the boundary within which to comb, or to move into when performing a retraction.
+     * \return the comb_boundary_inside
+     */
+    Polygons computeCombBoundaryInside();
+
+public:
     int getLayerNr()
     {
         return layer_nr;

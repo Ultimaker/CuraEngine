@@ -68,7 +68,7 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
     {
         was_inside = true; // means it will try to get inside the comb boundary first
         is_inside = true; // means it will try to get inside the comb boundary 
-        comb = new Comb(storage, layer_nr, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else
         comb = nullptr;
@@ -80,12 +80,24 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-/*!
- * Set whether the next destination is inside a layer part or not.
- * 
- * Features like infill, walls, skin etc. are considered inside.
- * Features like prime tower and support are considered outside.
- */
+Polygons GCodePlanner::computeCombBoundaryInside()
+{
+    if (layer_nr < 0)
+    { // when a raft is present
+        return storage.raftOutline.offset(MM2INT(0.1));
+    }
+    else 
+    {
+        Polygons layer_walls;
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            layer.getSecondOrInnermostWalls(layer_walls);
+        }
+        return layer_walls;
+    }
+}
+
 void GCodePlanner::setIsInside(bool _is_inside)
 {
     is_inside = _is_inside;

@@ -14,45 +14,6 @@ bool Comb::moveInsideBoundary(Point* p, int distance)
     return PolygonUtils::moveInside(boundary_inside, *p, distance) != NO_INDEX;
 }
 
-Polygons Comb::getLayerSecondWalls()
-{
-    if (layer_nr < 0)
-    { // when a raft is present
-        return storage.raftOutline.offset(MM2INT(0.1));
-    }
-    else 
-    {
-        Polygons layer_walls;
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
-            {
-                // we want the 2nd inner walls
-                if (part.insets.size() >= 2) {
-                    layer_walls.add(part.insets[1]);
-                    continue;
-                }
-                // but we'll also take the inner wall if the 2nd doesn't exist
-                if (part.insets.size() >= 1) {
-                    layer_walls.add(part.insets[0]);
-                    continue;
-                }
-                // and if there is no walls, we'll try to move inside from the outline
-                Polygons newOutline = part.outline.offset(-offset_from_outlines);
-                if(newOutline.polygonLength() > 0) {
-                    layer_walls.add(newOutline);
-                    continue;
-                }
-                // offset_from_outlines was so large that it completely destroyed our isle,
-                // so we'll just use the regular outline
-                layer_walls.add(part.outline);
-                continue;
-            }
-        }
-        return layer_walls;
-    }
-}
-  
 // boundary_outside is only computed when it's needed!
 Polygons* Comb::getBoundaryOutside()
 {
@@ -64,7 +25,7 @@ Polygons* Comb::getBoundaryOutside()
     return boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, int layer_nr, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -72,7 +33,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, int64_t comb_boundary_offset
 , offset_from_outlines_outside(travel_avoid_distance)
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
-, boundary_inside( getLayerSecondWalls() )
+, boundary_inside( comb_boundary_inside )
 , boundary_outside(nullptr)
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
