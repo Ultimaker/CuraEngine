@@ -479,7 +479,12 @@ public:
      */
     void processFanSpeedAndMinimalLayerTime();
     
-    void moveInsideCombBoundary(int arg1);
+    /*!
+     * Add a travel move to the layer plan to move inside the layer part by a given distance away from the outline.
+     * 
+     * This will work even if there is not comb boundary.
+     */
+    void moveInsideCombBoundary(int distance);
 };
 
 }//namespace cura

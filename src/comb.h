@@ -238,9 +238,6 @@ public:
     Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
-    
-    //! Utility function for `boundary_inside.inside(p)`.
-    bool inside(const Point p) { return boundary_inside.inside(p); }
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
@@ -253,16 +250,6 @@ public:
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false, int64_t max_comb_distance_ignored = MM2INT(1.5));
-    
-    /*!
-     * Move \p p to inside the inner comb boundary with a \p distance from the boundary.
-     * 
-     * \param p the point to change/move
-     * \param distance the distance from the resulting point to the boundary on the inside
-     * \return whether the point has been moved inside
-     */
-    bool moveInsideBoundary(Point* p, int distance);
-    
 };
 
 }//namespace cura

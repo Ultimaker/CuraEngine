@@ -9,10 +9,6 @@
 
 namespace cura {
 
-bool Comb::moveInsideBoundary(Point* p, int distance)
-{
-    return PolygonUtils::moveInside(boundary_inside, *p, distance) != NO_INDEX;
-}
 
 // boundary_outside is only computed when it's needed!
 Polygons* Comb::getBoundaryOutside()
@@ -59,7 +55,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     if (startInside) 
     {
         start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
-        if (!inside(start_inside_poly) || start_inside_poly == NO_INDEX)
+        if (!boundary_inside.inside(start_inside_poly) || start_inside_poly == NO_INDEX)
         {
             if (start_inside_poly != NO_INDEX)
             { // if not yet inside because of overshoot, try again
@@ -75,7 +71,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     if (endInside)
     {
         end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
-        if (!inside(endPoint) || end_inside_poly == NO_INDEX)
+        if (!boundary_inside.inside(endPoint) || end_inside_poly == NO_INDEX)
         {
             if (end_inside_poly != NO_INDEX)
             { // if not yet inside because of overshoot, try again

@@ -1,8 +1,9 @@
+#include <cstring>
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
-#include <cstring>
 #include "debug.h" // debugging
+#include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
 
 namespace cura {
@@ -149,13 +150,12 @@ bool GCodePlanner::setExtruder(int extruder)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    if (!comb) return;
-    Point p = lastPosition;
-    if (comb->moveInsideBoundary(&p, distance))
+    Point p = lastPosition; // copy, since we are going to move p
+    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        comb->moveInsideBoundary(&p, distance);
-        if (comb->inside(p))
+        PolygonUtils::moveInside(comb_boundary_inside, p, distance);
+        if (comb_boundary_inside.inside(p))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
