@@ -144,6 +144,11 @@ void LinearAlg2DTest::getDist2FromLineSegmentDiagonal2PerpendicularTest()
     getDist2FromLineSegmentAssert(Point(0,0),Point(100,50),Point(-2,4),20,0);
 }
 
+void LinearAlg2DTest::getDist2FromLineSegmentDiagonal2LargeTest()
+{
+    getDist2FromLineSegmentAssert(Point(0,0),Point(10000,5000),Point(2000,3000),3200000,0);
+}
+
 void LinearAlg2DTest::getDist2FromLineSegmentZeroNearTest()
 {
     //Since the actual is_beyond may be either -1 or 1, we must make this test more specific.

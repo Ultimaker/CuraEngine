@@ -39,6 +39,7 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getDist2FromLineSegmentDiagonal2BeforeTest);
     CPPUNIT_TEST(getDist2FromLineSegmentDiagonal2CornerTest);
     CPPUNIT_TEST(getDist2FromLineSegmentDiagonal2PerpendicularTest);
+    CPPUNIT_TEST(getDist2FromLineSegmentDiagonal2LargeTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -84,6 +85,7 @@ public:
     void getDist2FromLineSegmentDiagonal2BeforeTest();
     void getDist2FromLineSegmentDiagonal2CornerTest();
     void getDist2FromLineSegmentDiagonal2PerpendicularTest();
+    void getDist2FromLineSegmentDiagonal2LargeTest();
     void getDist2FromLineSegmentZeroNearTest();
     void getDist2FromLineSegmentZeroOnTest();
 
