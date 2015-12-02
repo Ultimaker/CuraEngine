@@ -259,7 +259,7 @@ private:
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
 
     double extrudeSpeedFactor;
-    double travelSpeedFactor; // TODO: remove this unused var?
+    double travelSpeedFactor;
     
     double fan_speed;
     
@@ -315,11 +315,20 @@ public:
     {
         return lastPosition;
     }
-    
+
+    /*!
+    * Set whether the next destination is inside a layer part or not.
+    * 
+    * Features like infill, walls, skin etc. are considered inside.
+    * Features like prime tower and support are considered outside.
+    */
     void setIsInside(bool going_to_comb);
     
     bool setExtruder(int extruder);
 
+    /*!
+     * Get the last planned extruder.
+     */
     int getExtruder()
     {
         return extruder_plans.back().extruder;
