@@ -836,19 +836,14 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GC
         }
         gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
     }
-    
-    if (path_next.retract)
-    {
-        writeRetraction(gcode, extruder_switch_retract, path.config->retraction_config);
-    }
-    
+
+
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
-    
+
     gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
-    
     return true;
 }
 
