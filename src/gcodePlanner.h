@@ -249,8 +249,9 @@ private:
     
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
     
-    bool was_combing;
-    bool is_going_to_comb;
+    bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
+    bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
+    Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
 
     RetractionConfig* last_retraction_config;
@@ -258,7 +259,7 @@ private:
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
 
     double extrudeSpeedFactor;
-    double travelSpeedFactor; // TODO: remove this unused var?
+    double travelSpeedFactor;
     
     double fan_speed;
     
@@ -297,6 +298,14 @@ public:
     GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+private:
+    /*!
+     * Compute the boundary within which to comb, or to move into when performing a retraction.
+     * \return the comb_boundary_inside
+     */
+    Polygons computeCombBoundaryInside();
+
+public:
     int getLayerNr()
     {
         return layer_nr;
@@ -306,11 +315,20 @@ public:
     {
         return lastPosition;
     }
-    
-    void setCombing(bool going_to_comb);
+
+    /*!
+    * Set whether the next destination is inside a layer part or not.
+    * 
+    * Features like infill, walls, skin etc. are considered inside.
+    * Features like prime tower and support are considered outside.
+    */
+    void setIsInside(bool going_to_comb);
     
     bool setExtruder(int extruder);
 
+    /*!
+     * Get the last planned extruder.
+     */
     int getExtruder()
     {
         return extruder_plans.back().extruder;
@@ -470,7 +488,13 @@ public:
      */
     void processFanSpeedAndMinimalLayerTime();
     
-    void moveInsideCombBoundary(int arg1);
+    /*!
+     * Add a travel move to the layer plan to move inside the current layer part by a given distance away from the outline.
+     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
+     * 
+     * \param distance The distance to the comb boundary after we moved inside it.
+     */
+    void moveInsideCombBoundary(int distance);
 };
 
 }//namespace cura

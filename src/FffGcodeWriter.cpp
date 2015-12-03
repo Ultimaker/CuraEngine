@@ -279,7 +279,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
-        gcode_layer.setCombing(false);
+        gcode_layer.setIsInside(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
         if (command_socket)
@@ -305,7 +305,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
-        gcode_layer.setCombing(false);
+        gcode_layer.setIsInside(false);
         if (command_socket)
             command_socket->sendLayerInfo(layer_nr, z, layer_height);
         
@@ -330,7 +330,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
-        gcode_layer.setCombing(false);
+        gcode_layer.setIsInside(false);
         if (command_socket)
             command_socket->sendLayerInfo(layer_nr, z, layer_height);
         
@@ -387,22 +387,22 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
-    gcode_layer.setCombing(true);
+    gcode_layer.setIsInside(true);
     for(unsigned int mesh_idx : mesh_order)
     {
         SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
         if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
         {
-            gcode_layer.setCombing(false);
+            gcode_layer.setIsInside(false);
             addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
         }
         else
         {
-            gcode_layer.setCombing(true); // needed when the last mesh was spiralized
+            gcode_layer.setIsInside(true); // needed when the last mesh was spiralized
             addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
         }
     }
-    gcode_layer.setCombing(false);
+    gcode_layer.setIsInside(false);
     
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, false);
 
@@ -420,7 +420,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
-    gcode_layer.setCombing(false);
+    gcode_layer.setIsInside(false);
     Polygons& skirt = storage.skirt[extruder_nr];
     if (skirt.size() > 0)
     {
@@ -434,7 +434,7 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
 {
     if (storage.oozeShield.size() > 0)
     {
-        gcode_layer.setCombing(false);
+        gcode_layer.setIsInside(false);
         gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
     }
 }
@@ -457,7 +457,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
         return;
     }
     
-    gcode_layer.setCombing(false);
+    gcode_layer.setIsInside(false);
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
     
 }
@@ -774,7 +774,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (print_support_before_rest != before_rest)
         return;
     
-    gcode_layer.setCombing(false);
+    gcode_layer.setIsInside(false);
     
     int current_extruder_nr = gcode_layer.getExtruder();
     

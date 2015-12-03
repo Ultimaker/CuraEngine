@@ -52,8 +52,35 @@ public:
     std::vector<SliceLayerPart> parts;  //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     Polygons openPolyLines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
     
+    /*!
+     * Get the all outlines of all layer parts in this layer.
+     * 
+     * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \return A collection of all the outline polygons
+     */
     Polygons getOutlines(bool external_polys_only = false);
+    
+    /*!
+     * Get the all outlines of all layer parts in this layer.
+     * Add those polygons to @p result.
+     * 
+     * \param external_polys_only Whether to only include the outermost outline of each layer part
+     * \param result The result: a collection of all the outline polygons
+     */
     void getOutlines(Polygons& result, bool external_polys_only = false);
+    
+    /*!
+     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
+     * \return The collection of all polygons thus obtained
+     */
+    Polygons getSecondOrInnermostWalls();
+    
+    /*!
+     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
+     * Add those polygons to @p result.
+     * \param result The result: the collection of all polygons thus obtained
+     */
+    void getSecondOrInnermostWalls(Polygons& result);
 };
 
 /******************/
@@ -175,6 +202,16 @@ public:
      * \param external_polys_only whether to disregard all hole polygons
      */
     Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false);
+    
+    /*!
+     * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
+     * 
+     * For helper parts the outlines are used.
+     * 
+     * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
+     * \param include_helper_parts whether to include support and prime tower
+     */
+    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts);
     
     /*!
      * Get the extruder numbers of all extruders used in a given layer.

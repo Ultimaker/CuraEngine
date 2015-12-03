@@ -1,8 +1,9 @@
+#include <cstring>
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
-#include <cstring>
 #include "debug.h" // debugging
+#include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
 
 namespace cura {
@@ -54,11 +55,14 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
+, comb_boundary_inside(computeCombBoundaryInside())
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder);
     comb = nullptr;
+    was_inside = true; // means it will try to get inside the comb boundary first
+    is_inside = true; // means it will try to get inside the comb boundary 
     last_retraction_config = &storage.retraction_config; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
@@ -66,9 +70,7 @@ GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& stora
     totalPrintTime = 0.0;
     if (retraction_combing)
     {
-        was_combing = true; // means it will try to get inside the comb boundary first
-        is_going_to_comb = true; // means it will try to get inside the comb boundary 
-        comb = new Comb(storage, layer_nr, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
+        comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
     else
         comb = nullptr;
@@ -80,9 +82,27 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-void GCodePlanner::setCombing(bool going_to_comb)
+Polygons GCodePlanner::computeCombBoundaryInside()
 {
-    is_going_to_comb = going_to_comb;
+    if (layer_nr < 0)
+    { // when a raft is present
+        return storage.raftOutline.offset(MM2INT(0.1));
+    }
+    else 
+    {
+        Polygons layer_walls;
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            layer.getSecondOrInnermostWalls(layer_walls);
+        }
+        return layer_walls;
+    }
+}
+
+void GCodePlanner::setIsInside(bool _is_inside)
+{
+    is_inside = _is_inside;
 }
 
 
@@ -138,13 +158,14 @@ bool GCodePlanner::setExtruder(int extruder)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    if (!comb) return;
-    Point p = lastPosition;
-    if (comb->moveInsideBoundary(&p, distance))
+    int max_dist = MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    // this function is to be used to move from the boudary of a part to inside the part
+    Point p = lastPosition; // copy, since we are going to move p
+    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        comb->moveInsideBoundary(&p, distance);
-        if (comb->inside(p))
+        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist);
+        if (comb_boundary_inside.inside(p))
         {
             addTravel_simple(p);
             //Make sure the that any retraction happens after this move, not before it by starting a new move path.
@@ -162,7 +183,7 @@ void GCodePlanner::addTravel(Point p)
     if (comb != nullptr && lastPosition != no_point)
     {
         CombPaths combPaths;
-        combed = comb->calc(lastPosition, p, combPaths, was_combing, is_going_to_comb, last_retraction_config->retraction_min_travel_distance);
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_retraction_config->retraction_min_travel_distance);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -204,24 +225,25 @@ void GCodePlanner::addTravel(Point p)
                 }
             }
         }
-        was_combing = is_going_to_comb;
     }
     
-    if(!combed) {
+    if (!combed) {
         // no combing? always retract!
-        path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
+            if (was_inside)
+            {
+                ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
+                assert (extr != nullptr);
+                moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
+            }
+            path = getLatestPathWithConfig(&storage.travel_config);
             path->retract = true;
         }
     }
-    
-    if(comb == nullptr) {
-        // no combing? always retract!
-        path = getLatestPathWithConfig(&storage.travel_config);
-        path->retract = true;
-    }
+
     addTravel_simple(p, path);
+    was_inside = is_inside;
 }
 
 void GCodePlanner::addTravel_simple(Point p, GCodePath* path)

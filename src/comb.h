@@ -216,14 +216,9 @@ private:
     
     bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
-    Polygons boundary_inside; //!< The boundary within which to comb.
+    Polygons& boundary_inside; //!< The boundary within which to comb.
     Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
-        
-    /*!
-     * Collects the inner most walls for every mesh in the layer (not support) or computes them from the outlines using Comb::offset_from_outlines.
-     */
-    Polygons getLayerSecondWalls();
 
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
@@ -235,16 +230,14 @@ public:
      * Initializes the combing areas for every mesh in the layer (not support)
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
+     * \param comb_boundary_inside The comb boundary within which to comb within layer parts.
      * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, int layer_nr, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     
     ~Comb();
-    
-    //! Utility function for `boundary_inside.inside(p)`.
-    bool inside(const Point p) { return boundary_inside.inside(p); }
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
@@ -257,16 +250,6 @@ public:
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false, int64_t max_comb_distance_ignored = MM2INT(1.5));
-    
-    /*!
-     * Move \p p to inside the inner comb boundary with a \p distance from the boundary.
-     * 
-     * \param p the point to change/move
-     * \param distance the distance from the resulting point to the boundary on the inside
-     * \return whether the point has been moved inside
-     */
-    bool moveInsideBoundary(Point* p, int distance);
-    
 };
 
 }//namespace cura
