@@ -725,6 +725,10 @@ bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int ext
     
 bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
+    if (coasting_volume <= 0) 
+    { 
+        return false; 
+    }
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
@@ -736,13 +740,6 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     {
         return false;
     }
-
-    if (coasting_volume <= 0) { return false; }
-    return writePathWithCoasting(gcode, path, layerThickness, coasting_volume, coasting_speed, coasting_min_volume);
-
-}  
-bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
-{
 
     int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
 
