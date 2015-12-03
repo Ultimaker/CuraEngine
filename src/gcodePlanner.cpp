@@ -222,6 +222,7 @@ void GCodePlanner::addTravel(Point p)
     
     if (!combed) {
         // no combing? always retract!
+        path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
             if (was_inside)
@@ -230,11 +231,10 @@ void GCodePlanner::addTravel(Point p)
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
             }
-            path = getLatestPathWithConfig(&storage.travel_config);
             path->retract = true;
         }
     }
-
+    
     addTravel_simple(p, path);
     was_inside = is_inside;
 }
