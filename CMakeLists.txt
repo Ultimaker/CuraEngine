@@ -6,6 +6,7 @@ option (ENABLE_ARCUS
     "Enable support for ARCUS" ON)
 
 if (ENABLE_ARCUS)
+    message(STATUS "Building with Arcus")
     find_package(Arcus REQUIRED)
     add_definitions(-DARCUS)
 endif ()
