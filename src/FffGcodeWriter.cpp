@@ -179,6 +179,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         {
             mesh.infill_config[idx].init(mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMicrons("infill_line_width") * (idx + 1), mesh.getSettingInPercentage("material_flow"));
         }
+        mesh.wall_reinforcement_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_reinforcement"), mesh.getSettingInMicrons("wall_reinforcement_line_width"), mesh.getSettingInPercentage("material_flow"));
     }
     
     storage.primeTower.initConfigs(storage.meshgroup, storage.retraction_config_per_extruder);
