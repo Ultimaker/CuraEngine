@@ -6,7 +6,9 @@
 #include <thread>
 #include <cinttypes>
 
+#ifdef ARCUS
 #include <Arcus/Socket.h>
+#endif
 
 #include <string> // stoi
 
@@ -22,7 +24,8 @@ namespace cura {
 #define BYTES_PER_FLOAT 4
 #define FLOATS_PER_VECTOR 3
 #define VECTORS_PER_FACE 3
-    
+
+#ifdef ARCUS
 class CommandSocket::Private
 {
 public:
@@ -65,15 +68,21 @@ public:
     // Print object that olds one or more meshes that need to be sliced. 
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 };
+#endif
 
 CommandSocket::CommandSocket()
+#ifdef ARCUS
     : d(new Private)
+#endif
 {
+#ifdef ARCUS
     FffProcessor::getInstance()->setCommandSocket(this);
+#endif
 }
 
 void CommandSocket::connect(const std::string& ip, int port)
 {
+#ifdef ARCUS
     d->socket = new Arcus::Socket();
     //d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
     d->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
@@ -149,8 +158,10 @@ void CommandSocket::connect(const std::string& ip, int port)
             d->socket->clearError();
         }
     }
+#endif
 }
 
+#ifdef ARCUS
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
     FMatrix3x3 matrix;
@@ -229,9 +240,11 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
         FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
     }
 }
+#endif
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
+#ifdef ARCUS
     if(!d->current_sliced_object)
     {
         return;
@@ -240,10 +253,12 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
     cura::proto::Layer* layer = d->getLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(height);
+#endif
 }
 
 void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
 {
+#ifdef ARCUS
     if(!d->current_sliced_object)
         return;
     
@@ -261,15 +276,18 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
         p->set_points(polydata);
         p->set_line_width(line_width);
     }
+#endif
 }
 
 void CommandSocket::sendProgress(float amount)
 {
+#ifdef ARCUS
     auto message = std::make_shared<cura::proto::Progress>();
     amount /= d->object_count;
     amount += d->sliced_objects * (1. / d->object_count);
     message->set_amount(amount);
     d->socket->sendMessage(message);
+#endif
 }
 
 void CommandSocket::sendProgressStage(Progress::Stage stage)
@@ -279,10 +297,12 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 
 void CommandSocket::sendPrintTime()
 {
+#ifdef ARCUS
     auto message = std::make_shared<cura::proto::ObjectPrintTime>();
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
     message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
     d->socket->sendMessage(message);
+#endif
 }
 
 void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
@@ -296,6 +316,7 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 
 void CommandSocket::beginSendSlicedObject()
 {
+#ifdef ARCUS
     if(!d->sliced_object_list)
     {
         d->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
@@ -303,10 +324,12 @@ void CommandSocket::beginSendSlicedObject()
 
     d->current_sliced_object = d->sliced_object_list->add_objects();
     d->current_sliced_object->set_id(d->object_ids[d->sliced_objects]);
+#endif
 }
 
 void CommandSocket::endSendSlicedObject()
 {
+#ifdef ARCUS
     d->sliced_objects++;
     d->current_layer_offset = d->current_layer_count;
     std::cout << "End sliced object called. sliced objects " << d->sliced_objects << " object count: " << d->object_count << std::endl;
@@ -323,30 +346,38 @@ void CommandSocket::endSendSlicedObject()
         d->sliced_object_list.reset();
         d->current_sliced_object = nullptr;
     }
+#endif
 }
 
 void CommandSocket::beginGCode()
 {
+#ifdef ARCUS
     FffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
+#endif
 }
 
 void CommandSocket::sendGCodeLayer()
 {
+#ifdef ARCUS
     auto message = std::make_shared<cura::proto::GCodeLayer>();
     message->set_id(d->object_ids[0]);
     message->set_data(d->gcode_output_stream.str());
     d->socket->sendMessage(message);
     
     d->gcode_output_stream.str("");
+#endif
 }
 
 void CommandSocket::sendGCodePrefix(std::string prefix)
 {
+#ifdef ARCUS
     auto message = std::make_shared<cura::proto::GCodePrefix>();
     message->set_data(prefix);
     d->socket->sendMessage(message);
+#endif
 }
 
+#ifdef ARCUS
 cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
 {
     id += current_layer_offset;
@@ -367,5 +398,6 @@ cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
 
     return layer;
 }
+#endif
 
 }//namespace cura

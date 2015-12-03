@@ -2,7 +2,14 @@ project(CuraEngine)
 
 cmake_minimum_required(VERSION 2.8.12)
 
-find_package(Arcus REQUIRED)
+option (ENABLE_ARCUS
+    "Enable support for ARCUS" ON)
+
+if (ENABLE_ARCUS)
+    message(STATUS "Building with Arcus")
+    find_package(Arcus REQUIRED)
+    add_definitions(-DARCUS)
+endif ()
 
 if(NOT ${CMAKE_VERSION} VERSION_LESS 3.1)
     set(CMAKE_CXX_STANDARD 11)
@@ -78,12 +85,17 @@ set(engine_TEST
     LinearAlg2DTest
 )
 
-# Generating ProtoBuf protocol.
+# Generating ProtoBuf protocol
+if (ENABLE_ARCUS)
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+endif ()
 
 # Compiling CuraEngine itself.
 add_library(_CuraEngine ${engine_SRCS} ${engine_PB_SRCS}) #First compile all of CuraEngine as library, allowing this to be re-used for tests.
-target_link_libraries(_CuraEngine clipper Arcus)
+target_link_libraries(_CuraEngine clipper)
+if (ENABLE_ARCUS)
+    target_link_libraries(_CuraEngine Arcus)
+endif ()
 
 set_target_properties(_CuraEngine PROPERTIES COMPILE_DEFINITIONS "VERSION=\"${CURA_ENGINE_VERSION}\"")
 
