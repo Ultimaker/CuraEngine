@@ -630,6 +630,7 @@ void GCodePlanner::completeConfigs()
 
         mesh.insetX_config.setLayerHeight(layer_thickness);
         mesh.skin_config.setLayerHeight(layer_thickness);
+        mesh.wall_reinforcement_config.setLayerHeight(layer_thickness);
         for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
         {
             mesh.infill_config[idx].setLayerHeight(layer_thickness);
@@ -656,6 +657,7 @@ void GCodePlanner::processInitialLayersSpeedup()
             mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            mesh.wall_reinforcement_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
             {
                 mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);

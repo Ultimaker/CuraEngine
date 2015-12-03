@@ -173,7 +173,8 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         mesh.inset0_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInPercentage("material_flow"));
         mesh.insetX_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingInPercentage("material_flow"));
         mesh.skin_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMicrons("skin_line_width"), mesh.getSettingInPercentage("material_flow"));
-    
+        mesh.wall_reinforcement_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_reinforcement"), mesh.getSettingInMicrons("wall_reinforcement_line_width"), mesh.getSettingInPercentage("material_flow"));
+
         for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
         {
             mesh.infill_config[idx].init(mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMicrons("infill_line_width") * (idx + 1), mesh.getSettingInPercentage("material_flow"));
@@ -182,15 +183,6 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
     
     storage.primeTower.initConfigs(storage.meshgroup, storage.retraction_config_per_extruder);
 }
-
-void FffGcodeWriter::setConfigWallReinforcement(SliceMeshStorage& mesh, int layer_thickness)
-{
-    mesh.wall_reinforcement_config.setLineWidth(mesh.getSettingInMicrons("wall_reinforcement_line_width"));
-    mesh.wall_reinforcement_config.setSpeed(mesh.getSettingInMillimetersPerSecond("speed_wall_reinforcement"));
-    mesh.wall_reinforcement_config.setFlow(mesh.getSettingInPercentage("material_flow"));
-    mesh.wall_reinforcement_config.setLayerHeight(layer_thickness);
-}
-
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
     if (!command_socket)
@@ -373,7 +365,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         if (extruders_used[extr_nr])
         {
             max_nozzle_size = std::max(max_nozzle_size, storage.meshgroup->getExtruderTrain(extr_nr)->getSettingInMicrons("machine_nozzle_size")); 
-        setConfigWallReinforcement(mesh, layer_thickness);
         }
     }
     int64_t comb_offset_from_outlines = max_nozzle_size * 2;// TODO: only used when there is no second wall.
@@ -425,7 +416,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     current_extruder_planned = gcode_layer.getExtruder();
     
     gcode_layer.processFanSpeedAndMinimalLayerTime();
-            mesh.wall_reinforcement_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
 }
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
