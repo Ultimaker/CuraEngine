@@ -538,9 +538,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layerThickness
-                                , coasting_config.coasting_volume_move, coasting_config.coasting_speed_move, coasting_config.coasting_min_volume_move
-                                , coasting_config.coasting_volume_retract, coasting_config.coasting_speed_retract, coasting_config.coasting_min_volume_retract);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layerThickness, coasting_config.coasting_volume, coasting_config.coasting_speed, coasting_config.coasting_min_volume);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -725,7 +723,7 @@ bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int ext
     }
 }
     
-bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume_move, double coasting_speed_move, double coasting_min_volume_move, double coasting_volume_retract, double coasting_speed_retract, double coasting_min_volume_retract)
+bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
     GCodePath& path = paths[path_idx];
@@ -738,20 +736,12 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     {
         return false;
     }
-    GCodePath& path_next = paths[path_idx + 1];
-    
-    if (path_next.retract)
-    {
-        if (coasting_volume_retract <= 0) { return false; }
-        return writePathWithCoasting(gcode, path, path_next, layerThickness, coasting_volume_retract, coasting_speed_retract, coasting_min_volume_retract, makeRetractSwitchRetract(gcode, extruder_plan_idx, path_idx));
-    }
-    else
-    {
-        if (coasting_volume_move <= 0) { return false; }
-        return writePathWithCoasting(gcode, path, path_next, layerThickness, coasting_volume_move, coasting_speed_move, coasting_min_volume_move);
-    }
+
+    if (coasting_volume <= 0) { return false; }
+    return writePathWithCoasting(gcode, path, layerThickness, coasting_volume, coasting_speed, coasting_min_volume);
+
 }  
-bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GCodePath& path_next, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume, bool extruder_switch_retract)
+bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume)
 {
 
     int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
@@ -813,14 +803,14 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GC
             }
         }
     }
-    
+
     if (acc_dist_idx_gt_coast_dist == NO_INDEX) 
     { // something has gone wrong; coasting_min_dist < coasting_dist ?
         return false;
     }
-    
+
     unsigned int point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist;
-    
+
     Point start;
     { // computation of begin point of coasting
         int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist - 1];
@@ -828,7 +818,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, GCodePath& path, GC
         Point& b = path.points[point_idx_before_start + 1];
         start = b + normal(a-b, residual_dist);
     }
-    
+
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
