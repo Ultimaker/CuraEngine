@@ -223,8 +223,8 @@ void GCodePlanner::addTravel(Point p)
         // no combing? always retract!
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
-            if (was_inside)
-            {
+            if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
+            {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
                 ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
