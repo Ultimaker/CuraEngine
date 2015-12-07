@@ -238,6 +238,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             SettingConfig* conf = getSettingConfig(setting);
             if (!conf) //Setting could not be found.
             {
+                logWarning("Trying to override unknown setting %s.", setting.c_str());
                 continue;
             }
             _loadSettingValues(conf, override_iterator, false);
