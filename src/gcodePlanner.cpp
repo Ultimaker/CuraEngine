@@ -801,10 +801,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
         }
     }
 
-    if (acc_dist_idx_gt_coast_dist == NO_INDEX) 
-    { // something has gone wrong; coasting_min_dist < coasting_dist ?
-        return false;
-    }
+    assert (acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
 
     unsigned int point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist;
 

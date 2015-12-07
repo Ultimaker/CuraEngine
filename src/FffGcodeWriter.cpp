@@ -107,6 +107,11 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
         coasting_config.coasting_volume = train->getSettingInCubicMillimeters("coasting_volume"); 
         coasting_config.coasting_min_volume = train->getSettingInCubicMillimeters("coasting_min_volume"); 
         coasting_config.coasting_speed = train->getSettingInPercentage("coasting_speed") / 100.0; 
+        if (coasting_config.coasting_min_volume < coasting_config.coasting_volume)
+        {
+            coasting_config.coasting_enable = false;
+            logWarning("Warning: Coasting distance is larger than minimal coasting distance! Disabling coasting...\n");
+        }
     }
 }
 
