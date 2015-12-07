@@ -14,12 +14,14 @@ void LayerPlanBuffer::flush()
     {
         insertPreheatCommands(); // insert preheat commands of the very last layer
     }
-    for (GCodePlanner& layer_plan : buffer)
+    while (!buffer.empty())
     {
-        layer_plan.writeGCode(gcode, getSettingBoolean("cool_lift_head"), layer_plan.getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+        buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
         if (command_socket)
             command_socket->sendGCodeLayer();
+        buffer.pop_front();
     }
+    
 }
 
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
