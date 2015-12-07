@@ -18,13 +18,9 @@ namespace cura {
 struct CoastingConfig
 {
     bool coasting_enable; 
-    double coasting_volume_move; 
-    double coasting_speed_move; 
-    double coasting_min_volume_move; 
-
-    double coasting_volume_retract;
-    double coasting_speed_retract;
-    double coasting_min_volume_retract;
+    double coasting_volume; 
+    double coasting_speed; 
+    double coasting_min_volume; 
 };
     
 class RetractionConfig

@@ -148,12 +148,13 @@ void slice(int argc, char **argv)
                         FffProcessor::getInstance()->time_keeper.restart();
                         delete meshgroup;
                         meshgroup = new MeshGroup(FffProcessor::getInstance());
+                        last_extruder_train = meshgroup->createExtruderTrain(0); 
                         last_settings_object = meshgroup;
+                        
                     }catch(...){
                         cura::logError("Unknown exception\n");
                         exit(1);
                     }
-                    break;
                 }else{
                     cura::logError("Unknown option: %s\n", str);
                 }

@@ -11,6 +11,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     std::stringstream sstream;
     if (first_meshgroup)
     {
+        sstream << getAllLocalSettingsString(); // global settings
         sstream << " -g";
     }
     else 
