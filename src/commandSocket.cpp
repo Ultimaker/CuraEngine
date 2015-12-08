@@ -91,30 +91,6 @@ void CommandSocket::connect(const std::string& ip, int port)
     // Start & continue listening as long as socket is not closed and there is no error.
     while(private_data->socket->state() != Arcus::SocketState::Closed && private_data->socket->state() != Arcus::SocketState::Error && slice_another_time)
     {
-        //If there is an object to slice, do so.
-        if(private_data->objects_to_slice.size())
-        {
-            FffProcessor::getInstance()->resetFileNumber();
-            for(auto object : private_data->objects_to_slice)
-            {
-                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
-                {
-                    logError("Slicing mesh group failed!");
-                }
-            }
-            private_data->objects_to_slice.clear();
-            FffProcessor::getInstance()->finalize();
-            flushGcode();
-            sendPrintTime();
-            slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
-            //TODO: Support all-at-once/one-at-a-time printing
-            //private_data->processor->processModel(private_data->object_to_slice.get());
-            //private_data->object_to_slice.reset();
-            //private_data->processor->resetFileNumber();
-
-            //sendPrintTime();
-        }
-        
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
@@ -141,13 +117,37 @@ void CommandSocket::connect(const std::string& ip, int port)
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
+        //If there is an object to slice, do so.
+        if(private_data->objects_to_slice.size())
+        {
+            FffProcessor::getInstance()->resetFileNumber();
+            for(auto object : private_data->objects_to_slice)
+            {
+                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                {
+                    logError("Slicing mesh group failed!");
+                }
+            }
+            private_data->objects_to_slice.clear();
+            FffProcessor::getInstance()->finalize();
+            flushGcode();
+            sendPrintTime();
+            slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
+            //TODO: Support all-at-once/one-at-a-time printing
+            //private_data->processor->processModel(private_data->object_to_slice.get());
+            //private_data->object_to_slice.reset();
+            //private_data->processor->resetFileNumber();
+
+            //sendPrintTime();
+        }
 
         if(!private_data->socket->errorString().empty()) 
         {
             logError("%s\n", private_data->socket->errorString().data());
             private_data->socket->clearError();
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
     
     private_data->socket->close();
