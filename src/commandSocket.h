@@ -67,7 +67,14 @@ public:
      */
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
 
+    /*!
+     * Start the slicing of a new meshgroup
+     */
     void beginSendSlicedObject();
+    
+    /*!
+     * Conclude the slicing of the current meshgroup, so that we can start the next
+     */
     void endSendSlicedObject();
 
     void beginGCode();

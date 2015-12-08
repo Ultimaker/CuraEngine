@@ -309,10 +309,7 @@ void CommandSocket::endSendSlicedObject()
 {
     private_data->sliced_objects++;
     private_data->current_layer_offset = private_data->current_layer_count;
-    std::cout << "End sliced object called. sliced objects " << private_data->sliced_objects << " object count: " << private_data->object_count << std::endl;
-
-    std::cout << "current layer count" << private_data->current_layer_count << std::endl;
-    std::cout << "current layer offset" << private_data->current_layer_offset << std::endl;
+    std::cout << "End sliced object called. Sliced objects " << private_data->sliced_objects << " object count: " << private_data->object_count << std::endl;
 
     if(private_data->sliced_objects >= private_data->object_count)
     {
