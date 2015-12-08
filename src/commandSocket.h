@@ -80,7 +80,7 @@ public:
 
 private:
     class Private;
-    const std::unique_ptr<Private> d;
+    const std::unique_ptr<Private> private_data;
 };
 
 }//namespace cura
