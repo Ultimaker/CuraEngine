@@ -440,7 +440,7 @@ public:
      * \param layerThickness The height of the current layer.
      * \param coasting_volume The volume otherwise leaked during a normal move.
      * \param coasting_speed The speed at which to move during move-coasting.
-     * \param coasting_min_volume The minimal volume a path should have which builds up enough pressure to ooze as much as \p coasting_volume.
+     * \param coasting_min_volume The minimal volume a path should have (before starting to coast) which builds up enough pressure to ooze as much as \p coasting_volume.
      * \return Whether any GCode has been written for the path.
      */
     bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
