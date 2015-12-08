@@ -233,7 +233,9 @@ void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
 
     if (command_socket)
+    {
         command_socket->sendPolygons(SupportType, layer_nr, pattern, config.getLineWidth());
+    }
 
     if (wipe)
     { //Make sure we wipe the old extruder on the prime tower.

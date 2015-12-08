@@ -80,7 +80,9 @@ public:
     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
     {
         if (command_socket)
+        {
             command_socket->sendPolygons(type, layer_nr, polygons, line_width);
+        }
     }
         
     bool setTargetFile(const char* filename)

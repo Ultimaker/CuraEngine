@@ -22,7 +22,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
     
     if (command_socket)
+    {
         command_socket->beginGCode();
+    }
 
     setConfigFanSpeedLayerTime();
     
@@ -278,9 +280,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setIsInside(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
+        {
             gcode_layer.setExtruder(extruder_nr);
+        }
         if (command_socket)
+        {
             command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        }
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &storage.raft_base_config);
 
         Polygons raftLines;
@@ -304,7 +310,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setIsInside(false);
         if (command_socket)
+        {
             command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        }
         
         Polygons raftLines;
         int offset_from_poly_outline = 0;
@@ -329,7 +337,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         gcode_layer.setIsInside(false);
         if (command_socket)
+        {
             command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        }
         
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
