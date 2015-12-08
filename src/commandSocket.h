@@ -38,7 +38,7 @@ public:
     void handleSettingList(cura::proto::SettingList* list);
     
     /*!
-     * Does nothing at the moment 
+     * Send info on a layer to be displayed by the forntend: set the z and the thickness of the layer.
      */
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     

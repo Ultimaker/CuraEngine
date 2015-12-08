@@ -249,11 +249,11 @@ void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polyg
     if (polygons.size() == 0)
         return;
 
-    cura::proto::Layer* layer = private_data->getLayerById(layer_nr);
+    cura::proto::Layer* proto_layer = private_data->getLayerById(layer_nr);
 
     for(unsigned int poly_idx = 0; poly_idx < polygons.size(); ++poly_idx)
     {
-        cura::proto::Polygon* proto_poly = layer->add_polygons();
+        cura::proto::Polygon* proto_poly = proto_layer->add_polygons();
         proto_poly->set_type(static_cast<cura::proto::Polygon_Type>(type));
         std::string polydata;
         polydata.append(reinterpret_cast<const char*>(polygons[poly_idx].data()), polygons[poly_idx].size() * sizeof(Point));
