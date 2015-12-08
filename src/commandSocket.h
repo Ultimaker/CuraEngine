@@ -71,7 +71,11 @@ public:
     void endSendSlicedObject();
 
     void beginGCode();
-    void sendGCodeLayer();
+    
+    /*!
+     * Flush the gcode in gcode_output_stream into a message queued in the socket.
+     */
+    void flushGcode();
     void sendGCodePrefix(std::string prefix);
 
 private:

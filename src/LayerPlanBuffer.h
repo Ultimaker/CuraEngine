@@ -56,7 +56,7 @@ public:
         {
             buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
             if (command_socket)
-                command_socket->sendGCodeLayer();
+                command_socket->flushGcode();
             buffer.pop_front();
         }
         return buffer.back();

@@ -103,7 +103,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             }
             private_data->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
-            sendGCodeLayer();
+            flushGcode();
             sendPrintTime();
             slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
             //TODO: Support all-at-once/one-at-a-time printing
@@ -329,7 +329,7 @@ void CommandSocket::beginGCode()
     FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);
 }
 
-void CommandSocket::sendGCodeLayer()
+void CommandSocket::flushGcode()
 {
     auto message = std::make_shared<cura::proto::GCodeLayer>();
     message->set_id(private_data->object_ids[0]);
