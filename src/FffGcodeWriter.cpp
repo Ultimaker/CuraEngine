@@ -76,14 +76,14 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z);
-    
+
+    layer_plan_buffer.flush();
+
     if (command_socket)
     {
-        command_socket->sendGCodeLayer();
+        command_socket->flushGcode();
         command_socket->endSendSlicedObject();
     }
-    
-    layer_plan_buffer.flush();
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime()
