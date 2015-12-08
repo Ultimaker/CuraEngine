@@ -169,7 +169,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
     
     if (commandSocket)
     {
-        commandSocket->sendGCodeLayer();
+        commandSocket->flushGcode();
         commandSocket->endSendSlicedObject();
     }
 }

@@ -72,7 +72,7 @@ public:
 
 CommandSocket::CommandSocket()
 #ifdef ARCUS
-    : d(new Private)
+    : private_data(new Private)
 #endif
 {
 #ifdef ARCUS
@@ -83,49 +83,25 @@ CommandSocket::CommandSocket()
 void CommandSocket::connect(const std::string& ip, int port)
 {
 #ifdef ARCUS
-    d->socket = new Arcus::Socket();
-    //d->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
-    d->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
-    d->socket->registerMessageType(2, &cura::proto::SlicedObjectList::default_instance());
-    d->socket->registerMessageType(3, &cura::proto::Progress::default_instance());
-    d->socket->registerMessageType(4, &cura::proto::GCodeLayer::default_instance());
-    d->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
-    d->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
-    d->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
+    private_data->socket = new Arcus::Socket();
+    //private_data->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
+    private_data->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
+    private_data->socket->registerMessageType(2, &cura::proto::SlicedObjectList::default_instance());
+    private_data->socket->registerMessageType(3, &cura::proto::Progress::default_instance());
+    private_data->socket->registerMessageType(4, &cura::proto::GCodeLayer::default_instance());
+    private_data->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
+    private_data->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
 
-    d->socket->connect(ip, port);
+    private_data->socket->connect(ip, port);
     
     bool slice_another_time = true;
     
     // Start & continue listening as long as socket is not closed and there is no error.
-    while(d->socket->state() != Arcus::SocketState::Closed && d->socket->state() != Arcus::SocketState::Error && slice_another_time)
+    while(private_data->socket->state() != Arcus::SocketState::Closed && private_data->socket->state() != Arcus::SocketState::Error && slice_another_time)
     {
-        //If there is an object to slice, do so.
-        if(d->objects_to_slice.size())
-        {
-            FffProcessor::getInstance()->resetFileNumber();
-            for(auto object : d->objects_to_slice)
-            {
-                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
-                {
-                    logError("Slicing mesh group failed!");
-                }
-            }
-            d->objects_to_slice.clear();
-            FffProcessor::getInstance()->finalize();
-            sendGCodeLayer();
-            sendPrintTime();
-            slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
-            //TODO: Support all-at-once/one-at-a-time printing
-            //d->processor->processModel(d->object_to_slice.get());
-            //d->object_to_slice.reset();
-            //d->processor->resetFileNumber();
-
-            //sendPrintTime();
-        }
-        
         // Actually start handling messages.
-        Arcus::MessagePtr message = d->socket->takeNextMessage();
+        Arcus::MessagePtr message = private_data->socket->takeNextMessage();
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if(setting_list)
         {
@@ -142,22 +118,47 @@ void CommandSocket::connect(const std::string& ip, int port)
         if(slice)
         {
             // Reset object counts
-            d->object_count = 0;
-            d->object_ids.clear();
+            private_data->object_count = 0;
+            private_data->object_ids.clear();
             for(auto object : slice->object_lists())
             {
                 handleObjectList(&object);
             }
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(250));
-
-        if(!d->socket->errorString().empty()) 
+        //If there is an object to slice, do so.
+        if(private_data->objects_to_slice.size())
         {
-            logError("%s\n", d->socket->errorString().data());
-            d->socket->clearError();
+            FffProcessor::getInstance()->resetFileNumber();
+            for(auto object : private_data->objects_to_slice)
+            {
+                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                {
+                    logError("Slicing mesh group failed!");
+                }
+            }
+            private_data->objects_to_slice.clear();
+            FffProcessor::getInstance()->finalize();
+            flushGcode();
+            sendPrintTime();
+            slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
+            //TODO: Support all-at-once/one-at-a-time printing
+            //private_data->processor->processModel(private_data->object_to_slice.get());
+            //private_data->object_to_slice.reset();
+            //private_data->processor->resetFileNumber();
+
+            //sendPrintTime();
         }
+
+        if(!private_data->socket->errorString().empty()) 
+        {
+            logError("%s\n", private_data->socket->errorString().data());
+            private_data->socket->clearError();
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
+    private_data->socket->close();
 #endif
 }
 
@@ -165,10 +166,10 @@ void CommandSocket::connect(const std::string& ip, int port)
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
     FMatrix3x3 matrix;
-    //d->object_count = 0;
-    //d->object_ids.clear();
-    d->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
-    MeshGroup* meshgroup = d->objects_to_slice.back().get();
+    //private_data->object_count = 0;
+    //private_data->object_ids.clear();
+    private_data->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
+    MeshGroup* meshgroup = private_data->objects_to_slice.back().get();
     
     for(auto setting : list->settings())
     {
@@ -225,11 +226,11 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             mesh.setSetting(setting.name(), setting.value());
         }
 
-        d->object_ids.push_back(object.id());
+        private_data->object_ids.push_back(object.id());
         mesh.finish();
     }
 
-    d->object_count++;
+    private_data->object_count++;
     meshgroup->finalize();
 }
 
@@ -245,12 +246,12 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
 #ifdef ARCUS
-    if(!d->current_sliced_object)
+    if(!private_data->current_sliced_object)
     {
         return;
     }
     
-    cura::proto::Layer* layer = d->getLayerById(layer_nr);
+    cura::proto::Layer* layer = private_data->getLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(height);
 #endif
@@ -259,17 +260,17 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 void CommandSocket::sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
 {
 #ifdef ARCUS
-    if(!d->current_sliced_object)
+    if(!private_data->current_sliced_object)
         return;
     
     if (polygons.size() == 0)
         return;
 
-    cura::proto::Layer* layer = d->getLayerById(layer_nr);
+    cura::proto::Layer* proto_layer = private_data->getLayerById(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
     {
-        cura::proto::Polygon* p = layer->add_polygons();
+        cura::proto::Polygon* p = proto_layer->add_polygons();
         p->set_type(static_cast<cura::proto::Polygon_Type>(type));
         std::string polydata;
         polydata.append(reinterpret_cast<const char*>(polygons[i].data()), polygons[i].size() * sizeof(Point));
@@ -283,10 +284,10 @@ void CommandSocket::sendProgress(float amount)
 {
 #ifdef ARCUS
     auto message = std::make_shared<cura::proto::Progress>();
-    amount /= d->object_count;
-    amount += d->sliced_objects * (1. / d->object_count);
+    amount /= private_data->object_count;
+    amount += private_data->sliced_objects * (1. / private_data->object_count);
     message->set_amount(amount);
-    d->socket->sendMessage(message);
+    private_data->socket->sendMessage(message);
 #endif
 }
 
@@ -301,7 +302,7 @@ void CommandSocket::sendPrintTime()
     auto message = std::make_shared<cura::proto::ObjectPrintTime>();
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
     message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
-    d->socket->sendMessage(message);
+    private_data->socket->sendMessage(message);
 #endif
 }
 
@@ -317,34 +318,31 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 void CommandSocket::beginSendSlicedObject()
 {
 #ifdef ARCUS
-    if(!d->sliced_object_list)
+    if(!private_data->sliced_object_list)
     {
-        d->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
+        private_data->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
     }
 
-    d->current_sliced_object = d->sliced_object_list->add_objects();
-    d->current_sliced_object->set_id(d->object_ids[d->sliced_objects]);
+    private_data->current_sliced_object = private_data->sliced_object_list->add_objects();
+    private_data->current_sliced_object->set_id(private_data->object_ids[private_data->sliced_objects]);
 #endif
 }
 
 void CommandSocket::endSendSlicedObject()
 {
 #ifdef ARCUS
-    d->sliced_objects++;
-    d->current_layer_offset = d->current_layer_count;
-    std::cout << "End sliced object called. sliced objects " << d->sliced_objects << " object count: " << d->object_count << std::endl;
+    private_data->sliced_objects++;
+    private_data->current_layer_offset = private_data->current_layer_count;
+    std::cout << "End sliced object called. Sliced objects " << private_data->sliced_objects << " object count: " << private_data->object_count << std::endl;
 
-    std::cout << "current layer count" << d->current_layer_count << std::endl;
-    std::cout << "current layer offset" << d->current_layer_offset << std::endl;
-
-    if(d->sliced_objects >= d->object_count)
+    if(private_data->sliced_objects >= private_data->object_count)
     {
-        d->socket->sendMessage(d->sliced_object_list);
-        d->sliced_objects = 0;
-        d->current_layer_count = 0;
-        d->current_layer_offset = 0;
-        d->sliced_object_list.reset();
-        d->current_sliced_object = nullptr;
+        private_data->socket->sendMessage(private_data->sliced_object_list);
+        private_data->sliced_objects = 0;
+        private_data->current_layer_count = 0;
+        private_data->current_layer_offset = 0;
+        private_data->sliced_object_list.reset();
+        private_data->current_sliced_object = nullptr;
     }
 #endif
 }
@@ -352,19 +350,19 @@ void CommandSocket::endSendSlicedObject()
 void CommandSocket::beginGCode()
 {
 #ifdef ARCUS
-    FffProcessor::getInstance()->setTargetStream(&d->gcode_output_stream);
+    FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);
 #endif
 }
 
-void CommandSocket::sendGCodeLayer()
+void CommandSocket::flushGcode()
 {
 #ifdef ARCUS
     auto message = std::make_shared<cura::proto::GCodeLayer>();
-    message->set_id(d->object_ids[0]);
-    message->set_data(d->gcode_output_stream.str());
-    d->socket->sendMessage(message);
+    message->set_id(private_data->object_ids[0]);
+    message->set_data(private_data->gcode_output_stream.str());
+    private_data->socket->sendMessage(message);
     
-    d->gcode_output_stream.str("");
+    private_data->gcode_output_stream.str("");
 #endif
 }
 
@@ -373,7 +371,7 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
 #ifdef ARCUS
     auto message = std::make_shared<cura::proto::GCodePrefix>();
     message->set_data(prefix);
-    d->socket->sendMessage(message);
+    private_data->socket->sendMessage(message);
 #endif
 }
 

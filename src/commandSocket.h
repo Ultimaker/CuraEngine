@@ -42,7 +42,7 @@ public:
 #endif
     
     /*!
-     * Does nothing at the moment 
+     * Send info on a layer to be displayed by the forntend: set the z and the thickness of the layer.
      */
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
     
@@ -71,17 +71,28 @@ public:
      */
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
 
+    /*!
+     * Start the slicing of a new meshgroup
+     */
     void beginSendSlicedObject();
+    
+    /*!
+     * Conclude the slicing of the current meshgroup, so that we can start the next
+     */
     void endSendSlicedObject();
 
     void beginGCode();
-    void sendGCodeLayer();
+    
+    /*!
+     * Flush the gcode in gcode_output_stream into a message queued in the socket.
+     */
+    void flushGcode();
     void sendGCodePrefix(std::string prefix);
 
 #ifdef ARCUS
 private:
     class Private;
-    const std::unique_ptr<Private> d;
+    const std::unique_ptr<Private> private_data;
 #endif
 };
 
