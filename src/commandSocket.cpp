@@ -149,6 +149,8 @@ void CommandSocket::connect(const std::string& ip, int port)
             private_data->socket->clearError();
         }
     }
+    
+    private_data->socket->close();
 }
 
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
