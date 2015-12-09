@@ -116,6 +116,11 @@ if (BUILD_TESTS)
     endforeach()
 endif()
 
+
+add_custom_command(TARGET CuraEngine POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/resources $<TARGET_FILE_DIR:CuraEngine>)
+
 # Installing CuraEngine.
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
