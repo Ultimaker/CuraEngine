@@ -112,12 +112,6 @@ Polygons GCodePlanner::computeCombBoundaryInside()
     }
 }
 
-void GCodePlanner::setIsInside(bool _is_inside)
-{
-    is_inside = _is_inside;
-}
-
-
 bool GCodePlanner::setExtruder(int extruder)
 {
     if (extruder == extruder_plans.back().extruder)
