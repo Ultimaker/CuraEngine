@@ -135,7 +135,7 @@ int SettingRegistry::loadJSONsettings(std::string filename)
     {
         return loadJSONsettingsFromDoc(json_document, true);
     }
-    
+    return 0;
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
