@@ -15,6 +15,7 @@ namespace cura
     
 // Forward declaration
 class SettingConfig;
+class SettingRegistry;
 
 /*!
  * Setting category.
@@ -23,10 +24,11 @@ class SettingConfig;
 class SettingContainer
 {
     friend class SettingConfig;
+    friend class SettingRegistry;
 private:
     std::string key;
     std::string label;
-    std::list<SettingConfig> children;
+    std::list<SettingConfig> children; // must be a list cause the pointers to individual children are mapped to in SettingRegistry::settings.
 public:
     std::string getKey() const { return key; }
     std::string getLabel() const { return label; }
@@ -53,7 +55,17 @@ public:
         else 
             return nullptr;
     }
-    
+
+private:
+    /*!
+     * Get the (direct) child with key \p key, or create one with key \p key and label \p label as well.
+     * 
+     * \param key the key
+     * \param label the label for creating a new child
+     * \return The existing or newly created child setting.
+     */
+    SettingConfig& getOrCreateChild(std::string key, std::string label);
+public:
     void debugOutputAllSettings();
 };
 
@@ -131,6 +143,7 @@ public:
  * There is a single global setting registry.
  * This registry contains all known setting keys.
  * The registry also contains the settings categories to build up the setting hiarcy from the json file.
+ * Also the default values are stored and retrieved in case a given setting doesn't get a value from the command line or the frontend.
  */
 class SettingRegistry : NoCopy
 {
@@ -161,7 +174,16 @@ public:
      * \return The first category in the list having the \p key
      */
     SettingContainer* getCategory(std::string key);
-    
+private:
+    /*!
+     * Return the first category with the given key as name, or a new one.
+     * 
+     * \param cat_name the key as it is in the JSON file
+     * \param category the JSON Value associated with the key
+     * \return The first category in the list having the \p key (or a new one)
+     */
+    SettingContainer& getOrCreateCategory(std::string cat_name, const rapidjson::Value& category);
+public:
     bool settingsLoaded();
     /*!
      * Load settings from a json file and all the parents it inherits from.
@@ -217,7 +239,15 @@ private:
      * \param warn_duplicates whether to warn for duplicate definitions
      */
     void _addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
-    
+
+    /*!
+     * Adds a category with a given name to the registry.
+     * \param cat_name the key of the category as it is in the JSON file
+     * \param fields The members of the category
+     * \param warn_duplicates whether to warn for duplicate definitions
+     */
+    void _addCategory(std::string cat_name, const rapidjson::Value& fields, bool warn_duplicates);
+
     void _loadSettingValues(SettingConfig* config, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 };
 

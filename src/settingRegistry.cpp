@@ -47,6 +47,21 @@ SettingConfig* SettingContainer::addChild(std::string key, std::string label)
     return &children.back();
 }
 
+SettingConfig& SettingContainer::getOrCreateChild(std::string key, std::string label)
+{
+    auto child_it = std::find_if(children.begin(), children.end(), [&key](SettingConfig& child) { return child.key == key; } );
+    if (child_it == children.end())
+    {
+        children.emplace_back(key, label, this);
+        return children.back();
+    }
+    else
+    {
+        return *child_it;
+    }
+}
+
+
 SettingConfig::SettingConfig(std::string key, std::string label, SettingContainer* parent)
 : SettingContainer(key, label)
 , parent(parent)
@@ -56,7 +71,7 @@ SettingConfig::SettingConfig(std::string key, std::string label, SettingContaine
 
 void SettingContainer::debugOutputAllSettings()
 {
-    std::cerr << "CATEGORY: " << key << std::endl;
+    std::cerr << "\nCATEGORY: " << key << std::endl;
     for (SettingConfig& child : children)
     {
         child.debugOutputAllSettings();
@@ -83,6 +98,25 @@ SettingContainer* SettingRegistry::getCategory(std::string key)
         if (cat.getKey().compare(key) == 0)
             return &cat;
     return nullptr;
+}
+
+SettingContainer& SettingRegistry::getOrCreateCategory(std::string cat_name, const rapidjson::Value& category)
+{
+    std::list<SettingContainer>::iterator category_found = std::find_if(categories.begin(), categories.end(), [&cat_name](SettingContainer& cat) { return cat.getKey().compare(cat_name) == 0; });
+    if (category_found != categories.end())
+    { // category is already present; add settings to category
+        return *category_found;
+    }
+    else 
+    {
+        std::string label = cat_name;
+        if (category.HasMember("label") && category["label"].IsString())
+        {
+            label = category["label"].GetString();
+        }
+        categories.emplace_back(cat_name, label);
+        return categories.back();
+    }
 }
 
 
@@ -135,7 +169,6 @@ int SettingRegistry::loadJSONsettings(std::string filename)
     {
         return loadJSONsettingsFromDoc(json_document, true);
     }
-    return 0;
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
@@ -149,83 +182,36 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
 
     if (json_document.HasMember("machine_extruder_trains"))
     {
-        categories.emplace_back("machine_extruder_trains", "Extruder Trains Settings Objects");
-        SettingContainer* category_trains = &categories.back();
         const rapidjson::Value& trains = json_document["machine_extruder_trains"];
-        if (trains.IsArray()) 
+        SettingContainer& category_trains = getOrCreateCategory("machine_extruder_trains", trains);
+
+        for (rapidjson::Value::ConstMemberIterator train_iterator = trains.MemberBegin(); train_iterator != trains.MemberEnd(); ++train_iterator)
         {
-            if (trains.Size() > 0 && trains[0].IsObject())
+            SettingConfig& child = category_trains.getOrCreateChild(train_iterator->name.GetString(), std::string("Extruder ") + train_iterator->name.GetString());
+            const rapidjson::Value& train = train_iterator->value;
+            for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
             {
-                unsigned int idx = 0;
-                for (auto it = trains.Begin(); it != trains.End(); ++it)
-                {
-                    SettingConfig* child = category_trains->addChild(std::to_string(idx), std::to_string(idx));
-                    
-                    for (rapidjson::Value::ConstMemberIterator setting_iterator = it->MemberBegin(); setting_iterator != it->MemberEnd(); ++setting_iterator)
-                    {
-                        _addSettingToContainer(child, setting_iterator, warn_duplicates, false);
-                    }
-                    
-                    idx++;
-                }
+                _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
             }
-        }
-        else 
-        {
-            logError("Error: JSON machine_extruder_trains is not an array!\n");
         }
     }
     if (json_document.HasMember("machine_settings"))
     {
-        categories.emplace_back("machine_settings", "Machine Settings");
-        SettingContainer* category_machine_settings = &categories.back();
-        
-        const rapidjson::Value& json_object_container = json_document["machine_settings"];
-        for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+        const rapidjson::Value& machine_settings = json_document["machine_settings"];
+        SettingContainer& category = getOrCreateCategory("machine_settings", machine_settings);
+//         _addCategory(std::string("machine_settings"), machine_settings, warn_duplicates); // TODO: make machine_settings a category with a settings field and a label field and throw away rest of the code in this code block
+
+        for (rapidjson::Value::ConstMemberIterator setting_iterator = machine_settings.MemberBegin(); setting_iterator != machine_settings.MemberEnd(); ++setting_iterator)
         {
-            _addSettingToContainer(category_machine_settings, setting_iterator, warn_duplicates);
+            _addSettingToContainer(&category, setting_iterator, warn_duplicates);
         }
     }
-    
+
     if (json_document.HasMember("categories"))
     {
         for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
         {
-            if (!category_iterator->value.IsObject())
-            {
-                continue;
-            }
-            if (!category_iterator->value.HasMember("settings") || !category_iterator->value["settings"].IsObject())
-            {
-                continue;
-            }
-            std::string cat_name = category_iterator->name.GetString();
-            std::list<SettingContainer>::iterator category_found = std::find_if(categories.begin(), categories.end(), [&cat_name](SettingContainer& cat) { return cat.getKey().compare(cat_name) == 0; });
-            if (category_found != categories.end())
-            { // category is already present; add settings to category
-                SettingContainer* category = &*category_found;
-
-                const rapidjson::Value& json_object_container = category_iterator->value["settings"];
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
-                {
-                    _addSettingToContainer(category, setting_iterator, warn_duplicates);
-                }
-            }
-            else 
-            {
-                if (!category_iterator->value.HasMember("label") || !category_iterator->value["label"].IsString())
-                {
-                    continue;
-                }
-                categories.emplace_back(cat_name, category_iterator->value["label"].GetString());
-                SettingContainer* category = &categories.back();
-                
-                const rapidjson::Value& json_object_container = category_iterator->value["settings"];
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
-                {
-                    _addSettingToContainer(category, setting_iterator, warn_duplicates);
-                }
-            }
+            _addCategory(category_iterator->name.GetString(), category_iterator->value, warn_duplicates);
         }
     }
     
@@ -238,7 +224,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             SettingConfig* conf = getSettingConfig(setting);
             if (!conf) //Setting could not be found.
             {
-                logWarning("Trying to override unknown setting %s.", setting.c_str());
+                logWarning("Trying to override unknown setting %s.\n", setting.c_str());
                 continue;
             }
             _loadSettingValues(conf, override_iterator, false);
@@ -248,27 +234,29 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     return 0;
 }
 
+void SettingRegistry::_addCategory(std::string cat_name, const rapidjson::Value& fields, bool warn_duplicates)
+{
+    if (!fields.IsObject())
+    {
+        return;
+    }
+    if (!fields.HasMember("settings") || !fields["settings"].IsObject())
+    {
+        return;
+    }
+    SettingContainer& category = getOrCreateCategory(cat_name, fields);
+    const rapidjson::Value& json_object_container = fields["settings"];
+    for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
+    {
+        _addSettingToContainer(&category, setting_iterator, warn_duplicates);
+    }
+}
+
 
 void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
     const rapidjson::Value& data = json_object_it->value;
-
-    if (data.HasMember("type") && data["type"].IsString() && 
-        (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
-    {
-        logWarning("Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
-        /// When this setting has children, add those children to the parent setting.
-        if (data.HasMember("children") && data["children"].IsObject())
-        {
-            const rapidjson::Value& json_object_container = data["children"];
-            for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
-            {
-                _addSettingToContainer(parent, setting_iterator, warn_duplicates, add_to_settings);
-            }
-        }
-        return;
-    }
-
+    
     std::string label;
     if (!json_object_it->value.HasMember("label") || !data["label"].IsString())
     {
@@ -316,7 +304,15 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, rapidjson::Gener
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
         else 
         {
-            logError("Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+            if (data.HasMember("type") && data["type"].IsString() && 
+                (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
+            {
+                logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+            }
+            else
+            {
+                logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+            }
         }
     }
     if (data.HasMember("unit") && data["unit"].IsString())
