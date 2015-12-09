@@ -103,7 +103,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
 {
     PolygonRef p = storage.primeTower.ground_poly.newPoly();
     int tower_size = storage.getSettingInMicrons("prime_tower_size");
-    int tower_distance = 0; //storage.getSettingInMicrons("prime_tower_distance");
+    int tower_distance = 0; 
     int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
     int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
     p.add(Point(x + tower_distance, y + tower_distance));
@@ -116,9 +116,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_layers)
 {
-    if (storage.max_object_height_second_to_last_extruder >= 0 
-//         && storage.getSettingInMicrons("prime_tower_distance") > 0 
-        && storage.getSettingInMicrons("prime_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
     {
         generatePaths3(storage);
     }
@@ -126,11 +124,11 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_lay
 void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int total_layers)
 {
     
-    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_distance") > 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
     {
         PolygonRef p = storage.primeTower.ground_poly.newPoly();
         int tower_size = storage.getSettingInMicrons("prime_tower_size");
-        int tower_distance = 0; //storage.getSettingInMicrons("prime_tower_distance");
+        int tower_distance = 0; 
         int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
         int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
         p.add(Point(x + tower_distance, y + tower_distance));
@@ -189,9 +187,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
 
 void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed, CommandSocket* command_socket)
 {
-    if (!( storage.max_object_height_second_to_last_extruder >= 0 
-//         && storage.getSettingInMicrons("prime_tower_distance") > 0 
-        && storage.getSettingInMicrons("prime_tower_size") > 0) )
+    if (!( storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
     {
         return;
     }
