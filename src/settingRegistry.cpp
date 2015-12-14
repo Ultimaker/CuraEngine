@@ -110,7 +110,7 @@ SettingContainer& SettingRegistry::getOrCreateCategory(std::string cat_name, con
     else 
     {
         std::string label = cat_name;
-        if (category.HasMember("label") && category["label"].IsString())
+        if (category.IsObject() && category.HasMember("label") && category["label"].IsString())
         {
             label = category["label"].GetString();
         }
@@ -185,13 +185,30 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         const rapidjson::Value& trains = json_document["machine_extruder_trains"];
         SettingContainer& category_trains = getOrCreateCategory("machine_extruder_trains", trains);
 
-        for (rapidjson::Value::ConstMemberIterator train_iterator = trains.MemberBegin(); train_iterator != trains.MemberEnd(); ++train_iterator)
+        if (trains.IsObject())
         {
-            SettingConfig& child = category_trains.getOrCreateChild(train_iterator->name.GetString(), std::string("Extruder ") + train_iterator->name.GetString());
-            const rapidjson::Value& train = train_iterator->value;
-            for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
+            for (rapidjson::Value::ConstMemberIterator train_iterator = trains.MemberBegin(); train_iterator != trains.MemberEnd(); ++train_iterator)
             {
-                _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
+                SettingConfig& child = category_trains.getOrCreateChild(train_iterator->name.GetString(), std::string("Extruder ") + train_iterator->name.GetString());
+                const rapidjson::Value& train = train_iterator->value;
+                for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
+                {
+                    _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
+                }
+            }
+        }
+        else if (trains.IsArray())
+        {
+            int train_nr = 0;
+            for (rapidjson::Value::ConstValueIterator train_iterator = trains.Begin(); train_iterator != trains.End(); ++train_iterator)
+            {
+                SettingConfig& child = category_trains.getOrCreateChild(std::to_string(train_nr), std::string("Extruder ") + std::to_string(train_nr));
+                const rapidjson::Value& train = *train_iterator;
+                for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
+                {
+                    _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
+                }
+                train_nr++;
             }
         }
     }
