@@ -285,9 +285,9 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     }
 
     /// Create the new setting config object.
-    SettingConfig* config = parent->addChild(json_object_it->name.GetString(), label);
+    SettingConfig& config = parent->getOrCreateChild(json_object_it->name.GetString(), label);
 
-    _loadSettingValues(config, json_object_it, warn_duplicates, add_to_settings);
+    _loadSettingValues(&config, json_object_it, warn_duplicates, add_to_settings);
 }
 
 void SettingRegistry::_loadSettingValues(SettingConfig* config, rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)

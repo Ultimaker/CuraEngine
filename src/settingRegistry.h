@@ -130,7 +130,7 @@ public:
     
     void debugOutputAllSettings()
     {
-        std::cerr << key << std::endl;
+        std::cerr << key <<  "(" << default_value << ")" <<std::endl;
         for (SettingConfig& child : children)
         {
             child.debugOutputAllSettings();
