@@ -150,13 +150,13 @@ bool GCodePlanner::setExtruder(int extruder)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    int max_dist = MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = lastPosition; // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist);
+        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2);
         if (comb_boundary_inside.inside(p))
         {
             addTravel_simple(p);
