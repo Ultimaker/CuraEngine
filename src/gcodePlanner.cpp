@@ -494,7 +494,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             }
             if (path.config != &storage.travel_config && last_extrusion_config != path.config)
             {
-                gcode.writeTypeComment(path.config->name);
+                gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
             }
             double speed = path.config->getSpeed();

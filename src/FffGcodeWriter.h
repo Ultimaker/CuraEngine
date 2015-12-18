@@ -17,6 +17,7 @@
 #include "commandSocket.h"
 #include "PrimeTower.h"
 #include "FanSpeedLayerTime.h"
+#include "PrintFeature.h"
 
 
 #include "LayerPlanBuffer.h"
@@ -74,7 +75,7 @@ public:
 
     void setCommandSocket(CommandSocket* socket);
 
-    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
+    void sendPolygons(FeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
         if (command_socket)
             command_socket->sendPolygons(type, layer_nr, polygons, line_width);

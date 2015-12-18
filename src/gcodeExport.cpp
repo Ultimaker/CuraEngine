@@ -5,6 +5,7 @@
 
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
+#include "PrintFeature.h"
 
 namespace cura {
 
@@ -184,6 +185,41 @@ void GCodeExport::writeTypeComment(const char* type)
 {
     *output_stream << ";TYPE:" << type << "\n";
 }
+
+void GCodeExport::writeTypeComment(FeatureType type)
+{
+    switch (type)
+    {
+        case FeatureType::OuterWall:
+            *output_stream << ";TYPE:WALL-OUTER\n";
+            break;
+        case FeatureType::InnerWall:
+            *output_stream << ";TYPE:WALL-INNER\n";
+            break;
+        case FeatureType::Skin:
+            *output_stream << ";TYPE:SKIN\n";
+            break;
+        case FeatureType::Support:
+            *output_stream << ";TYPE:SUPPORT\n";
+            break;
+        case FeatureType::Skirt:
+            *output_stream << ";TYPE:SKIRT\n";
+            break;
+        case FeatureType::Infill:
+            *output_stream << ";TYPE:FILL\n";
+            break;
+        case FeatureType::SupportInfill:
+            *output_stream << ";TYPE:SUPPORT\n";
+            break;
+        case FeatureType::MoveCombing:
+        case FeatureType::MoveRetraction:
+        default:
+            // do nothing
+            break;
+    }
+}
+
+
 void GCodeExport::writeLayerComment(int layer_nr)
 {
     *output_stream << ";LAYER:" << layer_nr << "\n";
@@ -374,7 +410,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             PolygonRef travel = travelPoly.newPoly();
             travel.add(Point(currentPosition.x, currentPosition.y));
             travel.add(Point(x, y));
-            commandSocket->sendPolygons(extruder_attr[current_extruder].retraction_e_amount_current ? MoveRetractionType : MoveCombingType, layer_nr, travelPoly, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
+            commandSocket->sendPolygons(extruder_attr[current_extruder].retraction_e_amount_current ? FeatureType::MoveRetraction : FeatureType::MoveCombing, layer_nr, travelPoly, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
         }                    
     }
 

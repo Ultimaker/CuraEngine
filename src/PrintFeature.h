@@ -4,6 +4,7 @@
 namespace cura
 {
 
+/*
 enum class EPrintFeature : unsigned int // unused!!
 { // TODO: use in gcodePathConfigs ?
     OUTER_WALL,
@@ -14,10 +15,21 @@ enum class EPrintFeature : unsigned int // unused!!
     UNCLASSIFIED,
     ENUM_COUNT
 };
+*/
 
 
-
-
+enum class FeatureType
+{
+    OuterWall,
+    InnerWall,
+    Skin,
+    Support,
+    Skirt,
+    Infill,
+    SupportInfill,
+    MoveCombing,
+    MoveRetraction
+};
 
 
 

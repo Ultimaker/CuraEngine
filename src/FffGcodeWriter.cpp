@@ -293,7 +293,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config);
-        sendPolygons(SupportType, layer_nr, raftLines, storage.raft_base_config.getLineWidth());
+        sendPolygons(FeatureType::Support, layer_nr, raftLines, storage.raft_base_config.getLineWidth());
 
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
@@ -316,7 +316,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config);
-        sendPolygons(SupportType, layer_nr, raftLines, storage.raft_interface_config.getLineWidth());
+        sendPolygons(FeatureType::Support, layer_nr, raftLines, storage.raft_interface_config.getLineWidth());
         
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
@@ -341,7 +341,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
         gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config);
-        sendPolygons(SupportType, layer_nr, raft_lines, storage.raft_surface_config.getLineWidth());
+        sendPolygons(FeatureType::Support, layer_nr, raft_lines, storage.raft_surface_config.getLineWidth());
 
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
@@ -454,7 +454,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     gcode_layer.setIsInside(false);
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
 
-    sendPolygons(SupportType, layer_nr, storage.draft_protection_shield, storage.skirt_config[0].getLineWidth());
+    sendPolygons(FeatureType::Support, layer_nr, storage.draft_protection_shield, storage.skirt_config[0].getLineWidth());
 }
 
 std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
@@ -624,8 +624,8 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
             infill_comp.generate(infill_polygons, infill_lines, nullptr);
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
             gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n]);
-            sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
-            sendPolygons(InfillType, layer_nr, infill_polygons, extrusion_width);
+            sendPolygons(FeatureType::Infill, layer_nr, infill_lines, extrusion_width);
+            sendPolygons(FeatureType::Infill, layer_nr, infill_polygons, extrusion_width);
         }
     }
 }
@@ -654,8 +654,8 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     {
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
     }
-    sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
-    sendPolygons(InfillType, layer_nr, infill_polygons, extrusion_width);
+    sendPolygons(FeatureType::Infill, layer_nr, infill_lines, extrusion_width);
+    sendPolygons(FeatureType::Infill, layer_nr, infill_polygons, extrusion_width);
 }
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
@@ -715,7 +715,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
-                sendPolygons(SkinType, layer_nr, skin_perimeter, mesh->skin_config.getLineWidth());
+                sendPolygons(FeatureType::Skin, layer_nr, skin_perimeter, mesh->skin_config.getLineWidth());
                 gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
             }
             if (skin_part.insets.size() > 0)
@@ -739,8 +739,8 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
         gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
-        sendPolygons(SkinType, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
-        sendPolygons(SkinType, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
+        sendPolygons(FeatureType::Skin, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
+        sendPolygons(FeatureType::Skin, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
     }
     
     // handle gaps between perimeters etc.
@@ -834,12 +834,12 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
             gcode_layer.addPolygonsByOptimizer(island, &storage.support_config);
-            sendPolygons(SupportType, layer_nr, island, storage.support_config.getLineWidth());
+            sendPolygons(FeatureType::Support, layer_nr, island, storage.support_config.getLineWidth());
         }
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
         gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config);
-        sendPolygons(SupportInfillType, layer_nr, support_polygons, storage.support_config.getLineWidth());
-        sendPolygons(SupportInfillType, layer_nr, support_lines, storage.support_config.getLineWidth());
+        sendPolygons(FeatureType::SupportInfill, layer_nr, support_polygons, storage.support_config.getLineWidth());
+        sendPolygons(FeatureType::SupportInfill, layer_nr, support_lines, storage.support_config.getLineWidth());
     }
 }
 
@@ -881,8 +881,8 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
     gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_roof_config);
     gcode_layer.addLinesByOptimizer(support_lines, &storage.support_roof_config);
-    sendPolygons(SupportType, layer_nr, support_polygons, storage.support_roof_config.getLineWidth());
-    sendPolygons(SupportType, layer_nr, support_lines, storage.support_roof_config.getLineWidth());
+    sendPolygons(FeatureType::Support, layer_nr, support_polygons, storage.support_roof_config.getLineWidth());
+    sendPolygons(FeatureType::Support, layer_nr, support_lines, storage.support_roof_config.getLineWidth());
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)

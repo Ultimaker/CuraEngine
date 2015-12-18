@@ -9,6 +9,7 @@
 #include "settings.h"
 #include "sliceDataStorage.h"
 #include "commandSocket.h"
+#include "PrintFeature.h"
 
 namespace cura
 {
@@ -61,7 +62,7 @@ private:
      * \param layer_nr The layer number at which the polygons occur
      * \param polygons The polygons to be sent
      */
-    void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
+    void sendPolygons(FeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
         if (commandSocket)
             commandSocket->sendPolygons(type, layer_nr, polygons, line_width);

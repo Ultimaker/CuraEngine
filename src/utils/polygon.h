@@ -21,20 +21,6 @@
 
 namespace cura {
 
-enum PolygonType
-{
-    NoneType,
-    Inset0Type,
-    InsetXType,
-    SkinType,
-    SupportType,
-    SkirtType,
-    InfillType,
-    SupportInfillType,
-    MoveCombingType,
-    MoveRetractionType
-};
-
 
 class PartsView;
 

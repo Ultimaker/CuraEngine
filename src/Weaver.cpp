@@ -6,6 +6,7 @@
 
 #include "Progress.h"
 #include "weaveDataStorage.h"
+#include "PrintFeature.h"
 
 namespace cura 
 {
@@ -53,7 +54,7 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
         
         if (commandSocket)
-            commandSocket->sendPolygons(Inset0Type, 0, wireFrame.bottom_outline, 1);
+            commandSocket->sendPolygons(FeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -85,7 +86,7 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* commandSocket)
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
             
             if (commandSocket)
-                commandSocket->sendPolygons(Inset0Type, layer_idx - starting_layer_idx, chainified, 1);
+                commandSocket->sendPolygons(FeatureType::OuterWall, layer_idx - starting_layer_idx, chainified, 1);
             
             if (chainified.size() > 0)
             {
