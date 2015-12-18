@@ -85,20 +85,26 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
 
 bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first)
 {
+    use_second_middle_as_first = false;
     int64_t nozzle_size = line_width; // TODO
     int64_t max_line_width = nozzle_size * 3 / 2;
-    
+
     Point ab = b - a;
     Point cd = d - c;
-    
+
     if (b == c)
     {
         return false; // the line segments are connected!
     }
-    
+
     int64_t ab_size = vSize(ab);
     int64_t cd_size = vSize(cd);
-    
+
+    if (ab_size > nozzle_size * 5 || cd_size > nozzle_size * 5)
+    {
+        return false; // infill lines are too long; otherwise infill lines might be merged when the next infill line is coincidentally shorter like |, would become \ ...
+    }
+
     // if the lines are in the same direction then abs( dot(ab,cd) / |ab| / |cd| ) == 1
     int64_t prod = dot(ab,cd);
     if (std::abs(prod) + 400 < ab_size * cd_size) // 400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, introduced by the inaccurate point locations of a,b,c,d
@@ -118,8 +124,6 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
         return false; // the line segments are connected!
     }
 
-    Point infill_vector = (cd + ab) / 2; // (similar to) average line / direction of the infill
-
     first_middle = (use_second_middle_as_first)?
                     second_middle :
                     (a + b) / 2;
@@ -128,14 +132,23 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
     Point dir_vector_perp = crossZ(second_middle - first_middle);
     int64_t dir_vector_perp_length = vSize(dir_vector_perp); // == dir_vector_length
     if (dir_vector_perp_length == 0) return false;
+    if (dir_vector_perp_length > 5 * nozzle_size) return false; // infill lines too far apart
+
+    Point infill_vector = (cd + ab) / 2; // (similar to) average line / direction of the infill
+
+    // compute the resulting line width
+    resulting_line_width = std::abs( dot(dir_vector_perp, infill_vector) / dir_vector_perp_length );
+    if (resulting_line_width > max_line_width) return false; // combined lines would be too wide
+    if (resulting_line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
 
     // check whether two lines are adjacent (note: not 'line segments' but 'lines')
     Point ac = c - first_middle;
     Point infill_vector_perp = crossZ(infill_vector);
     int64_t perp_proj = dot(ac, infill_vector_perp);
-    if (perp_proj > vSize(infill_vector_perp) * (line_width + 20))
+    int64_t infill_vector_perp_length = vSize(infill_vector_perp);
+    if (std::abs(std::abs(perp_proj) / infill_vector_perp_length - line_width) > 20) // it should be the case that dot(ac, infill_vector_perp) / |infill_vector_perp| == line_width
     {
-        return false;
+        return false; // lines are too far apart or too close together
     }
     
     // check whether the two line segments are adjacent.
@@ -147,11 +160,6 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
         return false;
     }
 
-    // compute the resulting line width
-    resulting_line_width = std::abs( dot(dir_vector_perp, infill_vector) / dir_vector_perp_length );
-    if (resulting_line_width > max_line_width) return false; // combined lines would be too wide
-    if (resulting_line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
-    
     return true;
 };
 
