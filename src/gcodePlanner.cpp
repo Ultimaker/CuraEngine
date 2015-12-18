@@ -105,7 +105,6 @@ void GCodePlanner::setIsInside(bool _is_inside)
     is_inside = _is_inside;
 }
 
-
 bool GCodePlanner::setExtruder(int extruder)
 {
     if (extruder == extruder_plans.back().extruder)
@@ -158,13 +157,13 @@ bool GCodePlanner::setExtruder(int extruder)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    int max_dist = MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = lastPosition; // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist) != NO_INDEX)
+    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist);
+        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2);
         if (comb_boundary_inside.inside(p))
         {
             addTravel_simple(p);
@@ -229,7 +228,6 @@ void GCodePlanner::addTravel(Point p)
     
     if (!combed) {
         // no combing? always retract!
-        path = getLatestPathWithConfig(&storage.travel_config);
         if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
@@ -238,10 +236,11 @@ void GCodePlanner::addTravel(Point p)
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
             }
+            path = getLatestPathWithConfig(&storage.travel_config);
             path->retract = true;
         }
     }
-    
+
     addTravel_simple(p, path);
     was_inside = is_inside;
 }
@@ -511,8 +510,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 speed *= getTravelSpeedFactor();
             else
                 speed *= getExtrudeSpeedFactor();
-
-            int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
+            
+            int64_t nozzle_size = 400; // TODO
             
             if (MergeInfillLines(gcode, paths, extruder_plan, storage.travel_config, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
@@ -549,7 +548,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
-                    if (  // change   ||||||   to  /\/\/\/\/ ...
+                    if (  // change infill  ||||||   to  /\/\/\/\/ ...
                         false &&
                         path_idx + 2 < paths.size() // has a next move
                         && paths[path_idx+1].points.size() == 1 // is single extruded line

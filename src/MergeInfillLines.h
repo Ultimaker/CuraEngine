@@ -17,19 +17,37 @@ class MergeInfillLines
     
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
-    
+
     
     /*!
      * Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
      * \param path_idx_first_move Index into MergeInfillLines::paths to the travel before the two extrusion moves udner consideration
      * \param first_middle Output parameter: the middle of the first extrusion move
      * \param second_middle Input/Output parameter: outputs the middle of the second extrusion move; inputs \p first_middle so we don't have to compute it
-     * \param line_width Output parameter: The width of the resulting combined line (the average length of the lines combined)
+     * \param resulting_line_width Output parameter: The width of the resulting combined line (the average length of the lines combined)
      * \param use_second_middle_as_first Whether to use \p second_middle as input parameter for \p first_middle
      * \return Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
      */
-    bool isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& line_width, bool use_second_middle_as_first);
-    
+    bool isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first = false);
+
+    /*!
+     * Whether the two consecutive extrusion paths (ab and cd) are convitrible to a single line segment.
+     * 
+     * Note: as an optimization the \p second_middle from the previous call to isConvertible can be used for \p first_middle, instead of recomputing it. 
+     * 
+     * \param a first from
+     * \param b first to
+     * \param c second from
+     * \param d second to
+     * \param line_width The line width of the moves
+     * \param first_middle Output parameter: the middle of the first extrusion move
+     * \param second_middle Input/Output parameter: outputs the middle of the second extrusion move; inputs \p first_middle so we don't have to compute it
+     * \param resulting_line_width Output parameter: The width of the resulting combined line (the average length of the lines combined)
+     * \param use_second_middle_as_first Whether to use \p second_middle as input parameter for \p first_middle
+     * \return Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
+     */
+    static bool isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first = false);
+
     /*!
      * Write an extrusion move with compensated width and compensated speed so that the material flow will be the same.
      * 
