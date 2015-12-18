@@ -53,7 +53,6 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
 
 bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& line_width, bool use_second_middle_as_first)
 {
-    int64_t max_line_width = nozzle_size * 3 / 2;
     
     
     unsigned int idx = path_idx_first_move;
@@ -66,6 +65,9 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     if (paths[idx+3].points.size() > 1) return false;
     if (paths[idx+3].config == &travelConfig) return false;
     
+    nozzle_size = paths[idx+1].config->getLineWidth();
+    int64_t max_line_width = nozzle_size * 3 / 2;
+    
     Point& a = paths[idx+0].points.back(); // first extruded line from
     Point& b = paths[idx+1].points.back(); // first extruded line to
     Point& c = paths[idx+2].points.back(); // second extruded line from
@@ -76,10 +78,20 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     int64_t prod = dot(ab,cd);
     if (std::abs(prod) + 400 < vSize(ab) * vSize(cd)) // 400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, introduced by the inaccurate point locations of a,b,c,d
         return false; // extrusion moves not in the same or opposite diraction
-    if (prod < 0) { ab = ab * -1; }
+    
+    // make lines in the same direction
+    if (prod)
+    {
+        ab = ab * -1;
+    }
+    
+    if (prod == 0)
+    {
+        return false; // lines are orthogonal!
+    }
     
     
-    Point infill_vector = (cd + ab) / 2;
+    Point infill_vector = (cd + ab) / 2; // (similar to) average line / direction of the infill
     
     if (!shorterThen(infill_vector, 5 * nozzle_size)) return false; // infill lines too far apart
                     
@@ -98,7 +110,17 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     if (line_width > max_line_width) return false; // combined lines would be too wide
     if (line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
     
+    // check whether two lines are 
+    Point ac = c - first_middle;
+    Point infill_vector_perp = crossZ(infill_vector);
+    int64_t perp_proj = dot(ac, infill_vector_perp);
+    if (perp_proj > max_line_width * vSize(infill_vector_perp))
+    {
+        logError("lines not adjacent\n");
+        return false;
+    }
     { // check whether the two lines are adjacent
+        
         Point ca = first_middle - c;
         double ca_size = vSizeMM(ca);
         double cd_size = vSizeMM(cd);
@@ -108,7 +130,7 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
         
         if (line2line_dist + 20 > paths[idx+1].config->getLineWidth()) return false; // there is a gap between the two lines
     }
-    
+
     return true;
 };
 
