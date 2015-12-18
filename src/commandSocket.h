@@ -5,6 +5,7 @@
 #include "utils/polygon.h"
 #include "settings.h"
 #include "Progress.h"
+#include "PrintFeature.h"
 
 #include <memory>
 
@@ -49,7 +50,7 @@ public:
     /*! 
      * Send a polygon to the engine. This is used for the layerview in the GUI
      */
-    void sendPolygons(cura::PolygonType type, int layer_nr, cura::Polygons& polygons, int line_width);
+    void sendPolygons(cura::FeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
     
     /*! 
      * Send progress to GUI

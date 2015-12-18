@@ -16,6 +16,7 @@
 #include "raft.h"
 #include "debug.h"
 #include "Progress.h"
+#include "PrintFeature.h"
 
 namespace cura
 {
@@ -172,7 +173,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            sendPolygons(SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
+            sendPolygons(FeatureType::SupportType, layer_idx, support, getSettingInMicrons("support_line_width"));
         }
     }
     */
@@ -224,7 +225,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
                 SliceLayer* layer = &mesh.layers[layer_nr];
                 for(SliceLayerPart& part : layer->parts)
                 {
-                    sendPolygons(Inset0Type, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
+                    sendPolygons(FeatureType::OuterWall, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
                 }
             }
         }
@@ -251,9 +252,9 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             {
                 if (layer->parts[partNr].insets.size() > 0)
                 {
-//                     sendPolygons(Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
+//                     sendPolygons(FeatureType::Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
                     for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                        sendPolygons(InsetXType, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
+                        sendPolygons(FeatureType::InnerWall, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
                 }
             }
         }
@@ -268,7 +269,7 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                     segment.add(polyline[point_idx-1]);
                     segment.add(polyline[point_idx]);
                 }
-                sendPolygons(Inset0Type, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
+                sendPolygons(FeatureType::OuterWall, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
     }
@@ -350,10 +351,10 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
             SliceLayer& layer = mesh.layers[layer_nr];
             for(SliceLayerPart& part : layer.parts)
             {
-//                  sendPolygons(InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
+//                  sendPolygons(FeatureType::InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
                 for (SkinPart& skin_part : part.skin_parts)
                 {
-                    sendPolygons(SkinType, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
+                    sendPolygons(FeatureType::Skin, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
                 }
             }
         }
@@ -436,7 +437,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     Polygons skirt_sent = storage.skirt[0];
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         skirt_sent.add(storage.skirt[extruder]);
-    sendPolygons(SkirtType, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
+    sendPolygons(FeatureType::Skirt, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
 
 
@@ -497,7 +498,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 }
             }
             skin = results;
-            sendPolygons(Inset0Type, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
+            sendPolygons(FeatureType::OuterWall, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
         }
     }
 }

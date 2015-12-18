@@ -59,13 +59,13 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls)
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     retraction_config_per_extruder(initializeRetractionConfigs()),
-    travel_config(&retraction_config, "MOVE"),
+    travel_config(&retraction_config, FeatureType::MoveCombing),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
-    raft_interface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
-    raft_surface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], "SUPPORT"),
-    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_infill_extruder_nr")], "SUPPORT"),
-    support_roof_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_roof_extruder_nr")], "SKIN"),
+    raft_base_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], FeatureType::Support),
+    raft_interface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], FeatureType::Support),
+    raft_surface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], FeatureType::Support),
+    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_infill_extruder_nr")], FeatureType::Support),
+    support_roof_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_roof_extruder_nr")], FeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }

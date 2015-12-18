@@ -119,11 +119,11 @@ public:
     std::vector<GCodePathConfig> infill_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
-    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, "WALL-OUTER"), insetX_config(&retraction_config, "WALL-INNER"), skin_config(&retraction_config, "SKIN")
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, FeatureType::OuterWall), insetX_config(&retraction_config, FeatureType::InnerWall), skin_config(&retraction_config, FeatureType::Skin)
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
-            infill_config.emplace_back(&retraction_config, "FILL");
+            infill_config.emplace_back(&retraction_config, FeatureType::Infill);
     }
 };
 
@@ -173,7 +173,7 @@ public:
         for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
         {
             RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-            skirt_config.emplace_back(extruder_retraction_config, "SKIRT");
+            skirt_config.emplace_back(extruder_retraction_config, FeatureType::Skirt);
         }
         return ret;
     }
