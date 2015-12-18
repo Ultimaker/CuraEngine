@@ -2,6 +2,8 @@
 
 #include <algorithm> // min
 
+#include "utils/linearAlg2D.h"
+
 namespace cura
 {
     
@@ -51,50 +53,73 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
     return false;
 };
 
-bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& line_width, bool use_second_middle_as_first)
+bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first)
 {
-    
-    
     unsigned int idx = path_idx_first_move;
-    if (idx + 3 > paths.size()-1) return false;
-    if (paths[idx+0].config != &travelConfig) return false;
-    if (paths[idx+1].points.size() > 1) return false;
-    if (paths[idx+1].config == &travelConfig) return false;
-//                 if (paths[idx+2].points.size() > 1) return false;
-    if (paths[idx+2].config != &travelConfig) return false;
-    if (paths[idx+3].points.size() > 1) return false;
-    if (paths[idx+3].config == &travelConfig) return false;
+    if (idx + 3 > paths.size()-1) 
+    {
+        return false;
+    }
+    if (   paths[idx+0].config != &travelConfig // must be travel
+        || paths[idx+1].points.size() > 1
+        || paths[idx+1].config == &travelConfig // must be extrusion
+//        || paths[idx+2].points.size() > 1
+        || paths[idx+2].config != &travelConfig // must be travel
+        || paths[idx+3].points.size() > 1
+        || paths[idx+3].config == &travelConfig // must be extrusion
+        || paths[idx+1].config != paths[idx+3].config // both extrusion moves should have the same config
+    )
+    {
+        return false;
+    }
     
-    nozzle_size = paths[idx+1].config->getLineWidth();
-    int64_t max_line_width = nozzle_size * 3 / 2;
+    int64_t line_width = paths[idx+1].config->getLineWidth();
     
     Point& a = paths[idx+0].points.back(); // first extruded line from
     Point& b = paths[idx+1].points.back(); // first extruded line to
     Point& c = paths[idx+2].points.back(); // second extruded line from
     Point& d = paths[idx+3].points.back(); // second extruded line to
+    
+    return isConvertible(a, b, c, d, line_width, first_middle, second_middle, resulting_line_width, use_second_middle_as_first);
+}
+
+bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first)
+{
+    int64_t nozzle_size = line_width; // TODO
+    int64_t max_line_width = nozzle_size * 3 / 2;
+    
     Point ab = b - a;
     Point cd = d - c;
     
+    if (b == c)
+    {
+        return false; // the line segments are connected!
+    }
+    
+    int64_t ab_size = vSize(ab);
+    int64_t cd_size = vSize(cd);
+    
+    // if the lines are in the same direction then abs( dot(ab,cd) / |ab| / |cd| ) == 1
     int64_t prod = dot(ab,cd);
-    if (std::abs(prod) + 400 < vSize(ab) * vSize(cd)) // 400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, introduced by the inaccurate point locations of a,b,c,d
+    if (std::abs(prod) + 400 < ab_size * cd_size) // 400 = 20*20, where 20 micron is the allowed inaccuracy in the dot product, introduced by the inaccurate point locations of a,b,c,d
         return false; // extrusion moves not in the same or opposite diraction
     
-    // make lines in the same direction
-    if (prod)
+    // make lines in the same direction by flipping one
+    if (prod < 0)
     {
         ab = ab * -1;
     }
-    
-    if (prod == 0)
+    else if (prod == 0)
     {
         return false; // lines are orthogonal!
     }
-    
-    
+    else if (b == d || a == c)
+    {
+        return false; // the line segments are connected!
+    }
+
     Point infill_vector = (cd + ab) / 2; // (similar to) average line / direction of the infill
-    
-    if (!shorterThen(infill_vector, 5 * nozzle_size)) return false; // infill lines too far apart
-                    
+
     first_middle = (use_second_middle_as_first)?
                     second_middle :
                     (a + b) / 2;
@@ -103,34 +128,30 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     Point dir_vector_perp = crossZ(second_middle - first_middle);
     int64_t dir_vector_perp_length = vSize(dir_vector_perp); // == dir_vector_length
     if (dir_vector_perp_length == 0) return false;
-    if (dir_vector_perp_length > 5 * nozzle_size) return false; // infill lines too far apart
-    
-    
-    line_width = std::abs( dot(dir_vector_perp, infill_vector) / dir_vector_perp_length );
-    if (line_width > max_line_width) return false; // combined lines would be too wide
-    if (line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
-    
-    // check whether two lines are 
+
+    // check whether two lines are adjacent (note: not 'line segments' but 'lines')
     Point ac = c - first_middle;
     Point infill_vector_perp = crossZ(infill_vector);
     int64_t perp_proj = dot(ac, infill_vector_perp);
-    if (perp_proj > max_line_width * vSize(infill_vector_perp))
+    if (perp_proj > vSize(infill_vector_perp) * (line_width + 20))
     {
-        logError("lines not adjacent\n");
         return false;
     }
-    { // check whether the two lines are adjacent
-        
-        Point ca = first_middle - c;
-        double ca_size = vSizeMM(ca);
-        double cd_size = vSizeMM(cd);
-        double prod = INT2MM(dot(ca, cd));
-        double fraction = prod / ( ca_size * cd_size );
-        int64_t line2line_dist = MM2INT(cd_size * std::sqrt(1.0 - fraction * fraction));
-        
-        if (line2line_dist + 20 > paths[idx+1].config->getLineWidth()) return false; // there is a gap between the two lines
+    
+    // check whether the two line segments are adjacent.
+    // full infill in a narrow area might result in line segments with arbitrary distance between them
+    // the more the narrow passage in the area gets aligned with the infill direction, the further apart the line segments will be
+    // however, distant line segments might also be due to different narrow passages, so we limit the distance between merged line segments.
+    if (!LinearAlg2D::lineSegmentsAreCloserThan(a, b, c, d, line_width * 2))
+    {
+        return false;
     }
 
+    // compute the resulting line width
+    resulting_line_width = std::abs( dot(dir_vector_perp, infill_vector) / dir_vector_perp_length );
+    if (resulting_line_width > max_line_width) return false; // combined lines would be too wide
+    if (resulting_line_width == 0) return false; // dot is zero, so lines are in each others extension, not next to eachother
+    
     return true;
 };
 

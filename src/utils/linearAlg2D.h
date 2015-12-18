@@ -162,7 +162,25 @@ public:
 //         return vSize2(ab) - ax_size*ax_size; // less accurate
     }
 
+    /*!
+     * Checks whether the minimal distance between two line segments is at most \p max_dist
+     * The first line semgent is given by end points \p a and \p b, the second by \p c and \p d.
+     * 
+     * \param a One end point of the first line segment
+     * \param b Another end point of the first line segment
+     * \param c One end point of the second line segment
+     * \param d Another end point of the second line segment
+     * \param max_dist The maximal distance between the two line segments for which this function will return true.
+     */
+    static bool lineSegmentsAreCloserThan(const Point& a, const Point& b, const Point& c, const Point& d, int64_t max_dist)
+    {
+        int64_t max_dist2 = max_dist * max_dist;
 
+        return getDist2FromLineSegment(a, c, b) <= max_dist2
+                || getDist2FromLineSegment(a, d, b) <= max_dist2
+                || getDist2FromLineSegment(c, a, d) <= max_dist2
+                || getDist2FromLineSegment(c, b, d) <= max_dist2;
+    }
 };
 
 

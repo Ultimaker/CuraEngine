@@ -503,8 +503,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 speed *= getTravelSpeedFactor();
             else
                 speed *= getExtrudeSpeedFactor();
-
-            int64_t nozzle_size = 400; // TODO allow the machine settings to be passed on everywhere :: depends on which nozzle!
+            
+            int64_t nozzle_size = 400; // TODO
             
             if (MergeInfillLines(gcode, paths, extruder_plan, storage.travel_config, nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
@@ -541,7 +541,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
-                    if (  // change   ||||||   to  /\/\/\/\/ ...
+                    if (  // change infill  ||||||   to  /\/\/\/\/ ...
                         false &&
                         path_idx + 2 < paths.size() // has a next move
                         && paths[path_idx+1].points.size() == 1 // is single extruded line
