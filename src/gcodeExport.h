@@ -47,12 +47,12 @@ private:
     int layer_thickness; //!< layer height
     double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line extruded
 public:
-    FeatureType type; //!< name of the feature type
+    PrintFeatureType type; //!< name of the feature type
     bool spiralize;
     RetractionConfig *const retraction_config;
     
     // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    GCodePathConfig(RetractionConfig* retraction_config, FeatureType type) : speed_base(0), speed_current(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_base(0), speed_current(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
     
     /*!
      * Initialize some of the member variables.
@@ -234,7 +234,7 @@ public:
     
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
-    void writeTypeComment(FeatureType type);
+    void writeTypeComment(PrintFeatureType type);
     void writeLayerComment(int layer_nr);
     void writeLayerCountComment(int layer_count);
     

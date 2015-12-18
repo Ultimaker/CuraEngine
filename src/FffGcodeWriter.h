@@ -78,7 +78,7 @@ public:
         command_socket = socket;
     }
 
-    void sendPolygons(FeatureType type, int layer_nr, Polygons& polygons, int line_width)
+    void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
         if (command_socket)
         {
