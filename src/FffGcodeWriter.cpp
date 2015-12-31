@@ -86,6 +86,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 }
 
+void FffGcodeWriter::setCommandSocket(CommandSocket* socket)
+{
+    command_socket = socket;
+    layer_plan_buffer.setCommandSocket(socket); //Propagate the change through to the layer plan buffer too.
+}
+
 void FffGcodeWriter::setConfigFanSpeedLayerTime()
 {
     fan_speed_layer_time_settings.cool_min_layer_time = getSettingInSeconds("cool_min_layer_time");

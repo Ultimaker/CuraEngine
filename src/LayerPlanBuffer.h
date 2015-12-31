@@ -125,6 +125,12 @@ public:
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
     void insertPreheatCommands();
+
+    /*!
+     * \brief Changes the command socket that must be flushed when a layer is
+     * completed.
+     */
+    void setCommandSocket(CommandSocket* command_socket);
 };
 
 

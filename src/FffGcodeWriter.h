@@ -72,10 +72,7 @@ public:
         meshgroup_number = 1;
     }
 
-    void setCommandSocket(CommandSocket* socket)
-    {
-        command_socket = socket;
-    }
+    void setCommandSocket(CommandSocket* socket);
 
     void sendPolygons(PolygonType type, int layer_nr, Polygons& polygons, int line_width)
     {

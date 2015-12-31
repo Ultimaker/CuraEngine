@@ -220,10 +220,9 @@ void LayerPlanBuffer::insertPreheatCommands()
     }
 }
 
-
-
-
-
-
+void LayerPlanBuffer::setCommandSocket(CommandSocket* command_socket)
+{
+    this->command_socket = command_socket;
+}
 
 } // namespace cura
