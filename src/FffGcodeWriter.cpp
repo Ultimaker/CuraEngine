@@ -439,21 +439,22 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     {
         return;
     }
-    
+
     int draft_shield_height = getSettingInMicrons("draft_shield_height");
     int layer_height_0 = getSettingInMicrons("layer_height_0");
     int layer_height = getSettingInMicrons("layer_height");
-    
+
     int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
-    
+
     if (int(layer_nr) > max_screen_layer)
     {
         return;
     }
-    
+
     gcode_layer.setIsInside(false);
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
-    
+
+    sendPolygons(SupportType, layer_nr, storage.draft_protection_shield, storage.skirt_config[0].getLineWidth());
 }
 
 std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
@@ -624,6 +625,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
             gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n]);
             sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
+            sendPolygons(InfillType, layer_nr, infill_polygons, extrusion_width);
         }
     }
 }
@@ -653,6 +655,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
         gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
     }
     sendPolygons(InfillType, layer_nr, infill_lines, extrusion_width);
+    sendPolygons(InfillType, layer_nr, infill_polygons, extrusion_width);
 }
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
