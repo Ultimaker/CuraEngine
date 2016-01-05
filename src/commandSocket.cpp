@@ -244,7 +244,7 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
     layer->set_thickness(height);
 }
 
-void CommandSocket::sendPolygons(FeatureType type, int layer_nr, Polygons& polygons, int line_width)
+void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
 {
     if(!private_data->current_sliced_object)
         return;

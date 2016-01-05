@@ -18,7 +18,7 @@ enum class EPrintFeature : unsigned int // unused!!
 */
 
 
-enum class FeatureType
+enum class PrintFeatureType
 {
     OuterWall,
     InnerWall,
