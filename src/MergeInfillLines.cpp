@@ -77,7 +77,12 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     { // only (skin) infill lines can be merged (second extrusion line config is already checked to be the same as the first in code above)
         return false;
     }
-    
+
+    if (paths[idx+1].space_fill_type != SpaceFillType::Lines || paths[idx+3].space_fill_type != SpaceFillType::Lines)
+    { // both extrusion moves must be of lines space filling type!
+        return false;
+    }
+
     int64_t line_width = paths[idx+1].config->getLineWidth();
     
     Point& a = paths[idx+0].points.back(); // first extruded line from
