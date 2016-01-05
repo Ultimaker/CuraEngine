@@ -46,7 +46,7 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     
     GCodeExport gcode;
     GCodePathConfig configuration = storage->travel_config;
-    gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::None, 1.0f); //Need to have at least one path to have a configuration.
+    gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::Lines, 1.0f); //Need to have at least one path to have a configuration.
     TimeMaterialEstimates before_retract = gCodePlanner->computeNaiveTimeEstimates();
     gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
     TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
