@@ -292,7 +292,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
-        gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config);
+        gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
         sendPolygons(PrintFeatureType::Support, layer_nr, raftLines, storage.raft_base_config.getLineWidth());
 
         last_position_planned = gcode_layer.getLastPosition();
@@ -315,7 +315,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
-        gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config);
+        gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config, SpaceFillType::Lines);
         sendPolygons(PrintFeatureType::Support, layer_nr, raftLines, storage.raft_interface_config.getLineWidth());
         
         last_position_planned = gcode_layer.getLastPosition();
@@ -340,7 +340,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
-        gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config);
+        gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config, SpaceFillType::Lines);
         sendPolygons(PrintFeatureType::Support, layer_nr, raft_lines, storage.raft_surface_config.getLineWidth());
 
         last_position_planned = gcode_layer.getLastPosition();
@@ -525,7 +525,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, Slic
             lines.add(p);
         }
     }
-    gcode_layer.addLinesByOptimizer(lines, &mesh->inset0_config);
+    gcode_layer.addLinesByOptimizer(lines, &mesh->inset0_config, SpaceFillType::PolyLines);
     
 }
 
@@ -618,12 +618,13 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int n=1; n<part.infill_area.size(); n++)
         {
-            Infill infill_comp(mesh->getSettingAsFillMethod("infill_pattern"), part.infill_area[n], 0, false, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
+            EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
+            Infill infill_comp(infill_pattern, part.infill_area[n], 0, false, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
             Polygons infill_polygons;
             Polygons infill_lines;
             infill_comp.generate(infill_polygons, infill_lines, nullptr);
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
-            gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n]);
+            gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
             sendPolygons(PrintFeatureType::Infill, layer_nr, infill_lines, extrusion_width);
             sendPolygons(PrintFeatureType::Infill, layer_nr, infill_polygons, extrusion_width);
         }
@@ -648,11 +649,11 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
     {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], mesh->getSettingInMicrons("infill_wipe_dist")); 
+        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
     }
     else 
     {
-        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0]); 
+        gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[0], (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines); 
     }
     sendPolygons(PrintFeatureType::Infill, layer_nr, infill_lines, extrusion_width);
     sendPolygons(PrintFeatureType::Infill, layer_nr, infill_polygons, extrusion_width);
@@ -738,7 +739,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         infill_comp.generate(skin_polygons, skin_lines, &part.perimeterGaps);
         
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
-        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config);
+        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         sendPolygons(PrintFeatureType::Skin, layer_nr, skin_polygons, mesh->skin_config.getLineWidth());
         sendPolygons(PrintFeatureType::Skin, layer_nr, skin_lines, mesh->skin_config.getLineWidth());
     }
@@ -748,7 +749,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     {
         Polygons perimeter_gap_lines;
         generateLineInfill(part.perimeterGaps, 0, perimeter_gap_lines, extrusion_width, extrusion_width, 0, infill_angle);
-        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config);
+        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config, SpaceFillType::Lines);
     }
 }
 
@@ -837,7 +838,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
             sendPolygons(PrintFeatureType::Support, layer_nr, island, storage.support_config.getLineWidth());
         }
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
-        gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config);
+        gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         sendPolygons(PrintFeatureType::SupportInfill, layer_nr, support_polygons, storage.support_config.getLineWidth());
         sendPolygons(PrintFeatureType::SupportInfill, layer_nr, support_lines, storage.support_config.getLineWidth());
     }
@@ -880,7 +881,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     infill_comp.generate(support_polygons, support_lines, nullptr);
 
     gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_roof_config);
-    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_roof_config);
+    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
     sendPolygons(PrintFeatureType::Support, layer_nr, support_polygons, storage.support_roof_config.getLineWidth());
     sendPolygons(PrintFeatureType::Support, layer_nr, support_lines, storage.support_roof_config.getLineWidth());
 }

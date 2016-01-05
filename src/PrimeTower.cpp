@@ -229,7 +229,7 @@ void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer
     GCodePathConfig& config = config_per_extruder[new_extruder];
     int start_idx = 0; // TODO: figure out which idx is closest to the far right corner
     gcodeLayer.addPolygon(ground_poly.back(), start_idx, &config);
-    gcodeLayer.addLinesByOptimizer(pattern, &config);
+    gcodeLayer.addLinesByOptimizer(pattern, &config, SpaceFillType::Lines);
     
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
 

@@ -22,17 +22,18 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
     return *this;
 }
 
-GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, float flow)
+GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths[paths.size()-1].config == config && !paths[paths.size()-1].done && paths[paths.size()-1].flow == flow)
-        return &paths[paths.size()-1];
-    paths.push_back(GCodePath());
-    GCodePath* ret = &paths[paths.size()-1];
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow)
+        return &paths.back();
+    paths.emplace_back();
+    GCodePath* ret = &paths.back();
     ret->retract = false;
     ret->config = config;
     ret->done = false;
     ret->flow = flow;
+    ret->space_fill_type = space_fill_type;
     if (config != &storage.travel_config)
     {
         last_retraction_config = config->retraction_config;
@@ -193,7 +194,7 @@ void GCodePlanner::addTravel(Point p)
             
             if (retract && last_retraction_config->zHop > 0)
             { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
-                path = getLatestPathWithConfig(&storage.travel_config);
+                path = getLatestPathWithConfig(&storage.travel_config, SpaceFillType::None);
                 if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
                 {
                     path->retract = true;
@@ -207,7 +208,7 @@ void GCodePlanner::addTravel(Point p)
                     {
                         continue;
                     }
-                    path = getLatestPathWithConfig(&storage.travel_config);
+                    path = getLatestPathWithConfig(&storage.travel_config, SpaceFillType::None);
                     path->retract = retract;
                     for (Point& combPoint : combPath)
                     {
@@ -229,7 +230,7 @@ void GCodePlanner::addTravel(Point p)
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons("machine_nozzle_size") * 1);
             }
-            path = getLatestPathWithConfig(&storage.travel_config);
+            path = getLatestPathWithConfig(&storage.travel_config, SpaceFillType::None);
             path->retract = true;
         }
     }
@@ -242,16 +243,16 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(&storage.travel_config);
+        path = getLatestPathWithConfig(&storage.travel_config, SpaceFillType::None);
     }
     path->points.push_back(p);
     lastPosition = p;
 }
 
 
-void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, float flow)
+void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow)
 {
-    getLatestPathWithConfig(config, flow)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow)->points.push_back(p);
     lastPosition = p;
 }
 
@@ -262,13 +263,17 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];
-        addExtrusionMove(p1, config, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         Point& p1 = polygon[startIdx];
-        addExtrusionMove(p1, config, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
+    }
+    else 
+    {
+        logWarning("WARNING: line added as polygon! (gcodePlanner)\n");
     }
 }
 
@@ -284,7 +289,7 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config, wall_overlap_computation);
     }
 }
-void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist)
+void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
 {
     LineOrderOptimizer orderOptimizer(lastPosition);
     for(unsigned int i=0;i<polygons.size();i++)
@@ -300,13 +305,13 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
         Point& p0 = polygon[start];
         addTravel(p0);
         Point& p1 = polygon[end];
-        addExtrusionMove(p1, config);
+        addExtrusionMove(p1, config, space_fill_type);
         if (wipe_dist != 0)
         {
             int line_width = config->getLineWidth();
             if (vSize2(p1-p0) > line_width * line_width * 4)
             { // otherwise line will get optimized by combining multiple into a single extrusion move
-                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, 0.0);
+                addExtrusionMove(p1 + normal(p1-p0, wipe_dist), config, space_fill_type, 0.0);
             }
         }
     }
