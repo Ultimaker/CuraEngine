@@ -187,8 +187,7 @@ private:
     
     bool is_volumatric;
     bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
-    
-    CommandSocket* command_socket; //!< for sending travel data
+
     unsigned int layer_nr; //!< for sending travel data
     
 public:
@@ -196,7 +195,7 @@ public:
     GCodeExport();
     ~GCodeExport();
     
-    void setCommandSocketAndLayerNr(CommandSocket* command_socket, unsigned int layer_nr);
+    void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
     

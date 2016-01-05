@@ -35,7 +35,7 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
     return joined;
 }
 
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* command_socket)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
     // initialization of supportAreasPerLayer
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
@@ -46,11 +46,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
-        generateSupportAreas(storage, mesh_idx, layer_count, supportAreas, command_socket);
+        generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
         
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportRoofs(storage, supportAreas, layer_count, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"), command_socket);
+            generateSupportRoofs(storage, supportAreas, layer_count, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"));
         }
         else 
         {
@@ -80,7 +80,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
  * 
  * for support buildplate only: purge all support not connected to buildplate
  */
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* command_socket)
+void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas)
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
@@ -252,7 +252,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             still_in_upper_empty_layers = false;
         }
         
-        Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size(), command_socket);
+        Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
     }
     
     // do stuff for when support on buildplate only
@@ -409,7 +409,7 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* command_socket)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height)
 {
     int roof_layer_count = support_roof_height / layerThickness;
     

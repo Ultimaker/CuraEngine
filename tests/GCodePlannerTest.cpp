@@ -25,9 +25,9 @@ void GCodePlannerTest::setUp()
     fan_speed_layer_time_settings.cool_fan_speed_min = 0;
     fan_speed_layer_time_settings.cool_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
-    //                              Command  Slice     layer  z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
-    //                              socket   storage   nr        height  position    extruder  time settings                  combing     offset  avoid   distance
-    gCodePlanner = new GCodePlanner(nullptr, *storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
+    //                              Slice     layer  z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
+    //                              storage   nr        height  position    extruder  time settings                  combing     offset  avoid   distance
+    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
 }
 
 void GCodePlannerTest::tearDown()

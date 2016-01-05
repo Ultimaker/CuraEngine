@@ -52,22 +52,20 @@ private:
 public:
     static void init(); //!< Initialize some values needed in a fast computation of the progress
     /*!
-     * Message progress over the \p command_socket and to the terminal (if the command line arg '-p' is provided).
+     * Message progress over the CommandSocket and to the terminal (if the command line arg '-p' is provided).
      * 
      * \param stage The current stage of processing
      * \param progress_in_stage Any number giving the progress within the stage
      * \param progress_in_stage_max The maximal value of \p progress_in_stage
-     * \param command_socket The command socket over which to communicate the progress.
      */
-    static void messageProgress(Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* command_socket);
+    static void messageProgress(Stage stage, int progress_in_stage, int progress_in_stage_max);
     /*!
      * Message the progress stage over the command socket.
      * 
      * \param stage The current stage
      * \param timeKeeper The stapwatch keeping track of the timings for each stage (optional)
-     * \param command_socket The command socket over which to communicate (optional)
      */
-    static void messageProgressStage(Stage stage, TimeKeeper* timeKeeper, CommandSocket* command_socket);
+    static void messageProgressStage(Stage stage, TimeKeeper* timeKeeper);
 };
 
 

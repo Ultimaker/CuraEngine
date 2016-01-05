@@ -21,8 +21,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.resetTotalPrintTimeAndFilament();
     }
     
-    if (command_socket)
-        command_socket->beginGCode();
+    if (CommandSocket::isInstantiated())
+        CommandSocket::getInstance()->beginGCode();
 
     setConfigFanSpeedLayerTime();
     
@@ -72,24 +72,18 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         processLayer(storage, layer_nr, total_layers, has_raft);
     }
     
-    Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper, command_socket);
+    Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     //Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z);
 
     layer_plan_buffer.flush();
 
-    if (command_socket)
+    if (CommandSocket::isInstantiated())
     {
-        command_socket->flushGcode();
-        command_socket->endSendSlicedObject();
+        CommandSocket::getInstance()->flushGcode();
+        CommandSocket::getInstance()->endSendSlicedObject();
     }
-}
-
-void FffGcodeWriter::setCommandSocket(CommandSocket* socket)
-{
-    command_socket = socket;
-    layer_plan_buffer.setCommandSocket(socket); //Propagate the change through to the layer plan buffer too.
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime()
@@ -188,7 +182,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
-    if (!command_socket)
+    if (!CommandSocket::isInstantiated())
     {
         std::ostringstream prefix;
         prefix << "FLAVOR:" << toString(gcode.getFlavor());
@@ -280,13 +274,15 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 2;
         int layer_height = getSettingInMicrons("raft_base_thickness");
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         gcode_layer.setIsInside(false);
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
             gcode_layer.setExtruder(extruder_nr);
-        if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+        }
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &storage.raft_base_config);
 
         Polygons raftLines;
@@ -306,11 +302,11 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 1;
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         gcode_layer.setIsInside(false);
-        if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        if (CommandSocket::isInstantiated())
+            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
         
         Polygons raftLines;
         int offset_from_poly_outline = 0;
@@ -331,11 +327,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     { // raft surface layers
         int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         gcode_layer.setIsInside(false);
-        if (command_socket)
-            command_socket->sendLayerInfo(layer_nr, z, layer_height);
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+        }
         
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
@@ -353,7 +351,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
 void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
 {
-    Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket);
+    Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers);
     
     int layer_thickness = getSettingInMicrons("layer_height");
     if (layer_nr == 0)
@@ -363,7 +361,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     int64_t comb_offset_from_outlines = storage.meshgroup->getExtruderTrain(current_extruder_planned)->getSettingInMicrons("machine_nozzle_size") * 2; // TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(command_socket, storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (layer_nr == 0)
     {
@@ -920,12 +918,12 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
     bool prime_tower_dir_outward = getSettingBoolean("prime_tower_dir_outward");
     bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
     
-    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed, command_socket);
+    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
 }
 
 void FffGcodeWriter::finalize()
 {
-    if (command_socket)
+    if (CommandSocket::isInstantiated())
     {
         std::ostringstream prefix;
         prefix << ";FLAVOR:" << toString(gcode.getFlavor()) << "\n";
@@ -935,7 +933,7 @@ void FffGcodeWriter::finalize()
             prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
             prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
         }
-        command_socket->sendGCodePrefix(prefix.str());
+        CommandSocket::getInstance()->sendGCodePrefix(prefix.str());
     }
     
     gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());

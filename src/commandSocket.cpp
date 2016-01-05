@@ -71,7 +71,6 @@ public:
 CommandSocket::CommandSocket()
     : private_data(new Private)
 {
-    FffProcessor::getInstance()->setCommandSocket(this);
 }
 
 CommandSocket* CommandSocket::getInstance()
@@ -83,6 +82,12 @@ void CommandSocket::instantiate()
 {
     instance = new CommandSocket();
 }
+
+bool CommandSocket::isInstantiated()
+{
+    return instance != nullptr;
+}
+
 
 void CommandSocket::connect(const std::string& ip, int port)
 {

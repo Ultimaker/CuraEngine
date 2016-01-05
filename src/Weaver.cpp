@@ -11,7 +11,7 @@
 namespace cura 
 {
 
-void Weaver::weave(MeshGroup* meshgroup, CommandSocket* command_socket)
+void Weaver::weave(MeshGroup* meshgroup)
 {   
     wireFrame.meshgroup = meshgroup;
     
@@ -53,8 +53,8 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* command_socket)
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
         
-        if (command_socket)
-            command_socket->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
+        if (CommandSocket::isInstantiated())
+            CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -71,10 +71,10 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* command_socket)
         else 
             starting_point_in_layer = (Point(0,0) + meshgroup->max() + meshgroup->min()) / 2;
         
-        Progress::messageProgressStage(Progress::Stage::INSET, nullptr, command_socket);
+        Progress::messageProgressStage(Progress::Stage::INSET, nullptr);
         for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
         {
-            Progress::messageProgress(Progress::Stage::INSET, layer_idx+1, layer_count, command_socket); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::INSET, layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
             
             Polygons parts1;
             for (cura::Slicer* slicer : slicerList)
@@ -85,8 +85,8 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* command_socket)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
             
-            if (command_socket)
-                command_socket->sendPolygons(PrintFeatureType::OuterWall, layer_idx - starting_layer_idx, chainified, 1);
+            if (CommandSocket::isInstantiated())
+                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, layer_idx - starting_layer_idx, chainified, 1);
             
             if (chainified.size() > 0)
             {
@@ -108,10 +108,10 @@ void Weaver::weave(MeshGroup* meshgroup, CommandSocket* command_socket)
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         
-        Progress::messageProgressStage(Progress::Stage::SKIN, nullptr, command_socket);
+        Progress::messageProgressStage(Progress::Stage::SKIN, nullptr);
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
-            Progress::messageProgress(Progress::Stage::SKIN, layer_idx+1, wireFrame.layers.size(), command_socket); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::SKIN, layer_idx+1, wireFrame.layers.size()); // abuse the progress system of the normal mode of CuraEngine
             
             WeaveLayer& layer = wireFrame.layers[layer_idx];
             

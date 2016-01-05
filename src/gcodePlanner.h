@@ -238,8 +238,6 @@ class GCodePlanner : public NoCopy
 private:
     SliceDataStorage& storage;
 
-    CommandSocket* command_socket;
-    
     int layer_nr;
     
     int z; 
@@ -298,7 +296,7 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(CommandSocket* command_socket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
 private:

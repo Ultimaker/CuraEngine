@@ -67,7 +67,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     
     if (meshgroup->meshes.empty())
     {
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); //Report the GUI that a file has been fully processed.
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
         profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
@@ -79,11 +79,11 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         log("starting Neith Weaver...\n");
                     
         Weaver w(this);
-        w.weave(meshgroup, command_socket);
+        w.weave(meshgroup);
         
         log("starting Neith Gcode generation...\n");
         Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
-        gcoder.writeGCode(command_socket);
+        gcoder.writeGCode();
         log("finished Neith Gcode generation...\n");
         
     } else 
@@ -94,13 +94,12 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         {
             return false;
         }
-        gcode_writer.setCommandSocket(command_socket);
         
-        Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper, command_socket);
+        Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper);
         gcode_writer.writeGCode(storage, time_keeper);
     }
 
-    Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); //Report the GUI that a file has been fully processed.
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
     profile_string += getAllSettingsString(*meshgroup, first_meshgroup);

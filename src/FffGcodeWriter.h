@@ -43,7 +43,6 @@ private:
     LayerPlanBuffer layer_plan_buffer;
     
     GCodeExport gcode;
-    CommandSocket* command_socket;
     std::ofstream output_file;
     
     /*!
@@ -60,27 +59,30 @@ private:
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
-    , layer_plan_buffer(this, command_socket, gcode)
+    , layer_plan_buffer(this, gcode)
     , last_position_planned(no_point)
     , current_extruder_planned(0) // TODO: make configurable
     {
         meshgroup_number = 1;
         max_object_height = 0;
-        command_socket = NULL;
     }
     void resetFileNumber()
     {
         meshgroup_number = 1;
     }
 
-    void setCommandSocket(CommandSocket* socket);
-
+    /*!
+     * Send polygons over the command socket, if there is one.
+     * \param type The type of polygon to send
+     * \param layer_nr The layer number at which the polygons occur
+     * \param polygons The polygons to be sent
+     */
     void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
-        if (command_socket)
-            command_socket->sendPolygons(type, layer_nr, polygons, line_width);
+        if (CommandSocket::isInstantiated())
+            CommandSocket::getInstance()->sendPolygons(type, layer_nr, polygons, line_width);
     }
-        
+
     bool setTargetFile(const char* filename)
     {
         output_file.open(filename);

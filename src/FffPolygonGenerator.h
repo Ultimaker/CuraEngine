@@ -25,26 +25,14 @@ namespace cura
  */
 class FffPolygonGenerator : public SettingsMessenger, NoCopy
 {
-private:
-    CommandSocket* command_socket;
 public:
     /*!
-     * Basic constructor; doesn't set the FffAreaGenerator::command_socket .
+     * Basic constructor
      */
     FffPolygonGenerator(SettingsBase* settings_)
     : SettingsMessenger(settings_)
-    , command_socket(nullptr)
     {
     }
-    
-    /*!
-     * Set the FffAreaGenerator::command_socket
-     */
-    void setCommandSocket(CommandSocket* socket)
-    {
-        command_socket = socket;
-    }
-    
 
     /*!
      * Slice the \p object, process the outline information into inset perimeter polygons, support area polygons, etc. 
@@ -64,8 +52,8 @@ private:
      */
     void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
-        if (command_socket)
-            command_socket->sendPolygons(type, layer_nr, polygons, line_width);
+        if (CommandSocket::isInstantiated())
+            CommandSocket::getInstance()->sendPolygons(type, layer_nr, polygons, line_width);
     }
     
     /*!

@@ -23,9 +23,11 @@ private:
 
 public:
     static CommandSocket* getInstance(); //!< Get the CommandSocket instance, or nullptr if it hasn't been instantiated.
-    
+
     static void instantiate(); //!< Instantiate the CommandSocket.
-    
+
+    static bool isInstantiated(); //!< Check whether the singleton is instantiated
+
     /*!
      * Connect with the GUI
      * This creates and initialises the arcus socket and then continues listening for messages. 
@@ -55,7 +57,6 @@ public:
      * Send a polygon to the engine. This is used for the layerview in the GUI
      */
     void sendPolygons(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
-    
     /*! 
      * Send progress to GUI
      */

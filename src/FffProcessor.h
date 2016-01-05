@@ -26,7 +26,6 @@ private:
     , gcode_writer(this)
     , first_meshgroup(true)
     {
-        command_socket = NULL;
     }
 public:
     static FffProcessor* getInstance() 
@@ -37,7 +36,6 @@ public:
 private:
     FffPolygonGenerator polygon_generator;
     FffGcodeWriter gcode_writer;
-    CommandSocket* command_socket; // TODO: replace all refs to command_socket by CommandSocket::getInstance()
     
     bool first_meshgroup;
     
@@ -55,13 +53,6 @@ public:
         gcode_writer.resetFileNumber();
     }
 
-    void setCommandSocket(CommandSocket* socket)
-    {
-        command_socket = socket;
-        gcode_writer.setCommandSocket(socket);
-        polygon_generator.setCommandSocket(socket);
-    }
-    
     bool setTargetFile(const char* filename)
     {
         return gcode_writer.setTargetFile(filename);
