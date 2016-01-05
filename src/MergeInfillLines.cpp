@@ -74,7 +74,7 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     }
 
     if (!(paths[idx+1].config->type == PrintFeatureType::Infill || paths[idx+1].config->type == PrintFeatureType::Skin))
-    { // only (skin) infill lines can be merged (second extrusion line config is already checked to be the same as the first in code above)
+    { // only (skin) infill lines can be merged (note that the second extrusion line config is already checked to be the same as the first in code above)
         return false;
     }
 
