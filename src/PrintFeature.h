@@ -6,6 +6,7 @@ namespace cura
 
 enum class PrintFeatureType
 {
+    NoneType, // unused, but libArcus depends on it
     OuterWall,
     InnerWall,
     Skin,
