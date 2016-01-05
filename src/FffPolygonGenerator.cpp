@@ -218,17 +218,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processFuzzyWalls(mesh);
         }
-        else if (mesh.getSettingAsCount("wall_line_count") > 0)
-        { // only send polygon data
-            for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
-            {
-                SliceLayer* layer = &mesh.layers[layer_nr];
-                for(SliceLayerPart& part : layer->parts)
-                {
-                    sendPolygons(PrintFeatureType::OuterWall, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
-                }
-            }
-        }
     }
 }
 
@@ -247,15 +236,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             if (mesh.getSettingBoolean("alternate_extra_perimeter"))
                 inset_count += layer_nr % 2; 
             generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
-
-            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-            {
-                if (layer->parts[partNr].insets.size() > 0)
-                {
-                    for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                        sendPolygons(PrintFeatureType::InnerWall, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
-                }
-            }
         }
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
@@ -268,7 +248,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                     segment.add(polyline[point_idx-1]);
                     segment.add(polyline[point_idx]);
                 }
-                sendPolygons(PrintFeatureType::OuterWall, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
     }
@@ -342,19 +321,6 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
             else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
             {
                 generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
-            }
-        }
-
-        bool frontend_can_show_polygon_as_filled_polygon = false;
-        if (frontend_can_show_polygon_as_filled_polygon)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer.parts)
-            {
-                for (SkinPart& skin_part : part.skin_parts)
-                {
-                    sendPolygons(PrintFeatureType::Skin, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
-                }
             }
         }
     }
@@ -436,7 +402,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     Polygons skirt_sent = storage.skirt[0];
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         skirt_sent.add(storage.skirt[extruder]);
-    sendPolygons(PrintFeatureType::Skirt, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
 
 
@@ -497,7 +462,6 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 }
             }
             skin = results;
-            sendPolygons(PrintFeatureType::OuterWall, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
         }
     }
 }

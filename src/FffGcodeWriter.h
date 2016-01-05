@@ -71,18 +71,6 @@ public:
         meshgroup_number = 1;
     }
 
-    /*!
-     * Send polygons over the command socket, if there is one.
-     * \param type The type of polygon to send
-     * \param layer_nr The layer number at which the polygons occur
-     * \param polygons The polygons to be sent
-     */
-    void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
-    {
-//         if (CommandSocket::isInstantiated())
-//            CommandSocket::getInstance()->sendPolygons(type, layer_nr, polygons, line_width);
-    }
-
     bool setTargetFile(const char* filename)
     {
         output_file.open(filename);
