@@ -16,8 +16,16 @@ namespace cura {
 
 class CommandSocket
 {
+private:
+    static CommandSocket* instance; //!< May be a nullptr in case it hasn't been instantiated.
+
+    CommandSocket(); //!< The single constructor is known only privately, since this class is similar to a singleton class (except the single object doesn't need to be instantiated)
+
 public:
-    CommandSocket();
+    static CommandSocket* getInstance(); //!< Get the CommandSocket instance, or nullptr if it hasn't been instantiated.
+    
+    static void instantiate(); //!< Instantiate the CommandSocket.
+    
     /*!
      * Connect with the GUI
      * This creates and initialises the arcus socket and then continues listening for messages. 

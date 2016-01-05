@@ -252,7 +252,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             {
                 if (layer->parts[partNr].insets.size() > 0)
                 {
-//                     sendPolygons(PrintFeatureType::Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
                     for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
                         sendPolygons(PrintFeatureType::InnerWall, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
                 }
@@ -352,7 +351,6 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
             SliceLayer& layer = mesh.layers[layer_nr];
             for(SliceLayerPart& part : layer.parts)
             {
-//                  sendPolygons(PrintFeatureType::InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
                 for (SkinPart& skin_part : part.skin_parts)
                 {
                     sendPolygons(PrintFeatureType::Skin, layer_nr, skin_part.outline, innermost_wall_extrusion_width);

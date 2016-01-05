@@ -22,7 +22,9 @@ namespace cura {
 #define BYTES_PER_FLOAT 4
 #define FLOATS_PER_VECTOR 3
 #define VECTORS_PER_FACE 3
-    
+
+CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
+
 class CommandSocket::Private
 {
 public:
@@ -70,6 +72,16 @@ CommandSocket::CommandSocket()
     : private_data(new Private)
 {
     FffProcessor::getInstance()->setCommandSocket(this);
+}
+
+CommandSocket* CommandSocket::getInstance()
+{
+    return instance;
+}
+
+void CommandSocket::instantiate()
+{
+    instance = new CommandSocket();
 }
 
 void CommandSocket::connect(const std::string& ip, int port)
