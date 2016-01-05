@@ -72,6 +72,12 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
     {
         return false;
     }
+
+    if (!(paths[idx+1].config->type == PrintFeatureType::Infill || paths[idx+1].config->type == PrintFeatureType::Skin) ||
+        !(paths[idx+3].config->type == PrintFeatureType::Infill || paths[idx+3].config->type == PrintFeatureType::Skin))
+    { // only (skin) infill lines can be merged
+        return false;
+    }
     
     int64_t line_width = paths[idx+1].config->getLineWidth();
     
