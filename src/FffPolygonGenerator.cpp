@@ -329,7 +329,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
-            if (mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") + 10)
+            bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
+            if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
             {
                 infill_skin_overlap = skin_extrusion_width / 2;
             }

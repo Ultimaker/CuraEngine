@@ -711,11 +711,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         } 
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
-        if (pattern == EFillMethod::CONCENTRIC)
-        {
-            offset_from_inner_skin_outline = -extrusion_width/2;
-        }
-        else
+        if (pattern != EFillMethod::CONCENTRIC)
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
