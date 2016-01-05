@@ -12,15 +12,15 @@ namespace cura
 {
 
 
-void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
+void Wireframe2gcode::writeGCode(CommandSocket* command_socket)
 {
 
     gcode.preSetup(wireFrame.meshgroup);
     
-    if (commandSocket)
-        commandSocket->beginGCode();
+    if (command_socket)
+        command_socket->beginGCode();
     
-    processStartingCode(commandSocket);
+    processStartingCode(command_socket);
     
     int maxObjectHeight;
     if (wireFrame.layers.empty())
@@ -32,7 +32,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
         maxObjectHeight = wireFrame.layers.back().z1;
     }
     
-    processSkirt(commandSocket);
+    processSkirt(command_socket);
     
             
     unsigned int total_layers = wireFrame.layers.size();
@@ -76,10 +76,10 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
                         gcode.writeMove(segment.to, speedBottom, extrusion_per_mm_flat); 
                 }
             );
-    Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, command_socket);
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
-        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
+        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, command_socket); // abuse the progress system of the normal mode of CuraEngine
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
         
@@ -167,10 +167,10 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
 
     finalize();
     
-    if (commandSocket)
+    if (command_socket)
     {
-        commandSocket->flushGcode();
-        commandSocket->endSendSlicedObject();
+        command_socket->flushGcode();
+        command_socket->endSendSlicedObject();
     }
 }
 
@@ -595,7 +595,7 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 }
 
 
-void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
+void Wireframe2gcode::processSkirt(CommandSocket* command_socket)
 {
     if (wireFrame.bottom_outline.size() == 0) //If we have no layers, don't create a skirt either.
     {

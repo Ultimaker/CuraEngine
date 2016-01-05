@@ -15,9 +15,9 @@ public:
      * Generate the support areas and support roof areas for all models.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      * \param layer_count total number of layers
-     * \param commandSocket Socket over which to report the progress
+     * \param command_socket Socket over which to report the progress
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* command_socket);
         
 private:
     /*!
@@ -28,9 +28,9 @@ private:
      * \param storage data storage containing the input layer outline data
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
-     * \param commandSocket Socket over which to report the progress
+     * \param command_socket Socket over which to report the progress
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* command_socket);
 
 
 
@@ -39,11 +39,11 @@ private:
      * 
      * \param storage Output storage: support area + support roof area output
      * \param supportAreas The basic support areas for the current mesh
-     * \param commandSocket Socket over which to report the progress
+     * \param command_socket Socket over which to report the progress
      * \param layerThickness The layer height
      * \param support_roof_height The thickness of the hammock in z directiontt
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket);
+    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* command_socket);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.

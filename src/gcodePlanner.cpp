@@ -48,9 +48,9 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(CommandSocket* command_socket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
-, commandSocket(commandSocket)
+, command_socket(command_socket)
 , layer_nr(layer_nr)
 , z(z)
 , layer_thickness(layer_thickness)
@@ -463,7 +463,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
 {
     completeConfigs();
     
-    gcode.setCommandSocketAndLayerNr(commandSocket, layer_nr);
+    gcode.setCommandSocketAndLayerNr(command_socket, layer_nr);
     
     gcode.writeLayerComment(layer_nr);
     

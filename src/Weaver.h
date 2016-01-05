@@ -61,9 +61,9 @@ public:
      * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
      * 
      * \param objects The objects for which to create a wireframe print
-     * \param commandSocket the commandSocket
+     * \param command_socket the command_socket
      */
-    void weave(MeshGroup* objects, CommandSocket* commandSocket);
+    void weave(MeshGroup* objects, CommandSocket* command_socket);
     
 
 private:

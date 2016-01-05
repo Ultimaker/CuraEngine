@@ -24,8 +24,8 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (commandSocket)
-        commandSocket->beginSendSlicedObject();
+    if (command_socket)
+        command_socket->beginSendSlicedObject();
     
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
@@ -39,7 +39,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
 
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
-    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, command_socket);
     
     storage.model_min = meshgroup->min();
     storage.model_max = meshgroup->max();
@@ -66,7 +66,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
     if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     {
-        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper,commandSocket); //Continue directly with the inset stage, which will also immediately stop.
+        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper,command_socket); //Continue directly with the inset stage, which will also immediately stop.
         return true; //This is NOT an error state!
     }
 
@@ -80,18 +80,18 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for(SlicerLayer& layer : slicer->layers)
         {
             //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-            //sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
-            //sendPolygons("openoutline", layer_nr, layer.openPolygonList);
+            sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
+            sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
-        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size(), commandSocket);
+        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size(), command_socket);
     }
     
     log("Layer count: %i\n", layer_count);
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
-    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper, command_socket);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
     
@@ -127,16 +127,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             } 
                 
-            if (commandSocket)
+            if (command_socket)
             {
-                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+                command_socket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
             }
         }
         
-        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
+        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), command_socket);
     }
     
-    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper, command_socket);
     return true;
 }
 
@@ -153,7 +153,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processInsets(storage, layer_number);
         
-        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers, commandSocket);
+        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers, command_socket);
     }
     
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers);
@@ -164,9 +164,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         return;
     }
     
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, command_socket);  
             
-    AreaSupport::generateSupportAreas(storage, total_layers, commandSocket);
+    AreaSupport::generateSupportAreas(storage, total_layers, command_socket);
     /*
     if (storage.support.generated)
     {
@@ -178,7 +178,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     */
     
-    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, command_socket);
     int mesh_max_bottom_layer_count = 0;
     if (getSettingBoolean("magic_spiralize"))
     {
@@ -193,7 +193,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processSkinsAndInfill(storage, layer_number);
         }
-        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
+        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, command_socket);
     }
     
     unsigned int combined_infill_layers = storage.getSettingInMicrons("infill_sparse_thickness") / std::max(storage.getSettingInMicrons("layer_height"),1); //How many infill layers to combine to obtain the requested sparse thickness.

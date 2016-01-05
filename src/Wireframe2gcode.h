@@ -71,7 +71,7 @@ public:
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
-    void writeGCode(CommandSocket* commandSocket);
+    void writeGCode(CommandSocket* command_socket);
 
 
 private:
@@ -85,7 +85,7 @@ private:
     /*!
      * Lay down a skirt
      */
-    void processSkirt(CommandSocket* commandSocket);
+    void processSkirt(CommandSocket* command_socket);
     
     /*!
      * End gcode: nozzle temp down

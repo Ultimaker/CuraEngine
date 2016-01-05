@@ -26,23 +26,23 @@ namespace cura
 class FffPolygonGenerator : public SettingsMessenger, NoCopy
 {
 private:
-    CommandSocket* commandSocket;
+    CommandSocket* command_socket;
 public:
     /*!
-     * Basic constructor; doesn't set the FffAreaGenerator::commandSocket .
+     * Basic constructor; doesn't set the FffAreaGenerator::command_socket .
      */
     FffPolygonGenerator(SettingsBase* settings_)
     : SettingsMessenger(settings_)
-    , commandSocket(nullptr)
+    , command_socket(nullptr)
     {
     }
     
     /*!
-     * Set the FffAreaGenerator::commandSocket
+     * Set the FffAreaGenerator::command_socket
      */
     void setCommandSocket(CommandSocket* socket)
     {
-        commandSocket = socket;
+        command_socket = socket;
     }
     
 
@@ -64,8 +64,8 @@ private:
      */
     void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
-        if (commandSocket)
-            commandSocket->sendPolygons(type, layer_nr, polygons, line_width);
+        if (command_socket)
+            command_socket->sendPolygons(type, layer_nr, polygons, line_width);
     }
     
     /*!
