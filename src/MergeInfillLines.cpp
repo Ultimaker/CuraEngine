@@ -61,11 +61,11 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
         return false;
     }
     if (   paths[idx+0].config != &travelConfig // must be travel
-        || paths[idx+1].points.size() > 1
+        || paths[idx+1].points.size() > 1       // extrusion path is single line
         || paths[idx+1].config == &travelConfig // must be extrusion
-//        || paths[idx+2].points.size() > 1
+//        || paths[idx+2].points.size() > 1       // travel must be direct
         || paths[idx+2].config != &travelConfig // must be travel
-        || paths[idx+3].points.size() > 1
+        || paths[idx+3].points.size() > 1       // extrusion path is single line
         || paths[idx+3].config == &travelConfig // must be extrusion
         || paths[idx+1].config != paths[idx+3].config // both extrusion moves should have the same config
     )
@@ -73,9 +73,8 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
         return false;
     }
 
-    if (!(paths[idx+1].config->type == PrintFeatureType::Infill || paths[idx+1].config->type == PrintFeatureType::Skin) ||
-        !(paths[idx+3].config->type == PrintFeatureType::Infill || paths[idx+3].config->type == PrintFeatureType::Skin))
-    { // only (skin) infill lines can be merged
+    if (!(paths[idx+1].config->type == PrintFeatureType::Infill || paths[idx+1].config->type == PrintFeatureType::Skin))
+    { // only (skin) infill lines can be merged (second extrusion line config is already checked to be the same as the first in code above)
         return false;
     }
     
