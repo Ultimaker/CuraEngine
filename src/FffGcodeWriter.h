@@ -79,8 +79,8 @@ public:
      */
     void sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
     {
-        if (CommandSocket::isInstantiated())
-            CommandSocket::getInstance()->sendPolygons(type, layer_nr, polygons, line_width);
+//         if (CommandSocket::isInstantiated())
+//            CommandSocket::getInstance()->sendPolygons(type, layer_nr, polygons, line_width);
     }
 
     bool setTargetFile(const char* filename)

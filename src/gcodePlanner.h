@@ -171,6 +171,15 @@ public:
     {
         return flow * config->getExtrusionMM3perMM();
     }
+    
+    /*!
+     * Get the actual line width (modulated by the flow)
+     * \return the actual line width as shown in layer view
+     */
+    int getLineWidth()
+    {
+        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
+    }
 };
 
 class ExtruderPlan
@@ -315,6 +324,22 @@ public:
     Point getLastPosition()
     {
         return lastPosition;
+    }
+
+    /*!
+     * send a polygon through the command socket from the previous point to the given point
+     */
+    void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+    {
+        if (CommandSocket::isInstantiated()) 
+        {
+            // we should send this travel as a non-retraction move
+            cura::Polygons pathPoly;
+            PolygonRef path = pathPoly.newPoly();
+            path.add(from);
+            path.add(to);
+            CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
+        }
     }
 
     /*!

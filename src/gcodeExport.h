@@ -116,6 +116,11 @@ public:
         return line_width == 0;
     }
     
+    double getFlowPercentage()
+    {
+        return flow;
+    }
+    
 private:
     void calculateExtrusion()
     {

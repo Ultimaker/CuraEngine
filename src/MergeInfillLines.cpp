@@ -14,6 +14,7 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
     double speed_mod = old_line_width / new_line_width_mm;
     double extrusion_mod = new_line_width_mm / old_line_width;
     double new_speed = std::min(speed * speed_mod, 150.0); // TODO: hardcoded value: max extrusion speed is 150 mm/s = 9000 mm/min
+    sendPolygon(last_path.config->type, gcode.getPositionXY(), to, last_path.getLineWidth());
     gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
