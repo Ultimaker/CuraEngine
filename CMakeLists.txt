@@ -10,6 +10,10 @@ else()
     set(CMAKE_CXX_FLAGS "-std=c++11")
 endif()
 
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+endif()
+
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
