@@ -71,7 +71,7 @@ public:
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
-    void writeGCode(CommandSocket* commandSocket);
+    void writeGCode();
 
 
 private:
@@ -80,12 +80,12 @@ private:
     /*!
      * Startup gcode: nozzle temp up, retraction settings, bed temp
      */
-    void processStartingCode(CommandSocket* command_socket);
+    void processStartingCode();
     
     /*!
      * Lay down a skirt
      */
-    void processSkirt(CommandSocket* commandSocket);
+    void processSkirt();
     
     /*!
      * End gcode: nozzle temp down

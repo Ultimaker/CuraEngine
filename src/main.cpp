@@ -66,7 +66,7 @@ void print_call(int argc, char **argv)
 
 void connect(int argc, char **argv)
 {
-    CommandSocket* commandSocket = new CommandSocket();
+    CommandSocket::instantiate();
     std::string ip;
     int port = 49674;
     
@@ -107,7 +107,7 @@ void connect(int argc, char **argv)
         }
     }
     
-    commandSocket->connect(ip, port);
+    CommandSocket::getInstance()->connect(ip, port);
 }
 
 void slice(int argc, char **argv)

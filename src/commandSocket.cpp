@@ -26,6 +26,8 @@ namespace cura {
 #define VECTORS_PER_FACE 3
 
 #ifdef ARCUS
+CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
+
 class CommandSocket::Private
 {
 public:
@@ -76,9 +78,24 @@ CommandSocket::CommandSocket()
 #endif
 {
 #ifdef ARCUS
-    FffProcessor::getInstance()->setCommandSocket(this);
 #endif
 }
+
+CommandSocket* CommandSocket::getInstance()
+{
+    return instance;
+}
+
+void CommandSocket::instantiate()
+{
+    instance = new CommandSocket();
+}
+
+bool CommandSocket::isInstantiated()
+{
+    return instance != nullptr;
+}
+
 
 void CommandSocket::connect(const std::string& ip, int port)
 {

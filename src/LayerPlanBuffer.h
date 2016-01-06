@@ -17,8 +17,6 @@ namespace cura
 
 class LayerPlanBuffer : SettingsMessenger
 {
-    CommandSocket* command_socket;
-    
     GCodeExport& gcode;
     
     Preheat preheat_config; //!< the nozzle and material temperature settings for each extruder train.
@@ -29,9 +27,8 @@ class LayerPlanBuffer : SettingsMessenger
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
-    LayerPlanBuffer(SettingsBaseVirtual* settings, CommandSocket* command_socket, GCodeExport& gcode)
+    LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
-    , command_socket(command_socket)
     , gcode(gcode)
     { }
     
@@ -55,9 +52,9 @@ public:
         if (buffer.size() > buffer_size)
         {
             buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-            if (command_socket)
+            if (CommandSocket::isInstantiated())
             {
-                command_socket->flushGcode();
+                CommandSocket::getInstance()->flushGcode();
             }
             buffer.pop_front();
         }

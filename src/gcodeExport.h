@@ -116,6 +116,11 @@ public:
         return line_width == 0;
     }
     
+    double getFlowPercentage()
+    {
+        return flow;
+    }
+    
 private:
     void calculateExtrusion()
     {
@@ -187,8 +192,7 @@ private:
     
     bool is_volumatric;
     bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
-    
-    CommandSocket* commandSocket; //!< for sending travel data
+
     unsigned int layer_nr; //!< for sending travel data
     
 public:
@@ -196,7 +200,7 @@ public:
     GCodeExport();
     ~GCodeExport();
     
-    void setCommandSocketAndLayerNr(CommandSocket* commandSocket, unsigned int layer_nr);
+    void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
     

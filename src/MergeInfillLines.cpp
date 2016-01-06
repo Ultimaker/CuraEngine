@@ -14,6 +14,7 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
     double speed_mod = old_line_width / new_line_width_mm;
     double extrusion_mod = new_line_width_mm / old_line_width;
     double new_speed = std::min(speed * speed_mod, 150.0); // TODO: hardcoded value: max extrusion speed is 150 mm/s = 9000 mm/min
+    sendPolygon(last_path.config->type, gcode.getPositionXY(), to, last_path.getLineWidth());
     gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
@@ -61,18 +62,28 @@ bool MergeInfillLines::isConvertible(unsigned int path_idx_first_move, Point& fi
         return false;
     }
     if (   paths[idx+0].config != &travelConfig // must be travel
-        || paths[idx+1].points.size() > 1
+        || paths[idx+1].points.size() > 1       // extrusion path is single line
         || paths[idx+1].config == &travelConfig // must be extrusion
-//        || paths[idx+2].points.size() > 1
+//        || paths[idx+2].points.size() > 1       // travel must be direct
         || paths[idx+2].config != &travelConfig // must be travel
-        || paths[idx+3].points.size() > 1
+        || paths[idx+3].points.size() > 1       // extrusion path is single line
         || paths[idx+3].config == &travelConfig // must be extrusion
         || paths[idx+1].config != paths[idx+3].config // both extrusion moves should have the same config
     )
     {
         return false;
     }
-    
+
+    if (!(paths[idx+1].config->type == PrintFeatureType::Infill || paths[idx+1].config->type == PrintFeatureType::Skin))
+    { // only (skin) infill lines can be merged (note that the second extrusion line config is already checked to be the same as the first in code above)
+        return false;
+    }
+
+    if (paths[idx+1].space_fill_type != SpaceFillType::Lines || paths[idx+3].space_fill_type != SpaceFillType::Lines)
+    { // both extrusion moves must be of lines space filling type!
+        return false;
+    }
+
     int64_t line_width = paths[idx+1].config->getLineWidth();
     
     Point& a = paths[idx+0].points.back(); // first extruded line from

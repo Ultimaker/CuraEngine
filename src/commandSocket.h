@@ -18,8 +18,18 @@ namespace cura
 
 class CommandSocket
 {
+private:
+    static CommandSocket* instance; //!< May be a nullptr in case it hasn't been instantiated.
+
+    CommandSocket(); //!< The single constructor is known only privately, since this class is similar to a singleton class (except the single object doesn't need to be instantiated)
+
 public:
-    CommandSocket();
+    static CommandSocket* getInstance(); //!< Get the CommandSocket instance, or nullptr if it hasn't been instantiated.
+
+    static void instantiate(); //!< Instantiate the CommandSocket.
+
+    static bool isInstantiated(); //!< Check whether the singleton is instantiated
+
     /*!
      * Connect with the GUI
      * This creates and initialises the arcus socket and then continues listening for messages. 
@@ -51,7 +61,12 @@ public:
      * Send a polygon to the engine. This is used for the layerview in the GUI
      */
     void sendPolygons(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
-    
+
+    /*! 
+     * Send a polygon to the engine if the command socket is instantiated. This is used for the layerview in the GUI
+     */
+    static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
+
     /*! 
      * Send progress to GUI
      */

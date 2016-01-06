@@ -24,8 +24,8 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (commandSocket)
-        commandSocket->beginSendSlicedObject();
+    if (CommandSocket::isInstantiated())
+        CommandSocket::getInstance()->beginSendSlicedObject();
     
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
@@ -39,7 +39,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
 
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
-    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper);
     
     storage.model_min = meshgroup->min();
     storage.model_max = meshgroup->max();
@@ -66,7 +66,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
     if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     {
-        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper,commandSocket); //Continue directly with the inset stage, which will also immediately stop.
+        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper); //Continue directly with the inset stage, which will also immediately stop.
         return true; //This is NOT an error state!
     }
 
@@ -80,18 +80,18 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for(SlicerLayer& layer : slicer->layers)
         {
             //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-            //sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
-            //sendPolygons("openoutline", layer_nr, layer.openPolygonList);
+            sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
+            sendPolygons("openoutline", layer_nr, layer.openPolygonList);
         }
         */
-        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size(), commandSocket);
+        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
     
     log("Layer count: %i\n", layer_count);
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
-    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
     
@@ -127,16 +127,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             } 
                 
-            if (commandSocket)
+            if (CommandSocket::isInstantiated())
             {
-                commandSocket->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
             }
         }
         
-        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size(), commandSocket);
+        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }
     
-    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper);
     return true;
 }
 
@@ -153,7 +153,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         processInsets(storage, layer_number);
         
-        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers, commandSocket);
+        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
     }
     
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers);
@@ -164,9 +164,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         return;
     }
     
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper, commandSocket);  
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
             
-    AreaSupport::generateSupportAreas(storage, total_layers, commandSocket);
+    AreaSupport::generateSupportAreas(storage, total_layers);
     /*
     if (storage.support.generated)
     {
@@ -178,7 +178,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     */
     
-    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
     if (getSettingBoolean("magic_spiralize"))
     {
@@ -193,7 +193,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processSkinsAndInfill(storage, layer_number);
         }
-        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers, commandSocket);
+        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
     }
     
     unsigned int combined_infill_layers = storage.getSettingInMicrons("infill_sparse_thickness") / std::max(storage.getSettingInMicrons("layer_height"),1); //How many infill layers to combine to obtain the requested sparse thickness.
@@ -218,17 +218,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             processFuzzyWalls(mesh);
         }
-        else if (mesh.getSettingAsCount("wall_line_count") > 0)
-        { // only send polygon data
-            for (unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
-            {
-                SliceLayer* layer = &mesh.layers[layer_nr];
-                for(SliceLayerPart& part : layer->parts)
-                {
-                    sendPolygons(PrintFeatureType::OuterWall, layer_nr, (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)? part.outline : part.insets[0], mesh.getSettingInMicrons("wall_line_width_0"));
-                }
-            }
-        }
     }
 }
 
@@ -247,16 +236,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             if (mesh.getSettingBoolean("alternate_extra_perimeter"))
                 inset_count += layer_nr % 2; 
             generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
-
-            for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
-            {
-                if (layer->parts[partNr].insets.size() > 0)
-                {
-//                     sendPolygons(PrintFeatureType::Inset0Type, layer_nr, layer->parts[partNr].insets[0], line_width_0); // done after processing fuzzy skin
-                    for(unsigned int inset=1; inset<layer->parts[partNr].insets.size(); inset++)
-                        sendPolygons(PrintFeatureType::InnerWall, layer_nr, layer->parts[partNr].insets[inset], line_width_x);
-                }
-            }
         }
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
@@ -269,7 +248,6 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
                     segment.add(polyline[point_idx-1]);
                     segment.add(polyline[point_idx]);
                 }
-                sendPolygons(PrintFeatureType::OuterWall, layer_nr, segments, mesh.getSettingInMicrons("wall_line_width_0"));
             }
         }
     }
@@ -330,7 +308,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
         if (mesh.getSettingInMicrons("infill_line_distance") > 0)
         {
             int infill_skin_overlap = 0;
-            if (mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") + 10)
+            bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
+            if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
             {
                 infill_skin_overlap = skin_extrusion_width / 2;
             }
@@ -342,20 +321,6 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsig
             else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
             {
                 generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
-            }
-        }
-
-        bool frontend_can_show_polygon_as_filled_polygon = false;
-        if (frontend_can_show_polygon_as_filled_polygon)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            for(SliceLayerPart& part : layer.parts)
-            {
-//                  sendPolygons(PrintFeatureType::InfillType, layer_nr, part.infill_area[0], extrusionWidth_infill); // sends the outline, not the actual infill
-                for (SkinPart& skin_part : part.skin_parts)
-                {
-                    sendPolygons(PrintFeatureType::Skin, layer_nr, skin_part.outline, innermost_wall_extrusion_width);
-                }
             }
         }
     }
@@ -437,7 +402,6 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     Polygons skirt_sent = storage.skirt[0];
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         skirt_sent.add(storage.skirt[extruder]);
-    sendPolygons(PrintFeatureType::Skirt, 0, skirt_sent, getSettingInMicrons("skirt_line_width"));
 }
 
 
@@ -498,7 +462,6 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 }
             }
             skin = results;
-            sendPolygons(PrintFeatureType::OuterWall, layer_nr, skin, mesh.getSettingInMicrons("wall_line_width_0"));
         }
     }
 }

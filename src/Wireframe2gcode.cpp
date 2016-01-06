@@ -12,15 +12,15 @@ namespace cura
 {
 
 
-void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
+void Wireframe2gcode::writeGCode()
 {
 
     gcode.preSetup(wireFrame.meshgroup);
     
-    if (commandSocket)
-        commandSocket->beginGCode();
+    if (CommandSocket::getInstance())
+        CommandSocket::getInstance()->beginGCode();
     
-    processStartingCode(commandSocket);
+    processStartingCode();
     
     int maxObjectHeight;
     if (wireFrame.layers.empty())
@@ -32,7 +32,7 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
         maxObjectHeight = wireFrame.layers.back().z1;
     }
     
-    processSkirt(commandSocket);
+    processSkirt();
     
             
     unsigned int total_layers = wireFrame.layers.size();
@@ -76,10 +76,10 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
                         gcode.writeMove(segment.to, speedBottom, extrusion_per_mm_flat); 
                 }
             );
-    Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr, commandSocket);
+    Progress::messageProgressStage(Progress::Stage::EXPORT, nullptr);
     for (unsigned int layer_nr = 0; layer_nr < wireFrame.layers.size(); layer_nr++)
     {
-        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers, commandSocket); // abuse the progress system of the normal mode of CuraEngine
+        Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers); // abuse the progress system of the normal mode of CuraEngine
         
         WeaveLayer& layer = wireFrame.layers[layer_nr];
         
@@ -167,10 +167,10 @@ void Wireframe2gcode::writeGCode(CommandSocket* commandSocket)
 
     finalize();
     
-    if (commandSocket)
+    if (CommandSocket::isInstantiated())
     {
-        commandSocket->flushGcode();
-        commandSocket->endSendSlicedObject();
+        CommandSocket::getInstance()->flushGcode();
+        CommandSocket::getInstance()->endSendSlicedObject();
     }
 }
 
@@ -550,11 +550,11 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     standard_retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 }
 
-void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
+void Wireframe2gcode::processStartingCode()
 {
     if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
-        if (!command_socket)
+        if (!CommandSocket::isInstantiated())
         {
             gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
         }
@@ -595,7 +595,7 @@ void Wireframe2gcode::processStartingCode(CommandSocket* command_socket)
 }
 
 
-void Wireframe2gcode::processSkirt(CommandSocket* commandSocket)
+void Wireframe2gcode::processSkirt()
 {
     if (wireFrame.bottom_outline.size() == 0) //If we have no layers, don't create a skirt either.
     {

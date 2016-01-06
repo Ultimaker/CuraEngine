@@ -12,13 +12,13 @@ class MergeInfillLines
 {
 //     void merge(Point& from, Point& p0, Point& p1);
     GCodeExport& gcode; //!<  Where to write the combined line to
+    int layer_nr; //!< The current layer number
     std::vector<GCodePath>& paths; //!< The paths currently under consideration
     ExtruderPlan& extruder_plan; //!< The extruder plan of the paths currently under consideration
     
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
 
-    
     /*!
      * Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
      * \param path_idx_first_move Index into MergeInfillLines::paths to the travel before the two extrusion moves udner consideration
@@ -58,11 +58,11 @@ class MergeInfillLines
      */
     void writeCompensatedMove(Point& to, double speed, GCodePath& old_path, int64_t new_line_width);
 public:
+    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size) 
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
-    MergeInfillLines(GCodeExport& gcode, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size) 
-    : gcode(gcode), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
+    : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
     
     /*!
      * Check for lots of small moves and combine them into one large line.
@@ -78,6 +78,21 @@ public:
      */
     bool mergeInfillLines(double speed, unsigned int& path_idx);
     
+    /*!
+     * send a polygon through the command socket from the previous point to the given point
+     */
+    void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+    {
+        if (CommandSocket::isInstantiated()) 
+        {
+            // we should send this travel as a non-retraction move
+            cura::Polygons pathPoly;
+            PolygonRef path = pathPoly.newPoly();
+            path.add(from);
+            path.add(to);
+            CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
+        }
+    }
 };
 
 }//namespace cura

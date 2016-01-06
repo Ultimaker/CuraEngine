@@ -64,22 +64,22 @@ void Progress::init()
     total_timing = accumulated_time;
 }
 
-void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max, CommandSocket* command_socket)
+void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max)
 {
     float percentage = calcOverallProgress(stage, float(progress_in_stage) / float(progress_in_stage_max));
-    if (command_socket)
+    if (CommandSocket::getInstance())
     {
-        command_socket->sendProgress(percentage);
+        CommandSocket::getInstance()->sendProgress(percentage);
     }
     
     logProgress(names[(int)stage].c_str(), progress_in_stage, progress_in_stage_max, percentage);
 }
 
-void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper, CommandSocket* command_socket)
+void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keeper)
 {
-    if (command_socket)
+    if (CommandSocket::getInstance())
     {
-        command_socket->sendProgressStage(stage);
+        CommandSocket::getInstance()->sendProgressStage(stage);
     }
     
     if (time_keeper)

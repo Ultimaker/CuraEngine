@@ -25,11 +25,8 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
         generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
         break;
     case EFillMethod::CONCENTRIC:
-        if (outlineOffset != 0)
-        {
-            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
-            outline = &outline_offsetted;
-        }
+        PolygonUtils::offsetSafe(in_outline, outlineOffset - extrusion_width / 2, extrusion_width, outline_offsetted, false); // - extrusion_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
+        outline = &outline_offsetted;
         if (abs(extrusion_width - line_distance) < 10)
         {
             generateConcentricInfillDense(*outline, result_polygons, in_between, extrusion_width, avoidOverlappingPerimeters);

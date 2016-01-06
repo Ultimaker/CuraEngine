@@ -10,6 +10,7 @@
 #include "wallOverlap.h"
 #include "commandSocket.h"
 #include "FanSpeedLayerTime.h"
+#include "SpaceFillType.h"
 
 
 namespace cura 
@@ -150,6 +151,7 @@ class GCodePath
 {
 public:
     GCodePathConfig* config; //!< The configuration settings of the path.
+    SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     std::vector<Point> points; //!< The points constituting this path.
@@ -168,6 +170,15 @@ public:
     double getExtrusionMM3perMM()
     {
         return flow * config->getExtrusionMM3perMM();
+    }
+    
+    /*!
+     * Get the actual line width (modulated by the flow)
+     * \return the actual line width as shown in layer view
+     */
+    int getLineWidth()
+    {
+        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
     }
 };
 
@@ -236,8 +247,6 @@ class GCodePlanner : public NoCopy
 private:
     SliceDataStorage& storage;
 
-    CommandSocket* commandSocket;
-    
     int layer_nr;
     
     int z; 
@@ -272,10 +281,11 @@ private:
      * If GCodePlanner::forceNewPathStart has been called a new path will always be returned.
      * 
      * \param config The config used for the path returned
+     * \param space_fill_type The type of space filling which this path employs
      * \param flow (optional) A ratio for the extrusion speed
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
-    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, float flow = 1.0);
+    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0);
     
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
@@ -295,7 +305,7 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      */
-    GCodePlanner(CommandSocket* commandSocket, SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
 private:
@@ -314,6 +324,22 @@ public:
     Point getLastPosition()
     {
         return lastPosition;
+    }
+
+    /*!
+     * send a polygon through the command socket from the previous point to the given point
+     */
+    void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+    {
+        if (CommandSocket::isInstantiated()) 
+        {
+            // we should send this travel as a non-retraction move
+            cura::Polygons pathPoly;
+            PolygonRef path = pathPoly.newPoly();
+            path.add(from);
+            path.add(to);
+            CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
+        }
     }
 
     /*!
@@ -374,8 +400,16 @@ public:
      * \param path (optional) The travel path to which to add the point \p p
      */
     void addTravel_simple(Point p, GCodePath* path = nullptr);
-    
-    void addExtrusionMove(Point p, GCodePathConfig* config, float flow = 1.0);
+
+    /*!
+     * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
+     * 
+     * \param p The point to extrude to
+     * \param config The config with which to extrude
+     * \param space_fill_type Of what space filling type this extrusion move is a part
+     * \param flow A modifier of the extrusion width which would follow from the \p config
+     */
+    void addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0);
 
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
@@ -385,9 +419,10 @@ public:
      * Add lines to the gcode with optimized order.
      * \param polygons The lines
      * \param config The config of the lines
+     * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      */
-    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, int wipe_dist = 0);
+    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
      * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)

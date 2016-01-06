@@ -17,9 +17,9 @@ void LayerPlanBuffer::flush()
     while (!buffer.empty())
     {
         buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-        if (command_socket)
+        if (CommandSocket::isInstantiated())
         {
-            command_socket->flushGcode();
+            CommandSocket::getInstance()->flushGcode();
         }
         buffer.pop_front();
     }
@@ -221,11 +221,5 @@ void LayerPlanBuffer::insertPreheatCommands()
         insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
     }
 }
-
-
-
-
-
-
 
 } // namespace cura

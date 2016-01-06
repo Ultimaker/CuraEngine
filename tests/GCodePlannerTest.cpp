@@ -25,9 +25,9 @@ void GCodePlannerTest::setUp()
     fan_speed_layer_time_settings.cool_fan_speed_min = 0;
     fan_speed_layer_time_settings.cool_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
-    //                              Command  Slice     layer  z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
-    //                              socket   storage   nr        height  position    extruder  time settings                  combing     offset  avoid   distance
-    gCodePlanner = new GCodePlanner(nullptr, *storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
+    //                              Slice     layer  z  layer   last        current   fan speed and layer            retraction  comb    travel  travel avoid
+    //                              storage   nr        height  position    extruder  time settings                  combing     offset  avoid   distance
+    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings, false,      100,    false,  50          );
 }
 
 void GCodePlannerTest::tearDown()
@@ -46,7 +46,7 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     
     GCodeExport gcode;
     GCodePathConfig configuration = storage->travel_config;
-    gCodePlanner->addExtrusionMove(Point(0,0),&configuration,1.0f); //Need to have at least one path to have a configuration.
+    gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::Lines, 1.0f); //Need to have at least one path to have a configuration.
     TimeMaterialEstimates before_retract = gCodePlanner->computeNaiveTimeEstimates();
     gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
     TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
