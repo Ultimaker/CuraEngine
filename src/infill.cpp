@@ -116,8 +116,14 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
     auto compare_int64_t = [](const void* a, const void* b)
     {
         int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
-        if (n < 0) return -1;
-        if (n > 0) return 1;
+        if (n < 0)
+        {
+            return -1;
+        }
+        if (n > 0)
+        {
+            return 1;
+        }
         return 0;
     };
     
@@ -125,10 +131,12 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
     for(int64_t x = scanline_min_idx * lineSpacing; x < boundary.max.X; x += lineSpacing)
     {
         qsort(cutList[scanline_idx].data(), cutList[scanline_idx].size(), sizeof(int64_t), compare_int64_t);
-        for(unsigned int i = 0; i + 1 < cutList[scanline_idx].size(); i+=2)
+        for(unsigned int i = 0; i + 1 < cutList[scanline_idx].size(); i += 2)
         {
             if (cutList[scanline_idx][i+1] - cutList[scanline_idx][i] < extrusionWidth / 5)
+            {
                 continue;
+            }
             addLine(Point(x, cutList[scanline_idx][i]), Point(x, cutList[scanline_idx][i+1]));
         }
         scanline_idx += 1;
@@ -137,10 +145,19 @@ void addLineInfill(Polygons& result, PointMatrix matrix, int scanline_min_idx, i
 
 void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
-    if (lineSpacing == 0) return;
-    if (in_outline.size() == 0) return;
+    if (lineSpacing == 0)
+    {
+        return;
+    }
+    if (in_outline.size() == 0)
+    {
+        return;
+    }
     Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(extrusionWidth * infillOverlap / 100);
-    if (outline.size() == 0) return;
+    if (outline.size() == 0)
+    {
+        return;
+    }
     
     PointMatrix matrix(rotation);
     
@@ -154,21 +171,28 @@ void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons&
   
     std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
     
-    for(int n=0; n<lineCount; n++)
+    for(int n = 0; n < lineCount; n++)
+    {
         cutList.push_back(std::vector<int64_t>());
+    }
     
-    for(unsigned int poly_idx=0; poly_idx < outline.size(); poly_idx++)
+    for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
         Point p0 = outline[poly_idx][outline[poly_idx].size()-1];
         for(unsigned int i=0; i < outline[poly_idx].size(); i++)
         {
             Point p1 = outline[poly_idx][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) {
+            if (xMin == xMax)
+            {
                 p0 = p1;
                 continue; 
             }
-            if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
+            if (xMin > xMax)
+            {
+                xMin = p0.X;
+                xMax = p1.X;
+            }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
             int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
@@ -177,7 +201,11 @@ void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons&
             { 
                 direction = -1; 
                 scanline_idx1 += 1; // only consider the scanlines in between the scansegments
-            } else scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
+            else
+            {
+                scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
             
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
             {
@@ -205,7 +233,10 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
 //     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
     Polygons empty;
     Polygons outline = in_outline.difference(empty); // copy
-    if (outline.size() == 0) return;
+    if (outline.size() == 0)
+    {
+        return;
+    }
     
     PointMatrix matrix(rotation);
     
@@ -225,10 +256,12 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
     
     std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
     
-    for(int n=0; n<lineCount; n++)
-        cutList.push_back(std::vector<int64_t>());
-    for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
+    for (int n = 0; n < lineCount; n++)
     {
+        cutList.push_back(std::vector<int64_t>());
+    }
+    for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
+    { // generate cutlist and connection pieces at the same time
         std::vector<Point> firstBoundarySegment;
         std::vector<Point> unevenBoundarySegment; // stored cause for connected_zigzags a boundary segment which ends in an uneven scanline needs to be included
         
@@ -240,16 +273,21 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
         
         Point p0 = outline[polyNr][outline[polyNr].size()-1];
         Point lastPoint = p0;
-        for(unsigned int i=0; i < outline[polyNr].size(); i++)
+        for(unsigned int i = 0; i < outline[polyNr].size(); i++)
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) {
+            if (xMin == xMax) 
+            {
                 lastPoint = p1;
                 p0 = p1;
                 continue; 
             }
-            if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
+            if (xMin > xMax) 
+            { 
+                xMin = p0.X; 
+                xMax = p1.X; 
+            }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
             int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
@@ -258,11 +296,18 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
             { 
                 direction = -1; 
                 scanline_idx1 += 1; // only consider the scanlines in between the scansegments
-            } else scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
+            else 
+            {
+                scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
             
             
-            if (isFirstBoundarySegment) firstBoundarySegment.push_back(p0);
-            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
+            if (isFirstBoundarySegment)
+            {
+                firstBoundarySegment.push_back(p0);
+            }
+            for (int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx+=direction)
             {
                 int x = scanline_idx * lineSpacing;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
@@ -270,13 +315,21 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
                 
                 
                 bool last_isEvenScanSegment = isEvenScanSegment;
-                if (scanline_idx % 2 == 0) isEvenScanSegment = true;
-                else isEvenScanSegment = false;
+                if (scanline_idx % 2 == 0)
+                {
+                    isEvenScanSegment = true;
+                }
+                else 
+                {
+                    isEvenScanSegment = false;
+                }
                 
                 if (!isFirstBoundarySegment)
                 {
                     if (last_isEvenScanSegment && (connect_zigzags || !isEvenScanSegment))
+                    {
                         addLine(lastPoint, Point(x,y));
+                    }
                     else if (connect_zigzags && !last_isEvenScanSegment && !isEvenScanSegment) // if we end an uneven boundary in an uneven segment
                     { // add whole unevenBoundarySegment (including the just obtained point)
                         for (unsigned int p = 1; p < unevenBoundarySegment.size(); p++)
@@ -287,9 +340,13 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
                         unevenBoundarySegment.clear();
                     } 
                     if (connect_zigzags && last_isEvenScanSegment && !isEvenScanSegment)
+                    {
                         unevenBoundarySegment.push_back(Point(x,y));
+                    }
                     else 
+                    {
                         unevenBoundarySegment.clear();
+                    }
                         
                 }
                 lastPoint = Point(x,y);
@@ -305,9 +362,13 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
             if (!isFirstBoundarySegment)
             {
                 if (isEvenScanSegment)
+                {
                     addLine(lastPoint, p1);
+                }
                 else if (connect_zigzags)
+                {
                     unevenBoundarySegment.push_back(p1);
+                }
             }
             
             lastPoint = p1;
@@ -319,15 +380,25 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
             for (unsigned int i = 1; i < firstBoundarySegment.size() ; i++)
             {
                 if (i < firstBoundarySegment.size() - 1 || !firstBoundarySegmentEndsInEven || connect_zigzags) // only add last element if connect_zigzags or boundary segment ends in uneven scanline
+                {
                     addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+                }
             }   
         }
         else if (!firstBoundarySegmentEndsInEven)
+        {
             addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[firstBoundarySegment.size()-1]);
+        }
     } 
     
-    if (cutList.size() == 0) return;
-    if (connect_zigzags && cutList.size() == 1 && cutList[0].size() <= 2) return;  // don't add connection if boundary already contains whole outline!
+    if (cutList.size() == 0)
+    {
+        return;
+    }
+    if (connect_zigzags && cutList.size() == 1 && cutList[0].size() <= 2)
+    {
+        return;  // don't add connection if boundary already contains whole outline!
+    }
     
     addLineInfill(result, matrix, scanline_min_idx, lineSpacing, boundary, cutList, extrusionWidth);
 }
@@ -335,9 +406,15 @@ void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& resu
 
 void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation)
 {
-    if (in_outline.size() == 0) return;
+    if (in_outline.size() == 0)
+    {
+        return;
+    }
     Polygons outline = in_outline.offset(extrusionWidth * infillOverlap / 100 - extrusionWidth / 2);
-    if (outline.size() == 0) return;
+    if (outline.size() == 0)
+    {
+        return;
+    }
     
     PointMatrix matrix(rotation);
     
@@ -357,9 +434,11 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
     
     std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
     
-    for(int n=0; n<lineCount; n++)
+    for (int n = 0; n < lineCount; n++)
+    {
         cutList.push_back(std::vector<int64_t>());
-    for(unsigned int polyNr=0; polyNr < outline.size(); polyNr++)
+    }
+    for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
     {
         std::vector<Point> firstBoundarySegment;
         std::vector<Point> boundarySegment;
@@ -371,15 +450,20 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
         
         
         Point p0 = outline[polyNr][outline[polyNr].size()-1];
-        for(unsigned int i=0; i < outline[polyNr].size(); i++)
+        for (unsigned int i = 0; i < outline[polyNr].size(); i++)
         {
             Point p1 = outline[polyNr][i];
             int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax) {
+            if (xMin == xMax) 
+            {
                 p0 = p1;
                 continue; 
             }
-            if (xMin > xMax) { xMin = p0.X; xMax = p1.X; }
+            if (xMin > xMax)
+            {
+                xMin = p0.X;
+                xMax = p1.X;
+            }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
             int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
@@ -388,12 +472,22 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
             { 
                 direction = -1; 
                 scanline_idx1 += 1; // only consider the scanlines in between the scansegments
-            } else scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
+            else 
+            {
+                scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
             
             
-            if (isFirstBoundarySegment) firstBoundarySegment.push_back(p0);
-            else boundarySegment.push_back(p0);
-            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
+            if (isFirstBoundarySegment)
+            {
+                firstBoundarySegment.push_back(p0);
+            }
+            else 
+            {
+                boundarySegment.push_back(p0);
+            }
+            for (int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx += direction)
             {
                 int x = scanline_idx * lineSpacing;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
@@ -401,8 +495,14 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
                 
                 
                 bool last_isEvenScanSegment = isEvenScanSegment;
-                if (scanline_idx % 2 == 0) isEvenScanSegment = true;
-                else isEvenScanSegment = false;
+                if (scanline_idx % 2 == 0)
+                {
+                    isEvenScanSegment = true;
+                }
+                else 
+                {
+                    isEvenScanSegment = false;
+                }
                 
                 if (!isFirstBoundarySegment)
                 {
@@ -419,8 +519,11 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
                     {
                         boundarySegment.clear();
                         boundarySegment.emplace_back(x,y);
-                    } else
+                    }
+                    else
+                    {
                         boundarySegment.clear();
+                    }
                         
                 }
                 
@@ -434,7 +537,9 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
                 
             }
             if (!isFirstBoundarySegment && isEvenScanSegment)
+            {
                 boundarySegment.push_back(p1);
+            }
             
             
             p0 = p1;
@@ -443,7 +548,9 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
         if (!isFirstBoundarySegment && isEvenScanSegment && !firstBoundarySegmentEndsInEven)
         {
             for (unsigned int i = 1; i < firstBoundarySegment.size() ; i++)
+            {
                 addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+            }
         }
     } 
     
