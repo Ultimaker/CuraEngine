@@ -785,7 +785,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     {
         return;
     }
-    
+
     int support_line_distance = getSettingInMicrons("support_line_distance");
     int extrusion_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
