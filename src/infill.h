@@ -4,6 +4,7 @@
 
 #include "utils/polygon.h"
 #include "settings.h"
+#include "ZigzagConnectorProcessor.h"
 
 namespace cura
 {
@@ -46,7 +47,7 @@ namespace cura
     void generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
 
     void generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
-
+    
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p lineSpacing
      * 
@@ -66,6 +67,8 @@ namespace cura
      * 
      */
     void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
+    
+    void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor);
 
     void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags, bool use_endPieces);
 

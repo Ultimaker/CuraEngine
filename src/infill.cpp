@@ -223,8 +223,29 @@ void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons&
 
 void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags, bool use_endPieces)
 {
-    if (use_endPieces) return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connect_zigzags);
-    else return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
+    if (use_endPieces)
+    {
+        // return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connect_zigzags);
+        if (connect_zigzags)
+        {
+            PointMatrix rotation_matrix(rotation);
+            ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
+            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+        }
+        else
+        {
+            PointMatrix rotation_matrix(rotation);
+            ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
+            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+        }
+    }
+    else 
+    {
+        // return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
+        PointMatrix rotation_matrix(rotation);
+        ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
+        generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+    }
 }
 
 void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags)
@@ -559,5 +580,102 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
 
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor)
+{
+    if (lineSpacing == 0)
+    {
+        return;
+    }
+    if (in_outline.size() == 0)
+    {
+        return;
+    }
+    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(extrusionWidth * infillOverlap / 100);
+    if (outline.size() == 0)
+    {
+        return;
+    }
+    
+    PointMatrix matrix(rotation);
+    
+    outline.applyMatrix(matrix);
+
+    
+    AABB boundary(outline);
+    
+    int scanline_min_idx = boundary.min.X / lineSpacing;
+    int lineCount = (boundary.max.X + (lineSpacing - 1)) / lineSpacing - scanline_min_idx;
+  
+    std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
+    
+    for(int n = 0; n < lineCount; n++)
+    {
+        cutList.push_back(std::vector<int64_t>());
+    }
+    
+    for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
+    {
+        Point p0 = outline[poly_idx][outline[poly_idx].size()-1];
+        zigzag_connector_processor.skipVertex(p0);
+        for(unsigned int i=0; i < outline[poly_idx].size(); i++)
+        {
+            Point p1 = outline[poly_idx][i];
+            int64_t xMin = p1.X, xMax = p0.X;
+            if (xMin == xMax)
+            {
+                zigzag_connector_processor.registerVertex(p1);
+                p0 = p1;
+                continue; 
+            }
+            if (xMin > xMax)
+            {
+                xMin = p0.X;
+                xMax = p1.X;
+            }
+            
+            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
+            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
+            int direction = 1;
+            if (p0.X > p1.X) 
+            { 
+                direction = -1; 
+                scanline_idx1 += 1; // only consider the scanlines in between the scansegments
+            }
+            else
+            {
+                scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+            }
+            
+            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
+            {
+                int x = scanline_idx * lineSpacing;
+                int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
+                cutList[scanline_idx - scanline_min_idx].push_back(y);
+                Point scanline_linesegment_intersection(x, y);
+                zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx % 2 == 0);
+            }
+            zigzag_connector_processor.registerVertex(p1);
+            p0 = p1;
+        }
+        zigzag_connector_processor.registerPolyFinished();
+    }
+    
+    addLineInfill(result, matrix, scanline_min_idx, lineSpacing, boundary, cutList, extrusionWidth);
+}
 
 }//namespace cura
