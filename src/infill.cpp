@@ -632,7 +632,8 @@ void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polyg
     {
         PolygonRef poly = outline[poly_idx];
         Point p0 = poly.back();
-        zigzag_connector_processor.registerPolyStart(p0);
+//         zigzag_connector_processor.registerPolyStart(p0); // TODO: remove this and the whole registerPolyStart function or uncomment and remove line below!!!!
+        zigzag_connector_processor.registerVertex(p0);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = poly[point_idx];
