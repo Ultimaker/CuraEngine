@@ -24,12 +24,12 @@ public:
 
     void addLine(Point from, Point to)
     {
-        PolygonRef p = result.newPoly();
-        p.add(matrix.unapply(from));
-        p.add(matrix.unapply(to));
+        PolygonRef line_poly = result.newPoly();
+        line_poly.add(matrix.unapply(from));
+        line_poly.add(matrix.unapply(to));
     }
 
-    virtual void skipVertex(const Point& vertex) = 0;
+    virtual void registerPolyStart(const Point& vertex) = 0;
     virtual void registerVertex(const Point& vertex) = 0;
     virtual void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even) = 0;
     virtual void registerPolyFinished() = 0;
@@ -37,23 +37,23 @@ public:
 
 class ZigzagConnectorProcessorNoEndPieces : public ZigzagConnectorProcessor
 {
-    std::vector<Point> firstBoundarySegment;
-    std::vector<Point> boundarySegment;
+    std::vector<Point> first_zigzag_connector;
+    std::vector<Point> zigzag_connector;
 
-    bool isFirstBoundarySegment;
-    bool firstBoundarySegmentEndsInEven;
-    bool isEvenScanSegment; 
+    bool is_first_zigzag_connector;
+    bool first_zigzag_connector_ends_in_even_scanline;
+    bool last_scanline_is_even; 
 
 public:
     ZigzagConnectorProcessorNoEndPieces(PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
-    , isFirstBoundarySegment(true)
-    , firstBoundarySegmentEndsInEven(true)
-    , isEvenScanSegment(false) 
+    , is_first_zigzag_connector(true)
+    , first_zigzag_connector_ends_in_even_scanline(true)
+    , last_scanline_is_even(false) 
     {
     }
 
-    void skipVertex(const Point& vertex);
+    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
@@ -61,26 +61,26 @@ public:
 
 class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessor
 {
-    std::vector<Point> firstBoundarySegment;
-    std::vector<Point> unevenBoundarySegment;
+    std::vector<Point> first_zigzag_connector;
+    std::vector<Point> zigzag_connector_starting_in_uneven_scanline;
 
-    Point lastPoint;
+    Point last_connector_point;
 
-    bool isFirstBoundarySegment;
-    bool firstBoundarySegmentEndsInEven;
-    bool isEvenScanSegment; 
+    bool is_first_zigzag_connector;
+    bool first_zigzag_connector_ends_in_even_scanline;
+    bool last_scanline_is_even; 
 
 public:
     ZigzagConnectorProcessorConnectedEndPieces(PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
-    , lastPoint(0,0)
-    , isFirstBoundarySegment(true)
-    , firstBoundarySegmentEndsInEven(true)
-    , isEvenScanSegment(false) 
+    , last_connector_point(0,0)
+    , is_first_zigzag_connector(true)
+    , first_zigzag_connector_ends_in_even_scanline(true)
+    , last_scanline_is_even(false) 
     {
     }
 
-    void skipVertex(const Point& vertex);
+    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
@@ -88,26 +88,26 @@ public:
 
 class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProcessor
 {
-    std::vector<Point> firstBoundarySegment;
-    std::vector<Point> unevenBoundarySegment;
+    std::vector<Point> first_zigzag_connector;
+    std::vector<Point> zigzag_connector_starting_in_uneven_scanline;
 
-    Point lastPoint;
+    Point last_connector_point;
 
-    bool isFirstBoundarySegment;
-    bool firstBoundarySegmentEndsInEven;
-    bool isEvenScanSegment; 
+    bool is_first_zigzag_connector;
+    bool first_zigzag_connector_ends_in_even_scanline;
+    bool last_scanline_is_even; 
 
 public:
     ZigzagConnectorProcessorDisconnectedEndPieces(PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
-    , lastPoint(0,0)
-    , isFirstBoundarySegment(true)
-    , firstBoundarySegmentEndsInEven(true)
-    , isEvenScanSegment(false) 
+    , last_connector_point(0,0)
+    , is_first_zigzag_connector(true)
+    , first_zigzag_connector_ends_in_even_scanline(true)
+    , last_scanline_is_even(false) 
     {
     }
 
-    void skipVertex(const Point& vertex);
+    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
@@ -121,7 +121,7 @@ public:
     {
     }
 
-    void skipVertex(const Point& vertex);
+    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();

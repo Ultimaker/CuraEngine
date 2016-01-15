@@ -623,29 +623,24 @@ void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polyg
   
     std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
     
-    for(int n = 0; n < lineCount; n++)
+    for(int scanline_idx = 0; scanline_idx < lineCount; scanline_idx++)
     {
         cutList.push_back(std::vector<int64_t>());
     }
     
     for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
-        Point p0 = outline[poly_idx][outline[poly_idx].size()-1];
-        zigzag_connector_processor.skipVertex(p0);
-        for(unsigned int i=0; i < outline[poly_idx].size(); i++)
+        PolygonRef poly = outline[poly_idx];
+        Point p0 = poly.back();
+        zigzag_connector_processor.registerPolyStart(p0);
+        for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point p1 = outline[poly_idx][i];
-            int64_t xMin = p1.X, xMax = p0.X;
-            if (xMin == xMax)
+            Point p1 = poly[point_idx];
+            if (p1.X == p0.X)
             {
                 zigzag_connector_processor.registerVertex(p1);
                 p0 = p1;
                 continue; 
-            }
-            if (xMin > xMax)
-            {
-                xMin = p0.X;
-                xMax = p1.X;
             }
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...

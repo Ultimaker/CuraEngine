@@ -5,99 +5,99 @@
 namespace cura 
 {
 
-void ZigzagConnectorProcessorNoEndPieces::skipVertex(const Point& vertex)
+void ZigzagConnectorProcessorNoEndPieces::registerPolyStart(const Point& vertex)
 {
 
+}
+
+void ZigzagConnectorProcessorConnectedEndPieces::registerPolyStart(const Point& vertex)
+{
+    last_connector_point = vertex;
+}
+
+void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyStart(const Point& vertex)
+{
+    last_connector_point = vertex;
 }
 
 void ZigzagConnectorProcessorNoEndPieces::registerVertex(const Point& vertex)
 {
-    if (isFirstBoundarySegment)
+    if (is_first_zigzag_connector)
     {
-        firstBoundarySegment.push_back(vertex);
+        first_zigzag_connector.push_back(vertex);
     }
-    else if (isEvenScanSegment)
+    else if (last_scanline_is_even)
     {
-        boundarySegment.push_back(vertex);
+        zigzag_connector.push_back(vertex);
     }
-}
-
-void ZigzagConnectorProcessorConnectedEndPieces::skipVertex(const Point& vertex)
-{
-    lastPoint = vertex;
 }
 
 void ZigzagConnectorProcessorConnectedEndPieces::registerVertex(const Point& vertex)
 {
-    if (isFirstBoundarySegment)
+    if (is_first_zigzag_connector)
     {
-        firstBoundarySegment.push_back(vertex);
+        first_zigzag_connector.push_back(vertex);
     }
-    else if (isEvenScanSegment)
+    else if (last_scanline_is_even)
     {
-        addLine(lastPoint, vertex);
+        addLine(last_connector_point, vertex);
     }
     else
     {
-        unevenBoundarySegment.push_back(vertex);
+        zigzag_connector_starting_in_uneven_scanline.push_back(vertex);
     }
-    lastPoint = vertex;
-}
-
-void ZigzagConnectorProcessorDisconnectedEndPieces::skipVertex(const Point& vertex)
-{
-    lastPoint = vertex;
+    last_connector_point = vertex;
 }
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerVertex(const Point& vertex)
 {
-    if (isFirstBoundarySegment)
+    if (is_first_zigzag_connector)
     {
-        firstBoundarySegment.push_back(vertex);
+        first_zigzag_connector.push_back(vertex);
     }
-    else if (isEvenScanSegment)
+    else if (last_scanline_is_even)
     {
-        addLine(lastPoint, vertex);
+        addLine(last_connector_point, vertex);
     }
-//     else if (connect_zigzags)
+//     else if (connect_zigzags) // TODO: shouldn't there be something like this here?
 //     {
 //         unevenBoundarySegment.push_back(p1);
 //     }
-    lastPoint = vertex;
+    last_connector_point = vertex;
 }
 
 
 void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
 {
-    bool last_isEvenScanSegment = isEvenScanSegment;
-    isEvenScanSegment = scanline_is_even;
+    bool previous_scanline_is_even = last_scanline_is_even;
+    last_scanline_is_even = scanline_is_even;
     
-    if (isFirstBoundarySegment) 
+    if (is_first_zigzag_connector) 
     {
-        firstBoundarySegment.push_back(intersection);
-        firstBoundarySegmentEndsInEven = isEvenScanSegment;
-        isFirstBoundarySegment = false;
-        boundarySegment.push_back(intersection);
+        first_zigzag_connector.push_back(intersection);
+        first_zigzag_connector_ends_in_even_scanline = last_scanline_is_even;
+        is_first_zigzag_connector = false;
+        zigzag_connector.push_back(intersection);
     }
     else
     {
-        if (last_isEvenScanSegment && !isEvenScanSegment)
+        if (previous_scanline_is_even && !last_scanline_is_even)
         { // add whole boundarySegment (including the just obtained point)
-            for (unsigned int p = 1; p < boundarySegment.size(); p++)
+            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
             {
-                addLine(boundarySegment[p-1], boundarySegment[p]);
+                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
             }
-            addLine(boundarySegment[boundarySegment.size()-1], intersection);
-            boundarySegment.clear();
+            addLine(zigzag_connector.back(), intersection);
+            zigzag_connector.clear();
         } 
-        else if (isEvenScanSegment) // we are either in an end piece or an uneven boundary segment
+        else if (last_scanline_is_even) // we are either in an end piece or an uneven boundary segment
         {
-            boundarySegment.clear();
-            boundarySegment.push_back(intersection);
+            zigzag_connector.clear();
+            zigzag_connector.push_back(intersection);
         }
         else
         {
-            boundarySegment.clear();
+            zigzag_connector.clear();
         }
             
     }
@@ -106,101 +106,101 @@ void ZigzagConnectorProcessorNoEndPieces::registerScanlineSegmentIntersection(co
 
 void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
 {
-    bool last_isEvenScanSegment = isEvenScanSegment;
-    isEvenScanSegment = scanline_is_even;
+    bool previous_scanline_is_even = last_scanline_is_even;
+    last_scanline_is_even = scanline_is_even;
     
-    if (isFirstBoundarySegment)
+    if (is_first_zigzag_connector)
     {
-        firstBoundarySegment.push_back(intersection);
-        firstBoundarySegmentEndsInEven = isEvenScanSegment;
-        isFirstBoundarySegment = false;
+        first_zigzag_connector.push_back(intersection);
+        first_zigzag_connector_ends_in_even_scanline = last_scanline_is_even;
+        is_first_zigzag_connector = false;
     }
     else
     {
-        if (last_isEvenScanSegment)
+        if (previous_scanline_is_even)
         {
-            addLine(lastPoint, intersection);
+            addLine(last_connector_point, intersection);
         }
-        else if (!last_isEvenScanSegment && !isEvenScanSegment) // if we end an uneven boundary in an uneven segment
+        else if (!previous_scanline_is_even && !last_scanline_is_even) // if we end an uneven boundary in an uneven segment
         { // add whole unevenBoundarySegment (including the just obtained point)
-            for (unsigned int p = 1; p < unevenBoundarySegment.size(); p++)
+            for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
             {
-                addLine(unevenBoundarySegment[p-1], unevenBoundarySegment[p]);
+                addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
             }
-            addLine(unevenBoundarySegment[unevenBoundarySegment.size()-1], intersection);
-            unevenBoundarySegment.clear();
+            addLine(zigzag_connector_starting_in_uneven_scanline[zigzag_connector_starting_in_uneven_scanline.size() - 1], intersection);
+            zigzag_connector_starting_in_uneven_scanline.clear();
         } 
-        if (last_isEvenScanSegment && !isEvenScanSegment)
+        if (previous_scanline_is_even && !last_scanline_is_even)
         {
-            unevenBoundarySegment.push_back(intersection);
+            zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
         }
         else 
         {
-            unevenBoundarySegment.clear();
+            zigzag_connector_starting_in_uneven_scanline.clear();
         }
             
     }
-    lastPoint = intersection;
+    last_connector_point = intersection;
 }
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
 {
-    bool last_isEvenScanSegment = isEvenScanSegment;
-    isEvenScanSegment = scanline_is_even;
+    bool previous_scanline_is_even = last_scanline_is_even;
+    last_scanline_is_even = scanline_is_even;
     
-    if (isFirstBoundarySegment) 
+    if (is_first_zigzag_connector) 
     {
-        firstBoundarySegment.push_back(intersection);
-        firstBoundarySegmentEndsInEven = isEvenScanSegment;
-        isFirstBoundarySegment = false;
+        first_zigzag_connector.push_back(intersection);
+        first_zigzag_connector_ends_in_even_scanline = last_scanline_is_even;
+        is_first_zigzag_connector = false;
     }
     else
     {
-        if (last_isEvenScanSegment && !isEvenScanSegment)
+        if (previous_scanline_is_even && !last_scanline_is_even)
         {
-            addLine(lastPoint, intersection);
+            addLine(last_connector_point, intersection);
         }
-        if (last_isEvenScanSegment && !isEvenScanSegment)
+        if (previous_scanline_is_even && !last_scanline_is_even)
         {
-            unevenBoundarySegment.push_back(intersection);
+            zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
         }
         else 
         {
-            unevenBoundarySegment.clear();
+            zigzag_connector_starting_in_uneven_scanline.clear();
         }
             
     }
     
-    lastPoint = intersection;
+    last_connector_point = intersection;
 }
 
 
 void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
 {
-    if (!isFirstBoundarySegment && isEvenScanSegment && !firstBoundarySegmentEndsInEven)
+    if (!is_first_zigzag_connector && last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
     {
-        for (unsigned int i = 1; i < firstBoundarySegment.size() ; i++)
+        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() ; point_idx++)
         {
-            addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+            addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
         }
     }
-    isFirstBoundarySegment = true;
-    firstBoundarySegmentEndsInEven = true;
-    isEvenScanSegment = false; 
-    firstBoundarySegment.clear();
-    boundarySegment.clear();
+    is_first_zigzag_connector = true;
+    first_zigzag_connector_ends_in_even_scanline = true;
+    last_scanline_is_even = false; 
+    first_zigzag_connector.clear();
+    zigzag_connector.clear();
 }
 
 
 void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 {
     {
-        for (unsigned int i = 1; i < firstBoundarySegment.size() ; i++)
+        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() ; point_idx++)
         {
-            addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+            addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
         }   
     }
-//     else if (!firstBoundarySegmentEndsInEven)
+//     else if (!firstBoundarySegmentEndsInEven) // TODO: shouldn't there be something like this code here?!
 //     {
 //         addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[firstBoundarySegment.size()-1]);
 //     }
@@ -208,30 +208,25 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
 {
-    if (isEvenScanSegment || isFirstBoundarySegment)
+    if (last_scanline_is_even || is_first_zigzag_connector)
     {
-        for (unsigned int i = 1; i < firstBoundarySegment.size() ; i++)
+        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() ; point_idx++)
         {
-            if (i < firstBoundarySegment.size() - 1 || !firstBoundarySegmentEndsInEven) // only add last element if connect_zigzags or boundary segment ends in uneven scanline
+            if (point_idx < first_zigzag_connector.size() - 1 || !first_zigzag_connector_ends_in_even_scanline) // only add last element if connect_zigzags or boundary segment ends in uneven scanline
             {
-                addLine(firstBoundarySegment[i-1], firstBoundarySegment[i]);
+                addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
             }
         }   
     }
-    else if (!firstBoundarySegmentEndsInEven)
+    else if (!first_zigzag_connector_ends_in_even_scanline)
     {
-        addLine(firstBoundarySegment[firstBoundarySegment.size()-2], firstBoundarySegment[firstBoundarySegment.size()-1]);
+        addLine(first_zigzag_connector[first_zigzag_connector.size() - 2], first_zigzag_connector[first_zigzag_connector.size() - 1]);
     }
 }
 
 
 
-void NoZigZagConnectorProcessor::registerPolyFinished()
-{
-
-}
-
-void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
+void NoZigZagConnectorProcessor::registerPolyStart(const Point& vertex)
 {
 
 }
@@ -241,7 +236,12 @@ void NoZigZagConnectorProcessor::registerVertex(const Point& vertex)
 
 }
 
-void NoZigZagConnectorProcessor::skipVertex(const Point& vertex)
+void NoZigZagConnectorProcessor::registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even)
+{
+
+}
+
+void NoZigZagConnectorProcessor::registerPolyFinished()
 {
 
 }
