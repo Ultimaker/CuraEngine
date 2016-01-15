@@ -175,7 +175,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
             if (CommandSocket::isInstantiated()) 
             {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Support, layer_idx, support, 0.2); //getSettingInMicrons("support_line_width"));
+                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Infill, layer_idx, support, 100); //getSettingInMicrons("support_line_width"));
             }
         }
     }
