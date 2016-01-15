@@ -137,7 +137,7 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         {
             zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
         }
-        else 
+        else
         {
             zigzag_connector_starting_in_uneven_scanline.clear();
         }
@@ -161,11 +161,20 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
     else
     {
         if (previous_scanline_is_even && !this_scanline_is_even)
-        {
+        { // if we left from an even scanline, but not if this is the line segment connecting that zigzag_connector to an even scanline
             addLine(last_connector_point, intersection);
         }
+        else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an uneven boundary in an uneven segment
+        { // add whole unevenBoundarySegment (including the just obtained point)
+            for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+            {
+                addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+            }
+            // skip the last segment to the [intersection]
+            zigzag_connector_starting_in_uneven_scanline.clear();
+        }
         
-        if (!this_scanline_is_even) // TODO: decide what needs to be done with thos block of code! the else case doesn't make sense! ?
+        if (!this_scanline_is_even)
         {
             zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
         }
@@ -199,19 +208,18 @@ void ZigzagConnectorProcessorNoEndPieces::registerPolyFinished()
 
 void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 {
-    if (last_scanline_is_even || is_first_zigzag_connector)
-    {
-        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size(); point_idx++)
-        {
-            addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
-        }
-    }
-    else if (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
+    // write end segment if needed (first half of start/end-crossing segment)
+    if (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
     {
         for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
         {
             addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
         }
+    }
+    // write begin segment if needed (second half of start/end-crossing segment)
+    if (last_scanline_is_even || (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
+        || is_first_zigzag_connector)
+    {
         for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size(); point_idx++)
         {
             addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
@@ -226,13 +234,23 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
 {
+    // write end segment if needed (first half of start/end-crossing segment)
+    if (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
+    {
+        for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+        {
+            addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+        }
+    }
+    // write begin segment if needed (second half of start/end-crossing segment)
     if (last_scanline_is_even || is_first_zigzag_connector)
     {
-        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() - 1; point_idx++)
+        for (unsigned int point_idx = 1; point_idx < first_zigzag_connector.size() - 1; point_idx++) // -1 cause skipping very last line segment!
         {
             addLine(first_zigzag_connector[point_idx - 1], first_zigzag_connector[point_idx]);
         }
     }
+    // write very last line segment if needed
     if (!first_zigzag_connector_ends_in_even_scanline)
     { // only add last element if connect_zigzags or boundary segment ends in uneven scanline
         addLine(first_zigzag_connector[first_zigzag_connector.size() - 2], first_zigzag_connector[first_zigzag_connector.size() - 1]);
