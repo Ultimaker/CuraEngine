@@ -59,8 +59,9 @@ public:
     void registerPolyFinished();
 };
 
-class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessor
+class ZigzagConnectorProcessorEndPieces : public ZigzagConnectorProcessor
 {
+protected:
     std::vector<Point> first_zigzag_connector;
     std::vector<Point> zigzag_connector_starting_in_uneven_scanline;
 
@@ -71,7 +72,7 @@ class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcess
     bool last_scanline_is_even; 
 
 public:
-    ZigzagConnectorProcessorConnectedEndPieces(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessorEndPieces(PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
     , last_connector_point(0,0)
     , is_first_zigzag_connector(true)
@@ -82,33 +83,30 @@ public:
 
     void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
+//     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
+//     void registerPolyFinished();
+};
+
+
+class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessorEndPieces
+{
+public:
+    ZigzagConnectorProcessorConnectedEndPieces(PointMatrix& matrix, Polygons& result)
+    : ZigzagConnectorProcessorEndPieces(matrix, result)
+    {
+    }
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
 };
 
-class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProcessor
+class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProcessorEndPieces
 {
-    std::vector<Point> first_zigzag_connector;
-    std::vector<Point> zigzag_connector_starting_in_uneven_scanline;
-
-    Point last_connector_point;
-
-    bool is_first_zigzag_connector;
-    bool first_zigzag_connector_ends_in_even_scanline;
-    bool last_scanline_is_even; 
 
 public:
     ZigzagConnectorProcessorDisconnectedEndPieces(PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
-    , last_connector_point(0,0)
-    , is_first_zigzag_connector(true)
-    , first_zigzag_connector_ends_in_even_scanline(true)
-    , last_scanline_is_even(false) 
+    : ZigzagConnectorProcessorEndPieces(matrix, result)
     {
     }
-
-    void registerPolyStart(const Point& vertex);
-    void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
 };
