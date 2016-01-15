@@ -68,7 +68,7 @@ namespace cura
      */
     void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
     
-    void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor);
+    void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor, bool connect_zigzags);
 
     void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags, bool use_endPieces);
 

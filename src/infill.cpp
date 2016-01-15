@@ -230,13 +230,13 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
         {
             PointMatrix rotation_matrix(rotation);
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor, connect_zigzags);
         }
         else
         {
             PointMatrix rotation_matrix(rotation);
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+            generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor, connect_zigzags);
         }
     }
     else 
@@ -244,7 +244,7 @@ void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extr
         // return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
         PointMatrix rotation_matrix(rotation);
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor);
+        generateLineInfill_alt(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation, zigzag_processor, connect_zigzags);
     }
 }
 
@@ -595,7 +595,7 @@ void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& re
 
 
 
-void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor)
+void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor, bool connect_zigzags)
 {
     if (lineSpacing == 0)
     {
@@ -669,7 +669,16 @@ void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polyg
         }
         zigzag_connector_processor.registerPolyFinished();
     }
-    
+
+    if (cutList.size() == 0)
+    {
+        return;
+    }
+    if (connect_zigzags && cutList.size() == 1 && cutList[0].size() <= 2)
+    {
+        return;  // don't add connection if boundary already contains whole outline!
+    }
+
     addLineInfill(result, matrix, scanline_min_idx, lineSpacing, boundary, cutList, extrusionWidth);
 }
 
