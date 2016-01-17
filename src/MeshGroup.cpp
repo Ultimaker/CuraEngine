@@ -117,10 +117,31 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "r");
-    char buffer[6];
     if (f == nullptr)
+    {
         return false;
+    }
 
+    //Skip any whitespace at the beginning of the file.
+    unsigned long long num_whitespace = 0; //Number of whitespace characters.
+    unsigned char whitespace;
+    if (fread(&whitespace, 1, 1, f) != 1)
+    {
+        fclose(f);
+        return false;
+    }
+    while(isspace(whitespace))
+    {
+        num_whitespace++;
+        if (fread(&whitespace, 1, 1, f) != 1)
+        {
+            fclose(f);
+            return false;
+        }
+    }
+    fseek(f, num_whitespace, SEEK_SET); //Seek to the place after all whitespace (we may have just read too far).
+
+    char buffer[6];
     if (fread(buffer, 5, 1, f) != 1)
     {
         fclose(f);
