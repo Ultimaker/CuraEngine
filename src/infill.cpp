@@ -212,14 +212,15 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
     {
         PolygonRef poly = outline[poly_idx];
         Point p0 = poly.back();
-//         zigzag_connector_processor.registerPolyStart(p0); // TODO: remove this and the whole registerPolyStart function or uncomment and remove line below!!!!
-        zigzag_connector_processor.registerVertex(p0);
+        zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = poly[point_idx];
             if (p1.X == p0.X)
             {
-                zigzag_connector_processor.registerVertex(p1);
+                zigzag_connector_processor.registerVertex(p1); 
+                // TODO: how to make sure it always adds the shortest line? (in order to prevent overlap with the zigzag connectors)
+                // note: this is already a problem for normal infill, but hasn't really cothered anyone so far.
                 p0 = p1;
                 continue; 
             }
