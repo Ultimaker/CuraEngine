@@ -181,7 +181,15 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
         std::vector<Polygons>& patterns = patterns_per_extruder.back();
         for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
         {
-            generateLineInfill(ground_poly, -line_width/2, patterns[pattern_idx], line_width, line_width, infill_overlap, 45 + pattern_idx*90);
+            Polygons result_polygons; // should remain empty, since we generate lines pattern!
+            Polygons* in_between = nullptr;
+            bool avoidOverlappingPerimeters = false;
+            int outline_offset = -line_width/2;
+            int line_distance = line_width;
+            double fill_angle = 45 + pattern_idx * 90;
+            Polygons& result_lines = patterns[pattern_idx];
+            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, avoidOverlappingPerimeters, line_width, line_distance, infill_overlap, fill_angle);
+            infill_comp.generate(result_polygons, result_lines, in_between);
         }
     }
 }
