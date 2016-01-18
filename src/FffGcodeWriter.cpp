@@ -287,7 +287,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), 0);
+        PointMatrix rotation_matrix(0);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), rotation_matrix);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
 
         last_position_planned = gcode_layer.getLastPosition();
@@ -309,7 +310,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         Polygons raftLines;
         int offset_from_poly_outline = 0;
-        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
+        PointMatrix rotation_matrix(train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90);
+        generateLineInfill(storage.raftOutline, offset_from_poly_outline, raftLines, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), rotation_matrix);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config, SpaceFillType::Lines);
         
         last_position_planned = gcode_layer.getLastPosition();
@@ -335,6 +337,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
+        PointMatrix rotation_matrix(90 * raftSurfaceLayer);
         generateLineInfill(storage.raftOutline, offset_from_poly_outline, raft_lines, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), 90 * raftSurfaceLayer);
         gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config, SpaceFillType::Lines);
 
@@ -713,7 +716,8 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 offset_from_inner_skin_outline = -extrusion_width/2;
                 if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
                 {
-                    generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, infill_angle);
+                    PointMatrix rotation_matrix(infill_angle);
+                    generateLineInfill(skin_part.perimeterGaps, 0, skin_lines, extrusion_width, extrusion_width, 0, rotation_matrix);
                 }
             } 
         }
@@ -734,7 +738,8 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
     {
         Polygons perimeter_gap_lines;
-        generateLineInfill(part.perimeterGaps, 0, perimeter_gap_lines, extrusion_width, extrusion_width, 0, infill_angle);
+        PointMatrix rotation_matrix(infill_angle);
+        generateLineInfill(part.perimeterGaps, 0, perimeter_gap_lines, extrusion_width, extrusion_width, 0, rotation_matrix);
         gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config, SpaceFillType::Lines);
     }
 }

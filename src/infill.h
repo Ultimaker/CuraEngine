@@ -5,6 +5,7 @@
 #include "utils/polygon.h"
 #include "settings.h"
 #include "ZigzagConnectorProcessor.h"
+#include "utils/intpoint.h"
 
 namespace cura
 {
@@ -18,6 +19,7 @@ namespace cura
         int line_distance;
         double infill_overlap;
         double fill_angle;
+        PointMatrix rotation_matrix;
         bool connect_zigzags;
         bool use_endPieces;
 
@@ -31,6 +33,7 @@ namespace cura
         , line_distance(line_distance)
         , infill_overlap(infill_overlap)
         , fill_angle(fill_angle)
+        , rotation_matrix(fill_angle)
         , connect_zigzags(connect_zigzags)
         , use_endPieces(use_endPieces)
         {
@@ -38,7 +41,7 @@ namespace cura
         void generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between);
     };
 
-    void generateInfill(EFillMethod pattern, const Polygons& in_outline, int outlineOffset, Polygons& result_polygons, Polygons& result_lines, Polygons* in_between, bool avoidOverlappingPerimeters, int extrusion_width, int line_distance, double infill_overlap, double fill_angle, bool connect_zigzags, bool use_endPieces);
+    void generateInfill(EFillMethod pattern, const Polygons& in_outline, const int outlineOffset, Polygons& result_polygons, Polygons& result_lines, Polygons* in_between, const bool avoidOverlappingPerimeters, const int extrusion_width, const int line_distance, const double infill_overlap, const double fill_angle, const bool connect_zigzags, const bool use_endPieces);
 
     void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
 
@@ -66,11 +69,11 @@ namespace cura
      *      and connect them using the even-odd rule
      * 
      */
-    void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
+    void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix);
     
-    void generateLineInfill_alt(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, ZigzagConnectorProcessor& zigzag_connector_processor, bool connect_zigzags);
+    void generateLineInfill_alt(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connect_zigzags);
 
-    void generateZigZagInfill(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connect_zigzags, bool use_endPieces);
+    void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connect_zigzags, const bool use_endPieces);
 
     /*!
      * adapted from generateLineInfill(.)

@@ -10,13 +10,13 @@ namespace cura
 class ZigzagConnectorProcessor 
 {
 protected:
-    PointMatrix& matrix;
+    const PointMatrix& matrix;
     Polygons& result;
 
     virtual ~ZigzagConnectorProcessor()
     {}
 public:
-    ZigzagConnectorProcessor(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
     : matrix(matrix)
     , result(result)
     {}
@@ -45,7 +45,7 @@ class ZigzagConnectorProcessorNoEndPieces : public ZigzagConnectorProcessor
     bool last_scanline_is_even; 
 
 public:
-    ZigzagConnectorProcessorNoEndPieces(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
     , is_first_zigzag_connector(true)
     , first_zigzag_connector_ends_in_even_scanline(true)
@@ -72,7 +72,7 @@ protected:
     bool last_scanline_is_even; 
 
 public:
-    ZigzagConnectorProcessorEndPieces(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessorEndPieces(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
     , last_connector_point(0,0)
     , is_first_zigzag_connector(true)
@@ -91,7 +91,7 @@ public:
 class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessorEndPieces
 {
 public:
-    ZigzagConnectorProcessorConnectedEndPieces(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessorConnectedEndPieces(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessorEndPieces(matrix, result)
     {
     }
@@ -103,7 +103,7 @@ class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProc
 {
 
 public:
-    ZigzagConnectorProcessorDisconnectedEndPieces(PointMatrix& matrix, Polygons& result)
+    ZigzagConnectorProcessorDisconnectedEndPieces(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessorEndPieces(matrix, result)
     {
     }
@@ -114,7 +114,7 @@ public:
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(PointMatrix& matrix, Polygons& result)
+    NoZigZagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
     {
     }
