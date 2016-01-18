@@ -42,7 +42,21 @@ namespace cura
  * - without endpieces
  * - with disconnected endpieces
  * - with connected endpieces
- * (Each of these has a base class for which ZigzagConnectorProcessor is an ancestor.)
+ * 
+ * Each of these has a base class for which ZigzagConnectorProcessor is an ancestor.
+ * The inheritance structure is as such:
+ *                                                                      ZigzagConnectorProcessor
+ *                                                                           /             \                                    .
+ *                                                                          /               \                                   .
+ *                                                  ActualZigzagConnectorProcessor      NoZigZagConnectorProcessor
+ *                                                         /                \             for lines infill                                      .
+ *                                                        /                  \                                                  .
+ *                          ZigzagConnectorProcessorEndPieces   ZigzagConnectorProcessorNoEndPieces
+ *                                     /            \                 for zigzag infill (without end pieces)                                                          .
+ *                                    /              \                                                                          .
+ * ZigzagConnectorProcessorConnectedEndPieces     ZigzagConnectorProcessorDisconnectedEndPieces
+ * for zigzag support with normal endpieces          for zigzag support with disconnected endpieces for more easy removability
+ * 
  * 
  *     <--
  *     ___
@@ -99,7 +113,6 @@ protected:
         line_poly.add(matrix.unapply(to));
     }
 
-public:
     /*!
      * Basic constructor. Inheriting children should call this constructor.
      */
@@ -115,21 +128,34 @@ public:
     virtual void registerPolyFinished() = 0;
 };
 
-class ZigzagConnectorProcessorNoEndPieces : public ZigzagConnectorProcessor
+/*!
+ * In contrast to NoZigZagConnectorProcessor
+ */
+class ActualZigzagConnectorProcessor : public ZigzagConnectorProcessor
 {
-    std::vector<Point> first_zigzag_connector;
+protected:
+    std::vector<Point> first_zigzag_connector; //!< 
     std::vector<Point> zigzag_connector;
 
     bool is_first_zigzag_connector;
     bool first_zigzag_connector_ends_in_even_scanline;
     bool last_scanline_is_even; 
 
-public:
-    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& matrix, Polygons& result)
+    ActualZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
     , is_first_zigzag_connector(true)
     , first_zigzag_connector_ends_in_even_scanline(true)
     , last_scanline_is_even(false) 
+    {
+    }
+};
+
+
+class ZigzagConnectorProcessorNoEndPieces : public ActualZigzagConnectorProcessor
+{
+public:
+    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& matrix, Polygons& result)
+    : ActualZigzagConnectorProcessor(matrix, result)
     {
     }
 
@@ -139,28 +165,18 @@ public:
     void registerPolyFinished();
 };
 
-class ZigzagConnectorProcessorEndPieces : public ZigzagConnectorProcessor
+class ZigzagConnectorProcessorEndPieces : public ActualZigzagConnectorProcessor
 {
 protected:
-    std::vector<Point> first_zigzag_connector;
-    std::vector<Point> zigzag_connector_starting_in_uneven_scanline;
-
     Point last_connector_point;
 
-    bool is_first_zigzag_connector;
-    bool first_zigzag_connector_ends_in_even_scanline;
-    bool last_scanline_is_even; 
-
-public:
     ZigzagConnectorProcessorEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
+    : ActualZigzagConnectorProcessor(matrix, result)
     , last_connector_point(0,0)
-    , is_first_zigzag_connector(true)
-    , first_zigzag_connector_ends_in_even_scanline(true)
-    , last_scanline_is_even(false) 
     {
     }
 
+public:
     void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
 };

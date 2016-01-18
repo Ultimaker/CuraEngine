@@ -39,7 +39,7 @@ void ZigzagConnectorProcessorEndPieces::registerVertex(const Point& vertex)
     }
     else
     {
-        zigzag_connector_starting_in_uneven_scanline.push_back(vertex);
+        zigzag_connector.push_back(vertex);
     }
     last_connector_point = vertex;
 }
@@ -99,19 +99,19 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         }
         else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an uneven boundary in an uneven segment
         { // add whole unevenBoundarySegment (including the just obtained point)
-            for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
             {
-                addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
             }
-            addLine(zigzag_connector_starting_in_uneven_scanline[zigzag_connector_starting_in_uneven_scanline.size() - 1], intersection);
-            zigzag_connector_starting_in_uneven_scanline.clear();
+            addLine(zigzag_connector[zigzag_connector.size() - 1], intersection);
+            zigzag_connector.clear();
         }
 
     }
-    zigzag_connector_starting_in_uneven_scanline.clear(); // we're starting a new (uneven) zigzag connector, so clear the old one
+    zigzag_connector.clear(); // we're starting a new (uneven) zigzag connector, so clear the old one
     if (!this_scanline_is_even)
     {
-        zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
+        zigzag_connector.push_back(intersection);
     }
         
     last_connector_point = intersection;
@@ -137,19 +137,19 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerScanlineSegmentInter
         }
         else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an uneven boundary in an uneven segment
         { // add whole unevenBoundarySegment (including the just obtained point)
-            for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+            for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
             {
-                addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+                addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
             }
             // skip the last segment to the [intersection]
-            zigzag_connector_starting_in_uneven_scanline.clear();
+            zigzag_connector.clear();
         }
         
     }
-    zigzag_connector_starting_in_uneven_scanline.clear(); // we're starting a new (uneven) zigzag connector, so clear the old one
+    zigzag_connector.clear(); // we're starting a new (uneven) zigzag connector, so clear the old one
     if (!this_scanline_is_even)
     {
-        zigzag_connector_starting_in_uneven_scanline.push_back(intersection);
+        zigzag_connector.push_back(intersection);
     }
 
     last_connector_point = intersection;
@@ -178,9 +178,9 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
     // write end segment if needed (first half of start/end-crossing segment)
     if (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
     {
-        for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+        for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
         {
-            addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+            addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
         }
     }
     // write begin segment if needed (second half of start/end-crossing segment)
@@ -196,7 +196,7 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerPolyFinished()
     first_zigzag_connector_ends_in_even_scanline = true;
     last_scanline_is_even = false; 
     first_zigzag_connector.clear();
-    zigzag_connector_starting_in_uneven_scanline.clear();
+    zigzag_connector.clear();
 }
 
 void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
@@ -204,9 +204,9 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
     // write end segment if needed (first half of start/end-crossing segment)
     if (!last_scanline_is_even && !first_zigzag_connector_ends_in_even_scanline)
     {
-        for (unsigned int point_idx = 1; point_idx < zigzag_connector_starting_in_uneven_scanline.size(); point_idx++)
+        for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
         {
-            addLine(zigzag_connector_starting_in_uneven_scanline[point_idx - 1], zigzag_connector_starting_in_uneven_scanline[point_idx]);
+            addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
         }
     }
     // write begin segment if needed (second half of start/end-crossing segment)
@@ -226,7 +226,7 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
     first_zigzag_connector_ends_in_even_scanline = true;
     last_scanline_is_even = false; 
     first_zigzag_connector.clear();
-    zigzag_connector_starting_in_uneven_scanline.clear();
+    zigzag_connector.clear();
 }
 
 
