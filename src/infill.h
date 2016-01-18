@@ -41,11 +41,8 @@ public:
     {
     }
     void generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between);
-private:
-        
-        
 
-    static void generateInfill(EFillMethod pattern, const Polygons& in_outline, const int outlineOffset, Polygons& result_polygons, Polygons& result_lines, Polygons* in_between, const bool avoidOverlappingPerimeters, const int extrusion_width, const int line_distance, const double infill_overlap, const double fill_angle, const bool connected_zigzags, const bool use_endPieces);
+private:
 
     static void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
 
@@ -55,6 +52,9 @@ private:
 
     static void generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
     
+    /*!
+     * Convert a mapping from scanline to line_segment-scanline-intersections (\p cutList) into line segments, using the even-odd rule
+     */
     static void addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int extrusionWidth);
 
     /*!
@@ -68,26 +68,31 @@ private:
      * 
      * algorithm:
      * 1) for each line segment of each polygon:
-     *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
-     *      (zigzag): add boundary segments to result
+     *      for each scanline crossing that line segment:
+     *          store the intersections of that line segment with the scanlines in a mapping (vector of vectors) from scanline to intersections
      * 2) for each scanline:
      *      sort the associated intersections 
-     *      and connect them using the even-odd rule
+     *      connect them using the even-odd rule and generate a line for each
      * 
      */
     static void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix);
     
+    /*!
+     * Function for creating linear based infill types (Lines, ZigZag).
+     * 
+     * This function implements the basic functionality of Infill::generateLineInfill (see doc of that function),
+     * but makes calls to a ZigzagConnectorProcessor which handles what to do with each line segment - scanline intersection.
+     * 
+     * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
+     */
     static void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
 
-    static void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces);
-
     /*!
-     * adapted from generateLineInfill(.)
      * 
      * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
      * idea:
-     * intersect a regular grid of 'scanlines' with the area inside [in_outline]
-     * sigzag:
+     * intersect a regular grid of 'scanlines' with the area inside [in_outline] (see generateLineInfill)
+     * zigzag:
      * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
      * 
      * we call the areas between two consecutive scanlines a 'scansegment'
@@ -109,6 +114,10 @@ private:
      *      if polygon intersects with even scanline again (instead of odd)
      *          dont add the last line segment to the boundary (unless [connected_zigzags])
      * 
+     * Note that ZigZag consists of 3 types:
+     * - without endpieces
+     * - with disconnected endpieces
+     * - with connected endpieces
      * 
      *     <--
      *     ___
@@ -118,21 +127,27 @@ private:
      *         -->
      * 
      *        ^ = even scanline
+     *  ^            ^ no endpieces
      * 
      * start boundary from even scanline! :D
      * 
      * 
      *          _____
-     *   |     |     | ,
+     *   |     |     |  \                     .
      *   |     |     |  |
      *   |_____|     |__/
      * 
      *   ^     ^     ^    scanlines
-     *                 ^  disconnected end piece
+     *                 ^  disconnected end piece: leave out last line segment
+     *          ________
+     *   |     |     |  \                      .
+     *   |     |     |  |
+     *   |_____|     |__/                       .
+     * 
+     *   ^     ^     ^    scanlines
+     *                 ^  connected end piece
      */
-    static void generateZigZagIninfill_endPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation, bool connected_zigzags);
-    static void generateZigZagIninfill_noEndPieces(const Polygons& in_outline, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
-    
+    static void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces);
 };
 
 }//namespace cura
