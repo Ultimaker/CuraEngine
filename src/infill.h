@@ -17,7 +17,7 @@ class Infill
     const Polygons& in_outline;
     int outlineOffset;
     bool avoidOverlappingPerimeters;
-    int extrusion_width;
+    int infill_line_width;
     int line_distance;
     double infill_overlap;
     double fill_angle;
@@ -26,12 +26,12 @@ class Infill
     bool use_endPieces;
 
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outlineOffset, bool avoidOverlappingPerimeters, int extrusion_width, int line_distance, double infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endPieces = false)
+    Infill(EFillMethod pattern, const Polygons& in_outline, int outlineOffset, bool avoidOverlappingPerimeters, int infill_line_width, int line_distance, double infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endPieces = false)
     : pattern(pattern)
     , in_outline(in_outline)
     , outlineOffset(outlineOffset)
     , avoidOverlappingPerimeters(avoidOverlappingPerimeters)
-    , extrusion_width(extrusion_width)
+    , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
     , fill_angle(fill_angle)
@@ -46,16 +46,16 @@ private:
 
     static void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
 
-    static void generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int extrusionWidth, bool avoidOverlappingPerimeters);
+    static void generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int infill_line_width, bool avoidOverlappingPerimeters);
 
-    static void generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
+    static void generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int infill_line_width, int lineSpacing, double infillOverlap, double rotation);
 
-    static void generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, double rotation);
+    static void generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int infill_line_width, int lineSpacing, double infillOverlap, double rotation);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cutList) into line segments, using the even-odd rule
      */
-    static void addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int extrusionWidth);
+    static void addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int infill_line_width);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p lineSpacing
@@ -75,7 +75,7 @@ private:
      *      connect them using the even-odd rule and generate a line for each
      * 
      */
-    static void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix);
+    static void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int infill_line_width, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -85,7 +85,7 @@ private:
      * 
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      */
-    static void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
+    static void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
 
     /*!
      * 
@@ -147,7 +147,7 @@ private:
      *   ^     ^     ^    scanlines
      *                 ^  connected end piece
      */
-    static void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces);
+    static void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces);
 };
 
 }//namespace cura

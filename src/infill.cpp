@@ -15,20 +15,20 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     switch(pattern)
     {
     case EFillMethod::GRID:
-        generateGridInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 2, infill_overlap, fill_angle);
+        generateGridInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance * 2, infill_overlap, fill_angle);
         break;
     case EFillMethod::LINES:
-        generateLineInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle);
+        generateLineInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance, infill_overlap, fill_angle);
         break;
     case EFillMethod::TRIANGLES:
-        generateTriangleInfill(in_outline, outlineOffset, result_lines, extrusion_width, line_distance * 3, infill_overlap, fill_angle);
+        generateTriangleInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance * 3, infill_overlap, fill_angle);
         break;
     case EFillMethod::CONCENTRIC:
-        PolygonUtils::offsetSafe(in_outline, outlineOffset - extrusion_width / 2, extrusion_width, outline_offsetted, false); // - extrusion_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
+        PolygonUtils::offsetSafe(in_outline, outlineOffset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
         outline = &outline_offsetted;
-        if (abs(extrusion_width - line_distance) < 10)
+        if (abs(infill_line_width - line_distance) < 10)
         {
-            generateConcentricInfillDense(*outline, result_polygons, in_between, extrusion_width, avoidOverlappingPerimeters);
+            generateConcentricInfillDense(*outline, result_polygons, in_between, infill_line_width, avoidOverlappingPerimeters);
         }
         else 
         {
@@ -38,10 +38,10 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     case EFillMethod::ZIG_ZAG:
         if (outlineOffset != 0)
         {
-            PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
+            PolygonUtils::offsetSafe(in_outline, outlineOffset, infill_line_width, outline_offsetted, avoidOverlappingPerimeters);
             outline = &outline_offsetted;
         }
-        generateZigZagInfill(*outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connected_zigzags, use_endPieces);
+        generateZigZagInfill(*outline, result_lines, infill_line_width, line_distance, infill_overlap, fill_angle, connected_zigzags, use_endPieces);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -51,7 +51,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
 
     
       
-void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int extrusionWidth, bool avoidOverlappingPerimeters)
+void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int infill_line_width, bool avoidOverlappingPerimeters)
 {
     while(outline.size() > 0)
     {
@@ -61,7 +61,7 @@ void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, P
             result.add(r);
         }
         Polygons next_outline;
-        PolygonUtils::offsetExtrusionWidth(outline, true, extrusionWidth, next_outline, in_between, avoidOverlappingPerimeters);
+        PolygonUtils::offsetExtrusionWidth(outline, true, infill_line_width, next_outline, in_between, avoidOverlappingPerimeters);
         outline = next_outline;
     } 
 
@@ -82,28 +82,28 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 
 
 void Infill::generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int extrusionWidth, int lineSpacing, double infillOverlap,
+                        int infill_line_width, int lineSpacing, double infillOverlap,
                         double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
                        infillOverlap, rotation);
-    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
                        infillOverlap, rotation + 90);
 }
 
 void Infill::generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int extrusionWidth, int lineSpacing, double infillOverlap,
+                        int infill_line_width, int lineSpacing, double infillOverlap,
                         double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
                        infillOverlap, rotation);
-    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
                        infillOverlap, rotation + 60);
-    generateLineInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing,
+    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
                        infillOverlap, rotation + 120);
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int extrusionWidth)
+void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int infill_line_width)
 {
     auto addLine = [&](Point from, Point to)
     {            
@@ -132,7 +132,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
         qsort(cutList[scanline_idx].data(), cutList[scanline_idx].size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int i = 0; i + 1 < cutList[scanline_idx].size(); i += 2)
         {
-            if (cutList[scanline_idx][i+1] - cutList[scanline_idx][i] < extrusionWidth / 5)
+            if (cutList[scanline_idx][i+1] - cutList[scanline_idx][i] < infill_line_width / 5)
             {
                 continue;
             }
@@ -142,41 +142,41 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     }
 }
 
-void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix)
+void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int infill_line_width, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix)
 {
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, lines_processor, connected_zigzags);
+    generateLinearBasedInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
-void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces)
+void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces)
 {
     
     if (use_endPieces)
     {
-        // return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connected_zigzags);
+        // return generateZigZagIninfill_endPieces(in_outline, result, infill_line_width, lineSpacing, infillOverlap, rotation, connected_zigzags);
         if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
-        // return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
+        // return generateZigZagIninfill_noEndPieces(in_outline, result, infill_line_width, lineSpacing, infillOverlap, rotation);
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+        generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
 
-void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
+void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (lineSpacing == 0)
     {
@@ -187,7 +187,7 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
         return;
     }
     
-    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(extrusionWidth * infillOverlap / 100);
+    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(infill_line_width * infillOverlap / 100);
     if (outline.size() == 0)
     {
         return;
@@ -238,7 +238,7 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
                 scanline_idx0 += 1; // only consider the scanlines in between the scansegments
             }
             
-            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1+direction; scanline_idx+=direction)
+            for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
                 int x = scanline_idx * lineSpacing;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
@@ -261,7 +261,7 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
         return;  // don't add connection if boundary already contains whole outline!
     }
 
-    addLineInfill(result, rotation_matrix, scanline_min_idx, lineSpacing, boundary, cutList, extrusionWidth);
+    addLineInfill(result, rotation_matrix, scanline_min_idx, lineSpacing, boundary, cutList, infill_line_width);
 }
 
 }//namespace cura
