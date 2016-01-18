@@ -42,7 +42,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
             PolygonUtils::offsetSafe(in_outline, outlineOffset, extrusion_width, outline_offsetted, avoidOverlappingPerimeters);
             outline = &outline_offsetted;
         }
-        generateZigZagInfill(*outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connect_zigzags, use_endPieces);
+        generateZigZagInfill(*outline, result_lines, extrusion_width, line_distance, infill_overlap, fill_angle, connected_zigzags, use_endPieces);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -146,37 +146,38 @@ void addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanli
 void generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int extrusionWidth, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix)
 {
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
-    generateLinearBasedInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, lines_processor, false);
+    bool connected_zigzags = false;
+    generateLinearBasedInfill(in_outline, outlineOffset, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
-void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connect_zigzags, const bool use_endPieces)
+void generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces)
 {
     
     if (use_endPieces)
     {
-        // return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connect_zigzags);
-        if (connect_zigzags)
+        // return generateZigZagIninfill_endPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation, connected_zigzags);
+        if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connect_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connect_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
         // return generateZigZagIninfill_noEndPieces(in_outline, result, extrusionWidth, lineSpacing, infillOverlap, rotation);
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connect_zigzags);
+        generateLinearBasedInfill(in_outline, 0, result, extrusionWidth, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
 
-void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connect_zigzags)
+void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int extrusionWidth, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (lineSpacing == 0)
     {
@@ -255,7 +256,7 @@ void generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffs
     {
         return;
     }
-    if (connect_zigzags && cutList.size() == 1 && cutList[0].size() <= 2)
+    if (connected_zigzags && cutList.size() == 1 && cutList[0].size() <= 2)
     {
         return;  // don't add connection if boundary already contains whole outline!
     }
