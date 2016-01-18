@@ -122,7 +122,6 @@ protected:
     {}
 public:
 
-    virtual void registerPolyStart(const Point& vertex) = 0;
     virtual void registerVertex(const Point& vertex) = 0;
     virtual void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even) = 0;
     virtual void registerPolyFinished() = 0;
@@ -159,7 +158,6 @@ public:
     {
     }
 
-    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();
@@ -177,7 +175,6 @@ protected:
     }
 
 public:
-    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
 };
 
@@ -213,7 +210,6 @@ public:
     {
     }
 
-    void registerPolyStart(const Point& vertex);
     void registerVertex(const Point& vertex);
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
     void registerPolyFinished();

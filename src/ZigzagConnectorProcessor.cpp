@@ -5,16 +5,6 @@
 namespace cura 
 {
 
-void ZigzagConnectorProcessorNoEndPieces::registerPolyStart(const Point& vertex)
-{
-
-}
-
-void ZigzagConnectorProcessorEndPieces::registerPolyStart(const Point& vertex)
-{
-    last_connector_point = vertex;
-}
-
 void ZigzagConnectorProcessorNoEndPieces::registerVertex(const Point& vertex)
 {
     if (is_first_zigzag_connector)
@@ -230,11 +220,6 @@ void ZigzagConnectorProcessorDisconnectedEndPieces::registerPolyFinished()
 }
 
 
-
-void NoZigZagConnectorProcessor::registerPolyStart(const Point& vertex)
-{
-
-}
 
 void NoZigZagConnectorProcessor::registerVertex(const Point& vertex)
 {
