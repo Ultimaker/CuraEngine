@@ -15,13 +15,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     switch(pattern)
     {
     case EFillMethod::GRID:
-        generateGridInfill(result_lines, line_distance * 2, fill_angle);
+        generateGridInfill(result_lines);
         break;
     case EFillMethod::LINES:
         generateLineInfill(result_lines, line_distance, fill_angle);
         break;
     case EFillMethod::TRIANGLES:
-        generateTriangleInfill(result_lines, line_distance * 3, fill_angle);
+        generateTriangleInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
         PolygonUtils::offsetSafe(in_outline, outline_offset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
@@ -81,17 +81,17 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 }
 
 
-void Infill::generateGridInfill(Polygons& result, int line_distance, double rotation)
+void Infill::generateGridInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance, rotation);
-    generateLineInfill(result, line_distance, rotation + 90);
+    generateLineInfill(result, line_distance * 2, fill_angle);
+    generateLineInfill(result, line_distance * 2, fill_angle + 90);
 }
 
-void Infill::generateTriangleInfill(Polygons& result, int line_distance, double rotation)
+void Infill::generateTriangleInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance, rotation);
-    generateLineInfill(result, line_distance, rotation + 60);
-    generateLineInfill(result, line_distance, rotation + 120);
+    generateLineInfill(result, line_distance * 3, fill_angle);
+    generateLineInfill(result, line_distance * 3, fill_angle + 60);
+    generateLineInfill(result, line_distance * 3, fill_angle + 120);
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)

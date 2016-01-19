@@ -70,18 +70,14 @@ private:
     /*!
      * Generate a rectangular grid of infill lines
      * \param result (output) The resulting lines
-     * \param line_distance The distance between two lines which are in the same direction
-     * \param fill_angle The angle of the generated lines
      */
-    void generateGridInfill(Polygons& result, int line_distance, double fill_angle);
+    void generateGridInfill(Polygons& result);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param result (output) The resulting lines
-     * \param line_distance The distance between two lines which are in the same direction
-     * \param fill_angle The angle of the generated lines
      */
-    void generateTriangleInfill(Polygons& result, int line_distance, double fill_angle);
+    void generateTriangleInfill(Polygons& result);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
