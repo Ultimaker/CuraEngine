@@ -15,13 +15,13 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     switch(pattern)
     {
     case EFillMethod::GRID:
-        generateGridInfill(in_outline, outlineOffset, result_lines, line_distance * 2, fill_angle);
+        generateGridInfill(result_lines, line_distance * 2, fill_angle);
         break;
     case EFillMethod::LINES:
-        generateLineInfill(in_outline, outlineOffset, result_lines, line_distance, fill_angle);
+        generateLineInfill(result_lines, line_distance, fill_angle);
         break;
     case EFillMethod::TRIANGLES:
-        generateTriangleInfill(in_outline, outlineOffset, result_lines, line_distance * 3, fill_angle);
+        generateTriangleInfill(result_lines, line_distance * 3, fill_angle);
         break;
     case EFillMethod::CONCENTRIC:
         PolygonUtils::offsetSafe(in_outline, outlineOffset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
@@ -81,26 +81,17 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 }
 
 
-void Infill::generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int lineSpacing,
-                        double rotation)
+void Infill::generateGridInfill(Polygons& result, int lineSpacing, double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
-                       rotation);
-    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
-                       rotation + 90);
+    generateLineInfill(result, lineSpacing, rotation);
+    generateLineInfill(result, lineSpacing, rotation + 90);
 }
 
-void Infill::generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int lineSpacing,
-                        double rotation)
+void Infill::generateTriangleInfill(Polygons& result, int lineSpacing, double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
-                       rotation);
-    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
-                       rotation + 60);
-    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
-                       rotation + 120);
+    generateLineInfill(result, lineSpacing, rotation);
+    generateLineInfill(result, lineSpacing, rotation + 60);
+    generateLineInfill(result, lineSpacing, rotation + 120);
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList)
@@ -143,12 +134,12 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     }
 }
 
-void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int lineSpacing, const double& fill_angle)
+void Infill::generateLineInfill(Polygons& result, int lineSpacing, const double& fill_angle)
 {
     PointMatrix rotation_matrix(fill_angle);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(in_outline, outlineOffset, result, lineSpacing, rotation_matrix, lines_processor, connected_zigzags);
+    generateLinearBasedInfill(outlineOffset, result, lineSpacing, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
@@ -160,23 +151,23 @@ void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, 
         if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+        generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
 
-void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int lineSpacing, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
+void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result, const int lineSpacing, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (lineSpacing == 0)
     {
