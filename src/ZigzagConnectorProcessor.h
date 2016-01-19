@@ -13,7 +13,7 @@ namespace cura
  * During the creation of the infill lines, calls are made to a ZigzagConnectorProcessor so that the zigzag connector segments are created 
  * at the same time as the lines are created.
  *
- * generate lines within the area of [in_outline], at regular intervals of [lineSpacing]
+ * generate lines within the area of [in_outline], at regular intervals of [line_distance]
  *  idea:
  * intersect a regular grid of 'scanlines' with the area inside [in_outline] (see generateLineInfill)
  * zigzag:

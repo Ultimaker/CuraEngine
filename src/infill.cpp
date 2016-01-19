@@ -24,11 +24,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
         generateTriangleInfill(result_lines, line_distance * 3, fill_angle);
         break;
     case EFillMethod::CONCENTRIC:
-        PolygonUtils::offsetSafe(in_outline, outlineOffset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
+        PolygonUtils::offsetSafe(in_outline, outline_offset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
         outline = &outline_offsetted;
         if (abs(infill_line_width - line_distance) < 10)
         {
-            generateConcentricInfillDense(*outline, result_polygons, in_between, avoidOverlappingPerimeters);
+            generateConcentricInfillDense(*outline, result_polygons, in_between, remove_overlapping_perimeters);
         }
         else 
         {
@@ -36,12 +36,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
         }
         break;
     case EFillMethod::ZIG_ZAG:
-        if (outlineOffset != 0)
+        if (outline_offset != 0)
         {
-            PolygonUtils::offsetSafe(in_outline, outlineOffset, infill_line_width, outline_offsetted, avoidOverlappingPerimeters);
+            PolygonUtils::offsetSafe(in_outline, outline_offset, infill_line_width, outline_offsetted, remove_overlapping_perimeters);
             outline = &outline_offsetted;
         }
-        generateZigZagInfill(*outline, result_lines, line_distance, fill_angle, connected_zigzags, use_endPieces);
+        generateZigZagInfill(*outline, result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -81,20 +81,20 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 }
 
 
-void Infill::generateGridInfill(Polygons& result, int lineSpacing, double rotation)
+void Infill::generateGridInfill(Polygons& result, int line_distance, double rotation)
 {
-    generateLineInfill(result, lineSpacing, rotation);
-    generateLineInfill(result, lineSpacing, rotation + 90);
+    generateLineInfill(result, line_distance, rotation);
+    generateLineInfill(result, line_distance, rotation + 90);
 }
 
-void Infill::generateTriangleInfill(Polygons& result, int lineSpacing, double rotation)
+void Infill::generateTriangleInfill(Polygons& result, int line_distance, double rotation)
 {
-    generateLineInfill(result, lineSpacing, rotation);
-    generateLineInfill(result, lineSpacing, rotation + 60);
-    generateLineInfill(result, lineSpacing, rotation + 120);
+    generateLineInfill(result, line_distance, rotation);
+    generateLineInfill(result, line_distance, rotation + 60);
+    generateLineInfill(result, line_distance, rotation + 120);
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList)
+void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
 {
     auto addLine = [&](Point from, Point to)
     {            
@@ -118,9 +118,9 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     };
     
     int scanline_idx = 0;
-    for(int64_t x = scanline_min_idx * lineSpacing; x < boundary.max.X; x += lineSpacing)
+    for(int64_t x = scanline_min_idx * line_distance; x < boundary.max.X; x += line_distance)
     {
-        std::vector<int64_t>& crossings = cutList[scanline_idx];
+        std::vector<int64_t>& crossings = cut_list[scanline_idx];
         qsort(crossings.data(), crossings.size(), sizeof(int64_t), compare_int64_t);
         for(unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
@@ -134,42 +134,42 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     }
 }
 
-void Infill::generateLineInfill(Polygons& result, int lineSpacing, const double& fill_angle)
+void Infill::generateLineInfill(Polygons& result, int line_distance, const double& fill_angle)
 {
     PointMatrix rotation_matrix(fill_angle);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(outlineOffset, result, lineSpacing, rotation_matrix, lines_processor, connected_zigzags);
+    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
-void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int lineSpacing, const double& fill_angle, const bool connected_zigzags, const bool use_endPieces)
+void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces)
 {
     PointMatrix rotation_matrix(fill_angle);
-    if (use_endPieces)
+    if (use_endpieces)
     {
         if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(0, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(0, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
+        generateLinearBasedInfill(0, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
 
-void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result, const int lineSpacing, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
+void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
-    if (lineSpacing == 0)
+    if (line_distance == 0)
     {
         return;
     }
@@ -178,7 +178,7 @@ void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result
         return;
     }
     
-    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(infill_line_width * infill_overlap / 100);
+    Polygons outline = ((outline_offset)? in_outline.offset(outline_offset) : in_outline).offset(infill_line_width * infill_overlap / 100);
     if (outline.size() == 0)
     {
         return;
@@ -189,14 +189,14 @@ void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result
     
     AABB boundary(outline);
     
-    int scanline_min_idx = boundary.min.X / lineSpacing;
-    int lineCount = (boundary.max.X + (lineSpacing - 1)) / lineSpacing - scanline_min_idx;
+    int scanline_min_idx = boundary.min.X / line_distance;
+    int lineCount = (boundary.max.X + (line_distance - 1)) / line_distance - scanline_min_idx;
   
-    std::vector<std::vector<int64_t> > cutList; // mapping from scanline to all intersections with polygon segments
+    std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
     
     for(int scanline_idx = 0; scanline_idx < lineCount; scanline_idx++)
     {
-        cutList.push_back(std::vector<int64_t>());
+        cut_list.push_back(std::vector<int64_t>());
     }
     
     for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
@@ -216,8 +216,8 @@ void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result
                 continue; 
             }
             
-            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
-            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
+            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -line_distance)) / line_distance; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
+            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -line_distance)) / line_distance; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
             // this way of handling the indices takes care of the case where a boundary line segment ends exactly on a scanline:
             // in case the next segment moves back from that scanline either 2 or 0 scanline-boundary intersections are created
             // otherwise only 1 will be created, counting as an actual intersection
@@ -234,9 +234,9 @@ void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result
             
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
-                int x = scanline_idx * lineSpacing;
+                int x = scanline_idx * line_distance;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
-                cutList[scanline_idx - scanline_min_idx].push_back(y);
+                cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx % 2 == 0);
             }
@@ -246,16 +246,16 @@ void Infill::generateLinearBasedInfill(const int outlineOffset, Polygons& result
         zigzag_connector_processor.registerPolyFinished();
     }
 
-    if (cutList.size() == 0)
+    if (cut_list.size() == 0)
     {
         return;
     }
-    if (connected_zigzags && cutList.size() == 1 && cutList[0].size() <= 2)
+    if (connected_zigzags && cut_list.size() == 1 && cut_list[0].size() <= 2)
     {
         return;  // don't add connection if boundary already contains whole outline!
     }
 
-    addLineInfill(result, rotation_matrix, scanline_min_idx, lineSpacing, boundary, cutList);
+    addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list);
 }
 
 }//namespace cura
