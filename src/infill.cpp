@@ -129,14 +129,15 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     int scanline_idx = 0;
     for(int64_t x = scanline_min_idx * lineSpacing; x < boundary.max.X; x += lineSpacing)
     {
-        qsort(cutList[scanline_idx].data(), cutList[scanline_idx].size(), sizeof(int64_t), compare_int64_t);
-        for(unsigned int i = 0; i + 1 < cutList[scanline_idx].size(); i += 2)
+        std::vector<int64_t>& crossings = cutList[scanline_idx];
+        qsort(crossings.data(), crossings.size(), sizeof(int64_t), compare_int64_t);
+        for(unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
-            if (cutList[scanline_idx][i+1] - cutList[scanline_idx][i] < infill_line_width / 5)
-            {
+            if (crossings[crossing_idx + 1] - crossings[crossing_idx] < infill_line_width / 5)
+            { // segment is too short to create infill
                 continue;
             }
-            addLine(Point(x, cutList[scanline_idx][i]), Point(x, cutList[scanline_idx][i+1]));
+            addLine(Point(x, crossings[crossing_idx]), Point(x, crossings[crossing_idx + 1]));
         }
         scanline_idx += 1;
     }
