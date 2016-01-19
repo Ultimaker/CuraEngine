@@ -189,11 +189,11 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     AABB boundary(outline);
 
     int scanline_min_idx = boundary.min.X / line_distance;
-    int lineCount = (boundary.max.X + (line_distance - 1)) / line_distance - scanline_min_idx;
+    int line_count = (boundary.max.X + (line_distance - 1)) / line_distance - scanline_min_idx;
 
     std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
 
-    for(int scanline_idx = 0; scanline_idx < lineCount; scanline_idx++)
+    for(int scanline_idx = 0; scanline_idx < line_count; scanline_idx++)
     {
         cut_list.push_back(std::vector<int64_t>());
     }
