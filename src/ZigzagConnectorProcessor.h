@@ -57,13 +57,14 @@ namespace cura
  * ZigzagConnectorProcessorConnectedEndPieces     ZigzagConnectorProcessorDisconnectedEndPieces
  * for zigzag support with normal endpieces          for zigzag support with disconnected endpieces for more easy removability
  * 
- * 
+ *      v   v   zigzag connectors
  *     <--
- *     ___
+ *    :___:   :      < scanlines
  *    |   |   |
- *    |   |   |
+ *    |   |   |      < infill lines along scanlines
  *    |   |___|
- *         -->
+ *    :   :   :
+ *         -->       winding order of polygon
  * 
  *        ^ = even scanline
  *  ^            ^ no endpieces
@@ -115,6 +116,9 @@ protected:
 
     /*!
      * Basic constructor. Inheriting children should call this constructor.
+     * 
+     * \param matrix The rotation matrix used to enforce the infill angle
+     * \param result The resulting line segments (Each line segment is a Polygon with 2 points)
      */
     ZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
     : matrix(matrix)
@@ -122,8 +126,24 @@ protected:
     {}
 public:
 
+    /*!
+     * Handle the next vertex on the outer boundary.
+     * \param vertex The vertex
+     */
     virtual void registerVertex(const Point& vertex) = 0;
+    
+    /*!
+     * Handle the next intersection between a scanline and the outer boundary.
+     * 
+     * \param intersection The intersection
+     * \param scanline_is_even Whether the scanline was even
+     */
     virtual void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even) = 0;
+    
+    /*!
+     * Handle the end of a polygon and prepare for the next.
+     * This function should reset all member variables.
+     */
     virtual void registerPolyFinished() = 0;
 };
 
@@ -133,12 +153,21 @@ public:
 class ActualZigzagConnectorProcessor : public ZigzagConnectorProcessor
 {
 protected:
-    std::vector<Point> first_zigzag_connector; //!< 
-    std::vector<Point> zigzag_connector;
+    /*!
+     * The line segments belonging the zigzag connector to which the very first vertex belongs. 
+     * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
+     * 
+     * Because the boundary polygon may start in in the middle of a zigzag connector, 
+     */
+    std::vector<Point> first_zigzag_connector; 
+    /*!
+     * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
+     */
+    std::vector<Point> zigzag_connector; 
 
-    bool is_first_zigzag_connector;
-    bool first_zigzag_connector_ends_in_even_scanline;
-    bool last_scanline_is_even; 
+    bool is_first_zigzag_connector; //!< Whether we're still in the first zigzag connector
+    bool first_zigzag_connector_ends_in_even_scanline; //!< Whether the first zigzag connector ends in an even scanline
+    bool last_scanline_is_even;  //!< Whether the last seen scanline-boundary intersection was with an even scanline
 
     ActualZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
     : ZigzagConnectorProcessor(matrix, result)
@@ -166,7 +195,7 @@ public:
 class ZigzagConnectorProcessorEndPieces : public ActualZigzagConnectorProcessor
 {
 protected:
-    Point last_connector_point;
+    Point last_connector_point; //!< last registered boundary vertex or scanline-coundary intersection
 
     ZigzagConnectorProcessorEndPieces(const PointMatrix& matrix, Polygons& result)
     : ActualZigzagConnectorProcessor(matrix, result)

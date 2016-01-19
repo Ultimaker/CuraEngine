@@ -152,7 +152,6 @@ void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, P
 
 void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces)
 {
-    
     if (use_endPieces)
     {
         // return generateZigZagIninfill_endPieces(in_outline, result, infill_line_width, lineSpacing, infillOverlap, rotation, connected_zigzags);
@@ -227,6 +226,9 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
             
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
             int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -lineSpacing)) / lineSpacing; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
+            // this way of handling the indices takes care of the case where a boundary line segment ends exactly on a scanline:
+            // in case the next segment moves back from that scanline either 2 or 0 scanline-boundary intersections are created
+            // otherwise only 1 will be created, counting as an actual intersection
             int direction = 1;
             if (p0.X > p1.X) 
             { 
