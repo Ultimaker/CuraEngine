@@ -15,20 +15,20 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     switch(pattern)
     {
     case EFillMethod::GRID:
-        generateGridInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance * 2, infill_overlap, fill_angle);
+        generateGridInfill(in_outline, outlineOffset, result_lines, line_distance * 2, fill_angle);
         break;
     case EFillMethod::LINES:
-        generateLineInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance, infill_overlap, fill_angle);
+        generateLineInfill(in_outline, outlineOffset, result_lines, line_distance, fill_angle);
         break;
     case EFillMethod::TRIANGLES:
-        generateTriangleInfill(in_outline, outlineOffset, result_lines, infill_line_width, line_distance * 3, infill_overlap, fill_angle);
+        generateTriangleInfill(in_outline, outlineOffset, result_lines, line_distance * 3, fill_angle);
         break;
     case EFillMethod::CONCENTRIC:
         PolygonUtils::offsetSafe(in_outline, outlineOffset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
         outline = &outline_offsetted;
         if (abs(infill_line_width - line_distance) < 10)
         {
-            generateConcentricInfillDense(*outline, result_polygons, in_between, infill_line_width, avoidOverlappingPerimeters);
+            generateConcentricInfillDense(*outline, result_polygons, in_between, avoidOverlappingPerimeters);
         }
         else 
         {
@@ -41,7 +41,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
             PolygonUtils::offsetSafe(in_outline, outlineOffset, infill_line_width, outline_offsetted, avoidOverlappingPerimeters);
             outline = &outline_offsetted;
         }
-        generateZigZagInfill(*outline, result_lines, infill_line_width, line_distance, infill_overlap, fill_angle, connected_zigzags, use_endPieces);
+        generateZigZagInfill(*outline, result_lines, line_distance, fill_angle, connected_zigzags, use_endPieces);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -51,7 +51,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
 
     
       
-void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, int infill_line_width, bool avoidOverlappingPerimeters)
+void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
 {
     while(outline.size() > 0)
     {
@@ -82,28 +82,28 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 
 
 void Infill::generateGridInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int infill_line_width, int lineSpacing, double infillOverlap,
+                        int lineSpacing,
                         double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
-                       infillOverlap, rotation);
-    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
-                       infillOverlap, rotation + 90);
+    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
+                       rotation);
+    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
+                       rotation + 90);
 }
 
 void Infill::generateTriangleInfill(const Polygons& in_outline, int outlineOffset, Polygons& result,
-                        int infill_line_width, int lineSpacing, double infillOverlap,
+                        int lineSpacing,
                         double rotation)
 {
-    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
-                       infillOverlap, rotation);
-    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
-                       infillOverlap, rotation + 60);
-    generateLineInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing,
-                       infillOverlap, rotation + 120);
+    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
+                       rotation);
+    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
+                       rotation + 60);
+    generateLineInfill(in_outline, outlineOffset, result, lineSpacing,
+                       rotation + 120);
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList, const int infill_line_width)
+void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int lineSpacing, const AABB boundary, std::vector<std::vector<int64_t>>& cutList)
 {
     auto addLine = [&](Point from, Point to)
     {            
@@ -143,40 +143,40 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
     }
 }
 
-void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int infill_line_width, int lineSpacing, double infillOverlap, const PointMatrix& rotation_matrix)
+void Infill::generateLineInfill(const Polygons& in_outline, int outlineOffset, Polygons& result, int lineSpacing, const double& fill_angle)
 {
+    PointMatrix rotation_matrix(fill_angle);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(in_outline, outlineOffset, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, lines_processor, connected_zigzags);
+    generateLinearBasedInfill(in_outline, outlineOffset, result, lineSpacing, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
-void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, const bool connected_zigzags, const bool use_endPieces)
+void Infill::generateZigZagInfill(const Polygons& in_outline, Polygons& result, const int lineSpacing, const double& fill_angle, const bool connected_zigzags, const bool use_endPieces)
 {
+    PointMatrix rotation_matrix(fill_angle);
     if (use_endPieces)
     {
-        // return generateZigZagIninfill_endPieces(in_outline, result, infill_line_width, lineSpacing, infillOverlap, rotation, connected_zigzags);
         if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
-        // return generateZigZagIninfill_noEndPieces(in_outline, result, infill_line_width, lineSpacing, infillOverlap, rotation);
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(in_outline, 0, result, infill_line_width, lineSpacing, infillOverlap, rotation_matrix, zigzag_processor, connected_zigzags);
+        generateLinearBasedInfill(in_outline, 0, result, lineSpacing, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
 
-void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int infill_line_width, const int lineSpacing, const double infillOverlap, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
+void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int outlineOffset, Polygons& result, const int lineSpacing, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (lineSpacing == 0)
     {
@@ -187,7 +187,7 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
         return;
     }
     
-    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(infill_line_width * infillOverlap / 100);
+    Polygons outline = ((outlineOffset)? in_outline.offset(outlineOffset) : in_outline).offset(infill_line_width * infill_overlap / 100);
     if (outline.size() == 0)
     {
         return;
@@ -264,7 +264,7 @@ void Infill::generateLinearBasedInfill(const Polygons& in_outline, const int out
         return;  // don't add connection if boundary already contains whole outline!
     }
 
-    addLineInfill(result, rotation_matrix, scanline_min_idx, lineSpacing, boundary, cutList, infill_line_width);
+    addLineInfill(result, rotation_matrix, scanline_min_idx, lineSpacing, boundary, cutList);
 }
 
 }//namespace cura
