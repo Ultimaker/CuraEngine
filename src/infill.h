@@ -175,20 +175,22 @@ private:
      * start boundary from even scanline! :D
      * 
      * 
+     *                 v  disconnected end piece: leave out last line segment
      *          _____
      *   |     |     |  \                     .
      *   |     |     |  |
      *   |_____|     |__/
      * 
      *   ^     ^     ^    scanlines
-     *                 ^  disconnected end piece: leave out last line segment
+     * 
+     * 
+     *                 v  connected end piece
      *          ________
      *   |     |     |  \                      .
      *   |     |     |  |
      *   |_____|     |__/                       .
      * 
      *   ^     ^     ^    scanlines
-     *                 ^  connected end piece
      * 
      * \param in_outline The actual outline in which to generate infill
      * \param result (output) The resulting lines

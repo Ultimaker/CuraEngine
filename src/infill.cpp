@@ -30,7 +30,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
         {
             generateConcentricInfillDense(*outline, result_polygons, in_between, remove_overlapping_perimeters);
         }
-        else 
+        else
         {
             generateConcentricInfill(*outline, result_polygons, line_distance);
         }
@@ -49,8 +49,8 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     }
 }
 
-    
-      
+
+
 void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
 {
     while(outline.size() > 0)
@@ -63,7 +63,7 @@ void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, P
         Polygons next_outline;
         PolygonUtils::offsetExtrusionWidth(outline, true, infill_line_width, next_outline, in_between, avoidOverlappingPerimeters);
         outline = next_outline;
-    } 
+    }
 
 }
 
@@ -97,12 +97,12 @@ void Infill::generateTriangleInfill(Polygons& result)
 void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
 {
     auto addLine = [&](Point from, Point to)
-    {            
+    {
         PolygonRef p = result.newPoly();
         p.add(matrix.unapply(from));
         p.add(matrix.unapply(to));
     };
-    
+
     auto compare_int64_t = [](const void* a, const void* b)
     {
         int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
@@ -116,7 +116,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const in
         }
         return 0;
     };
-    
+
     int scanline_idx = 0;
     for(int64_t x = scanline_min_idx * line_distance; x < boundary.max.X; x += line_distance)
     {
@@ -177,28 +177,27 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     {
         return;
     }
-    
+
     Polygons outline = ((outline_offset)? in_outline.offset(outline_offset) : in_outline).offset(infill_line_width * infill_overlap / 100);
     if (outline.size() == 0)
     {
         return;
     }
-    
+
     outline.applyMatrix(rotation_matrix);
 
-    
     AABB boundary(outline);
-    
+
     int scanline_min_idx = boundary.min.X / line_distance;
     int lineCount = (boundary.max.X + (line_distance - 1)) / line_distance - scanline_min_idx;
-  
+
     std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
-    
+
     for(int scanline_idx = 0; scanline_idx < lineCount; scanline_idx++)
     {
         cut_list.push_back(std::vector<int64_t>());
     }
-    
+
     for(unsigned int poly_idx = 0; poly_idx < outline.size(); poly_idx++)
     {
         PolygonRef poly = outline[poly_idx];
@@ -215,7 +214,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 p0 = p1;
                 continue; 
             }
-            
+
             int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -line_distance)) / line_distance; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
             int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -line_distance)) / line_distance; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
             // this way of handling the indices takes care of the case where a boundary line segment ends exactly on a scanline:
@@ -231,7 +230,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             {
                 scanline_idx0 += 1; // only consider the scanlines in between the scansegments
             }
-            
+
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
             {
                 int x = scanline_idx * line_distance;
