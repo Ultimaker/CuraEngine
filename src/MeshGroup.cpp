@@ -68,7 +68,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     fseek(f, 0L, SEEK_END);
     long long file_size = ftell(f); //The file size is the position of the cursor after seeking to the end.
     rewind(f); //Seek back to start.
-    size_t face_count = (file_size - 1 - sizeof(uint32_t)) / 50; //Subtract the size of the header. Every face uses exactly 50 bytes.
+    size_t face_count = (file_size - 80 - sizeof(uint32_t)) / 50; //Subtract the size of the header. Every face uses exactly 50 bytes.
 
     char buffer[80];
     //Skip the header
