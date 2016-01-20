@@ -69,6 +69,7 @@ set(engine_SRCS # Except main.cpp.
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
+    src/ZigzagConnectorProcessor.cpp
 
     src/utils/gettime.cpp
     src/utils/logoutput.cpp
