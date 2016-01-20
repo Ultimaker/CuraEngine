@@ -67,11 +67,11 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
  * 
  * \param layerNr The index of the layer for which to generate the infill
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
- * \param extrusionWidth width of the wall lines
+ * \param innermost_wall_extrusion_width width of the innermost wall lines
  * \param infill_skin_overlap overlap distance between infill and skin
  * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  */
-void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap, int wall_line_count);
+void generateInfill(int layerNr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count);
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.

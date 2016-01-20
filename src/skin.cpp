@@ -134,7 +134,7 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap, int wall_line_count)
+void generateInfill(int layerNr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count)
 {
     SliceLayer& layer = storage.layers[layerNr];
 
@@ -144,7 +144,7 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
         {
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
-        Polygons infill = part.insets.back().offset(-extrusionWidth / 2 - infill_skin_overlap);
+        Polygons infill = part.insets.back().offset(-innermost_wall_extrusion_width / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
