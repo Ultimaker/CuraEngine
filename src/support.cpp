@@ -114,7 +114,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         
     int layerThickness = mesh.getSettingInMicrons("layer_height");
     int extrusionWidth = mesh.getSettingInMicrons("support_line_width"); 
-    int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance") + extrusionWidth / 2;
+    int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
     
     bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
     double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");

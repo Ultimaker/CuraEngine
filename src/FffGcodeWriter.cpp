@@ -839,14 +839,17 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
         PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
 
         int offset_from_outline = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, false, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
+        bool remove_overlapping_perimeters = false;
+        Infill infill_comp(support_pattern, island, offset_from_outline, remove_overlapping_perimeters, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines, nullptr);
 
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
-            gcode_layer.addPolygonsByOptimizer(island, &storage.support_config);
+            Polygons boundary;
+            PolygonUtils::offsetSafe(island, - extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
+            gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
         }
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
         gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
