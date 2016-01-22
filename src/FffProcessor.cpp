@@ -67,7 +67,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     
     if (meshgroup->meshes.empty())
     {
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); //Report the GUI that a file has been fully processed.
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
         profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
@@ -99,7 +99,12 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         gcode_writer.writeGCode(storage, time_keeper);
     }
 
-    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); //Report the GUI that a file has been fully processed.
+    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
+    if (CommandSocket::isInstantiated())
+    {
+        CommandSocket::getInstance()->flushGcode();
+        CommandSocket::getInstance()->endSendSlicedObject();
+    }
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
     profile_string += getAllSettingsString(*meshgroup, first_meshgroup);

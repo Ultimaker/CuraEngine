@@ -78,12 +78,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     max_object_height = std::max(max_object_height, storage.model_max.z);
 
     layer_plan_buffer.flush();
-
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->flushGcode();
-        CommandSocket::getInstance()->endSendSlicedObject();
-    }
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime()

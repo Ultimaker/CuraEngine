@@ -166,12 +166,6 @@ void Wireframe2gcode::writeGCode()
     gcode.writeFanCommand(0);
 
     finalize();
-    
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->flushGcode();
-        CommandSocket::getInstance()->endSendSlicedObject();
-    }
 }
 
     

@@ -338,6 +338,8 @@ void CommandSocket::endSendSlicedObject()
         private_data->current_layer_offset = 0;
         private_data->sliced_object_list.reset();
         private_data->current_sliced_object = nullptr;
+        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
+        private_data->socket->sendMessage(done_message);
     }
 }
 
