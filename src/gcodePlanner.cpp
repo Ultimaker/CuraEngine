@@ -823,17 +823,16 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            sendPolygon(path.config->type, gcode.getPositionXY(), path.points.back(), path.getLineWidth());
+            sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
             gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
         }
         sendPolygon(path.config->type, gcode.getPositionXY(), start, path.getLineWidth());
         gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
     }
 
-
+    // write coasting path
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
 
