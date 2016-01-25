@@ -95,14 +95,14 @@ namespace cura
 class ZigzagConnectorProcessor 
 {
 protected:
-    const PointMatrix& matrix; //!< The rotation matrix used to enforce the infill angle
+    const PointMatrix& rotation_matrix; //!< The rotation matrix used to enforce the infill angle
     Polygons& result; //!< The result of the computation
 
     virtual ~ZigzagConnectorProcessor()
     {}
 
     /*!
-     * Add a line to the result bu unapplying the rotation matrix.
+     * Add a line to the result bu unapplying the rotation rotation_matrix.
      * 
      * \param from The one end of the line segment
      * \param to The other end of the line segment
@@ -110,18 +110,18 @@ protected:
     void addLine(Point from, Point to)
     {
         PolygonRef line_poly = result.newPoly();
-        line_poly.add(matrix.unapply(from));
-        line_poly.add(matrix.unapply(to));
+        line_poly.add(rotation_matrix.unapply(from));
+        line_poly.add(rotation_matrix.unapply(to));
     }
 
     /*!
      * Basic constructor. Inheriting children should call this constructor.
      * 
-     * \param matrix The rotation matrix used to enforce the infill angle
+     * \param rotation_matrix The rotation matrix used to enforce the infill angle
      * \param result The resulting line segments (Each line segment is a Polygon with 2 points)
      */
-    ZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
-    : matrix(matrix)
+    ZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
+    : rotation_matrix(rotation_matrix)
     , result(result)
     {}
 public:

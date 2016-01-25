@@ -89,13 +89,13 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance * 3, fill_angle + 120);
 }
 
-void Infill::addLineInfill(Polygons& result, const PointMatrix& matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
+void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
 {
     auto addLine = [&](Point from, Point to)
     {
         PolygonRef p = result.newPoly();
-        p.add(matrix.unapply(from));
-        p.add(matrix.unapply(to));
+        p.add(rotation_matrix.unapply(from));
+        p.add(rotation_matrix.unapply(to));
     };
 
     auto compare_int64_t = [](const void* a, const void* b)

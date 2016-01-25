@@ -12,8 +12,8 @@ class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProc
 {
 
 public:
-    ZigzagConnectorProcessorDisconnectedEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessorEndPieces(matrix, result)
+    ZigzagConnectorProcessorDisconnectedEndPieces(const PointMatrix& rotation_matrix, Polygons& result)
+    : ZigzagConnectorProcessorEndPieces(rotation_matrix, result)
     {
     }
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);

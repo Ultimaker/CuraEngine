@@ -32,8 +32,8 @@ protected:
     bool first_zigzag_connector_ends_in_even_scanline; //!< Whether the first zigzag connector ends in an even scanline
     bool last_scanline_is_even;  //!< Whether the last seen scanline-boundary intersection was with an even scanline
 
-    ActualZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
+    ActualZigzagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
+    : ZigzagConnectorProcessor(rotation_matrix, result)
     , is_first_zigzag_connector(true)
     , first_zigzag_connector_ends_in_even_scanline(true)
     , last_scanline_is_even(false) 

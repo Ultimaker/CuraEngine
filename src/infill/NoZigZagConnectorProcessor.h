@@ -11,8 +11,8 @@ namespace cura
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
+    NoZigZagConnectorProcessor(const PointMatrix& rotation_matrix, Polygons& result)
+    : ZigzagConnectorProcessor(rotation_matrix, result)
     {
     }
 

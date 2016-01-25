@@ -13,8 +13,8 @@ namespace cura
 class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessorEndPieces
 {
 public:
-    ZigzagConnectorProcessorConnectedEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessorEndPieces(matrix, result)
+    ZigzagConnectorProcessorConnectedEndPieces(const PointMatrix& rotation_matrix, Polygons& result)
+    : ZigzagConnectorProcessorEndPieces(rotation_matrix, result)
     {
     }
     void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
