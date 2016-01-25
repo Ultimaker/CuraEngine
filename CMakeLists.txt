@@ -69,7 +69,12 @@ set(engine_SRCS # Except main.cpp.
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
-    src/ZigzagConnectorProcessor.cpp
+
+    src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
     src/utils/gettime.cpp
     src/utils/logoutput.cpp
@@ -113,4 +118,3 @@ endif()
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
 include(CPackConfig.cmake)
-

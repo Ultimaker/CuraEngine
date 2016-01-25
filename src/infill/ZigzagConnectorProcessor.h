@@ -1,8 +1,8 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
-#ifndef ZIGZAG_CONNECTOR_PROCESSOR_H
-#define ZIGZAG_CONNECTOR_PROCESSOR_H
+#ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
+#define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
 
-#include "utils/polygon.h"
+#include "../utils/polygon.h"
 
 namespace cura
 {
@@ -147,105 +147,8 @@ public:
     virtual void registerPolyFinished() = 0;
 };
 
-/*!
- * In contrast to NoZigZagConnectorProcessor
- */
-class ActualZigzagConnectorProcessor : public ZigzagConnectorProcessor
-{
-protected:
-    /*!
-     * The line segments belonging the zigzag connector to which the very first vertex belongs. 
-     * This will be combined with the last handled zigzag_connector, which combine to a whole zigzag connector.
-     * 
-     * Because the boundary polygon may start in in the middle of a zigzag connector, 
-     */
-    std::vector<Point> first_zigzag_connector; 
-    /*!
-     * The currently built up zigzag connector (not the first/last) or end piece or discarded boundary segment
-     */
-    std::vector<Point> zigzag_connector; 
-
-    bool is_first_zigzag_connector; //!< Whether we're still in the first zigzag connector
-    bool first_zigzag_connector_ends_in_even_scanline; //!< Whether the first zigzag connector ends in an even scanline
-    bool last_scanline_is_even;  //!< Whether the last seen scanline-boundary intersection was with an even scanline
-
-    ActualZigzagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
-    , is_first_zigzag_connector(true)
-    , first_zigzag_connector_ends_in_even_scanline(true)
-    , last_scanline_is_even(false) 
-    {
-    }
-};
-
-
-class ZigzagConnectorProcessorNoEndPieces : public ActualZigzagConnectorProcessor
-{
-public:
-    ZigzagConnectorProcessorNoEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ActualZigzagConnectorProcessor(matrix, result)
-    {
-    }
-
-    void registerVertex(const Point& vertex);
-    void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
-    void registerPolyFinished();
-};
-
-class ZigzagConnectorProcessorEndPieces : public ActualZigzagConnectorProcessor
-{
-protected:
-    Point last_connector_point; //!< last registered boundary vertex or scanline-coundary intersection
-
-    ZigzagConnectorProcessorEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ActualZigzagConnectorProcessor(matrix, result)
-    , last_connector_point(0,0)
-    {
-    }
-
-public:
-    void registerVertex(const Point& vertex);
-};
-
-
-class ZigzagConnectorProcessorConnectedEndPieces : public ZigzagConnectorProcessorEndPieces
-{
-public:
-    ZigzagConnectorProcessorConnectedEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessorEndPieces(matrix, result)
-    {
-    }
-    void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
-    void registerPolyFinished();
-};
-
-class ZigzagConnectorProcessorDisconnectedEndPieces : public ZigzagConnectorProcessorEndPieces
-{
-
-public:
-    ZigzagConnectorProcessorDisconnectedEndPieces(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessorEndPieces(matrix, result)
-    {
-    }
-    void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
-    void registerPolyFinished();
-};
-
-class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
-{
-public:
-    NoZigZagConnectorProcessor(const PointMatrix& matrix, Polygons& result)
-    : ZigzagConnectorProcessor(matrix, result)
-    {
-    }
-
-    void registerVertex(const Point& vertex);
-    void registerScanlineSegmentIntersection(const Point& intersection, bool scanline_is_even);
-    void registerPolyFinished();
-};
-
 
 } // namespace cura
 
 
-#endif // ZIGZAG_CONNECTOR_PROCESSOR_H
+#endif // INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H

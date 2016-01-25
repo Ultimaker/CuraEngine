@@ -4,7 +4,14 @@
 
 #include "utils/polygon.h"
 #include "settings.h"
-#include "ZigzagConnectorProcessor.h"
+// #include "ZigzagConnectorProcessor.h"
+#include "infill/ZigzagConnectorProcessor.h"
+#include "infill/NoZigZagConnectorProcessor.h"
+#include "infill/ActualZigzagConnectorProcessor.h"
+#include "infill/ZigzagConnectorProcessorNoEndPieces.h"
+#include "infill/ZigzagConnectorProcessorEndPieces.h"
+#include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
+#include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 

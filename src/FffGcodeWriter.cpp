@@ -842,7 +842,7 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
             Polygons boundary;
-            PolygonUtils::offsetSafe(island, - extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
+            PolygonUtils::offsetSafe(island, -extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
             gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
         }
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
