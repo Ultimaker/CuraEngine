@@ -267,6 +267,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     Polygons* in_between = nullptr;
     int offset_from_poly_outline = 0;
     bool avoidOverlappingPerimeters = false;
+    double fill_overlap = 0; // raft line shouldn't be expanded - there is no boundary polygon printed
     Polygons raft_polygons; // should remain empty, since we only have the lines pattern for the raft...
     
     { // raft base layer
@@ -287,7 +288,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         Polygons raftLines;
         double fill_angle = 0;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), train->getSettingInPercentage("infill_overlap"), fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle);
         infill_comp.generate(raft_polygons, raftLines, in_between);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
 
@@ -311,7 +312,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), train->getSettingInPercentage("infill_overlap"), fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle);
         infill_comp.generate(raft_polygons, raftLines, in_between);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config, SpaceFillType::Lines);
         
@@ -339,7 +340,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), train->getSettingInPercentage("infill_overlap"), fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, avoidOverlappingPerimeters, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle);
         infill_comp.generate(raft_polygons, raft_lines, in_between);
         gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config, SpaceFillType::Lines);
 
@@ -722,7 +723,6 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                     Polygons* in_between = nullptr;
                     bool avoidOverlappingPerimeters = false;
                     int line_distance = extrusion_width;
-                    double infill_overlap = 0;
                     int outline_offset = 0;
                     Infill infill_comp(EFillMethod::LINES, skin_part.perimeterGaps, outline_offset, avoidOverlappingPerimeters, extrusion_width, line_distance, infill_overlap, infill_angle);
                     infill_comp.generate(result_polygons, skin_lines, in_between);
@@ -750,7 +750,6 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         Polygons* in_between = nullptr;
         bool avoidOverlappingPerimeters = false;
         int line_distance = extrusion_width;
-        double infill_overlap = 0;
         int outline_offset = 0;
         Infill infill_comp(EFillMethod::LINES, part.perimeterGaps, outline_offset, avoidOverlappingPerimeters, extrusion_width, line_distance, infill_overlap, infill_angle);
         infill_comp.generate(result_polygons, perimeter_gap_lines, in_between);
@@ -813,7 +812,6 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     
     int support_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_extruder_nr");
     
-    double infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("infill_overlap");
     
     setExtruder_addPrime(storage, gcode_layer, layer_nr, support_extruder_nr);
     
@@ -832,19 +830,23 @@ void FffGcodeWriter::addSupportLinesToGCode(SliceDataStorage& storage, GCodePlan
     {
         PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
 
+        double infill_overlap = 0; // support infill should not be expanded outward
+        
         int offset_from_outline = 0;
         bool remove_overlapping_perimeters = false;
-        Infill infill_comp(support_pattern, island, offset_from_outline, remove_overlapping_perimeters, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
-        Polygons support_polygons;
-        Polygons support_lines;
-        infill_comp.generate(support_polygons, support_lines, nullptr);
-
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
             Polygons boundary;
             PolygonUtils::offsetSafe(island, -extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
             gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
+            offset_from_outline = -extrusion_width;
+            infill_overlap = storage.meshgroup->getExtruderTrain(support_extruder_nr)->getSettingInPercentage("infill_overlap"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
+        Infill infill_comp(support_pattern, island, offset_from_outline, remove_overlapping_perimeters, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
+        Polygons support_polygons;
+        Polygons support_lines;
+        infill_comp.generate(support_polygons, support_lines, nullptr);
+
         gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
         gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
     }
@@ -878,7 +880,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
-    double infill_overlap = 0;
+    double infill_overlap = 0; // the roofs should never be expanded outwards
     int outline_offset =  0; 
     
     Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, false, storage.support_roof_config.getLineWidth(), support_line_distance, infill_overlap, fillAngle, false, true);
