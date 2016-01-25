@@ -24,8 +24,8 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         { // when a boundary segment starts in an even scanline it is either a normal zigzag connector or an endpiece, so it should be included anyway
             addLine(last_connector_point, intersection);
         }
-        else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an uneven boundary in an uneven segment
-        { // add whole unevenBoundarySegment (including the just obtained point)
+        else if (!previous_scanline_is_even && !this_scanline_is_even) // if we end an odd boundary in an odd segment
+        { // add whole zigzag_connector (including the just obtained point)
             for (unsigned int point_idx = 1; point_idx < zigzag_connector.size(); point_idx++)
             {
                 addLine(zigzag_connector[point_idx - 1], zigzag_connector[point_idx]);
@@ -35,9 +35,9 @@ void ZigzagConnectorProcessorConnectedEndPieces::registerScanlineSegmentIntersec
         }
 
     }
-    zigzag_connector.clear(); // we're starting a new (uneven) zigzag connector, so clear the old one
-    if (!this_scanline_is_even) // we are either in an end piece or an boundary segment starting in an uneven scanline
-    { // only when a boundary segment starts in an uneven scanline it depends on whether it ends in an uneven scanline for whether this segment should be included or not
+    zigzag_connector.clear(); // we're starting a new (odd) zigzag connector, so clear the old one
+    if (!this_scanline_is_even) // we are either in an end piece or an boundary segment starting in an odd scanline
+    { // only when a boundary segment starts in an odd scanline it depends on whether it ends in an odd scanline for whether this segment should be included or not
         zigzag_connector.push_back(intersection);
     }
 

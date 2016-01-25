@@ -70,7 +70,7 @@ namespace cura
  *  ^            ^ no endpieces
  * 
  * start boundary from even scanline! :D
- * include only a boundary segment if it starts in an even scanline and ends in an uneven scanline
+ * include only a boundary segment if it starts in an even scanline and ends in an odd scanline
  * 
  *          ________
  *   |     |     |  \                      .
@@ -79,9 +79,9 @@ namespace cura
  * 
  *   ^     ^     ^    scanlines
  *                 ^  connected end piece
- * include a boundary segment also if it starts in an uneven scanline and ends uneven, 
+ * include a boundary segment also if it starts in an odd scanline and ends odd, 
  * or starts in an even scanline and ends in an even scanline,
- * but not when it starts in an uneven and ends in an even scanline (see top left or bottom middle).
+ * but not when it starts in an odd and ends in an even scanline (see top left or bottom middle).
  * 
  *          _____
  *   |     |     |  \                     .

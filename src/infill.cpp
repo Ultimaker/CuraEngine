@@ -164,7 +164,29 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
     }
 }
 
-
+/* 
+ * algorithm:
+ * 1. for each line segment of each polygon:
+ *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
+ *      (zigzag): add boundary segments to result
+ * 2. for each scanline:
+ *      sort the associated intersections 
+ *      and connect them using the even-odd rule
+ * 
+ * rough explanation of the zigzag algorithm:
+ * while walking around (each) polygon (1.)
+ *  if polygon intersects with even scanline
+ *      start boundary segment (add each following segment to the [result])
+ *  when polygon intersects with a scanline again
+ *      stop boundary segment (stop adding segments to the [result])
+ *  (see infill/ZigzagConnectorProcessor.h for actual implementation details)
+ * 
+ * 
+ * we call the areas between two consecutive scanlines a 'scansegment'.
+ * Scansegment x is the area between scanline x and scanline x+1
+ * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
+ *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
+ */
 void Infill::generateLinearBasedInfill(const int outline_offset, bool safe_outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (line_distance == 0)

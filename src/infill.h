@@ -103,17 +103,6 @@ private:
      * idea:
      * intersect a regular grid of 'scanlines' with the area inside \p in_outline
      * 
-     * we call the areas between two consecutive scanlines a 'scansegment'.
-     * Scansegment x is the area between scanline x and scanline x+1
-     * 
-     * algorithm:
-     * 1) for each line segment of each polygon:
-     *      for each scanline crossing that line segment:
-     *          store the intersections of that line segment with the scanlines in a mapping (vector of vectors) from scanline to intersections
-     * 2) for each scanline:
-     *      sort the associated intersections 
-     *      connect them using the even-odd rule and generate a line for each
-     * 
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
@@ -145,25 +134,6 @@ private:
      * intersect a regular grid of 'scanlines' with the area inside [in_outline] (see generateLineInfill)
      * zigzag:
      * include pieces of boundary, connecting the lines, forming an accordion like zigzag instead of separate lines    |_|^|_|
-     * 
-     * we call the areas between two consecutive scanlines a 'scansegment'
-     * 
-     * algorithm:
-     * 1. for each line segment of each polygon:
-     *      store the intersections of that line segment with all scanlines in a mapping (vector of vectors) from scanline to intersections
-     *      (zigzag): add boundary segments to result
-     * 2. for each scanline:
-     *      sort the associated intersections 
-     *      and connect them using the even-odd rule
-     * 
-     * zigzag algorithm:
-     * while walking around (each) polygon (1.)
-     *  if polygon intersects with even scanline
-     *      start boundary segment (add each following segment to the [result])
-     *  when polygon intersects with a scanline again
-     *      stop boundary segment (stop adding segments to the [result])
-     *      if polygon intersects with even scanline again (instead of odd)
-     *          dont add the last line segment to the boundary (unless [connected_zigzags])
      * 
      * Note that ZigZag consists of 3 types:
      * - without endpieces
