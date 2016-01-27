@@ -179,15 +179,23 @@ void GCodePlanner::addTravel(Point p)
         if (combed)
         {
             bool retract = combPaths.size() > 1;
+            if (!retract)
             { // check whether we want to retract
-                if (!retract && combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
-                { // retract when avoiding obstacles through air
-                    retract = true;
-                }
-                
-                for (unsigned int path_idx = 0; path_idx < combPaths.size() && !retract; path_idx++)
+                for (CombPath& combPath : combPaths)
                 { // retract when path moves through a boundary
-                    if (combPaths[path_idx].cross_boundary) { retract = true; }
+                    if (combPath.cross_boundary || combPath.throughAir)
+                    {
+                        retract = true;
+                        break;
+                    }
+                }
+                if (combPaths.size() == 1)
+                {
+                    CombPath path = combPaths[0];
+                    if (path.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == lastPosition && path[1] == p)
+                    { // limit the retractions from support to support, which didn't cross anything
+                        retract = false;
+                    }
                 }
             }
             
