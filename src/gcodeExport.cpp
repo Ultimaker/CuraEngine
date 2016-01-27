@@ -388,7 +388,6 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         }
         else if (prime_volume > 0.0)
         {
-            current_e_value += prime_volume;
             *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
