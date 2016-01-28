@@ -5,20 +5,20 @@
 namespace cura
 {
 
-Polygons SliceLayer::getOutlines(bool external_polys_only)
+Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
     getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
+void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 {
-    for (SliceLayerPart& part : parts)
+    for (const SliceLayerPart& part : parts)
     {
         if (external_polys_only)
         {
-            result.add(part.outline.outerPolygon());
+            result.add(const_cast<SliceLayerPart&>(part).outline.outerPolygon()); // TODO: make a const version of outerPolygon()
         }
         else 
         {
@@ -27,25 +27,25 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
     }
 }
 
-Polygons SliceLayer::getSecondOrInnermostWalls()
+Polygons SliceLayer::getSecondOrInnermostWalls() const
 {
     Polygons ret;
     getSecondOrInnermostWalls(ret);
     return ret;
 }
 
-void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls)
+void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
 {
-    for (SliceLayerPart& part : parts)
+    for (const SliceLayerPart& part : parts)
     {
         // we want the 2nd inner walls
         if (part.insets.size() >= 2) {
-            layer_walls.add(part.insets[1]);
+            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[1]); // TODO const cast!
             continue;
         }
         // but we'll also take the inner wall if the 2nd doesn't exist
         if (part.insets.size() == 1) {
-            layer_walls.add(part.insets[0]);
+            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[0]); // TODO const cast!
             continue;
         }
         // offset_from_outlines was so large that it completely destroyed our isle,
@@ -70,7 +70,7 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
 {
 }
 
-Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only)
+Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {
     if (layer_nr < 0)
     { // when processing raft
@@ -99,11 +99,11 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     else 
     {
         Polygons total;
-        for (SliceMeshStorage& mesh : meshes)
+        for (const SliceMeshStorage& mesh : meshes)
         {
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getOutlines(total, external_polys_only);
-            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
             {
                 total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
             }
@@ -121,7 +121,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     }
 }
 
-Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts)
+Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const
 {
     if (layer_nr < 0)
     { // when processing raft
@@ -137,11 +137,11 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
     else 
     {
         Polygons total;
-        for (SliceMeshStorage& mesh : meshes)
+        for (const SliceMeshStorage& mesh : meshes)
         {
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getSecondOrInnermostWalls(total);
-            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make getSetting const? make settings.setting_values mapping mutable??
             {
                 total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
             }
