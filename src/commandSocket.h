@@ -93,6 +93,14 @@ public:
      */
     void endSendSlicedObject();
 
+    /*!
+     * \brief Sends a message to indicate that all the slicing is done.
+     *
+     * This should indicate that no more data (g-code, prefix/postfix, metadata
+     * or otherwise) should be sent any more regarding the latest slice job.
+     */
+    void sendFinishedSlicing();
+
     void beginGCode();
     
     /*!
