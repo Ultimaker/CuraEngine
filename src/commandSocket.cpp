@@ -181,6 +181,11 @@ void CommandSocket::connect(const std::string& ip, int port)
 
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
+    if(list->objects_size() <= 0)
+    {
+        return;
+    }
+
     FMatrix3x3 matrix;
     //private_data->object_count = 0;
     //private_data->object_ids.clear();
@@ -199,6 +204,14 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     
     for(auto object : list->objects())
     {
+        int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
+        int face_count = object.vertices().size() / bytes_per_face;
+
+        if(face_count <= 0)
+        {
+            logWarning("Got an empty mesh, ignoring it!");
+            continue;
+        }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
         int extruder_train_nr = 0; // TODO: make primary extruder configurable!
         for(auto setting : object.settings())
@@ -214,8 +227,6 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = meshgroup->meshes.back();
 
-        int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
-        int face_count = object.vertices().size() / bytes_per_face;
         for(int i = 0; i < face_count; ++i)
         {
             //TODO: Apply matrix
