@@ -93,20 +93,29 @@ void CommandSocket::connect(const std::string& ip, int port)
 {
     private_data->socket = new Arcus::Socket();
     //private_data->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
-    private_data->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
-    private_data->socket->registerMessageType(2, &cura::proto::SlicedObjectList::default_instance());
-    private_data->socket->registerMessageType(3, &cura::proto::Progress::default_instance());
-    private_data->socket->registerMessageType(4, &cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
-    private_data->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
-    private_data->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SlicedObjectList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
 
     private_data->socket->connect(ip, port);
+
+    log("Connecting to %s:%i", ip.c_str(), port);
+
+    while(private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    log("Connected to %s:%i", ip.c_str(), port);
     
     bool slice_another_time = true;
     
     // Start & continue listening as long as socket is not closed and there is no error.
-    while(private_data->socket->state() != Arcus::SocketState::Closed && private_data->socket->state() != Arcus::SocketState::Error && slice_another_time)
+    while(private_data->socket->getState() != Arcus::SocketState::Closed && private_data->socket->getState() != Arcus::SocketState::Error && slice_another_time)
     {
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
@@ -158,9 +167,9 @@ void CommandSocket::connect(const std::string& ip, int port)
             //sendPrintTime();
         }
 
-        if(!private_data->socket->errorString().empty()) 
+        if(private_data->socket->getLastError().isValid())
         {
-            logError("%s\n", private_data->socket->errorString().data());
+            logError("%s\n", private_data->socket->getLastError().toString());
             private_data->socket->clearError();
         }
 
