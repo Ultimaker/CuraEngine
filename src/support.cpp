@@ -229,21 +229,16 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         {
             Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
-            
+
             Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
             Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
-            
-//             Polygons xy_disallowed = storage.getLayerOutlines(layer_idx, false).offset(supportXYDistance); // naive
-            Polygons xy_disallowed;
-            xy_disallowed.add(xy_overhang_disallowed);
-            xy_disallowed.add(xy_non_overhang_disallowed);
-            xy_disallowed.add(outlines); // cause xy_non_overhang_disallowed might have had too much removed
-            xy_disallowed.unionPolygons();
+
+            Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines));
             supportLayer_this = supportLayer_this.difference(xy_disallowed);
         }
-        
+
         supportAreas[layer_idx] = supportLayer_this;
-        
+
         if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
         {
             storage.support.layer_nr_max_filled_layer = layer_idx;
