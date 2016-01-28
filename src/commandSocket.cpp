@@ -100,6 +100,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
     private_data->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
+    private_data->socket->registerMessageType(8, &cura::proto::SlicingFinished::default_instance());
 
     private_data->socket->connect(ip, port);
     
