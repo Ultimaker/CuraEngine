@@ -26,13 +26,13 @@ class Infill
     bool remove_overlapping_perimeters; //!< Whether to remove overlapping perimeter parts
     int infill_line_width; //!< The line width of the infill lines to generate
     int line_distance; //!< The distance between two infill lines / polygons
-    double infill_overlap; //!< the percentage (of infill_line_width) to overlap with the actual area within which to generate infill
+    int infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, bool remove_overlapping_perimeters, int infill_line_width, int line_distance, double infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endpieces = false)
+    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, bool remove_overlapping_perimeters, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endpieces = false)
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)

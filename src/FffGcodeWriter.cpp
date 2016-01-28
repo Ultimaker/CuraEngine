@@ -583,7 +583,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
-        double infill_overlap = mesh->getSettingInPercentage("infill_overlap");
+        int infill_overlap = mesh->getSettingInMicrons("infill_overlap");
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
@@ -625,7 +625,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
 {
     if (infill_line_distance > 0)
     {
@@ -643,7 +643,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
 {
     
     if (infill_line_distance == 0 || part.infill_area.size() == 0)
@@ -705,7 +705,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, double infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_overlap, int infill_angle, int extrusion_width)
 {
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
@@ -845,7 +845,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     {
         PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
 
-        double infill_overlap = 0; // support infill should not be expanded outward
+        int infill_overlap = 0; // support infill should not be expanded outward
         
         int offset_from_outline = 0;
         bool remove_overlapping_perimeters = false;
@@ -855,7 +855,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             PolygonUtils::offsetSafe(island, -extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
             gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             offset_from_outline = -extrusion_width;
-            infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInPercentage("infill_overlap"); // support lines area should be expanded outward to overlap with the boundary polygon
+            infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
         Infill infill_comp(support_pattern, island, offset_from_outline, remove_overlapping_perimeters, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
@@ -895,7 +895,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
-    double infill_overlap = 0; // the roofs should never be expanded outwards
+    int infill_overlap = 0; // the roofs should never be expanded outwards
     int outline_offset =  0; 
     
     Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, false, storage.support_roof_config.getLineWidth(), support_line_distance, infill_overlap, fillAngle, false, true);

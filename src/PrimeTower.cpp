@@ -168,7 +168,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
 {
         
     int n_patterns = 2; // alternating patterns between layers
-    double infill_overlap = 15; // so that it can't be zero; EDIT: wtf?
+    int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
     
     generateGroundpoly(storage);
     
