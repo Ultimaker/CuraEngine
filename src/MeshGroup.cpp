@@ -64,26 +64,38 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
+
+    fseek(f, 0L, SEEK_END);
+    long long file_size = ftell(f); //The file size is the position of the cursor after seeking to the end.
+    rewind(f); //Seek back to start.
+    size_t face_count = (file_size - 80 - sizeof(uint32_t)) / 50; //Subtract the size of the header. Every face uses exactly 50 bytes.
+
     char buffer[80];
-    uint32_t faceCount;
     //Skip the header
     if (fread(buffer, 80, 1, f) != 1)
     {
         fclose(f);
         return false;
     }
-    //Read the face count
-    if (fread(&faceCount, sizeof(uint32_t), 1, f) != 1)
+
+    uint32_t reported_face_count;
+    //Read the face count. We'll use it as a sort of redundancy code to check for file corruption.
+    if (fread(&reported_face_count, sizeof(uint32_t), 1, f) != 1)
     {
         fclose(f);
         return false;
     }
+    if (reported_face_count != face_count)
+    {
+        logWarning("Face count reported by file (%s) is not equal to actual face count (%s). File could be corrupt!\n", std::to_string(reported_face_count).c_str(), std::to_string(face_count).c_str());
+    }
+
     //For each face read:
     //float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     // Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
-    mesh->faces.reserve(faceCount);
-    mesh->vertices.reserve(faceCount);
-    for(unsigned int i=0;i<faceCount;i++)
+    mesh->faces.reserve(face_count);
+    mesh->vertices.reserve(face_count);
+    for (unsigned int i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
         {
@@ -105,10 +117,31 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "r");
-    char buffer[6];
     if (f == nullptr)
+    {
         return false;
+    }
 
+    //Skip any whitespace at the beginning of the file.
+    unsigned long long num_whitespace = 0; //Number of whitespace characters.
+    unsigned char whitespace;
+    if (fread(&whitespace, 1, 1, f) != 1)
+    {
+        fclose(f);
+        return false;
+    }
+    while(isspace(whitespace))
+    {
+        num_whitespace++;
+        if (fread(&whitespace, 1, 1, f) != 1)
+        {
+            fclose(f);
+            return false;
+        }
+    }
+    fseek(f, num_whitespace, SEEK_SET); //Seek to the place after all whitespace (we may have just read too far).
+
+    char buffer[6];
     if (fread(buffer, 5, 1, f) != 1)
     {
         fclose(f);

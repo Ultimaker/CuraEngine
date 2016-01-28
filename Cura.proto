@@ -98,3 +98,6 @@ message Setting {
 message GCodePrefix {
     bytes data = 2;
 }
+
+message SlicingFinished {
+}

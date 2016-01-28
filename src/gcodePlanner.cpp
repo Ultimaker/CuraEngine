@@ -186,15 +186,23 @@ void GCodePlanner::addTravel(Point p)
         if (combed)
         {
             bool retract = combPaths.size() > 1;
+            if (!retract)
             { // check whether we want to retract
-                if (!retract && combPaths.size() == 1 && combPaths[0].throughAir && combPaths[0].size() > 2)
-                { // retract when avoiding obstacles through air
-                    retract = true;
-                }
-                
-                for (unsigned int path_idx = 0; path_idx < combPaths.size() && !retract; path_idx++)
+                for (CombPath& combPath : combPaths)
                 { // retract when path moves through a boundary
-                    if (combPaths[path_idx].cross_boundary) { retract = true; }
+                    if (combPath.cross_boundary || combPath.throughAir)
+                    {
+                        retract = true;
+                        break;
+                    }
+                }
+                if (combPaths.size() == 1)
+                {
+                    CombPath path = combPaths[0];
+                    if (path.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == lastPosition && path[1] == p)
+                    { // limit the retractions from support to support, which didn't cross anything
+                        retract = false;
+                    }
                 }
             }
             
@@ -830,17 +838,16 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            sendPolygon(path.config->type, gcode.getPositionXY(), path.points.back(), path.getLineWidth());
+            sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
             gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
         }
         sendPolygon(path.config->type, gcode.getPositionXY(), start, path.getLineWidth());
         gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
     }
 
-
+    // write coasting path
     for (unsigned int point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
     {
-        sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
 

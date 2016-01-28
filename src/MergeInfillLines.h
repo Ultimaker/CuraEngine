@@ -46,7 +46,7 @@ class MergeInfillLines
      * \param use_second_middle_as_first Whether to use \p second_middle as input parameter for \p first_middle
      * \return Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
      */
-    static bool isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first = false);
+    bool isConvertible(const Point& a, const Point& b, const Point& c, const Point& d, int64_t line_width, Point& first_middle, Point& second_middle, int64_t& resulting_line_width, bool use_second_middle_as_first = false);
 
     /*!
      * Write an extrusion move with compensated width and compensated speed so that the material flow will be the same.
@@ -58,10 +58,10 @@ class MergeInfillLines
      */
     void writeCompensatedMove(Point& to, double speed, GCodePath& old_path, int64_t new_line_width);
 public:
-    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size) 
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
+    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size) 
     : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
     
     /*!

@@ -17,6 +17,10 @@ else()
     set(CMAKE_CXX_FLAGS "-std=c++11")
 endif()
 
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -stdlib=libc++")
+endif()
+
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
@@ -73,6 +77,12 @@ set(engine_SRCS # Except main.cpp.
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
 
+    src/infill/NoZigZagConnectorProcessor.cpp
+    src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorEndPieces.cpp
+    src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
+
     src/utils/gettime.cpp
     src/utils/logoutput.cpp
     src/utils/polygonUtils.cpp
@@ -125,4 +135,3 @@ add_custom_command(TARGET CuraEngine POST_BUILD
 include(GNUInstallDirs)
 install(TARGETS CuraEngine DESTINATION ${CMAKE_INSTALL_BINDIR})
 include(CPackConfig.cmake)
-
