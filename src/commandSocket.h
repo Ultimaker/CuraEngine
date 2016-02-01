@@ -79,6 +79,11 @@ public:
     void sendPrintTime();
     
     /*!
+     * Notify that the slicing has finished.
+     */
+    void sendSlicingFinished();
+    
+    /*!
      * Does nothing at the moment
      */
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);

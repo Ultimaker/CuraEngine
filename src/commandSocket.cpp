@@ -149,6 +149,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             FffProcessor::getInstance()->finalize();
             flushGcode();
             sendPrintTime();
+            sendSlicingFinished();
             slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
             //TODO: Support all-at-once/one-at-a-time printing
             //private_data->processor->processModel(private_data->object_to_slice.get());
@@ -304,6 +305,12 @@ void CommandSocket::sendPrintTime()
     private_data->socket->sendMessage(message);
 }
 
+void CommandSocket::sendSlicingFinished()
+{
+    auto done_message = std::make_shared<cura::proto::SlicingFinished>();
+    private_data->socket->sendMessage(done_message);
+}
+
 void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float print_time)
 {
 //     socket.sendInt32(CMD_OBJECT_PRINT_MATERIAL);
@@ -338,8 +345,6 @@ void CommandSocket::endSendSlicedObject()
         private_data->current_layer_offset = 0;
         private_data->sliced_object_list.reset();
         private_data->current_sliced_object = nullptr;
-        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
-        private_data->socket->sendMessage(done_message);
     }
 }
 
