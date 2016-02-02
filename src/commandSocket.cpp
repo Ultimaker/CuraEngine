@@ -93,21 +93,30 @@ void CommandSocket::connect(const std::string& ip, int port)
 {
     private_data->socket = new Arcus::Socket();
     //private_data->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
-    private_data->socket->registerMessageType(1, &cura::proto::Slice::default_instance());
-    private_data->socket->registerMessageType(2, &cura::proto::SlicedObjectList::default_instance());
-    private_data->socket->registerMessageType(3, &cura::proto::Progress::default_instance());
-    private_data->socket->registerMessageType(4, &cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(5, &cura::proto::ObjectPrintTime::default_instance());
-    private_data->socket->registerMessageType(6, &cura::proto::SettingList::default_instance());
-    private_data->socket->registerMessageType(7, &cura::proto::GCodePrefix::default_instance());
-    private_data->socket->registerMessageType(8, &cura::proto::SlicingFinished::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SlicedObjectList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
 
     private_data->socket->connect(ip, port);
+
+    log("Connecting to %s:%i", ip.c_str(), port);
+
+    while(private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    log("Connected to %s:%i", ip.c_str(), port);
     
     bool slice_another_time = true;
     
     // Start & continue listening as long as socket is not closed and there is no error.
-    while(private_data->socket->state() != Arcus::SocketState::Closed && private_data->socket->state() != Arcus::SocketState::Error && slice_another_time)
+    while(private_data->socket->getState() != Arcus::SocketState::Closed && private_data->socket->getState() != Arcus::SocketState::Error && slice_another_time)
     {
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
@@ -160,9 +169,9 @@ void CommandSocket::connect(const std::string& ip, int port)
             //sendPrintTime();
         }
 
-        if(!private_data->socket->errorString().empty()) 
+        if(private_data->socket->getLastError().isValid())
         {
-            logError("%s\n", private_data->socket->errorString().data());
+            logError("%s\n", private_data->socket->getLastError().toString());
             private_data->socket->clearError();
         }
 
@@ -174,6 +183,11 @@ void CommandSocket::connect(const std::string& ip, int port)
 
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
+    if(list->objects_size() <= 0)
+    {
+        return;
+    }
+
     FMatrix3x3 matrix;
     //private_data->object_count = 0;
     //private_data->object_ids.clear();
@@ -192,6 +206,14 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     
     for(auto object : list->objects())
     {
+        int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
+        int face_count = object.vertices().size() / bytes_per_face;
+
+        if(face_count <= 0)
+        {
+            logWarning("Got an empty mesh, ignoring it!");
+            continue;
+        }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
         int extruder_train_nr = 0; // TODO: make primary extruder configurable!
         for(auto setting : object.settings())
@@ -207,8 +229,6 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = meshgroup->meshes.back();
 
-        int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
-        int face_count = object.vertices().size() / bytes_per_face;
         for(int i = 0; i < face_count; ++i)
         {
             //TODO: Apply matrix
@@ -340,6 +360,8 @@ void CommandSocket::endSendSlicedObject()
         private_data->current_layer_offset = 0;
         private_data->sliced_object_list.reset();
         private_data->current_sliced_object = nullptr;
+        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
+        private_data->socket->sendMessage(done_message);
     }
 }
 
