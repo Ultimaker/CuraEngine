@@ -171,7 +171,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 
         if(private_data->socket->getLastError().isValid())
         {
-            logError("%s\n", private_data->socket->getLastError().toString());
+            logError("%s\n", private_data->socket->getLastError().toString().c_str());
             private_data->socket->clearError();
         }
 
