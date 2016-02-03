@@ -629,8 +629,11 @@ void GCodeExport::finalize(double moveSpeed, const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
-    log("Print time: %d\n", int(getTotalPrintTime()));
-    log("Filament: %d\n", int(getTotalFilamentUsed(0)));
+    int print_time = getTotalPrintTime();
+    int mat_0 = getTotalFilamentUsed(0);
+    log("Print time: %d\n", print_time);
+    log("Print time (readable): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);
+    log("Filament: %d\n", mat_0);
     for(int n=1; n<MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             log("Filament%d: %d\n", n + 1, int(getTotalFilamentUsed(n)));
