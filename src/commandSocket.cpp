@@ -7,6 +7,8 @@
 #include <cinttypes>
 
 #include <Arcus/Socket.h>
+#include <Arcus/SocketListener.h>
+#include <Arcus/Error.h>
 
 #include <string> // stoi
 
@@ -24,6 +26,30 @@ namespace cura {
 #define VECTORS_PER_FACE 3
 
 CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
+
+class Listener : public Arcus::SocketListener
+{
+public:
+    void stateChanged(Arcus::SocketState::SocketState newState) override
+    {
+    }
+
+    void messageReceived() override
+    {
+    }
+
+    void error(const Arcus::Error & error) override
+    {
+        if(error.getErrorCode() == Arcus::ErrorCode::Debug)
+        {
+            log("%s\n", error.toString().c_str());
+        }
+        else
+        {
+            logError("%s\n", error.toString().c_str());
+        }
+    }
+};
 
 class CommandSocket::Private
 {
@@ -102,16 +128,18 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
 
+    private_data->socket->addListener(new Listener());
+
     private_data->socket->connect(ip, port);
 
-    log("Connecting to %s:%i", ip.c_str(), port);
+    log("Connecting to %s:%i\n", ip.c_str(), port);
 
     while(private_data->socket->getState() != Arcus::SocketState::Connected && private_data->socket->getState() != Arcus::SocketState::Error)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
-    log("Connected to %s:%i", ip.c_str(), port);
+    log("Connected to %s:%i\n", ip.c_str(), port);
     
     bool slice_another_time = true;
     
@@ -167,12 +195,6 @@ void CommandSocket::connect(const std::string& ip, int port)
             //private_data->processor->resetFileNumber();
 
             //sendPrintTime();
-        }
-
-        if(private_data->socket->getLastError().isValid())
-        {
-            logError("%s\n", private_data->socket->getLastError().toString().c_str());
-            private_data->socket->clearError();
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
