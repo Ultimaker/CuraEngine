@@ -18,6 +18,8 @@
 #include "FffProcessor.h"
 #include "settingRegistry.h"
 
+#include "SettingsToGV.h"
+
 namespace cura
 {
     
@@ -324,6 +326,15 @@ int main(int argc, char **argv)
     else if (stringcasecompare(argv[1], "help") == 0)
     {
         print_usage();
+        exit(0);
+    }
+    else if (stringcasecompare(argv[1], "analyse") == 0)
+    { // CuraEngine analyse [json] [output] [engine_settings]
+        SettingsToGv gv_out(argv[3], argv[4]);
+        if (gv_out.generate(std::string(argv[2])))
+        {
+            cura::logError("ERROR: Failed to analyse json file: %s\n", argv[2]);
+        }
         exit(0);
     }
     else
