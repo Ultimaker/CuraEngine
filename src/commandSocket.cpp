@@ -118,6 +118,8 @@ bool CommandSocket::isInstantiated()
 void CommandSocket::connect(const std::string& ip, int port)
 {
     private_data->socket = new Arcus::Socket();
+    private_data->socket->addListener(new Listener());
+
     //private_data->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicedObjectList::default_instance());
@@ -127,8 +129,6 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
-
-    private_data->socket->addListener(new Listener());
 
     private_data->socket->connect(ip, port);
 
