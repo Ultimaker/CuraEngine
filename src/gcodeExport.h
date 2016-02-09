@@ -170,7 +170,7 @@ private:
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
-        , last_retraction_prime_speed(1.0)
+        , last_retraction_prime_speed(0.0)
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
@@ -291,6 +291,8 @@ public:
             extruder_attr[n].extruder_switch_retraction_distance = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
             extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
             extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
+
+            extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         }
 
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
