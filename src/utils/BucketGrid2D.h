@@ -5,6 +5,7 @@
 #include "logoutput.h"
 #include "intpoint.h"
 #include <unordered_map>
+#include <functional> // std::function
 
 namespace cura
 {
@@ -184,14 +185,17 @@ public:
         return ret;
     }
 
+    static const std::function<bool(Point, T&)> no_precondition;
+    
     /*!
      * Find the nearest object to a given lcoation \p p, if there is any in a neighboring cell in the grid.
      * 
      * \param p The point for which to find the nearest object.
      * \param nearby Output parameter: the nearest object, if any
+     * \param precondition A precondition which must be satisfied before considering a \p object at a specific \p location as output
      * \return Whether an object has been found.
      */
-    bool findNearestObject(Point& p, T& nearby)
+    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, T& object)> precondition = no_precondition)
     {
         bool found = false;
         int64_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
@@ -202,6 +206,10 @@ public:
                 int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y)));
                 for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
                 {
+                    if (!precondition(local_it->first, local_it->second))
+                    {
+                        continue;
+                    }
                     int32_t dist2 = vSize2(local_it->first - p);
                     if (dist2 < bestDist2)
                     {
@@ -236,6 +244,8 @@ public:
 
 
 };
+template<typename T>
+const std::function<bool(Point, T&)> BucketGrid2D<T>::no_precondition = [](Point loc, T&) { return true; };
 
 }//namespace cura
 #endif//BUCKET_GRID_2D_H
