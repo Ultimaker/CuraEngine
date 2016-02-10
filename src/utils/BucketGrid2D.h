@@ -111,6 +111,8 @@ private:
      */
     int squareSize;
     
+    PointHasher point_hasher; //!< The hasher used by the unordered_map
+    
     int max_load_factor; //!< The average number of elements per cell/bucket
     /*!
      * The map type used to associate points with their objects.
@@ -132,8 +134,9 @@ public:
      */
     BucketGrid2D(int squareSize, unsigned int initial_map_size = 4)
     : squareSize(squareSize)
+    , point_hasher(squareSize)
     , max_load_factor(2)
-    , point2object(initial_map_size / max_load_factor, PointHasher(squareSize))
+    , point2object(initial_map_size / max_load_factor, point_hasher)
     {
         point2object.max_load_factor(max_load_factor); // we expect each cell to contain at least two points on average
         point2object.reserve(initial_map_size);
@@ -153,10 +156,14 @@ public:
         {
             for (int y = -1; y <= 1; y++)
             {
-                int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y))); // when the hash is not a hash of a present item, the bucket_idx returned may be one already encountered
+                Point relative_point = getRelativeForHash(p, Point(x,y));
+                int bucket_idx = point2object.bucket(relative_point); // when the hash is not a hash of a present item, the bucket_idx returned may be one already encountered
                 for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
                 {
-                    ret.push_back(local_it->second);
+                    if (point_hasher(relative_point) == point_hasher(local_it->first))
+                    {
+                        ret.push_back(local_it->second);
+                    }
                 }
             }
         }
