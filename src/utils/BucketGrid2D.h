@@ -13,22 +13,31 @@ namespace cura
  * Container for items with location for which the lookup for nearby items is optimized.
  * 
  * It functions by hashing the items location and lookuping up based on the hash of that location and the hashes of nearby locations.
+ * 
+ * We're mapping a cell location multiple times to an object within the cell, 
+ * instead of mapping each cell location only once to a vector of objects within the cell.
+ * 
+ * The first (current) implementation has the overhead of 'bucket-collisions' where all mappings of two different cells get placed in the same bucket, 
+ * which causes findNearby to loop over unneeded elements.
+ * The second (alternative) implementation has the overhead and indirection of creating vectors and all that comes with it."
+ * 
  */
 template<typename T>
 class BucketGrid2D
 {
 private:
 
+    typedef Point Cellidx;
     /*!
-     * Returns a point for which the hash is at a grid position of \p relativeHash relative to \p p.
+     * Returns a point for which the hash is at a grid position of \p relative_hash relative to \p p.
      * 
      * \param p The point for which to get the relative point to hash
-     * \param relativeHash The relative position - in grid terms - of the relative point. 
-     * \return A point for which the hash is at a grid position of \p relativeHash relative to \p p.
+     * \param relative_hash The relative position - in grid terms - of the relative point. 
+     * \return A point for which the hash is at a grid position of \p relative_hash relative to \p p.
      */
-    inline Point getRelativeForHash(const Point& p, const Point& relativeHash)
+    inline Point getRelativeForHash(const Point& p, const Cellidx& relative_hash)
     {
-        return p + relativeHash*squareSize;
+        return p + relative_hash*squareSize;
     }
 
 
@@ -43,7 +52,7 @@ private:
          * \param p The grid location to hash
          * \return the hash
          */
-        inline uint32_t pointHash_simple(const Point& p) const
+        inline uint32_t pointHash_simple(const Cellidx& p) const
         {
             return p.X ^ (p.Y << 8);
         }
@@ -55,7 +64,7 @@ private:
          */
         inline uint32_t pointHash(const Point& point) const
         {
-            Point p = point/squareSize;
+            Cellidx p = point/squareSize;
             return pointHash_simple(p);
         }
 /*
