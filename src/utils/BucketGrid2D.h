@@ -110,6 +110,8 @@ private:
      * \param squareSize The horizontal and vertical size of a cell in the grid; the width and height of a bucket.
      */
     int squareSize;
+    
+    int max_load_factor; //!< The average number of elements per cell/bucket
     /*!
      * The map type used to associate points with their objects.
      */
@@ -126,9 +128,16 @@ public:
      * The constructor for a bucket grid.
      * 
      * \param squareSize The horizontal and vertical size of a cell in the grid; the width and height of a bucket.
-     * \param initial_map_size The minimal number of initial buckets 
+     * \param initial_map_size The number of elements to be inserted
      */
-    BucketGrid2D(int squareSize, unsigned int initial_map_size = 4) : squareSize(squareSize), point2object(initial_map_size, PointHasher(squareSize)) {};
+    BucketGrid2D(int squareSize, unsigned int initial_map_size = 4)
+    : squareSize(squareSize)
+    , max_load_factor(2)
+    , point2object(initial_map_size / max_load_factor, PointHasher(squareSize))
+    {
+        point2object.max_load_factor(max_load_factor); // we expect each cell to contain at least two points on average
+        point2object.reserve(initial_map_size);
+    }
 
     /*!
      * Find all objects with a point in a grid cell at a distance of one cell from the cell of \p p.
