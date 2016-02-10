@@ -452,7 +452,21 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
     forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
+    
+    /*
+                   min layer time
+                   :
+                   :  min layer time fan speed min
+                |  :  :
+      ^    max..|__:  :
+                |  \  :
+     fan        |   \ :
+    speed  min..|... \:___________
+                |________________
+                  layer time >
 
+
+    */
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     fan_speed = fsml.cool_fan_speed_min;
     double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
@@ -463,8 +477,25 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
     else if (totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        fan_speed = fsml.cool_fan_speed_max - (fsml.cool_fan_speed_max-fsml.cool_fan_speed_min) * (totalLayerTime - fsml.cool_min_layer_time) / (fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time);
+        double fan_speed_diff = fsml.cool_fan_speed_max-fsml.cool_fan_speed_min;
+        double layer_time_diff = fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time;
+        double fraction_of_slope = (totalLayerTime - fsml.cool_min_layer_time) / layer_time_diff;
+        fan_speed = fsml.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
     }
+    /*
+    Supposing no influence of minimal layer time; i.e. layer time > min layer time fan speed min:
+    
+           max..   fan 'full' on layer
+                |  :
+                |  :
+      ^    min..|..:________________
+     fan        |  / 
+    speed       | / 
+          zero..|/__________________
+                  layer nr >
+                  
+       
+    */
     if (layer_nr < fsml.cool_fan_full_layer)
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
