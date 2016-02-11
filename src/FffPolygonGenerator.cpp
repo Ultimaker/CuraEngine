@@ -159,7 +159,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     // handle meshes
     ProgressStageEstimator inset_skin_progress_estimate;
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (unsigned int mesh_idx; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         inset_skin_progress_estimate.addStage(1.0); // TODO: have a more accurate estimate of the relative time it takes per mesh, based on the height and number of polygons
     }

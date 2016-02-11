@@ -18,6 +18,9 @@ class ProgressEstimator
 {
 public:
     virtual double progress(int current_step) = 0;
+    virtual ~ProgressEstimator()
+    {
+    }
 };
 
 class ProgressEstimatorLinear : public ProgressEstimator
