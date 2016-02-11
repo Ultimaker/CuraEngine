@@ -10,6 +10,7 @@
 #include "sliceDataStorage.h"
 #include "commandSocket.h"
 #include "PrintFeature.h"
+#include "ProgressEstimator.h"
 
 namespace cura
 {
@@ -70,8 +71,9 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param total_layers The total number of layers over all objects
+     * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, size_t total_layers);
+    void processBasicWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, unsigned int total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
     
     /*!
      * TODO

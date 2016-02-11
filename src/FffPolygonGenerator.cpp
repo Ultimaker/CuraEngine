@@ -17,6 +17,8 @@
 #include "debug.h"
 #include "Progress.h"
 #include "PrintFeature.h"
+#include "ProgressEstimator.h"
+
 
 namespace cura
 {
@@ -154,12 +156,19 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-
+    
     // handle meshes
-    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
+    ProgressStageEstimator inset_skin_progress_estimate;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        processBasicWallsSkinInfill(mesh, time_keeper, total_layers);
+        inset_skin_progress_estimate.addStage(1.0); // TODO: have a more accurate estimate of the relative time it takes per mesh, based on the height and number of polygons
+    }
+
+    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        processBasicWallsSkinInfill(mesh, time_keeper, total_layers, inset_skin_progress_estimate);
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -192,26 +201,37 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     processPlatformAdhesion(storage);
     
     // meshes post processing
-    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    for (SliceMeshStorage& mesh : storage.meshes)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx, storage.meshes.size()); // TODO: make progress more accurate!!
         processDerivedWallsSkinInfill(mesh, time_keeper, total_layers);
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, unsigned int total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
 {
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
+    ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator();
+    mesh_inset_skin_progress_estimator->addStage(22.953);
+    mesh_inset_skin_progress_estimator->addStage(48.858);
+    
+    inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
+    
+    ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(total_layers);
+    mesh_inset_skin_progress_estimator->nextStage(inset_estimator);
+    
     
     // walls
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
         processInsets(mesh, layer_number);
-//         Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
+        double progress = inset_skin_progress_estimate.progress(layer_number);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 
+    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(total_layers);
+    mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
+    
     // skin & infill
 //     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
@@ -225,7 +245,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, Ti
         {
             processSkinsAndInfill(mesh, layer_number);
         }
-//         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
+        double progress = inset_skin_progress_estimate.progress(layer_number);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 }
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
