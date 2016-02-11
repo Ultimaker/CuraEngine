@@ -255,7 +255,7 @@ inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int i_line_polygon, i
 {
     { /// check distance to first point on line (0)
         float dist = vSize2f(polygons[i_line_polygon][0] - prev_point);
-        dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i_line_polygon][1] - polygons[i_line_polygon][0], 1000))) * 0.0001f; /// penalize sharp corners
+        dist += std::abs(dot(incommingPerpundicularNormal, normal(polygons[i_line_polygon][1] - polygons[i_line_polygon][0], 1000))) * 0.0001f; /// penalize sharp corners
         if (dist < bestDist)
         {
             best = i_line_polygon;
@@ -265,7 +265,7 @@ inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int i_line_polygon, i
     }
     { /// check distance to second point on line (1)
         float dist = vSize2f(polygons[i_line_polygon][1] - prev_point);
-        dist += abs(dot(incommingPerpundicularNormal, normal(polygons[i_line_polygon][0] - polygons[i_line_polygon][1], 1000) )) * 0.0001f; /// penalize sharp corners
+        dist += std::abs(dot(incommingPerpundicularNormal, normal(polygons[i_line_polygon][0] - polygons[i_line_polygon][1], 1000) )) * 0.0001f; /// penalize sharp corners
         if (dist < bestDist)
         {
             best = i_line_polygon;
