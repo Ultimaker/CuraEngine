@@ -241,7 +241,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
 
-    for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+    for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         std::vector<PolygonsPart> new_parts;
@@ -249,6 +249,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
         for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
         {
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
+            if (layer_idx >= other_mesh.layers.size())
+            {
+                continue;
+            }
 
             SliceLayer& other_layer = other_mesh.layers[layer_idx];
 
