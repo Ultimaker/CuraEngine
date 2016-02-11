@@ -158,11 +158,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     
     // handle meshes
-    ProgressStageEstimator inset_skin_progress_estimate;
-    for (unsigned int mesh_idx; mesh_idx < storage.meshes.size(); mesh_idx++)
+    std::vector<double> mesh_timings;
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        inset_skin_progress_estimate.addStage(1.0); // TODO: have a more accurate estimate of the relative time it takes per mesh, based on the height and number of polygons
+        mesh_timings.push_back(1.0); // TODO: have a more accurate estimate of the relative time it takes per mesh, based on the height and number of polygons
     }
+    ProgressStageEstimator inset_skin_progress_estimate(mesh_timings);
 
     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
@@ -211,9 +212,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, Ti
 {
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
-    ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator();
-    mesh_inset_skin_progress_estimator->addStage(22.953);
-    mesh_inset_skin_progress_estimator->addStage(48.858);
+    std::vector<double> walls_vs_skin_timing({22.953, 48.858});
+    ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator(walls_vs_skin_timing);
     
     inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
     

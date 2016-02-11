@@ -60,19 +60,20 @@ protected:
     
 private:
     double accumulated_estimate;
-    unsigned int current_stage_idx;
+    int current_stage_idx;
     
 public:
-    ProgressStageEstimator()
-    : accumulated_estimate(0)
+    ProgressStageEstimator(std::vector<double>& relative_time_estimates)
+    : total_estimated_time(0)
+    , accumulated_estimate(0)
     , current_stage_idx(-1)
     {
-    }
-    
-    void addStage(double relative_estimated_time)
-    {
-        stages.emplace_back(relative_estimated_time);
-        total_estimated_time += relative_estimated_time;
+        stages.reserve(relative_time_estimates.size());
+        for (double relative_estimated_time : relative_time_estimates)
+        {
+            stages.emplace_back(relative_estimated_time);
+            total_estimated_time += relative_estimated_time;
+        }
     }
     
     double progress(int current_step)
@@ -88,9 +89,13 @@ public:
      */
     void nextStage(ProgressEstimator* stage)
     {
-        ProgressStage& current_stage = stages[current_stage_idx];
+        if (current_stage_idx >= int(stages.size()) - 1)
+        {
+            return;
+        }
         if (current_stage_idx >= 0)
         {
+            ProgressStage& current_stage = stages[current_stage_idx];
             accumulated_estimate += current_stage.relative_estimated_time;
         }
         current_stage_idx++;
