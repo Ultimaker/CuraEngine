@@ -244,13 +244,11 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
-        Polygons new_outlines; // TODO: don't split into parts before this point (for infill meshes)!
+        Polygons new_outlines; // TODO: don't split into parts before this point (for infill meshes) ???
 
         for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
         {
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
-
-            int other_mesh_infill_overlap = other_mesh.getSettingInMicrons("infill_overlap");
 
             SliceLayer& other_layer = other_mesh.layers[layer_idx];
 
@@ -262,10 +260,9 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     {
                         continue;
                     }
-                    Polygons non_overlapping_infill = other_part.infill_area[0].offset(-other_mesh_infill_overlap);
-                    other_part.infill_area[0] = non_overlapping_infill.difference(part.outline).offset(other_mesh_infill_overlap);
-                    
-                    new_outlines.add(part.outline.intersection(non_overlapping_infill));
+                    Polygons& infill = other_part.infill_area[0];
+                    new_outlines.add(part.outline.intersection(infill));
+                    infill = infill.difference(part.outline);
                 }
             }
         }
