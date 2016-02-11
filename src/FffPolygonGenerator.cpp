@@ -66,7 +66,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
     if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     {
-        Progress::messageProgressStage(Progress::Stage::INSET,&timeKeeper); //Continue directly with the inset stage, which will also immediately stop.
         return true; //This is NOT an error state!
     }
 
@@ -135,13 +134,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }
-    
-    Progress::messageProgressStage(Progress::Stage::INSET, &timeKeeper);
     return true;
 }
 
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
+    // compute layer count and remove first empty layers
+//     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); // there is no separate progress stage for removeEmptyFisrtLayer
     unsigned int total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -157,6 +156,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     // handle meshes
+    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         processBasicWallsSkinInfill(mesh, time_keeper, total_layers);
@@ -192,23 +192,28 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     processPlatformAdhesion(storage);
     
     // meshes post processing
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx, storage.meshes.size()); // TODO: make progress more accurate!!
         processDerivedWallsSkinInfill(mesh, time_keeper, total_layers);
     }
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
 {
+    // TODO: make progress more accurate!!
+    // note: estimated time for     insets : skins = 22.953 : 48.858
+    
     // walls
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
         processInsets(mesh, layer_number);
-        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
+//         Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
     }
 
     // skin & infill
-    Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
+//     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
     if (getSettingBoolean("magic_spiralize"))
     {
@@ -220,7 +225,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, Ti
         {
             processSkinsAndInfill(mesh, layer_number);
         }
-        Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
+//         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
     }
 }
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)

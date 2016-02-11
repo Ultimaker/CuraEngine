@@ -11,7 +11,7 @@ namespace cura {
 
 class CommandSocket;
 
-#define N_PROGRESS_STAGES 8
+#define N_PROGRESS_STAGES 7
 
 /*!
  * Class for handling the progress bar and the progress logging.
@@ -30,11 +30,10 @@ public:
         START   = 0, 
         SLICING = 1, 
         PARTS   = 2, 
-        INSET   = 3, 
+        INSET_SKIN = 3, 
         SUPPORT = 4, 
-        SKIN    = 5, 
-        EXPORT  = 6, 
-        FINISH  = 7
+        EXPORT  = 5, 
+        FINISH  = 6
     };
 private:
     static double times [N_PROGRESS_STAGES]; //!< Time estimates per stage
