@@ -160,7 +160,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        processBasicWallsSkinInfill(storage, mesh_idx, time_keeper, total_layers);
+        processBasicWallsSkinInfill(storage, mesh_idx, total_layers);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx + 1, storage.meshes.size()); // TODO: make progress more accurate!!
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -196,12 +197,11 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx, storage.meshes.size()); // TODO: make progress more accurate!!
         processDerivedWallsSkinInfill(mesh, total_layers);
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, TimeKeeper& time_keeper, size_t total_layers)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers)
 {
     
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];

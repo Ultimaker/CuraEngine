@@ -69,10 +69,9 @@ private:
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param mesh_idx The index of the mesh to process in the vector of meshes in \p storage
-     * \param timeKeeper Object which keeps track of timings of each stage.
      * \param total_layers The total number of layers over all objects
      */
-    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, TimeKeeper& timeKeeper, size_t total_layers);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers);
     
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
