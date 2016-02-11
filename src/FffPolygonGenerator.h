@@ -65,19 +65,36 @@ private:
     void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
     
     /*!
+     * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
+     * 
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param timeKeeper Object which keeps track of timings of each stage.
+     * \param total_layers The total number of layers over all objects
+     */
+    void processBasicWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, size_t total_layers);
+    
+    /*!
+     * TODO
+     */
+    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, size_t total_layers);
+    
+    /*!
      * Remove all bottom layers which are empty.
+     * 
+     * \warning Changes \p total_layers
+     * 
      * \param storage Input and Ouput parameter: stores all layers
      * \param layer_height The height of each layer
      * \param total_layers The total number of layers
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int total_layers);
+    void removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers);
     
     /*!
      * Generate the inset polygons which form the walls.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(SliceDataStorage& storage, unsigned int layer_nr);
+    void processInsets(SliceMeshStorage& storage, unsigned int layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
@@ -91,7 +108,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
      */
-    void processSkinsAndInfill(SliceDataStorage& storage, unsigned int layer_nr); 
+    void processSkinsAndInfill(SliceMeshStorage& storage, unsigned int layer_nr); 
 
     /*!
      * Generate the polygons where the draft screen should be.

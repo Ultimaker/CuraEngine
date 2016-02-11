@@ -142,31 +142,31 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    size_t total_layers = 0;
+    unsigned int total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
     }
-    
-    //layerparts2HTML(storage, "output/output.html");
-    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
+
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
+
+    if (total_layers == 0)
     {
-        processInsets(storage, layer_number);
-        
-        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
-    }
-    
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers);
-    
-    if (total_layers < 1)
-    {
-        log("Stopping process because there are no layers.\n");
+        log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-    
+
+    // handle meshes
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        processBasicWallsSkinInfill(mesh, time_keeper, total_layers);
+    }
+    //layerparts2HTML(storage, "output/output.html");
+
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
-            
+
     AreaSupport::generateSupportAreas(storage, total_layers);
+    
     /*
     if (storage.support.generated)
     {
@@ -180,83 +180,92 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         }
     }
     */
+
+    // handle helpers
+    storage.primeTower.computePrimeTowerMax(storage);
+    storage.primeTower.generatePaths(storage, total_layers);
+
+    processOozeShield(storage, total_layers);
+
+    processDraftShield(storage, total_layers);
+
+    processPlatformAdhesion(storage);
     
+    // meshes post processing
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        processDerivedWallsSkinInfill(mesh, time_keeper, total_layers);
+    }
+}
+
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+{
+    // walls
+    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
+    {
+        processInsets(mesh, layer_number);
+        Progress::messageProgress(Progress::Stage::INSET, layer_number+1, total_layers);
+    }
+
+    // skin & infill
     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
     if (getSettingBoolean("magic_spiralize"))
     {
-        for(SliceMeshStorage& mesh : storage.meshes)
-        {
-            mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
-        }
+        mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
         if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            processSkinsAndInfill(storage, layer_number);
+            processSkinsAndInfill(mesh, layer_number);
         }
         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
     }
-    
-    unsigned int combined_infill_layers = storage.getSettingInMicrons("infill_sparse_thickness") / std::max(storage.getSettingInMicrons("layer_height"),1); //How many infill layers to combine to obtain the requested sparse thickness.
-    for(SliceMeshStorage& mesh : storage.meshes)
-    {
-        combineInfillLayers(mesh,combined_infill_layers);
-    }
+}
+void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+{
+    // combine infill
+    unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
+    combineInfillLayers(mesh,combined_infill_layers);
 
-    storage.primeTower.computePrimeTowerMax(storage);
-    storage.primeTower.generatePaths(storage, total_layers);
-    
-    processOozeShield(storage, total_layers);
-        
-    processDraftShield(storage, total_layers);
-    
-    processPlatformAdhesion(storage);
-
-    
-    for(SliceMeshStorage& mesh : storage.meshes)
+    // fuzzy skin
+    if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
     {
-        if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
-        {
-            processFuzzyWalls(mesh);
-        }
+        processFuzzyWalls(mesh);
     }
 }
 
-void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int layer_nr) 
+void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr) 
 {
-    for(SliceMeshStorage& mesh : storage.meshes)
+    SliceLayer* layer = &mesh.layers[layer_nr];
+    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
-        SliceLayer* layer = &mesh.layers[layer_nr];
-        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
+        int inset_count = mesh.getSettingAsCount("wall_line_count");
+        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+            inset_count += 5;
+        int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
+        int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
+        if (mesh.getSettingBoolean("alternate_extra_perimeter"))
+            inset_count += layer_nr % 2; 
+        generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+    }
+    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    {
+        for (PolygonRef polyline : layer->openPolyLines)
         {
-            int inset_count = mesh.getSettingAsCount("wall_line_count");
-            if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
-                inset_count += 5;
-            int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
-            int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
-            if (mesh.getSettingBoolean("alternate_extra_perimeter"))
-                inset_count += layer_nr % 2; 
-            generateInsets(layer, mesh.getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
-        }
-        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-        {
-            for (PolygonRef polyline : layer->openPolyLines)
+            Polygons segments;
+            for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
             {
-                Polygons segments;
-                for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
-                {
-                    PolygonRef segment = segments.newPoly();
-                    segment.add(polyline[point_idx-1]);
-                    segment.add(polyline[point_idx]);
-                }
+                PolygonRef segment = segments.newPoly();
+                segment.add(polyline[point_idx-1]);
+                segment.add(polyline[point_idx]);
             }
         }
     }
 }
 
-void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int layer_height, unsigned int total_layers)
+void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
 { 
     int n_empty_first_layers = 0;
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
@@ -297,33 +306,33 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, int 
     }
 }
   
-void FffPolygonGenerator::processSkinsAndInfill(SliceDataStorage& storage, unsigned int layer_nr) 
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr) 
 {
-    for(SliceMeshStorage& mesh : storage.meshes)
+    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) 
+    { 
+        return;
+    }
+    
+    int wall_line_count = mesh.getSettingAsCount("wall_line_count");
+    int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
+    int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+    if (mesh.getSettingInMicrons("infill_line_distance") > 0)
     {
-        if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) { continue; }
-        
-        int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-        int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
-        int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-        generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"), mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
-        if (mesh.getSettingInMicrons("infill_line_distance") > 0)
+        int infill_skin_overlap = 0;
+        bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
+        if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
         {
-            int infill_skin_overlap = 0;
-            bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
-            if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
-            {
-                infill_skin_overlap = skin_extrusion_width / 2;
-            }
-            generateInfill(layer_nr, mesh, innermost_wall_extrusion_width, infill_skin_overlap, wall_line_count);
-            if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::SKIN)
-            {
-                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
-            }
-            else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
-            {
-                generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
-            }
+            infill_skin_overlap = skin_extrusion_width / 2;
+        }
+        generateInfill(layer_nr, mesh, innermost_wall_extrusion_width, infill_skin_overlap, wall_line_count);
+        if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::SKIN)
+        {
+            generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
+        }
+        else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
+        {
+            generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
         }
     }
 }
