@@ -43,7 +43,7 @@ SettingContainer::SettingContainer(std::string key, std::string label)
 
 SettingConfig* SettingContainer::addChild(std::string key, std::string label)
 {
-    children.emplace_back(key, label, nullptr);
+    children.emplace_back(key, label);
     return &children.back();
 }
 
@@ -52,7 +52,7 @@ SettingConfig& SettingContainer::getOrCreateChild(std::string key, std::string l
     auto child_it = std::find_if(children.begin(), children.end(), [&key](SettingConfig& child) { return child.key == key; } );
     if (child_it == children.end())
     {
-        children.emplace_back(key, label, this);
+        children.emplace_back(key, label);
         return children.back();
     }
     else
@@ -62,9 +62,8 @@ SettingConfig& SettingContainer::getOrCreateChild(std::string key, std::string l
 }
 
 
-SettingConfig::SettingConfig(std::string key, std::string label, SettingContainer* parent)
+SettingConfig::SettingConfig(std::string key, std::string label)
 : SettingContainer(key, label)
-, parent(parent)
 {
 //     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
 }
