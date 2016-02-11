@@ -412,8 +412,10 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::sendFinishedSlicing()
 {
+#ifdef ARCUS
     std::shared_ptr<cura::proto::SlicingFinished> done_message = std::make_shared<cura::proto::SlicingFinished>();
     private_data->socket->sendMessage(done_message);
+#endif
 }
 
 void CommandSocket::beginGCode()
