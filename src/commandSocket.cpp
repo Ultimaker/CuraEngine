@@ -27,9 +27,9 @@ namespace cura {
 #define FLOATS_PER_VECTOR 3
 #define VECTORS_PER_FACE 3
 
-#ifdef ARCUS
 CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 
+#ifdef ARCUS
 class Listener : public Arcus::SocketListener
 {
 public:
