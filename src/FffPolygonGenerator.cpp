@@ -142,11 +142,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     // compute layer count and remove first empty layers
-//     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); // there is no separate progress stage for removeEmptyFisrtLayer
+    // there is no separate progress stage for removeEmptyFisrtLayer (TODO)
     unsigned int total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
+        if (!mesh.getSettingBoolean("infill_mesh"))
+        {
+            total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
+        }
     }
 
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
@@ -168,8 +171,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        processBasicWallsSkinInfill(mesh, time_keeper, total_layers, inset_skin_progress_estimate);
+        processBasicWallsSkinInfill(storage, mesh_idx, total_layers, inset_skin_progress_estimate);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx + 1, storage.meshes.size());
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -204,12 +207,19 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        processDerivedWallsSkinInfill(mesh, time_keeper, total_layers);
+        processDerivedWallsSkinInfill(mesh, total_layers);
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, unsigned int total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
 {
+    
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    if (mesh.getSettingBoolean("infill_mesh"))
+    {
+        processInfillMesh(storage, mesh_idx, total_layers);
+    }
+    
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
     std::vector<double> walls_vs_skin_timing({22.953, 48.858});
@@ -249,7 +259,66 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, Ti
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 }
-void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers)
+{
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+
+    for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        std::vector<PolygonsPart> new_parts;
+
+        for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
+        {
+            SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
+            if (layer_idx >= other_mesh.layers.size())
+            {
+                continue;
+            }
+
+            SliceLayer& other_layer = other_mesh.layers[layer_idx];
+
+            for (SliceLayerPart& part : layer.parts)
+            {
+                for (SliceLayerPart& other_part : other_layer.parts)
+                {
+                    if (!part.boundaryBox.hit(other_part.boundaryBox))
+                    {
+                        continue;
+                    }
+                    Polygons& infill = other_part.infill_area[0];
+                    Polygons new_outline = part.outline.intersection(infill);
+                    if (new_outline.size() == 1)
+                    {
+                        PolygonsPart outline_part_here;
+                        outline_part_here.add(new_outline[0]);
+                        new_parts.push_back(outline_part_here);
+                    }
+                    else if (new_outline.size() > 1)
+                    {
+                        std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
+                        for (PolygonsPart& new_part_here : new_parts_here)
+                        {
+                            new_parts.push_back(new_part_here);
+                        }
+                    }
+                    infill = infill.difference(part.outline);
+                }
+            }
+        }
+        
+        layer.parts.clear();
+        for (PolygonsPart& part : new_parts)
+        {
+            layer.parts.emplace_back();
+            layer.parts.back().outline = part;
+        }
+    }
+    
+}
+
+void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers)
 {
     // combine infill
     unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
