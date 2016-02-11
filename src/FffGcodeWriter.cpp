@@ -12,8 +12,6 @@ namespace cura
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
-    PrimeTower primetower();
-    
     gcode.preSetup(storage.meshgroup);
     
     if (meshgroup_number == 1)
