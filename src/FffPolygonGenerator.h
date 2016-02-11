@@ -84,9 +84,13 @@ private:
     void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers);
     
     /*!
-     * TODO
+     * Process features which are derived from the basic walls, skin, and infill:
+     * fuzzy skin, infill combine
+     * 
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param total_layers The total number of layers over all objects
      */
-    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, size_t total_layers);
+    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, size_t total_layers);
     
     /*!
      * Remove all bottom layers which are empty.

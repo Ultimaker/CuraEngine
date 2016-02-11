@@ -197,7 +197,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx, storage.meshes.size()); // TODO: make progress more accurate!!
-        processDerivedWallsSkinInfill(mesh, time_keeper, total_layers);
+        processDerivedWallsSkinInfill(mesh, total_layers);
     }
 }
 
@@ -278,7 +278,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
     
 }
 
-void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers)
 {
     // combine infill
     unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
