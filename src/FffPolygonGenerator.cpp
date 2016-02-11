@@ -93,6 +93,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
+    // TODO!!! dont generate multi volume overlap with infill meshes!
     
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
@@ -157,9 +158,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle meshes
     Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        processBasicWallsSkinInfill(mesh, time_keeper, total_layers);
+        processBasicWallsSkinInfill(storage, mesh_idx, time_keeper, total_layers);
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -200,8 +201,15 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, TimeKeeper& time_keeper, size_t total_layers)
 {
+    
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    if (mesh.getSettingBoolean("infill_mesh"))
+    {
+        processInfillMesh(storage, mesh_idx, total_layers);
+    }
+    
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
     
@@ -228,6 +236,51 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceMeshStorage& mesh, Ti
 //         Progress::messageProgress(Progress::Stage::SKIN, layer_number+1, total_layers);
     }
 }
+
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers)
+{
+    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+
+    for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+    {
+        SliceLayer& layer = mesh.layers[layer_idx];
+        Polygons new_outlines; // TODO: don't split into parts before this point (for infill meshes)!
+
+        for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
+        {
+            SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
+
+            int other_mesh_infill_overlap = other_mesh.getSettingInMicrons("infill_overlap");
+
+            SliceLayer& other_layer = other_mesh.layers[layer_idx];
+
+            for (SliceLayerPart& part : layer.parts)
+            {
+                for (SliceLayerPart& other_part : other_layer.parts)
+                {
+                    if (!part.boundaryBox.hit(other_part.boundaryBox))
+                    {
+                        continue;
+                    }
+                    Polygons non_overlapping_infill = other_part.infill_area[0].offset(-other_mesh_infill_overlap);
+                    other_part.infill_area[0] = non_overlapping_infill.difference(part.outline).offset(other_mesh_infill_overlap);
+                    
+                    new_outlines.add(part.outline.intersection(non_overlapping_infill));
+                }
+            }
+        }
+        
+        layer.parts.clear();
+        std::vector<PolygonsPart> parts = new_outlines.splitIntoParts();
+        for (PolygonsPart& part : parts)
+        {
+            layer.parts.emplace_back();
+            layer.parts.back().outline = part;
+        }
+    }
+    
+}
+
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, TimeKeeper& time_keeper, size_t total_layers)
 {
     // combine infill
