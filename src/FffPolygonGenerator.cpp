@@ -244,7 +244,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
-        Polygons new_outlines; // TODO: don't split into parts before this point (for infill meshes) ???
+        std::vector<PolygonsPart> new_parts;
 
         for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
         {
@@ -261,15 +261,28 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                         continue;
                     }
                     Polygons& infill = other_part.infill_area[0];
-                    new_outlines.add(part.outline.intersection(infill));
+                    Polygons new_outline = part.outline.intersection(infill);
+                    if (new_outline.size() == 1)
+                    {
+                        PolygonsPart outline_part_here;
+                        outline_part_here.add(new_outline[0]);
+                        new_parts.push_back(outline_part_here);
+                    }
+                    else if (new_outline.size() > 1)
+                    {
+                        std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
+                        for (PolygonsPart& new_part_here : new_parts_here)
+                        {
+                            new_parts.push_back(new_part_here);
+                        }
+                    }
                     infill = infill.difference(part.outline);
                 }
             }
         }
         
         layer.parts.clear();
-        std::vector<PolygonsPart> parts = new_outlines.splitIntoParts();
-        for (PolygonsPart& part : parts)
+        for (PolygonsPart& part : new_parts)
         {
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
