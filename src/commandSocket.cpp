@@ -27,9 +27,9 @@ namespace cura {
 #define FLOATS_PER_VECTOR 3
 #define VECTORS_PER_FACE 3
 
-#ifdef ARCUS
 CommandSocket* CommandSocket::instance = nullptr; // instantiate instance
 
+#ifdef ARCUS
 class Listener : public Arcus::SocketListener
 {
 public:
@@ -412,8 +412,10 @@ void CommandSocket::endSendSlicedObject()
 
 void CommandSocket::sendFinishedSlicing()
 {
+#ifdef ARCUS
     std::shared_ptr<cura::proto::SlicingFinished> done_message = std::make_shared<cura::proto::SlicingFinished>();
     private_data->socket->sendMessage(done_message);
+#endif
 }
 
 void CommandSocket::beginGCode()
