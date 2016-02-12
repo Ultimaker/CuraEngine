@@ -80,9 +80,8 @@ private:
     std::string type;
     std::string default_value;
     std::string unit;
-    SettingContainer* parent;
 public:
-    SettingConfig(std::string key, std::string label, SettingContainer* parent);
+    SettingConfig(std::string key, std::string label);
     
     /*!
      * Get the SettingConfig::children.
