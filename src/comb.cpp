@@ -105,31 +105,34 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         Point inside_middle_to;
         Point outside_iddle_to;
         
-        if (startInside)
-        {
-            ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
-//             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
-            outside_middle_from = middle_from_cp.location;
-            inside_middle_from = middle_from_cp.location; // temp, see line below!
-            PolygonUtils::moveInside(boundary_inside, inside_middle_from, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
-        }
-        else 
-        {
-            outside_middle_from = startPoint;
-            inside_middle_from = startPoint;
-        }
-        
-        if (endInside)
-        {
-            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(outside_middle_from, boundary_inside[end_part_boundary_poly_idx]);
-            outside_iddle_to = middle_to_cp.location;
-            inside_middle_to = middle_to_cp.location; // temp, see line below!
-            PolygonUtils::moveInside(boundary_inside, inside_middle_to, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
-        }
-        else 
-        {
-            outside_iddle_to = endPoint;
-            inside_middle_to = endPoint;
+        { // find crossing over the in-between area between inside and outside
+            if (startInside)
+            {
+                ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
+//                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
+                outside_middle_from = middle_from_cp.location;
+                inside_middle_from = middle_from_cp.location; // temp, see line below!
+                PolygonUtils::moveInside(boundary_inside, inside_middle_from, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
+            }
+            else 
+            {
+                outside_middle_from = startPoint;
+                inside_middle_from = startPoint;
+            }
+            
+            if (endInside)
+            {
+                ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(outside_middle_from, boundary_inside[end_part_boundary_poly_idx]);
+//                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
+                outside_iddle_to = middle_to_cp.location;
+                inside_middle_to = middle_to_cp.location; // temp, see line below!
+                PolygonUtils::moveInside(boundary_inside, inside_middle_to, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
+            }
+            else 
+            {
+                outside_iddle_to = endPoint;
+                inside_middle_to = endPoint;
+            }
         }
         
         if (startInside)
