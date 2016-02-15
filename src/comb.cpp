@@ -99,47 +99,37 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     }
     else 
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
-        Point middle_from;
-        Point middle_to;
         Point inside_middle_from;
-        Point inside_middle_to;
+        Point outside_middle_from;
         
-        if (startInside && endInside)
+        Point inside_middle_to;
+        Point outside_iddle_to;
+        
+        if (startInside)
         {
             ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
-            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from_cp.location, boundary_inside[end_part_boundary_poly_idx]);
 //             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
-            middle_from = middle_from_cp.location;
+            outside_middle_from = middle_from_cp.location;
             inside_middle_from = middle_from_cp.location;
-            middle_to = middle_to_cp.location;
-            inside_middle_to = middle_to_cp.location;
-            PolygonUtils::moveInside(boundary_inside,inside_middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
-            PolygonUtils::moveInside(boundary_inside,inside_middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
+            PolygonUtils::moveInside(boundary_inside, inside_middle_from, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
         }
-        else if(!startInside && !endInside)
+        else 
         {
-            middle_from = startPoint;
+            outside_middle_from = startPoint;
             inside_middle_from = startPoint;
-            middle_to = endPoint;
-            inside_middle_to = endPoint;
         }
-        else if(!startInside && endInside)
+        
+        if (endInside)
         {
-            middle_from = startPoint;
-            inside_middle_from = startPoint;
-            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(middle_from,boundary_inside[end_part_boundary_poly_idx]);
-            middle_to = middle_to_cp.location;
+            ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(outside_middle_from, boundary_inside[end_part_boundary_poly_idx]);
+            outside_iddle_to = middle_to_cp.location;
             inside_middle_to = middle_to_cp.location;
-            PolygonUtils::moveInside(boundary_inside,inside_middle_to,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
+            PolygonUtils::moveInside(boundary_inside, inside_middle_to, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
-        else if(startInside && !endInside)
+        else 
         {
-            middle_to = endPoint;
+            outside_iddle_to = endPoint;
             inside_middle_to = endPoint;
-            ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(middle_to,boundary_inside[start_part_boundary_poly_idx]);
-            middle_from = middle_from_cp.location;
-            inside_middle_from = middle_from_cp.location;
-            PolygonUtils::moveInside(boundary_inside,inside_middle_from,offset_dist_to_get_from_on_the_polygon_to_outside,max_comb_distance_ignored);
         }
         
         if (startInside)
@@ -154,12 +144,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         if (avoid_other_parts)
         {
             Polygons& middle = *getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
-            Point from_outside = middle_from;
+            Point from_outside = outside_middle_from;
             if (startInside || middle.inside(from_outside, true))
             { // move outside
                 PolygonUtils::moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
-            Point to_outside = middle_to;
+            Point to_outside = outside_iddle_to;
             if (endInside || middle.inside(to_outside, true))
             { // move outside
                 PolygonUtils::moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
