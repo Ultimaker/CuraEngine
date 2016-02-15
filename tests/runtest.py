@@ -9,6 +9,7 @@
 # * Single random value
 # * All settings random
 
+import ast #For safe function evaluation.
 import sys
 import subprocess
 import os
@@ -87,17 +88,33 @@ class TestResults():
 
 
 class Setting():
-    def __init__(self, key, data):
+    ##  Creates a new setting from a JSON node.
+    #
+    #   Some parts of the setting may have to be evaluated as functions. For
+    #   these, the default values of all settings are added as local variables.
+    #
+    #   \param key The name of the setting.
+    #   \param data The JSON node of the setting, containing the default value,
+    #   the setting type, the minimum value, maximum value, the minimum warning
+    #   value, the maximum warning value and (for enum types) the options.
+    #   \param locals The local variables for eventual function evaluation.
+    def __init__(self, key, data, locals):
         self._key = key
         self._default = data["default"]
         self._type = data["type"]
-        self._min_value = data.get("min_value", None)
-        self._max_value = data.get("max_value", None)
-        self._min_value_warning = data.get("min_value_warning", None)
-        self._max_value_warning = data.get("max_value_warning", None)
+        self._min_value = self._evaluateFunction(data.get("min_value", None), locals)
+        self._max_value = self._evaluateFunction(data.get("max_value", None), locals)
+        self._min_value_warning = self._evaluateFunction(data.get("min_value_warning", None), locals)
+        self._max_value_warning = self._evaluateFunction(data.get("max_value_warning", None), locals)
         self._options = data.get("options", None)
         if self._options is not None:
             self._options = list(self._options.keys())
+
+    ##  Gets the default value of this setting, according to the source JSON.
+    #
+    #   \return The default value.
+    def getDefault(self):
+        return self._default
 
     ## Return a list of possible values for this setting. This list depends on the setting type.
     #  For number values it contains the minimal and maximal values.
@@ -157,10 +174,42 @@ class Setting():
             return random.uniform(float(min), float(max))
         return random.choice(self.getSettingValues())
 
+    ##  Evaluates a setting value that is described as a function.
+    #
+    #   Note that this function should behave EXACTLY the same as it does in
+    #   UM/Settings/Setting.py:_createFunction. The only differences should be
+    #   that this evaluation always uses the default values instead of the
+    #   current profile values, and that this function directly evaluates the
+    #   setting instead of returning a function with which to evaluate the
+    #   setting. Also, this function doesn't need to compile the list of
+    #   settings that this setting depends on.
+    #
+    #   \param code The string to evaluate as a function of default values of
+    #   other settings.
+    #   \param locals The default values of other settings, as dictionary keyed
+    #   by the setting names.
+    #   \return The evaluated value of the setting, or None if \p code was None.
+    def _evaluateFunction(self, code, locals):
+        if not code: #The input was None. This setting value doesn't exist in the JSON.
+            return None
+        try:
+            tree = ast.parse(code, "eval")
+            compiled = compile(code, self._key, "eval")
+        except (SyntaxError, TypeError) as e:
+            print("Parse error in function (" + code + ") for setting", self._key + ":", str(e))
+        except IllegalMethodError as e:
+            print("Use of illegal method", str(e), "in function (" + code + ") for setting", self._key)
+        except Exception as e:
+            print("Exception in function (" + code + ") for setting", self._key + ":", str(e))
+
+        return eval(compiled, globals(), locals)
+
 class EngineTest():
     def __init__(self, json_filename, engine_filename, models):
         self._json_filename = json_filename
         self._json = json.load(open(json_filename, "r"))
+        self._locals = {}
+        self._addAllLocals() #Fills the _locals dictionary.
         self._engine = engine_filename
         self._models = models
         self._settings = {}
@@ -174,7 +223,7 @@ class EngineTest():
     
     def _flattenSettings(self, settings):
             for key, setting in settings.items():
-                self._settings[key] = Setting(key, setting)
+                self._settings[key] = Setting(key, setting, self._locals)
                 if "children" in setting:
                     self._flattenSettings(setting["children"])
 
@@ -247,6 +296,25 @@ class EngineTest():
 
     def getResults(self):
         return self._test_results
+
+    ##  Adds all default values for all settings to the locals.
+    #
+    #   The results are stored in self._locals, keyed by the setting name.
+    def _addAllLocals(self):
+        for key, data in self._json["categories"].items():
+            self._addLocals(data["settings"])
+        self._addLocals(self._json["machine_settings"])
+
+    ##  Adds the default values in a node of the setting tree to the locals.
+    #
+    #   The results are stored in self._locals, keyed by the setting name.
+    #
+    #   \param settings The JSON node of which to add the default values.
+    def _addLocals(self, settings):
+        for key, setting in settings.items():
+            self._locals[key] = setting["default"]
+            if "children" in setting:
+                self._addLocals(setting["children"]) #Recursively go down the tree.
 
 def main(engine, model_path):
     filenames = sorted(os.listdir(model_path), key=lambda filename: os.stat(os.path.join(model_path, filename)).st_size)
