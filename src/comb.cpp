@@ -133,11 +133,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
                 outside_middle_to = endPoint;
                 inside_middle_to = endPoint;
             }
-
-            if (vSize(inside_middle_from - outside_middle_from) + vSize(inside_middle_to - outside_middle_to) > vSize(inside_middle_from - inside_middle_to))
-            { // via outside moves more over in_between than directly going to the end piece
-                avoid_other_parts = false;
-            }
         }
         
         if (startInside)
