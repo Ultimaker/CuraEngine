@@ -223,7 +223,7 @@ private:
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
      */
-    Polygons* getBoundaryOutside();
+    Polygons& getBoundaryOutside();
     
 public:
     /*!

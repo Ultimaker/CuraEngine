@@ -11,14 +11,14 @@ namespace cura {
 
 
 // boundary_outside is only computed when it's needed!
-Polygons* Comb::getBoundaryOutside()
+Polygons& Comb::getBoundaryOutside()
 {
     if (!boundary_outside)
     {
         boundary_outside = new Polygons();
-        *boundary_outside =  storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
+        *boundary_outside = storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
     }
-    return boundary_outside;
+    return *boundary_outside;
 }
   
 Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
@@ -110,7 +110,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             ClosestPolygonPoint middle_from_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
 //             walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
             outside_middle_from = middle_from_cp.location;
-            inside_middle_from = middle_from_cp.location;
+            inside_middle_from = middle_from_cp.location; // temp, see line below!
             PolygonUtils::moveInside(boundary_inside, inside_middle_from, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
         }
         else 
@@ -123,7 +123,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         {
             ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(outside_middle_from, boundary_inside[end_part_boundary_poly_idx]);
             outside_iddle_to = middle_to_cp.location;
-            inside_middle_to = middle_to_cp.location;
+            inside_middle_to = middle_to_cp.location; // temp, see line below!
             PolygonUtils::moveInside(boundary_inside, inside_middle_to, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
         else 
@@ -143,7 +143,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         // throught air from boundary to boundary
         if (avoid_other_parts)
         {
-            Polygons& middle = *getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            Polygons& middle = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
             Point from_outside = outside_middle_from;
             if (startInside || middle.inside(from_outside, true))
             { // move outside
