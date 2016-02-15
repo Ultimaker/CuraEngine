@@ -101,10 +101,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
         Point inside_middle_from;
         Point outside_middle_from;
-        
+
         Point inside_middle_to;
-        Point outside_iddle_to;
-        
+        Point outside_middle_to;
+
         { // find crossing over the in-between area between inside and outside
             if (startInside)
             {
@@ -119,22 +119,22 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
                 outside_middle_from = startPoint;
                 inside_middle_from = startPoint;
             }
-            
+
             if (endInside)
             {
                 ClosestPolygonPoint middle_to_cp = PolygonUtils::findClosest(outside_middle_from, boundary_inside[end_part_boundary_poly_idx]);
 //                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
-                outside_iddle_to = middle_to_cp.location;
+                outside_middle_to = middle_to_cp.location;
                 inside_middle_to = middle_to_cp.location; // temp, see line below!
                 PolygonUtils::moveInside(boundary_inside, inside_middle_to, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
             }
             else 
             {
-                outside_iddle_to = endPoint;
+                outside_middle_to = endPoint;
                 inside_middle_to = endPoint;
             }
-            
-            if (vSize(inside_middle_from - outside_middle_from) + vSize(inside_middle_to - outside_iddle_to) > vSize(inside_middle_from - inside_middle_to))
+
+            if (vSize(inside_middle_from - outside_middle_from) + vSize(inside_middle_to - outside_middle_to) > vSize(inside_middle_from - inside_middle_to))
             { // via outside moves more over in_between than directly going to the end piece
                 avoid_other_parts = false;
             }
@@ -157,7 +157,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             { // move outside
                 PolygonUtils::moveInside(middle, from_outside, -offset_extra_start_end, max_moveInside_distance2);
             }
-            Point to_outside = outside_iddle_to;
+            Point to_outside = outside_middle_to;
             if (endInside || middle.inside(to_outside, true))
             { // move outside
                 PolygonUtils::moveInside(middle, to_outside, -offset_extra_start_end, max_moveInside_distance2);
