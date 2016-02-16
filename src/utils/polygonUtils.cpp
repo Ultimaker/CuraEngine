@@ -66,14 +66,40 @@ void PolygonUtils::removeOverlapping(const Polygons& poly, int extrusionWidth, P
 
 Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
 {
-    Point p0 = poly[(point_idx > 0) ? (point_idx - 1) : (poly.size() - 1)];
     Point p1 = poly[point_idx];
-    Point p2 = poly[(point_idx < (poly.size() - 1)) ? (point_idx + 1) : 0];
-    
-    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0))); // 1.0 for some precision
-    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0))); // 1.0 for some precision
+
+    int p0_idx;
+    for (p0_idx = int(point_idx) - 1; (unsigned int)p0_idx != point_idx; p0_idx = p0_idx - 1)
+    { // find the last point different from p1
+        if (p0_idx == -1)
+        {
+            p0_idx = poly.size() - 1;
+        }
+        if (poly[p0_idx] != p1)
+        {
+            break;
+        }
+    }
+    Point p0 = poly[p0_idx];
+
+    unsigned int p2_idx;
+    for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx = p2_idx + 1)
+    { // find the next point different from p1
+        if (p2_idx == poly.size())
+        {
+            p2_idx = 0;
+        }
+        if (poly[p2_idx] != p1)
+        {
+            break;
+        }
+    }
+    Point& p2 = poly[p2_idx];
+
+    Point off0 = crossZ(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
+    Point off1 = crossZ(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
     Point n = normal(off0 + off1, -offset);
-    
+
     return p1 + n;
 }
 
@@ -125,8 +151,8 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4)); // *4 to retain more precision for the eventual normalization 
-                            ret = x + normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
+                            Point inward_dir = crossZ(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // MM2INT(10.0) to retain precision for the eventual normalization 
+                            ret = x + normal(inward_dir, distance);
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
                     }
@@ -217,43 +243,12 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     Point& p2 = poly[p2_idx];
 
     if (on_boundary == p1)
-    { 
-        int p0_idx;
-        for (p0_idx = int(point_idx) - 1; (unsigned int)p0_idx != point_idx; p0_idx = p0_idx - 1)
-        { // find the last point different from p1
-            if (p0_idx == -1)
-            {
-                p0_idx = poly.size() - 1;
-            }
-            if (poly[p0_idx] != p1)
-            {
-                break;
-            }
-        }
-        Point& p0 = poly[p0_idx];
-        Point inward_dir = crossZ(normal(p2 - p1, distance * 4) + normal(p1 - p0, distance * 4)); // *4 to retain more precision for the eventual normalization 
-        return p1 + normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
+    {
+        return getBoundaryPointWithOffset(poly, point_idx, -distance);
     }
     else if (on_boundary == p2)
     {
-        unsigned int p3_idx;
-        for (p3_idx = p2_idx + 1; p3_idx != point_idx; p3_idx = p3_idx + 1)
-        { // find the next point different from p2
-            if (p3_idx == poly.size())
-            {
-                p3_idx = 0;
-            }
-            if (poly[p3_idx] != p2)
-            {
-                break;
-            }
-        }
-        Point& p3 = poly[p3_idx];
-        
-        Point& x = p2;
-        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(p2 - p1, distance * 4)); // *4 to retain more precision for the eventual normalization 
-        Point inward_vec = normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
-        return x + inward_vec;
+        return getBoundaryPointWithOffset(poly, p2_idx, -distance);
     }
     else 
     {
