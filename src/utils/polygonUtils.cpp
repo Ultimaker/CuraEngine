@@ -125,8 +125,8 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
-                            ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4)); // *4 to retain more precision for the eventual normalization 
+                            ret = x + normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
                     }
@@ -231,8 +231,8 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
             }
         }
         Point& p0 = poly[p0_idx];
-        Point inward_dir = crossZ(normal(p2 - p1, distance * 4) + normal(p1 - p0, distance * 4));
-        return p1 + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+        Point inward_dir = crossZ(normal(p2 - p1, distance * 4) + normal(p1 - p0, distance * 4)); // *4 to retain more precision for the eventual normalization 
+        return p1 + normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
     }
     else if (on_boundary == p2)
     {
@@ -250,9 +250,10 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
         }
         Point& p3 = poly[p3_idx];
         
-        Point& x = p1;
-        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(p2 - p1, distance * 4));
-        return x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+        Point& x = p2;
+        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(p2 - p1, distance * 4)); // *4 to retain more precision for the eventual normalization 
+        Point inward_vec = normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
+        return x + inward_vec;
     }
     else 
     {
