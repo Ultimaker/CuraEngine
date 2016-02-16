@@ -220,10 +220,8 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
     Point& p = on_boundary;
     Point ab = b - a;
     Point ap = p - a;
-    int64_t ab_length = vSize(ab);
-    int64_t ax_length = dot(ab, ap) / ab_length;
-    if (ax_length <= 0) // x is projected to before ab
-    { //  case which looks like:   > .
+    if (on_boundary == p1)
+    { 
         int p0_idx;
         for (p0_idx = int(point_idx) - 1; (unsigned int)p0_idx != point_idx; p0_idx = p0_idx - 1)
         { // find the last point different from p1
@@ -240,7 +238,7 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
         Point inward_dir = crossZ(normal(ab, distance * 4) + normal(p1 - p0, distance * 4));
         on_boundary = a + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
     }
-    else if (ax_length >= ab_length) // x is projected to beyond ab
+    else if (on_boundary == p2)
     {
         unsigned int p3_idx;
         for (p3_idx = p2_idx + 1; p3_idx != point_idx; p3_idx = p3_idx + 1)
@@ -262,7 +260,7 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
     }
     else 
     {
-        Point x = a + ab * ax_length / ab_length;
+        Point& x = on_boundary; // on_boundary is already projected on ab
         
         Point inward_dir = crossZ(normal(ab, distance));
         on_boundary = x + inward_dir; 

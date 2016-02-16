@@ -75,6 +75,8 @@ public:
     * Moves a point \p on_boundary lying on the boundary orthogonal relative to the boundary.
     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
     * 
+    * \warning \p on_boundary must already be on a the line segment or at a vertex.
+    * 
     * \param polygons The polygons onto which to move the point
     * \param on_boundary The point to move.
     * \param poly_idx The index of the polygon in \p polygons where to find the point on the boundary
