@@ -19,6 +19,10 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(edgeInsideTest);
     CPPUNIT_TEST(cornerOutsideTest);
     CPPUNIT_TEST(edgeOutsideTest);
+    CPPUNIT_TEST(cornerInsideTest2);
+    CPPUNIT_TEST(edgeInsideTest2);
+    CPPUNIT_TEST(cornerOutsideTest2);
+    CPPUNIT_TEST(edgeOutsideTest2);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -43,6 +47,10 @@ public:
     void edgeInsideTest();
     void cornerOutsideTest();
     void edgeOutsideTest();
+    void cornerInsideTest2();
+    void edgeInsideTest2();
+    void cornerOutsideTest2();
+    void edgeOutsideTest2();
 
 private:
     /*!
@@ -50,20 +58,17 @@ private:
      */
     static const int64_t maximum_error = 10;
     
+    Polygon test_square;
+    
     /*!
-     * \brief Performs the actual assertion for the getDist2FromLineSegmentTest.
-     * 
-     * This is essentially a parameterised version of all unit tests pertaining
-     * to the getDist2FromLineSegment tests.
-     * 
-     * \param line_start The start of the line to check the distance to.
-     * \param line_end The end of the line to check the distance to.
-     * \param point The point to check the distance to the line with.
-     * \param actual_distance2 The correct distance from the point to the line,
-     * squared.
-     * \param actual_is_beyond Whether the point is actually beyond the line.
+     * cppunit assert for PolygonUtils::moveInside(ClosestPolygonPoint, int)
      */
     void moveInsideAssert(const PolygonRef poly, Point close_to, const int distance, Point supposed);
+    
+    /*!
+     * cppunit assert for PolygonUtils::moveInside(ClosestPolygonPoint, int)
+     */
+    void moveInside2Assert(const PolygonRef poly, Point close_to, const int distance, Point supposed);
 };
 
 }
