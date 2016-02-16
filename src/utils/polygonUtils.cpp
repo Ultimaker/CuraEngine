@@ -125,8 +125,8 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
-                            ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4)); // *4 to retain more precision for the eventual normalization 
+                            ret = x + normal(inward_dir, std::abs(distance)); // abs cause the sign already got applied in the line above
                             is_inside = dot(inward_dir, p - x) >= 0;
                         } 
                     }
@@ -191,6 +191,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
     return NO_INDEX;
 }
 
+        return x + inward_vec;
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
