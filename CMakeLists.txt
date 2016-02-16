@@ -93,6 +93,7 @@ set(engine_SRCS # Except main.cpp.
 set(engine_TEST
 	GCodePlannerTest
     LinearAlg2DTest
+    PolygonUtilsTest
 )
 
 # Generating ProtoBuf protocol

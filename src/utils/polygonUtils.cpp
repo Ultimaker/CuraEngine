@@ -191,14 +191,16 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
     return NO_INDEX;
 }
 
-void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsigned int poly_idx, unsigned int point_idx, const int distance)
+Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distance)
 {
     if (distance == 0)
     { // the point which is assumed to be on the boundary doesn't have to be moved
-        return;
+        return cpp.location;
     }
-    
-    const PolygonRef poly = const_cast<Polygons&>(polygons)[poly_idx];
+    const PolygonRef poly = cpp.poly;
+    unsigned int point_idx = cpp.pos;
+    const Point& on_boundary = cpp.location;
+
     Point& p1 = poly[point_idx];
     unsigned int p2_idx;
     for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx = p2_idx + 1)
@@ -213,13 +215,7 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
         }
     }
     Point& p2 = poly[p2_idx];
-    // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
-    // X = P projected on AB
-    Point& a = p1;
-    Point& b = p2;
-    Point& p = on_boundary;
-    Point ab = b - a;
-    Point ap = p - a;
+
     if (on_boundary == p1)
     { 
         int p0_idx;
@@ -235,8 +231,8 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
             }
         }
         Point& p0 = poly[p0_idx];
-        Point inward_dir = crossZ(normal(ab, distance * 4) + normal(p1 - p0, distance * 4));
-        on_boundary = a + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+        Point inward_dir = crossZ(normal(p2 - p1, distance * 4) + normal(p1 - p0, distance * 4));
+        return p1 + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
     }
     else if (on_boundary == p2)
     {
@@ -254,16 +250,16 @@ void PolygonUtils::moveInside(const Polygons& polygons, Point& on_boundary, unsi
         }
         Point& p3 = poly[p3_idx];
         
-        Point& x = a;
-        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(ab, distance * 4));
-        on_boundary = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+        Point& x = p1;
+        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(p2 - p1, distance * 4));
+        return x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
     }
     else 
     {
-        Point& x = on_boundary; // on_boundary is already projected on ab
+        const Point& x = on_boundary; // on_boundary is already projected on p1-p2
         
-        Point inward_dir = crossZ(normal(ab, distance));
-        on_boundary = x + inward_dir; 
+        Point inward_dir = crossZ(normal(p2 - p1, distance));
+        return x + inward_dir; 
     }
 }
 

@@ -72,18 +72,14 @@ public:
     static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
     
     /*!
-    * Moves a point \p on_boundary lying on the boundary orthogonal relative to the boundary.
-    * Given a \p distance more than zero, the point will end up inside, and conversely outside.
-    * 
-    * \warning \p on_boundary must already be on a the line segment or at a vertex.
-    * 
-    * \param polygons The polygons onto which to move the point
-    * \param on_boundary The point to move.
-    * \param poly_idx The index of the polygon in \p polygons where to find the point on the boundary
-    * \param point_idx The index in the polygon polygons[poly_idx] of the starting point of the line segment on which \p on_boundary lies
-    * \param distance The distance by which to move the point.
-    */
-    static void moveInside(const Polygons& polygons, Point& on_boundary, unsigned int poly_idx, unsigned int point_idx, const int distance);
+     * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
+     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+     * 
+     * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param distance The distance by which to move the point.
+     * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
+     */
+    static Point moveInside(const ClosestPolygonPoint& cpp, const int distance);
 
     /*!
     * Find the two points in two polygons with the smallest distance.
