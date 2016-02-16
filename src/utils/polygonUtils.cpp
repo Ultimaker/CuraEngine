@@ -191,6 +191,85 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
     return NO_INDEX;
 }
 
+void PolygonUtils::moveInside(Polygons& polygons, Point& on_boundary, int poly_idx, int point_idx, const int distance)
+{
+    if (distance == 0)
+    { // the point which is assumed to be on the boundary doesn't have to be moved
+        return;
+    }
+    
+    PolygonRef poly = polygons[poly_idx];
+    Point& p1 = poly[point_idx];
+    int p2_idx;
+    for (p2_idx = point_idx + 1; p2_idx != point_idx; p2_idx + 1)
+    { // find the next point different from p1
+        if (p2_idx == poly.size())
+        {
+            p2_idx = 0;
+        }
+        if (poly[p2_idx] != p1)
+        {
+            break;
+        }
+    }
+    Point& p2 = poly[p2_idx];
+    // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
+    // X = P projected on AB
+    Point& a = p1;
+    Point& b = p2;
+    Point& p = on_boundary;
+    Point ab = b - a;
+    Point ap = p - a;
+    int64_t ab_length = vSize(ab);
+    int64_t ax_length = dot(ab, ap) / ab_length;
+    if (ax_length <= 0) // x is projected to before ab
+    { //  case which looks like:   > .
+        Point& p0 = poly[(point_idx - 1 + poly.size()) % poly.size()];
+        for (int p0_idx = (point_idx - 2 + poly.size()) % poly.size(); p0_idx != point_idx; p0_idx = p0_idx - 1)
+        { // find the last point different from p1
+            if (p0 != p1)
+            {
+                break;
+            }
+            if (p0_idx == -1)
+            {
+                p0_idx = poly.size() - 1;
+            }
+            p0 = poly[p0_idx];
+        }
+        Point inward_dir = crossZ(normal(ab, distance * 4) + normal(p1 - p0, distance * 4));
+        on_boundary = a + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+    }
+    else if (ax_length >= ab_length) // x is projected to beyond ab
+    {
+        int p3_idx;
+        for (p3_idx = p2_idx + 1; p3_idx != point_idx; p3_idx + 1)
+        { // find the next point different from p2
+            if (p3_idx == poly.size())
+            {
+                p3_idx = 0;
+            }
+            if (poly[p3_idx] != p2)
+            {
+                break;
+            }
+        }
+        Point& p3 = poly[p3_idx];
+        
+        Point& x = a;
+        Point inward_dir = crossZ(normal(p3 - p2, distance * 4) + normal(ab, distance * 4));
+        on_boundary = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
+    }
+    else 
+    {
+        Point x = a + ab * ax_length / ab_length;
+        
+        Point inward_dir = crossZ(normal(ab, distance));
+        on_boundary = x + inward_dir; 
+    }
+}
+
+
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {
