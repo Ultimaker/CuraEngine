@@ -66,7 +66,7 @@ private:
     void moveInsideAssert(const PolygonRef poly, Point close_to, const int distance, Point supposed);
     
     /*!
-     * cppunit assert for PolygonUtils::moveInside(ClosestPolygonPoint, int)
+     * cppunit assert for findSmallestConnection(ClosestPolygonPoint&, ClosestPolygonPoint&, int)
      */
     void moveInside2Assert(const PolygonRef poly, Point close_to, const int distance, Point supposed);
 };
