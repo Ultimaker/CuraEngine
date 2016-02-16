@@ -104,37 +104,30 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         //
         // when startPoint is inside crossing_1_in is of interest
         // when it is in between inside and outside it is equal to crossing_1_mid
-        Point crossing_1_in;
-        Point crossing_1_mid_or_out;
-
-        Point crossing_2_in;
-        Point crossing_2_mid_or_out;
+        Point crossing_1_in_or_mid;
+        Point crossing_2_in_or_mid;
 
         { // find crossing over the in-between area between inside and outside
             if (startInside)
             {
                 ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
 //                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
-                crossing_1_mid_or_out = crossing_1_in_cp.location;
-                crossing_1_in = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); //Also move the intermediary waypoint inside if it isn't yet.
+                crossing_1_in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
             {
-                crossing_1_mid_or_out = startPoint;
-                crossing_1_in = startPoint;
+                crossing_1_in_or_mid = startPoint; // mid-case
             }
 
             if (endInside)
             {
-                ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_mid_or_out, boundary_inside[end_part_boundary_poly_idx]);
+                ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_in_or_mid, boundary_inside[end_part_boundary_poly_idx]);
 //                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
-                crossing_2_mid_or_out = crossing_2_in_cp.location;
-                crossing_2_in = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); //Also move the intermediary waypoint inside if it isn't yet.
+                crossing_1_in_or_mid = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
             {
-                crossing_2_mid_or_out = endPoint;
-                crossing_2_in = endPoint;
+                crossing_2_in_or_mid = endPoint; // mid-case
             }
         }
         
@@ -143,29 +136,29 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             // start to boundary
             PolygonsPart part_begin = partsView_inside.assemblePart(start_part_idx); // comb through the starting part only
             combPaths.emplace_back();
-            LinePolygonsCrossings::comb(part_begin, startPoint, crossing_1_in, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
+            LinePolygonsCrossings::comb(part_begin, startPoint, crossing_1_in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
         
         // throught air from boundary to boundary
         if (avoid_other_parts)
         {
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
-            Point crossing_1_out = crossing_1_mid_or_out;
+            Point crossing_1_out = crossing_1_in_or_mid;
             if (startInside || outside.inside(crossing_1_out, true))
             { // move outside
                 PolygonUtils::moveInside(outside, crossing_1_out, -offset_extra_start_end, max_moveInside_distance2);
             }
-            Point crossing_2_out = crossing_2_mid_or_out;
+            Point crossing_2_out = crossing_2_in_or_mid;
             if (endInside || outside.inside(crossing_2_out, true))
             { // move outside
                 PolygonUtils::moveInside(outside, crossing_2_out, -offset_extra_start_end, max_moveInside_distance2);
             }
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
-            if ( vSize(crossing_1_in - crossing_2_in) < vSize(crossing_1_in - crossing_1_out) + vSize(crossing_2_in - crossing_2_out) )
-            { // via outside is a detour
-                combPaths.back().push_back(crossing_1_in);
-                combPaths.back().push_back(crossing_2_in);
+            if ( vSize(crossing_1_in_or_mid - crossing_2_in_or_mid) < vSize(crossing_1_in_or_mid - crossing_1_out) + vSize(crossing_2_in_or_mid - crossing_2_out) )
+            { // via outside is moving more over the in-between zone
+                combPaths.back().push_back(crossing_1_in_or_mid);
+                combPaths.back().push_back(crossing_2_in_or_mid);
             }
             else
             {
@@ -177,8 +170,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
             combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
-            combPaths.back().push_back(crossing_1_in);
-            combPaths.back().push_back(crossing_2_in);
+            combPaths.back().push_back(crossing_1_in_or_mid);
+            combPaths.back().push_back(crossing_2_in_or_mid);
         }
         
         if (endInside)
@@ -186,7 +179,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             // boundary to end
             PolygonsPart part_end = partsView_inside.assemblePart(end_part_idx); // comb through end part only
             combPaths.emplace_back();
-            LinePolygonsCrossings::comb(part_end, crossing_2_in, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
+            LinePolygonsCrossings::comb(part_end, crossing_2_in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
         }
         
         return true;
