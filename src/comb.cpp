@@ -104,14 +104,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         //
         // when startPoint is inside crossing_1_in is of interest
         // when it is in between inside and outside it is equal to crossing_1_mid
-        Point crossing_1_in_or_mid;
-        Point crossing_2_in_or_mid;
+        Point crossing_1_in_or_mid; // the point inside the starting polygon if startPoint is inside or the startPoint itself if it is not inside
+        Point crossing_2_in_or_mid; // the point inside the ending polygon if endPoint is inside or the endPoint itself if it is not inside
 
         { // find crossing over the in-between area between inside and outside
             if (startInside)
             {
                 ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
-//                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
                 crossing_1_in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
@@ -122,7 +121,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             if (endInside)
             {
                 ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_in_or_mid, boundary_inside[end_part_boundary_poly_idx]);
-//                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
                 crossing_1_in_or_mid = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
