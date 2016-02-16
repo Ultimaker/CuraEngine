@@ -116,8 +116,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
                 ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(endPoint, boundary_inside[start_part_boundary_poly_idx]);
 //                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
                 crossing_1_mid_or_out = crossing_1_in_cp.location;
-                crossing_1_in = crossing_1_in_cp.location; // temp, see line below!
-                PolygonUtils::moveInside(boundary_inside, crossing_1_in, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored); //Also move the intermediary waypoint inside if it isn't yet.
+                crossing_1_in = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); //Also move the intermediary waypoint inside if it isn't yet.
             }
             else 
             {
@@ -130,8 +129,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
                 ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_mid_or_out, boundary_inside[end_part_boundary_poly_idx]);
 //                 walkToNearestSmallestConnection(middle_from_cp, middle_to_cp); // TODO: perform this optimization?
                 crossing_2_mid_or_out = crossing_2_in_cp.location;
-                crossing_2_in = crossing_2_in_cp.location; // temp, see line below!
-                PolygonUtils::moveInside(boundary_inside, crossing_2_in, offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
+                crossing_2_in = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); //Also move the intermediary waypoint inside if it isn't yet.
             }
             else 
             {
