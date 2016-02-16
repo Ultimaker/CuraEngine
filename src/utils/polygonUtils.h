@@ -81,7 +81,7 @@ public:
     * \param point_idx The index in the polygon polygons[poly_idx] of the starting point of the line segment on which \p on_boundary lies
     * \param distance The distance by which to move the point.
     */
-    static void moveInside(Polygons& polygons, Point& on_boundary, int poly_idx, int point_idx, const int distance);
+    static void moveInside(const Polygons& polygons, Point& on_boundary, unsigned int poly_idx, unsigned int point_idx, const int distance);
 
     /*!
     * Find the two points in two polygons with the smallest distance.
