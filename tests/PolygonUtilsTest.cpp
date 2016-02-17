@@ -88,4 +88,40 @@ void PolygonUtilsTest::moveInside2Assert(const PolygonRef poly, Point close_to, 
     }
 }
 
+void PolygonUtilsTest::cornerFindCloseTest()
+{
+    findCloseAssert(test_square, Point(110,110), Point(100,100), 15);
+}
+
+void PolygonUtilsTest::edgeFindCloseTest()
+{
+    findCloseAssert(test_square, Point(50,110), Point(50,100), 15);
+}
+
+
+
+void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size)
+{
+    Polygons polys;
+    polys.add(poly);
+    BucketGrid2D<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
+    
+    ClosestPolygonPoint* cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line);
+    if (cpp)
+    {
+        std::stringstream ss;
+        Point result = cpp->location;
+        ss << "Close to " << close_to << " we found " << result << " rather than " << supposed << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
+    }
+    else 
+    {
+        std::stringstream ss;
+        ss << "Couldn't find anything close to " << close_to << " ( should have been " << supposed << ").\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    
+    delete loc_to_line;
+}
+
 }

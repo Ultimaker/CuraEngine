@@ -23,6 +23,8 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(edgeInsideTest2);
     CPPUNIT_TEST(cornerOutsideTest2);
     CPPUNIT_TEST(edgeOutsideTest2);
+    CPPUNIT_TEST(cornerFindCloseTest);
+    CPPUNIT_TEST(edgeFindCloseTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -47,10 +49,14 @@ public:
     void edgeInsideTest();
     void cornerOutsideTest();
     void edgeOutsideTest();
+    
     void cornerInsideTest2();
     void edgeInsideTest2();
     void cornerOutsideTest2();
     void edgeOutsideTest2();
+    
+    void cornerFindCloseTest();
+    void edgeFindCloseTest();
 
 private:
     /*!
@@ -69,6 +75,11 @@ private:
      * cppunit assert for findSmallestConnection(ClosestPolygonPoint&, ClosestPolygonPoint&, int)
      */
     void moveInside2Assert(const PolygonRef poly, Point close_to, const int distance, Point supposed);
+    
+    /*!
+     * cppunit assert for PolygonUtils::findClose
+     */
+    void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size);
 };
 
 }
