@@ -231,7 +231,7 @@ public:
      * \param p The location associated with \p t.
      * \param t The object to insert in the grid cell for position \p p.
      */
-    void insert(Point& p, T& t)
+    void insert(Point& p, T t)
     {
 //         typedef typename Map::iterator iter;
 //         std::pair<iter, bool> emplaced = 
