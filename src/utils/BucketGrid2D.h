@@ -37,7 +37,7 @@ private:
      * \param relative_hash The relative position - in grid terms - of the relative point. 
      * \return A point for which the hash is at a grid position of \p relative_hash relative to \p p.
      */
-    inline Point getRelativeForHash(const Point& p, const Cellidx& relative_hash)
+    inline Point getRelativeForHash(const Point& p, const Cellidx& relative_hash) const
     {
         return p + relative_hash*squareSize;
     }
@@ -152,7 +152,7 @@ public:
      * \param p The point for which to find close points.
      * \param ret Ouput parameter: all objects close to \p p.
      */
-    void findNearbyObjects(Point& p, std::vector<T>& ret)
+    void findNearbyObjects(Point& p, std::vector<T>& ret) const
     {
         for (int x = -1; x <= 1; x++)
         {
@@ -179,7 +179,7 @@ public:
      * \param p The point for which to find close points.
      * \return All objects close to \p p.
      */
-    std::vector<T> findNearbyObjects(Point& p)
+    std::vector<T> findNearbyObjects(Point& p) const
     {
         std::vector<T> ret;
         findNearbyObjects(p, ret);
@@ -196,7 +196,7 @@ public:
      * \param precondition A precondition which must be satisfied before considering a \p object at a specific \p location as output
      * \return Whether an object has been found.
      */
-    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, T& object)> precondition = no_precondition)
+    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, T& object)> precondition = no_precondition) const
     {
         bool found = false;
         int64_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell

@@ -478,7 +478,7 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
-ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line)
+ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex> loc_to_line)
 {
     std::vector<PolygonsPointIndex> near_lines;
     loc_to_line.findNearbyObjects(from, near_lines);
@@ -514,7 +514,7 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
 }
 
 
-std::vector<ClosestPolygonPoint> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, BucketGrid2D< PolygonsPointIndex > destination_loc_to_line)
+std::vector<ClosestPolygonPoint> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line)
 {
     std::vector<ClosestPolygonPoint> ret;
     for (const Point& point : const_cast<PolygonRef&>(from))
