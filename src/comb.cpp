@@ -37,6 +37,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
+, max_crossing_dist2(offset_dist_to_get_from_on_the_polygon_to_outside * offset_dist_to_get_from_on_the_polygon_to_outside * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
@@ -122,8 +123,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         // when startPoint is inside crossing_1_in is of interest
         // when it is in between inside and outside it is equal to crossing_1_mid
         Point crossing_1_in_or_mid; // the point inside the starting polygon if startPoint is inside or the startPoint itself if it is not inside
+        Point crossing_1_out;
         Point crossing_2_in_or_mid; // the point inside the ending polygon if endPoint is inside or the endPoint itself if it is not inside
-
+        Point crossing_2_out;
+        
         { // find crossing over the in-between area between inside and outside
             if (startInside)
             {
@@ -146,6 +149,45 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
         }
         
+        if (avoid_other_parts)
+        { // compute the crossing points when moving through air
+            Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            crossing_1_out = crossing_1_in_or_mid;
+            if (startInside || outside.inside(crossing_1_in_or_mid, true)) // start in_between
+            { // move outside
+                PolygonUtils::moveInside(outside, crossing_1_out, -offset_extra_start_end, max_moveInside_distance2);
+            }
+            if (startInside)
+            {
+                if (vSize2(crossing_1_out - crossing_1_in_or_mid) > max_crossing_dist2)
+                { // if move is to far over in_between
+                    // find crossing closer by
+                    BestCrossing current(crossing_1_in_or_mid, crossing_1_out, vSize2(crossing_1_out - endPoint));
+                    BestCrossing best = findBestCrossing(current, boundary_inside[start_part_boundary_poly_idx], endPoint);
+                    crossing_1_in_or_mid = best.in_or_mid;
+                    crossing_1_out = best.out;
+                }
+            }
+
+
+            crossing_2_out = crossing_2_in_or_mid;
+            if (endInside || outside.inside(crossing_2_in_or_mid, true))
+            { // move outside
+                PolygonUtils::moveInside(outside, crossing_2_out, -offset_extra_start_end, max_moveInside_distance2);
+            }
+            if (endInside)
+            {
+                if (vSize2(crossing_2_out - crossing_2_in_or_mid) > max_crossing_dist2)
+                { // if move is to far over in_between
+                    // find crossing closer by
+                    BestCrossing current(crossing_2_in_or_mid, crossing_2_out, vSize2(crossing_2_out - endPoint));
+                    BestCrossing best = findBestCrossing(current, boundary_inside[end_part_boundary_poly_idx], endPoint);
+                    crossing_2_in_or_mid = best.in_or_mid;
+                    crossing_2_out = best.out;
+                }
+            }
+        }
+        
         if (startInside)
         {
             // start to boundary
@@ -157,18 +199,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         // throught air from boundary to boundary
         if (avoid_other_parts)
         {
-            Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
-            Point crossing_1_out = crossing_1_in_or_mid;
-            if (startInside || outside.inside(crossing_1_out, true))
-            { // move outside
-                PolygonUtils::moveInside(outside, crossing_1_out, -offset_extra_start_end, max_moveInside_distance2);
-            }
-            
-            Point crossing_2_out = crossing_2_in_or_mid;
-            if (endInside || outside.inside(crossing_2_out, true))
-            { // move outside
-                PolygonUtils::moveInside(outside, crossing_2_out, -offset_extra_start_end, max_moveInside_distance2);
-            }
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
             if ( vSize(crossing_1_in_or_mid - crossing_2_in_or_mid) < vSize(crossing_1_in_or_mid - crossing_1_out) + vSize(crossing_2_in_or_mid - crossing_2_out) )
@@ -178,7 +208,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
             else
             {
-                LinePolygonsCrossings::comb(outside, crossing_1_out, crossing_2_out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
+                LinePolygonsCrossings::comb(getBoundaryOutside(), crossing_1_out, crossing_2_out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored);
             }
         }
         else 
@@ -201,6 +231,26 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         return true;
     }
 }
+
+Comb::BestCrossing Comb::findBestCrossing(BestCrossing best, PolygonRef from, Point close_to)
+{
+    std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, getBoundaryOutside(), getOutsideLocToLine());
+    for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
+    {
+        if (vSize2(crossing_candidate.first.location - crossing_candidate.second.location) > max_crossing_dist2)
+        {
+            continue;
+        }
+        
+        int64_t dist2_to_end = vSize2(crossing_candidate.second.location - close_to);
+        if (dist2_to_end < best.dist2_to_end)
+        {
+            best = BestCrossing(crossing_candidate.first.location, crossing_candidate.second.location, dist2_to_end);
+        }
+    }
+    return best;
+}
+
 
 void LinePolygonsCrossings::calcScanlineCrossings()
 {

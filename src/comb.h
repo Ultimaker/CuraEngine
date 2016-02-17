@@ -206,16 +206,29 @@ class Comb
 {
     friend class LinePolygonsCrossings;
 private:
+    struct BestCrossing
+    {
+        Point in_or_mid;
+        Point out;
+        int64_t dist2_to_end;
+        BestCrossing(Point in_or_mid, Point out, int64_t dist2_to_end)
+        : in_or_mid(in_or_mid)
+        , out(out)
+        , dist2_to_end(dist2_to_end)
+        {
+        }
+    };
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
-    
+
     bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
@@ -232,6 +245,15 @@ private:
      * Get the BucketGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
     BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
+    
+    /*!
+     * Find the best crossing from some inside polygon to the outside boundary
+     * 
+     * \param best The current best crossing computed
+     * \param from From which inside boundary the crossing to the outside starts or ends
+     * \param close_to The point to which to stay close when evaluating crossings which cross about the same distance
+     */
+    BestCrossing findBestCrossing(BestCrossing best, PolygonRef from, Point close_to);
     
 public:
     /*!
