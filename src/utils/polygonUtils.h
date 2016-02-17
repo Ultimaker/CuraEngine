@@ -169,6 +169,16 @@ public:
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
      */
     static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line);
+    
+    /*!
+     * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the BucketGrid \p destination_loc_to_line
+     * 
+     * \param from The polygon for which to find a polygon edge close to
+     * \param destination The polygons for which the \p destination_loc_to_line has been built up
+     * \param destination_loc_to_line A BucketGrid mapping locations to starting vertices of line segments of the \p destination 
+     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
+     */
+    static std::vector<ClosestPolygonPoint> findClose(const PolygonRef from, const Polygons& destination, BucketGrid2D< PolygonsPointIndex > destination_loc_to_line);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
