@@ -200,7 +200,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
             p1 = p2;
         }
     }
-    if (is_inside)
+    if (is_inside == (distance > 0)) // when the best point is already inside and we're moving inside, or when the best point is already outside and we're moving outside
     {
         if (bestDist2 < distance * distance)
         {
