@@ -20,6 +20,17 @@ Polygons& Comb::getBoundaryOutside()
     }
     return *boundary_outside;
 }
+
+BucketGrid2D<PolygonsPointIndex>& Comb::getOutsideLocToLine()
+{
+    Polygons& outside = getBoundaryOutside();
+    if (!outside_loc_to_line)
+    {
+        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_dist_to_get_from_on_the_polygon_to_outside * 3 / 2);
+    }
+    return *outside_loc_to_line;
+}
+
   
 Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
@@ -38,7 +49,13 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 Comb::~Comb()
 {
     if (boundary_outside)
+    {
         delete boundary_outside;
+    }
+    if (outside_loc_to_line)
+    {
+        delete outside_loc_to_line;
+    }
 }
 
 bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored)
