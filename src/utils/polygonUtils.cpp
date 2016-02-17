@@ -514,15 +514,16 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
 }
 
 
-std::vector<ClosestPolygonPoint> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line)
+std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line)
 {
-    std::vector<ClosestPolygonPoint> ret;
-    for (const Point& point : const_cast<PolygonRef&>(from))
+    std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
+    for (unsigned int point_idx = 0; point_idx < from.size(); point_idx++)
     {
+        const Point& point = const_cast<PolygonRef&>(from)[point_idx];
         ClosestPolygonPoint* best_here = findClose(point, destination, destination_loc_to_line);
         if (best_here)
         {
-            ret.push_back(*best_here);
+            ret.push_back(std::make_pair(ClosestPolygonPoint(point, point_idx, from), *best_here));
         }
     }
     return ret;

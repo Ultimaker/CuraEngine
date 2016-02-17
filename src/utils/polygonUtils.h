@@ -176,9 +176,9 @@ public:
      * \param from The polygon for which to find a polygon edge close to
      * \param destination The polygons for which the \p destination_loc_to_line has been built up
      * \param destination_loc_to_line A BucketGrid mapping locations to starting vertices of line segments of the \p destination 
-     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
+     * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
      */
-    static std::vector<ClosestPolygonPoint> findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line);
+    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.

@@ -163,6 +163,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             { // move outside
                 PolygonUtils::moveInside(outside, crossing_1_out, -offset_extra_start_end, max_moveInside_distance2);
             }
+            
             Point crossing_2_out = crossing_2_in_or_mid;
             if (endInside || outside.inside(crossing_2_out, true))
             { // move outside
