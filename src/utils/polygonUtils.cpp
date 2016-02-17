@@ -446,22 +446,20 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         const PolygonRef poly = const_cast<Polygons&>(polygons)[poly_idx];
-        Point p1 = poly.back();
-        for (unsigned int point_idx = 0; point_idx < polygons.size(); point_idx++)
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point& p2 = poly[point_idx];
+            Point& p1 = poly[point_idx];
+            Point& p2 = poly[(point_idx + 1) % poly.size()];
             
             ret->insert(p1, PolygonsPointIndex(poly_idx, point_idx));
             Point vec = p2 - p1;
             int64_t vec_length = vSize(vec);
             for (int64_t dist_along_line = square_size; dist_along_line < vec_length; dist_along_line += square_size)
             {
-                Point point_along_line = p1 + vec * vec_length / dist_along_line;
+                Point point_along_line = p1 + vec * dist_along_line / vec_length;
                 
                 ret->insert(point_along_line, PolygonsPointIndex(poly_idx, point_idx));
             }
-            
-            p1 = p2;
         }
         
     }
