@@ -4,7 +4,10 @@
 #include <list>
 
 #include "linearAlg2D.h"
+#include "BucketGrid2D.h"
 #include "../debug.h"
+
+
 namespace cura 
 {
 
@@ -430,9 +433,81 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
+BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+{
+    unsigned int n_points = 0;
+    for (const PolygonRef poly : const_cast<Polygons&>(polygons))
+    {
+        n_points += poly.size();
+    }
+
+    BucketGrid2D<PolygonsPointIndex>* ret = new BucketGrid2D<PolygonsPointIndex>(square_size, n_points);
+
+    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
+    {
+        const PolygonRef poly = const_cast<Polygons&>(polygons)[poly_idx];
+        Point p1 = poly.back();
+        for (unsigned int point_idx = 0; point_idx < polygons.size(); point_idx++)
+        {
+            Point& p2 = poly[point_idx];
+            
+            ret->insert(p1, PolygonsPointIndex(poly_idx, point_idx));
+            Point vec = p2 - p1;
+            int64_t vec_length = vSize(vec);
+            for (int64_t dist_along_line = square_size; dist_along_line < vec_length; dist_along_line += square_size)
+            {
+                Point point_along_line = p1 + vec * vec_length / dist_along_line;
+                
+                ret->insert(point_along_line, PolygonsPointIndex(poly_idx, point_idx));
+            }
+            
+            p1 = p2;
+        }
+        
+    }
+    
+    
+    
+    
+    
+    return ret;
+}
 
 
+ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line)
+{
+    std::vector<PolygonsPointIndex> near_lines;
+    loc_to_line.findNearbyObjects(from, near_lines);
 
+    const Point arbitrary_point = const_cast<Polygons&>(polygons)[0][0];
+    Point best = arbitrary_point;
+
+    int64_t closest_dist2 = vSize2(from - best);
+    PolygonsPointIndex best_point_poly_idx(NO_INDEX, NO_INDEX);
+    for (PolygonsPointIndex& point_poly_index : near_lines)
+    {
+        const PolygonRef poly = const_cast<Polygons&>(polygons)[point_poly_index.poly_idx];
+        Point& p1 = poly[point_poly_index.point_idx];
+        Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
+
+        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
+        int64_t dist = vSize2(from - closestHere);
+        if (dist < closest_dist2)
+        {
+            best = closestHere;
+            closest_dist2 = dist;
+            best_point_poly_idx = point_poly_index;
+        }
+    }
+    if (best_point_poly_idx.poly_idx == NO_INDEX)
+    {
+        return nullptr;
+    }
+    else
+    {
+        return new ClosestPolygonPoint(best, best_point_poly_idx.point_idx, const_cast<Polygons&>(polygons)[best_point_poly_idx.poly_idx]);
+    }
+}
 
 
 

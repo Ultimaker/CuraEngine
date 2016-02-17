@@ -3,6 +3,7 @@
 #define UTILS_POLYGON_UTILS_H
 
 #include "polygon.h"
+#include "BucketGrid2D.h"
 
 namespace cura 
 {
@@ -28,7 +29,23 @@ struct GivenDistPoint
     Point location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
-    
+
+struct PolygonsPointIndex
+{
+    unsigned int poly_idx;
+    unsigned int point_idx;
+    PolygonsPointIndex()
+    : poly_idx(0)
+    , point_idx(0)
+    {
+    }
+    PolygonsPointIndex(unsigned int poly_idx, unsigned int point_idx)
+    : poly_idx(poly_idx)
+    , point_idx(point_idx)
+    {
+    }
+};
+
 class PolygonUtils 
 {
 public:
@@ -131,6 +148,11 @@ public:
     * Find the point closest to \p from in the polygon \p polygon.
     */
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
+
+
+    static BucketGrid2D<PolygonsPointIndex>* createLocToLineGrid(const Polygons& polygons, int square_size);
+
+    static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
