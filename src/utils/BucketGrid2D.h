@@ -2,10 +2,11 @@
 #ifndef UTILS_BUCKET_GRID_2D_H
 #define UTILS_BUCKET_GRID_2D_H
 
-#include "logoutput.h"
-#include "intpoint.h"
 #include <unordered_map>
 #include <functional> // std::function
+
+#include "logoutput.h"
+#include "intpoint.h"
 
 namespace cura
 {
