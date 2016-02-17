@@ -149,9 +149,25 @@ public:
     */
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
 
-
+    /*!
+     * Create a BucketGrid mapping from locations to line segments occurring in the \p polygons
+     * 
+     * \warning The caller of this function is responsible for deleting the returned object
+     * 
+     * \param polygons The polygons for which to create the mapping
+     * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
+     * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
+     */
     static BucketGrid2D<PolygonsPointIndex>* createLocToLineGrid(const Polygons& polygons, int square_size);
 
+    /*!
+     * Find the line segment closest to a given point \p from within a cell-block of a size defined in the BucketGrid \p loc_to_line
+     * 
+     * \param from The location to find a polygon edge close to
+     * \param polygons The polygons for which the \p loc_to_line has been built up
+     * \param loc_to_line A BucketGrid mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
+     */
     static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line);
 
     /*!

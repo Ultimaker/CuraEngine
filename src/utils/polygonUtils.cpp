@@ -471,7 +471,13 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
     return ret;
 }
 
-
+/*
+ * The current implemetnation can check the same line segment multiple times, 
+ * since the same line segment can occur in multiple cells if it it longer than the cell size of the BucketGrid.
+ * 
+ * We could skip the duplication by keeping a vector of vectors of bools.
+ *
+ */
 ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, BucketGrid2D<PolygonsPointIndex> loc_to_line)
 {
     std::vector<PolygonsPointIndex> near_lines;
