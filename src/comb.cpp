@@ -43,6 +43,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
 , boundary_outside(nullptr)
+, outside_loc_to_line(nullptr)
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
 }
@@ -157,16 +158,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             { // move outside
                 PolygonUtils::moveInside(outside, crossing_1_out, -offset_extra_start_end, max_moveInside_distance2);
             }
-            if (startInside)
-            {
-                if (vSize2(crossing_1_out - crossing_1_in_or_mid) > max_crossing_dist2)
-                { // if move is to far over in_between
-                    // find crossing closer by
-                    BestCrossing current(crossing_1_in_or_mid, crossing_1_out, vSize2(crossing_1_out - endPoint));
-                    BestCrossing best = findBestCrossing(current, boundary_inside[start_part_boundary_poly_idx], endPoint);
-                    crossing_1_in_or_mid = best.in_or_mid;
-                    crossing_1_out = best.out;
-                }
+            if (startInside && vSize2(crossing_1_out - crossing_1_in_or_mid) > max_crossing_dist2)
+            { // if move is to far over in_between
+                // find crossing closer by
+                BestCrossing current(crossing_1_in_or_mid, crossing_1_out, vSize2(crossing_1_out - endPoint));
+                BestCrossing best = findBestCrossing(current, boundary_inside[start_part_boundary_poly_idx], endPoint);
+                crossing_1_in_or_mid = best.in_or_mid;
+                crossing_1_out = best.out;
             }
 
 
@@ -175,16 +173,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             { // move outside
                 PolygonUtils::moveInside(outside, crossing_2_out, -offset_extra_start_end, max_moveInside_distance2);
             }
-            if (endInside)
-            {
-                if (vSize2(crossing_2_out - crossing_2_in_or_mid) > max_crossing_dist2)
-                { // if move is to far over in_between
-                    // find crossing closer by
-                    BestCrossing current(crossing_2_in_or_mid, crossing_2_out, vSize2(crossing_2_out - endPoint));
-                    BestCrossing best = findBestCrossing(current, boundary_inside[end_part_boundary_poly_idx], endPoint);
-                    crossing_2_in_or_mid = best.in_or_mid;
-                    crossing_2_out = best.out;
-                }
+            if (endInside && vSize2(crossing_2_out - crossing_2_in_or_mid) > max_crossing_dist2)
+            { // if move is to far over in_between
+                // find crossing closer by
+                BestCrossing current(crossing_2_in_or_mid, crossing_2_out, vSize2(crossing_2_out - endPoint));
+                BestCrossing best = findBestCrossing(current, boundary_inside[end_part_boundary_poly_idx], endPoint);
+                crossing_2_in_or_mid = best.in_or_mid;
+                crossing_2_out = best.out;
             }
         }
         
