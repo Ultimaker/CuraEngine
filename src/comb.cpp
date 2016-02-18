@@ -183,8 +183,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
                 std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(boundary_inside[end_part_boundary_poly_idx], crossing_1_out);
                 if (best)
                 {
-                    crossing_1_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
-                    crossing_1_out = PolygonUtils::moveInside(best->second, -offset_dist_to_get_from_on_the_polygon_to_outside);
+                    crossing_2_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
+                    crossing_2_out = PolygonUtils::moveInside(best->second, -offset_dist_to_get_from_on_the_polygon_to_outside);
                 }
             }
         }
