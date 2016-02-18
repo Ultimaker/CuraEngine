@@ -2,6 +2,8 @@
 #ifndef COMB_H
 #define COMB_H
 
+#include <memory> // shared_ptr
+
 #include "utils/polygon.h"
 #include "utils/BucketGrid2D.h"
 #include "utils/polygonUtils.h"
@@ -237,11 +239,11 @@ private:
     /*!
      * Find the best crossing from some inside polygon to the outside boundary
      * 
-     * \param best The current best crossing computed
      * \param from From which inside boundary the crossing to the outside starts or ends
      * \param close_to The point to which to stay close when evaluating crossings which cross about the same distance
+     * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
      */
-    BestCrossing findBestCrossing(BestCrossing best, PolygonRef from, Point close_to);
+    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point close_to);
     
 public:
     /*!
