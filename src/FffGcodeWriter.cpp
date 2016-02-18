@@ -406,7 +406,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         }
         else
         {
-            gcode_layer.setIsInside(true); // needed when the last mesh was spiralized
             addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
         }
     }
@@ -428,12 +427,13 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
-    gcode_layer.setIsInside(false);
     Polygons& skirt = storage.skirt[extruder_nr];
-    if (skirt.size() > 0)
+    if (skirt.size() == 0)
     {
-        gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
+        return;
     }
+    gcode_layer.setIsInside(false);
+    gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
     gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
     
 }
@@ -582,6 +582,8 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         int infill_overlap = mesh->getSettingInMicrons("infill_overlap");
+        
+        gcode_layer.setIsInside(true); // going to print inside stuff below
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
@@ -786,11 +788,16 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (print_support_before_rest != before_rest)
         return;
     
+    SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+    if (support_layer.roofs.size() == 0 && support_layer.supportAreas.size() == 0)
+    {
+        return;
+    }
     gcode_layer.setIsInside(false);
     
     int current_extruder_nr = gcode_layer.getExtruder();
     
-    if (storage.support.supportLayers[layer_nr].roofs.size() > 0)
+    if (support_layer.roofs.size() > 0)
     {
         if (support_roof_extruder_nr != support_infill_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {

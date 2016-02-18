@@ -111,6 +111,7 @@ bool GCodePlanner::setExtruder(int extruder)
     {
         return false;
     }
+    setIsInside(false);
     { // handle end position of the prev extruder
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder_plans.back().extruder);
         bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
