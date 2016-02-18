@@ -150,7 +150,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         }
         
         if (avoid_other_parts && vSize2(crossing_1_in_or_mid - crossing_2_in_or_mid) < offset_from_outlines_outside * offset_from_outlines_outside * 4)
-        { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings
+        { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings via outside
             avoid_other_parts = false;
         }
         
@@ -365,7 +365,7 @@ void LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
     CombPath basicPath;
     getBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
-//     combPath = basicPath;
+//     combPath = basicPath; // uncomment to disable comb path optimization
 }
 
 
