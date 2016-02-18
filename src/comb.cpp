@@ -26,7 +26,7 @@ BucketGrid2D<PolygonsPointIndex>& Comb::getOutsideLocToLine()
     Polygons& outside = getBoundaryOutside();
     if (!outside_loc_to_line)
     {
-        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_dist_to_get_from_on_the_polygon_to_outside * 3 / 2);
+        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_outlines_outside * 3 / 2);
     }
     return *outside_loc_to_line;
 }
@@ -37,8 +37,8 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
-, max_crossing_dist2(offset_dist_to_get_from_on_the_polygon_to_outside * offset_dist_to_get_from_on_the_polygon_to_outside * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
+, max_crossing_dist2(offset_from_outlines_outside * offset_from_outlines_outside * 2)
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
