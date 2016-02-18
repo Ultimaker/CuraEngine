@@ -237,13 +237,16 @@ private:
     BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
     
     /*!
-     * Find the best crossing from some inside polygon to the outside boundary
+     * Find the best crossing from some inside polygon to the outside boundary.
+     * 
+     * The detour from \p estimated_start to \p estimated_end is minimized.
      * 
      * \param from From which inside boundary the crossing to the outside starts or ends
-     * \param close_to The point to which to stay close when evaluating crossings which cross about the same distance
+     * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
+     * \param estimated_end The other point to which to stay close when evaluating crossings which cross about the same distance
      * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
      */
-    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point close_to);
+    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end);
     
 public:
     /*!

@@ -162,7 +162,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             if (startInside && in_out_dist2_1 > max_crossing_dist2) // moveInside moved too far
             { // if move is to far over in_between
                 // find crossing closer by
-                std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(boundary_inside[start_part_boundary_poly_idx], endPoint);
+                std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(boundary_inside[start_part_boundary_poly_idx], startPoint, endPoint);
                 if (best)
                 {
                     crossing_1_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
@@ -180,7 +180,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             if (endInside && in_out_dist2_2 > max_crossing_dist2) // moveInside moved too far
             { // if move is to far over in_between
                 // find crossing closer by
-                std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(boundary_inside[end_part_boundary_poly_idx], crossing_1_out);
+                std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(boundary_inside[end_part_boundary_poly_idx], endPoint, crossing_1_out);
                 if (best)
                 {
                     crossing_2_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
@@ -233,11 +233,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
     }
 }
 
-std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::findBestCrossing(PolygonRef from, Point close_to)
+std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end)
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;
-    int64_t best_dist2_to_end = std::numeric_limits<int64_t>::max();
+    int64_t best_detour_dist = std::numeric_limits<int64_t>::max();
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, getBoundaryOutside(), getOutsideLocToLine());
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
@@ -247,15 +247,17 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::findB
             continue;
         }
         
-        int64_t dist2_to_end = vSize2(crossing_candidate.second.location - close_to);
-        if (dist2_to_end < best_dist2_to_end)
+        int64_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
+        int64_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
+        int64_t detour_dist = dist_to_start + dist_to_end;
+        if (detour_dist < best_detour_dist)
         {
             best_in = &crossing_candidate.first;
             best_out = &crossing_candidate.second;
-            best_dist2_to_end = dist2_to_end;
+            best_detour_dist = detour_dist;
         }
     }
-    if (best_dist2_to_end == std::numeric_limits<int64_t>::max())
+    if (best_detour_dist == std::numeric_limits<int64_t>::max())
     {
         return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
     }
