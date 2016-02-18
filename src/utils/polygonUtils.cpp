@@ -106,6 +106,10 @@ Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int poi
     return p1 + n;
 }
 
+unsigned int PolygonUtils::moveOutside(Polygons& polygons, Point& from, int distance, int64_t maxDist2)
+{
+    return moveInside(polygons, from, -distance, maxDist2);
+}
 /*
  * Implementation assumes moving inside, but moving outside should just as well be possible.
  */
@@ -218,6 +222,11 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
         return bestPoly;
     }
     return NO_INDEX;
+}
+
+Point PolygonUtils::moveOutside(const ClosestPolygonPoint& cpp, const int distance)
+{
+    return moveInside(cpp, -distance);
 }
 
 Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distance)

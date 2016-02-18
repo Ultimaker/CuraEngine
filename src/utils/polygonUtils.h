@@ -89,6 +89,22 @@ public:
     static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
     
     /*!
+     * The opposite of moveInside.
+     * 
+     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+     * Given a \p distance more than zero, the point will end up outside, and conversely inside.
+     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
+     * 
+     * \param polygons The polygons onto which to move the point
+     * \param from The point to move.
+     * \param distance The distance by which to move the point.
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The index to the polygon onto which we have moved the point.
+     */
+    static unsigned int moveOutside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    
+    /*!
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
      * Given a \p distance more than zero, the point will end up inside, and conversely outside.
      * 
@@ -97,6 +113,18 @@ public:
      * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
      */
     static Point moveInside(const ClosestPolygonPoint& cpp, const int distance);
+    
+    /*!
+     * The opposite of moveInside.
+     * 
+     * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
+     * Given a \p distance more than zero, the point will end up outside, and conversely inside.
+     * 
+     * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param distance The distance by which to move the point.
+     * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
+     */
+    static Point moveOutside(const ClosestPolygonPoint& cpp, const int distance);
 
     /*!
     * Find the two points in two polygons with the smallest distance.
