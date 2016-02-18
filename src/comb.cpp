@@ -149,6 +149,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
         }
         
+        if (avoid_other_parts && vSize2(crossing_1_in_or_mid - crossing_2_in_or_mid) < offset_from_outlines_outside * offset_from_outlines_outside * 4)
+        { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings
+            avoid_other_parts = false;
+        }
+        
         if (avoid_other_parts)
         { // compute the crossing points when moving through air
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
@@ -360,6 +365,7 @@ void LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
     CombPath basicPath;
     getBasicCombingPath(basicPath);
     optimizePath(basicPath, combPath);
+//     combPath = basicPath;
 }
 
 
