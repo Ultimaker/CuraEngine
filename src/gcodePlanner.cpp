@@ -48,7 +48,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , z(z)
@@ -61,8 +61,8 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder);
     comb = nullptr;
-    was_inside = true; // means it will try to get inside the comb boundary first
-    is_inside = true; // means it will try to get inside the comb boundary 
+    was_inside = is_inside_mesh; 
+    is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     last_retraction_config = &storage.retraction_config; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
