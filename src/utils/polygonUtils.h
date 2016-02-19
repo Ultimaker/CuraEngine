@@ -86,7 +86,7 @@ public:
     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
     * \return The index to the polygon onto which we have moved the point.
     */
-    static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveInside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
     
     /*!
      * The opposite of moveInside.
@@ -102,7 +102,7 @@ public:
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The index to the polygon onto which we have moved the point.
      */
-    static unsigned int moveOutside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveOutside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
     
     /*!
      * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.

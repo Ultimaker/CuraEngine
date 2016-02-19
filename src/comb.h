@@ -209,17 +209,17 @@ class Comb
     friend class LinePolygonsCrossings;
 private:
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
+    const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
-    int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
-    int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
+    const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
+    const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
+    const int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
 
-    bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
+    const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
     Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)

@@ -308,11 +308,23 @@ public:
         POLY_ASSERT(index < size());
         return PolygonRef(polygons[index]);
     }
+    const PolygonRef operator[] (unsigned int index) const
+    {
+        return const_cast<Polygons*>(this)->operator[](index);
+    }
     ClipperLib::Paths::iterator begin()
     {
         return polygons.begin();
     }
+    ClipperLib::Paths::const_iterator begin() const
+    {
+        return polygons.begin();
+    }
     ClipperLib::Paths::iterator end()
+    {
+        return polygons.end();
+    }
+    ClipperLib::Paths::const_iterator end() const
     {
         return polygons.end();
     }
@@ -429,7 +441,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false);
+    bool inside(Point p, bool border_result = false) const;
     
     /*!
      * Find the polygon inside which point \p p resides. 
@@ -521,7 +533,7 @@ public:
      */
     PartsView splitIntoPartsView(bool unionAll = false);
 private:
-    void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node);
+    void splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const;
 public:
     /*!
      * Removes polygons with area smaller than \p minAreaSize (note that minAreaSize is in mm^2, not in micron^2).
