@@ -157,10 +157,20 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         if (avoid_other_parts)
         { // compute the crossing points when moving through air
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            
+            
             crossing_1_out = crossing_1_in_or_mid;
             if (startInside || outside.inside(crossing_1_in_or_mid, true)) // start in_between
             { // move outside
-                PolygonUtils::moveOutside(outside, crossing_1_out, offset_dist_to_get_from_on_the_polygon_to_outside);
+                ClosestPolygonPoint* crossing_1_out_cpp = PolygonUtils::findClose(crossing_1_in_or_mid, outside, getOutsideLocToLine());
+                if (crossing_1_out_cpp)
+                {
+                    crossing_1_out = PolygonUtils::moveOutside(*crossing_1_out_cpp, offset_dist_to_get_from_on_the_polygon_to_outside);
+                }
+                else 
+                {
+                    PolygonUtils::moveOutside(outside, crossing_1_out, offset_dist_to_get_from_on_the_polygon_to_outside);
+                }
             }
             int64_t in_out_dist2_1 = vSize2(crossing_1_out - crossing_1_in_or_mid); 
             if (startInside && in_out_dist2_1 > max_crossing_dist2) // moveInside moved too far
@@ -178,7 +188,15 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             crossing_2_out = crossing_2_in_or_mid;
             if (endInside || outside.inside(crossing_2_in_or_mid, true))
             { // move outside
-                PolygonUtils::moveOutside(outside, crossing_2_out, offset_dist_to_get_from_on_the_polygon_to_outside);
+                ClosestPolygonPoint* crossing_2_out_cpp = PolygonUtils::findClose(crossing_2_in_or_mid, outside, getOutsideLocToLine());
+                if (crossing_2_out_cpp)
+                {
+                    crossing_2_out = PolygonUtils::moveOutside(*crossing_2_out_cpp, offset_dist_to_get_from_on_the_polygon_to_outside);
+                }
+                else 
+                {
+                    PolygonUtils::moveOutside(outside, crossing_2_out, offset_dist_to_get_from_on_the_polygon_to_outside);
+                }
             }
             int64_t in_out_dist2_2 = vSize2(crossing_2_out - crossing_2_in_or_mid); 
             if (endInside && in_out_dist2_2 > max_crossing_dist2) // moveInside moved too far
