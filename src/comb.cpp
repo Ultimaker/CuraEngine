@@ -149,12 +149,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
         }
         
-        if (avoid_other_parts && vSize2(crossing_1_in_or_mid - crossing_2_in_or_mid) < offset_from_outlines_outside * offset_from_outlines_outside * 4)
+        bool avoid_other_parts_now = avoid_other_parts;
+        if (avoid_other_parts_now && vSize2(crossing_1_in_or_mid - crossing_2_in_or_mid) < offset_from_outlines_outside * offset_from_outlines_outside * 4)
         { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings via outside
-            avoid_other_parts = false;
+            avoid_other_parts_now = false;
         }
         
-        if (avoid_other_parts)
+        if (avoid_other_parts_now)
         { // compute the crossing points when moving through air
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
             
@@ -220,7 +221,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         }
         
         // throught air from boundary to boundary
-        if (avoid_other_parts)
+        if (avoid_other_parts_now)
         {
             combPaths.emplace_back();
             combPaths.back().throughAir = true;
