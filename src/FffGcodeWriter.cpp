@@ -246,7 +246,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
     
-    bool retraction_combing = true; 
+    CombingMode combing_mode = storage.getSettingAsCombingMode("retraction_combing"); 
     
     int n_raft_surface_layers = train->getSettingAsCount("raft_surface_layers");
     
@@ -275,7 +275,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 2;
         int layer_height = getSettingInMicrons("raft_base_thickness");
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, combing_mode, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
         {
@@ -305,7 +305,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_nr = -n_raft_surface_layers - 1;
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, combing_mode, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         if (CommandSocket::isInstantiated())
         {
@@ -333,7 +333,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     { // raft surface layers
         int layer_nr = -n_raft_surface_layers + raftSurfaceLayer - 1;
         z += layer_height;
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, combing_mode, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         if (CommandSocket::isInstantiated())
         {
@@ -377,7 +377,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     }
     int64_t comb_offset_from_outlines = max_nozzle_size * 2;// TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (layer_nr == 0)
     {

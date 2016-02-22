@@ -304,8 +304,9 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
+     * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
 private:

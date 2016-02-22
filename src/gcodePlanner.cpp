@@ -48,7 +48,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , z(z)
@@ -68,7 +68,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
     totalPrintTime = 0.0;
-    if (retraction_combing)
+    if (combing_mode != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
