@@ -188,8 +188,6 @@ public:
     
     FlowTempGraph getSettingAsFlowTempGraph(std::string key);
     
-    std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key);
-    
     EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
     EFillMethod getSettingAsFillMethod(std::string key);
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
