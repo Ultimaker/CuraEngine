@@ -477,6 +477,7 @@ bool LinePolygonsCrossings::optimizePath(CombPath& comb_path, CombPath& optimize
             }
         }
     }
+    optimized_comb_path.push_back(comb_path.back());
     return true;
 }
 
