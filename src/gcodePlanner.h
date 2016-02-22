@@ -312,9 +312,10 @@ public:
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.
+     * \param combing_mode Whether combing is enabled and full or within infill only.
      * \return the comb_boundary_inside
      */
-    Polygons computeCombBoundaryInside();
+    Polygons computeCombBoundaryInside(CombingMode combing_mode);
 
 public:
     int getLayerNr()

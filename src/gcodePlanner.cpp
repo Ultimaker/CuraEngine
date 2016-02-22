@@ -55,7 +55,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
-, comb_boundary_inside(computeCombBoundaryInside())
+, comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
@@ -82,11 +82,22 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-Polygons GCodePlanner::computeCombBoundaryInside()
+Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
 {
+    if (combing_mode == CombingMode::OFF)
+    {
+        return Polygons();
+    }
     if (layer_nr < 0)
     { // when a raft is present
-        return storage.raftOutline.offset(MM2INT(0.1));
+        if (combing_mode == CombingMode::NO_SKIN)
+        {
+            return Polygons();
+        }
+        else
+        {
+            return storage.raftOutline.offset(MM2INT(0.1));
+        }
     }
     else 
     {
@@ -94,7 +105,17 @@ Polygons GCodePlanner::computeCombBoundaryInside()
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
-            layer.getSecondOrInnermostWalls(layer_walls);
+            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            {
+                for (SliceLayerPart& part : layer.parts)
+                {
+                    layer_walls.add(part.infill_area);
+                }
+            }
+            else
+            {
+                layer.getSecondOrInnermostWalls(layer_walls);
+            }
         }
         return layer_walls;
     }
