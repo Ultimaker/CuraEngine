@@ -142,11 +142,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int64_t conical_support_offset;
     if (conical_support_angle > 0) 
     { // outward ==> wider base than overhang
-        conical_support_offset = (tan(-conical_support_angle) - 0.01) * supportLayerThickness;
+        conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
     }
     else 
     { // inward ==> smaller base than overhang
-        conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
+        conical_support_offset = (tan(-conical_support_angle) - 0.01) * supportLayerThickness;
     }
     
     unsigned int support_layer_count = layer_count;
