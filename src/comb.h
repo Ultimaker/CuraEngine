@@ -13,11 +13,11 @@ namespace cura
     
 struct CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
 {
-    bool throughAir = false; //!< Whether the path is one which moves through air.
     bool cross_boundary = false; //!< Whether the path crosses a boundary.
 };
 struct CombPaths : public  std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
 {
+    bool throughAir = false; //!< Whether the path is one which moves through air.
 }; 
 
 /*!

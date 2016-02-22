@@ -224,7 +224,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         if (avoid_other_parts_now)
         {
             combPaths.emplace_back();
-            combPaths.back().throughAir = true;
+            combPaths.throughAir = true;
             if ( vSize(crossing_1_in_or_mid - crossing_2_in_or_mid) < vSize(crossing_1_in_or_mid - crossing_1_out) + vSize(crossing_2_in_or_mid - crossing_2_out) )
             { // via outside is moving more over the in-between zone
                 combPaths.back().push_back(crossing_1_in_or_mid);
@@ -238,7 +238,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         else 
         { // directly through air (not avoiding other parts)
             combPaths.emplace_back();
-            combPaths.back().throughAir = true;
+            combPaths.throughAir = true;
             combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
             combPaths.back().push_back(crossing_1_in_or_mid);
             combPaths.back().push_back(crossing_2_in_or_mid);
