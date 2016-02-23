@@ -79,7 +79,7 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         Point& last_point = *last_it;
         Point& point = *it;
         
-        if ( from_it.poly == to_list_poly 
+        if (&from_it.poly == &to_list_poly 
             && (
                 (from_it.it == last_it || from_it.it == it) // we currently consider a linesegment directly connected to [from]
                 || (from_it.prev().it == it || from_it.next().it == last_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
@@ -94,7 +94,7 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         int64_t dist2 = vSize2(closest - from);
         
         if (dist2 > line_width * line_width
-            || ( from_it.poly == to_list_poly 
+            || (&from_it.poly == &to_list_poly 
                 && dot(from_it.next().p() - from, point - last_point) > 0 
                 && dot(from - from_it.prev().p(), point - last_point) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
         )
