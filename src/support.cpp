@@ -263,6 +263,26 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         {
             Polygons& supportLayer = supportAreas[layer_idx];
             
+            if (conical_support)
+            { // with conical support the next layer is allowed to be larger than the previous
+                touching_buildplate = touching_buildplate.offset(std::abs(conical_support_offset) + 10, ClipperLib::jtMiter, 10); 
+                // + 10 and larger miter limit cause performing an outward offset after an inward offset can disregard sharp corners
+                //
+                // conical support can make
+                //  layer above    layer below
+                //    v              v
+                //  |               : |
+                //  |        ==>    : |__
+                //  |____           :....
+                // 
+                // a miter limit would result in
+                //  | :             : |
+                //  | :..    <==    : |__
+                //  .\___           :....
+                //
+                
+            }
+            
             touching_buildplate = supportLayer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
             
             supportAreas[layer_idx] = touching_buildplate;
