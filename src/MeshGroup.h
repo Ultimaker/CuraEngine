@@ -65,7 +65,7 @@ public:
     
     std::vector<Mesh> meshes;
 
-    Point3 min() //! minimal corner of bounding box
+    Point3 min() const //! minimal corner of bounding box
     {
         if (meshes.size() < 1)
         {
@@ -81,7 +81,7 @@ public:
         }
         return ret;
     }
-    Point3 max() //! maximal corner of bounding box
+    Point3 max() const //! maximal corner of bounding box
     {
         if (meshes.size() < 1)
         {

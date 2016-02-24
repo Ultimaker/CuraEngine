@@ -55,11 +55,11 @@ void Mesh::finish()
     }
 }
 
-Point3 Mesh::min()
+Point3 Mesh::min() const
 {
     return aabb.min;
 }
-Point3 Mesh::max()
+Point3 Mesh::max() const
 {
     return aabb.max;
 }
