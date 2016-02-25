@@ -8,11 +8,11 @@ namespace cura
 {
 
         
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
 {
-    generateSkinAreas(layerNr, storage, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+    generateSkinAreas(layerNr, mesh, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
-    SliceLayer* layer = &storage.layers[layerNr];
+    SliceLayer* layer = &mesh.layers[layerNr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
@@ -20,9 +20,9 @@ void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, i
     }
 }
 
-void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
-    SliceLayer& layer = storage.layers[layer_nr];
+    SliceLayer& layer = mesh.layers[layer_nr];
     
     if (downSkinCount == 0 && upSkinCount == 0)
     {
@@ -57,32 +57,32 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
         {
             if (static_cast<int>(layer_nr - downSkinCount) >= 0)
             {
-                downskin = downskin.difference(getInsidePolygons(storage.layers[layer_nr - downSkinCount])); // skin overlaps with the walls
+                downskin = downskin.difference(getInsidePolygons(mesh.layers[layer_nr - downSkinCount])); // skin overlaps with the walls
             }
             
-            if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(storage.layers.size()))
+            if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()))
             {
-                upskin = upskin.difference(getInsidePolygons(storage.layers[layer_nr + upSkinCount])); // skin overlaps with the walls
+                upskin = upskin.difference(getInsidePolygons(mesh.layers[layer_nr + upSkinCount])); // skin overlaps with the walls
             }
         }
         else 
         {
             if (layer_nr > 0 && downSkinCount > 0)
             {
-                Polygons not_air = getInsidePolygons(storage.layers[layer_nr - 1]);
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - 1]);
                 for (int downskin_layer_nr = std::max(0, layer_nr - downSkinCount); downskin_layer_nr < layer_nr - 1; downskin_layer_nr++)
                 {
-                    not_air = not_air.intersection(getInsidePolygons(storage.layers[downskin_layer_nr]));
+                    not_air = not_air.intersection(getInsidePolygons(mesh.layers[downskin_layer_nr]));
                 }
                 downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
             
-            if (layer_nr < static_cast<int>(storage.layers.size()) - 1 && upSkinCount > 0)
+            if (layer_nr < static_cast<int>(mesh.layers.size()) - 1 && upSkinCount > 0)
             {
-                Polygons not_air = getInsidePolygons(storage.layers[layer_nr + 1]);
-                for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < std::min(static_cast<int>(storage.layers.size()) - 1, layer_nr + upSkinCount); upskin_layer_nr++)
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + 1]);
+                for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < std::min(static_cast<int>(mesh.layers.size()) - 1, layer_nr + upSkinCount); upskin_layer_nr++)
                 {
-                    not_air = not_air.intersection(getInsidePolygons(storage.layers[upskin_layer_nr]));
+                    not_air = not_air.intersection(getInsidePolygons(mesh.layers[upskin_layer_nr]));
                 }
                 upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
@@ -134,9 +134,9 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateInfill(int layerNr, SliceMeshStorage& storage, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count)
+void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count)
 {
-    SliceLayer& layer = storage.layers[layerNr];
+    SliceLayer& layer = mesh.layers[layerNr];
 
     for(SliceLayerPart& part : layer.parts)
     {
@@ -162,13 +162,13 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int innermost_wall_e
     }
 }
 
-void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
+void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
     if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;
     }
-    if(storage.layers.empty() || storage.layers.size() - 1 < static_cast<size_t>(storage.getSettingAsCount("top_layers")) || storage.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
+    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
     }
@@ -176,13 +176,13 @@ void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
     divisible index. Otherwise we get some parts that have infill at divisible
     layers and some at non-divisible layers. Those layers would then miss each
     other. */
-    size_t min_layer = storage.getSettingAsCount("bottom_layers") + amount - 1;
+    size_t min_layer = mesh.getSettingAsCount("bottom_layers") + amount - 1;
     min_layer -= min_layer % amount; //Round upwards to the nearest layer divisible by infill_sparse_combine.
-    size_t max_layer = storage.layers.size() - 1 - storage.getSettingAsCount("top_layers");
+    size_t max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
     max_layer -= max_layer % amount; //Round downwards to the nearest layer divisible by infill_sparse_combine.
     for(size_t layer_idx = min_layer;layer_idx <= max_layer;layer_idx += amount) //Skip every few layers, but extrude more.
     {
-        SliceLayer* layer = &storage.layers[layer_idx];
+        SliceLayer* layer = &mesh.layers[layer_idx];
 
         for(unsigned int n = 1;n < amount;n++)
         {
@@ -191,7 +191,7 @@ void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
                 break;
             }
 
-            SliceLayer* layer2 = &storage.layers[layer_idx - n];
+            SliceLayer* layer2 = &mesh.layers[layer_idx - n];
             for(SliceLayerPart& part : layer->parts)
             {
                 Polygons result;
@@ -213,17 +213,17 @@ void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount)
 }
 
 
-void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount)
+void generatePerimeterGaps(int layer_nr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount)
 {
-    SliceLayer& layer = storage.layers[layer_nr];
+    SliceLayer& layer = mesh.layers[layer_nr];
     
     for (SliceLayerPart& part : layer.parts) 
     { // handle gaps between perimeters etc.
         if (downSkinCount > 0 && upSkinCount > 0 && // note: if both are zero or less, then all gaps will be used
-            layer_nr >= downSkinCount && layer_nr < static_cast<int>(storage.layers.size() - upSkinCount)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
+            layer_nr >= downSkinCount && layer_nr < static_cast<int>(mesh.layers.size() - upSkinCount)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
         {
             Polygons outlines_above;
-            for (SliceLayerPart& part_above : storage.layers[layer_nr + upSkinCount].parts)
+            for (SliceLayerPart& part_above : mesh.layers[layer_nr + upSkinCount].parts)
             {
                 if (part.boundaryBox.hit(part_above.boundaryBox))
                 {
@@ -231,7 +231,7 @@ void generatePerimeterGaps(int layer_nr, SliceMeshStorage& storage, int extrusio
                 }
             }
             Polygons outlines_below;
-            for (SliceLayerPart& part_below : storage.layers[layer_nr - downSkinCount].parts)
+            for (SliceLayerPart& part_below : mesh.layers[layer_nr - downSkinCount].parts)
             {
                 if (part.boundaryBox.hit(part_below.boundaryBox))
                 {
