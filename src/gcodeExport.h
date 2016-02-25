@@ -288,7 +288,7 @@ public:
             extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
             extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
             
-            extruder_attr[n].extruder_switch_retraction_distance = INT2MM(train->getSettingInMicrons("switch_extruder_retraction_amount")); 
+            extruder_attr[n].extruder_switch_retraction_distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
             extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
             extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
 
@@ -305,3 +305,4 @@ public:
 }
 
 #endif//GCODEEXPORT_H
+

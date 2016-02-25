@@ -145,10 +145,15 @@ int SettingsBaseVirtual::getSettingAsCount(std::string key)
     return atoi(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingInMicrons(std::string key)
+double SettingsBaseVirtual::getSettingInMillimeters(std::__cxx11::string key)
 {
     std::string value = getSettingString(key);
-    return atof(value.c_str()) * 1000.0;
+    return atof(value.c_str());
+}
+
+int SettingsBaseVirtual::getSettingInMicrons(std::string key)
+{
+    return getSettingInMillimeters(key) * 1000.0;
 }
 
 double SettingsBaseVirtual::getSettingInAngleRadians(std::string key)
@@ -355,3 +360,4 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
 }
 
 }//namespace cura
+
