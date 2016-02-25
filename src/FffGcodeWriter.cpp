@@ -615,7 +615,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons("machine_nozzle_size") * 1);
+        {
+            gcode_layer.moveInsideCombBoundary(storage.meshgroup->getExtruderTrain(mesh->getSettingAsCount("extruder_nr"))->getSettingInMicrons("machine_nozzle_size") * 1);
+        }
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
