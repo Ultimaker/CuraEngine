@@ -201,7 +201,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
+        unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
         combineInfillLayers(mesh,combined_infill_layers);
     }
 
