@@ -101,6 +101,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        
+        
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
@@ -114,11 +116,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 - initial_slice_z;
             if (has_raft)
             {
+                ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
                 layer.printZ += 
-                    meshStorage.getSettingInMicrons("raft_base_thickness") 
-                    + meshStorage.getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
-                    + meshStorage.getSettingInMicrons("raft_airgap");
+                    train->getSettingInMicrons("raft_base_thickness") 
+                    + train->getSettingInMicrons("raft_interface_thickness") 
+                    + train->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
+                    + train->getSettingInMicrons("raft_airgap");
             }
     
  
@@ -238,7 +241,7 @@ void FffPolygonGenerator::processInsets(SliceDataStorage& storage, unsigned int 
             int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
             if (mesh.getSettingBoolean("alternate_extra_perimeter"))
                 inset_count += layer_nr % 2; 
-            generateInsets(layer, storage.meshgroup->getExtruderTrain(mesh.getSettingAsCount("extruder_nr"))->getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+            generateInsets(layer, storage.meshgroup->getExtruderTrain(mesh.getSettingAsIndex("extruder_nr"))->getSettingInMicrons("machine_nozzle_size"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
         }
         if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {

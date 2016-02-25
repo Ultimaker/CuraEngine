@@ -277,7 +277,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     { // raft base layer
         
         int layer_nr = -n_raft_surface_layers - 2;
-        int layer_height = getSettingInMicrons("raft_base_thickness");
+        int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
