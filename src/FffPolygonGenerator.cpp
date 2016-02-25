@@ -110,7 +110,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
             meshStorage.layers[layer_nr].printZ += 
-                meshStorage.getSettingInMicrons("layer_height_0")
+                getSettingInMicrons("layer_height_0")
                 - initial_slice_z;
             if (has_raft)
             {
@@ -129,7 +129,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 
             if (CommandSocket::isInstantiated())
             {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
         
