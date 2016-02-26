@@ -35,34 +35,34 @@ public:
     bool operator==(FPoint3& p) const { return x==p.x&&y==p.y&&z==p.z; }
     bool operator!=(FPoint3& p) const { return x!=p.x||y!=p.y||z!=p.z; }
 
-    float max()
+    float max() const
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
 
-    bool testLength(float len)
+    bool testLength(float len) const
     {
         return vSize2() <= len*len;
     }
 
-    float vSize2()
+    float vSize2() const
     {
         return x*x+y*y+z*z;
     }
 
-    float vSize()
+    float vSize() const
     {
         return sqrt(vSize2());
     }
 
-    inline FPoint3 normalized()
+    inline FPoint3 normalized() const
     {
         return (*this)/vSize();
     }
 
-    FPoint3 cross(const FPoint3& p)
+    FPoint3 cross(const FPoint3& p) const
     {
         return FPoint3(
             y*p.z-z*p.y,
@@ -116,7 +116,7 @@ public:
         m[2][2] = 1.0;
     }
     
-    Point3 apply(const FPoint3& p)
+    Point3 apply(const FPoint3& p) const
     {
         return Point3(
             MM2INT(p.x * m[0][0] + p.y * m[1][0] + p.z * m[2][0]),
