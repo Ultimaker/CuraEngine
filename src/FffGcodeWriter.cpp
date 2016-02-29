@@ -890,12 +890,21 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
     
+    bool all_roofs_are_low = true;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
+        {
+            all_roofs_are_low = false;
+        }
+    }
+    
     double fillAngle;
     if (pattern == EFillMethod::CONCENTRIC)
     {
         fillAngle = 0;
     }
-    else if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height") || pattern == EFillMethod::TRIANGLES)
+    else if (all_roofs_are_low || pattern == EFillMethod::TRIANGLES)
     {
         fillAngle = 90; // perpendicular to support lines
     }
