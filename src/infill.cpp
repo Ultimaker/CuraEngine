@@ -208,10 +208,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, bool safe_outli
         outline = in_outline;
     }
     
-    if (line_distance > infill_line_width * 3 / 2) 
-    { // infill is not too dense to have overlap with surrounding polygon
-        outline = outline.offset(infill_overlap * infill_line_width / 100); // division by 100 cause it's a percentage.
-    }
+    outline = outline.offset(infill_overlap * infill_line_width / 100); // division by 100 cause it's a percentage.
     
     if (outline.size() == 0)
     {
