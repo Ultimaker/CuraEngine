@@ -155,7 +155,7 @@ class SettingsBaseVirtual
 protected:
     SettingsBaseVirtual* parent;
 public:
-    virtual std::string getSettingString(std::string key) = 0;
+    virtual std::string getSettingString(std::string key) const = 0;
     
     virtual void setSetting(std::string key, std::string value) = 0;
     
@@ -167,29 +167,29 @@ public:
     void setParent(SettingsBaseVirtual* parent) { this->parent = parent; }
     SettingsBaseVirtual* getParent() { return parent; }
     
-    int getSettingAsIndex(std::string key);
-    int getSettingAsCount(std::string key);
+    int getSettingAsIndex(std::string key) const;
+    int getSettingAsCount(std::string key) const;
     
-    double getSettingInAngleRadians(std::string key);
-    int getSettingInMicrons(std::string key);
-    bool getSettingBoolean(std::string key);
-    double getSettingInDegreeCelsius(std::string key);
-    double getSettingInMillimetersPerSecond(std::string key);
-    double getSettingInCubicMillimeters(std::string key);
-    double getSettingInPercentage(std::string key);
-    double getSettingInSeconds(std::string key);
+    double getSettingInAngleRadians(std::string key) const;
+    int getSettingInMicrons(std::string key) const;
+    bool getSettingBoolean(std::string key) const;
+    double getSettingInDegreeCelsius(std::string key) const;
+    double getSettingInMillimetersPerSecond(std::string key) const;
+    double getSettingInCubicMillimeters(std::string key) const;
+    double getSettingInPercentage(std::string key) const;
+    double getSettingInSeconds(std::string key) const;
     
-    FlowTempGraph getSettingAsFlowTempGraph(std::string key);
+    FlowTempGraph getSettingAsFlowTempGraph(std::string key) const;
     
-    std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key);
+    std::vector<std::pair<double, double>> getSettingAsPointVector(std::string key) const;
     
-    EGCodeFlavor getSettingAsGCodeFlavor(std::string key);
-    EFillMethod getSettingAsFillMethod(std::string key);
-    EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key);
-    ESupportType getSettingAsSupportType(std::string key);
-    EZSeamType getSettingAsZSeamType(std::string key);
-    ESurfaceMode getSettingAsSurfaceMode(std::string key);
-    FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key);
+    EGCodeFlavor getSettingAsGCodeFlavor(std::string key) const;
+    EFillMethod getSettingAsFillMethod(std::string key) const;
+    EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key) const;
+    ESupportType getSettingAsSupportType(std::string key) const;
+    EZSeamType getSettingAsZSeamType(std::string key) const;
+    ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
+    FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
 };
 
 /*!
@@ -218,9 +218,9 @@ public:
     void setExtruderTrainDefaults(unsigned int extruder_nr);
     
     void setSetting(std::string key, std::string value);
-    std::string getSettingString(std::string key); //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
+    std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
-    std::string getAllLocalSettingsString()
+    std::string getAllLocalSettingsString() const
     {
         std::stringstream sstream;
         for (auto pair : setting_values)
@@ -233,7 +233,7 @@ public:
         return sstream.str();
     }
     
-    void debugOutputAllLocalSettings() 
+    void debugOutputAllLocalSettings()  const
     {
         for (auto pair : setting_values)
             std::cerr << pair.first << " : " << pair.second << std::endl;
@@ -251,7 +251,7 @@ public:
     SettingsMessenger(SettingsBaseVirtual* parent); //!< construct a SettingsMessenger with a parent settings object
     
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
-    std::string getSettingString(std::string key); //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
+    std::string getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
 };
 
 

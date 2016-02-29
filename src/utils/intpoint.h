@@ -75,14 +75,14 @@ public:
     }
 
 
-    int32_t max()
+    int32_t max() const
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
 
-    bool testLength(int32_t len)
+    bool testLength(int32_t len) const
     {
         if (x > len || x < -len)
             return false;
@@ -119,7 +119,7 @@ public:
             x*p.y-y*p.x);
     }
 
-    int64_t dot(const Point3& p)
+    int64_t dot(const Point3& p) const
     {
         return x*p.x + y*p.y + z*p.z;
     }

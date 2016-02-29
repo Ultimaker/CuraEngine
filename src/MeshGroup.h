@@ -65,7 +65,7 @@ public:
     
     std::vector<Mesh> meshes;
 
-    Point3 min() //! minimal corner of bounding box
+    Point3 min() const //! minimal corner of bounding box
     {
         if (meshes.size() < 1)
         {
@@ -81,7 +81,7 @@ public:
         }
         return ret;
     }
-    Point3 max() //! maximal corner of bounding box
+    Point3 max() const //! maximal corner of bounding box
     {
         if (meshes.size() < 1)
         {
@@ -141,7 +141,7 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings = nullptr);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings = nullptr);
 
 }//namespace cura
 #endif//MESH_GROUP_H

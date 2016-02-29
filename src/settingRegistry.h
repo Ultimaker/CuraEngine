@@ -66,7 +66,7 @@ private:
      */
     SettingConfig& getOrCreateChild(std::string key, std::string label);
 public:
-    void debugOutputAllSettings();
+    void debugOutputAllSettings() const;
 };
 
 /*!
@@ -127,10 +127,10 @@ public:
         return unit;
     }
     
-    void debugOutputAllSettings()
+    void debugOutputAllSettings() const
     {
         std::cerr << key <<  "(" << default_value << ")" <<std::endl;
-        for (SettingConfig& child : children)
+        for (const SettingConfig& child : children)
         {
             child.debugOutputAllSettings();
         }
@@ -164,7 +164,7 @@ public:
     static SettingRegistry* getInstance() { return &instance; }
     
     bool settingExists(std::string key) const;
-    SettingConfig* getSettingConfig(std::string key);
+    SettingConfig* getSettingConfig(std::string key) const;
     
     /*!
      * Return the first category with the given key as name, or a null pointer.
@@ -173,6 +173,14 @@ public:
      * \return The first category in the list having the \p key
      */
     SettingContainer* getCategory(std::string key);
+
+    /*!
+     * Return the first category with the given key as name, or a null pointer. const style
+     * 
+     * \param key the key as it is in the JSON file
+     * \return The first category in the list having the \p key
+     */
+    const SettingContainer* getCategory(std::string key) const;
 private:
     /*!
      * Return the first category with the given key as name, or a new one.
@@ -183,7 +191,7 @@ private:
      */
     SettingContainer& getOrCreateCategory(std::string cat_name, const rapidjson::Value& category);
 public:
-    bool settingsLoaded();
+    bool settingsLoaded() const;
     /*!
      * Load settings from a json file and all the parents it inherits from.
      * 
@@ -193,9 +201,9 @@ public:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettings(std::string filename);
-    void debugOutputAllSettings()
+    void debugOutputAllSettings() const
     {
-        for (SettingContainer& cat : categories)
+        for (const SettingContainer& cat : categories)
         {
             cat.debugOutputAllSettings();
         }
@@ -237,7 +245,7 @@ private:
     /*!
      * \param warn_duplicates whether to warn for duplicate definitions
      */
-    void _addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
+    void _addSettingToContainer(SettingContainer* parent, const rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 
     /*!
      * Adds a category with a given name to the registry.
@@ -247,7 +255,7 @@ private:
      */
     void _addCategory(std::string cat_name, const rapidjson::Value& fields, bool warn_duplicates);
 
-    void _loadSettingValues(SettingConfig* config, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
+    void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
 };
 
 }//namespace cura
