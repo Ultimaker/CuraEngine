@@ -690,8 +690,13 @@ void GCodePlanner::processInitialLayersSpeedup()
     double initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
     if (static_cast<int>(layer_nr) < initial_speedup_layers)
     {
-        double initial_layer_speed = storage.getSettingInMillimetersPerSecond("speed_layer_0");
+        double initial_layer_speed;
+        int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_extruder_nr");
+        initial_layer_speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_layer_0");
         storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+        
+        int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
+        initial_layer_speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_layer_0");
         storage.support_roof_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
         for(SliceMeshStorage& mesh : storage.meshes)
         {
