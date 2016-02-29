@@ -113,7 +113,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int z_layer_distance_tower = 1; // start tower directly below overhang point
         
     int layerThickness = storage.getSettingInMicrons("layer_height");
-    int extrusionWidth = mesh.getSettingInMicrons("support_line_width"); 
+    int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
     int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
     
     bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
