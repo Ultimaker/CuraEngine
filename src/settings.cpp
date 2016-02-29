@@ -72,27 +72,28 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
 }
 
-std::string SettingsBase::getSettingString(std::string key)
+std::string SettingsBase::getSettingString(std::string key) const
 {
     if (setting_values.find(key) != setting_values.end())
     {
-        return setting_values[key];
+        return setting_values.at(key);
     }
     if (parent)
     {
         return parent->getSettingString(key);
     }
     
+		SettingsBase& nonConstThis = const_cast<SettingsBase&>(*this);
     if (SettingRegistry::getInstance()->settingExists(key))
     {
-        setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
+        nonConstThis.setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
     }
     else
     {
-        setting_values[key] = "";
+        nonConstThis.setting_values[key] = "";
         cura::logError("Unregistered setting %s\n", key.c_str());
     }
-    return setting_values[key];
+    return setting_values.at(key);
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
@@ -100,7 +101,7 @@ void SettingsMessenger::setSetting(std::string key, std::string value)
     parent->setSetting(key, value);
 }
 
-std::string SettingsMessenger::getSettingString(std::string key)
+std::string SettingsMessenger::getSettingString(std::string key) const
 {
     return parent->getSettingString(key);
 }
@@ -133,31 +134,31 @@ void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
     }
 }
 
-int SettingsBaseVirtual::getSettingAsIndex(std::string key)
+int SettingsBaseVirtual::getSettingAsIndex(std::string key) const
 {
     std::string value = getSettingString(key);
     return atoi(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingAsCount(std::string key)
+int SettingsBaseVirtual::getSettingAsCount(std::string key) const
 {
     std::string value = getSettingString(key);
     return atoi(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingInMicrons(std::string key)
+int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 {
     std::string value = getSettingString(key);
     return atof(value.c_str()) * 1000.0;
 }
 
-double SettingsBaseVirtual::getSettingInAngleRadians(std::string key)
+double SettingsBaseVirtual::getSettingInAngleRadians(std::string key) const
 {
     std::string value = getSettingString(key);
     return atof(value.c_str()) / 180.0 * M_PI;
 }
 
-bool SettingsBaseVirtual::getSettingBoolean(std::string key)
+bool SettingsBaseVirtual::getSettingBoolean(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "on")
@@ -170,37 +171,37 @@ bool SettingsBaseVirtual::getSettingBoolean(std::string key)
     return num != 0;
 }
 
-double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key)
+double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key) const
 {
     std::string value = getSettingString(key);
     return atof(value.c_str());
 }
 
-double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key)
+double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(1.0, atof(value.c_str()));
 }
 
-double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key)
+double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-double SettingsBaseVirtual::getSettingInPercentage(std::string key)
+double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-double SettingsBaseVirtual::getSettingInSeconds(std::string key)
+double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
 }
 
-FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
+FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) const
 {
     FlowTempGraph ret;
     const char* c_str = getSettingString(key).c_str();
@@ -258,7 +259,7 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key)
 }
 
 
-EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
+EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "RepRap")
@@ -276,7 +277,7 @@ EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key)
     return EGCodeFlavor::REPRAP;
 }
 
-EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
+EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "lines")
@@ -292,7 +293,7 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key)
     return EFillMethod::NONE;
 }
 
-EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key)
+EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "brim")
@@ -302,7 +303,7 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
     return EPlatformAdhesion::SKIRT;
 }
 
-ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
+ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "everywhere")
@@ -312,7 +313,7 @@ ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key)
     return ESupportType::NONE;
 }
 
-EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
+EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "random")
@@ -324,7 +325,7 @@ EZSeamType SettingsBaseVirtual::getSettingAsZSeamType(std::string key)
     return EZSeamType::SHORTEST;
 }
 
-ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
+ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "normal")
@@ -336,7 +337,7 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key)
     return ESurfaceMode::NORMAL;
 }
 
-FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key)
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "nowhere")

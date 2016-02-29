@@ -69,8 +69,8 @@ public:
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
-    Point3 min(); //!< min (in x,y and z) vertex of the bounding box
-    Point3 max(); //!< max (in x,y and z) vertex of the bounding box
+    Point3 min() const; //!< min (in x,y and z) vertex of the bounding box
+    Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
     
     /*!
      * Offset the whole mesh (all vertices and the bounding box).
@@ -85,12 +85,12 @@ public:
     }
 
 private:
-    int findIndexOfVertex(Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
+    int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
     /*!
     Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
     In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
     */
-    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx);
+    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const;
 };
 
 }//namespace cura

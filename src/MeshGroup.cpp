@@ -28,7 +28,7 @@ void* fgets_(char* ptr, size_t len, FILE* f)
     return nullptr;
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
@@ -61,7 +61,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -114,7 +114,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "r");
     if (f == nullptr)
@@ -168,7 +168,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
 {
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))

@@ -68,10 +68,10 @@ SettingConfig::SettingConfig(std::string key, std::string label)
 //     std::cerr << key << std::endl; // debug output to show all frontend registered settings...
 }
 
-void SettingContainer::debugOutputAllSettings()
+void SettingContainer::debugOutputAllSettings() const
 {
     std::cerr << "\nCATEGORY: " << key << std::endl;
-    for (SettingConfig& child : children)
+    for (const SettingConfig& child : children)
     {
         child.debugOutputAllSettings();
     }
@@ -83,7 +83,7 @@ bool SettingRegistry::settingExists(std::string key) const
     return settings.find(key) != settings.end();
 }
 
-SettingConfig* SettingRegistry::getSettingConfig(std::string key)
+SettingConfig* SettingRegistry::getSettingConfig(std::string key) const
 {
     auto it = settings.find(key);
     if (it == settings.end())
@@ -94,6 +94,14 @@ SettingConfig* SettingRegistry::getSettingConfig(std::string key)
 SettingContainer* SettingRegistry::getCategory(std::string key)
 {
     for (SettingContainer& cat : categories)
+        if (cat.getKey().compare(key) == 0)
+            return &cat;
+    return nullptr;
+}
+
+const SettingContainer* SettingRegistry::getCategory(std::string key) const
+{
+    for (const SettingContainer& cat : categories)
         if (cat.getKey().compare(key) == 0)
             return &cat;
     return nullptr;
@@ -123,7 +131,7 @@ SettingRegistry::SettingRegistry()
 {
 }
 
-bool SettingRegistry::settingsLoaded()
+bool SettingRegistry::settingsLoaded() const
 {
     return settings.size() > 0;
 }
@@ -269,7 +277,7 @@ void SettingRegistry::_addCategory(std::string cat_name, const rapidjson::Value&
 }
 
 
-void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
+void SettingRegistry::_addSettingToContainer(SettingContainer* parent, const rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
     const rapidjson::Value& data = json_object_it->value;
     
@@ -289,7 +297,7 @@ void SettingRegistry::_addSettingToContainer(SettingContainer* parent, rapidjson
     _loadSettingValues(&config, json_object_it, warn_duplicates, add_to_settings);
 }
 
-void SettingRegistry::_loadSettingValues(SettingConfig* config, rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
+void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings)
 {
     const rapidjson::Value& data = json_object_it->value;
     /// Fill the setting config object with data we have in the json file.
