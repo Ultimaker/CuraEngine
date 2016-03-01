@@ -18,11 +18,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         gcode.resetTotalPrintTimeAndFilament();
     }
-    
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->beginGCode();
-    }
+
+    CommandSocket::getInstance()->beginGCode();
 
     setConfigFanSpeedLayerTime();
     
@@ -176,18 +173,18 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
-    if (!CommandSocket::isInstantiated())
-    {
-        std::ostringstream prefix;
-        prefix << "FLAVOR:" << toString(gcode.getFlavor());
-        gcode.writeComment(prefix.str().c_str());
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            gcode.writeComment("TIME:666");
-            gcode.writeComment("MATERIAL:666");
-            gcode.writeComment("MATERIAL2:-1");
-        }
-    }
+    //if (!CommandSocket::isInstantiated())
+    //{
+    //    std::ostringstream prefix;
+    //    prefix << "FLAVOR:" << toString(gcode.getFlavor());
+    //    gcode.writeComment(prefix.str().c_str());
+    //    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
+    //    {
+    //        gcode.writeComment("TIME:666");
+    //        gcode.writeComment("MATERIAL:666");
+    //        gcode.writeComment("MATERIAL2:-1");
+    //    }
+    //}
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
@@ -282,10 +279,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         {
             gcode_layer.setExtruder(extruder_nr);
         }
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
-        }
+
+        CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &storage.raft_base_config);
 
         Polygons raftLines;
@@ -308,10 +304,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         gcode_layer.setIsInside(false);
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
-        }
+
+        CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
         
         Polygons raftLines;
         int offset_from_poly_outline = 0;
@@ -336,10 +330,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, train->getSettingInMicrons("machine_nozzle_size"), train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         
         gcode_layer.setIsInside(false);
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
-        }
+
+        CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
         
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
@@ -948,18 +940,15 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
 
 void FffGcodeWriter::finalize()
 {
-    if (CommandSocket::isInstantiated())
+    std::ostringstream prefix;
+    prefix << ";FLAVOR:" << toString(gcode.getFlavor()) << "\n";
+    prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
+    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
-        std::ostringstream prefix;
-        prefix << ";FLAVOR:" << toString(gcode.getFlavor()) << "\n";
-        prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
-            prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
-        }
-        CommandSocket::getInstance()->sendGCodePrefix(prefix.str());
+        prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
+        prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
     }
+    CommandSocket::getInstance()->sendGCodePrefix(prefix.str());
     
     gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)

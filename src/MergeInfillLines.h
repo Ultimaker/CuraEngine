@@ -83,15 +83,12 @@ public:
      */
     void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
     {
-        if (CommandSocket::isInstantiated()) 
-        {
-            // we should send this travel as a non-retraction move
-            cura::Polygons pathPoly;
-            PolygonRef path = pathPoly.newPoly();
-            path.add(from);
-            path.add(to);
-            CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
-        }
+        // we should send this travel as a non-retraction move
+        cura::Polygons pathPoly;
+        PolygonRef path = pathPoly.newPoly();
+        path.add(from);
+        path.add(to);
+        CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
     }
 };
 

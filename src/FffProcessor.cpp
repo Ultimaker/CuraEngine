@@ -100,11 +100,10 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     }
 
     Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    if (CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->flushGcode();
-        CommandSocket::getInstance()->endSendSlicedObject();
-    }
+
+    CommandSocket::getInstance()->flushGcode();
+    CommandSocket::getInstance()->endSendSlicedObject();
+
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
     profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
