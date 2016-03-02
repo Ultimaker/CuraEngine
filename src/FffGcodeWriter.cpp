@@ -238,7 +238,8 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.resetExtrusionValue();
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), getSettingInMillimetersPerSecond("speed_travel"), 0);
-    gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInMillimetersPerSecond("speed_travel"), 0);
+    last_position_planned = Point(storage.model_min.x, storage.model_min.y);
+    gcode.writeMove(last_position_planned, getSettingInMillimetersPerSecond("speed_travel"), 0);
 }
     
 void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_layers)
