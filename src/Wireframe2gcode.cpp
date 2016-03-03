@@ -548,10 +548,10 @@ void Wireframe2gcode::processStartingCode()
 {
     if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
     {
-        if (!CommandSocket::isInstantiated())
-        {
-            gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
-        }
+        //if (!CommandSocket::isInstantiated())
+        //{
+        //    gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
+        //}
     }
     else 
     {

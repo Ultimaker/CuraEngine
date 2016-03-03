@@ -17,10 +17,7 @@ void LayerPlanBuffer::flush()
     while (!buffer.empty())
     {
         buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
-        if (CommandSocket::isInstantiated())
-        {
-            CommandSocket::getInstance()->flushGcode();
-        }
+        CommandSocket::getInstance()->flushGcode();
         buffer.pop_front();
     }
     

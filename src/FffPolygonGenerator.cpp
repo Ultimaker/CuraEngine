@@ -24,8 +24,7 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (CommandSocket::isInstantiated())
-        CommandSocket::getInstance()->beginSendSlicedObject();
+    CommandSocket::getInstance()->beginSendSlicedObject();
     
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
@@ -127,10 +126,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             } 
                 
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
-            }
+            CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
         }
         
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
@@ -173,10 +169,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            if (CommandSocket::isInstantiated()) 
-            {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Infill, layer_idx, support, 100); //getSettingInMicrons("support_line_width"));
-            }
+            CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Infill, layer_idx, support, 100); //getSettingInMicrons("support_line_width"));
         }
     }
     */

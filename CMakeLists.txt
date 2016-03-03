@@ -29,8 +29,8 @@ option(BUILD_TESTS OFF)
 
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-	message(STATUS "Building debug release of CuraEngine.")
-	add_definitions(-DASSERT_INSANE_OUTPUT)
+    message(STATUS "Building debug release of CuraEngine.")
+    add_definitions(-DASSERT_INSANE_OUTPUT)
 endif()
 
 # Add warnings
@@ -91,13 +91,17 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
-	GCodePlannerTest
+    GCodePlannerTest
     LinearAlg2DTest
 )
 
 # Generating ProtoBuf protocol
 if (ENABLE_ARCUS)
 protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+set(engine_SRCS
+    ${engine_SRCS}
+    src/commandSocketArcus.cpp
+)
 endif ()
 
 # Compiling CuraEngine itself.

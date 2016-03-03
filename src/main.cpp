@@ -17,6 +17,7 @@
 
 #include "FffProcessor.h"
 #include "settingRegistry.h"
+#include "commandSocketArcus.h"
 
 namespace cura
 {
@@ -66,7 +67,6 @@ void print_call(int argc, char **argv)
 
 void connect(int argc, char **argv)
 {
-    CommandSocket::instantiate();
     std::string ip;
     int port = 49674;
     
@@ -106,8 +106,11 @@ void connect(int argc, char **argv)
             }
         }
     }
-    
-    CommandSocket::getInstance()->connect(ip, port);
+#ifdef ARCUS
+    std::unique_ptr<CommandSocketArcus> arcus_socket(new CommandSocketArcus);
+    arcus_socket->connect(ip, port);
+    CommandSocket::setInstance(std::move(arcus_socket));
+#endif
 }
 
 void slice(int argc, char **argv)
