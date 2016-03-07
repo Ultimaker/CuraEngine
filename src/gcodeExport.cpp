@@ -448,7 +448,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     { // handle retraction limitation
         double current_extruded_volume = getCurrentExtrudedVolume();
         std::deque<double>& extruded_volume_at_previous_n_retractions = extruder_attr[current_extruder].extruded_volume_at_previous_n_retractions;
-        while (int(extruded_volume_at_previous_n_retractions.size()) >= config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        while (int(extruded_volume_at_previous_n_retractions.size()) > config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
         {
             // extruder switch could have introduced data which falls outside the retraction window
             // also the retraction_count_max could have changed between the last retraction and this
@@ -458,13 +458,13 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
         {
             return;
         }
-        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max - 1 
+        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extruder_attr[current_extruder].filament_area) 
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max) 
+        if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max + 1) 
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }

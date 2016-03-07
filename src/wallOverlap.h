@@ -74,7 +74,16 @@ class WallOverlapComputation
         ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
         : poly(poly), it(it) { }
         Point& p() const { return *it; }
-        bool operator==(const ListPolyIt& other) const { return poly == other.poly && it == other.it; }
+        /*!
+         * Test whether two iterators refer to the same polygon in the same polygon list.
+         * 
+         * \param other The ListPolyIt to test for equality
+         * \return Wether the right argument refers to the same polygon in the same ListPolygon as the left argument.
+         */
+        bool operator==(const ListPolyIt& other) const
+        {
+            return &poly == &other.poly && it == other.it;
+        }
         void operator=(const ListPolyIt& other) { poly = other.poly; it = other.it; }
         //!< move the iterator forward (and wrap around at the end)
         ListPolyIt& operator++() 

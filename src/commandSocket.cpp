@@ -95,6 +95,8 @@ public:
     
     // Print object that olds one or more meshes that need to be sliced. 
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
+
+    std::unordered_map<int, cura::proto::Layer*> sliced_layers;
 };
 #endif
 
@@ -208,6 +210,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
     }
+    log("Closing connection\n");
     private_data->socket->close();
 #endif
 }
@@ -404,6 +407,7 @@ void CommandSocket::endSendSlicedObject()
         private_data->current_layer_offset = 0;
         private_data->sliced_object_list.reset();
         private_data->current_sliced_object = nullptr;
+        private_data->sliced_layers.clear();
         auto done_message = std::make_shared<cura::proto::SlicingFinished>();
         private_data->socket->sendMessage(done_message);
     }
@@ -451,18 +455,19 @@ cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
 {
     id += current_layer_offset;
 
-    auto itr = std::find_if(current_sliced_object->mutable_layers()->begin(), current_sliced_object->mutable_layers()->end(), [id](cura::proto::Layer& l) { return l.id() == id; });
+    auto itr = sliced_layers.find(id);
 
     cura::proto::Layer* layer = nullptr;
-    if(itr != current_sliced_object->mutable_layers()->end())
+    if(itr != sliced_layers.end())
     {
-        layer = &(*itr);
+        layer = itr->second;
     }
     else
     {
         layer = current_sliced_object->add_layers();
         layer->set_id(id);
         current_layer_count++;
+        sliced_layers[id] = layer;
     }
 
     return layer;

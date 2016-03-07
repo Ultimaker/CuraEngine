@@ -120,6 +120,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
     int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
     
+    if (conical_support_angle == 0)
+    {
+        conical_support = false;
+    }
+    
     // derived settings:
     
     if (supportZDistanceBottom < 0) supportZDistanceBottom = supportZDistance;
@@ -136,12 +141,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     int64_t conical_support_offset;
     if (conical_support_angle > 0) 
-    {
-        conical_support_offset = (tan(conical_support_angle) - 0.01) * supportLayerThickness;
+    { // outward ==> wider base than overhang
+        conical_support_offset = -(tan(conical_support_angle) - 0.01) * supportLayerThickness;
     }
     else 
-    {
-        conical_support_offset = -(tan(-conical_support_angle) - 0.01) * supportLayerThickness;
+    { // inward ==> smaller base than overhang
+        conical_support_offset = (tan(-conical_support_angle) - 0.01) * supportLayerThickness;
     }
     
     unsigned int support_layer_count = layer_count;

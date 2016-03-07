@@ -238,7 +238,8 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.resetExtrusionValue();
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), getSettingInMillimetersPerSecond("speed_travel"), 0);
-    gcode.writeMove(Point(storage.model_min.x, storage.model_min.y), getSettingInMillimetersPerSecond("speed_travel"), 0);
+    last_position_planned = Point(storage.model_min.x, storage.model_min.y);
+    gcode.writeMove(last_position_planned, getSettingInMillimetersPerSecond("speed_travel"), 0);
 }
     
 void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_layers)
@@ -610,7 +611,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             skin_angle -= 45;
         
-        int64_t skin_overlap = 0;
+        int64_t skin_overlap = infill_overlap;
         processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle, mesh->skin_config.getLineWidth());    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
@@ -756,7 +757,15 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         infill_comp.generate(skin_polygons, skin_lines, &part.perimeterGaps);
         
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
-        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        
+        if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
+        {
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+        }
+        else 
+        {
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines); 
+        }
     }
     
     // handle gaps between perimeters etc.
@@ -771,7 +780,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         Infill infill_comp(EFillMethod::LINES, part.perimeterGaps, outline_offset, avoidOverlappingPerimeters, extrusion_width, line_distance, infill_overlap, infill_angle);
         infill_comp.generate(result_polygons, perimeter_gap_lines, in_between);
         
-        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
     }
 }
 

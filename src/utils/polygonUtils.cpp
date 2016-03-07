@@ -85,7 +85,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
     Point ret = from;
     int64_t bestDist2 = std::numeric_limits<int64_t>::max();
     unsigned int bestPoly = NO_INDEX;
-    bool is_inside = false;
+    bool is_already_on_correct_side_of_boundary = false; // whether [from] is already on the right side of the boundary
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         PolygonRef poly = polygons[poly_idx];
@@ -125,9 +125,10 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(ab,distance * 4) + normal(p1 - p0,distance * 4));
-                            ret = x + normal(inward_dir, distance); // *4 to retain more precision for the eventual normalization 
-                            is_inside = dot(inward_dir, p - x) >= 0;
+                            Point inward_dir = crossZ(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                            // MM2INT(10.0) to retain precision for the eventual normalization 
+                            ret = x + normal(inward_dir, distance);
+                            is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
                         } 
                     }
                 }
@@ -147,7 +148,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                 continue;
             }
             else 
-            {
+            { // x is projected to a point properly on the line segment (not onto a vertex). The case which looks like | .
                 projected_p_beyond_prev_segment = false;
                 Point x = a + ab * ax_length / ab_length;
                 
@@ -159,9 +160,9 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                     if (distance == 0) { ret = x; }
                     else 
                     { 
-                        Point inward_dir = crossZ(normal(ab, distance));
+                        Point inward_dir = crossZ(normal(ab, distance)); // inward or outward depending on the sign of [distance]
                         ret = x + inward_dir; 
-                        is_inside = dot(inward_dir, p - x) >= 0;
+                        is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) >= 0;
                     }
                 }
             }
@@ -171,7 +172,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
             p1 = p2;
         }
     }
-    if (is_inside)
+    if (is_already_on_correct_side_of_boundary) // when the best point is already inside and we're moving inside, or when the best point is already outside and we're moving outside
     {
         if (bestDist2 < distance * distance)
         {
@@ -190,7 +191,6 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
     }
     return NO_INDEX;
 }
-
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {

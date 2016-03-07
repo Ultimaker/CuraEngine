@@ -65,7 +65,9 @@ public:
     }
     
     PolygonRef& operator=(const PolygonRef& other) { polygon = other.polygon; return *this; }
-    
+
+    bool operator==(const PolygonRef& other) const =delete;
+
     ClipperLib::Path& operator*() { return *polygon; }
     
     template <typename... Args>
@@ -348,6 +350,9 @@ public:
 
     Polygons(const Polygons& other) { polygons = other.polygons; }
     Polygons& operator=(const Polygons& other) { polygons = other.polygons; return *this; }
+
+    bool operator==(const Polygons& other) const =delete;
+
     Polygons difference(const Polygons& other) const
     {
         Polygons ret;
