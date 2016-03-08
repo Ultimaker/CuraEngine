@@ -65,6 +65,8 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
  * 
  * The walls should already be generated.
  * 
+ * After this function has been called on a layer of a mesh, each SliceLayerPart of that layer should have an infill_area consisting of exactly one Polygons : the normal uncombined infill area.
+ * 
  * \param layerNr The index of the layer for which to generate the infill
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
  * \param innermost_wall_extrusion_width width of the innermost wall lines
