@@ -48,14 +48,18 @@ private:
      *
      * This is essentially a parameterised version of all unit tests pertaining
      * to the findNearbyObjects tests.
+     * It tests for some points whether they are near and for some whether they
+     * are far. This also allows for points to be indeterminate, where either
+     * answer is allowed.
      *
      * \param registered_points The points already in the grid, from which a
      * subset must be found that is near the target point.
      * \param target The target point, near which we must find points.
      * \param grid_size The grid size of the BucketGrid2D to use.
-     * \param expected The expected set of points which is near.
+     * \param expected_near The expected set of points which is near.
+     * \param expected_far The expected set of points which is far.
      */
-    void findNearbyObjectsAssert(const std::vector<Point>& registered_points, Point target, unsigned long long grid_size, const std::unordered_set<Point>& expected);
+    void findNearbyObjectsAssert(const std::vector<Point>& registered_points, Point target, unsigned long long grid_size, const std::unordered_set<Point>& expected_near, const std::unordered_set<Point>& expected_far);
 };
 
 }
