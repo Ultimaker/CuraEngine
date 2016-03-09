@@ -24,6 +24,7 @@ class BucketGrid2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(findNearbyObjectsSameTest);
     CPPUNIT_TEST(findNearestObjectChoiceTest);
     CPPUNIT_TEST(findNearestObjectEqualTest);
+    CPPUNIT_TEST(findNearestObjectFilterTest);
     CPPUNIT_TEST(findNearestObjectNoneTest);
     CPPUNIT_TEST(findNearestObjectSameTest);
     CPPUNIT_TEST_SUITE_END();
@@ -47,6 +48,7 @@ public:
     void findNearbyObjectsSameTest();
     void findNearestObjectChoiceTest();
     void findNearestObjectEqualTest();
+    void findNearestObjectFilterTest();
     void findNearestObjectNoneTest();
     void findNearestObjectSameTest();
 

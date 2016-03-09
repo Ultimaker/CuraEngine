@@ -145,6 +145,16 @@ void BucketGrid2DTest::findNearestObjectEqualTest()
     }
 }
 
+void BucketGrid2DTest::findNearestObjectFilterTest()
+{
+    std::vector<Point> input;
+    input.emplace_back(95, 100);
+    input.emplace_back(98, 100);
+    input.emplace_back(106, 100);
+    std::function<bool(Point, Point&)> filter = [&] (Point position, Point& object) -> bool { return position.X > 100; };
+    findNearestObjectAssert(input, Point(100, 100), 10, new Point(106, 100), filter);
+}
+
 void BucketGrid2DTest::findNearestObjectNoneTest()
 {
     std::vector<Point> input;
