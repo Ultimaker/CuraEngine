@@ -29,8 +29,8 @@ option(BUILD_TESTS OFF)
 
 # Add a compiler flag to check the output for insane values if we are in debug mode.
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
-	message(STATUS "Building debug release of CuraEngine.")
-	add_definitions(-DASSERT_INSANE_OUTPUT)
+    message(STATUS "Building debug release of CuraEngine.")
+    add_definitions(-DASSERT_INSANE_OUTPUT)
 endif()
 
 # Add warnings
@@ -91,7 +91,9 @@ set(engine_SRCS # Except main.cpp.
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
 set(engine_TEST
-	GCodePlannerTest
+    GCodePlannerTest
+)
+set(engine_TEST_UTILS
     LinearAlg2DTest
 )
 
@@ -121,6 +123,11 @@ if (BUILD_TESTS)
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine cppunit)
+        add_test(${test} ${test})
+    endforeach()
+    foreach (test ${engine_TEST_UTILS})
+        add_executable(${test} tests/main.cpp tests/utils/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
