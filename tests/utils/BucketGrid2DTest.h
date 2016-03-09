@@ -16,6 +16,8 @@ namespace cura
 class BucketGrid2DTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(BucketGrid2DTest);
+    CPPUNIT_TEST(findNearbyObjectsFarTest);
+    CPPUNIT_TEST(findNearbyObjectsNearTest);
     CPPUNIT_TEST(findNearbyObjectsSameTest);
     CPPUNIT_TEST_SUITE_END();
 
@@ -31,6 +33,8 @@ public:
     void tearDown();
 
     //These are the actual test cases. The name of the function sort of describes what it tests but I refuse to document all of these, sorry.
+    void findNearbyObjectsFarTest();
+    void findNearbyObjectsNearTest();
     void findNearbyObjectsSameTest();
 
 private:

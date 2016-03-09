@@ -22,6 +22,25 @@ void BucketGrid2DTest::tearDown()
     //Do nothing.
 }
 
+void BucketGrid2DTest::findNearbyObjectsFarTest()
+{
+    std::vector<Point> input;
+    input.emplace_back(0, 100);
+    const Point target(100, 100);
+    std::unordered_set<Point> output;
+    findNearbyObjectsAssert(input, target, 10, output);
+}
+
+void BucketGrid2DTest::findNearbyObjectsNearTest()
+{
+    std::vector<Point> input;
+    input.emplace_back(95, 100);
+    const Point target(100, 100);
+    std::unordered_set<Point> output;
+    output.emplace(95, 100);
+    findNearbyObjectsAssert(input, target, 10, output);
+}
+
 void BucketGrid2DTest::findNearbyObjectsSameTest()
 {
     std::vector<Point> input;
