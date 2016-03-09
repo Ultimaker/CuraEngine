@@ -33,6 +33,58 @@ void BucketGrid2DTest::findNearbyObjectsFarTest()
     findNearbyObjectsAssert(input, target, 10, near, far);
 }
 
+void BucketGrid2DTest::findNearbyObjectsLine2Test()
+{
+    std::vector<Point> input;
+    for (long long x = 0; x < 200; x++)
+    {
+        input.emplace_back(x, 95);
+    }
+    const Point target(99, 100); //Slightly shifted.
+    const unsigned long long grid_size = 10;
+    std::unordered_set<Point> near;
+    std::unordered_set<Point> far;
+    for (const Point point : input)
+    {
+        unsigned long long distance = vSize(point - target);
+        if (distance < grid_size)
+        {
+            near.insert(point);
+        }
+        else if (distance > grid_size * 2) //Grid size * 2 are guaranteed to be considered "far".
+        {
+            far.insert(point);
+        }
+    }
+    findNearbyObjectsAssert(input, target, grid_size, near, far);
+}
+
+void BucketGrid2DTest::findNearbyObjectsLineTest()
+{
+    std::vector<Point> input;
+    for (long long x = 0; x < 200; x++)
+    {
+        input.emplace_back(x, 95);
+    }
+    const Point target(100, 100);
+    const unsigned long long grid_size = 10;
+    std::unordered_set<Point> near;
+    std::unordered_set<Point> far;
+    for (const Point point : input)
+    {
+        unsigned long long distance = vSize(point - target);
+        if (distance < grid_size)
+        {
+            near.insert(point);
+        }
+        else if (distance > grid_size * 2) //Grid size * 2 are guaranteed to be considered "far".
+        {
+            far.insert(point);
+        }
+    }
+    findNearbyObjectsAssert(input, target, grid_size, near, far);
+}
+
 void BucketGrid2DTest::findNearbyObjectsNearTest()
 {
     std::vector<Point> input;

@@ -17,6 +17,8 @@ class BucketGrid2DTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(BucketGrid2DTest);
     CPPUNIT_TEST(findNearbyObjectsFarTest);
+    CPPUNIT_TEST(findNearbyObjectsLine2Test);
+    CPPUNIT_TEST(findNearbyObjectsLineTest);
     CPPUNIT_TEST(findNearbyObjectsNearTest);
     CPPUNIT_TEST(findNearbyObjectsSameTest);
     CPPUNIT_TEST_SUITE_END();
@@ -34,6 +36,8 @@ public:
 
     //These are the actual test cases. The name of the function sort of describes what it tests but I refuse to document all of these, sorry.
     void findNearbyObjectsFarTest();
+    void findNearbyObjectsLine2Test();
+    void findNearbyObjectsLineTest();
     void findNearbyObjectsNearTest();
     void findNearbyObjectsSameTest();
 
