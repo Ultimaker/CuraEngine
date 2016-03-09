@@ -105,6 +105,52 @@ void BucketGrid2DTest::findNearbyObjectsSameTest()
     findNearbyObjectsAssert(input, target, 10, near, far);
 }
 
+void BucketGrid2DTest::findNearestObjectChoiceTest()
+{
+    std::vector<Point> input;
+    input.emplace_back(95, 100);
+    input.emplace_back(103, 100);
+    input.emplace_back(200, 100);
+    findNearestObjectAssert(input, Point(100, 100), 10, new Point(103, 100));
+}
+
+void BucketGrid2DTest::findNearestObjectEqualTest()
+{
+    std::vector<Point> registered_points;
+    registered_points.emplace_back(95, 100);
+    registered_points.emplace_back(105, 100);
+    Point target = Point(100, 100);
+    const unsigned long long grid_size = 10;
+    const Point expected1 = Point(95, 100);
+    const Point expected2 = Point(105, 100);
+
+    BucketGrid2D<Point> grid(grid_size);
+    for (Point point : registered_points)
+    {
+        grid.insert(point, point);
+    }
+
+    Point result;
+    const bool success = grid.findNearestObject(target, result, BucketGrid2D<Point>::no_precondition); //The acutal call to test.
+
+    {
+        std::stringstream ss;
+        ss << "findNearestObject returned " << success << " but should've returned true.";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), success);
+    }
+    {
+        std::stringstream ss;
+        ss << "findNearestObject reported the nearest point to be " << result << " (distance " << vSize(target - result) << "), but it should've been " << expected1 << " (distance " << vSize(expected1 - target) << ") or " << expected2 << " (distance " << vSize(expected2 - target) << ").";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), result == expected1 || result == expected2);
+    }
+}
+
+void BucketGrid2DTest::findNearestObjectNoneTest()
+{
+    std::vector<Point> input;
+    findNearestObjectAssert(input, Point(100, 100), 10, nullptr);
+}
+
 void BucketGrid2DTest::findNearestObjectSameTest()
 {
     std::vector<Point> input;
@@ -150,12 +196,13 @@ void BucketGrid2DTest::findNearestObjectAssert(const std::vector<Point>& registe
 
     {
         std::stringstream ss;
-        ss << "findNearest returned " << success << " but should've returned " << (expected != nullptr) << ".";
+        ss << "findNearestObject returned " << success << " but should've returned " << (expected != nullptr) << ".";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), success == (expected != nullptr));
     }
+    if (expected)
     {
         std::stringstream ss;
-        ss << "findNearest reported the nearest point to be " << result << " (distance " << vSize(target - result) << "), but it was " << *expected << "(distance " << vSize(*expected - target) << ").";
+        ss << "findNearestObject reported the nearest point to be " << result << " (distance " << vSize(target - result) << "), but it was " << *expected << " (distance " << vSize(*expected - target) << ").";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), result == *expected);
     }
 }
