@@ -96,6 +96,7 @@ set(engine_TEST
 set(engine_TEST_INFILL
 )
 set(engine_TEST_UTILS
+    BucketGrid2DTest
     LinearAlg2DTest
 )
 
