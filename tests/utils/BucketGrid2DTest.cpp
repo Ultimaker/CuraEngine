@@ -3,8 +3,6 @@
 
 #include "BucketGrid2DTest.h"
 
-#include <../src/utils/BucketGrid2D.h>
-
 #include <algorithm>
 #include <vector>
 
@@ -107,6 +105,13 @@ void BucketGrid2DTest::findNearbyObjectsSameTest()
     findNearbyObjectsAssert(input, target, 10, near, far);
 }
 
+void BucketGrid2DTest::findNearestObjectSameTest()
+{
+    std::vector<Point> input;
+    input.emplace_back(100, 100);
+    findNearestObjectAssert(input, Point(100, 100), 10, new Point(100, 100));
+}
+
 void BucketGrid2DTest::findNearbyObjectsAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, const std::unordered_set<Point>& expected_near, const std::unordered_set<Point>& expected_far)
 {
     BucketGrid2D<Point> grid(grid_size);
@@ -129,6 +134,29 @@ void BucketGrid2DTest::findNearbyObjectsAssert(const std::vector<Point>& registe
         std::stringstream ss;
         ss << "Point " << point << " is far from " << target << " (distance " << vSize(point - target) << "), but findNearbyObjects thought it was near. Grid size: " << grid_size;
         CPPUNIT_ASSERT_MESSAGE(ss.str(), std::find(result.begin(), result.end(), point) == result.end()); //Must not be in result.
+    }
+}
+
+void BucketGrid2DTest::findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, Point& object)> precondition)
+{
+    BucketGrid2D<Point> grid(grid_size);
+    for (Point point : registered_points)
+    {
+        grid.insert(point, point);
+    }
+
+    Point result;
+    const bool success = grid.findNearestObject(target, result, precondition); //The acutal call to test.
+
+    {
+        std::stringstream ss;
+        ss << "findNearest returned " << success << " but should've returned " << (expected != nullptr) << ".";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), success == (expected != nullptr));
+    }
+    {
+        std::stringstream ss;
+        ss << "findNearest reported the nearest point to be " << result << " (distance " << vSize(target - result) << "), but it was " << *expected << "(distance " << vSize(*expected - target) << ").";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), result == *expected);
     }
 }
 

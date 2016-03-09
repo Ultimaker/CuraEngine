@@ -7,6 +7,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 #include <../src/utils/intpoint.h> //For Point.
+#include <../src/utils/BucketGrid2D.h>
 
 #include <unordered_set>
 
@@ -21,6 +22,7 @@ class BucketGrid2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(findNearbyObjectsLineTest);
     CPPUNIT_TEST(findNearbyObjectsNearTest);
     CPPUNIT_TEST(findNearbyObjectsSameTest);
+    CPPUNIT_TEST(findNearestObjectSameTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -40,15 +42,16 @@ public:
     void findNearbyObjectsLineTest();
     void findNearbyObjectsNearTest();
     void findNearbyObjectsSameTest();
+    void findNearestObjectSameTest();
 
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
      */
     static const int64_t maximum_error = 10;
-    
+
     /*!
-     * \brief Performs the actual assertion for the findNearbyObjectsTest.
+     * \brief Performs the actual assertion for the findNearbyObjects tests.
      *
      * This is essentially a parameterised version of all unit tests pertaining
      * to the findNearbyObjects tests.
@@ -64,6 +67,24 @@ private:
      * \param expected_far The expected set of points which is far.
      */
     void findNearbyObjectsAssert(const std::vector<Point>& registered_points, Point target, unsigned long long grid_size, const std::unordered_set<Point>& expected_near, const std::unordered_set<Point>& expected_far);
+
+    /*!
+     * \brief Performs the actual assertion for the findNearestObject tests.
+     *
+     * This is essentially a parameterised version of all unit tests pertaining
+     * to the findNearestObject tests.
+     *
+     * \param registered_points The points already in the grid, from which the
+     * nearest point must be selected.
+     * \param target The target point, to which the nearest point must be
+     * selected.
+     * \param grid_size The grid size of the BucketGrid2D to use.
+     * \param expected The expected closest point, or <em>nullptr</em> if the
+     * call is expected to return <em>false</em>.
+     * \param precondition A boolean function on Points to filter by. Leave this
+     * parameter out if you don't wish to filter.
+     */
+    void findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, Point& object)> precondition = BucketGrid2D<Point>::no_precondition);
 };
 
 }
