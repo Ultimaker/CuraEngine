@@ -93,6 +93,8 @@ set(engine_SRCS # Except main.cpp.
 set(engine_TEST
     GCodePlannerTest
 )
+set(engine_TEST_INFILL
+)
 set(engine_TEST_UTILS
     LinearAlg2DTest
 )
@@ -123,6 +125,11 @@ if (BUILD_TESTS)
     enable_testing()
     foreach (test ${engine_TEST})
         add_executable(${test} tests/main.cpp tests/${test}.cpp)
+        target_link_libraries(${test} _CuraEngine cppunit)
+        add_test(${test} ${test})
+    endforeach()
+    foreach (test ${engine_TEST_INFILL})
+        add_executable(${test} tests/main.cpp tests/infill/${test}.cpp)
         target_link_libraries(${test} _CuraEngine cppunit)
         add_test(${test} ${test})
     endforeach()
