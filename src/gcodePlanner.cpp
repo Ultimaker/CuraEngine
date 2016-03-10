@@ -477,7 +477,7 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
     else if (totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
-        double fan_speed_diff = fsml.cool_fan_speed_max-fsml.cool_fan_speed_min;
+        double fan_speed_diff = fsml.cool_fan_speed_max - fsml.cool_fan_speed_min;
         double layer_time_diff = fsml.cool_min_layer_time_fan_speed_max - fsml.cool_min_layer_time;
         double fraction_of_slope = (totalLayerTime - fsml.cool_min_layer_time) / layer_time_diff;
         fan_speed = fsml.cool_fan_speed_max - fan_speed_diff * fraction_of_slope;
