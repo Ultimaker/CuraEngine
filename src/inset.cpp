@@ -16,7 +16,7 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            if (line_width_0 < nozzle_width)
+            if (false) // line_width_0 < nozzle_width) // TODO: this is a quick fix for version 2.1 only; this line should not be in master
             {
                 PolygonUtils::offsetSafe(part->outline, - nozzle_width/2, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
             }
@@ -26,7 +26,7 @@ void generateInsets(SliceLayerPart* part, int nozzle_width, int line_width_0, in
             }
         } else if (i == 1)
         {
-            if (line_width_0 < nozzle_width)
+            if (false) // line_width_0 < nozzle_width) // TODO: this is a quick fix for version 2.1 only; this line should not be in master
             {
                 int offset_from_first_boundary_for_edge_of_outer_wall = -nozzle_width/2; 
                 // ideally this /\ should be: nozzle_width/2 - line_width_0; however, factually, the nozzle will fill up part of the perimeter gaps
