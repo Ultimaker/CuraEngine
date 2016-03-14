@@ -370,16 +370,17 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         layer_thickness = getSettingInMicrons("layer_height_0");
     }
 
-    int max_nozzle_size = 0;
+    int max_inner_wall_width = 0;
     std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
         if (extruders_used[extr_nr])
         {
-            max_nozzle_size = std::max(max_nozzle_size, storage.meshgroup->getExtruderTrain(extr_nr)->getSettingInMicrons("machine_nozzle_size")); 
+            ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
+            max_inner_wall_width = std::max(max_inner_wall_width, extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1)? "wall_line_width_x" : "wall_line_width_0")); 
         }
     }
-    int64_t comb_offset_from_outlines = max_nozzle_size * 2;// TODO: only used when there is no second wall.
+    int64_t comb_offset_from_outlines = max_inner_wall_width * 2; // only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, getSettingBoolean("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
@@ -619,7 +620,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons("machine_nozzle_size") * 1);
+            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1)? "wall_line_width_x" : "wall_line_width_0") * 1);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
