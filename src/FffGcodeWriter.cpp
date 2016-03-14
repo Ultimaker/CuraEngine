@@ -377,7 +377,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         if (extruders_used[extr_nr])
         {
             ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
-            max_inner_wall_width = std::max(max_inner_wall_width, extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1)? "wall_line_width_x" : "wall_line_width_0")); 
+            max_inner_wall_width = std::max(max_inner_wall_width, extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
         }
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2; // only used when there is no second wall.
@@ -620,7 +620,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1)? "wall_line_width_x" : "wall_line_width_0") * 1);
+            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
