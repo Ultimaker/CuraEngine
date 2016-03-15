@@ -242,7 +242,7 @@ void GCodePlanner::addTravel(Point p)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
                 ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
                 assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1)? "wall_line_width_x" : "wall_line_width_0") * 1);
+                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
             }
             path = getLatestPathWithConfig(&storage.travel_config, SpaceFillType::None);
             path->retract = true;
