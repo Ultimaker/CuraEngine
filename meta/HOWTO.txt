@@ -1,4 +1,14 @@
-./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv meta/new\ settings\ master 
+find engine setting literals
+
+
+cd ~/Development/CuraEngine/output/reflection/
+
+~/bin/substitute.pl y 'while(/getSetting\w+\("(\w+)"\)/gsm) { print "$1\n"; }' ../../src/ | sort | uniq > engineSettingLiterals.txt
+
+
+run setting inheritance reflection
+
+./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv output/reflection/engineSettingLiterals.txt 
 
 dot refl_ff.gv -Tpng > rafl_ff_dotted.png
 
