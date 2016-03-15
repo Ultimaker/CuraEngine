@@ -1,0 +1,8 @@
+./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv meta/new\ settings\ master 
+
+dot refl_ff.gv -Tpng > rafl_ff_dotted.png
+
+
+green block = not used in engine
+red edge = inherit function only
+black edge = parent-child relation

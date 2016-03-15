@@ -329,7 +329,9 @@ int main(int argc, char **argv)
         exit(0);
     }
     else if (stringcasecompare(argv[1], "analyse") == 0)
-    { // CuraEngine analyse [json] [output] [engine_settings]
+    { // CuraEngine analyse [json] [output.gv] [engine_settings]
+        // dot refl_ff.gv -Tpng > rafl_ff_dotted.png
+        // see meta/HOWTO.txt
         SettingsToGv gv_out(argv[3], argv[4]);
         if (gv_out.generate(std::string(argv[2])))
         {
