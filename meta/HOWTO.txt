@@ -8,11 +8,12 @@ cd ~/Development/CuraEngine/output/reflection/
 
 run setting inheritance reflection
 
+cd ~/Development/CuraEngine
 ./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv output/reflection/engineSettingLiterals.txt 
 
-dot refl_ff.gv -Tpng > rafl_ff_dotted.png
+dot meta/refl_ff.gv -Tpng > meta/rafl_ff_dotted.png
 
 
-green block = not used in engine
+green block = used in engine
 red edge = inherit function only
 black edge = parent-child relation
