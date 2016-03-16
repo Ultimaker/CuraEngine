@@ -105,17 +105,17 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
     int best_point_idx = -1;
     float bestDist = std::numeric_limits<float>::infinity();
     bool orientation = poly.orientation();
-    for(unsigned int i_point=0 ; i_point<poly.size() ; i_point++)
+    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
     {
-        float dist = vSize2f(poly[i_point] - prev_point);
-        Point n0 = normal(poly[(i_point-1+poly.size())%poly.size()] - poly[i_point], 2000);
-        Point n1 = normal(poly[i_point] - poly[(i_point + 1) % poly.size()], 2000);
+        float dist = vSize2f(poly[point_idx] - prev_point);
+        Point n0 = normal(poly[(point_idx-1+poly.size())%poly.size()] - poly[point_idx], 2000);
+        Point n1 = normal(poly[point_idx] - poly[(point_idx + 1) % poly.size()], 2000);
         float dot_score = dot(n0, n1) - dot(crossZ(n0), n1); /// prefer binnenbocht
         if (orientation)
             dot_score = -dot_score;
         if (dist + dot_score < bestDist)
         {
-            best_point_idx = i_point;
+            best_point_idx = point_idx;
             bestDist = dist;
         }
     }
