@@ -286,16 +286,19 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
 
 void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type)
 {
+    if (polygons.size() == 0)
+    {
+        return;
+    }
     PathOrderOptimizer orderOptimizer(lastPosition, z_seam_type);
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int poly_order_idx = 0; poly_order_idx < orderOptimizer.polyOrder.size(); poly_order_idx++)
+    for (int poly_idx : orderOptimizer.polyOrder)
     {
-        int ordered_poly_idx = orderOptimizer.polyOrder[poly_order_idx];
-        addPolygon(polygons[ordered_poly_idx], orderOptimizer.polyStart[ordered_poly_idx], config, wall_overlap_computation);
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation);
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
