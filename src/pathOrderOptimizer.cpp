@@ -15,17 +15,16 @@ void PathOrderOptimizer::optimize()
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
-    for(unsigned int i_polygon=0 ; i_polygon<polygons.size() ; i_polygon++) /// find closest point to initial starting point within each polygon +initialize picked
+    for (PolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best = -1;
         float bestDist = std::numeric_limits<float>::infinity();
-        PolygonRef poly = polygons[i_polygon];
-        for(unsigned int i_point=0; i_point<poly.size(); i_point++) /// get closest point in polygon
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point in polygon
         {
-            float dist = vSize2f(poly[i_point] - startPoint);
+            float dist = vSize2f(poly[point_idx] - startPoint);
             if (dist < bestDist)
             {
-                best = i_point;
+                best = point_idx;
                 bestDist = dist;
             }
         }
@@ -37,23 +36,25 @@ void PathOrderOptimizer::optimize()
 
 
     Point prev_point = startPoint;
-    for(unsigned int i_polygon=0 ; i_polygon<polygons.size() ; i_polygon++) /// actual path order optimizer
+    for (unsigned int poly_order_idx = 0; poly_order_idx < polygons.size(); poly_order_idx++) /// actual path order optimizer
     {
         int best = -1;
         float bestDist = std::numeric_limits<float>::infinity();
 
 
-        for(unsigned int i_polygon=0 ; i_polygon<polygons.size() ; i_polygon++)
+        for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
         {
-            if (picked[i_polygon] || polygons[i_polygon].size() < 1) /// skip single-point-polygons
+            if (picked[poly_idx] || polygons[poly_idx].size() < 1) /// skip single-point-polygons
+            {
                 continue;
+            }
 
-            assert (polygons[i_polygon].size() != 2);
+            assert (polygons[poly_idx].size() != 2);
 
-            float dist = vSize2f(polygons[i_polygon][polyStart[i_polygon]] - prev_point);
+            float dist = vSize2f(polygons[poly_idx][polyStart[poly_idx]] - prev_point);
             if (dist < bestDist)
             {
-                best = i_polygon;
+                best = poly_idx;
                 bestDist = dist;
             }
 
@@ -70,16 +71,18 @@ void PathOrderOptimizer::optimize()
             polyOrder.push_back(best);
         }
         else
+        {
             logError("Failed to find next closest polygon.\n");
+        }
     }
 
     prev_point = startPoint;
-    for(unsigned int n=0; n<polyOrder.size(); n++) /// decide final starting points in each polygon
+    for (unsigned int poly_idx = 0; poly_idx < polyOrder.size(); poly_idx++) /// decide final starting points in each polygon
     {
-        int poly_idx = polyOrder[n];
-        int point_idx = getPolyStart(prev_point, poly_idx);
-        polyStart[poly_idx] = point_idx;
-        prev_point = polygons[poly_idx][point_idx];
+        int ordered_poly_idx = polyOrder[poly_idx];
+        int point_idx = getPolyStart(prev_point, ordered_poly_idx);
+        polyStart[ordered_poly_idx] = point_idx;
+        prev_point = polygons[ordered_poly_idx][point_idx];
 
     }
 }
