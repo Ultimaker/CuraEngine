@@ -102,10 +102,14 @@ private:
                     inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
                     && inherit_function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
                 {
-                    generateEdge(inherited_setting_string, name, RelationType::INHERIT_FUNCTION);
                     if (inherited_setting_string == parent)
                     {
                         generated_edge = true;
+                        generateEdge(inherited_setting_string, name, RelationType::PARENT_CHILD);
+                    }
+                    else 
+                    {
+                        generateEdge(inherited_setting_string, name, RelationType::INHERIT_FUNCTION);
                     }
                 }
                 inherit_function = regex_match.suffix().str();
