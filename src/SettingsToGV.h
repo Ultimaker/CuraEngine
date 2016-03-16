@@ -94,7 +94,7 @@ private:
                 std::string inherited_setting_string = regex_match[0];
                 if (inherited_setting_string == "parent_value")
                 {
-                    generateEdge(parent, name, RelationType::INHERIT_FUNCTION);
+                    generateEdge(parent, name, RelationType::PARENT_CHILD);
                     generated_edge = true;
                 }
                 else if ( ! std::regex_match(inherited_setting_string, std::regex("[0-9]+")) && // exclude numbers
