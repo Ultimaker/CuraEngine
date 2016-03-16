@@ -81,7 +81,7 @@ void PathOrderOptimizer::optimize()
     {
         int ordered_poly_idx = polyOrder[poly_idx];
         int point_idx = getPolyStart(prev_point, ordered_poly_idx);
-        polyStart[ordered_poly_idx] = point_idx;
+        polyStart[poly_idx] = point_idx;
         prev_point = polygons[ordered_poly_idx][point_idx];
 
     }
