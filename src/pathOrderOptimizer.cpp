@@ -38,7 +38,7 @@ void PathOrderOptimizer::optimize()
     Point prev_point = startPoint;
     for (unsigned int poly_order_idx = 0; poly_order_idx < polygons.size(); poly_order_idx++) /// actual path order optimizer
     {
-        int best = -1;
+        int best_poly_idx = -1;
         float bestDist = std::numeric_limits<float>::infinity();
 
 
@@ -54,21 +54,21 @@ void PathOrderOptimizer::optimize()
             float dist = vSize2f(polygons[poly_idx][polyStart[poly_idx]] - prev_point);
             if (dist < bestDist)
             {
-                best = poly_idx;
+                best_poly_idx = poly_idx;
                 bestDist = dist;
             }
 
         }
 
 
-        if (best > -1) /// should always be true; we should have been able to identify the best next polygon
+        if (best_poly_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
-            assert(polygons[best].size() != 2);
+            assert(polygons[best_poly_idx].size() != 2);
 
-            prev_point = polygons[best][polyStart[best]];
+            prev_point = polygons[best_poly_idx][polyStart[best_poly_idx]];
 
-            picked[best] = true;
-            polyOrder.push_back(best);
+            picked[best_poly_idx] = true;
+            polyOrder.push_back(best_poly_idx);
         }
         else
         {
