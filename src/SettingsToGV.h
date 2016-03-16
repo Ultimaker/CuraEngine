@@ -33,8 +33,11 @@ class SettingsToGv
     
     FILE* out;
     std::set<std::string> engine_settings;
+    bool parent_child_viz, inherit_viz;
 public: 
-    SettingsToGv(std::string output_filename, std::string engine_settings_filename)
+    SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz)
+    : parent_child_viz(parent_child_viz)
+    , inherit_viz(inherit_viz)
     {
         out = fopen(output_filename.c_str(), "w");
         fprintf(out, "digraph G {\n");
@@ -64,9 +67,17 @@ private:
         switch (relation_type)
         {
             case SettingsToGv::RelationType::INHERIT_FUNCTION:
+                if (!inherit_viz)
+                {
+                    return;
+                }
                 color = "red";
                 break;
             case SettingsToGv::RelationType::PARENT_CHILD:
+                if (!parent_child_viz)
+                {
+                    return;
+                }
                 color = "black";
                 break;
         }

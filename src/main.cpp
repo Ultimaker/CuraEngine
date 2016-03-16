@@ -329,10 +329,16 @@ int main(int argc, char **argv)
         exit(0);
     }
     else if (stringcasecompare(argv[1], "analyse") == 0)
-    { // CuraEngine analyse [json] [output.gv] [engine_settings]
+    { // CuraEngine analyse [json] [output.gv] [engine_settings] P/I/E
+        // P = parent-child relations
+        // I = inheritance function as well
+        // E = only CuraEngine use of settings
         // dot refl_ff.gv -Tpng > rafl_ff_dotted.png
         // see meta/HOWTO.txt
-        SettingsToGv gv_out(argv[3], argv[4]);
+        
+        bool parent_child_viz = strcasecmp(argv[5], "E") != 0;
+        bool inherit_viz = strcasecmp(argv[5], "I") == 0;
+        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz);
         if (gv_out.generate(std::string(argv[2])))
         {
             cura::logError("ERROR: Failed to analyse json file: %s\n", argv[2]);
