@@ -141,7 +141,7 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
                     (a + b) / 2;
     second_middle = (c + d) / 2;
     
-    Point dir_vector_perp = crossZ(second_middle - first_middle);
+    Point dir_vector_perp = turn90CCW(second_middle - first_middle);
     int64_t dir_vector_perp_length = vSize(dir_vector_perp); // == dir_vector_length
     if (dir_vector_perp_length == 0)
     {
@@ -167,7 +167,7 @@ bool MergeInfillLines::isConvertible(const Point& a, const Point& b, const Point
 
     // check whether two lines are adjacent (note: not 'line segments' but 'lines')
     Point ac = c - first_middle;
-    Point infill_vector_perp = crossZ(infill_vector);
+    Point infill_vector_perp = turn90CCW(infill_vector);
     int64_t perp_proj = dot(ac, infill_vector_perp);
     int64_t infill_vector_perp_length = vSize(infill_vector_perp);
     if (std::abs(std::abs(perp_proj) / infill_vector_perp_length - line_width) > 20) // it should be the case that dot(ac, infill_vector_perp) / |infill_vector_perp| == line_width
