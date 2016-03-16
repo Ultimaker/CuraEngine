@@ -304,15 +304,16 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
 {
     LineOrderOptimizer orderOptimizer(lastPosition);
-    for(unsigned int i=0;i<polygons.size();i++)
-        orderOptimizer.addPolygon(polygons[i]);
-    orderOptimizer.optimize();
-    for(unsigned int i=0;i<orderOptimizer.polyOrder.size();i++)
+    for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
     {
-        int nr = orderOptimizer.polyOrder[i];
-//         addPolygon(polygons[nr], orderOptimizer.polyStart[nr], config);
-        PolygonRef polygon = polygons[nr];
-        int start = orderOptimizer.polyStart[nr];
+        orderOptimizer.addPolygon(polygons[line_idx]);
+    }
+    orderOptimizer.optimize();
+    for (int poly_idx : orderOptimizer.polyOrder)
+    {
+//         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config); // adds line as polygon; old code
+        PolygonRef polygon = polygons[poly_idx];
+        int start = orderOptimizer.polyStart[poly_idx];
         int end = 1 - start;
         Point& p0 = polygon[start];
         addTravel(p0);
