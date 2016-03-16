@@ -113,7 +113,7 @@ int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
         float dist = vSize2f(p1 - prev_point);
         Point n0 = normal(p0 - p1, 2000);
         Point n1 = normal(p1 - p2, 2000);
-        float dot_score = dot(n0, n1) - dot(crossZ(n0), n1); /// prefer binnenbocht
+        float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1); /// prefer binnenbocht
         if (orientation)
         {
             dot_score = -dot_score;
@@ -223,7 +223,7 @@ void LineOrderOptimizer::optimize()
 
             int endIdx = polyStart[best_line_idx] * -1 + 1; /// 1 -> 0 , 0 -> 1
             prev_point = polygons[best_line_idx][endIdx];
-            incommingPerpundicularNormal = crossZ(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
+            incommingPerpundicularNormal = turn90CCW(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
@@ -246,7 +246,7 @@ void LineOrderOptimizer::optimize()
             float dist = vSize2f(polygons[poly_idx][point_idx] - prev_point);
             Point n0 = normal(poly[(point_idx+poly.size()-1)%poly.size()] - poly[point_idx], 2000);
             Point n1 = normal(poly[point_idx] - poly[(point_idx + 1) % poly.size()], 2000);
-            float dot_score = dot(n0, n1) - dot(crossZ(n0), n1);
+            float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1);
             if (orientation)
                 dot_score = -dot_score;
             if (dist + dot_score < bestDist)
