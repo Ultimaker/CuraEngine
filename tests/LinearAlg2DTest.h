@@ -42,6 +42,12 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getDist2FromLineSegmentDiagonal2LargeTest);
     CPPUNIT_TEST(getDist2FromLineSegmentZeroNearTest);
     CPPUNIT_TEST(getDist2FromLineSegmentZeroOnTest);
+
+    CPPUNIT_TEST(getAngleStraightTest);
+    CPPUNIT_TEST(getAngle90CcwTest);
+    CPPUNIT_TEST(getAngle90CwTest);
+    CPPUNIT_TEST(getAngle45CcwTest);
+    CPPUNIT_TEST(getAngleStraightBackTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -90,6 +96,12 @@ public:
     void getDist2FromLineSegmentDiagonal2LargeTest();
     void getDist2FromLineSegmentZeroNearTest();
     void getDist2FromLineSegmentZeroOnTest();
+    
+    void getAngleStraightTest();
+    void getAngle90CcwTest();
+    void getAngle90CwTest();
+    void getAngle45CcwTest();
+    void getAngleStraightBackTest();
 
 private:
     /*!
@@ -111,6 +123,21 @@ private:
      * \param actual_is_beyond Whether the point is actually beyond the line.
      */
     void getDist2FromLineSegmentAssert(Point line_start,Point line_end,Point point,int64_t actual_distance2,char actual_is_beyond);
+    
+    /*!
+     * \brief The maximum allowed error in angle measurements.
+     */
+    static constexpr float maximum_error_angle = 1.0;
+    
+    /*!
+     * Performs the assertion of the getAngle tests
+     * 
+     * \param a the a parameter of getAngle
+     * \param b the b parameter of getAngle
+     * \param c the c parameter of getAngle
+     * \param actual_angle_in_half_rounds the actual angle where 0.5 equals ???
+     */
+    void getAngleAssert(Point a, Point b, Point c, float actual_angle_in_half_rounds);
 };
 
 }

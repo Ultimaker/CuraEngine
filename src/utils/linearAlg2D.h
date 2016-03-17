@@ -181,6 +181,25 @@ public:
                 || getDist2FromLineSegment(c, a, d) <= max_dist2
                 || getDist2FromLineSegment(c, b, d) <= max_dist2;
     }
+    
+    /*!
+     * Compute the angle between two consecutive line segments.
+     * 
+     * The angle is computed from the left side of b when looking from a.
+     * 
+     *   c
+     *    \                     .
+     *     \ b
+     * angle|
+     *      |
+     *      a
+     * 
+     * \param a start of first line segment
+     * \param b end of first segment and start of second line segment
+     * \param c end of second line segment
+     * \return the angle in radians between 0 and 2 * pi of the corner in \p b
+     */
+    static float getAngleLeft(const Point& a, const Point& b, const Point& c);
 };
 
 
