@@ -77,12 +77,12 @@ void PathOrderOptimizer::optimize()
     }
 
     prev_point = startPoint;
-    for (unsigned int poly_idx = 0; poly_idx < polyOrder.size(); poly_idx++) /// decide final starting points in each polygon
+    for (unsigned int order_idx = 0; order_idx < polyOrder.size(); order_idx++) /// decide final starting points in each polygon
     {
-        int ordered_poly_idx = polyOrder[poly_idx];
-        int point_idx = getPolyStart(prev_point, ordered_poly_idx);
+        int poly_idx = polyOrder[order_idx];
+        int point_idx = getPolyStart(prev_point, poly_idx);
         polyStart[poly_idx] = point_idx;
-        prev_point = polygons[ordered_poly_idx][point_idx];
+        prev_point = polygons[poly_idx][point_idx];
 
     }
 }
