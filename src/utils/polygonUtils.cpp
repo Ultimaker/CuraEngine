@@ -70,8 +70,8 @@ Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int poi
     Point p1 = poly[point_idx];
     Point p2 = poly[(point_idx < (poly.size() - 1)) ? (point_idx + 1) : 0];
     
-    Point off0 = crossZ(normal(p1 - p0, MM2INT(1.0))); // 1.0 for some precision
-    Point off1 = crossZ(normal(p2 - p1, MM2INT(1.0))); // 1.0 for some precision
+    Point off0 = turn90CCW(normal(p1 - p0, MM2INT(1.0))); // 1.0 for some precision
+    Point off1 = turn90CCW(normal(p2 - p1, MM2INT(1.0))); // 1.0 for some precision
     Point n = normal(off0 + off1, -offset);
     
     return p1 + n;
@@ -125,7 +125,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                         if (distance == 0) { ret = x; }
                         else 
                         { 
-                            Point inward_dir = crossZ(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                            Point inward_dir = turn90CCW(normal(ab, MM2INT(10.0)) + normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
                             // MM2INT(10.0) to retain precision for the eventual normalization 
                             ret = x + normal(inward_dir, distance);
                             is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) * distance >= 0;
@@ -160,7 +160,7 @@ unsigned int PolygonUtils::moveInside(Polygons& polygons, Point& from, int dista
                     if (distance == 0) { ret = x; }
                     else 
                     { 
-                        Point inward_dir = crossZ(normal(ab, distance)); // inward or outward depending on the sign of [distance]
+                        Point inward_dir = turn90CCW(normal(ab, distance)); // inward or outward depending on the sign of [distance]
                         ret = x + inward_dir; 
                         is_already_on_correct_side_of_boundary = dot(inward_dir, p - x) >= 0;
                     }

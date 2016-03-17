@@ -94,7 +94,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     double supportAngle = mesh.getSettingInAngleRadians("support_angle");
     bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    int supportZDistance = mesh.getSettingInMicrons("support_z_distance");
     int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
     int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
     int join_distance = mesh.getSettingInMicrons("support_join_distance");
@@ -127,13 +126,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     // derived settings:
     
-    if (supportZDistanceBottom < 0) supportZDistanceBottom = supportZDistance;
-    if (supportZDistanceTop < 0)    supportZDistanceTop = supportZDistance;
-    
     
     int supportLayerThickness = layerThickness;
     
-    int layerZdistanceTop       = supportZDistanceTop / supportLayerThickness + 1; // support must always be 1 layer below overhang
+    int layerZdistanceTop       = std::max(0, supportZDistanceTop / supportLayerThickness) + 1; // support must always be 1 layer below overhang
     unsigned int layerZdistanceBottom    = std::max(0, supportZDistanceBottom / supportLayerThickness); 
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle

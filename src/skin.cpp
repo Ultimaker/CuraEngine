@@ -142,6 +142,7 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int innermost_wall_e
     {
         if (int(part.insets.size()) < wall_line_count)
         {
+            part.infill_area.emplace_back(); // put empty polygon as (uncombined) infill
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
         Polygons infill = part.insets.back().offset(-innermost_wall_extrusion_width / 2 - infill_skin_overlap);

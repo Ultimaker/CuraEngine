@@ -600,14 +600,14 @@ void Wireframe2gcode::processSkirt()
     order.addPolygons(skirt);
     order.optimize();
     
-    for (unsigned int poly_idx = 0; poly_idx < skirt.size(); poly_idx++)
+    for (unsigned int poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
     {
-        unsigned int actual_poly_idx = order.polyOrder[poly_idx];
-        PolygonRef poly = skirt[actual_poly_idx];
-        gcode.writeMove(poly[order.polyStart[actual_poly_idx]], getSettingInMillimetersPerSecond("speed_travel"), 0);
+        unsigned int poly_idx = order.polyOrder[poly_order_idx];
+        PolygonRef poly = skirt[poly_idx];
+        gcode.writeMove(poly[order.polyStart[poly_idx]], getSettingInMillimetersPerSecond("speed_travel"), 0);
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point& p = poly[(point_idx + order.polyStart[actual_poly_idx] + 1) % poly.size()];
+            Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
             gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_speed"), getSettingInMillimetersPerSecond("skirt_line_width"));
         }
     }

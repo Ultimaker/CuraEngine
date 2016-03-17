@@ -202,7 +202,7 @@ INLINE Point normal(const Point& p0, int64_t len)
     return p0 * len / _len;
 }
 
-INLINE Point crossZ(const Point& p0)
+INLINE Point turn90CCW(const Point& p0)
 {
     return Point(-p0.Y, p0.X);
 }
