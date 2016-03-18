@@ -242,7 +242,20 @@ void LinearAlg2DTest::getAngleStraightBackTest()
     getAngleAssert(Point(-100, 0), Point(0, 0), Point(-100, -1), 2.0);
 }
 
+void LinearAlg2DTest::getAngleLeftAABTest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(0, 0), Point(100, 0)); //Any output is allowed. Just don't crash!
+}
 
+void LinearAlg2DTest::getAngleLeftABBTest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(100, 0), Point(100, 100)); //Any output is allowed. Just don't crash!
+}
+
+void LinearAlg2DTest::getAngleLeftAAATest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(0, 0), Point(0, 0)); //Any output is allowed. Just don't crash!
+}
 
 
 void LinearAlg2DTest::getAngleAssert(Point a, Point b, Point c, float actual_angle_in_half_rounds)
