@@ -240,7 +240,7 @@ void LineOrderOptimizer::optimize()
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             float dist = vSize2f(polygons[poly_idx][point_idx] - prev_point);
-            Point n0 = normal(poly[(point_idx+poly.size()-1)%poly.size()] - poly[point_idx], 2000);
+            Point n0 = normal(poly[(point_idx + poly.size() - 1) % poly.size()] - poly[point_idx], 2000);
             Point n1 = normal(poly[point_idx] - poly[(point_idx + 1) % poly.size()], 2000);
             float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1);
             if (orientation)
