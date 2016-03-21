@@ -215,11 +215,15 @@ void LineOrderOptimizer::optimize()
 
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
-            assert(polygons[best_line_idx].size() == 2);
+            PolgonRef best_line = polygons[best_line_idx];
+            assert(best_line.size() == 2);
 
-            int endIdx = polyStart[best_line_idx] * -1 + 1; /// 1 -> 0 , 0 -> 1
-            prev_point = polygons[best_line_idx][endIdx];
-            incoming_perpundicular_normal = turn90CCW(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
+            int line_start_point_idx = polyStart[best_line_idx];
+            int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
+            Point& line_start = best_line[line_start_point_idx];
+            Point& line_end = best_line[line_end_point_idx];
+            prev_point = line_end;
+            incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
