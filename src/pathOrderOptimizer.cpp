@@ -152,7 +152,7 @@ int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
 */
 void LineOrderOptimizer::optimize()
 {
-    int gridSize = 5000; // the size of the cells in the hash grid.
+    int gridSize = 5000; // the size of the cells in the hash grid. TODO
     BucketGrid2D<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
