@@ -215,7 +215,7 @@ void LineOrderOptimizer::optimize()
 
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
-            PolgonRef best_line = polygons[best_line_idx];
+            PolygonRef best_line = polygons[best_line_idx];
             assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
@@ -262,6 +262,7 @@ void LineOrderOptimizer::optimize()
             p0 = p1;
         }
 
+        assert(polyStart[line_idx] == best_point_idx);
         polyStart[line_idx] = best_point_idx;
 
         assert(line.size() == 2);
