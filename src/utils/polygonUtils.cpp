@@ -361,11 +361,11 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
         Point& p1 = polygon[p1_idx];
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
-        int64_t dist = vSize2(from - closestHere);
+        Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
+        int64_t dist = vSize2(from - closest_here);
         if (dist < closestDist)
         {
-            best = closestHere;
+            best = closest_here;
             closestDist = dist;
             bestPos = p1_idx;
         }
@@ -397,11 +397,11 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons)
     {
         PolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
-        ClosestPolygonPoint closestHere = findClosest(from, poly);
-        int64_t dist = vSize2(from - closestHere.location);
+        ClosestPolygonPoint closest_here = findClosest(from, poly);
+        int64_t dist = vSize2(from - closest_here.location);
         if (dist < closestDist)
         {
-            best = closestHere;
+            best = closest_here;
             closestDist = dist;
         }
 
@@ -430,11 +430,11 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
         if (p2_idx >= polygon.size()) p2_idx = 0;
         Point& p2 = polygon[p2_idx];
 
-        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
-        int64_t dist = vSize2(from - closestHere);
+        Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
+        int64_t dist = vSize2(from - closest_here);
         if (dist < closestDist)
         {
-            best = closestHere;
+            best = closest_here;
             closestDist = dist;
             bestPos = p;
         }
@@ -504,11 +504,11 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
         Point& p1 = poly[point_poly_index.point_idx];
         Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
 
-        Point closestHere = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
-        int64_t dist = vSize2(from - closestHere);
+        Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
+        int64_t dist = vSize2(from - closest_here);
         if (dist < closest_dist2)
         {
-            best = closestHere;
+            best = closest_here;
             closest_dist2 = dist;
             best_point_poly_idx = point_poly_index;
         }
