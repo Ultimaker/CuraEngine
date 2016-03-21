@@ -239,8 +239,8 @@ void LineOrderOptimizer::optimize()
     for (int poly_idx : polyOrder)
     {
         PolygonRef poly = polygons[poly_idx];
-        int best = -1;
-        float bestDist = std::numeric_limits<float>::infinity();
+        int best_point_idx = -1;
+        float best_score = std::numeric_limits<float>::infinity();
         bool orientation = poly.orientation();
         Point p0 = poly.back();
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
@@ -253,17 +253,17 @@ void LineOrderOptimizer::optimize()
             float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1);
             if (orientation)
                 dot_score = -dot_score;
-            if (dist + dot_score < bestDist)
+            if (dist + dot_score < best_score)
             {
-                best = point_idx;
-                bestDist = dist + dot_score;
+                best_point_idx = point_idx;
+                best_score = dist + dot_score;
             }
             p0 = p1;
         }
 
-        polyStart[poly_idx] = best;
+        polyStart[poly_idx] = best_point_idx;
         assert(poly.size() == 2);
-        prev_point = poly[best *-1 + 1]; /// 1 -> 0 , 0 -> 1
+        prev_point = poly[best_point_idx * -1 + 1]; /// 1 -> 0 , 0 -> 1
 
     }
 }
