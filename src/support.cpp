@@ -184,7 +184,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         Polygons overhang;
         {
             // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
-//             std::pair<Polygons, Polygons> basic_and_full_overhang = computeBasicAndFullOverhang(storage, mesh, layer_idx+layerZdistanceTop, max_dist_from_lower_layer);
             overhang = basic_and_full_overhang_above.back().second;
             basic_and_full_overhang_above.pop_back();
         }
