@@ -235,6 +235,7 @@ void LineOrderOptimizer::optimize()
     }
 
     prev_point = startPoint;
+    incoming_perpundicular_normal = Point(0, 0);
     for (int poly_idx : polyOrder)
     {
         PolygonRef poly = polygons[poly_idx];
@@ -271,10 +272,9 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
 {
     Point& p0 = polygons[poly_idx][0];
     Point& p1 = polygons[poly_idx][1];
-    int64_t dot_score = dot(incoming_perpundicular_normal, normal(p1 - p0, 1000));
+    float dot_score = dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
     { /// check distance to first point on line (0)
-        float score = vSize2f(p0 - prev_point);
-        score += std::abs(dot_score) * 0.0001f; /// penalize sharp corners
+        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score)
         {
             best = poly_idx;
@@ -283,8 +283,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         }
     }
     { /// check distance to second point on line (1)
-        float score = vSize2f(p1 - prev_point);
-        score += std::abs(-dot_score) * 0.0001f; /// penalize sharp corners
+        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score)
         {
             best = poly_idx;

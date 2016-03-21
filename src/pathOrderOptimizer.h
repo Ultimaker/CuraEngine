@@ -82,7 +82,13 @@ public:
 
 private:
     /*!
-     * update LineOrderOptimizer::polyStart if the current line is better than the current best.
+     * Update LineOrderOptimizer::polyStart if the current line is better than the current best.
+     * 
+     * Besides looking at the distance from the previous line segment, we also look at the angle we make.
+     * 
+     * We prefer 90 degree angles; 180 degree turn arounds are slow on machines where the jerk is limited.
+     * 0 degree (straight ahead) 'corners' occur only when a single infill line is interrupted, 
+     * in which case the travel move might involve combing, which makes it rather longer.
      * 
      * \param poly_idx[in] The index in LineOrderOptimizer::polygons for the current line to test
      * \param best[in, out] The index of current best line
