@@ -181,7 +181,7 @@ void LineOrderOptimizer::optimize()
     }
 
 
-    Point incommingPerpundicularNormal(0, 0);
+    Point incoming_perpundicular_normal(0, 0);
     Point prev_point = startPoint;
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
@@ -195,7 +195,7 @@ void LineOrderOptimizer::optimize()
                 continue;
             }
 
-            checkIfLineIsBest(close_line_poly_idx, best_line_idx, bestDist, prev_point, incommingPerpundicularNormal);
+            checkIfLineIsBest(close_line_poly_idx, best_line_idx, bestDist, prev_point, incoming_perpundicular_normal);
         }
 
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
@@ -208,7 +208,7 @@ void LineOrderOptimizer::optimize()
                 }
                 assert(polygons[poly_idx].size() == 2);
 
-                checkIfLineIsBest(poly_idx, best_line_idx, bestDist, prev_point, incommingPerpundicularNormal);
+                checkIfLineIsBest(poly_idx, best_line_idx, bestDist, prev_point, incoming_perpundicular_normal);
 
             }
         }
@@ -219,7 +219,7 @@ void LineOrderOptimizer::optimize()
 
             int endIdx = polyStart[best_line_idx] * -1 + 1; /// 1 -> 0 , 0 -> 1
             prev_point = polygons[best_line_idx][endIdx];
-            incommingPerpundicularNormal = turn90CCW(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
+            incoming_perpundicular_normal = turn90CCW(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
@@ -259,11 +259,11 @@ void LineOrderOptimizer::optimize()
     }
 }
 
-inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int poly_idx, int& best, float& best_dist, Point& prev_point, Point& incomming_perpundicular_normal)
+inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int poly_idx, int& best, float& best_dist, Point& prev_point, Point& incoming_perpundicular_normal)
 {
     { /// check distance to first point on line (0)
         float dist = vSize2f(polygons[poly_idx][0] - prev_point);
-        dist += abs(dot(incomming_perpundicular_normal, normal(polygons[poly_idx][1] - polygons[poly_idx][0], 1000))) * 0.0001f; /// penalize sharp corners
+        dist += std::abs(dot(incoming_perpundicular_normal, normal(polygons[poly_idx][1] - polygons[poly_idx][0], 1000))) * 0.0001f; /// penalize sharp corners
         if (dist < best_dist)
         {
             best = poly_idx;
@@ -273,7 +273,7 @@ inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int poly_idx, int& be
     }
     { /// check distance to second point on line (1)
         float dist = vSize2f(polygons[poly_idx][1] - prev_point);
-        dist += abs(dot(incomming_perpundicular_normal, normal(polygons[poly_idx][0] - polygons[poly_idx][1], 1000) )) * 0.0001f; /// penalize sharp corners
+        dist += std::abs(dot(incoming_perpundicular_normal, normal(polygons[poly_idx][0] - polygons[poly_idx][1], 1000))) * 0.0001f; /// penalize sharp corners
         if (dist < best_dist)
         {
             best = poly_idx;
