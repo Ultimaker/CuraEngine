@@ -318,7 +318,6 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     orderOptimizer.optimize();
     for (int poly_idx : orderOptimizer.polyOrder)
     {
-//         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config); // adds line as polygon; old code
         PolygonRef polygon = polygons[poly_idx];
         int start = orderOptimizer.polyStart[poly_idx];
         int end = 1 - start;
