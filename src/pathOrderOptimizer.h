@@ -81,7 +81,16 @@ public:
     void optimize(); //!< sets #polyStart and #polyOrder
 
 private:
-    void checkIfLineIsBest(unsigned int i_line_polygon, int& best, float& bestDist, Point& prev_point, Point& incommingPerpundicularNormal);
+    /*!
+     * update LineOrderOptimizer::polyStart if the current line is better than the current best.
+     * 
+     * \param poly_idx[in] The index in LineOrderOptimizer::polygons for the current line to test
+     * \param best[in, out] The index of current best line
+     * \param best_score[in, out] The distance score for the current best line
+     * \param prev_point[in] The previous point from which to find the next best line
+     * \param incoming_perpundicular_normal[in] The direction of movement when the print head arrived at \p prev_point, turned 90 degrees CCW
+     */
+    void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal);
 
 };
 

@@ -186,7 +186,7 @@ void LineOrderOptimizer::optimize()
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
         int best_line_idx = -1;
-        float bestDist = std::numeric_limits<float>::infinity();
+        float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
         for(unsigned int close_line_poly_idx :  line_bucket_grid.findNearbyObjects(prev_point)) /// check if single-line-polygon is close to last point
         {
@@ -195,7 +195,7 @@ void LineOrderOptimizer::optimize()
                 continue;
             }
 
-            checkIfLineIsBest(close_line_poly_idx, best_line_idx, bestDist, prev_point, incoming_perpundicular_normal);
+            updateBestLine(close_line_poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
         }
 
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
@@ -208,7 +208,7 @@ void LineOrderOptimizer::optimize()
                 }
                 assert(polygons[poly_idx].size() == 2);
 
-                checkIfLineIsBest(poly_idx, best_line_idx, bestDist, prev_point, incoming_perpundicular_normal);
+                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
 
             }
         }
@@ -267,28 +267,28 @@ void LineOrderOptimizer::optimize()
     }
 }
 
-inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int poly_idx, int& best, float& best_dist, Point& prev_point, Point& incoming_perpundicular_normal)
+inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal)
 {
     Point& p0 = polygons[poly_idx][0];
     Point& p1 = polygons[poly_idx][1];
     int64_t dot_score = dot(incoming_perpundicular_normal, normal(p1 - p0, 1000));
     { /// check distance to first point on line (0)
-        float dist = vSize2f(p0 - prev_point);
-        dist += std::abs(dot_score) * 0.0001f; /// penalize sharp corners
-        if (dist < best_dist)
+        float score = vSize2f(p0 - prev_point);
+        score += std::abs(dot_score) * 0.0001f; /// penalize sharp corners
+        if (score < best_score)
         {
             best = poly_idx;
-            best_dist = dist;
+            best_score = score;
             polyStart[poly_idx] = 0;
         }
     }
     { /// check distance to second point on line (1)
-        float dist = vSize2f(p1 - prev_point);
-        dist += std::abs(-dot_score) * 0.0001f; /// penalize sharp corners
-        if (dist < best_dist)
+        float score = vSize2f(p1 - prev_point);
+        score += std::abs(-dot_score) * 0.0001f; /// penalize sharp corners
+        if (score < best_score)
         {
             best = poly_idx;
-            best_dist = dist;
+            best_score = score;
             polyStart[poly_idx] = 1;
         }
     }
