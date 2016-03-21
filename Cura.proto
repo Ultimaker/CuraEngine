@@ -58,7 +58,6 @@ message Polygon {
 
 // typeid 4
 message GCodeLayer {
-    int64 id = 1;
     bytes data = 2;
 }
 

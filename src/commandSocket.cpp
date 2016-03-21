@@ -57,25 +57,18 @@ public:
     Private()
         : socket(nullptr)
         , object_count(0)
-        , current_sliced_object(nullptr)
         , sliced_objects(0)
         , current_layer_count(0)
         , current_layer_offset(0)
     { }
 
-    cura::proto::Layer* getLayerById(int id);
+    std::shared_ptr<cura::proto::Layer> getLayerById(int id);
 
     Arcus::Socket* socket;
     
     // Number of objects that need to be sliced
     int object_count;
-    
-    // Message that holds a list of sliced objects
-    std::shared_ptr<cura::proto::SlicedObjectList> sliced_object_list;
-    
-    // Message that holds the currently sliced object (to be added to sliced_object_list)
-    cura::proto::SlicedObject* current_sliced_object;
-    
+
     // Number of sliced objects for this sliced object list
     int sliced_objects;
 
@@ -83,9 +76,6 @@ public:
     // Used for incrementing the current layer in one at a time mode
     int current_layer_count;
     int current_layer_offset;
-    
-    // Ids of the sliced objects
-    std::vector<int64_t> object_ids;
 
     std::string temp_gcode_file;
     std::ostringstream gcode_output_stream;
@@ -93,7 +83,7 @@ public:
     // Print object that olds one or more meshes that need to be sliced. 
     std::vector< std::shared_ptr<MeshGroup> > objects_to_slice;
 
-    std::unordered_map<int, cura::proto::Layer*> sliced_layers;
+    std::unordered_map<int, std::shared_ptr<cura::proto::Layer>> sliced_layers;
 };
 
 CommandSocket::CommandSocket()
@@ -124,7 +114,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 
     //private_data->socket->registerMessageType(1, &Cura::ObjectList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Slice::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::SlicedObjectList::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
@@ -167,7 +157,6 @@ void CommandSocket::connect(const std::string& ip, int port)
         {
             // Reset object counts
             private_data->object_count = 0;
-            private_data->object_ids.clear();
             for(auto object : slice->object_lists())
             {
                 handleObjectList(&object);
@@ -280,7 +269,6 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             mesh.setSetting(setting.name(), setting.value());
         }
 
-        private_data->object_ids.push_back(object.id());
         mesh.finish();
     }
 
@@ -298,25 +286,17 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
-    if(!private_data->current_sliced_object)
-    {
-        return;
-    }
-    
-    cura::proto::Layer* layer = private_data->getLayerById(layer_nr);
+    std::shared_ptr<cura::proto::Layer> layer = private_data->getLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(height);
 }
 
 void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
 {
-    if(!private_data->current_sliced_object)
-        return;
-    
     if (polygons.size() == 0)
         return;
 
-    cura::proto::Layer* proto_layer = private_data->getLayerById(layer_nr);
+    std::shared_ptr<cura::proto::Layer> proto_layer = private_data->getLayerById(layer_nr);
 
     for(unsigned int i = 0; i < polygons.size(); ++i)
     {
@@ -360,31 +340,21 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 //     socket.sendFloat32(print_time);
 }
 
-void CommandSocket::beginSendSlicedObject()
-{
-    if(!private_data->sliced_object_list)
-    {
-        private_data->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
-    }
-
-    private_data->current_sliced_object = private_data->sliced_object_list->add_objects();
-    private_data->current_sliced_object->set_id(private_data->object_ids[private_data->sliced_objects]);
-}
-
-void CommandSocket::endSendSlicedObject()
+void CommandSocket::sendLayerData()
 {
     private_data->sliced_objects++;
     private_data->current_layer_offset = private_data->current_layer_count;
-    std::cout << "End sliced object called. Sliced objects " << private_data->sliced_objects << " object count: " << private_data->object_count << std::endl;
+    log("End sliced object called. Sending ", private_data->current_layer_count, " layers.");
 
     if(private_data->sliced_objects >= private_data->object_count)
     {
-        private_data->socket->sendMessage(private_data->sliced_object_list);
+        for (std::pair<const int, std::shared_ptr<cura::proto::Layer>> entry : private_data->sliced_layers) //Note: This is in no particular order!
+        {
+            private_data->socket->sendMessage(entry.second); //Send the actual layers.
+        }
         private_data->sliced_objects = 0;
         private_data->current_layer_count = 0;
         private_data->current_layer_offset = 0;
-        private_data->sliced_object_list.reset();
-        private_data->current_sliced_object = nullptr;
         private_data->sliced_layers.clear();
         auto done_message = std::make_shared<cura::proto::SlicingFinished>();
         private_data->socket->sendMessage(done_message);
@@ -405,7 +375,6 @@ void CommandSocket::beginGCode()
 void CommandSocket::flushGcode()
 {
     auto message = std::make_shared<cura::proto::GCodeLayer>();
-    message->set_id(private_data->object_ids[0]);
     message->set_data(private_data->gcode_output_stream.str());
     private_data->socket->sendMessage(message);
     
@@ -419,20 +388,20 @@ void CommandSocket::sendGCodePrefix(std::string prefix)
     private_data->socket->sendMessage(message);
 }
 
-cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
+std::shared_ptr<cura::proto::Layer> CommandSocket::Private::getLayerById(int id)
 {
     id += current_layer_offset;
 
     auto itr = sliced_layers.find(id);
 
-    cura::proto::Layer* layer = nullptr;
+    std::shared_ptr<cura::proto::Layer> layer = nullptr;
     if(itr != sliced_layers.end())
     {
         layer = itr->second;
     }
     else
     {
-        layer = current_sliced_object->add_layers();
+        layer = std::make_shared<cura::proto::Layer>();
         layer->set_id(id);
         current_layer_count++;
         sliced_layers[id] = layer;
