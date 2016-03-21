@@ -234,20 +234,21 @@ void LineOrderOptimizer::optimize()
         }
     }
 
+    // recalculate polyStart TODO: why?!
     prev_point = startPoint;
     incoming_perpundicular_normal = Point(0, 0);
-    for (int poly_idx : polyOrder)
+    for (int line_idx : polyOrder)
     {
-        PolygonRef poly = polygons[poly_idx];
+        PolygonRef line = polygons[line_idx];
         int best_point_idx = -1;
         float best_score = std::numeric_limits<float>::infinity();
-        bool orientation = poly.orientation();
-        Point p0 = poly.back();
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        bool orientation = line.orientation();
+        Point p0 = line.back();
+        for (unsigned int point_idx = 0; point_idx < line.size(); point_idx++)
         {
-            Point& p1 = poly[point_idx];
-            Point& p2 = poly[(point_idx + 1) % poly.size()];
-            float dist = vSize2f(polygons[poly_idx][point_idx] - prev_point);
+            Point& p1 = line[point_idx];
+            Point& p2 = line[(point_idx + 1) % line.size()];
+            float dist = vSize2f(polygons[line_idx][point_idx] - prev_point);
             Point n0 = normal(p0 - p1, 2000);
             Point n1 = normal(p1 - p2, 2000);
             float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1);
@@ -261,10 +262,16 @@ void LineOrderOptimizer::optimize()
             p0 = p1;
         }
 
-        polyStart[poly_idx] = best_point_idx;
-        assert(poly.size() == 2);
-        prev_point = poly[best_point_idx * -1 + 1]; /// 1 -> 0 , 0 -> 1
+        polyStart[line_idx] = best_point_idx;
 
+        assert(line.size() == 2);
+        int& line_start_point_idx = best_point_idx;
+        int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
+        Point& line_start = line[line_start_point_idx];
+        Point& line_end = line[line_end_point_idx];
+
+        prev_point = line_end;
+        incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
     }
 }
 
