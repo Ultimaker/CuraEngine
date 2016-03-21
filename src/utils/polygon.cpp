@@ -45,7 +45,7 @@ bool Polygons::inside(Point p, bool border_result) const
     }
     
     int crossings = 0;
-    for (const auto& poly : thiss)
+    for (const ClipperLib::Path& poly : thiss)
     {
         Point p0 = poly.back();
         for (const Point& p1 : poly)
