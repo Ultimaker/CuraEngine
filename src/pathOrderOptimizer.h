@@ -98,6 +98,18 @@ private:
      */
     void updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal);
 
+    /*!
+     * Get a score to modify the distance score for measuring how good two lines follow each other.
+     * 
+     * The angle score is symmetric in \p from and \p to; they can be exchanged without altering the result. (Code relies on this property)
+     * 
+     * \param incoming_perpundicular_normal The direction in which the head was moving while printing the previous line, turned 90 degrees CCW
+     * \param from The one end of the next line
+     * \param to The other end of the next line
+     * \return A score measuring how good the angle is of the line between \p from and \p to when the previous line had a direction given by \p incoming_perpundicular_normal 
+     * 
+     */
+    static float getAngleScore(Point incoming_perpundicular_normal, Point from, Point to);
 };
 
 }//namespace cura

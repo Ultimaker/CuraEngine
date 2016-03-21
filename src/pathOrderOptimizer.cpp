@@ -272,7 +272,7 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
 {
     Point& p0 = polygons[poly_idx][0];
     Point& p1 = polygons[poly_idx][1];
-    float dot_score = dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
+    float dot_score = getAngleScore(incoming_perpundicular_normal, p0, p1);
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
         if (score < best_score)
@@ -292,5 +292,11 @@ inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best,
         }
     }
 }
+
+float LineOrderOptimizer::getAngleScore(Point incoming_perpundicular_normal, Point p0, Point p1)
+{
+    return dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
+}
+
 
 }//namespace cura
