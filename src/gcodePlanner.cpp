@@ -650,7 +650,7 @@ void GCodePlanner::completeConfigs()
 void GCodePlanner::processInitialLayersSpeedup()
 {
     double initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
-    if (static_cast<int>(layer_nr) < initial_speedup_layers)
+    if (static_cast<int>(layer_nr) <= initial_speedup_layers)
     {
         double initial_layer_speed = storage.getSettingInMillimetersPerSecond("speed_layer_0");
         storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
