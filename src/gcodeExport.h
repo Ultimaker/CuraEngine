@@ -91,6 +91,14 @@ public:
     }
 
     /*!
+     * Set the speed to the iconic speed, i.e. the normal speed of the feature type for which this is a config.
+     */
+    void setSpeedIconic()
+    {
+        speed = speed_iconic;
+    }
+
+    /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
     double getExtrusionMM3perMM()
