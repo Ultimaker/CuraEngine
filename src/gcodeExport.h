@@ -64,6 +64,8 @@ public:
     
     void setRetractionSettings(int retractionAmount, int retractionSpeed, int extruderSwitchRetraction, int minimalExtrusionBeforeRetraction, int zHop, int retractionAmountPrime);
     
+    void applyAccelerationSettings(ConfigSettings& config);
+    
     void setZ(int z);
     
     Point getPositionXY();

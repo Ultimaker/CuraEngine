@@ -85,6 +85,7 @@ void GCodeExport::setFlavor(int flavor)
         for(int n=0; n<MAX_EXTRUDERS; n++)
             extruderCharacter[n] = 'E';
 }
+
 int GCodeExport::getFlavor()
 {
     return this->flavor;
@@ -117,6 +118,11 @@ void GCodeExport::setRetractionSettings(int retractionAmount, int retractionSpee
     this->extruderSwitchRetraction = INT2MM(extruderSwitchRetraction);
     this->minimalExtrusionBeforeRetraction = INT2MM(minimalExtrusionBeforeRetraction);
     this->retractionZHop = zHop;
+}
+
+void GCodeExport::applyAccelerationSettings(ConfigSettings& config)
+{
+    estimateCalculator.applyAccelerationSettings(config);
 }
 
 void GCodeExport::setZ(int z)

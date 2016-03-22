@@ -152,6 +152,17 @@ ConfigSettings::ConfigSettings()
         "G28 X0 Y0                      ;move X/Y to min endstops, so the head is out of the way\n"
         "M84                         ;steppers off\n"
         "G90                         ;absolute positioning\n";
+
+
+    //Time estimate settings
+    SETTING(acceleration, 3000 * 1000);
+    SETTING(max_acceleration[0], 9000 * 1000);
+    SETTING(max_acceleration[1], 9000 * 1000);
+    SETTING(max_acceleration[2], 100 * 1000);
+    SETTING(max_acceleration[3], 10000 * 1000);
+    SETTING(max_xy_jerk, 20.0 * 1000);
+    SETTING(max_z_jerk, 0.4 * 1000);
+    SETTING(max_e_jerk, 5.0 * 1000);
 }
 
 #undef STRINGIFY

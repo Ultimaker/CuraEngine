@@ -108,6 +108,7 @@ private:
         gcode.setSwitchExtruderCode(config.preSwitchExtruderCode, config.postSwitchExtruderCode);
         gcode.setFlavor(config.gcodeFlavor);
         gcode.setRetractionSettings(config.retractionAmount, config.retractionSpeed, config.retractionAmountExtruderSwitch, config.minimalExtrusionBeforeRetraction, config.retractionZHop, config.retractionAmountPrime);
+        gcode.applyAccelerationSettings(config);
     }
 
     bool prepareModel(SliceDataStorage& storage, const std::vector<std::string> &files)

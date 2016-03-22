@@ -6,15 +6,25 @@
 
 #define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
 
-const double max_feedrate[TimeEstimateCalculator::NUM_AXIS] = {600, 600, 40, 25};
-const double minimumfeedrate = 0.01;
-const double acceleration = 3000;
-const double max_acceleration[TimeEstimateCalculator::NUM_AXIS] = {9000,9000,100,10000};
-const double max_xy_jerk = 20.0;
-const double max_z_jerk = 0.4;
-const double max_e_jerk = 5.0;
+static double max_feedrate[TimeEstimateCalculator::NUM_AXIS] = {600, 600, 40, 25};
+static double minimumfeedrate = 0.01;
+static double acceleration = 3000;
+static double max_acceleration[TimeEstimateCalculator::NUM_AXIS] = {9000,9000,100,10000};
+static double max_xy_jerk = 20.0;
+static double max_z_jerk = 0.4;
+static double max_e_jerk = 5.0;
 
 template<typename T> const T square(const T& a) { return a * a; }
+
+void TimeEstimateCalculator::applyAccelerationSettings(ConfigSettings& config)
+{
+    acceleration = float(config.acceleration) / 1000.0;
+    for(unsigned int n=0; n<TimeEstimateCalculator::NUM_AXIS; n++)
+        max_acceleration[n] = float(config.max_acceleration[n]) / 1000.0;
+    max_xy_jerk = float(config.max_xy_jerk) / 1000.0;
+    max_z_jerk = float(config.max_z_jerk) / 1000.0;
+    max_e_jerk = float(config.max_e_jerk) / 1000.0;
+}
 
 void TimeEstimateCalculator::setPosition(Position newPos)
 {

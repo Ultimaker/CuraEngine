@@ -1,6 +1,7 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
+#include "settings.h"
 #include <stdint.h>
 #include <vector>
 
@@ -58,6 +59,8 @@ private:
 
     std::vector<Block> blocks;
 public:
+    void applyAccelerationSettings(ConfigSettings& config);
+
     void setPosition(Position newPos);
     void plan(Position newPos, double feedRate);
     void reset();

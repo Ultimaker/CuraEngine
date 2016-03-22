@@ -219,6 +219,13 @@ public:
     std::string endCode;
     std::string preSwitchExtruderCode;
     std::string postSwitchExtruderCode;
+    
+    //Time estimate settings
+    int acceleration;
+    int max_acceleration[4];
+    int max_xy_jerk;
+    int max_z_jerk;
+    int max_e_jerk;
 
     ConfigSettings();
     bool setSetting(const char* key, const char* value);
