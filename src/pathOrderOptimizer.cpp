@@ -152,7 +152,7 @@ int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
 */
 void LineOrderOptimizer::optimize()
 {
-    int gridSize = 5000; // the size of the cells in the hash grid.
+    int gridSize = 5000; // the size of the cells in the hash grid. TODO
     BucketGrid2D<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
@@ -181,12 +181,12 @@ void LineOrderOptimizer::optimize()
     }
 
 
-    Point incommingPerpundicularNormal(0, 0);
+    Point incoming_perpundicular_normal(0, 0);
     Point prev_point = startPoint;
     for (unsigned int order_idx = 0; order_idx < polygons.size(); order_idx++) /// actual path order optimizer
     {
         int best_line_idx = -1;
-        float bestDist = std::numeric_limits<float>::infinity();
+        float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
         for(unsigned int close_line_poly_idx :  line_bucket_grid.findNearbyObjects(prev_point)) /// check if single-line-polygon is close to last point
         {
@@ -195,7 +195,7 @@ void LineOrderOptimizer::optimize()
                 continue;
             }
 
-            checkIfLineIsBest(close_line_poly_idx, best_line_idx, bestDist, prev_point, incommingPerpundicularNormal);
+            updateBestLine(close_line_poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
         }
 
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
@@ -208,18 +208,22 @@ void LineOrderOptimizer::optimize()
                 }
                 assert(polygons[poly_idx].size() == 2);
 
-                checkIfLineIsBest(poly_idx, best_line_idx, bestDist, prev_point, incommingPerpundicularNormal);
+                updateBestLine(poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
 
             }
         }
 
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
-            assert(polygons[best_line_idx].size() == 2);
+            PolygonRef best_line = polygons[best_line_idx];
+            assert(best_line.size() == 2);
 
-            int endIdx = polyStart[best_line_idx] * -1 + 1; /// 1 -> 0 , 0 -> 1
-            prev_point = polygons[best_line_idx][endIdx];
-            incommingPerpundicularNormal = turn90CCW(normal(polygons[best_line_idx][endIdx] - polygons[best_line_idx][polyStart[best_line_idx]], 1000));
+            int line_start_point_idx = polyStart[best_line_idx];
+            int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
+            Point& line_start = best_line[line_start_point_idx];
+            Point& line_end = best_line[line_end_point_idx];
+            prev_point = line_end;
+            incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
 
             picked[best_line_idx] = true;
             polyOrder.push_back(best_line_idx);
@@ -229,58 +233,37 @@ void LineOrderOptimizer::optimize()
             logError("Failed to find next closest line.\n");
         }
     }
-
-    prev_point = startPoint;
-    for (int poly_idx : polyOrder)
-    {
-        PolygonRef poly = polygons[poly_idx];
-        int best = -1;
-        float bestDist = std::numeric_limits<float>::infinity();
-        bool orientation = poly.orientation();
-        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
-        {
-            float dist = vSize2f(polygons[poly_idx][point_idx] - prev_point);
-            Point n0 = normal(poly[(point_idx + poly.size() - 1) % poly.size()] - poly[point_idx], 2000);
-            Point n1 = normal(poly[point_idx] - poly[(point_idx + 1) % poly.size()], 2000);
-            float dot_score = dot(n0, n1) - dot(turn90CCW(n0), n1);
-            if (orientation)
-                dot_score = -dot_score;
-            if (dist + dot_score < bestDist)
-            {
-                best = point_idx;
-                bestDist = dist + dot_score;
-            }
-        }
-
-        polyStart[poly_idx] = best;
-        assert(poly.size() == 2);
-        prev_point = poly[best *-1 + 1]; /// 1 -> 0 , 0 -> 1
-
-    }
 }
 
-inline void LineOrderOptimizer::checkIfLineIsBest(unsigned int poly_idx, int& best, float& best_dist, Point& prev_point, Point& incomming_perpundicular_normal)
+inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal)
 {
+    Point& p0 = polygons[poly_idx][0];
+    Point& p1 = polygons[poly_idx][1];
+    float dot_score = getAngleScore(incoming_perpundicular_normal, p0, p1);
     { /// check distance to first point on line (0)
-        float dist = vSize2f(polygons[poly_idx][0] - prev_point);
-        dist += std::abs(dot(incomming_perpundicular_normal, normal(polygons[poly_idx][1] - polygons[poly_idx][0], 1000))) * 0.0001f; /// penalize sharp corners
-        if (dist < best_dist)
+        float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners
+        if (score < best_score)
         {
             best = poly_idx;
-            best_dist = dist;
+            best_score = score;
             polyStart[poly_idx] = 0;
         }
     }
     { /// check distance to second point on line (1)
-        float dist = vSize2f(polygons[poly_idx][1] - prev_point);
-        dist += std::abs(dot(incomming_perpundicular_normal, normal(polygons[poly_idx][0] - polygons[poly_idx][1], 1000))) * 0.0001f; /// penalize sharp corners
-        if (dist < best_dist)
+        float score = vSize2f(p1 - prev_point) + dot_score; // prefer 90 degree corners
+        if (score < best_score)
         {
             best = poly_idx;
-            best_dist = dist;
+            best_score = score;
             polyStart[poly_idx] = 1;
         }
     }
 }
+
+float LineOrderOptimizer::getAngleScore(Point incoming_perpundicular_normal, Point p0, Point p1)
+{
+    return dot(incoming_perpundicular_normal, normal(p1 - p0, 1000)) * 0.0001f;
+}
+
 
 }//namespace cura
