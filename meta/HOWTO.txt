@@ -9,7 +9,7 @@ cd ~/Development/CuraEngine/output/reflection/
 run setting inheritance reflection
 
 cd ~/Development/CuraEngine
-./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv output/reflection/engineSettingLiterals.txt 
+./build/CuraEngine analyse ../Cura/resources/machines/fdmprinter.json meta/refl_ff.gv output/reflection/engineSettingLiterals.txt I
 
 dot meta/refl_ff.gv -Tpng > meta/rafl_ff_dotted.png
 

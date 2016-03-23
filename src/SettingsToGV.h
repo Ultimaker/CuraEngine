@@ -28,16 +28,20 @@ class SettingsToGv
     enum class RelationType
     {
         PARENT_CHILD,
-        INHERIT_FUNCTION
+        INHERIT_FUNCTION,
+        ERROR_FUNCTION,
+        WARNING_FUNCTION
     };
     
     FILE* out;
     std::set<std::string> engine_settings;
-    bool parent_child_viz, inherit_viz;
+    bool parent_child_viz, inherit_viz, error_viz, warning_viz;
 public: 
-    SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz)
+    SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz, bool error_viz, bool warning_viz)
     : parent_child_viz(parent_child_viz)
     , inherit_viz(inherit_viz)
+    , error_viz(error_viz)
+    , warning_viz(warning_viz)
     {
         out = fopen(output_filename.c_str(), "w");
         fprintf(out, "digraph G {\n");
@@ -71,7 +75,7 @@ private:
                 {
                     return;
                 }
-                color = "red";
+                color = "blue";
                 break;
             case SettingsToGv::RelationType::PARENT_CHILD:
                 if (!parent_child_viz)
@@ -80,9 +84,61 @@ private:
                 }
                 color = "black";
                 break;
+            case SettingsToGv::RelationType::ERROR_FUNCTION:
+                if (!error_viz)
+                {
+                    return;
+                }
+                color = "red";
+                break;
+            case SettingsToGv::RelationType::WARNING_FUNCTION:
+                if (!warning_viz)
+                {
+                    return;
+                }
+                color = "orange";
+                break;
         }
         fprintf(out, "edge [color=%s];\n", color.c_str());
         fprintf(out, "%s -> %s;\n", parent.c_str(), child.c_str());
+    }
+    
+    bool createFunctionEdges(const rapidjson::Value& data, std::string function_key, const std::string& parent, const std::string& name, const RelationType relation_type)
+    {
+        bool generated_edge = false;
+        if (data.HasMember(function_key.c_str()) && data[function_key.c_str()].IsString())
+        {
+            std::string function = data[function_key.c_str()].GetString();
+            
+            std::regex setting_name_regex("[a-zA-Z0-9_]+"); // matches mostly with setting names
+            std::smatch regex_match;
+            while (std::regex_search (function, regex_match, setting_name_regex))
+            {
+                std::string inherited_setting_string = regex_match[0];
+                if (inherited_setting_string == "parent_value")
+                {
+                    generateEdge(parent, name, RelationType::PARENT_CHILD);
+                    generated_edge = true;
+                }
+                else if ( ! std::regex_match(inherited_setting_string, std::regex("[0-9]+")) && // exclude numbers
+                    // result != "parent_value" && 
+                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
+                    && function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
+                {
+                    if (inherited_setting_string == parent)
+                    {
+                        generated_edge = true;
+                        generateEdge(inherited_setting_string, name, RelationType::PARENT_CHILD);
+                    }
+                    else 
+                    {
+                        generateEdge(inherited_setting_string, name, relation_type);
+                    }
+                }
+                function = regex_match.suffix().str();
+            }
+        }
+        return generated_edge;
     }
     
     void parseSetting(const std::string& parent, rapidjson::Value::ConstMemberIterator json_object_it)
@@ -94,37 +150,15 @@ private:
         bool generated_edge = false;
         
         const rapidjson::Value& data = json_object_it->value;
-        if (data.HasMember("inherit_function"))
+        
+        bool generated_edge_inherit = createFunctionEdges(data, "inherit_function", parent, name, RelationType::INHERIT_FUNCTION);
+        bool generated_edge_max = createFunctionEdges(data, "max_value", parent, name, RelationType::ERROR_FUNCTION);
+        bool generated_edge_min = createFunctionEdges(data, "min_value", parent, name, RelationType::ERROR_FUNCTION);
+        bool generated_edge_max_warn = createFunctionEdges(data, "max_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+        bool generated_edge_min_warn = createFunctionEdges(data, "min_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+        if (generated_edge_inherit || generated_edge_max_warn || generated_edge_min_warn || generated_edge_max || generated_edge_min)
         {
-            assert(data["inherit_function"].IsString());
-            std::string inherit_function = data["inherit_function"].GetString();
-            std::regex setting_name_regex("[a-zA-Z0-9_]+"); // matches mostly with setting names
-            std::smatch regex_match;
-            while (std::regex_search (inherit_function, regex_match, setting_name_regex))
-            {
-                std::string inherited_setting_string = regex_match[0];
-                if (inherited_setting_string == "parent_value")
-                {
-                    generateEdge(parent, name, RelationType::PARENT_CHILD);
-                    generated_edge = true;
-                }
-                else if ( ! std::regex_match(inherited_setting_string, std::regex("[0-9]+")) && // exclude numbers
-                    // result != "parent_value" && 
-                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
-                    && inherit_function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
-                {
-                    if (inherited_setting_string == parent)
-                    {
-                        generated_edge = true;
-                        generateEdge(inherited_setting_string, name, RelationType::PARENT_CHILD);
-                    }
-                    else 
-                    {
-                        generateEdge(inherited_setting_string, name, RelationType::INHERIT_FUNCTION);
-                    }
-                }
-                inherit_function = regex_match.suffix().str();
-            }
+            generated_edge = true;
         }
         
         if (!generated_edge && parent != "")

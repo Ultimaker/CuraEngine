@@ -329,16 +329,50 @@ int main(int argc, char **argv)
         exit(0);
     }
     else if (stringcasecompare(argv[1], "analyse") == 0)
-    { // CuraEngine analyse [json] [output.gv] [engine_settings] P/I/E
-        // P = parent-child relations
-        // I = inheritance function as well
-        // E = only CuraEngine use of settings
+    { // CuraEngine analyse [json] [output.gv] [engine_settings] -[p|i|e|w]
+        // p = show parent-child relations
+        // i = show inheritance function
+        // e = show error functions
+        // w = show warning functions
         // dot refl_ff.gv -Tpng > rafl_ff_dotted.png
         // see meta/HOWTO.txt
         
-        bool parent_child_viz = strcasecmp(argv[5], "E") != 0;
-        bool inherit_viz = strcasecmp(argv[5], "I") == 0;
-        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz);
+        bool parent_child_viz = false;
+        bool inherit_viz = false;
+        bool warning_viz = false;
+        bool error_viz = false;
+        if (argc >= 5)
+        {
+            char* str = argv[5];
+            if (str[0] == '-')
+            {
+                for(str++; *str; str++)
+                {
+                    switch(*str)
+                    {
+                    case 'p':
+                        parent_child_viz = true;
+                        break;
+                    case 'i':
+                        inherit_viz = true;
+                        break;
+                    case 'e':
+                        error_viz = true;
+                        break;
+                    case 'w':
+                        warning_viz = true;
+                        break;
+                    default:
+                        cura::logError("Unknown option: %c\n", *str);
+                        print_call(argc, argv);
+                        print_usage();
+                        break;
+                    }
+                }
+            }
+        }
+        
+        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz);
         if (gv_out.generate(std::string(argv[2])))
         {
             cura::logError("ERROR: Failed to analyse json file: %s\n", argv[2]);
