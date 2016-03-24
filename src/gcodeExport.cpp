@@ -134,11 +134,11 @@ double GCodeExport::getCurrentExtrudedVolume()
 }
 
 
-double GCodeExport::getTotalFilamentUsed(int e)
+double GCodeExport::getTotalFilamentUsed(int extruder_nr)
 {
-    if (e == current_extruder)
-        return extruder_attr[e].totalFilament + getCurrentExtrudedVolume();
-    return extruder_attr[e].totalFilament;
+    if (extruder_nr == current_extruder)
+        return extruder_attr[extruder_nr].totalFilament + getCurrentExtrudedVolume();
+    return extruder_attr[extruder_nr].totalFilament;
 }
 
 double GCodeExport::getTotalPrintTime()

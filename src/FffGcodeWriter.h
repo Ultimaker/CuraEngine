@@ -37,23 +37,45 @@ class FffGcodeWriter : public SettingsMessenger, NoCopy
 {
     friend class FffProcessor; // cause WireFrame2Gcode uses the member [gcode] (TODO)
 private:
-    int max_object_height;
-    int meshgroup_number; //!< used for sequential printing of objects
-    
-    LayerPlanBuffer layer_plan_buffer;
-    
+    int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
+
+    /*!
+     * The number of the current meshgroup being processed.
+     * 
+     * Used for sequential printing of objects.
+     * The first meshgroup will get number 1.
+     */
+    int meshgroup_number; 
+
+    /*
+     * Buffer for all layer plans (of type GCodePlanner)
+     * 
+     * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
+     * Another reason is to perform Auto Temperature.
+     */
+    LayerPlanBuffer layer_plan_buffer; 
+
+    /*!
+     * The class holding the current state of the gcode being written.
+     * 
+     * It holds information such as the last written position etc.
+     */
     GCodeExport gcode;
+
+    /*!
+     * The gcode file to write to when using CuraEngine as command line tool.
+     */
     std::ofstream output_file;
-    
+
     /*!
      * Layer number of the last layer in which a prime tower has been printed per extruder train.  
      * 
      * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
-    
-    FanSpeedLayerTimeSettings fan_speed_layer_time_settings;
-    
+
+    FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //!< The settings used relating to minimal layer time and fan speeds.
+
     Point last_position_planned; //!< The position of the head before planning the next layer
     int current_extruder_planned; //!< The extruder train in use before planning the next layer
 public:
@@ -66,11 +88,22 @@ public:
         meshgroup_number = 1;
         max_object_height = 0;
     }
-    void resetFileNumber()
+
+    /*!
+     * Reset the meshgroup number to process the next slicing.
+     */
+    void resetMeshGroupNumber()
     {
         meshgroup_number = 1;
     }
 
+    /*!
+     * Set the target to write gcode to: to a file.
+     * 
+     * Used when CuraEngine is used as command line tool.
+     * 
+     * \param filename The filename of the file to which to write the gcode.
+     */
     bool setTargetFile(const char* filename)
     {
         output_file.open(filename);
@@ -81,59 +114,108 @@ public:
         }
         return false;
     }
-    
+
+    /*!
+     * Set the target to write gcode to: an output stream.
+     * 
+     * Used when CuraEngine is NOT used as command line tool.
+     * 
+     * \param stream The stream to write gcode to.
+     */
     void setTargetStream(std::ostream* stream)
     {
         gcode.setOutputStream(stream);
     }
-    
-    double getTotalFilamentUsed(int e)
+
+    /*!
+     * Get the total extruded volume for a specific extruder in mm^3
+     * 
+     * Retractions and unretractions don't contribute to this.
+     * 
+     * \param extruder_nr The extruder number for which to get the total netto extruded volume
+     * \return total filament printed in mm^3
+     */
+    double getTotalFilamentUsed(int extruder_nr)
     {
-        return gcode.getTotalFilamentUsed(e);
+        return gcode.getTotalFilamentUsed(extruder_nr);
     }
 
+    /*!
+     * Get the total estimated print time in seconds
+     * 
+     * \return total print time in seconds
+     */
     double getTotalPrintTime()
     {
         return gcode.getTotalPrintTime();
     }
 
+    /*!
+     * Write all the gcode for the current meshgroup.
+     * This is the primary function of this class.
+     * 
+     * \param[in] storage The data storage from which to get the polygons to print and the areas to fill.
+     * \param timeKeeper The stop watch to see how long it takes for each of the stages in the slicing process.
+     */
     void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
-    
+
 private:
+    /*!
+     * Set the FffGcodeWriter::fan_speed_layer_time_settings by retrieving all settings from the global/per-meshgroup settings.
+     */
     void setConfigFanSpeedLayerTime();
-    
+
+    /*!
+     * Create and set the SliceDataStorage::coasting_config for each extruder.
+     * 
+     * \param[out] storage The data storage to which to save the configuration
+     */
     void setConfigCoasting(SliceDataStorage& storage);
 
-    //Setup the retraction parameters.
+    /*!
+     * Set the retraction config globally, per extruder and per mesh.
+     * 
+     * \param[out] storage The data storage to which to save the configurations
+     */
     void setConfigRetraction(SliceDataStorage& storage);
     
     /*!
-     * initialize GcodePathConfig config parameters which don't change over all layers
+     * Initialize the GcodePathConfig config parameters which don't change over all layers, for each feature.
+     * 
+     * The features are: skirt, support and for each mesh: outer wall, inner walls, skin, infill (and combined infill)
+     * 
+     * \param[out] storage The data storage to which to save the configurations
      */
     void initConfigs(SliceDataStorage& storage);
     
     /*!
      * Set temperatures and perform initial priming.
-     * \param storage Input: where the slice data is stored.
+     * 
+     * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)
+     * 
+     * \param[in] storage where the slice data is stored.
      */
     void processStartingCode(SliceDataStorage& storage);
 
     /*!
-     * Move up and over the just printed model to print the next model.
-     * \param storage Input: where the slice data is stored.
+     * Move up and over the already printed meshgroups to print the next meshgroup.
+     * 
+     * \param[in] storage where the slice data is stored.
      */
     void processNextMeshGroupCode(SliceDataStorage& storage);
     
     /*!
-     * Add raft gcode.
-     * \param storage Input: where the slice data is stored.
+     * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param total_layers The total number of layers.
      */
     void processRaft(SliceDataStorage& storage, unsigned int total_layers);
     
     /*!
-     * Add a layer to the gcode.
-     * \param storage Input: where the slice data is stored.
+     * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
      * \param has_raft Whether a raft is used for this print.
@@ -141,24 +223,27 @@ private:
     void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
-     * Add the skirt to the gcode.
-     * \param storage Input: where the slice data is stored.
+     * Add the skirt to the layer plan \p gcodeLayer.
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param extruder_nr The extrudewr train for which to process the skirt
      */
     void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
     
     /*!
-     * Adds the ooze shield to the print.
-     * \param storage Input: where the slice data is stored.
+     * Adds the ooze shield to the layer plan \p gcodeLayer.
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
     void processOozeShield(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
     
     /*!
-     * Adds the draft protection screen to the print.
-     * \param storage Input: where the slice data is stored.
+     * Adds the draft protection screen to the layer plan \p gcodeLayer.
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
@@ -166,16 +251,18 @@ private:
     
     /*!
      * Calculate in which order to print the meshes.
-     * \param storage Input: where the slice data is stored.
+     * 
+     * \param[in] storage where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
      * \return A vector of mesh indices ordered on print order.
      */
     std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
         
     /*!
-     * Add a single layer from a single mesh-volume to the GCode in mesh surface mode.
-     * \param storage Input: where the slice data is stored.
-     * \param mesh The mesh to add to the gcode.
+     * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param mesh The mesh to add to the layer plan \p gcodeLayer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
@@ -183,9 +270,10 @@ private:
     void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
-     * Add the open polylines from a single layer from a single mesh-volume to the GCode for mesh surface mode.
-     * \param storage Input: where the slice data is stored.
-     * \param mesh The mesh for which to add to the gcode.
+     * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
@@ -193,9 +281,10 @@ private:
     void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
-     * Add a single layer from a single mesh-volume to the GCode.
-     * \param storage Input: where the slice data is stored.
-     * \param mesh The mesh to add to the gcode.
+     * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer.
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param mesh The mesh to add to the layer plan \p gcodeLayer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
@@ -203,9 +292,10 @@ private:
     void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
-     * Add thicker (multiple layers) sparse infill for a given part in a layer.
+     * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
+     * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the gcode.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param infill_line_distance The distance between the infill lines
@@ -218,7 +308,7 @@ private:
     /*!
      * Add normal sparse infill for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the gcode.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param infill_line_distance The distance between the infill lines
@@ -231,7 +321,7 @@ private:
     /*!
      * Generate the insets for the walls of a given layer part.
      * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the gcode.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
@@ -242,7 +332,7 @@ private:
     /*!
      * Add the gcode of the top/bottom skin of the given part.
      * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the gcode.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
@@ -252,24 +342,24 @@ private:
     void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int infill_overlap, int infill_angle, int extrusion_width);
     
     /*!
-     * Add the support to the gcode of the current layer.
-     * \param storage Input: where the slice data is stored.
+     * Add the support to the layer plan \p gcodeLayer of the current layer.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr_before The extruder number at the start of the layer (before other print parts aka the rest)
-     * \param before_rest Whether the function has been called before adding the rest to the gcode, or after.
+     * \param before_rest Whether the function has been called before adding the rest to the layer plan \p gcodeLayer, or after.
      */
     void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr_before, bool before_rest);
     /*!
-     * Add the support lines/walls to the gcode of the current layer.
-     * \param storage Input: where the slice data is stored.
+     * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
     void addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     /*!
-     * Add the support roofs to the gcode of the current layer.
-     * \param storage Input: where the slice data is stored.
+     * Add the support roofs to the layer plan \p gcodeLayer of the current layer.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      */
@@ -280,7 +370,7 @@ private:
      * 
      * On layer 0 this function adds the skirt for the nozzle it switches to, instead of the prime tower.
      * 
-     * \param storage Input: where the slice data is stored.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr The extruder to which to switch
@@ -289,7 +379,7 @@ private:
     
     /*!
      * Add the prime tower gcode for the current layer.
-     * \param storage Input: where the slice data is stored.
+     * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param prev_extruder The current extruder with which we last printed.

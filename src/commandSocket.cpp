@@ -186,7 +186,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         //If there is an object to slice, do so.
         if(private_data->objects_to_slice.size())
         {
-            FffProcessor::getInstance()->resetFileNumber();
+            FffProcessor::getInstance()->resetMeshGroupNumber();
             for(auto object : private_data->objects_to_slice)
             {
                 if(!FffProcessor::getInstance()->processMeshGroup(object.get()))

@@ -48,9 +48,9 @@ public:
     
     TimeKeeper time_keeper; // TODO: use singleton time keeper
     
-    void resetFileNumber()
+    void resetMeshGroupNumber()
     {
-        gcode_writer.resetFileNumber();
+        gcode_writer.resetMeshGroupNumber();
     }
 
     bool setTargetFile(const char* filename)

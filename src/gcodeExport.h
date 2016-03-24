@@ -187,7 +187,7 @@ private:
     int currentFanSpeed;
     EGCodeFlavor flavor;
 
-    double totalPrintTime;
+    double totalPrintTime; //!< The total estimated print time in seconds
     TimeEstimateCalculator estimateCalculator;
     
     bool is_volumatric;
@@ -229,9 +229,22 @@ public:
     void setFilamentDiameter(unsigned int n, int diameter);
     
     double getCurrentExtrudedVolume();
-    
-    double getTotalFilamentUsed(int e);
 
+    /*!
+     * Get the total extruded volume for a specific extruder in mm^3
+     * 
+     * Retractions and unretractions don't contribute to this.
+     * 
+     * \param extruder_nr The extruder number for which to get the total netto extruded volume
+     * \return total filament printed in mm^3
+     */
+    double getTotalFilamentUsed(int extruder_nr);
+
+    /*!
+     * Get the total estimated print time in seconds
+     * 
+     * \return total print time in seconds
+     */
     double getTotalPrintTime();
     void updateTotalPrintTime();
     void resetTotalPrintTimeAndFilament();
