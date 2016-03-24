@@ -215,4 +215,56 @@ void LinearAlg2DTest::getDist2FromLineSegmentAssert(Point line_start,Point line_
     }
 }
 
+
+void LinearAlg2DTest::getAngleStraightTest()
+{
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(100, 1), 1.0);
+}
+
+void LinearAlg2DTest::getAngle45CcwTest()
+{
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(-100, -100), 1.75);
+}
+
+void LinearAlg2DTest::getAngle90CcwTest()
+{
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(0, -100), 1.5);
+}
+
+void LinearAlg2DTest::getAngle90CwTest()
+{
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(0, 100), .5);
+}
+
+void LinearAlg2DTest::getAngleStraightBackTest()
+{
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(-100, 1), 0.0);
+    getAngleAssert(Point(-100, 0), Point(0, 0), Point(-100, -1), 2.0);
+}
+
+void LinearAlg2DTest::getAngleLeftAABTest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(0, 0), Point(100, 0)); //Any output is allowed. Just don't crash!
+}
+
+void LinearAlg2DTest::getAngleLeftABBTest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(100, 0), Point(100, 100)); //Any output is allowed. Just don't crash!
+}
+
+void LinearAlg2DTest::getAngleLeftAAATest()
+{
+    LinearAlg2D::getAngleLeft(Point(0, 0), Point(0, 0), Point(0, 0)); //Any output is allowed. Just don't crash!
+}
+
+
+void LinearAlg2DTest::getAngleAssert(Point a, Point b, Point c, float actual_angle_in_half_rounds)
+{
+    float actual_angle = actual_angle_in_half_rounds * M_PI;
+    float supposed_angle = LinearAlg2D::getAngleLeft(a, b, c);
+    std::stringstream ss;
+    ss << "Corner in " << a << "-" << b << "-" << c << " was computed to have an angle of " << supposed_angle << " instead of " << actual_angle << ".";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), std::fabs(actual_angle - supposed_angle) <= maximum_error_angle);
+}
+
 }

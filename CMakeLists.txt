@@ -77,6 +77,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
     src/utils/gettime.cpp
+    src/utils/LinearAlg2D.cpp
     src/utils/logoutput.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
