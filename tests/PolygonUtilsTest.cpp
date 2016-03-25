@@ -157,18 +157,7 @@ void PolygonUtilsTest::insideTest2()
 
 void PolygonUtilsTest::middleTest2()
 {
-    const Point close_to(50, 50);
-    const Point supposed = close_to; // this moveInside function leaves points which are already inside as they are
-    const int distance = 20;
-    Polygons polys;
-    polys.add(test_square);
-    Point result = close_to;
-    PolygonUtils::moveInside(polys, result, distance);
-    {
-        std::stringstream ss;
-        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
-    }
+    moveInside2Assert(test_square, Point(50, 50), 20, Point(50, 50)); // this moveInside function leaves points which are already inside as they are
 }
 
 void PolygonUtilsTest::noMoveTest2()
