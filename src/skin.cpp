@@ -48,7 +48,10 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
                 for(SliceLayerPart& part2 : layer2.parts)
                 {
                     if (part.boundaryBox.hit(part2.boundaryBox))
-                        result.add(part2.insets[wall_line_count - 1]);
+                    {
+                        unsigned int wall_idx = std::min(wall_line_count, (int) part2.insets.size()) - 1;
+                        result.add(part2.insets[wall_idx]);
+                    }
                 }
                 return result;
             };
