@@ -298,7 +298,40 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
+bool loadMeshOBJ(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+{
+    FILE* f = fopen(filename, "rt");
+    char buffer[1024];
+    FPoint3 vertex;
+    int n = 0;
+    Point3 v0(0,0,0), v1(0,0,0), v2(0,0,0);
+    while(fgets_(buffer, sizeof(buffer), f))
+    {
+        if (sscanf(buffer, " vertex %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        {
+            n++;
+            switch(n)
+            {
+            case 1:
+                v0 = matrix.apply(vertex);
+                break;
+            case 2:
+                v1 = matrix.apply(vertex);
+                break;
+            case 3:
+                v2 = matrix.apply(vertex);
+                mesh->addFace(v0, v1, v2);
+                n = 0;
+                break;
+            }
+        }
+    }
+    fclose(f);
+    mesh->finish();
+    return true;
+}
+
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
 {
     TimeKeeper load_timer;
 
@@ -313,6 +346,16 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
             return true;
         }
     }
+    else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
+    {
+        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if(loadMeshOBJ(&mesh,filename,transformation)) //Load it! If successful...
+        {
+            meshgroup->meshes.push_back(mesh);
+            return true;
+        }
+    }
+        
     return false;
 }
 
