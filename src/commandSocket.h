@@ -84,7 +84,10 @@ public:
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
     
     /*!
-     * Conclude the slicing of the current meshgroup, so that we can start the next
+     * Send the sliced layer data to the GUI.
+     *
+     * The GUI may use this to visualise the g-code, so that the user can
+     * inspect the result of slicing.
      */
     void sendLayerData();
 
