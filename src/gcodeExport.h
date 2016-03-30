@@ -203,6 +203,40 @@ private:
 
     unsigned int layer_nr; //!< for sending travel data
     
+protected:
+    /*!
+     * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param e the value to convert
+     * \return the value converted to mm
+     */
+    double eToMm(double e);
+
+    /*!
+     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param mm3 the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mm3ToE(double mm3);
+
+    /*!
+     * Convert a distance value to an E value (which might be linear/distance based as well) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param mm the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mmToE(double mm);
+
 public:
     
     GCodeExport();
@@ -237,18 +271,7 @@ public:
     void setFilamentDiameter(unsigned int n, int diameter);
     
     double getCurrentExtrudedVolume();
-    
-    /*!
-     * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
-     * 
-     * E values are either in mm or in mm^3
-     * The current extruder is used to determine the filament area to make the conversion.
-     * 
-     * \param e the value to convert
-     * \return the value converted to mm
-     */
-    double eToMm(double e);
-    
+
     double getTotalFilamentUsed(int e);
 
     double getTotalPrintTime();

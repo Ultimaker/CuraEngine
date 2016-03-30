@@ -145,6 +145,30 @@ double GCodeExport::eToMm(double e)
     }
 }
 
+double GCodeExport::mm3ToE(double mm3)
+{
+    if (is_volumatric)
+    {
+        return mm3;
+    }
+    else
+    {
+        return mm3 / extruder_attr[current_extruder].filament_area;
+    }
+}
+
+double GCodeExport::mmToE(double mm)
+{
+    if (is_volumatric)
+    {
+        return mm * extruder_attr[current_extruder].filament_area;
+    }
+    else
+    {
+        return mm;
+    }
+}
+
 
 double GCodeExport::getTotalFilamentUsed(int e)
 {
@@ -279,11 +303,7 @@ void GCodeExport::writeMove(Point3 p, double speed, double extrusion_mm3_per_mm)
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
 {
-    double extrusion_per_mm = extrusion_mm3_per_mm;
-    if (!is_volumatric)
-    {
-        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
-    }
+    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
     
@@ -354,11 +374,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         return;
     }
 
-    double extrusion_per_mm = extrusion_mm3_per_mm;
-    if (!is_volumatric)
-    {
-        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
-    }
+    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
     Point gcode_pos = getGcodePos(x,y, current_extruder);
 
@@ -371,7 +387,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             isZHopped = 0;
         }
         double prime_volume = extruder_attr[current_extruder].prime_volume;
-        current_e_value += (is_volumatric) ? prime_volume : prime_volume / extruder_attr[current_extruder].filament_area;   
+        current_e_value += mm3ToE(prime_volume);
         if (extruder_attr[current_extruder].retraction_e_amount_current)
         {
             if (firmware_retract)
@@ -448,7 +464,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_e_amount_current == config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0))
+    if (extruder_attr[current_extruder].retraction_e_amount_current == mmToE(config->distance))
     {
         return;
     }
@@ -484,7 +500,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
     
-    double retraction_e_amount = config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
+    double retraction_e_amount = mmToE(config->distance);
     if (firmware_retract)
     {
         *output_stream << "G10\n";
@@ -520,7 +536,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         return;
     }
 
-    double retraction_e_amount = extruder_attr[current_extruder].extruder_switch_retraction_distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
+    double retraction_e_amount = mmToE(extruder_attr[current_extruder].extruder_switch_retraction_distance);
     if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_e_amount)
     {
         return; 
