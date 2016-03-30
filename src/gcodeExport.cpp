@@ -133,6 +133,18 @@ double GCodeExport::getCurrentExtrudedVolume()
     }
 }
 
+double GCodeExport::eToMm(double e)
+{
+    if (is_volumatric)
+    {
+        return e / extruder_attr[current_extruder].filament_area;
+    }
+    else
+    {
+        return e;
+    }
+}
+
 
 double GCodeExport::getTotalFilamentUsed(int e)
 {
@@ -319,7 +331,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
         " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
     
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
 void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
@@ -371,14 +383,14 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                     *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                     currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 }
-                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), 25.0);
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0);
             }
             else
             {
                 current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
                 *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
             }
             if (getCurrentExtrudedVolume() > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
             {
@@ -390,7 +402,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         {
             *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
         }
         extruder_attr[current_extruder].prime_volume = 0.0;
         current_e_value += extrusion_per_mm * diff.vSizeMM();
@@ -427,7 +439,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     *output_stream << "\n";
     
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
 void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
@@ -477,14 +489,14 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value - retraction_e_amount), 25); // TODO: hardcoded values!
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value - retraction_e_amount)), 25); // TODO: hardcoded values!
     }
     else
     {
         current_e_value -= retraction_e_amount;
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
         currentSpeed = config->speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
     }
 
     extruder_attr[current_extruder].retraction_e_amount_current = retraction_e_amount ;

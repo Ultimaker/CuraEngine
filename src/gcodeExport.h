@@ -238,6 +238,17 @@ public:
     
     double getCurrentExtrudedVolume();
     
+    /*!
+     * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param e the value to convert
+     * \return the value converted to mm
+     */
+    double eToMm(double e);
+    
     double getTotalFilamentUsed(int e);
 
     double getTotalPrintTime();
