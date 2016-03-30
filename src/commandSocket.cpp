@@ -43,7 +43,7 @@ public:
 
     void error(const Arcus::Error & error) override
     {
-        if(error.getErrorCode() == Arcus::ErrorCode::Debug)
+        if (error.getErrorCode() == Arcus::ErrorCode::Debug)
         {
             log("%s\n", error.toString().c_str());
         }
@@ -160,36 +160,36 @@ void CommandSocket::connect(const std::string& ip, int port)
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
-        if(setting_list)
+        if (setting_list)
         {
             handleSettingList(setting_list);
         }
 
         /*cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
-        if(object_list)
+        if (object_list)
         {
             handleObjectList(object_list);
         }*/
         
         cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get());
-        if(slice)
+        if (slice)
         {
             // Reset object counts
             private_data->object_count = 0;
             private_data->object_ids.clear();
-            for(auto object : slice->object_lists())
+            for (auto object : slice->object_lists())
             {
                 handleObjectList(&object);
             }
         }
 
         //If there is an object to slice, do so.
-        if(private_data->objects_to_slice.size())
+        if (private_data->objects_to_slice.size())
         {
             FffProcessor::getInstance()->resetMeshGroupNumber();
-            for(auto object : private_data->objects_to_slice)
+            for (auto object : private_data->objects_to_slice)
             {
-                if(!FffProcessor::getInstance()->processMeshGroup(object.get()))
+                if (!FffProcessor::getInstance()->processMeshGroup(object.get()))
                 {
                     logError("Slicing mesh group failed!");
                 }
@@ -218,7 +218,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 #ifdef ARCUS
 void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 {
-    if(list->objects_size() <= 0)
+    if (list->objects_size() <= 0)
     {
         return;
     }
@@ -229,7 +229,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     private_data->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* meshgroup = private_data->objects_to_slice.back().get();
     
-    for(auto setting : list->settings())
+    for (auto setting : list->settings())
     {
         meshgroup->setSetting(setting.name(), setting.value());
     }
@@ -239,19 +239,19 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         meshgroup->createExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
     }
     
-    for(auto object : list->objects())
+    for (auto object : list->objects())
     {
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
         int face_count = object.vertices().size() / bytes_per_face;
 
-        if(face_count <= 0)
+        if (face_count <= 0)
         {
             logWarning("Got an empty mesh, ignoring it!");
             continue;
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
         int extruder_train_nr = 0; // TODO: make primary extruder configurable!
-        for(auto setting : object.settings())
+        for (auto setting : object.settings())
         {
             if (setting.name() == "extruder_nr")
             {
@@ -264,7 +264,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
         Mesh& mesh = meshgroup->meshes.back();
 
-        for(int i = 0; i < face_count; ++i)
+        for (int i = 0; i < face_count; ++i)
         {
             //TODO: Apply matrix
             std::string data = object.vertices().substr(i * bytes_per_face, bytes_per_face);
@@ -285,7 +285,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  endfacet\n");
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("endsolid Cura_out\n");
-        for(auto setting : object.settings())
+        for (auto setting : object.settings())
         {
             mesh.setSetting(setting.name(), setting.value());
         }
@@ -300,7 +300,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 
 void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 {
-    for(auto setting : list->settings())
+    for (auto setting : list->settings())
     {
         FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
     }
@@ -310,7 +310,7 @@ void CommandSocket::handleSettingList(cura::proto::SettingList* list)
 void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
 #ifdef ARCUS
-    if(!private_data->current_sliced_object)
+    if (!private_data->current_sliced_object)
     {
         return;
     }
@@ -324,7 +324,7 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
 {
 #ifdef ARCUS
-    if(!private_data->current_sliced_object)
+    if (!private_data->current_sliced_object)
         return;
     
     if (polygons.size() == 0)
@@ -332,7 +332,7 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& 
 
     cura::proto::Layer* proto_layer = private_data->getLayerById(layer_nr);
 
-    for(unsigned int i = 0; i < polygons.size(); ++i)
+    for (unsigned int i = 0; i < polygons.size(); ++i)
     {
         cura::proto::Polygon* p = proto_layer->add_polygons();
         p->set_type(static_cast<cura::proto::Polygon_Type>(type));
@@ -382,7 +382,7 @@ void CommandSocket::sendPrintMaterialForObject(int index, int extruder_nr, float
 void CommandSocket::beginSendSlicedObject()
 {
 #ifdef ARCUS
-    if(!private_data->sliced_object_list)
+    if (!private_data->sliced_object_list)
     {
         private_data->sliced_object_list = std::make_shared<cura::proto::SlicedObjectList>();
     }
@@ -399,7 +399,7 @@ void CommandSocket::endSendSlicedObject()
     private_data->current_layer_offset = private_data->current_layer_count;
     std::cout << "End sliced object called. Sliced objects " << private_data->sliced_objects << " object count: " << private_data->object_count << std::endl;
 
-    if(private_data->sliced_objects >= private_data->object_count)
+    if (private_data->sliced_objects >= private_data->object_count)
     {
         private_data->socket->sendMessage(private_data->sliced_object_list);
         private_data->sliced_objects = 0;
@@ -458,7 +458,7 @@ cura::proto::Layer* CommandSocket::Private::getLayerById(int id)
     auto itr = sliced_layers.find(id);
 
     cura::proto::Layer* layer = nullptr;
-    if(itr != sliced_layers.end())
+    if (itr != sliced_layers.end())
     {
         layer = itr->second;
     }
