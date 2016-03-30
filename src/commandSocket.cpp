@@ -394,7 +394,7 @@ std::shared_ptr<cura::proto::Layer> CommandSocket::Private::getLayerById(int id)
 
     auto itr = sliced_layers.find(id);
 
-    std::shared_ptr<cura::proto::Layer> layer = nullptr;
+    std::shared_ptr<cura::proto::Layer> layer;
     if(itr != sliced_layers.end())
     {
         layer = itr->second;
