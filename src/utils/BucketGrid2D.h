@@ -38,7 +38,7 @@ private:
      */
     inline Point getRelativeForHash(const Point& p, const Cellidx& relative_hash)
     {
-        return p + relative_hash*squareSize;
+        return p + relative_hash * squareSize;
     }
 
 
@@ -65,13 +65,13 @@ private:
          */
         inline uint32_t pointHash(const Point& point) const
         {
-            Cellidx p = point/squareSize;
+            Cellidx p = point / squareSize;
             return pointHash_simple(p);
         }
 /*
         inline uint32_t pointHash(const Point& point, const Point& relativeHash) const
         {
-            Point p = p/squareSize + relativeHash;
+            Point p = p / squareSize + relativeHash;
             return pointHash_simple(p);
         }*/
 
@@ -198,7 +198,7 @@ public:
     bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, T& object)> precondition = no_precondition)
     {
         bool found = false;
-        int64_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
+        int64_t bestDist2 = squareSize * 9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
