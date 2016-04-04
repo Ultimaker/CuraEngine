@@ -143,6 +143,7 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
+        int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
         std::string start_code;
@@ -241,11 +242,23 @@ public:
     
     GCodeExport();
     ~GCodeExport();
-    
+
+    /*!
+     * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
+     * 
+     * \param print_time The total print time of the whole file (if known)
+     * \param filament_used_0 The total mm^3 filament used for the primary extruder (if known)
+     * \param filament_used_1 The total mm^3 filament used for the secondary extruder (if used and if known)
+     * \return The string representing the file header
+     */
+    std::string getFileHeader(double print_time = 666, int filament_used_0 = 666, int filament_used_1 = 0);
+
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
-    
+
+    int getNozzleSize(int extruder_idx);
+
     Point getExtruderOffset(int id);
     
     Point getGcodePos(int64_t x, int64_t y, int extruder_train);
@@ -325,6 +338,7 @@ public:
             ExtruderTrain* train = settings->getExtruderTrain(n);
             setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
             
+            extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
             extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             
             extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");

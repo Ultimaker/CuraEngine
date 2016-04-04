@@ -178,15 +178,8 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 {
     if (!CommandSocket::isInstantiated())
     {
-        std::ostringstream prefix;
-        prefix << "FLAVOR:" << toString(gcode.getFlavor());
-        gcode.writeComment(prefix.str().c_str());
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            gcode.writeComment("TIME:666");
-            gcode.writeComment("MATERIAL:666");
-            gcode.writeComment("MATERIAL2:-1");
-        }
+        std::string prefix = gcode.getFileHeader();
+        gcode.writeCode(prefix.c_str());
     }
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
     {
@@ -949,15 +942,8 @@ void FffGcodeWriter::finalize()
 {
     if (CommandSocket::isInstantiated())
     {
-        std::ostringstream prefix;
-        prefix << ";FLAVOR:" << toString(gcode.getFlavor()) << "\n";
-        prefix << ";TIME:" << int(gcode.getTotalPrintTime()) << "\n";
-        if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
-        {
-            prefix << ";MATERIAL:" << int(gcode.getTotalFilamentUsed(0)) << "\n";
-            prefix << ";MATERIAL2:" << int(gcode.getTotalFilamentUsed(1)) << "\n";
-        }
-        CommandSocket::getInstance()->sendGCodePrefix(prefix.str());
+        std::string prefix = gcode.getFileHeader(gcode.getTotalPrintTime(), gcode.getTotalFilamentUsed(0), gcode.getTotalFilamentUsed(1));
+        CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
     
     gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());

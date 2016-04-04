@@ -29,6 +29,23 @@ GCodeExport::~GCodeExport()
 {
 }
 
+std::string GCodeExport::getFileHeader(double print_time, int filament_used_0, int filament_used_1)
+{
+    std::ostringstream prefix;
+    prefix << ";FLAVOR:" << toString(flavor) << "\n";
+    prefix << ";TIME:" << int(print_time) << "\n";
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    {
+        prefix << ";MATERIAL:" << int(filament_used_0) << "\n";
+        prefix << ";MATERIAL2:" << int(filament_used_1) << "\n";
+
+        prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << "\n";
+//         prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(1))) << "\n"; // TODO: the second nozzle size isn't always initiated!
+    }
+    return prefix.str();
+}
+
+
 void GCodeExport::setLayerNr(unsigned int layer_nr_) {
     layer_nr = layer_nr_;
 }
@@ -37,6 +54,11 @@ void GCodeExport::setOutputStream(std::ostream* stream)
 {
     output_stream = stream;
     *output_stream << std::fixed;
+}
+
+int GCodeExport::getNozzleSize(int extruder_idx)
+{
+    return extruder_attr[extruder_idx].nozzle_size;
 }
 
 Point GCodeExport::getExtruderOffset(int id)
