@@ -25,5 +25,4 @@ float LinearAlg2D::getAngleLeft(const Point& a, const Point& b, const Point& c)
     }
 }
 
-
-} // namespace cura 
+}

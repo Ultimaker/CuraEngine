@@ -51,8 +51,8 @@ public:
 class GCodePathConfig
 {
 private:
-    double speed_base; //!< movement speed (mm/s) specific to this print feature
-    double speed_current; //!< current movement speed (mm/s) (modified by layer_nr etc.)
+    double speed_iconic; //!< movement speed (mm/s) specific to this print feature
+    double speed; //!< current movement speed (mm/s) (modified by layer_nr etc.)
     int line_width; //!< width of the line extruded
     double flow; //!< extrusion flow modifier in %
     int layer_thickness; //!< layer height in micron
@@ -66,7 +66,7 @@ public:
     /*!
      * Basic constructor.
      */
-    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_base(0), speed_current(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_iconic(0), speed(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
     
     /*!
      * Initialize some of the member variables.
@@ -79,8 +79,8 @@ public:
      */
     void init(double speed, int line_width, double flow)
     {
-        speed_base = speed;
-        this->speed_current = speed;
+        speed_iconic = speed;
+        this->speed = speed;
         this->line_width = line_width;
         this->flow = flow;
     }
@@ -105,7 +105,15 @@ public:
      */
     void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer) 
     {
-        speed_current = (speed_base*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
+        speed = (speed_iconic*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
+    }
+
+    /*!
+     * Set the speed to the iconic speed, i.e. the normal speed of the feature type for which this is a config.
+     */
+    void setSpeedIconic()
+    {
+        speed = speed_iconic;
     }
 
     /*!
@@ -121,7 +129,7 @@ public:
      */
     double getSpeed()
     {
-        return speed_current;
+        return speed;
     }
     
     int getLineWidth()
@@ -153,6 +161,7 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
+        int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
         std::string start_code;
@@ -193,8 +202,10 @@ private:
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords;
-    
+
     std::ostream* output_stream;
+    std::string new_line;
+
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition;
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
@@ -213,15 +224,61 @@ private:
 
     unsigned int layer_nr; //!< for sending travel data
     
+protected:
+    /*!
+     * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param e the value to convert
+     * \return the value converted to mm
+     */
+    double eToMm(double e);
+
+    /*!
+     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param mm3 the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mm3ToE(double mm3);
+
+    /*!
+     * Convert a distance value to an E value (which might be linear/distance based as well) for the current extruder.
+     * 
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     * 
+     * \param mm the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mmToE(double mm);
+
 public:
     
     GCodeExport();
     ~GCodeExport();
-    
+
+    /*!
+     * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
+     * 
+     * \param print_time The total print time of the whole file (if known)
+     * \param filament_used_0 The total mm^3 filament used for the primary extruder (if known)
+     * \param filament_used_1 The total mm^3 filament used for the secondary extruder (if used and if known)
+     * \return The string representing the file header
+     */
+    std::string getFileHeader(double print_time = 666, int filament_used_0 = 666, int filament_used_1 = 0);
+
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
-    
+
+    int getNozzleSize(int extruder_idx);
+
     Point getExtruderOffset(int id);
     
     Point getGcodePos(int64_t x, int64_t y, int extruder_train);
@@ -314,6 +371,7 @@ public:
             ExtruderTrain* train = settings->getExtruderTrain(n);
             setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
             
+            extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
             extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
             
             extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
@@ -328,6 +386,15 @@ public:
 
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
         use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+
+        if (flavor == EGCodeFlavor::BFB)
+        {
+            new_line = "\r\n";
+        }
+        else 
+        {
+            new_line = "\n";
+        }
     }
     void finalize(double moveSpeed, const char* endCode);
     

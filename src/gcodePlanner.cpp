@@ -692,21 +692,36 @@ void GCodePlanner::completeConfigs()
 
 void GCodePlanner::processInitialLayersSpeedup()
 {
-    double initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
+    int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
     if (static_cast<int>(layer_nr) < initial_speedup_layers)
     {
         double initial_layer_speed = storage.getSettingInMillimetersPerSecond("speed_layer_0");
         storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
         storage.support_roof_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-        for(SliceMeshStorage& mesh : storage.meshes)
+        for (SliceMeshStorage& mesh : storage.meshes)
         {
             initial_layer_speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
             mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
             mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-            for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
+            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
                 mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            }
+        }
+    }
+    else if (static_cast<int>(layer_nr) == initial_speedup_layers)
+    {
+        storage.support_config.setSpeedIconic();
+        storage.support_roof_config.setSpeedIconic();
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            mesh.inset0_config.setSpeedIconic();
+            mesh.insetX_config.setSpeedIconic();
+            mesh.skin_config.setSpeedIconic();
+            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
+            {
+                mesh.infill_config[idx].setSpeedIconic();
             }
         }
     }

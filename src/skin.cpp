@@ -42,13 +42,16 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& storage, int innermost_wa
         Polygons downskin = (downSkinCount == 0)? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
-        auto getInsidePolygons = [&part](SliceLayer& layer2)
+        auto getInsidePolygons = [&part, wall_line_count](SliceLayer& layer2)
             {
                 Polygons result;
                 for(SliceLayerPart& part2 : layer2.parts)
                 {
                     if (part.boundaryBox.hit(part2.boundaryBox))
-                        result.add(part2.insets.back());
+                    {
+                        unsigned int wall_idx = std::min(wall_line_count, (int) part2.insets.size()) - 1;
+                        result.add(part2.insets[wall_idx]);
+                    }
                 }
                 return result;
             };
