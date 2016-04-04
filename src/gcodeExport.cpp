@@ -133,6 +133,42 @@ double GCodeExport::getCurrentExtrudedVolume()
     }
 }
 
+double GCodeExport::eToMm(double e)
+{
+    if (is_volumatric)
+    {
+        return e / extruder_attr[current_extruder].filament_area;
+    }
+    else
+    {
+        return e;
+    }
+}
+
+double GCodeExport::mm3ToE(double mm3)
+{
+    if (is_volumatric)
+    {
+        return mm3;
+    }
+    else
+    {
+        return mm3 / extruder_attr[current_extruder].filament_area;
+    }
+}
+
+double GCodeExport::mmToE(double mm)
+{
+    if (is_volumatric)
+    {
+        return mm * extruder_attr[current_extruder].filament_area;
+    }
+    else
+    {
+        return mm;
+    }
+}
+
 
 double GCodeExport::getTotalFilamentUsed(int e)
 {
@@ -267,11 +303,7 @@ void GCodeExport::writeMove(Point3 p, double speed, double extrusion_mm3_per_mm)
 
 void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
 {
-    double extrusion_per_mm = extrusion_mm3_per_mm;
-    if (!is_volumatric)
-    {
-        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
-    }
+    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
     
     Point gcode_pos = getGcodePos(x,y, current_extruder);
     
@@ -319,7 +351,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
         " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << "\r\n";
     
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
 void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_mm3_per_mm)
@@ -342,11 +374,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         return;
     }
 
-    double extrusion_per_mm = extrusion_mm3_per_mm;
-    if (!is_volumatric)
-    {
-        extrusion_per_mm = extrusion_mm3_per_mm / extruder_attr[current_extruder].filament_area;
-    }
+    double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
     Point gcode_pos = getGcodePos(x,y, current_extruder);
 
@@ -359,7 +387,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             isZHopped = 0;
         }
         double prime_volume = extruder_attr[current_extruder].prime_volume;
-        current_e_value += (is_volumatric) ? prime_volume : prime_volume / extruder_attr[current_extruder].filament_area;   
+        current_e_value += mm3ToE(prime_volume);
         if (extruder_attr[current_extruder].retraction_e_amount_current)
         {
             if (firmware_retract)
@@ -371,14 +399,14 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                     *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                     currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 }
-                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), 25.0);
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0);
             }
             else
             {
                 current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
                 *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+                estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
             }
             if (getCurrentExtrudedVolume() > 10000.0) //According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it every 10m, just to be sure.
             {
@@ -390,7 +418,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         {
             *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
-            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+            estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
         }
         extruder_attr[current_extruder].prime_volume = 0.0;
         current_e_value += extrusion_per_mm * diff.vSizeMM();
@@ -427,7 +455,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     *output_stream << "\n";
     
     currentPosition = Point3(x, y, z);
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), speed);
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
 void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
@@ -436,7 +464,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_e_amount_current == config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0))
+    if (extruder_attr[current_extruder].retraction_e_amount_current == mmToE(config->distance))
     {
         return;
     }
@@ -472,19 +500,19 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
     
-    double retraction_e_amount = config->distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
+    double retraction_e_amount = mmToE(config->distance);
     if (firmware_retract)
     {
         *output_stream << "G10\n";
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value - retraction_e_amount), 25); // TODO: hardcoded values!
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value - retraction_e_amount)), 25); // TODO: hardcoded values!
     }
     else
     {
         current_e_value -= retraction_e_amount;
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << "\n";
         currentSpeed = config->speed;
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), current_e_value), currentSpeed);
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
     }
 
     extruder_attr[current_extruder].retraction_e_amount_current = retraction_e_amount ;
@@ -508,7 +536,7 @@ void GCodeExport::writeRetraction_extruderSwitch()
         return;
     }
 
-    double retraction_e_amount = extruder_attr[current_extruder].extruder_switch_retraction_distance * ((is_volumatric)? extruder_attr[current_extruder].filament_area : 1.0);
+    double retraction_e_amount = mmToE(extruder_attr[current_extruder].extruder_switch_retraction_distance);
     if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_e_amount)
     {
         return; 
