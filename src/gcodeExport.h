@@ -184,8 +184,10 @@ private:
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords;
-    
+
     std::ostream* output_stream;
+    std::string new_line;
+
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition;
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
@@ -353,6 +355,15 @@ public:
 
         setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
         use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+
+        if (flavor == EGCodeFlavor::BFB)
+        {
+            new_line = "\r\n";
+        }
+        else 
+        {
+            new_line = "\n";
+        }
     }
     void finalize(double moveSpeed, const char* endCode);
     
