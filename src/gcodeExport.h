@@ -15,14 +15,23 @@
 
 namespace cura {
 
+/*!
+ * Coasting configuration used during printing.
+ * Can differ per extruder.
+ * 
+ * Might be used in the future to have different coasting per feature, e.g. outer wall only.
+ */
 struct CoastingConfig
 {
-    bool coasting_enable; 
-    double coasting_volume; 
-    double coasting_speed; 
-    double coasting_min_volume; 
+    bool coasting_enable; //!< Whether coasting is enabled on the extruder to which this config is attached 
+    double coasting_volume; //!< The volume leeked when printing without feeding
+    double coasting_speed; //!< A modifier (0-1) on the last used travel speed to move slower during coasting
+    double coasting_min_volume;  //!< The minimal volume printed to build up enough pressure to leek the coasting_volume
 };
-    
+
+/*!
+ * The retraction configuration used in the GCodePathConfig of each feature (and the travel config)
+ */
 class RetractionConfig
 {
 public:
@@ -31,33 +40,42 @@ public:
     double primeSpeed; //!< the speed with which to unretract (in mm/s)
     double prime_volume; //!< the amount of material primed after unretracting (in mm^3)
     int zHop; //!< the amount with which to lift the head during a retraction-travel
-    int retraction_min_travel_distance; //!< 
-    double retraction_extrusion_window; //!< in mm
-    int retraction_count_max;
+    int retraction_min_travel_distance; //!< Minimal distance traversed to even consider retracting (in micron)
+    double retraction_extrusion_window; //!< Window of mm extruded filament in which to limit the amount of retractions
+    int retraction_count_max; //!< The maximum amount of retractions allowed to occur in the RetractionConfig::retraction_extrusion_window
 };
 
-//The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
+/*!
+ * The GCodePathConfig is the configuration for moves/extrusion actions. This defines at which width the line is printed and at which speed.
+ */
 class GCodePathConfig
 {
 private:
     double speed_base; //!< movement speed (mm/s) specific to this print feature
     double speed_current; //!< current movement speed (mm/s) (modified by layer_nr etc.)
     int line_width; //!< width of the line extruded
-    double flow; //!< extrusion flow in %
-    int layer_thickness; //!< layer height
-    double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line extruded
+    double flow; //!< extrusion flow modifier in %
+    int layer_thickness; //!< layer height in micron
+    double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line traversed
 public:
     PrintFeatureType type; //!< name of the feature type
-    bool spiralize;
-    RetractionConfig *const retraction_config;
-    
+    bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature.
+    RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
+
     // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
+    /*!
+     * Basic constructor.
+     */
     GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_base(0), speed_current(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
     
     /*!
      * Initialize some of the member variables.
      * 
-     * Warning! setLayerHeight still has to be called before this object can be used.
+     * \warning GCodePathConfig::setLayerHeight still has to be called before this object can be used.
+     * 
+     * \param speed The regular speed with which to print this feature
+     * \param line_width The line width for this feature
+     * \param flow The flow modifier to apply to the extruded filament when printing this feature
      */
     void init(double speed, int line_width, double flow)
     {
