@@ -550,7 +550,7 @@ void Wireframe2gcode::processStartingCode()
     {
         if (!CommandSocket::isInstantiated())
         {
-            gcode.writeCode(gcode.getFileHeader());
+            gcode.writeCode(gcode.getFileHeader().c_str());
         }
     }
     else 
