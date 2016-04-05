@@ -550,11 +550,8 @@ void GCodeExport::switchExtruder(int new_extruder)
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
 
-    if (flavor == EGCodeFlavor::MACH3)
-    {
-        resetExtrusionValue(); // also zero the E value on the new extruder
-    }
-    
+    resetExtrusionValue(); // also zero the E value on the new extruder
+
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
     {
