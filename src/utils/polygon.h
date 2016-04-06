@@ -213,7 +213,7 @@ public:
     
     /*!
      * Smooth out the polygon and store the result in \p result.
-     * Smoothing is performed by removing line segments smaller than \p remove_length
+     * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
      * 
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
@@ -223,15 +223,26 @@ public:
         PolygonRef& thiss = *this;
         ClipperLib::Path* poly = result.polygon;
         if (size() > 0)
+        {
             poly->push_back(thiss[0]);
+        }
         for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
-            if (shorterThen(thiss[poly_idx-1]-thiss[poly_idx], remove_length))
+            Point& last = thiss[poly_idx - 1];
+            Point& now = thiss[poly_idx];
+            Point& next = thiss[(poly_idx + 1) % size()];
+            if (shorterThen(last - now, remove_length) && shorterThen(now - next, remove_length)) 
             {
                 poly_idx++; // skip the next line piece (dont escalate the removal of edges)
                 if (poly_idx < size())
+                {
                     poly->push_back(thiss[poly_idx]);
-            } else poly->push_back(thiss[poly_idx]);
+                }
+            }
+            else
+            {
+                poly->push_back(thiss[poly_idx]);
+            }
         }
     }
 
