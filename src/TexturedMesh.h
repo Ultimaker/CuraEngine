@@ -56,7 +56,7 @@ protected:
     std::vector<FaceTextureCoordIndices> face_texture_indices;
     MaterialBase material_base;
 private:
-    int current_mat;
+    int current_mat; //!< material currently used in loading the face material info
 };
 
 } // namespace cura

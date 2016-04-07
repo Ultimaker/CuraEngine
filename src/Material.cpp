@@ -6,5 +6,16 @@
 namespace cura
 {
 
+void Material::setData(unsigned char* data)
+{
+    this->data = data;
+}
+
+void Material::setWidthHeight(int width, int height)
+{
+    this->width = width;
+    this->height = height;
+}
+
 
 } // namespace cura
