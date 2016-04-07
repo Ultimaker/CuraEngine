@@ -349,9 +349,9 @@ void CommandSocket::connect(const std::string& ip, int port)
                         continue;
                     }
                     const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
-                    for (Mesh& mesh : meshgroup->meshes)
+                    for (Mesh* mesh : meshgroup->meshes)
                     {
-                        mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
+                        mesh->setSettingInheritBase(setting_extruder.name(), *settings_base);
                     }
                 }
             }
@@ -458,8 +458,8 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         }
         SettingsBase* extruder_train = meshgroup->getExtruderTrain(extruder_train_nr);
 
-        meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
-        Mesh& mesh = meshgroup->meshes.back();
+        meshgroup->meshes.push_back(new Mesh(extruder_train)); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
+        Mesh& mesh = *meshgroup->meshes.back();
 
         for (int i = 0; i < face_count; ++i)
         {

@@ -847,7 +847,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStor
         const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
+            const Mesh& mesh_data = *storage.meshgroup->meshes[mesh_idx];
             const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }

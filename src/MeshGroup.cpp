@@ -45,6 +45,10 @@ MeshGroup::~MeshGroup()
             delete extruders[extruder];
         }
     }
+    for (Mesh* mesh : meshes)
+    {
+        delete mesh;
+    }
 }
 
 int MeshGroup::getExtruderCount() const
@@ -90,10 +94,10 @@ Point3 MeshGroup::min() const
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret = meshes[0].min();
-    for(unsigned int i=1; i<meshes.size(); i++)
+    Point3 ret = meshes[0]->min();
+    for (unsigned int i = 1; i < meshes.size(); i++)
     {
-        Point3 v = meshes[i].min();
+        Point3 v = meshes[i]->min();
         ret.x = std::min(ret.x, v.x);
         ret.y = std::min(ret.y, v.y);
         ret.z = std::min(ret.z, v.z);
@@ -107,10 +111,10 @@ Point3 MeshGroup::max() const
     {
         return Point3(0, 0, 0);
     }
-    Point3 ret = meshes[0].max();
-    for(unsigned int i=1; i<meshes.size(); i++)
+    Point3 ret = meshes[0]->max();
+    for (unsigned int i = 1; i < meshes.size(); i++)
     {
-        Point3 v = meshes[i].max();
+        Point3 v = meshes[i]->max();
         ret.x = std::max(ret.x, v.x);
         ret.y = std::max(ret.y, v.y);
         ret.z = std::max(ret.z, v.z);
@@ -120,9 +124,9 @@ Point3 MeshGroup::max() const
 
 void MeshGroup::clear()
 {
-    for(Mesh& m : meshes)
+    for (Mesh* m : meshes)
     {
-        m.clear();
+        m->clear();
     }
 }
 
@@ -144,17 +148,17 @@ void MeshGroup::finalize()
     }
     
     // If a mesh position was given, put the mesh at this position in 3D space. 
-    for(Mesh& mesh : meshes)
+    for (Mesh* mesh : meshes)
     {
-        Point3 mesh_offset(mesh.getSettingInMicrons("mesh_position_x"), mesh.getSettingInMicrons("mesh_position_y"), mesh.getSettingInMicrons("mesh_position_z"));
-        if (mesh.getSettingBoolean("center_object"))
+        Point3 mesh_offset(mesh->getSettingInMicrons("mesh_position_x"), mesh->getSettingInMicrons("mesh_position_y"), mesh->getSettingInMicrons("mesh_position_z"));
+        if (mesh->getSettingBoolean("center_object"))
         {
-            Point3 object_min = mesh.min();
-            Point3 object_max = mesh.max();
+            Point3 object_min = mesh->min();
+            Point3 object_max = mesh->max();
             Point3 object_size = object_max - object_min;
             mesh_offset += Point3(-object_min.x - object_size.x / 2, -object_min.y - object_size.y / 2, -object_min.z);
         }
-        mesh.offset(mesh_offset + meshgroup_offset);
+        mesh->offset(mesh_offset + meshgroup_offset);
     }
 }
 
@@ -344,8 +348,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if (loadMeshSTL(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
@@ -354,8 +358,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     }
     else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshOBJ(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if(loadMeshOBJ(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             return true;
