@@ -16,6 +16,7 @@ namespace cura
 class TexturedMesh : public Mesh 
 {
 public:
+    TexturedMesh(SettingsBaseVirtual* sb);
     /*!
      * Coordinates in texture bitmap 
      */
@@ -40,6 +41,7 @@ public:
     };
     void addTextureCoord(double x, double y);
     void addFace(int vi0, int vi1, int vi2, int ti1, int ti2, int ti3);
+    using Mesh::addFace;
 protected:
     std::vector<Coord> texture_coords;
     std::vector<FaceTextureCoordIndices> face_texture_indices;
