@@ -8,8 +8,11 @@ namespace cura
 class Material
 {
 public:
+    void setData(unsigned char* data);
+    void setWidthHeight(int width, int height);
 protected:
-    
+    unsigned char* data; //!< pixel data in rgb-row-first (or bgr-row first ?)
+    int width, height; //!< image dimensions
 };
 
 } // namespace cura
