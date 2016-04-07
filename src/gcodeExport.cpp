@@ -52,13 +52,13 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
 
-    for (const Mesh& mesh : meshgroup->meshes)
+    for (const Mesh* mesh : meshgroup->meshes)
     {
-        if (!mesh.getSettingBoolean("anti_overhang_mesh")
-            && !mesh.getSettingBoolean("support_mesh")
+        if (!mesh->getSettingBoolean("anti_overhang_mesh")
+            && !mesh->getSettingBoolean("support_mesh")
         )
         {
-            extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+            extruder_attr[mesh->getSettingAsIndex("extruder_nr")].is_used = true;
         }
     }
 
@@ -70,11 +70,11 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
         {
             extruder_attr[extruder_nr].is_used = true;
         }
-        for (const Mesh& mesh : meshgroup->meshes)
+        for (const Mesh* mesh : meshgroup->meshes)
         {
-            if ((mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_interface_enable") && meshgroup->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
-                || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
-                || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+            if ((mesh->getSettingBoolean("support_enable") && mesh->getSettingBoolean("support_interface_enable") && meshgroup->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
+                || (mesh->getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+                || (mesh->getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
                 )
             {
                 extruder_attr[extruder_nr].is_used = true;

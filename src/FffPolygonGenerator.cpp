@@ -88,7 +88,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
-        Mesh& mesh = meshgroup->meshes[mesh_idx];
+        Mesh& mesh = *meshgroup->meshes[mesh_idx];
         Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
@@ -107,7 +107,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
         if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
@@ -125,7 +125,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh"))
         {
@@ -138,10 +138,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
-        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
+        storage.meshes.emplace_back(meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
         if (mesh.getSettingBoolean("anti_overhang_mesh"))
@@ -357,8 +357,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (other_mesh.getSettingBoolean("infill_mesh"))
             {
-                AABB3D aabb = storage.meshgroup->meshes[mesh_idx].getAABB();
-                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx].getAABB();
+                AABB3D aabb = storage.meshgroup->meshes[mesh_idx]->getAABB();
+                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx]->getAABB();
                 if (aabb.hit(other_aabb))
                 {
                     process_infill = true;

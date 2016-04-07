@@ -38,7 +38,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     }
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
     {
-        Mesh& mesh = meshgroup.meshes[mesh_idx];
+        Mesh& mesh = *meshgroup.meshes[mesh_idx];
         sstream << " -e" << mesh.getSettingAsIndex("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
     }
     sstream << "\n";
@@ -58,9 +58,9 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     gcode_writer.setParent(meshgroup);
 
     bool empty = true;
-    for (Mesh& mesh : meshgroup->meshes)
+    for (Mesh* mesh : meshgroup->meshes)
     {
-        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_overhang_mesh"))
+        if (!mesh->getSettingBoolean("infill_mesh") && !mesh->getSettingBoolean("anti_overhang_mesh"))
         {
             empty = false;
         }
