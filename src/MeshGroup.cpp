@@ -168,7 +168,7 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshOBJ(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
+bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
@@ -225,8 +225,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     }
     else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
     {
-        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshOBJ(mesh,filename,transformation)) //Load it! If successful...
+        TexturedMesh* mesh = new TexturedMesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if (loadMeshOBJ(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             return true;
