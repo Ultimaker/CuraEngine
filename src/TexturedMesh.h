@@ -40,7 +40,7 @@ public:
         {}
     };
     void addTextureCoord(double x, double y);
-    void addFace(int vi0, int vi1, int vi2, int ti1, int ti2, int ti3);
+    void addFace(int vi0, int vi1, int vi2, int ti0, int ti1, int ti2);
     using Mesh::addFace;
 protected:
     std::vector<Coord> texture_coords;
