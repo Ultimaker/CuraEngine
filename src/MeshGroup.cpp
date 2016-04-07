@@ -212,8 +212,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if (loadMeshSTL(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             return true;
@@ -221,8 +221,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
     }
     else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
     {
-        Mesh mesh = object_parent_settings ? Mesh(object_parent_settings) : Mesh(meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
-        if(loadMeshOBJ(&mesh,filename,transformation)) //Load it! If successful...
+        Mesh* mesh = new Mesh(object_parent_settings ? object_parent_settings : meshgroup); //If we have object_parent_settings, use them as parent settings. Otherwise, just use meshgroup.
+        if(loadMeshOBJ(mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
             return true;

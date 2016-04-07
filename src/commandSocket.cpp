@@ -261,8 +261,8 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
         }
         SettingsBase* extruder_train = meshgroup->getExtruderTrain(extruder_train_nr);
 
-        meshgroup->meshes.push_back(extruder_train); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
-        Mesh& mesh = meshgroup->meshes.back();
+        meshgroup->meshes.push_back(new Mesh(extruder_train)); //Construct a new mesh (with the corresponding extruder train as settings parent object) and put it into MeshGroup's mesh list.
+        Mesh& mesh = *meshgroup->meshes.back();
 
         for(int i = 0; i < face_count; ++i)
         {

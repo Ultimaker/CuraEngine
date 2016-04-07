@@ -26,7 +26,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     }
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
     {
-        Mesh& mesh = meshgroup.meshes[mesh_idx];
+        Mesh& mesh = *meshgroup.meshes[mesh_idx];
         sstream << " -e" << mesh.getSettingAsCount("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
     }
     sstream << "\n";
