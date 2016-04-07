@@ -25,6 +25,10 @@ void* fgets_(char* ptr, size_t len, FILE* f)
             *ptr = '\0';
             return ptr;
         }
+        else if (*ptr =='\0')
+        {
+            return ptr;
+        }
         ptr++;
         len--;
     }
@@ -302,15 +306,71 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
+void loadMatImage(Material* mat, const char* filename)
+{
+    std::cerr << "trying to load " << filename << "\n";
+}
+
+void loadMaterialBase(TexturedMesh* mesh, const char* filename)
+{
+    FILE* f = fopen(filename, "rt");
+    if (f == nullptr)
+    {
+        logError("ERROR: Couldn't load MTL file %s.\n", filename);
+        return;
+    }
+    char buffer[1024];
+    char mat_name [100];
+    char mat_file [100];
+    char map_type [10];
+    bool has_mtl = false;
+    Material* last_mat = nullptr;
+    while(fgets_(buffer, sizeof(buffer), f))
+    {
+        if (buffer[0] == '#')
+        {
+            continue;
+        }
+        if (sscanf(buffer, "map_%s %s", map_type, mat_file) == 2 // we don't care what type of map it specifies (currently)
+            || sscanf(buffer, "bump %s", mat_file) == 1
+            || sscanf(buffer, "disp %s", mat_file) == 1
+            || sscanf(buffer, "decal %s", mat_file) == 1
+            || sscanf(buffer, "refl %s", mat_file) == 1
+        )
+        {
+            std::string parent_dir = std::string(filename).substr(0, std::string(filename).find_last_of("/\\"));
+            std::string mtl_file = parent_dir + "/" + mat_file;
+            if (last_mat)
+            {
+                loadMatImage(last_mat, mtl_file.c_str());
+            }
+        }
+        else if (sscanf(buffer, "newmtl %s", mat_name) == 1)
+        {
+            last_mat = mesh->addMaterial(mat_name);
+        }
+    }
+    if (last_mat)
+    {
+        
+    }
+    fclose(f);
+}
+
 bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
+    if (f == nullptr)
+    {
+        return false;
+    }
     char buffer[1024];
     FPoint3 vertex;
     Point3 vertex_indices;
     char face_index_buffer_1 [100];
     char face_index_buffer_2 [100];
     char face_index_buffer_3 [100];
+    char str_buffer [100];
     while(fgets_(buffer, sizeof(buffer), f))
     {
         if (buffer[0] == '#')
@@ -334,6 +394,12 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
                 mesh->addFace(vertex_indices.x - 1, vertex_indices.y - 1, vertex_indices.z - 1, texture_indices.x - 1, texture_indices.y - 1, texture_indices.z - 1);
                 // obj files count vertex indices starting from 1!
             }
+        }
+        else if (sscanf(buffer, "mtllib %s", str_buffer) == 1)
+        {
+            std::string parent_dir = std::string(filename).substr(0, std::string(filename).find_last_of("/\\"));
+            std::string mtl_file = parent_dir + "/" + str_buffer;
+            loadMaterialBase(mesh, mtl_file.c_str());
         }
     }
     fclose(f);
