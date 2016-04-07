@@ -4,6 +4,7 @@
 
 #include "utils/NoCopy.h"
 #include "mesh.h"
+#include "TexturedMesh.h"
 #include "ExtruderTrain.h"
 
 namespace cura
