@@ -35,7 +35,7 @@ public:
      * \param[in,out] volumes The outline data of each mesh
      * \param meshes The meshes which contain the settings for each volume
      */
-    static void carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes);
+    static void carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh*>& meshes);
 };
 
 }//namespace cura

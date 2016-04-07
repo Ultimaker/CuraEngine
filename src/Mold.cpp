@@ -12,7 +12,7 @@ void Mold::process(SliceDataStorage& storage, std::vector<Slicer*>& slicer_list,
         bool has_any_mold = false;
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            Mesh& mesh = storage.meshgroup->meshes[mesh_idx];
+            Mesh& mesh = *storage.meshgroup->meshes[mesh_idx];
             if (mesh.getSettingBoolean("mold_enabled"))
             {
                 has_any_mold = true;
