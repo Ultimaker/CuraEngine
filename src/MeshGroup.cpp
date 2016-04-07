@@ -386,6 +386,10 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
             log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
             return true;
         }
+        else
+        {
+            delete mesh;
+        }
     }
     else if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
     {
@@ -394,6 +398,10 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
         {
             meshgroup->meshes.push_back(mesh);
             return true;
+        }
+        else 
+        {
+            delete mesh;
         }
     }
         
