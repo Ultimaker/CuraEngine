@@ -15,17 +15,21 @@ Mesh::Mesh(SettingsBaseVirtual* parent)
 {
 }
 
-void Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
+bool Mesh::addFace(Point3& v0, Point3& v1, Point3& v2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);
     int vi2 = findIndexOfVertex(v2);
-    addFace(vi0, vi1, vi2);
+    return addFace(vi0, vi1, vi2);
 }
 
-void Mesh::addFace(int vi0, int vi1, int vi2)
+bool Mesh::addFace(int vi0, int vi1, int vi2)
 {
-    if (vi0 == vi1 || vi1 == vi2 || vi0 == vi2) return; // the face has two vertices which get assigned the same location. Don't add the face.
+    if (vi0 == vi1 || vi1 == vi2 || vi0 == vi2)
+    {
+        // the face has two vertices which get assigned the same location. Don't add the face.
+        return false;
+    }
 
     int idx = faces.size(); // index of face to be added
     faces.emplace_back();
@@ -36,6 +40,8 @@ void Mesh::addFace(int vi0, int vi1, int vi2)
     vertices[face.vertex_index[0]].connected_faces.push_back(idx);
     vertices[face.vertex_index[1]].connected_faces.push_back(idx);
     vertices[face.vertex_index[2]].connected_faces.push_back(idx);
+
+    return true;
 }
 
 void Mesh::clear()
