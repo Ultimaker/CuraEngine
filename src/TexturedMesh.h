@@ -34,7 +34,7 @@ public:
      */
     struct FaceTextureCoordIndices
     {
-        int i1, i2, i3;
+        int i1, i2, i3; //!< indices into texture_coords or -1 if no texture data available
         FaceTextureCoordIndices(int i1, int i2, int i3)
         : i1(i1), i2(i2), i3(i3)
         {}

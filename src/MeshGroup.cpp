@@ -339,7 +339,6 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
     char buffer[1024];
     FPoint3 vertex;
     Point3 vertex_indices;
-    Point3 texture_indices;
     char face_index_buffer_1 [100];
     char face_index_buffer_2 [100];
     char face_index_buffer_3 [100];
@@ -357,12 +356,13 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
         else if (sscanf(buffer, "f %s %s %s", face_index_buffer_1, face_index_buffer_2, face_index_buffer_3) == 3)
         {
             int normal_vector_index; // unused
+            Point3 texture_indices(0, 0, 0); // becomes -1 if no texture data supplied
             int n_scanned_1 = sscanf(face_index_buffer_1, "%d/%d/%d", &vertex_indices.x, &texture_indices.x, &normal_vector_index); 
             int n_scanned_2 = sscanf(face_index_buffer_2, "%d/%d/%d", &vertex_indices.y, &texture_indices.y, &normal_vector_index); 
             int n_scanned_3 = sscanf(face_index_buffer_3, "%d/%d/%d", &vertex_indices.z, &texture_indices.z, &normal_vector_index); 
             if (n_scanned_1 > 0 && n_scanned_2 > 0 && n_scanned_3 > 0)
             {
-                mesh->addFace(vertex_indices.x - 1, vertex_indices.y - 1, vertex_indices.z - 1);
+                mesh->addFace(vertex_indices.x - 1, vertex_indices.y - 1, vertex_indices.z - 1, texture_indices.x - 1, texture_indices.y - 1, texture_indices.z - 1);
                 // obj files count vertex indices starting from 1!
             }
         }
