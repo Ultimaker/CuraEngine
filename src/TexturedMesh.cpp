@@ -1,4 +1,4 @@
-/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 
 #include "TexturedMesh.h"
 
@@ -10,6 +10,7 @@ namespace cura
 
 TexturedMesh::TexturedMesh(SettingsBaseVirtual* sb)
 : Mesh(sb)
+, current_mat(-1) // not set yet
 {
 }
 
@@ -47,9 +48,21 @@ void TexturedMesh::addFace(int vi0, int vi1, int vi2, int ti0, int ti1, int ti2)
     bool made_new_face = Mesh::addFace(vi0, vi1, vi2);
     if (made_new_face)
     {
-        face_texture_indices.emplace_back(ti0, ti1, ti2);
+        face_texture_indices.emplace_back(ti0, ti1, ti2, current_mat);
         assert(Mesh::faces.size() == face_texture_indices.size());
     }
 }
+
+bool TexturedMesh::setMaterial(std::string name)
+{
+    current_mat = material_base.getMatId(name);
+    return current_mat >= 0;
+}
+
+Material* TexturedMesh::addMaterial(std::__cxx11::string name)
+{
+    return material_base.add(name);
+}
+
 
 } // namespace cura

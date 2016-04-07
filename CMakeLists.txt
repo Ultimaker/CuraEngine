@@ -72,6 +72,8 @@ set(engine_SRCS # Except main.cpp.
     src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
+    src/Material.cpp
+    src/MaterialBase.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
