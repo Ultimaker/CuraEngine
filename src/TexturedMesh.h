@@ -28,12 +28,21 @@ public:
         , y(y)
         {}
     };
-    
+    /*!
+     * 
+     */
+    struct FaceTextureCoordIndices
+    {
+        int i1, i2, i3;
+        FaceTextureCoordIndices(int i1, int i2, int i3)
+        : i1(i1), i2(i2), i3(i3)
+        {}
+    };
     void addTextureCoord(double x, double y);
     void addFace(int vi0, int vi1, int vi2, int ti1, int ti2, int ti3);
 protected:
     std::vector<Coord> texture_coords;
-    std::vector<Point> face_texture_indices;
+    std::vector<FaceTextureCoordIndices> face_texture_indices;
 private:
     
 };
