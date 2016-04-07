@@ -67,8 +67,22 @@ public:
 
     virtual ~Mesh() {} //!< Destructor
     
-    void addFace(Point3& v0, Point3& v1, Point3& v2); //!< add a face to the mesh without settings it's connected_faces.
-    void addFace(int vi0, int vi1, int vi2); //!< add a face to the mesh without settings it's connected_faces.
+    /*! 
+     * add a face to the mesh without settings it's connected_faces.
+     * 
+     * Don't add a face when the surface is zero mm^2
+     * 
+     * \return whether a face has been added
+     */
+    bool addFace(Point3& v0, Point3& v1, Point3& v2);
+    /*!
+     * add a face to the mesh without settings it's connected_faces.
+     * 
+     * Don't add a face when the surface is zero mm^2
+     * 
+     * \return whether a face has been added
+     */
+    bool addFace(int vi0, int vi1, int vi2);
     void addVertex(const Point3& v);
 
     void clear(); //!< clears all data
