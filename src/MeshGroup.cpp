@@ -329,31 +329,37 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshOBJ(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
+bool loadMeshOBJ(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 {
     FILE* f = fopen(filename, "rt");
     char buffer[1024];
     FPoint3 vertex;
-    int n = 0;
-    Point3 v0(0,0,0), v1(0,0,0), v2(0,0,0);
+    Point3 vertex_indices;
+    Point3 texture_indices;
+    char face_index_buffer_1 [100];
+    char face_index_buffer_2 [100];
+    char face_index_buffer_3 [100];
     while(fgets_(buffer, sizeof(buffer), f))
     {
-        if (sscanf(buffer, " vertex %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        if (buffer[0] == '#')
         {
-            n++;
-            switch(n)
+            continue;
+        }
+        if (sscanf(buffer, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z) == 3)
+        {
+            Point3 v = matrix.apply(vertex);
+            mesh->addVertex(v);
+        }
+        else if (sscanf(buffer, "f %s %s %s", face_index_buffer_1, face_index_buffer_2, face_index_buffer_3) == 3)
+        {
+            int normal_vector_index; // unused
+            int n_scanned_1 = sscanf(face_index_buffer_1, "%d/%d/%d", &vertex_indices.x, &texture_indices.x, &normal_vector_index); 
+            int n_scanned_2 = sscanf(face_index_buffer_2, "%d/%d/%d", &vertex_indices.y, &texture_indices.y, &normal_vector_index); 
+            int n_scanned_3 = sscanf(face_index_buffer_3, "%d/%d/%d", &vertex_indices.z, &texture_indices.z, &normal_vector_index); 
+            if (n_scanned_1 > 0 && n_scanned_2 > 0 && n_scanned_3 > 0)
             {
-            case 1:
-                v0 = matrix.apply(vertex);
-                break;
-            case 2:
-                v1 = matrix.apply(vertex);
-                break;
-            case 3:
-                v2 = matrix.apply(vertex);
-                mesh->addFace(v0, v1, v2);
-                n = 0;
-                break;
+                mesh->addFace(vertex_indices.x - 1, vertex_indices.y - 1, vertex_indices.z - 1);
+                // obj files count vertex indices starting from 1!
             }
         }
     }
@@ -362,7 +368,7 @@ bool loadMeshOBJ(Mesh* mesh, const char* filename, FMatrix3x3& matrix)
     return true;
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
 {
     TimeKeeper load_timer;
 
