@@ -8,6 +8,11 @@
 namespace cura
 {
 
+TexturedMesh::TexturedMesh(SettingsBaseVirtual* sb)
+: Mesh(sb)
+{
+}
+
 void TexturedMesh::addTextureCoord(double x, double y)
 {
     texture_coords.emplace_back(x, y);
