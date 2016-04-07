@@ -300,6 +300,10 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
             std::string mtl_file = parent_dir + "/" + str_buffer;
             loadMaterialBase(mesh, mtl_file.c_str());
         }
+        else if (sscanf(buffer, "usemtl %s", str_buffer) == 1)
+        {
+            mesh->setMaterial(str_buffer);
+        }
     }
     fclose(f);
     mesh->finish();
