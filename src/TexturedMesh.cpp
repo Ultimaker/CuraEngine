@@ -64,6 +64,7 @@ Material* TexturedMesh::addMaterial(std::__cxx11::string name)
     return material_base.add(name);
 }
 
+/*
 bool TexturedMesh::getMatCoord(unsigned int face_idx, const Point3 loc, TexturedMesh::MatCoord& result)
 {
     if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
@@ -75,12 +76,28 @@ bool TexturedMesh::getMatCoord(unsigned int face_idx, const Point3 loc, Textured
     {
         return false;
     }
+    FPoint3 x(loc);
+
     MeshFace& face = faces[face_idx];
+    FPoint3 a(vertices[face.vertex_index[0]].p);
+    FPoint3 b(vertices[face.vertex_index[1]].p);
+    FPoint3 c(vertices[face.vertex_index[2]].p);
+    
+    FPoint3 ab = b - a;
+    FPoint3 ax = x - a;
 
     Coord t1 = texture_coords[texture_idxs.i1];
-    FPoint3 t1p(t1.x, t1.y, 0.0f);
-    FPoint3 p1 = vertices[face.vertex_index[0]].p;
-}
+    Coord t2 = texture_coords[texture_idxs.i2];
+    Coord t3 = texture_coords[texture_idxs.i3];
+    FPoint3 ap(t1.x, t1.y, 0.0f);
+    FPoint3 bp(t2.x, t2.y, 0.0f);
+    FPoint3 cp(t3.x, t3.y, 0.0f);
 
+    FPoint3 apbp = bp - ap;
+
+//     float cosa = ax * ab; // dot product
+//     FPoint3 x_p_ab = ; // x projected onto ab
+}
+*/
 
 } // namespace cura

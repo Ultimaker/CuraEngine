@@ -64,13 +64,14 @@ public:
     bool setMaterial(std::string name); //!< set the material to be used in the comming data to be loaded
     Material* addMaterial(std::string name);
 
-    /*!
+    /*
      * \param face_idx The face for which to get the material coord
      * \param loc The location on the face for which to get the material coord
      * \param result The resulting material Coordinates
      * \return Whether a Material coordinate is defined at the given location
      */
-    bool getMatCoord(unsigned int face_idx, const Point3 loc, MatCoord& result);
+//     bool getMatCoord(unsigned int face_idx, const Point3 loc, MatCoord& result);
+    bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx);
 protected:
     std::vector<Coord> texture_coords;
     std::vector<FaceTextureCoordIndices> face_texture_indices;
