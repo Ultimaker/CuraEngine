@@ -76,6 +76,24 @@ private:
     );
     
     /*!
+     * Compute the basic overhang and full overhang of a layer. 
+     * The basic overhang consists of the parts of this layer which are too far away from the layer below to be supported.
+     * The full overhang consists of the basic overhang extended toward the border of the layer below.
+     * 
+     *             layer 2
+     * layer 1 ______________|
+     * _______|         ^^^^^ basic overhang
+     *         ^^^^^^^^^^^^^^ full overhang
+     * 
+     * \param storage The slice data storage
+     * \param mesh The mesh for which to compute the basic overhangs
+     * \param layer_idx The layer for which to compute the overhang
+     * \param max_dist_from_lower_layer The outward distance from the layer below which can be supported by it
+     * \return a pair of basic overhang and full overhang
+     */
+    static std::pair<Polygons, Polygons> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx, const int64_t max_dist_from_lower_layer);
+    
+    /*!
      * Adds tower pieces to the current support layer.
      * From below the roof, the towers are added to the normal support layer and handled as normal support area.
      * \param supportLayer_this The support areas in the layer for which we are creating towers/struts
