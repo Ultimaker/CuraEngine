@@ -26,11 +26,23 @@ public:
      */
     struct Coord
     {
-        double x, y; //!< Coordinates in texture bitmap 
+        float x, y; //!< Coordinates in texture bitmap
         // 0 to 1
-        Coord(double x, double y) //!< constructor
+        Coord(float x, float y) //!< constructor
         : x(x)
         , y(y)
+        {}
+    };
+    /*!
+     * Coordinates in a specific texture bitmap 
+     */
+    struct MatCoord
+    {
+        Coord coords;
+        int mat_id; //!< Material id
+        MatCoord(Coord coords, int mat_id)
+        : coords(coords)
+        , mat_id(mat_id)
         {}
     };
     /*!
@@ -45,12 +57,20 @@ public:
         , mat_id(mat_id)
         {}
     };
-    void addTextureCoord(double x, double y);
+    void addTextureCoord(float x, float y);
     void addFace(int vi0, int vi1, int vi2, int ti0, int ti1, int ti2);
     using Mesh::addFace; // otherwise above addFace would shadow the parent addFace
-    
+
     bool setMaterial(std::string name); //!< set the material to be used in the comming data to be loaded
     Material* addMaterial(std::string name);
+
+    /*!
+     * \param face_idx The face for which to get the material coord
+     * \param loc The location on the face for which to get the material coord
+     * \param result The resulting material Coordinates
+     * \return Whether a Material coordinate is defined at the given location
+     */
+    bool getMatCoord(unsigned int face_idx, const Point3 loc, MatCoord& result);
 protected:
     std::vector<Coord> texture_coords;
     std::vector<FaceTextureCoordIndices> face_texture_indices;
