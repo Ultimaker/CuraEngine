@@ -146,7 +146,7 @@ int SettingsBaseVirtual::getSettingAsCount(std::string key) const
     return atoi(value.c_str());
 }
 
-double SettingsBaseVirtual::getSettingInMillimeters(std::__cxx11::string key) const
+double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
 {
     std::string value = getSettingString(key);
     return atof(value.c_str());
