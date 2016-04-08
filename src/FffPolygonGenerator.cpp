@@ -24,9 +24,6 @@ namespace cura
     
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    if (CommandSocket::isInstantiated())
-        CommandSocket::getInstance()->beginSendSlicedObject();
-    
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
         return false;

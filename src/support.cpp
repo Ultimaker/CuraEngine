@@ -249,7 +249,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         
         if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
         {
-            storage.support.layer_nr_max_filled_layer = layer_idx;
+            storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_idx);
             still_in_upper_empty_layers = false;
         }
         

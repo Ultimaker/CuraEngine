@@ -86,16 +86,14 @@ public:
      * Does nothing at the moment
      */
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
-
-    /*!
-     * Start the slicing of a new meshgroup
-     */
-    void beginSendSlicedObject();
     
     /*!
-     * Conclude the slicing of the current meshgroup, so that we can start the next
+     * Send the sliced layer data to the GUI.
+     *
+     * The GUI may use this to visualise the g-code, so that the user can
+     * inspect the result of slicing.
      */
-    void endSendSlicedObject();
+    void sendLayerData();
 
     /*!
      * \brief Sends a message to indicate that all the slicing is done.
