@@ -100,4 +100,41 @@ bool TexturedMesh::getMatCoord(unsigned int face_idx, const Point3 loc, Textured
 }
 */
 
+bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, Coord& result)
+{
+    if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
+    {
+        return false;
+    }
+    FaceTextureCoordIndices texture_idxs = face_texture_indices[face_idx];
+    if (texture_idxs.index[0] < 0 || texture_idxs.index[1] < 0 || texture_idxs.index[2] < 0 || texture_idxs.mat_id < 0)
+    {
+        return false;
+    }
+    MeshFace& face = faces[face_idx];
+    FPoint3 p0(vertices[face.vertex_index[p0_idx]].p);
+    FPoint3 p1(vertices[face.vertex_index[p1_idx]].p);
+
+    float dzp0 = z - p0.z;
+    float dp0p1 = p1.z - p0.z;
+
+    if (dzp0 * dp0p1 < 0.0f)
+    { // z doesn't lie between p0 and p1
+        return false;
+    }
+    if (dzp0 == 0)
+    { // edge is not cut by horizontal plane!
+        return false;
+    }
+    float ratio = dp0p1 / dzp0;
+
+    Coord t0 = texture_coords[texture_idxs.index[p0_idx]];
+    Coord t1 = texture_coords[texture_idxs.index[p1_idx]];
+
+    result.x = t0.x + (t1.x - t0.x) * ratio;
+    result.y = t0.y + (t1.y - t0.y) * ratio;
+
+    return true;
+}
+
 } // namespace cura
