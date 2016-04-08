@@ -50,12 +50,15 @@ public:
      */
     struct FaceTextureCoordIndices
     {
-        int i1, i2, i3; //!< indices into texture_coords or -1 if no texture data available
+        int index[3]; //!< indices into texture_coords or -1 if no texture data available
         int mat_id; //!< Material id
         FaceTextureCoordIndices(int i1, int i2, int i3, int mat_id)
-        : i1(i1), i2(i2), i3(i3)
-        , mat_id(mat_id)
-        {}
+        : mat_id(mat_id)
+        {
+            index[0] = i1;
+            index[1] = i2;
+            index[2] = i3;
+        }
     };
     void addTextureCoord(float x, float y);
     void addFace(int vi0, int vi1, int vi2, int ti0, int ti1, int ti2);
@@ -71,10 +74,21 @@ public:
      * \return Whether a Material coordinate is defined at the given location
      */
 //     bool getMatCoord(unsigned int face_idx, const Point3 loc, MatCoord& result);
-    bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx);
+    /*!
+     * Get the material coordinate corresponding to the point on a plane cutting a given edge of the face.
+     * \param face_idx The face for which to get the material coord
+     * \param z The z of the horizontal plane cutting the face
+     * \param p0_idx The index into the first vert of the edge
+     * \param p1_idx The index into the second vert of the edge
+     * \param result The resulting material Coordinates
+     * \return Whether a Material coordinate is defined at the given location
+     */
+    bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, Coord& result);
 protected:
     std::vector<Coord> texture_coords;
     std::vector<FaceTextureCoordIndices> face_texture_indices;
+    // TODO clean up above lists when super class clear() is called
+    // not below material base? do that in separate function?
     MaterialBase material_base;
 private:
     int current_mat; //!< material currently used in loading the face material info
