@@ -144,18 +144,26 @@ public:
     std::vector<SlicerLayer> layers;
     
     Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
-    
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
-    {
-        SlicerSegment seg;
-        seg.start.X = p0.x + int64_t(p1.x - p0.x) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.end.X = p0.x + int64_t(p2.x - p0.x) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
-        seg.end.Y = p0.y + int64_t(p2.y - p0.y) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
-        return seg;
-    }
-    
+
     void dumpSegmentsToHTML(const char* filename);
+
+protected:
+    Mesh* mesh;
+    int layer_height_0;
+    int layer_height;
+    
+    /*!
+     * Create a SlicerSegment along the lines going through p0p1 (Start) and p0p2 (End)
+     * 
+     * \warning \p p0 may not have the same z as either \p p1 or \p p2
+     */
+    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const;
+    /*!
+     * 
+     * \param resulting slice
+     * \return whether a new slice was created
+     */
+    bool sliceFace(int face_idx, int32_t layer_nr, int32_t minZ, Point3 p0, Point3 p1, Point3 p2);
 };
 
 }//namespace cura
