@@ -50,7 +50,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportRoofs(storage, supportAreas, layer_count, mesh.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"));
+            generateSupportRoofs(storage, supportAreas, layer_count, storage.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"));
         }
         else 
         {
@@ -111,8 +111,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int min_smoothing_area = 100*100; // minimal area for which to perform smoothing
     int z_layer_distance_tower = 1; // start tower directly below overhang point
         
-    int layerThickness = mesh.getSettingInMicrons("layer_height");
-    int extrusionWidth = mesh.getSettingInMicrons("support_line_width"); 
+    int layerThickness = storage.getSettingInMicrons("layer_height");
+    int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
     int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
     
     bool conical_support = mesh.getSettingBoolean("support_conical_enabled");

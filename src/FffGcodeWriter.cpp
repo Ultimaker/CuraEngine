@@ -106,13 +106,13 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? INT2MM(getSettingInMicrons("retraction_amount")) : 0;
+    storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? getSettingInMillimeters("retraction_amount") : 0;
     storage.retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
     storage.retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
-    storage.retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
+    storage.retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
     storage.retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
     
     int extruder_count = storage.meshgroup->getExtruderCount();
@@ -120,24 +120,24 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     {
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
-        retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? INT2MM(train->getSettingInMicrons("retraction_amount")) : 0;
+        retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? train->getSettingInMillimeters("retraction_amount") : 0;
         retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
         retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
         retraction_config.zHop = train->getSettingInMicrons("retraction_hop");
         retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
-        retraction_config.retraction_extrusion_window = INT2MM(train->getSettingInMicrons("retraction_extrusion_window"));
+        retraction_config.retraction_extrusion_window = train->getSettingInMillimeters("retraction_extrusion_window");
         retraction_config.retraction_count_max = train->getSettingAsCount("retraction_count_max");
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? INT2MM(mesh.getSettingInMicrons("retraction_amount")) : 0;
+        mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? mesh.getSettingInMillimeters("retraction_amount") : 0;
         mesh.retraction_config.prime_volume = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
         mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
         mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
         mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
         mesh.retraction_config.retraction_min_travel_distance = mesh.getSettingInMicrons("retraction_min_travel");
-        mesh.retraction_config.retraction_extrusion_window = INT2MM(mesh.getSettingInMicrons("retraction_extrusion_window"));
+        mesh.retraction_config.retraction_extrusion_window = mesh.getSettingInMillimeters("retraction_extrusion_window");
         mesh.retraction_config.retraction_count_max = mesh.getSettingAsCount("retraction_count_max");
     }
 }
@@ -195,18 +195,22 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         {
             for(SliceMeshStorage& mesh : storage.meshes)
             {
+                int extruder_nr = mesh.getSettingAsIndex("extruder_nr");
+                double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
                 if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
                 {
-                    gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"));
+                    gcode.writeTemperatureCommand(extruder_nr, print_temp);
                 }
             }
             if (getSettingBoolean("material_print_temp_wait")) 
             {
                 for(SliceMeshStorage& mesh : storage.meshes)
                 {
+                    int extruder_nr = mesh.getSettingAsIndex("extruder_nr");
+                    double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
                     if (mesh.getSettingInDegreeCelsius("material_print_temperature") > 0)
                     {
-                        gcode.writeTemperatureCommand(mesh.getSettingAsIndex("extruder_nr"), mesh.getSettingInDegreeCelsius("material_print_temperature"), true);
+                        gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
                     }
                 }
             }
@@ -267,7 +271,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     { // raft base layer
         
         int layer_nr = -n_raft_surface_layers - 2;
-        int layer_height = getSettingInMicrons("raft_base_thickness");
+        int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings, retraction_combing, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
@@ -576,7 +580,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_angle = 45;
         if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
         {
-            unsigned int combined_infill_layers = mesh->getSettingInMicrons("infill_sparse_thickness") / std::max(mesh->getSettingInMicrons("layer_height"), 1);
+            unsigned int combined_infill_layers = mesh->getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1);
             if ((combined_infill_layers & 1 && layer_nr & 1) || (!(combined_infill_layers & 1) && (layer_nr / 2) & 1))
             { // odd combine count and odd, or even combine count and switch direction every two layers
                 infill_angle += 90;
@@ -894,12 +898,21 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
     
+    bool all_roofs_are_low = true;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
+        {
+            all_roofs_are_low = false;
+        }
+    }
+    
     double fillAngle;
     if (pattern == EFillMethod::CONCENTRIC)
     {
         fillAngle = 0;
     }
-    else if (getSettingInMicrons("support_roof_height") < 2 * getSettingInMicrons("layer_height") || pattern == EFillMethod::TRIANGLES)
+    else if (all_roofs_are_low || pattern == EFillMethod::TRIANGLES)
     {
         fillAngle = 90; // perpendicular to support lines
     }
@@ -979,3 +992,4 @@ void FffGcodeWriter::finalize()
 
 
 }//namespace cura
+

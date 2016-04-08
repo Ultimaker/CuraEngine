@@ -61,11 +61,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config(&retraction_config, PrintFeatureType::MoveCombing),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_interface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_surface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
-    support_roof_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
+    raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    raft_interface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    raft_surface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    support_config(&retraction_config_per_extruder[getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
+    support_roof_config(&retraction_config_per_extruder[getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }

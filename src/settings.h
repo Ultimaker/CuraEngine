@@ -171,6 +171,7 @@ public:
     int getSettingAsCount(std::string key) const;
     
     double getSettingInAngleRadians(std::string key) const;
+    double getSettingInMillimeters(std::string key) const;
     int getSettingInMicrons(std::string key) const;
     bool getSettingBoolean(std::string key) const;
     double getSettingInDegreeCelsius(std::string key) const;
@@ -257,3 +258,4 @@ public:
 
 }//namespace cura
 #endif//SETTINGS_H
+

@@ -38,11 +38,6 @@ public:
     : polygon(&polygon)
     {}
     
-    PolygonRef(const PolygonRef& other)
-    { 
-        polygon = other.polygon;
-    }
-
     unsigned int size() const
     {
         return polygon->size();

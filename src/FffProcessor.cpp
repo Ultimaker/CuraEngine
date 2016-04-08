@@ -27,7 +27,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup.meshes[mesh_idx];
-        sstream << " -e" << mesh.getSettingAsCount("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
+        sstream << " -e" << mesh.getSettingAsIndex("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
     }
     sstream << "\n";
     return sstream.str();
@@ -64,7 +64,10 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         return false;
 
     TimeKeeper time_keeper_total;
-    
+
+    polygon_generator.setParent(meshgroup);
+    gcode_writer.setParent(meshgroup);
+
     if (meshgroup->meshes.empty())
     {
         Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
@@ -109,6 +112,10 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 
     profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
     first_meshgroup = false;
+
+    polygon_generator.setParent(this); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
+    gcode_writer.setParent(this); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
+
     return true;
 }
 

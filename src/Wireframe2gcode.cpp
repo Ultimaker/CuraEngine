@@ -239,7 +239,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
     retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
-    retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
+    retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
     retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 
     double top_retract_pause = 2.0;
@@ -534,13 +534,13 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     roof_outer_delay = getSettingInSeconds("wireframe_roof_outer_delay");
     
     
-    standard_retraction_config.distance = INT2MM(getSettingInMicrons("retraction_amount"));
+    standard_retraction_config.distance = getSettingInMillimeters("retraction_amount");
     standard_retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
     standard_retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
-    standard_retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
+    standard_retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
     standard_retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 }
 

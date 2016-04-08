@@ -43,19 +43,19 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.model_size = storage.model_max - storage.model_min;
 
     log("Slicing model...\n");
-    int initial_layer_thickness = meshgroup->getSettingInMicrons("layer_height_0");
+    int initial_layer_thickness = getSettingInMicrons("layer_height_0");
     if(initial_layer_thickness <= 0) //Initial layer height of 0 is not allowed. Negative layer height is nonsense.
     {
         logError("Initial layer height %i is disallowed.",initial_layer_thickness);
         return false;
     }
-    int layer_thickness = meshgroup->getSettingInMicrons("layer_height");
+    int layer_thickness = getSettingInMicrons("layer_height");
     if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
     {
         logError("Layer height %i is disallowed.",layer_thickness);
         return false;
     }
-    if (meshgroup->getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
+    if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT) 
     { 
         initial_layer_thickness = layer_thickness; 
     }
@@ -98,6 +98,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        
+        
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
@@ -107,15 +109,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
             meshStorage.layers[layer_nr].printZ += 
-                meshStorage.getSettingInMicrons("layer_height_0")
+                getSettingInMicrons("layer_height_0")
                 - initial_slice_z;
             if (has_raft)
             {
+                ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
                 layer.printZ += 
-                    meshStorage.getSettingInMicrons("raft_base_thickness") 
-                    + meshStorage.getSettingInMicrons("raft_interface_thickness") 
-                    + meshStorage.getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
-                    + meshStorage.getSettingInMicrons("raft_airgap");
+                    train->getSettingInMicrons("raft_base_thickness") 
+                    + train->getSettingInMicrons("raft_interface_thickness") 
+                    + train->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
+                    + train->getSettingInMicrons("raft_airgap");
             }
     
  
@@ -126,7 +129,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 
             if (CommandSocket::isInstantiated())
             {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? meshStorage.getSettingInMicrons("layer_height_0") : meshStorage.getSettingInMicrons("layer_height"));
+                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
         
@@ -198,7 +201,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     
     for(SliceMeshStorage& mesh : storage.meshes)
     {
-        unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
+        unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
         combineInfillLayers(mesh,combined_infill_layers);
     }
 
