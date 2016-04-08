@@ -14,7 +14,7 @@ TexturedMesh::TexturedMesh(SettingsBaseVirtual* sb)
 {
 }
 
-void TexturedMesh::addTextureCoord(double x, double y)
+void TexturedMesh::addTextureCoord(float x, float y)
 {
     texture_coords.emplace_back(x, y);
 }
@@ -62,6 +62,24 @@ bool TexturedMesh::setMaterial(std::string name)
 Material* TexturedMesh::addMaterial(std::__cxx11::string name)
 {
     return material_base.add(name);
+}
+
+bool TexturedMesh::getMatCoord(unsigned int face_idx, const Point3 loc, TexturedMesh::MatCoord& result)
+{
+    if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
+    {
+        return false;
+    }
+    FaceTextureCoordIndices texture_idxs = face_texture_indices[face_idx];
+    if (texture_idxs.i1 < 0 || texture_idxs.i2 < 0 || texture_idxs.i2 < 0 || texture_idxs.mat_id < 0)
+    {
+        return false;
+    }
+    MeshFace& face = faces[face_idx];
+
+    Coord t1 = texture_coords[texture_idxs.i1];
+    FPoint3 t1p(t1.x, t1.y, 0.0f);
+    FPoint3 p1 = vertices[face.vertex_index[0]].p;
 }
 
 
