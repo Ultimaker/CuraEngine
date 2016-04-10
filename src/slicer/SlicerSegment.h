@@ -15,6 +15,11 @@ public:
     Point start, end;
     int faceIndex;
     bool addedToPolygon;
+    
+    bool operator==(const SlicerSegment& b) const
+    {
+        return start == b.start && end == b.end;
+    }
 };
 
 } // namespace cura
