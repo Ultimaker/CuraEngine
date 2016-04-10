@@ -25,7 +25,6 @@ public:
     FPoint operator-(const FPoint& p) const { return FPoint(x-p.x, y-p.y); }
     FPoint operator/(const float i) const { return FPoint(x/i, y/i); }
     FPoint operator*(const float i) const { return FPoint(x*i, y*i); }
-    FPoint operator*(const double d) const { return FPoint(d*x, d*y); }
 
     FPoint& operator += (const FPoint& p) { x += p.x; y += p.y; return *this; }
     FPoint& operator -= (const FPoint& p) { x -= p.x; y -= p.y; return *this; }
