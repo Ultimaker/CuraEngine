@@ -8,7 +8,7 @@ namespace cura
 {
 
 #define POINT_DIST 400
-#define AMPLITUDE 1000
+#define AMPLITUDE 400
 
 /*
 void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
@@ -54,7 +54,6 @@ void TextureProcessor::process(const Mesh* mesh, SlicerLayer& layer)
                     MatCoord mat_coord_now = mat_start;
                     mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
                     float val = mesh->getColor(mat_coord_now);
-                    logError("Mat val = %f at %f, %f\n", val, mat_coord_now.coords.x, mat_coord_now.coords.y);
                     int r = val * (AMPLITUDE * 2) - AMPLITUDE;
                     Point perp_to_p0p1 = turn90CCW(p0p1);
                     Point fuzz = normal(perp_to_p0p1, r);
