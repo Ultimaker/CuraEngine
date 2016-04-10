@@ -14,7 +14,9 @@ struct MatCoord
 {
     FPoint coords;
     int mat_id; //!< Material id
-    MatCoord(FPoint coords, int mat_id)
+    MatCoord() //!< non-initializing constructor
+    {}
+    MatCoord(FPoint coords, int mat_id) //!< constructor
     : coords(coords)
     , mat_id(mat_id)
     {}
