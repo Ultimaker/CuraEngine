@@ -317,9 +317,11 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 }
 
 
-
-SlicerSegment Slicer::project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
+SlicerSegment Slicer::project2D(Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
 {
+    Point3& p0 = p[idx_shared];
+    Point3& p1 = p[idx_first];
+    Point3& p2 = p[idx_second];
     SlicerSegment seg;
     seg.start.X = p0.x + int64_t(p1.x - p0.x) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
     seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
@@ -345,9 +347,13 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
     for (unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         MeshFace& face = mesh->faces[face_idx];
-        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
-        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
-        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
+        Point3 p[3] = 
+            { mesh->vertices[face.vertex_index[0]].p
+            , mesh->vertices[face.vertex_index[1]].p
+            , mesh->vertices[face.vertex_index[2]].p };
+        Point3& p0 = p[0];
+        Point3& p1 = p[1];
+        Point3& p2 = p[2];
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ)
@@ -381,29 +387,29 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             // p0 is odd one out
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(p0, p2, p1, z);
+                s = project2D(p, 0, 2, 1, z);
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(p0, p1, p2, z);
+                s = project2D(p, 0, 1, 2, z);
             }
             // p1 is odd one out
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(p1, p0, p2, z);
+                s = project2D(p, 1, 0, 2, z);
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(p1, p2, p0, z);
+                s = project2D(p, 1, 2, 0, z);
             }
             // p2 is odd one out
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(p2, p1, p0, z);
+                s = project2D(p, 2, 1, 0, z);
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(p2, p0, p1, z);
+                s = project2D(p, 2, 0, 1, z);
             }
             else
             {

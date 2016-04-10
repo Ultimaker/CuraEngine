@@ -156,8 +156,10 @@ protected:
      * Create a SlicerSegment along the lines going through p0p1 (Start) and p0p2 (End)
      * 
      * \warning \p p0 may not have the same z as either \p p1 or \p p2
+     * 
+     * \param p The face vertice locations in the order the vertices are given in the face
      */
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const;
+    SlicerSegment project2D(Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const;
 };
 
 }//namespace cura
