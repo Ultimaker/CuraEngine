@@ -16,9 +16,12 @@ public:
     int faceIndex;
     bool addedToPolygon;
     
+    /*!
+     * equivalence testing irrespective of start/end order
+     */
     bool operator==(const SlicerSegment& b) const
     {
-        return start == b.start && end == b.end;
+        return start == b.start && end == b.end || start == b.end && end == b.start;
     }
 };
 
@@ -26,14 +29,14 @@ public:
 
 namespace std
 {
+    /*!
+     * hash function irrespective of start/end order
+     */
     template<> struct hash<cura::SlicerSegment>
     {
         typedef std::size_t result_type;
         result_type operator()(cura::SlicerSegment const& s) const
         {
-//             result_type const h1 ( std::hash<std::string>()(s.first_name) );
-//             result_type const h2 ( std::hash<std::string>()(s.last_name) );
-//             return h1 ^ (h2 << 1); // or use boost::hash_combine
             return std::hash<cura::Point>()(cura::operator+(s.start, s.end));
         }
     };
