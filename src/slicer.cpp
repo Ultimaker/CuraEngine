@@ -342,7 +342,6 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
     {
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
-    
     for (unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         MeshFace& face = mesh->faces[face_idx];
@@ -367,16 +366,12 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         {
             maxZ = p2.z;
         }
-        int32_t layer_max = (maxZ - initial) / thickness;
-        for (int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
+        int32_t z = 0;
+        for (int32_t layer_nr = (minZ - initial + thickness - 1) / thickness; z <= maxZ; layer_nr++) //  + thickness - 1 to get the first layer above or at minZ
         {
             SlicerSegment s;
 
-            int32_t z = layer_nr * layer_height + layer_height_0;
-            if (z < minZ)
-            {
-                continue;
-            }
+            z = layer_nr * layer_height + layer_height_0;
             if (layer_nr < 0)
             {
                 continue;
