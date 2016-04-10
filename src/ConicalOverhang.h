@@ -2,7 +2,7 @@
 #ifndef CONICAL_OVERHANG_H
 #define CONICAL_OVERHANG_H
 
-#include "slicer.h"
+#include "slicer/Slicer.h"
 
 
 namespace cura {

@@ -69,7 +69,6 @@ set(engine_SRCS # Except main.cpp.
     src/GCodePathConfig.cpp
     src/infill.cpp
     src/InsetOrderOptimizer.cpp
-    src/layerPart.cpp
     src/LayerPlan.cpp
     src/LayerPlanBuffer.cpp
     src/Material.cpp
@@ -78,7 +77,6 @@ set(engine_SRCS # Except main.cpp.
     src/mesh.cpp
     src/MeshGroup.cpp
     src/Mold.cpp
-    src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
@@ -87,7 +85,6 @@ set(engine_SRCS # Except main.cpp.
     src/SkirtBrim.cpp
     src/SupportInfillPart.cpp
     src/sliceDataStorage.cpp
-    src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
     src/TexturedMesh.cpp
@@ -103,7 +100,10 @@ set(engine_SRCS # Except main.cpp.
     src/infill/SpaghettiInfillPathGenerator.cpp
     src/infill/SubDivCube.cpp
 
+    src/slicer/LayerPart.cpp
+    src/slicer/MultiVolumes.cpp
     src/slicer/SlicerLayer.cpp
+    src/slicer/Slicer.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp

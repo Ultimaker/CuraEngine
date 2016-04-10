@@ -1,7 +1,7 @@
 //Copyright (c) 2017 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "multiVolumes.h"
+#include "MultiVolumes.h"
 
 namespace cura 
 {
