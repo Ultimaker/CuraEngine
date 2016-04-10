@@ -448,7 +448,7 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
             Point3 v = matrix.apply(vertex);
             mesh->addVertex(v);
         }
-        if (sscanf(buffer, "vt %f %f", &texture_x, &texture_y) == 3)
+        else if (sscanf(buffer, "vt %f %f", &texture_x, &texture_y) == 2)
         {
             mesh->addTextureCoord(texture_x, texture_y);
         }
@@ -474,6 +474,10 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
         else if (sscanf(buffer, "usemtl %s", str_buffer) == 1)
         {
             mesh->setMaterial(str_buffer);
+        }
+        else
+        {
+            logError("Cannot parse line \"%s\"\n", buffer);
         }
     }
     fclose(f);
