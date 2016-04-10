@@ -9,6 +9,7 @@
 #include "support.h"
 #include "slicer/MultiVolumes.h"
 #include "slicer/LayerPart.h"
+#include "TextureProcessor.h"
 #include "inset.h"
 #include "skirt.h"
 #include "skin.h"
@@ -93,6 +94,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
+
+    TextureProcessor::process(slicerList);
+
     generateMultipleVolumesOverlap(slicerList, getSettingInMicrons("multiple_mesh_overlap"));
     
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.

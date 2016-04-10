@@ -73,6 +73,7 @@ set(engine_SRCS # Except main.cpp.
     src/support.cpp
     src/timeEstimate.cpp
     src/TexturedMesh.cpp
+    src/TextureProcessor.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
