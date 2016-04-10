@@ -105,7 +105,10 @@ public:
         aabb.offset(offset);
     }
 
-    virtual void registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
+    /*!
+     * \return Whether a texture line segment has been created
+     */
+    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
 
 private:
     mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
