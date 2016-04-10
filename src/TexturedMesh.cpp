@@ -77,13 +77,13 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
         return false;
     }
     const MeshFace& face = faces[face_idx];
-    FPoint3 p0(vertices[face.vertex_index[p0_idx]].p);
-    FPoint3 p1(vertices[face.vertex_index[p1_idx]].p);
+    Point3 p0(vertices[face.vertex_index[p0_idx]].p);
+    Point3 p1(vertices[face.vertex_index[p1_idx]].p);
 
     float dzp0 = z - p0.z;
     float dp0p1 = p1.z - p0.z;
 
-    if (dzp0 * dp0p1 < 0.0f)
+    if (dzp0 * dp0p1 < 0)
     { // z doesn't lie between p0 and p1
         return false;
     }
@@ -91,7 +91,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     { // edge is not cut by horizontal plane!
         return false;
     }
-    float ratio = dp0p1 / dzp0;
+    float ratio = INT2MM(dp0p1) / INT2MM(dzp0);
 
     FPoint t0 = texture_coords[texture_idxs.index[p0_idx]];
     FPoint t1 = texture_coords[texture_idxs.index[p1_idx]];
