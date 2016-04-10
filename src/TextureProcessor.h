@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "slicer/Slicer.h"
+#include "mesh.h"
 
 namespace cura
 {
@@ -12,7 +13,10 @@ namespace cura
 class TextureProcessor
 {
 public:
-    static void process(std::vector<Slicer*>& slicerList);
+//     static void process(std::vector<Slicer*>& slicer_list);
+    static void process(const Mesh* mesh, SlicerLayer& layer);
+protected:
+    
 };
 
 } // namespace cura

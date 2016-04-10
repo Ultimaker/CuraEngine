@@ -118,8 +118,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
 
-    TextureProcessor::process(slicerList);
-
     if (storage.getSettingBoolean("carve_multiple_volumes"))
     {
         carveMultipleVolumes(slicerList, storage.getSettingBoolean("alternate_carve_order"));
