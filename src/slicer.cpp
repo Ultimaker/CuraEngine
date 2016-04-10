@@ -786,7 +786,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 }
 
-SlicerSegment Slicer::project2D(const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
+SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
 {
     const Point3& p0 = p[idx_shared];
     const Point3& p1 = p[idx_first];
@@ -798,6 +798,7 @@ SlicerSegment Slicer::project2D(const Point3 p[3], unsigned int idx_shared, unsi
     seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
     seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
     seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
+    mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end);
 
     return seg;
 }
@@ -816,9 +817,9 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
     {
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
-    for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
+    for(unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
-        const MeshFace& face = mesh->faces[mesh_idx];
+        const MeshFace& face = mesh->faces[face_idx];
         const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
         const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
         const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
@@ -848,7 +849,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             int end_edge_idx = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(p, 0, 2, 1, z);
+                s = project2D(face_idx, p, 0, 2, 1, z);
                 end_edge_idx = 0;
                 if (p1.z == z)
                 {
@@ -857,14 +858,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(p, 0, 1, 2, z);
+                s = project2D(face_idx, p, 0, 1, 2, z);
                 end_edge_idx = 2;
 
             }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(p, 1, 0, 2, z);
+                s = project2D(face_idx, p, 1, 0, 2, z);
                 end_edge_idx = 1;
                 if (p2.z == z)
                 {
@@ -873,14 +874,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(p, 1, 2, 0, z);
+                s = project2D(face_idx, p, 1, 2, 0, z);
                 end_edge_idx = 0;
 
             }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(p, 2, 1, 0, z);
+                s = project2D(face_idx, p, 2, 1, 0, z);
                 end_edge_idx = 2;
                 if (p0.z == z)
                 {
@@ -889,7 +890,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(p, 2, 0, 1, z);
+                s = project2D(face_idx, p, 2, 0, 1, z);
                 end_edge_idx = 1;
             }
             else
@@ -898,8 +899,8 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
                 //  on the slice would create two segments
                 continue;
             }
-            layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
-            s.faceIndex = mesh_idx;
+            layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(face_idx, layers[layer_nr].segments.size()));
+            s.faceIndex = face_idx;
             s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
             s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
