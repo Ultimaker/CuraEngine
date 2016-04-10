@@ -316,39 +316,6 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     }
 }
 
-bool Slicer::sliceFace(int face_idx, int32_t layer_nr, int32_t minZ, Point3 p0, Point3 p1, Point3 p2)
-{
-    SlicerSegment s;
-
-    int32_t z = layer_nr * layer_height + layer_height_0;
-    if (z < minZ) return false;
-    if (layer_nr < 0) return false;
-    if (p0.z < z && p1.z >= z && p2.z >= z)
-        s = project2D(p0, p2, p1, z);
-    else if (p0.z > z && p1.z < z && p2.z < z)
-        s = project2D(p0, p1, p2, z);
-
-    else if (p1.z < z && p0.z >= z && p2.z >= z)
-        s = project2D(p1, p0, p2, z);
-    else if (p1.z > z && p0.z < z && p2.z < z)
-        s = project2D(p1, p2, p0, z);
-
-    else if (p2.z < z && p1.z >= z && p0.z >= z)
-        s = project2D(p2, p1, p0, z);
-    else if (p2.z > z && p1.z < z && p0.z < z)
-        s = project2D(p2, p0, p1, z);
-    else
-    {
-        //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
-        //  on the slice would create two segments
-        return false;
-    }
-    layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(face_idx, layers[layer_nr].segmentList.size()));
-    s.faceIndex = face_idx;
-    s.addedToPolygon = false;
-    layers[layer_nr].segmentList.push_back(s);
-    return true;
-}
 
 
 SlicerSegment Slicer::project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
@@ -376,7 +343,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
     
-    for(unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
+    for (unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         MeshFace& face = mesh->faces[face_idx];
         Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
@@ -384,17 +351,78 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
-        if (p1.z < minZ) minZ = p1.z;
-        if (p2.z < minZ) minZ = p2.z;
-        if (p1.z > maxZ) maxZ = p1.z;
-        if (p2.z > maxZ) maxZ = p2.z;
-        int32_t layer_max = (maxZ - initial) / thickness;
-        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
+        if (p1.z < minZ)
         {
-            sliceFace(face_idx, layer_nr, minZ, p0, p1, p2);
+            minZ = p1.z;
+        }
+        if (p2.z < minZ)
+        {
+            minZ = p2.z;
+        }
+        if (p1.z > maxZ)
+        {
+            maxZ = p1.z;
+        }
+        if (p2.z > maxZ)
+        {
+            maxZ = p2.z;
+        }
+        int32_t layer_max = (maxZ - initial) / thickness;
+        for (int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
+        {
+            SlicerSegment s;
+
+            int32_t z = layer_nr * layer_height + layer_height_0;
+            if (z < minZ)
+            {
+                continue;
+            }
+            if (layer_nr < 0)
+            {
+                continue;
+            }
+            // below code checks the position of the points w.r.t. the layer z
+            // also the direction of the resulting sliced line is determined
+            // p0 is odd one out
+            if (p0.z < z && p1.z >= z && p2.z >= z)
+            {
+                s = project2D(p0, p2, p1, z);
+            }
+            else if (p0.z > z && p1.z < z && p2.z < z)
+            {
+                s = project2D(p0, p1, p2, z);
+            }
+            // p1 is odd one out
+            else if (p1.z < z && p0.z >= z && p2.z >= z)
+            {
+                s = project2D(p1, p0, p2, z);
+            }
+            else if (p1.z > z && p0.z < z && p2.z < z)
+            {
+                s = project2D(p1, p2, p0, z);
+            }
+            // p2 is odd one out
+            else if (p2.z < z && p1.z >= z && p0.z >= z)
+            {
+                s = project2D(p2, p1, p0, z);
+            }
+            else if (p2.z > z && p1.z < z && p0.z < z)
+            {
+                s = project2D(p2, p0, p1, z);
+            }
+            else
+            {
+                //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
+                //  on the slice would create two segments
+                continue;
+            }
+            layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(face_idx, layers[layer_nr].segmentList.size()));
+            s.faceIndex = face_idx;
+            s.addedToPolygon = false;
+            layers[layer_nr].segmentList.push_back(s);
         }
     }
-    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
+    for (unsigned int layer_nr = 0; layer_nr < layers.size(); layer_nr++)
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }

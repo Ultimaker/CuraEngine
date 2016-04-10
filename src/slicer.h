@@ -158,12 +158,6 @@ protected:
      * \warning \p p0 may not have the same z as either \p p1 or \p p2
      */
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const;
-    /*!
-     * 
-     * \param resulting slice
-     * \return whether a new slice was created
-     */
-    bool sliceFace(int face_idx, int32_t layer_nr, int32_t minZ, Point3 p0, Point3 p1, Point3 p2);
 };
 
 }//namespace cura
