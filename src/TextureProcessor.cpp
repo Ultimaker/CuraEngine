@@ -47,20 +47,26 @@ void TextureProcessor::process(const Mesh* mesh, SlicerLayer& layer)
                     std::swap(mat_start, mat_end);
                 }
                 Point p0p1 = p1 - *p0;
+                Point perp_to_p0p1 = turn90CCW(p0p1);
                 int64_t p0p1_size = vSize(p0p1);    
                 int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
+                // TODO: move start point (which was already moved last iteration
                 for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += POINT_DIST)
                 {
                     MatCoord mat_coord_now = mat_start;
                     mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
                     float val = mesh->getColor(mat_coord_now);
                     int r = val * (AMPLITUDE * 2) - AMPLITUDE;
-                    Point perp_to_p0p1 = turn90CCW(p0p1);
                     Point fuzz = normal(perp_to_p0p1, r);
-                    Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
+                    Point pa = *p0 + normal(p0p1, p0pa_dist) - fuzz;
                     result.add(pa);
                     dist_last_point = p0pa_dist;
                 }
+                // TODO: move end point as well
+                float val = mesh->getColor(mat_end);
+                int r = val * (AMPLITUDE * 2) - AMPLITUDE;
+                Point fuzz = normal(perp_to_p0p1, r);
+                result.emplace_back(p1 - fuzz);
                 dist_left_over = p0p1_size - dist_last_point;
             }
             else
