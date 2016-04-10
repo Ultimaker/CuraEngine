@@ -1,4 +1,4 @@
-#include "multiVolumes.h"
+#include "MultiVolumes.h"
 
 namespace cura 
 {

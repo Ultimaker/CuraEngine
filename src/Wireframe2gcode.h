@@ -11,7 +11,7 @@
 #include "settings.h"
 
 #include "MeshGroup.h"
-#include "slicer.h"
+#include "slicer/Slicer.h"
 
 #include "utils/polygon.h"
 #include "Weaver.h"

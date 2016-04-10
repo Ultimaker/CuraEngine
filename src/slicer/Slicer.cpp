@@ -1,11 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 
-#include "utils/gettime.h"
-#include "utils/logoutput.h"
+#include "../utils/gettime.h"
+#include "../utils/logoutput.h"
 
-#include "slicer.h"
-#include "debug.h" // TODO remove
+#include "Slicer.h"
 
 namespace cura {
 

@@ -2,13 +2,13 @@
 
 #include <algorithm>
 
-#include "slicer.h"
+#include "slicer/Slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "MeshGroup.h"
 #include "support.h"
-#include "multiVolumes.h"
-#include "layerPart.h"
+#include "slicer/MultiVolumes.h"
+#include "slicer/LayerPart.h"
 #include "inset.h"
 #include "skirt.h"
 #include "skin.h"
