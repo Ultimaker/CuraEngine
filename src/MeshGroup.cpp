@@ -266,6 +266,8 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
     char buffer[1024];
     FPoint3 vertex;
     Point3 vertex_indices;
+    float texture_x;
+    float texture_y;
     char face_index_buffer_1 [100];
     char face_index_buffer_2 [100];
     char face_index_buffer_3 [100];
@@ -280,6 +282,10 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
         {
             Point3 v = matrix.apply(vertex);
             mesh->addVertex(v);
+        }
+        if (sscanf(buffer, "vt %f %f", &texture_x, &texture_y) == 3)
+        {
+            mesh->addTextureCoord(texture_x, texture_y);
         }
         else if (sscanf(buffer, "f %s %s %s", face_index_buffer_1, face_index_buffer_2, face_index_buffer_3) == 3)
         {

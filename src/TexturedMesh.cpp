@@ -102,9 +102,11 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     return true;
 }
 
-void TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end )
+bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end )
 {
     std::cerr << "getting here!\n";
+    
+    return true;
 }
 
 } // namespace cura
