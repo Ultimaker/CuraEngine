@@ -67,13 +67,15 @@ public:
     bool setMaterial(std::string name); //!< set the material to be used in the comming data to be loaded
     Material* addMaterial(std::string name);
 
-    /*
-     * \param face_idx The face for which to get the material coord
-     * \param loc The location on the face for which to get the material coord
-     * \param result The resulting material Coordinates
-     * \return Whether a Material coordinate is defined at the given location
-     */
-//     bool getMatCoord(unsigned int face_idx, const Point3 loc, MatCoord& result);
+
+    virtual void registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
+
+protected:
+    std::vector<Coord> texture_coords;
+    std::vector<FaceTextureCoordIndices> face_texture_indices;
+    // TODO clean up above lists when super class clear() is called
+    // TODO when to clean up below material base?
+    MaterialBase material_base;
     /*!
      * Get the material coordinate corresponding to the point on a plane cutting a given edge of the face.
      * \param face_idx The face for which to get the material coord
@@ -84,12 +86,6 @@ public:
      * \return Whether a Material coordinate is defined at the given location
      */
     bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, Coord& result);
-protected:
-    std::vector<Coord> texture_coords;
-    std::vector<FaceTextureCoordIndices> face_texture_indices;
-    // TODO clean up above lists when super class clear() is called
-    // not below material base? do that in separate function?
-    MaterialBase material_base;
 private:
     int current_mat; //!< material currently used in loading the face material info
 };
