@@ -65,7 +65,7 @@ Material* TexturedMesh::addMaterial(std::__cxx11::string name)
 }
 
 
-bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, Coord& result)
+bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result)
 {
     if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
     {
@@ -96,8 +96,9 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     Coord t0 = texture_coords[texture_idxs.index[p0_idx]];
     Coord t1 = texture_coords[texture_idxs.index[p1_idx]];
 
-    result.x = t0.x + (t1.x - t0.x) * ratio;
-    result.y = t0.y + (t1.y - t0.y) * ratio;
+    result.mat_id = texture_idxs.mat_id;
+    result.coords.x = t0.x + (t1.x - t0.x) * ratio;
+    result.coords.y = t0.y + (t1.y - t0.y) * ratio;
 
     return true;
 }
