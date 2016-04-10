@@ -4,9 +4,12 @@
 
 #include "../mesh.h"
 #include "../utils/polygon.h"
+
 #include "SlicerSegment.h"
 #include "ClosePolygonResult.h"
 #include "SlicerLayer.h"
+
+#include "../MatSegment.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -24,6 +27,7 @@ public:
     void dumpSegmentsToHTML(const char* filename);
 
 protected:
+    
     Mesh* mesh;
     int layer_height_0;
     int layer_height;

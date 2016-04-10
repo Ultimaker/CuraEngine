@@ -9,7 +9,7 @@
 
 #include "mesh.h"
 #include "utils/intpoint.h"
-#include "MatCoord.h"
+#include "MatSegment.h"
 
 namespace cura
 {
@@ -49,7 +49,7 @@ public:
 
     
 
-    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end);
+    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result);
 
 protected:
     std::vector<FPoint> texture_coords;

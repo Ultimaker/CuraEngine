@@ -198,7 +198,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
     return bestIdx;
 }
 
-bool Mesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end)
+bool Mesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result)
 {
     // do nothing for a non-textured mesh
     return false;
