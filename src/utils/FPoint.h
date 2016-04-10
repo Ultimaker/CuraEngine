@@ -2,7 +2,7 @@
 #ifndef UTILS_F_POINT_H
 #define UTILS_F_POINT_H
 
-
+#include <cmath> // sqrt
 #include <iostream> // auto-serialization / auto-toString() '<<'
 
 namespace cura
@@ -14,6 +14,8 @@ class FPoint
 {
 public:
     float x, y; //!< Coordinates 
+    FPoint() //!< non-initializing constructor
+    {}
     FPoint(float x, float y) //!< constructor
     : x(x)
     , y(y)
