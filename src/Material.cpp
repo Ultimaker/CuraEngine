@@ -20,7 +20,7 @@ void Material::setWidthHeight(int width, int height)
     this->height = height;
 }
 
-float Material::getColor(float x, float y)
+float Material::getColor(float x, float y) const
 {
     int w_idx = std::max(0, std::min(int (x * width), width - 1));
     int h_idx = std::max(0, std::min(int (y * height), height - 1));

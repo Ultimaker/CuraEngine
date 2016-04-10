@@ -14,8 +14,9 @@ namespace cura
 class MaterialBase
 {
 public:
-    int getMatId(std::string name);
+    int getMatId(std::string name) const;
     Material* add(std::string name);
+    const Material* getMat(unsigned int id) const;
 protected:
     std::unordered_map<std::string, int> name_to_mat_idx;
     std::vector<Material> materials;
