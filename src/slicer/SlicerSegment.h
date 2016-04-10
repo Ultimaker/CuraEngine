@@ -26,7 +26,7 @@ public:
      */
     bool operator==(const SlicerSegment& b) const
     {
-        return start == b.start && end == b.end || start == b.end && end == b.start;
+        return (start == b.start && end == b.end) || (start == b.end && end == b.start);
     }
 };
 

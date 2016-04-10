@@ -19,6 +19,7 @@
 #include "support.h"
 #include "slicer/MultiVolumes.h"
 #include "slicer/LayerPart.h"
+#include "TextureProcessor.h"
 #include "Mold.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
@@ -129,6 +130,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     MultiVolumes::carveCuttingMeshes(slicerList, storage.meshgroup->meshes);
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
+
+
+    TextureProcessor::process(slicerList);
 
     if (storage.getSettingBoolean("carve_multiple_volumes"))
     {
