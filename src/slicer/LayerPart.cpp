@@ -1,10 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 
-#include "layerPart.h"
-#include "settings/settings.h"
-#include "progress/Progress.h"
+#include "LayerPart.h"
+#include "../settings/settings.h"
+#include "../progress/Progress.h"
 
-#include "utils/SVG.h" // debug output
+#include "../utils/SVG.h" // debug output
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.

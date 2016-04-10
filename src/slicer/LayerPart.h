@@ -1,10 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef LAYERPART_H
-#define LAYERPART_H
+#ifndef SLICER_LAYERPART_H
+#define SLICER_LAYERPART_H
 
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "commandSocket.h"
+#include "../sliceDataStorage.h"
+#include "Slicer.h"
+#include "../commandSocket.h"
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -28,4 +28,4 @@ void layerparts2HTML(SliceDataStorage& mesh, const char* filename, bool all_laye
 
 }//namespace cura
 
-#endif//LAYERPART_H
+#endif//SLICER_LAYERPART_H

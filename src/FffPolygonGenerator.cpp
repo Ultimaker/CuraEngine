@@ -8,14 +8,14 @@
 #endif // _OPENMP
 
 #include "utils/math.h"
+#include "slicer/Slicer.h"
 #include "utils/algorithm.h"
-#include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "MeshGroup.h"
 #include "support.h"
-#include "multiVolumes.h"
-#include "layerPart.h"
+#include "slicer/MultiVolumes.h"
+#include "slicer/LayerPart.h"
 #include "Mold.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"

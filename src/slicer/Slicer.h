@@ -1,15 +1,14 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef SLICER_H
-#define SLICER_H
+#ifndef SLICER_SLICER_H
+#define SLICER_SLICER_H
 
 #include <queue>
 
-#include "slicer/ClosePolygonResult.h"
-#include "slicer/GapCloserResult.h"
-#include "slicer/SlicerLayer.h"
-#include "slicer/SlicerSegment.h"
-#include "mesh.h"
-#include "utils/polygon.h"
+#include "../mesh.h"
+#include "../utils/polygon.h"
+
+#include "SlicerLayer.h"
+#include "SlicerSegment.h"
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
@@ -52,4 +51,4 @@ public:
 
 }//namespace cura
 
-#endif//SLICER_H
+#endif//SLICER_SLICER_H

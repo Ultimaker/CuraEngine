@@ -1,8 +1,8 @@
-#ifndef MULTIVOLUMES_H
-#define MULTIVOLUMES_H
+#ifndef SLICER_MULTIVOLUMES_H
+#define SLICER_MULTIVOLUMES_H
 
-#include "sliceDataStorage.h"
-#include "slicer.h"
+#include "../sliceDataStorage.h"
+#include "Slicer.h"
 
 /* This file contains code to help fixing up and changing layers that are build from multiple volumes. */
 namespace cura {
@@ -21,4 +21,4 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &meshes);
 
 }//namespace cura
 
-#endif//MULTIVOLUMES_H
+#endif//SLICER_MULTIVOLUMES_H
