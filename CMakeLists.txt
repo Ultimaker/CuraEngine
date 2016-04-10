@@ -59,14 +59,12 @@ set(engine_SRCS # Except main.cpp.
     src/gcodePlanner.cpp
     src/infill.cpp
     src/WallsComputation.cpp
-    src/layerPart.cpp
     src/LayerPlanBuffer.cpp
     src/Material.cpp
     src/MaterialBase.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
-    src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/Preheat.cpp
     src/PrimeTower.cpp
@@ -74,7 +72,6 @@ set(engine_SRCS # Except main.cpp.
     src/skin.cpp
     src/SkirtBrim.cpp
     src/sliceDataStorage.cpp
-    src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
     src/TexturedMesh.cpp
@@ -90,7 +87,10 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
     src/infill/SubDivCube.cpp
 
+    src/slicer/LayerPart.cpp
+    src/slicer/MultiVolumes.cpp
     src/slicer/SlicerLayer.cpp
+    src/slicer/Slicer.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp
