@@ -317,7 +317,7 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 }
 
 
-SlicerSegment Slicer::project2D(Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
+SlicerSegment Slicer::project2D(unsigned int face_idx, Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
 {
     Point3& p0 = p[idx_shared];
     Point3& p1 = p[idx_first];
@@ -327,6 +327,7 @@ SlicerSegment Slicer::project2D(Point3 p[3], unsigned int idx_shared, unsigned i
     seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
     seg.end.X = p0.x + int64_t(p2.x - p0.x) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
     seg.end.Y = p0.y + int64_t(p2.y - p0.y) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
+    mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end);
     return seg;
 }
 
@@ -387,29 +388,29 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             // p0 is odd one out
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(p, 0, 2, 1, z);
+                s = project2D(face_idx, p, 0, 2, 1, z);
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(p, 0, 1, 2, z);
+                s = project2D(face_idx, p, 0, 1, 2, z);
             }
             // p1 is odd one out
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(p, 1, 0, 2, z);
+                s = project2D(face_idx, p, 1, 0, 2, z);
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(p, 1, 2, 0, z);
+                s = project2D(face_idx, p, 1, 2, 0, z);
             }
             // p2 is odd one out
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(p, 2, 1, 0, z);
+                s = project2D(face_idx, p, 2, 1, 0, z);
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(p, 2, 0, 1, z);
+                s = project2D(face_idx, p, 2, 0, 1, z);
             }
             else
             {

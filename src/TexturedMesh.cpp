@@ -64,41 +64,6 @@ Material* TexturedMesh::addMaterial(std::__cxx11::string name)
     return material_base.add(name);
 }
 
-/*
-bool TexturedMesh::getMatCoord(unsigned int face_idx, const Point3 loc, TexturedMesh::MatCoord& result)
-{
-    if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
-    {
-        return false;
-    }
-    FaceTextureCoordIndices texture_idxs = face_texture_indices[face_idx];
-    if (texture_idxs.i1 < 0 || texture_idxs.i2 < 0 || texture_idxs.i2 < 0 || texture_idxs.mat_id < 0)
-    {
-        return false;
-    }
-    FPoint3 x(loc);
-
-    MeshFace& face = faces[face_idx];
-    FPoint3 a(vertices[face.vertex_index[0]].p);
-    FPoint3 b(vertices[face.vertex_index[1]].p);
-    FPoint3 c(vertices[face.vertex_index[2]].p);
-    
-    FPoint3 ab = b - a;
-    FPoint3 ax = x - a;
-
-    Coord t1 = texture_coords[texture_idxs.i1];
-    Coord t2 = texture_coords[texture_idxs.i2];
-    Coord t3 = texture_coords[texture_idxs.i3];
-    FPoint3 ap(t1.x, t1.y, 0.0f);
-    FPoint3 bp(t2.x, t2.y, 0.0f);
-    FPoint3 cp(t3.x, t3.y, 0.0f);
-
-    FPoint3 apbp = bp - ap;
-
-//     float cosa = ax * ab; // dot product
-//     FPoint3 x_p_ab = ; // x projected onto ab
-}
-*/
 
 bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, Coord& result)
 {
@@ -135,6 +100,11 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     result.y = t0.y + (t1.y - t0.y) * ratio;
 
     return true;
+}
+
+void TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end )
+{
+    std::cerr << "getting here!\n";
 }
 
 } // namespace cura
