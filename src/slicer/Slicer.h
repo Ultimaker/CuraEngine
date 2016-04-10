@@ -39,7 +39,7 @@ protected:
      * 
      * \param p The face vertice locations in the order the vertices are given in the face
      */
-    SlicerSegment project2D(unsigned int face_idx, Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const;
+    SlicerSegment project2D(unsigned int face_idx, Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr);
 };
 
 }//namespace cura

@@ -52,8 +52,8 @@ public:
     virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result);
 
 protected:
-    std::vector<FPoint> texture_coords;
-    std::vector<FaceTextureCoordIndices> face_texture_indices;
+    std::vector<FPoint> texture_coords; //!< all texture coordinates by all faces
+    std::vector<FaceTextureCoordIndices> face_texture_indices; //!< for each face the corresponding texture coordinates in TexturedMesh::texture_coords
     // TODO clean up above lists when super class clear() is called
     // TODO when to clean up below material base?
     MaterialBase material_base;

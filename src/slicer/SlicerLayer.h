@@ -28,7 +28,7 @@ public:
     Polygons polygonList;
     Polygons openPolylines;
     
-    std::unordered_map<SlicerSegment, MatSegment> afs;
+    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
 
     void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
