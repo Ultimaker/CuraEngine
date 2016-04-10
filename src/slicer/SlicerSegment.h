@@ -20,6 +20,11 @@ public:
     // with the vertex that it ended on.
     const MeshVertex *endVertex = nullptr;
     bool addedToPolygon = false;
+    
+    bool operator==(const SlicerSegment& b) const
+    {
+        return start == b.start && end == b.end;
+    }
 };
 
 } // namespace cura
