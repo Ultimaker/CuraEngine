@@ -86,6 +86,8 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
+    src/slicer/SlicerLayer.cpp
+
     src/utils/gettime.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/logoutput.cpp

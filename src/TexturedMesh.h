@@ -67,6 +67,7 @@ public:
     bool setMaterial(std::string name); //!< set the material to be used in the comming data to be loaded
     Material* addMaterial(std::string name);
 
+    
 
     virtual void registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end);
 
