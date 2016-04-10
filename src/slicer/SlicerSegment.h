@@ -15,13 +15,19 @@ public:
     Point start, end;
     int faceIndex;
     bool addedToPolygon;
-    
+
+    SlicerSegment() //!< non-initializing constructor
+    {}
+    SlicerSegment(Point start, Point end) //!< partially initializing constructor
+    : start(start)
+    , end(end)
+    {}
     /*!
      * equivalence testing irrespective of start/end order
      */
     bool operator==(const SlicerSegment& b) const
     {
-        return start == b.start && end == b.end || start == b.end && end == b.start;
+        return (start == b.start && end == b.end) || (start == b.end && end == b.start);
     }
 };
 
