@@ -93,8 +93,8 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     }
     float ratio = dp0p1 / dzp0;
 
-    Coord t0 = texture_coords[texture_idxs.index[p0_idx]];
-    Coord t1 = texture_coords[texture_idxs.index[p1_idx]];
+    FPoint t0 = texture_coords[texture_idxs.index[p0_idx]];
+    FPoint t1 = texture_coords[texture_idxs.index[p1_idx]];
 
     result.mat_id = texture_idxs.mat_id;
     result.coords.x = t0.x + (t1.x - t0.x) * ratio;
