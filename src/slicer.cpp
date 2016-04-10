@@ -786,6 +786,21 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     }
 }
 
+SlicerSegment Slicer::project2D(const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
+{
+    const Point3& p0 = p[idx_shared];
+    const Point3& p1 = p[idx_first];
+    const Point3& p2 = p[idx_second];
+
+    SlicerSegment seg;
+
+    seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
+    seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
+    seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
+    seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
+
+    return seg;
+}
 
 Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
@@ -807,9 +822,13 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
         const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
         const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
         const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
-        Point3 p0 = v0.p;
-        Point3 p1 = v1.p;
-        Point3 p2 = v2.p;
+        Point3 p[3] =
+            { mesh->vertices[face.vertex_index[0]].p
+            , mesh->vertices[face.vertex_index[1]].p
+            , mesh->vertices[face.vertex_index[2]].p };
+        Point3& p0 = p[0];
+        Point3& p1 = p[1];
+        Point3& p2 = p[2];
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ) minZ = p1.z;
@@ -829,7 +848,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             int end_edge_idx = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(p0, p2, p1, z);
+                s = project2D(p, 0, 2, 1, z);
                 end_edge_idx = 0;
                 if (p1.z == z)
                 {
@@ -838,14 +857,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(p0, p1, p2, z);
+                s = project2D(p, 0, 1, 2, z);
                 end_edge_idx = 2;
 
             }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(p1, p0, p2, z);
+                s = project2D(p, 1, 0, 2, z);
                 end_edge_idx = 1;
                 if (p2.z == z)
                 {
@@ -854,14 +873,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(p1, p2, p0, z);
+                s = project2D(p, 1, 2, 0, z);
                 end_edge_idx = 0;
 
             }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(p2, p1, p0, z);
+                s = project2D(p, 2, 1, 0, z);
                 end_edge_idx = 2;
                 if (p0.z == z)
                 {
@@ -870,7 +889,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(p2, p0, p1, z);
+                s = project2D(p, 2, 0, 1, z);
                 end_edge_idx = 1;
             }
             else

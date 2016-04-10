@@ -496,6 +496,8 @@ public:
      * Linear interpolation
      *
      * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
+     * 
+     * \param p The face vertice locations in the order the vertices are given in the face
      */
     int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
     {
@@ -506,17 +508,7 @@ public:
         return y;
     }
 
-    SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
-    {
-        SlicerSegment seg;
-
-        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-
-        return seg;
-    }
+    SlicerSegment project2D(const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const;
 
     void dumpSegmentsToHTML(const char* filename);
 };
