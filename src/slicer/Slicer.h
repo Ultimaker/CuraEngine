@@ -49,7 +49,7 @@ public:
         return y;
     }
 
-    SlicerSegment project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const;
+    SlicerSegment project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr);
 
     void dumpSegmentsToHTML(const char* filename);
 };
