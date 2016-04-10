@@ -13,6 +13,18 @@ Material* MaterialBase::add(std::string name)
     return &materials.back();
 }
 
+Material* MaterialBase::getMat(unsigned int id)
+{
+    if (id < materials.size())
+    {
+        return &materials[id];
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 
 int MaterialBase::getMatId(std::string name)
 {

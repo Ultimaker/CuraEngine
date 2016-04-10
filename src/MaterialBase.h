@@ -16,6 +16,7 @@ class MaterialBase
 public:
     int getMatId(std::string name);
     Material* add(std::string name);
+    Material* getMat(unsigned int id);
 protected:
     std::unordered_map<std::string, int> name_to_mat_idx;
     std::vector<Material> materials;

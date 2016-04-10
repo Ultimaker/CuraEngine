@@ -1,7 +1,7 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 
 #include "SlicerLayer.h"
-
+#include "../TextureProcessor.h"
 
 namespace cura
 {
@@ -354,6 +354,8 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
             i--;
         }
     }
+
+    TextureProcessor::process(mesh, *this);
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygonList.simplify();

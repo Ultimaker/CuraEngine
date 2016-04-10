@@ -109,6 +109,8 @@ public:
      */
     virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result);
 
+    virtual float getColor(MatCoord bitmap_coord);
+    
 private:
     int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
     /*!

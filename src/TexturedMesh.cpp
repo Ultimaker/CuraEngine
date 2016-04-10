@@ -116,4 +116,18 @@ bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_sha
     return true;
 }
 
+float TexturedMesh::getColor(MatCoord bitmap_coord)
+{
+    Material* mat = material_base.getMat(bitmap_coord.mat_id);
+    if (mat)
+    {
+        return mat->getColor(bitmap_coord.coords.x, bitmap_coord.coords.y);
+    }
+    else
+    {
+        return 0.0f;
+    }
+}
+
+
 } // namespace cura

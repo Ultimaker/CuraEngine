@@ -27,8 +27,8 @@ public:
     void dumpSegmentsToHTML(const char* filename);
 
 protected:
-    
     Mesh* mesh;
+    
     int layer_height_0;
     int layer_height;
     
