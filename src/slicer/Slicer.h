@@ -7,8 +7,12 @@
 #include "../mesh.h"
 #include "../utils/polygon.h"
 
-#include "SlicerLayer.h"
 #include "SlicerSegment.h"
+#include "ClosePolygonResult.h"
+#include "SlicerLayer.h"
+
+#include "../MatSegment.h"
+
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
     The result of the Slicer is a list of polygons without any order or structure.
@@ -28,6 +32,7 @@ public:
 
     Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
+    
     /*!
      * Linear interpolation
      *

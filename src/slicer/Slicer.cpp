@@ -3,6 +3,7 @@
 
 #include "../utils/gettime.h"
 #include "../utils/logoutput.h"
+#include "../MatCoord.h"
 
 #include "Slicer.h"
 
@@ -21,8 +22,12 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
     seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
     seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-    mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end);
-
+    MatSegment mat_segment;
+    bool got_texture_coords = mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
+    if (got_texture_coords)
+    {
+        
+    }
     return seg;
 }
 
