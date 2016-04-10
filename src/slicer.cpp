@@ -1,8 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdio.h>
 
-#include <utility> // swap
-
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 
@@ -318,15 +316,34 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
     }
 }
 
-bool Slicer::sliceFace(int face_idx, int32_t layer_nr, int32_t z, Point3 p0, Point3 p1, Point3 p2, int p0_idx, int p1_idx, int p2_idx)
+bool Slicer::sliceFace(int face_idx, int32_t layer_nr, int32_t minZ, Point3 p0, Point3 p1, Point3 p2)
 {
-    if (layer_nr < 0)
+    SlicerSegment s;
+
+    int32_t z = layer_nr * layer_height + layer_height_0;
+    if (z < minZ) return false;
+    if (layer_nr < 0) return false;
+    if (p0.z < z && p1.z >= z && p2.z >= z)
+        s = project2D(p0, p2, p1, z);
+    else if (p0.z > z && p1.z < z && p2.z < z)
+        s = project2D(p0, p1, p2, z);
+
+    else if (p1.z < z && p0.z >= z && p2.z >= z)
+        s = project2D(p1, p0, p2, z);
+    else if (p1.z > z && p0.z < z && p2.z < z)
+        s = project2D(p1, p2, p0, z);
+
+    else if (p2.z < z && p1.z >= z && p0.z >= z)
+        s = project2D(p2, p1, p0, z);
+    else if (p2.z > z && p1.z < z && p0.z < z)
+        s = project2D(p2, p0, p1, z);
+    else
     {
+        //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
+        //  on the slice would create two segments
         return false;
     }
-
-    SlicerSegment s = project2D(p0, p1, p2, z);
-    layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(face_idx, layers[layer_nr].segmentList.size())); // TODO refactor to emplace(.)
+    layers[layer_nr].face_idx_to_segment_index.insert(std::make_pair(face_idx, layers[layer_nr].segmentList.size()));
     s.faceIndex = face_idx;
     s.addedToPolygon = false;
     layers[layer_nr].segmentList.push_back(s);
@@ -345,10 +362,10 @@ SlicerSegment Slicer::project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) c
 }
 
 
-Slicer::Slicer(Mesh* mesh, int layer_height_0, int layer_height, int layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
-, layer_height_0(layer_height_0)
-, layer_height(layer_height)
+, layer_height_0(initial)
+, layer_height(thickness)
 {
     assert(layer_count > 0);
 
@@ -356,70 +373,25 @@ Slicer::Slicer(Mesh* mesh, int layer_height_0, int layer_height, int layer_count
     
     for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
     {
-        layers[layer_nr].z = layer_height_0 + layer_height * layer_nr;
+        layers[layer_nr].z = initial + thickness * layer_nr;
     }
     
     for(unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         MeshFace& face = mesh->faces[face_idx];
-        Point3 verts[3] = 
-            { mesh->vertices[face.vertex_index[0]].p
-            , mesh->vertices[face.vertex_index[1]].p
-            , mesh->vertices[face.vertex_index[2]].p };
-
-        bool flipped = false;
-        
-        int height_order[3] = {0, 1, 2}; // lowest, middle, highest
-        { // order by hand: \/
-            if (verts[0].z > verts[2].z)
-            {
-                std::swap(height_order[0], height_order[2]);
-                flipped = !flipped;
-            }
-            if (verts[height_order[0]].z > verts[1].z)
-            {
-                std::swap(height_order[0], height_order[1]);
-                flipped = !flipped;
-            }
-            else if (verts[height_order[1]].z > verts[height_order[2]].z)
-            {
-                std::swap(height_order[1], height_order[2]);
-                flipped = !flipped;
-            }
-        }
-        int& lowest = height_order[0];
-        int& middle = height_order[1];
-        int& highest = height_order[2];
-
-        int32_t layer_nr = (verts[lowest].z - layer_height_0 - 1) / layer_height + 1;
+        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
+        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
+        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
+        int32_t minZ = p0.z;
+        int32_t maxZ = p0.z;
+        if (p1.z < minZ) minZ = p1.z;
+        if (p2.z < minZ) minZ = p2.z;
+        if (p1.z > maxZ) maxZ = p1.z;
+        if (p2.z > maxZ) maxZ = p2.z;
+        int32_t layer_max = (maxZ - initial) / thickness;
+        for(int32_t layer_nr = (minZ - initial) / thickness; layer_nr <= layer_max; layer_nr++)
         {
-            int32_t z = layer_nr * layer_height + layer_height_0;
-            int left = middle;
-            int right = highest;
-            if (flipped)
-            {
-                std::swap(left, right);
-            }
-            for (; z + layer_height < verts[middle].z; layer_nr++)
-            {
-                z = layer_nr * layer_height + layer_height_0;
-                sliceFace(face_idx, layer_nr, z, verts[lowest], verts[left], verts[right], lowest, left, right);
-            }
-        }
-        {
-            int32_t z = layer_nr * layer_height + layer_height_0;
-            int left = middle;
-            int right = lowest;
-            if (flipped)
-            {
-                std::swap(left, right);
-            }
-            // start with the layer height which the above loop didn't perform anymore
-            for (; z + layer_height < verts[highest].z; layer_nr++)
-            {
-                z = layer_nr * layer_height + layer_height_0;
-                sliceFace(face_idx, layer_nr, z, verts[highest], verts[left], verts[right], highest, left, right);
-            }
+            sliceFace(face_idx, layer_nr, minZ, p0, p1, p2);
         }
     }
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)

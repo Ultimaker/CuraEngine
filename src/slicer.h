@@ -163,7 +163,7 @@ protected:
      * \param resulting slice
      * \return whether a new slice was created
      */
-    bool sliceFace(int face_idx, int32_t layer_nr, int32_t z, Point3 p0, Point3 p1, Point3 p2, int p0_idx, int p1_idx, int p2_idx);
+    bool sliceFace(int face_idx, int32_t layer_nr, int32_t minZ, Point3 p0, Point3 p1, Point3 p2);
 };
 
 }//namespace cura
