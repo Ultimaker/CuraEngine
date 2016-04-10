@@ -19,7 +19,7 @@ public:
      * 
      * \return a value between zero and one
      */
-    float getColor(float x, float y);
+    float getColor(float x, float y) const;
 protected:
     unsigned char* data; //!< pixel data in rgb-row-first (or bgr-row first ?)
     int width, height; //!< image dimensions

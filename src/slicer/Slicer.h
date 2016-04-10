@@ -33,6 +33,7 @@ public:
     Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
     
+    
     /*!
      * Linear interpolation
      *

@@ -249,5 +249,10 @@ bool Mesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, uns
     return false;
 }
 
+float Mesh::getColor(MatCoord bitmap_coord) const
+{
+    return 0.0f;
+}
+
 
 }//namespace cura
