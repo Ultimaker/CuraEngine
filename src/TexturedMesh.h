@@ -9,7 +9,7 @@
 
 #include "mesh.h"
 #include "utils/intpoint.h"
-
+#include "MatCoord.h"
 
 namespace cura
 {
@@ -23,30 +23,8 @@ class TexturedMesh : public Mesh
 {
 public:
     TexturedMesh(SettingsBaseVirtual* sb);
-    /*!
-     * Coordinates in texture bitmap 
-     */
-    struct Coord
-    {
-        float x, y; //!< Coordinates in texture bitmap
-        // 0 to 1
-        Coord(float x, float y) //!< constructor
-        : x(x)
-        , y(y)
-        {}
-    };
-    /*!
-     * Coordinates in a specific texture bitmap 
-     */
-    struct MatCoord
-    {
-        Coord coords;
-        int mat_id; //!< Material id
-        MatCoord(Coord coords, int mat_id)
-        : coords(coords)
-        , mat_id(mat_id)
-        {}
-    };
+
+
     /*!
      * 
      */
@@ -74,7 +52,7 @@ public:
     virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
 
 protected:
-    std::vector<Coord> texture_coords;
+    std::vector<FPoint> texture_coords;
     std::vector<FaceTextureCoordIndices> face_texture_indices;
     // TODO clean up above lists when super class clear() is called
     // TODO when to clean up below material base?
