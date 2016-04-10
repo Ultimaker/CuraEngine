@@ -3,7 +3,7 @@
 #include "TexturedMesh.h"
 
 #include <cassert>
-
+#include "utils/logoutput.h"
 
 namespace cura
 {
@@ -91,7 +91,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     { // edge is not cut by horizontal plane!
         return false;
     }
-    float ratio = INT2MM(dp0p1) / INT2MM(dzp0);
+    float ratio = INT2MM(dzp0) / INT2MM(dp0p1);
 
     FPoint t0 = texture_coords[texture_idxs.index[p0_idx]];
     FPoint t1 = texture_coords[texture_idxs.index[p1_idx]];
@@ -100,6 +100,10 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     result.coords.x = t0.x + (t1.x - t0.x) * ratio;
     result.coords.y = t0.y + (t1.y - t0.y) * ratio;
 
+    if (result.coords.x > 1.001 || result.coords.x < -0.001 || result.coords.y > 1.001 || result.coords.y < -0.001)
+    {
+        logError("WARNING: wapping material to outside image!");
+    }
     return true;
 }
 

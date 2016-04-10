@@ -3,6 +3,8 @@
 #include <limits> // numeric limits
 #include <algorithm> // min max
 
+#include <iostream>
+
 #include "Material.h"
 
 
