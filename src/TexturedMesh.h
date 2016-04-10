@@ -9,7 +9,7 @@
 
 #include "mesh.h"
 #include "utils/intpoint.h"
-#include "MatCoord.h"
+#include "MatSegment.h"
 
 namespace cura
 {
@@ -49,7 +49,7 @@ public:
 
     
 
-    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
+    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const;
 
 protected:
     std::vector<FPoint> texture_coords;
@@ -66,7 +66,7 @@ protected:
      * \param result The resulting material Coordinates
      * \return Whether a Material coordinate is defined at the given location
      */
-    bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result);
+    bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result) const;
 private:
     int current_mat; //!< material currently used in loading the face material info
 };

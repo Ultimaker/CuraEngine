@@ -65,7 +65,7 @@ Material* TexturedMesh::addMaterial(std::__cxx11::string name)
 }
 
 
-bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result)
+bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result) const
 {
     if (face_idx >= face_texture_indices.size() || face_idx >= faces.size())
     {
@@ -76,7 +76,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     {
         return false;
     }
-    MeshFace& face = faces[face_idx];
+    const MeshFace& face = faces[face_idx];
     FPoint3 p0(vertices[face.vertex_index[p0_idx]].p);
     FPoint3 p1(vertices[face.vertex_index[p1_idx]].p);
 
@@ -103,10 +103,16 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     return true;
 }
 
-bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const
+bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const
 {
-    std::cerr << "getting here!\n";
-    
+    if (!getFaceEdgeMatCoord(face_idx, z, idx_shared, idx_first, result.start))
+    {
+        return false;
+    }
+    if (!getFaceEdgeMatCoord(face_idx, z, idx_shared, idx_second, result.end))
+    {
+        return false;
+    }
     return true;
 }
 

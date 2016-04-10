@@ -12,6 +12,7 @@
 #include "GapCloserResult.h"
 #include "ClosePolygonResult.h"
 
+#include "../MatSegment.h"
 
 namespace cura
 {
@@ -25,6 +26,8 @@ public:
     int z = -1;
     Polygons polygons;
     Polygons openPolylines;
+    
+    std::unordered_map<SlicerSegment, MatSegment> afs;
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh

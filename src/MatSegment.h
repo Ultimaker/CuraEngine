@@ -14,6 +14,8 @@ struct MatSegment
 {
     MatCoord start;
     MatCoord end;
+    MatSegment() //!< non-initializing constructor
+    {}
     MatSegment(MatCoord start, MatCoord end)
     : start(start)
     , end(end)
