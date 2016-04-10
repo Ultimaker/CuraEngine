@@ -20,7 +20,13 @@ public:
     // with the vertex that it ended on.
     const MeshVertex *endVertex = nullptr;
     bool addedToPolygon = false;
-    
+
+    SlicerSegment() //!< non-initializing constructor
+    {}
+    SlicerSegment(Point start, Point end) //!< partially initializing constructor
+    : start(start)
+    , end(end)
+    {}
     /*!
      * equivalence testing irrespective of start/end order
      */
