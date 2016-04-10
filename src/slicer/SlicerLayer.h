@@ -27,7 +27,7 @@ public:
     Polygons polygons;
     Polygons openPolylines;
     
-    std::unordered_map<SlicerSegment, MatSegment> afs;
+    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh

@@ -10,7 +10,7 @@
 namespace cura {
 
 
-SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z) const
+SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr)
 {
     const Point3& p0 = p[idx_shared];
     const Point3& p1 = p[idx_first];
@@ -26,7 +26,8 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     bool got_texture_coords = mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
     if (got_texture_coords)
     {
-        
+        SlicerLayer& layer = layers[layer_nr];
+        layer.segment_to_material_segment.emplace(seg, mat_segment);
     }
     return seg;
 }
@@ -77,7 +78,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             int end_edge_idx = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(face_idx, p, 0, 2, 1, z);
+                s = project2D(face_idx, p, 0, 2, 1, z, layer_nr);
                 end_edge_idx = 0;
                 if (p1.z == z)
                 {
@@ -86,14 +87,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(face_idx, p, 0, 1, 2, z);
+                s = project2D(face_idx, p, 0, 1, 2, z, layer_nr);
                 end_edge_idx = 2;
 
             }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(face_idx, p, 1, 0, 2, z);
+                s = project2D(face_idx, p, 1, 0, 2, z, layer_nr);
                 end_edge_idx = 1;
                 if (p2.z == z)
                 {
@@ -102,14 +103,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(face_idx, p, 1, 2, 0, z);
+                s = project2D(face_idx, p, 1, 2, 0, z, layer_nr);
                 end_edge_idx = 0;
 
             }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(face_idx, p, 2, 1, 0, z);
+                s = project2D(face_idx, p, 2, 1, 0, z, layer_nr);
                 end_edge_idx = 2;
                 if (p0.z == z)
                 {
@@ -118,7 +119,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(face_idx, p, 2, 0, 1, z);
+                s = project2D(face_idx, p, 2, 0, 1, z, layer_nr);
                 end_edge_idx = 1;
             }
             else
