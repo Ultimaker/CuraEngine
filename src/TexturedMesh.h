@@ -15,7 +15,9 @@ namespace cura
 {
 
 /*!
- * A mesh with a bitmap texture to it.
+ * A mesh with bitmap textures to it.
+ * 
+ * material coordinates are defined separately, and can be reused for different bitmap textures
  */ 
 class TexturedMesh : public Mesh 
 {
@@ -69,7 +71,7 @@ public:
 
     
 
-    virtual void registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
+    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end) const;
 
 protected:
     std::vector<Coord> texture_coords;
