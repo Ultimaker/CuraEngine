@@ -589,7 +589,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
-        int infill_overlap = mesh->getSettingInMicrons("infill_overlap");
+        int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
@@ -871,7 +871,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             PolygonUtils::offsetSafe(island, -extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
             gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             offset_from_outline = -extrusion_width;
-            infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap"); // support lines area should be expanded outward to overlap with the boundary polygon
+            infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
         Infill infill_comp(support_pattern, island, offset_from_outline, remove_overlapping_perimeters, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
