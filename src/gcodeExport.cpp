@@ -293,7 +293,7 @@ void GCodeExport::writeLine(const char* line)
 
 void GCodeExport::resetExtrusionValue()
 {
-    if (current_e_value != 0.0 && flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
+    if (flavor != EGCodeFlavor::MAKERBOT && flavor != EGCodeFlavor::BFB)
     {
         *output_stream << "G92 " << extruder_attr[current_extruder].extruderCharacter << "0" << new_line;
         double current_extruded_volume = getCurrentExtrudedVolume();
@@ -600,7 +600,6 @@ void GCodeExport::switchExtruder(int new_extruder)
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
 
-    resetExtrusionValue(); // also zero the E value on the new extruder
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
@@ -611,6 +610,9 @@ void GCodeExport::switchExtruder(int new_extruder)
     {
         *output_stream << "T" << current_extruder << new_line;
     }
+
+    resetExtrusionValue(); // also zero the E value on the new extruder
+
     writeCode(extruder_attr[new_extruder].start_code.c_str());
     
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
