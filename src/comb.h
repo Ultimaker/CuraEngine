@@ -2,18 +2,22 @@
 #ifndef COMB_H
 #define COMB_H
 
+#include <memory> // shared_ptr
+
 #include "utils/polygon.h"
+#include "utils/BucketGrid2D.h"
+#include "utils/polygonUtils.h"
 
 namespace cura 
 {
     
 struct CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
 {
-    bool throughAir = false; //!< Whether the path is one which moves through air.
     bool cross_boundary = false; //!< Whether the path crosses a boundary.
 };
 struct CombPaths : public  std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
 {
+    bool throughAir = false; //!< Whether the path is one which moves through air.
 }; 
 
 /*!
@@ -205,25 +209,44 @@ class Comb
     friend class LinePolygonsCrossings;
 private:
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
+    const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
-    int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
+    const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
+    const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
+    const int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
     static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
-    
-    bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
+
+    const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
     Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    BucketGrid2D<PolygonsPointIndex>* outside_loc_to_line; //!< The BucketGrid mapping locations to line segments of the outside boundary.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
 
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
      */
-    Polygons* getBoundaryOutside();
+    Polygons& getBoundaryOutside();
+    
+    /*!
+     * Get the BucketGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
+     */
+    BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
+    
+    /*!
+     * Find the best crossing from some inside polygon to the outside boundary.
+     * 
+     * The detour from \p estimated_start to \p estimated_end is minimized.
+     * 
+     * \param from From which inside boundary the crossing to the outside starts or ends
+     * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
+     * \param estimated_end The other point to which to stay close when evaluating crossings which cross about the same distance
+     * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
+     */
+    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end);
     
 public:
     /*!

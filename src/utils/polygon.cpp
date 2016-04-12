@@ -36,19 +36,19 @@ bool PolygonRef::inside(Point p, bool border_result)
     return (crossings % 2) == 1;
 }
 
-bool Polygons::inside(Point p, bool border_result)
+bool Polygons::inside(Point p, bool border_result) const
 {
-    Polygons& thiss = *this;
+    const Polygons& thiss = *this;
     if (size() < 1)
     {
         return false;
     }
     
     int crossings = 0;
-    for (PolygonRef poly : thiss)
+    for (const ClipperLib::Path& poly : thiss)
     {
         Point p0 = poly.back();
-        for(Point& p1 : poly)
+        for (const Point& p1 : poly)
         {
             short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
@@ -310,7 +310,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     return partsView;
 }
 
-void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node)
+void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const
 {
     for(int n=0; n<node->ChildCount(); n++)
     {

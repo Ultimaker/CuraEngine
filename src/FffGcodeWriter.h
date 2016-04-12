@@ -78,12 +78,14 @@ private:
 
     Point last_position_planned; //!< The position of the head before planning the next layer
     int current_extruder_planned; //!< The extruder train in use before planning the next layer
+    bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
     , layer_plan_buffer(this, gcode)
     , last_position_planned(no_point)
     , current_extruder_planned(0) // TODO: make configurable
+    , is_inside_mesh_layer_part(false)
     {
         meshgroup_number = 1;
         max_object_height = 0;

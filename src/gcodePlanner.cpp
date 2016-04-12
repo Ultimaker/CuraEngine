@@ -48,27 +48,27 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, bool retraction_combing, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , z(z)
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
-, comb_boundary_inside(computeCombBoundaryInside())
+, comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder);
     comb = nullptr;
-    was_inside = true; // means it will try to get inside the comb boundary first
-    is_inside = true; // means it will try to get inside the comb boundary 
+    was_inside = is_inside_mesh; 
+    is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     last_retraction_config = &storage.retraction_config; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
     totalPrintTime = 0.0;
-    if (retraction_combing)
+    if (combing_mode != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
     }
@@ -82,11 +82,22 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-Polygons GCodePlanner::computeCombBoundaryInside()
+Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
 {
+    if (combing_mode == CombingMode::OFF)
+    {
+        return Polygons();
+    }
     if (layer_nr < 0)
     { // when a raft is present
-        return storage.raftOutline.offset(MM2INT(0.1));
+        if (combing_mode == CombingMode::NO_SKIN)
+        {
+            return Polygons();
+        }
+        else
+        {
+            return storage.raftOutline.offset(MM2INT(0.1));
+        }
     }
     else 
     {
@@ -94,7 +105,17 @@ Polygons GCodePlanner::computeCombBoundaryInside()
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
-            layer.getSecondOrInnermostWalls(layer_walls);
+            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            {
+                for (SliceLayerPart& part : layer.parts)
+                {
+                    layer_walls.add(part.infill_area);
+                }
+            }
+            else
+            {
+                layer.getSecondOrInnermostWalls(layer_walls);
+            }
         }
         return layer_walls;
     }
@@ -111,6 +132,7 @@ bool GCodePlanner::setExtruder(int extruder)
     {
         return false;
     }
+    setIsInside(false);
     { // handle end position of the prev extruder
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder_plans.back().extruder);
         bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
@@ -188,18 +210,25 @@ void GCodePlanner::addTravel(Point p)
             bool retract = combPaths.size() > 1;
             if (!retract)
             { // check whether we want to retract
-                for (CombPath& combPath : combPaths)
-                { // retract when path moves through a boundary
-                    if (combPath.cross_boundary || combPath.throughAir)
-                    {
-                        retract = true;
-                        break;
+                if (combPaths.throughAir)
+                {
+                    retract = true;
+                }
+                else
+                {
+                    for (CombPath& combPath : combPaths)
+                    { // retract when path moves through a boundary
+                        if (combPath.cross_boundary)
+                        {
+                            retract = true;
+                            break;
+                        }
                     }
                 }
                 if (combPaths.size() == 1)
                 {
                     CombPath path = combPaths[0];
-                    if (path.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == lastPosition && path[1] == p)
+                    if (combPaths.throughAir && !path.cross_boundary && path.size() == 2 && path[0] == lastPosition && path[1] == p)
                     { // limit the retractions from support to support, which didn't cross anything
                         retract = false;
                     }

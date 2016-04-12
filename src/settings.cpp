@@ -360,5 +360,24 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     return FillPerimeterGapMode::NOWHERE;
 }
 
+CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "off")
+    {
+        return CombingMode::OFF;
+    }
+    if (value == "all")
+    {
+        return CombingMode::ALL;
+    }
+    if (value == "noskin")
+    {
+        return CombingMode::NO_SKIN;
+    }
+    return CombingMode::ALL;
+}
+
+
 }//namespace cura
 

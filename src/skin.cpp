@@ -162,7 +162,8 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
         }
         infill.removeSmallAreas(MIN_AREA_SIZE);
         
-        part.infill_area.push_back(infill.offset(infill_skin_overlap));
+        part.infill_area = infill.offset(infill_skin_overlap);
+        part.infill_area_per_combine.push_back(part.infill_area);
     }
 }
 
@@ -203,14 +204,14 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
                 {
                     if(part.boundaryBox.hit(part2.boundaryBox))
                     {
-                        Polygons intersection = part.infill_area[n - 1].intersection(part2.infill_area[0]).offset(-200).offset(200);
+                        Polygons intersection = part.infill_area_per_combine[n - 1].intersection(part2.infill_area_per_combine[0]).offset(-200).offset(200);
                         result.add(intersection);
-                        part.infill_area[n - 1] = part.infill_area[n - 1].difference(intersection);
-                        part2.infill_area[0] = part2.infill_area[0].difference(intersection);
+                        part.infill_area_per_combine[n - 1] = part.infill_area_per_combine[n - 1].difference(intersection);
+                        part2.infill_area_per_combine[0] = part2.infill_area_per_combine[0].difference(intersection);
                     }
                 }
 
-                part.infill_area.push_back(result);
+                part.infill_area_per_combine.push_back(result);
             }
         }
     }
