@@ -92,7 +92,7 @@ private:
      * \param precondition A boolean function on Points to filter by. Leave this
      * parameter out if you don't wish to filter.
      */
-    void findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, Point& object)> precondition = BucketGrid2D<Point>::no_precondition);
+    void findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, const Point& object)> precondition = BucketGrid2D<Point>::no_precondition);
 };
 
 }

@@ -186,7 +186,7 @@ public:
         return ret;
     }
 
-    static const std::function<bool(Point, T&)> no_precondition;
+    static const std::function<bool(Point, const T&)> no_precondition;
     
     /*!
      * Find the nearest object to a given lcoation \p p, if there is any in a neighboring cell in the grid.
@@ -196,7 +196,7 @@ public:
      * \param precondition A precondition which must be satisfied before considering a \p object at a specific \p location as output
      * \return Whether an object has been found.
      */
-    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, T& object)> precondition = no_precondition) const
+    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, const T& object)> precondition = no_precondition) const
     {
         bool found = false;
         int64_t bestDist2 = squareSize * 9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
@@ -246,7 +246,7 @@ public:
 
 };
 template<typename T>
-const std::function<bool(Point, T&)> BucketGrid2D<T>::no_precondition = [](Point loc, T&) { return true; };
+const std::function<bool(Point, const T&)> BucketGrid2D<T>::no_precondition = [](Point loc, const T&) { return true; };
 
 }//namespace cura
 #endif//BUCKET_GRID_2D_H

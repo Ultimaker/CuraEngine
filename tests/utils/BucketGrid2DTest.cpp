@@ -151,7 +151,7 @@ void BucketGrid2DTest::findNearestObjectFilterTest()
     input.emplace_back(95, 100);
     input.emplace_back(98, 100);
     input.emplace_back(106, 100);
-    std::function<bool(Point, Point&)> filter = [&] (Point position, Point& object) -> bool { return position.X > 100; };
+    std::function<bool(Point, const Point&)> filter = [&] (Point position, const Point& object) -> bool { return position.X > 100; };
     findNearestObjectAssert(input, Point(100, 100), 10, new Point(106, 100), filter);
 }
 
@@ -193,7 +193,7 @@ void BucketGrid2DTest::findNearbyObjectsAssert(const std::vector<Point>& registe
     }
 }
 
-void BucketGrid2DTest::findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, Point& object)> precondition)
+void BucketGrid2DTest::findNearestObjectAssert(const std::vector<Point>& registered_points, Point target, const unsigned long long grid_size, Point* expected, std::function<bool(Point location, const Point& object)> precondition)
 {
     BucketGrid2D<Point> grid(grid_size);
     for (Point point : registered_points)
