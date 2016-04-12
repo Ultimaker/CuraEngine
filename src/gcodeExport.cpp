@@ -486,7 +486,10 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (extruder_attr[current_extruder].retraction_e_amount_current == mmToE(config->distance))
+
+    double old_retraction_e_amount = extruder_attr[current_extruder].retraction_e_amount_current;
+    double new_retraction_e_amount = mmToE(config->distance);
+    if (old_retraction_e_amount == new_retraction_e_amount)
     {
         return;
     }
@@ -521,23 +524,21 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     }
     
     extruder_attr[current_extruder].last_retraction_prime_speed = config->primeSpeed;
-    
-    double retraction_e_amount = mmToE(config->distance);
     if (firmware_retract)
     {
         *output_stream << "G10" << new_line;
         //Assume default UM2 retraction settings.
-        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value - retraction_e_amount)), 25); // TODO: hardcoded values!
+        estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + old_retraction_e_amount - new_retraction_e_amount)), 25); // TODO: hardcoded values!
     }
     else
     {
-        current_e_value -= retraction_e_amount;
+        current_e_value += old_retraction_e_amount - new_retraction_e_amount;
         *output_stream << "G1 F" << (config->speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
         currentSpeed = config->speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
     }
 
-    extruder_attr[current_extruder].retraction_e_amount_current = retraction_e_amount ;
+    extruder_attr[current_extruder].retraction_e_amount_current = new_retraction_e_amount ;
     extruder_attr[current_extruder].prime_volume += config->prime_volume;
     
     if (config->zHop > 0)
@@ -558,8 +559,9 @@ void GCodeExport::writeRetraction_extruderSwitch()
         return;
     }
 
-    double retraction_e_amount = mmToE(extruder_attr[current_extruder].extruder_switch_retraction_distance);
-    if (extruder_attr[current_extruder].retraction_e_amount_current == retraction_e_amount)
+    double old_retraction_e_amount = extruder_attr[current_extruder].retraction_e_amount_current;
+    double new_retraction_e_amount = mmToE(extruder_attr[current_extruder].extruder_switch_retraction_distance);
+    if (old_retraction_e_amount == new_retraction_e_amount)
     {
         return; 
     }
@@ -578,14 +580,14 @@ void GCodeExport::writeRetraction_extruderSwitch()
     }
     else
     {
-        current_e_value -= retraction_e_amount;
+        current_e_value += old_retraction_e_amount - new_retraction_e_amount;
         *output_stream << "G1 F" << (extruder_attr[current_extruder].extruderSwitchRetractionSpeed * 60) << " " 
             << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
             // the E value of the extruder switch retraction 'overwrites' the E value of the normal retraction
         currentSpeed = extruder_attr[current_extruder].extruderSwitchRetractionSpeed;
         extruder_attr[current_extruder].last_retraction_prime_speed = extruder_attr[current_extruder].extruderSwitchPrimeSpeed;
     }
-    extruder_attr[current_extruder].retraction_e_amount_current = retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
+    extruder_attr[current_extruder].retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
 }
 
 void GCodeExport::switchExtruder(int new_extruder)
