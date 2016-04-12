@@ -99,8 +99,8 @@ Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int poi
     }
     Point& p2 = poly[p2_idx];
 
-    Point off0 = crossZ(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
-    Point off1 = crossZ(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
+    Point off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
+    Point off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
     Point n = normal(off0 + off1, -offset);
 
     return p1 + n;
@@ -267,7 +267,7 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     {
         const Point& x = on_boundary; // on_boundary is already projected on p1-p2
         
-        Point inward_dir = crossZ(normal(p2 - p1, distance));
+        Point inward_dir = turn90CCW(normal(p2 - p1, distance));
         return x + inward_dir; 
     }
 }
