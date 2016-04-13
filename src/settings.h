@@ -75,6 +75,16 @@ enum class EGCodeFlavor
  *  M106 Sxxx and M107 are used to turn the fan on/off.
  **/
     REPRAP_VOLUMATRIC = 5,
+/**
+ * Jedi flavored is Marlin based GCode.
+ *  This is a type of RepRap used for machines with multiple extruder trains.
+ *  G0 for moves, G1 for extrusion.
+ *  E values give mm of filament extrusion.
+ *  E values are stored separately per extruder train.
+ *  Retraction is done on E values with G1. Start/end code is added.
+ *  M227 is used to initialize a single extrusion train.
+ **/
+    JEDI = 6,
 };
 
 /*!
