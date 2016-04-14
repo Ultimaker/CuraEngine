@@ -204,20 +204,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
                 }
             }
         }
-        else if (trains.IsArray())
-        {
-            int train_nr = 0;
-            for (rapidjson::Value::ConstValueIterator train_iterator = trains.Begin(); train_iterator != trains.End(); ++train_iterator)
-            {
-                SettingConfig& child = category_trains.getOrCreateChild(std::to_string(train_nr), std::string("Extruder ") + std::to_string(train_nr));
-                const rapidjson::Value& train = *train_iterator;
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
-                {
-                    _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
-                }
-                train_nr++;
-            }
-        }
     }
     if (json_document.HasMember("machine_settings"))
     {
