@@ -721,6 +721,12 @@ void GCodeExport::writeCode(const char* str)
     *output_stream << str << new_line;
 }
 
+void GCodeExport::writePrimeTrain()
+{
+    *output_stream << "M227" << new_line;
+}
+
+
 void GCodeExport::writeFanCommand(double speed)
 {
     if (currentFanSpeed == speed)

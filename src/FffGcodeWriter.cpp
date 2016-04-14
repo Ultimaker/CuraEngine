@@ -217,16 +217,27 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
             }
         }
     }
-    
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
         gcode.writeLine(tmp.str().c_str());
+    }
+    else if (gcode.getFlavor() == EGCodeFlavor::JEDI)
+    { // initialize extruder trains
+//         G1 X180 Y6 Z20 F9000
+        gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writePrimeTrain();
+//         gcode.writeRetraction_extruderSwitch();
+        gcode.switchExtruder(1);
+        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writePrimeTrain();
     }
 }
 

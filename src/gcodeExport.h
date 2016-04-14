@@ -363,6 +363,11 @@ public:
     
     void writeCode(const char* str);
     
+    /*!
+     * Write the gcode for priming the current extruder train so that it can be used.
+     */
+    void writePrimeTrain();
+    
     void writeFanCommand(double speed);
     
     void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
