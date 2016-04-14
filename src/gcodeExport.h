@@ -174,6 +174,7 @@ private:
 
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
+        int initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
 
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
@@ -194,6 +195,7 @@ private:
         , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
+        , initial_temp(0)
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
         , prime_volume(0.0)
@@ -201,6 +203,7 @@ private:
         { }
     };
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
+    unsigned int extruder_count;
     bool use_extruder_offset_to_offset_coords;
 
     std::ostream* output_stream;
@@ -223,7 +226,8 @@ private:
     bool firmware_retract; //!< whether retractions are done in the firmware, or hardcoded in E values.
 
     unsigned int layer_nr; //!< for sending travel data
-    
+
+    int initial_bed_temp; //!< bed temperature at the beginning of the print.
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -266,12 +270,12 @@ public:
     /*!
      * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
      * 
-     * \param print_time The total print time of the whole file (if known)
-     * \param filament_used_0 The total mm^3 filament used for the primary extruder (if known)
-     * \param filament_used_1 The total mm^3 filament used for the secondary extruder (if used and if known)
+     * \param print_time The total print time in seconds of the whole gcode (if known)
+     * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
+     * \param mat_ids The material ids for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(double print_time = 666, int filament_used_0 = 666, int filament_used_1 = 0);
+    std::string getFileHeader(const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<int16_t>& mat_ids = std::vector<int16_t>());
 
     void setLayerNr(unsigned int layer_nr);
     
@@ -366,7 +370,12 @@ public:
     
     void preSetup(MeshGroup* settings)
     {
-        for(int n=0; n<settings->getSettingAsCount("machine_extruder_count"); n++)
+        setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
+        use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+
+        extruder_count = settings->getSettingAsCount("machine_extruder_count");
+
+        for (unsigned int n = 0; n < extruder_count; n++)
         {
             ExtruderTrain* train = settings->getExtruderTrain(n);
             setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
@@ -384,9 +393,6 @@ public:
             extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         }
 
-        setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
-
         if (flavor == EGCodeFlavor::BFB)
         {
             new_line = "\r\n";
@@ -396,6 +402,15 @@ public:
             new_line = "\n";
         }
     }
+
+    /*!
+     * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
+     * These temperatures are set in the pre-print setup in the firmware.
+     * 
+     * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
+     */
+    void setInitialTemps(const MeshGroup& settings);
+
     void finalize(double moveSpeed, const char* endCode);
     
 };

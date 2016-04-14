@@ -15,8 +15,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.preSetup(storage.meshgroup);
     
     if (meshgroup_number == 1)
-    {
+    { // first meshgroup
         gcode.resetTotalPrintTimeAndFilament();
+        gcode.setInitialTemps(*storage.meshgroup);
     }
     
     if (CommandSocket::isInstantiated())
@@ -976,14 +977,22 @@ void FffGcodeWriter::finalize()
 {
     if (CommandSocket::isInstantiated())
     {
-        std::string prefix = gcode.getFileHeader(gcode.getTotalPrintTime(), gcode.getTotalFilamentUsed(0), gcode.getTotalFilamentUsed(1));
+        double print_time = gcode.getTotalPrintTime();
+        std::vector<double> filament_used;
+        for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)
+        {
+            filament_used.emplace_back(gcode.getTotalFilamentUsed(extr_nr));
+        }
+        std::string prefix = gcode.getFileHeader(&print_time, filament_used);
         CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
-    
+
     gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
-    for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
+    for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
+    {
         gcode.writeTemperatureCommand(e, 0, false);
-    
+    }
+
     gcode.writeComment("End of Gcode");
     /*
     the profile string below can be executed since the M25 doesn't end the gcode on an UMO and when printing via USB.

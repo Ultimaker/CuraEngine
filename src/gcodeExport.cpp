@@ -17,32 +17,92 @@ GCodeExport::GCodeExport()
     current_e_value = 0;
     current_extruder = 0;
     currentFanSpeed = -1;
-    
+
     totalPrintTime = 0.0;
-    
+
     currentSpeed = 1;
     isZHopped = 0;
     setFlavor(EGCodeFlavor::REPRAP);
+    initial_bed_temp = 0;
+
+    extruder_count = 0;
 }
 
 GCodeExport::~GCodeExport()
 {
 }
 
-std::string GCodeExport::getFileHeader(double print_time, int filament_used_0, int filament_used_1)
+void GCodeExport::setInitialTemps(const MeshGroup& settings)
+{
+    for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+    {
+        const ExtruderTrain* extr_train = settings.getExtruderTrain(extr_nr);
+        assert(extr_train);
+        double temp = extr_train->getSettingInDegreeCelsius((extr_nr == 0)? "material_print_temperature" : "material_standby_temperature");
+        extruder_attr[0].initial_temp = temp;
+        if (flavor == EGCodeFlavor::JEDI || flavor == EGCodeFlavor::ULTIGCODE)
+        {
+            extruder_attr[0].currentTemperature = temp;
+        }
+    }
+
+    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature");
+}
+
+
+std::string GCodeExport::getFileHeader(const double* print_time, const std::vector<double>& filament_used, const std::vector<int16_t>& mat_ids)
 {
     std::ostringstream prefix;
-    prefix << ";FLAVOR:" << toString(flavor) << new_line;
-    prefix << ";TIME:" << int(print_time) << new_line;
-    if (flavor == EGCodeFlavor::ULTIGCODE)
+    switch (flavor)
     {
-        prefix << ";MATERIAL:" << int(filament_used_0) << new_line;
-        prefix << ";MATERIAL2:" << int(filament_used_1) << new_line;
+    case EGCodeFlavor::JEDI:
+        prefix << ";START_OF_HEADER" << new_line;
+        prefix << ";HEADER_VERSION:0.1" << new_line;
+        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
+        prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
 
-        prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
-//         prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(1))) << new_line; // TODO: the second nozzle size isn't always initiated!
+        for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+        {
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".INITIAL_TEMPERATURE:" << extruder_attr[extr_nr].initial_temp << new_line;
+            if (filament_used.size() == extruder_count)
+            {
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.VOLUME_USED:" << static_cast<int>(filament_used[extr_nr]) << new_line;
+            }
+            if (mat_ids.size() == extruder_count)
+            {
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line; // TODO: convert to hexadecimal format
+            }
+            prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
+        }
+        prefix << ";BED.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
+
+        if (print_time)
+        {
+            prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line;
+        }
+
+        prefix << ";PRINT.SIZE.MIN.X:0" << new_line;
+        prefix << ";PRINT.SIZE.MIN.Y:0" << new_line;
+        prefix << ";PRINT.SIZE.MIN.Z:0" << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:180" << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:200" << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:200" << new_line;
+        prefix << ";END_OF_HEADER" << new_line;
+        return prefix.str();
+    default:
+        prefix << ";FLAVOR:" << toString(flavor) << new_line;
+        prefix << ";TIME:" << ((print_time)? static_cast<int>(*print_time) : 6666) << new_line;
+        if (flavor == EGCodeFlavor::ULTIGCODE)
+        {
+            prefix << ";MATERIAL:" << ((filament_used.size() >= 1)? static_cast<int>(filament_used[0]) : 6666) << new_line;
+            prefix << ";MATERIAL2:" << ((filament_used.size() >= 2)? static_cast<int>(filament_used[1]) : 0) << new_line;
+
+            prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
+    //         prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(1))) << new_line; // TODO: the second nozzle size isn't always initiated!
+        }
+        return prefix.str();
     }
-    return prefix.str();
 }
 
 
