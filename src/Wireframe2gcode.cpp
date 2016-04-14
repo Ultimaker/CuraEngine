@@ -17,6 +17,8 @@ void Wireframe2gcode::writeGCode()
 
     gcode.preSetup(wireFrame.meshgroup);
     
+    gcode.setInitialTemps(wireFrame.meshgroup);
+    
     if (CommandSocket::getInstance())
         CommandSocket::getInstance()->beginGCode();
     
