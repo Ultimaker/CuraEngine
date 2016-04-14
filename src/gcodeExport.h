@@ -367,41 +367,13 @@ public:
     
     void writeTemperatureCommand(int extruder, double temperature, bool wait = false);
     void writeBedTemperatureCommand(double temperature, bool wait = false);
-    
-    void preSetup(MeshGroup* settings)
-    {
-        setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
-        use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
-        extruder_count = settings->getSettingAsCount("machine_extruder_count");
-
-        for (unsigned int n = 0; n < extruder_count; n++)
-        {
-            ExtruderTrain* train = settings->getExtruderTrain(n);
-            setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
-            
-            extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-            extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
-            
-            extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
-            extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
-            
-            extruder_attr[n].extruder_switch_retraction_distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
-            extruder_attr[n].extruderSwitchRetractionSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
-            extruder_attr[n].extruderSwitchPrimeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-
-            extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
-        }
-
-        if (flavor == EGCodeFlavor::BFB)
-        {
-            new_line = "\r\n";
-        }
-        else 
-        {
-            new_line = "\n";
-        }
-    }
+    /*!
+     * Set member variables using the settings in \p settings
+     * 
+     * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
+     */
+    void preSetup(MeshGroup* settings);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
