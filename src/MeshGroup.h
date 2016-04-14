@@ -62,6 +62,12 @@ public:
         assert(extruders[extruder_nr]);
         return extruders[extruder_nr];
     }
+
+    const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const
+    {
+        assert(extruders[extruder_nr]);
+        return extruders[extruder_nr];
+    }
     
     std::vector<Mesh> meshes;
 
