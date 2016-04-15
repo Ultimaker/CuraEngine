@@ -8,7 +8,8 @@ namespace cura
 {
 
 #define POINT_DIST 400
-#define AMPLITUDE 400
+#define AMPLITUDE 3000
+#define EXTRA_OFFSET 3000
 
 /*
 void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
@@ -56,7 +57,7 @@ void TextureProcessor::process(Mesh* mesh, SlicerLayer& layer)
                     MatCoord mat_coord_now = mat_start;
                     mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
                     float val = mesh->getColor(mat_coord_now);
-                    int r = val * (AMPLITUDE * 2) - AMPLITUDE;
+                    int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
                     Point fuzz = normal(perp_to_p0p1, r);
                     Point pa = *p0 + normal(p0p1, p0pa_dist) - fuzz;
                     result.add(pa);
@@ -64,7 +65,7 @@ void TextureProcessor::process(Mesh* mesh, SlicerLayer& layer)
                 }
                 // TODO: move end point as well
                 float val = mesh->getColor(mat_end);
-                int r = val * (AMPLITUDE * 2) - AMPLITUDE;
+                int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
                 Point fuzz = normal(perp_to_p0p1, r);
                 result.emplace_back(p1 - fuzz);
                 dist_left_over = p0p1_size - dist_last_point;
