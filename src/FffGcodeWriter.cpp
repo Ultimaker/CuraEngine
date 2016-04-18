@@ -14,7 +14,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     gcode.preSetup(storage.meshgroup);
     
-    if (meshgroup_number == 1)
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     { // first meshgroup
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialTemps(*storage.meshgroup);
@@ -41,7 +41,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
     
-    if (meshgroup_number == 1)
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     {
         processStartingCode(storage);
     }
@@ -49,7 +49,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processNextMeshGroupCode(storage);
     }
-    meshgroup_number++;
 
     size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)

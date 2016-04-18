@@ -39,14 +39,6 @@ class FffGcodeWriter : public SettingsMessenger, NoCopy
 private:
     int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
-    /*!
-     * The number of the current meshgroup being processed.
-     * 
-     * Used for sequential printing of objects.
-     * The first meshgroup will get number 1.
-     */
-    int meshgroup_number; 
-
     /*
      * Buffer for all layer plans (of type GCodePlanner)
      * 
@@ -87,16 +79,7 @@ public:
     , current_extruder_planned(0) // TODO: make configurable
     , is_inside_mesh_layer_part(false)
     {
-        meshgroup_number = 1;
         max_object_height = 0;
-    }
-
-    /*!
-     * Reset the meshgroup number to process the next slicing.
-     */
-    void resetMeshGroupNumber()
-    {
-        meshgroup_number = 1;
     }
 
     /*!
