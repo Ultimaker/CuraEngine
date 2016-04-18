@@ -8,23 +8,21 @@ namespace cura {
     
 double Progress::times [] = 
 { 
-    0.0, 
-    5.269, 
-    1.533, 
-    22.953,
-    51.009, 
-    48.858, 
-    154.62, 
-    0.1 
+    0.0,    // START   = 0, 
+    5.269,  // SLICING = 1, 
+    1.533,  // PARTS   = 2, 
+    71.811, // INSET_SKIN = 3
+    51.009, // SUPPORT = 4, 
+    154.62, // EXPORT  = 5, 
+    0.1     // FINISH  = 6
 };
 std::string Progress::names [] = 
 {
     "start",
     "slice",
     "layerparts",
-    "inset",
+    "inset+skin",
     "support",
-    "skin",
     "export",
     "process"
 };
@@ -39,9 +37,8 @@ const Progress::Stage Progress::stages[] =
     Progress::Stage::START, 
     Progress::Stage::SLICING, 
     Progress::Stage::PARTS, 
-    Progress::Stage::INSET, 
+    Progress::Stage::INSET_SKIN, 
     Progress::Stage::SUPPORT, 
-    Progress::Stage::SKIN, 
     Progress::Stage::EXPORT, 
     Progress::Stage::FINISH 
 };
