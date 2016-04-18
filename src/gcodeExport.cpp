@@ -646,7 +646,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
 
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config->prime_volume;
-    
+
     if (config->zHop > 0)
     {
         isZHopped = config->zHop;
@@ -699,6 +699,13 @@ void GCodeExport::writeRetraction_extruderSwitch()
         extr_attr.last_retraction_prime_speed = config->primeSpeed;
     }
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
+    extr_attr.prime_volume += config->prime_volume;
+    
+    if (config->zHop > 0)
+    {
+        isZHopped = config->zHop;
+        *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << new_line;
+    }
 }
 
 void GCodeExport::switchExtruder(int new_extruder)
