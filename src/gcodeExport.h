@@ -350,7 +350,7 @@ private:
      */
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
-    void writeRetraction(RetractionConfig* config, bool force=false);
+    void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
     
     void writeRetraction_extruderSwitch();
     
