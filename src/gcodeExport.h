@@ -384,9 +384,20 @@ public:
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
      * These temperatures are set in the pre-print setup in the firmware.
      * 
+     * See FffGcodeWriter::processStartingCode
+     * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
      */
     void setInitialTemps(const MeshGroup& settings);
+
+    /*!
+     * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps
+     * This is used primarily during better specification of temperatures in LayerPlanBuffer::insertPreheatCommand
+     * 
+     * \param extruder_nr The extruder number for which to better specify the temp
+     * \param temp The temp at which the nozzle should be at startup
+     */
+    void setInitialTemp(int extruder_nr, double temp);
 
     void finalize(double moveSpeed, const char* endCode);
     

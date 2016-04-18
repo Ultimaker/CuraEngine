@@ -74,14 +74,19 @@ void GCodeExport::setInitialTemps(const MeshGroup& settings)
         const ExtruderTrain* extr_train = settings.getExtruderTrain(extr_nr);
         assert(extr_train);
         double temp = extr_train->getSettingInDegreeCelsius((extr_nr == 0)? "material_print_temperature" : "material_standby_temperature");
-        extruder_attr[0].initial_temp = temp;
-        if (flavor == EGCodeFlavor::JEDI || flavor == EGCodeFlavor::ULTIGCODE)
-        {
-            extruder_attr[0].currentTemperature = temp;
-        }
+        setInitialTemp(extr_nr, temp);
     }
 
     initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature");
+}
+
+void GCodeExport::setInitialTemp(int extruder_nr, double temp)
+{
+    extruder_attr[extruder_nr].initial_temp = temp;
+    if (flavor == EGCodeFlavor::JEDI || flavor == EGCodeFlavor::ULTIGCODE)
+    {
+        extruder_attr[extruder_nr].currentTemperature = temp;
+    }
 }
 
 
