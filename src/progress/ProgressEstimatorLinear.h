@@ -1,3 +1,4 @@
+/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 #ifndef PROGRESS_PROGRESS_ESTIMATOR_LINEAR_H
 #define PROGRESS_PROGRESS_ESTIMATOR_LINEAR_H
 

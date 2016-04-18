@@ -83,6 +83,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
     src/progress/Progress.cpp
+    src/progress/ProgressStageEstimator.cpp
 
     src/utils/gettime.cpp
     src/utils/LinearAlg2D.cpp
