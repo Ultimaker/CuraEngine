@@ -595,10 +595,6 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force)
     {
         return;
     }
-    if (config->distance <= 0)
-    {
-        return;
-    }
 
     { // handle retraction limitation
         double current_extruded_volume = getCurrentExtrudedVolume();
