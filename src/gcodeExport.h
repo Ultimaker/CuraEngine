@@ -168,9 +168,7 @@ private:
         std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
-        double extruder_switch_retraction_distance; //<! extruder switch retraction distance in mm
-        int extruderSwitchRetractionSpeed; //!< extruder switch retraction speed in mm/s
-        int extruderSwitchPrimeSpeed; //!< prime speed of extruder switch in mm/s
+        RetractionConfig extruder_switch_retraction_config; //!< Retraction configuration used when performing extruder switches
 
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
@@ -190,9 +188,6 @@ private:
         , start_code("")
         , end_code("")
         , filament_area(0)
-        , extruder_switch_retraction_distance(0.0)
-        , extruderSwitchRetractionSpeed(0)
-        , extruderSwitchPrimeSpeed(0)
         , totalFilament(0)
         , currentTemperature(0)
         , initial_temp(0)
