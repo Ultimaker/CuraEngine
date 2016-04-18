@@ -1,7 +1,7 @@
 #include "utils/logoutput.h"
 #include "commandSocket.h"
 #include "FffProcessor.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 
 #include <thread>
 #include <cinttypes>

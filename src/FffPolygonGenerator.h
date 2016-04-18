@@ -10,7 +10,8 @@
 #include "sliceDataStorage.h"
 #include "commandSocket.h"
 #include "PrintFeature.h"
-#include "ProgressEstimator.h"
+#include "progress/ProgressEstimator.h"
+#include "progress/ProgressStageEstimator.h"
 
 namespace cura
 {

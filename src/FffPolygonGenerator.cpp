@@ -15,9 +15,11 @@
 #include "infill.h"
 #include "raft.h"
 #include "debug.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "PrintFeature.h"
-#include "ProgressEstimator.h"
+#include "progress/ProgressEstimator.h"
+#include "progress/ProgressStageEstimator.h"
+#include "progress/ProgressEstimatorLinear.h"
 
 
 namespace cura

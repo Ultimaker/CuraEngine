@@ -4,8 +4,8 @@
 
 #include <string>
 
-#include "utils/logoutput.h"
-#include "utils/gettime.h"
+#include "../utils/logoutput.h"
+#include "../utils/gettime.h"
 
 namespace cura {
 

@@ -4,7 +4,7 @@
 #include <fstream> // debug IO
 
 #include "weaveDataStorage.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 
 #include "pathOrderOptimizer.h" // for skirt
 

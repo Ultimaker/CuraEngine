@@ -1,8 +1,8 @@
 /** Copyright (C) 2015 Ultimaker - Released under terms of the AGPLv3 License */
 #include "Progress.h"
 
-#include "commandSocket.h"
-#include "utils/gettime.h"
+#include "../commandSocket.h"
+#include "../utils/gettime.h"
 
 namespace cura {
     

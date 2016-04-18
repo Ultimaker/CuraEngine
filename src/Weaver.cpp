@@ -4,7 +4,7 @@
 #include <fstream> // debug IO
 #include <unistd.h>
 
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "weaveDataStorage.h"
 #include "PrintFeature.h"
 

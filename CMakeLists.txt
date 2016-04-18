@@ -63,7 +63,6 @@ set(engine_SRCS # Except main.cpp.
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
     src/PrimeTower.cpp
-    src/Progress.cpp
     src/raft.cpp
     src/settingRegistry.cpp
     src/settings.cpp
@@ -82,6 +81,8 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
+
+    src/progress/Progress.cpp
 
     src/utils/gettime.cpp
     src/utils/LinearAlg2D.cpp
