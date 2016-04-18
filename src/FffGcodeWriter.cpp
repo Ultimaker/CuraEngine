@@ -3,7 +3,7 @@
 
 #include "FffGcodeWriter.h"
 #include "FffProcessor.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "wallOverlap.h"
 
 namespace cura

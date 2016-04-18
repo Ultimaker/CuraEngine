@@ -3,7 +3,7 @@
 
 #include <cmath> // sqrt
 #include <utility> // pair
-#include "Progress.h"
+#include "progress/Progress.h"
 
 namespace cura 
 {

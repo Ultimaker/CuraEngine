@@ -2,7 +2,7 @@
 
 #include "layerPart.h"
 #include "settings.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 
 #include "utils/SVG.h" // debug output
 

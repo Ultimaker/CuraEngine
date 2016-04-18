@@ -7,7 +7,7 @@
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "utils/gettime.h"
 #include "utils/NoCopy.h"
 

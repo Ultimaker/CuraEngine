@@ -4,7 +4,7 @@
 #include "utils/socket.h"
 #include "utils/polygon.h"
 #include "settings.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "PrintFeature.h"
 
 #include <memory>
