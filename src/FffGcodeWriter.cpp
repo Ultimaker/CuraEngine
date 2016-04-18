@@ -182,7 +182,10 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         std::string prefix = gcode.getFileHeader();
         gcode.writeCode(prefix.c_str());
     }
-    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
+
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
+    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::JEDI)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
@@ -217,7 +220,6 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
             }
         }
     }
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
@@ -230,12 +232,12 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
     else if (gcode.getFlavor() == EGCodeFlavor::JEDI)
     { // initialize extruder trains
-//         G1 X180 Y6 Z20 F9000
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+//         G1 X175 Y6 Z20 F9000
         gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writePrimeTrain();
-//         gcode.writeRetraction_extruderSwitch();
         gcode.switchExtruder(1);
+//         G1 X180 Y6 Z20 F9000
         gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writePrimeTrain();
     }
