@@ -78,15 +78,15 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 
 void Infill::generateGridInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance * 2, fill_angle);
-    generateLineInfill(result, line_distance * 2, fill_angle + 90);
+    generateLineInfill(result, line_distance, fill_angle);
+    generateLineInfill(result, line_distance, fill_angle + 90);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance * 3, fill_angle);
-    generateLineInfill(result, line_distance * 3, fill_angle + 60);
-    generateLineInfill(result, line_distance * 3, fill_angle + 120);
+    generateLineInfill(result, line_distance, fill_angle);
+    generateLineInfill(result, line_distance, fill_angle + 60);
+    generateLineInfill(result, line_distance, fill_angle + 120);
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
