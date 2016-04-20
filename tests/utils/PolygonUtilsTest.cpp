@@ -42,6 +42,67 @@ void PolygonUtilsTest::edgeOutsideTest()
     moveInsideAssert(test_square, Point(50, 110), -20, Point(50, 120));
 }
 
+void PolygonUtilsTest::cornerCrookedTest()
+{
+    moveInsideAssert(test_square, Point(110, 105), 28, Point(80, 80));
+}
+
+void PolygonUtilsTest::cornerEdgeTest()
+{
+    const Point close_to(110, 100);
+    const Point supposed1(80, 80); //Allow two possible values here, since the behaviour for this edge case is not specified.
+    const Point supposed2(72, 100);
+    const int distance = 28;
+    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
+    const Point result = PolygonUtils::moveInside(cpp, distance);
+    {
+        std::stringstream ss;
+        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".\n";
+        ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error);
+    }
+}
+
+void PolygonUtilsTest::onBorderTest()
+{
+    moveInsideAssert(test_square, Point(100, 50), 20, Point(80, 50));
+}
+
+void PolygonUtilsTest::insideTest()
+{
+    moveInsideAssert(test_square, Point(80, 50), 20, Point(80, 50));
+}
+
+void PolygonUtilsTest::middleTest()
+{
+    const Point close_to(50, 50);
+    const Point supposed1(80, 50); //Allow four possible values here, since the behaviour for this edge case is not specified.
+    const Point supposed2(50, 80);
+    const Point supposed3(20, 50);
+    const Point supposed4(50, 20);
+    const int distance = 20;
+    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square);
+    const Point result = PolygonUtils::moveInside(cpp, distance);
+    {
+        std::stringstream ss;
+        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << ", " << supposed2 << ", " << supposed3 << " or " << supposed4 << ".\n";
+        ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error || vSize(result - supposed3) <= maximum_error || vSize(result - supposed4) <= maximum_error);
+    }
+}
+
+void PolygonUtilsTest::noMoveTest()
+{
+    moveInsideAssert(test_square, Point(110, 50), 0, Point(100, 50));
+}
+
+void PolygonUtilsTest::farMoveTest()
+{
+    moveInsideAssert(test_square, Point(110, 50), 100000, Point(-99900, 50));
+}
+
 void PolygonUtilsTest::cornerInsideTest2()
 {
     moveInside2Assert(test_square, Point(110, 110), 28, Point(80, 80));
@@ -62,6 +123,63 @@ void PolygonUtilsTest::edgeOutsideTest2()
     moveInside2Assert(test_square, Point(50, 110), -20, Point(50, 120));
 }
 
+void PolygonUtilsTest::cornerCrookedTest2()
+{
+    moveInside2Assert(test_square, Point(110, 105), 28, Point(80, 80));
+}
+
+void PolygonUtilsTest::cornerEdgeTest2()
+{
+    const Point close_to(110, 100);
+    const Point supposed1(80, 80); //Allow two possible values here, since the behaviour for this edge case is not specified.
+    const Point supposed2(72, 100);
+    const int distance = 28;
+    Polygons polys;
+    polys.add(test_square);
+    Point result = close_to;
+    PolygonUtils::moveInside(polys, result, distance);
+    {
+        std::stringstream ss;
+        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error);
+    }
+}
+
+void PolygonUtilsTest::onBorderTest2()
+{
+    moveInside2Assert(test_square, Point(100, 50), 20, Point(80, 50));
+}
+
+void PolygonUtilsTest::insideTest2()
+{
+    moveInside2Assert(test_square, Point(80, 50), 20, Point(80, 50));
+}
+
+void PolygonUtilsTest::middleTest2()
+{
+    const Point close_to(50, 50);
+    const Point supposed = close_to; // this moveInside function leaves points which are already inside as they are
+    const int distance = 20;
+    Polygons polys;
+    polys.add(test_square);
+    Point result = close_to;
+    PolygonUtils::moveInside(polys, result, distance);
+    {
+        std::stringstream ss;
+        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
+    }
+}
+
+void PolygonUtilsTest::noMoveTest2()
+{
+    moveInside2Assert(test_square, Point(110, 50), 0, Point(100, 50));
+}
+
+void PolygonUtilsTest::farMoveTest2()
+{
+    moveInside2Assert(test_square, Point(110, 50), 100000, Point(-99900, 50));
+}
 
 void PolygonUtilsTest::moveInsideAssert(const PolygonRef poly, Point close_to, const int distance, Point supposed)
 {
@@ -75,6 +193,7 @@ void PolygonUtilsTest::moveInsideAssert(const PolygonRef poly, Point close_to, c
         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
     }
 }
+
 void PolygonUtilsTest::moveInside2Assert(const PolygonRef poly, Point close_to, const int distance, Point supposed)
 {
     Polygons polys;
