@@ -63,7 +63,7 @@ public:
 
     bool operator==(const PolygonRef& other) const =delete;
 
-    ClipperLib::Path& operator*() { return *polygon; }
+    ClipperLib::Path& operator*() { return *path; }
     
     template <typename... Args>
     void emplace_back(Args&&... args)
@@ -338,7 +338,7 @@ public:
     }
     ClipperLib::Paths::const_iterator begin() const
     {
-        return polygons.begin();
+        return paths.begin();
     }
     ClipperLib::Paths::iterator end()
     {
@@ -346,7 +346,7 @@ public:
     }
     ClipperLib::Paths::const_iterator end() const
     {
-        return polygons.end();
+        return paths.end();
     }
     void remove(unsigned int index)
     {
@@ -382,8 +382,8 @@ public:
 
     Polygons() {}
 
-    Polygons(const Polygons& other) { polygons = other.polygons; }
-    Polygons& operator=(const Polygons& other) { polygons = other.polygons; return *this; }
+    Polygons(const Polygons& other) { paths = other.paths; }
+    Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
 
     bool operator==(const Polygons& other) const =delete;
 
