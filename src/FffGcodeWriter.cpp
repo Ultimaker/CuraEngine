@@ -239,7 +239,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.switchExtruder(1);
 //         G1 X180 Y6 Z20 F9000
         gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
         gcode.writePrimeTrain();
+        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_standby_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
     }
 }
 
