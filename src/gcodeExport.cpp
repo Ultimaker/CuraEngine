@@ -685,8 +685,6 @@ void GCodeExport::switchExtruder(int new_extruder)
 
     writeRetraction_extruderSwitch();
 
-    resetExtrusionValue(); // should be called on the old extruder
-
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
 
@@ -701,7 +699,7 @@ void GCodeExport::switchExtruder(int new_extruder)
         *output_stream << "T" << current_extruder << new_line;
     }
 
-    resetExtrusionValue(); // also zero the E value on the new extruder
+    resetExtrusionValue(); // zero the E value on the new extruder
 
     writeCode(extruder_attr[new_extruder].start_code.c_str());
     

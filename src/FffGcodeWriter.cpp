@@ -232,6 +232,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     else if (gcode.getFlavor() == EGCodeFlavor::JEDI)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+        gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
 //         G1 X175 Y6 Z20 F9000
         gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writePrimeTrain();
