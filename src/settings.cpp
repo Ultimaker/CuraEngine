@@ -28,8 +28,8 @@ std::string toString(EGCodeFlavor flavor)
             return "UltiGCode";
         case EGCodeFlavor::REPRAP_VOLUMATRIC:
             return "RepRap(Volumetric)";
-        case EGCodeFlavor::JEDI:
-            return "Jedi";
+        case EGCodeFlavor::GRIFFIN:
+            return "Griffin";
         case EGCodeFlavor::REPRAP:
         default:
             return "RepRap";
@@ -269,8 +269,8 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
 EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
 {
     std::string value = getSettingString(key);
-    if (value == "Jedi")
-        return EGCodeFlavor::JEDI;
+    if (value == "Griffin")
+        return EGCodeFlavor::GRIFFIN;
     else if (value == "UltiGCode")
         return EGCodeFlavor::ULTIGCODE;
     else if (value == "Makerbot")

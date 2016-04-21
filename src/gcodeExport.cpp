@@ -88,7 +88,7 @@ void GCodeExport::setInitialTemps(const MeshGroup& settings)
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 {
     extruder_attr[extruder_nr].initial_temp = temp;
-    if (flavor == EGCodeFlavor::JEDI || flavor == EGCodeFlavor::ULTIGCODE)
+    if (flavor == EGCodeFlavor::GRIFFIN || flavor == EGCodeFlavor::ULTIGCODE)
     {
         extruder_attr[extruder_nr].currentTemperature = temp;
     }
@@ -100,7 +100,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
     std::ostringstream prefix;
     switch (flavor)
     {
-    case EGCodeFlavor::JEDI:
+    case EGCodeFlavor::GRIFFIN:
         prefix << ";START_OF_HEADER" << new_line;
         prefix << ";HEADER_VERSION:0.1" << new_line;
         prefix << ";FLAVOR:" << toString(flavor) << new_line;

@@ -184,7 +184,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
-    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::JEDI)
+    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
@@ -229,7 +229,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
         gcode.writeLine(tmp.str().c_str());
     }
-    else if (gcode.getFlavor() == EGCodeFlavor::JEDI)
+    else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
         gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
