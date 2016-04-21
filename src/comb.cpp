@@ -67,11 +67,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         return true;
     }
 
-    if (endPoint == Point(156700, 161300))
-    {
-        std::cerr << "Asggas\n";
-    }
-    
     //Move start and end point inside the comb boundary
     unsigned int start_inside_poly = NO_INDEX;
     if (startInside) 
