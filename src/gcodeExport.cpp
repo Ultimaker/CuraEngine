@@ -144,7 +144,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             prefix << ";MATERIAL2:" << ((filament_used.size() >= 2)? static_cast<int>(filament_used[1]) : 0) << new_line;
 
             prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
-    //         prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(1))) << new_line; // TODO: the second nozzle size isn't always initiated!
+            // TODO: the second nozzle size isn't always initiated! ";NOZZLE_DIAMETER2:"
         }
         return prefix.str();
     }
