@@ -67,6 +67,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
         return true;
     }
 
+    if (endPoint == Point(156700, 161300))
+    {
+        std::cerr << "Asggas\n";
+    }
     
     //Move start and end point inside the comb boundary
     unsigned int start_inside_poly = NO_INDEX;
@@ -140,7 +144,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
 
             if (endInside)
             {
-                ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_2_in_or_mid, boundary_inside[end_part_boundary_poly_idx]);
+                ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_in_or_mid, boundary_inside[end_part_boundary_poly_idx]);
                 crossing_2_in_or_mid = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
