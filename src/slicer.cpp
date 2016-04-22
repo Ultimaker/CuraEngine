@@ -422,14 +422,14 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
 
     if (keep_none_closed)
     {
-        for(PolygonRef polyline : open_polylines)
+        for (PolygonRef polyline : open_polylines)
         {
             if (polyline.size() > 0)
                 openPolylines.add(polyline);
         }
     }
     
-    for(PolygonRef polyline : open_polylines)
+    for (PolygonRef polyline : open_polylines)
     {
         if (polyline.size() > 0)
             openPolylines.add(polyline);
