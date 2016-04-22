@@ -45,40 +45,76 @@ public:
     int z;
     Polygons polygons;
     Polygons openPolylines;
-    
-    void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
     /*!
+     * Connect the segments into polygons for this layer of this \p mesh
      * 
-     * \param open_polylines (output parameter)
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param keepNoneClosed Whether to throw away the data for segments which we couldn't stitch into a polygon
+     * \param extensiveStitching Whether to perform extra work to try and close polylines into polygons when there are large gaps
      */
-    void makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines);
-    
+    void makePolygons(const Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
+
+protected:
     /*!
-     * \param open_polylines (output parameter)
+     * Connect the segments into loops which correctly form polygons (don't perform stitching here)
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
-    
-    int getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned int start_segment_idx);
-    
+    void makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines);
+
+    /*!
+     * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
+     */
+    void makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
+
+    /*!
+     * Get the next segment connected to the end of \p segment.
+     * Used to make closed polygon loops.
+     * Return ASAP if segment is (also) connected to SlicerLayer::segments[\p start_segment_idx]
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[in] segment The segment from which to start looking for the next
+     * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
+     */
+    int getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx);
+
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
      * First link up polygon ends that are within 2 microns.
      * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
     void connectOpenPolylines(Polygons& open_polylines);
-    
+
     /*!
      * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
+     * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch(Polygons open_polylines);
-    
-private:
+    void stitch(Polygons& open_polylines);
+
     GapCloserResult findPolygonGapCloser(Point ip0, Point ip1);
 
     ClosePolygonResult findPolygonPointClosestTo(Point input);
-    
-    void stitch_extensive(Polygons open_polylines);
+
+    /*!
+     * Try to close up polylines into polygons while they have large gaps in them.
+     * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
+     */
+    void stitch_extensive(Polygons& open_polylines);
 };
 
 class Slicer

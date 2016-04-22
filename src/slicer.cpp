@@ -16,7 +16,7 @@ int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two 
 int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines)
+void SlicerLayer::makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines)
 {
     for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
     {
@@ -29,7 +29,7 @@ void SlicerLayer::makeBasicPolygonLoops(Mesh* mesh, Polygons& open_polylines)
     segments.clear();
 }
 
-void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx)
 {
     
     Polygon poly;
@@ -51,7 +51,7 @@ void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, uns
     open_polylines.add(poly);
 }
 
-int SlicerLayer::getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned int start_segment_idx)
+int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx)
 {
     int next_segment_idx = -1;
     const MeshFace& face = mesh->faces[segment.faceIndex];
@@ -113,7 +113,7 @@ void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
     }
 }
 
-void SlicerLayer::stitch(Polygons open_polylines)
+void SlicerLayer::stitch(Polygons& open_polylines)
 { // TODO This is an inefficient implementation which can run in O(n^3) time.
     // below code closes smallest gaps first
     while(1)
@@ -197,7 +197,7 @@ void SlicerLayer::stitch(Polygons open_polylines)
     }
 }
 
-void SlicerLayer::stitch_extensive(Polygons open_polylines)
+void SlicerLayer::stitch_extensive(Polygons& open_polylines)
 {
     //For extensive stitching find 2 open polygons that are touching 2 closed polygons.
     // Then find the shortest path over this polygon that can be used to connect the open polygons,
@@ -395,7 +395,7 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
     return ret;
 }
 
-void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
+void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
     Polygons open_polylines;
     
