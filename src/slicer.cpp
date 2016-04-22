@@ -55,7 +55,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
 {
     int next_segment_idx = -1;
     const MeshFace& face = mesh->faces[segment.faceIndex];
-    for(unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
+    for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
     { // check segments in connected faces
         decltype(face_idx_to_segment_idx.begin()) it;
         if (face.connected_face_index[face_edge_idx] > -1 && (it = face_idx_to_segment_idx.find(face.connected_face_index[face_edge_idx])) != face_idx_to_segment_idx.end())
@@ -66,9 +66,13 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
             if (shorterThen(diff, largest_neglected_gap_first_phase))
             {
                 if (segment_idx == static_cast<int>(start_segment_idx))
+                {
                     return start_segment_idx;
+                }
                 if (segments[segment_idx].addedToPolygon)
+                {
                     continue;
+                }
                 next_segment_idx = segment_idx; // not immediately returned since we might still encounter the start_segment_idx
             }
         }
@@ -102,7 +106,7 @@ void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
                 }
                 else
                 {
-                    for(unsigned int line_idx = 0; line_idx<open_polyline_other.size(); line_idx++)
+                    for (unsigned int line_idx = 0; line_idx < open_polyline_other.size(); line_idx++)
                     {
                         open_polyline.add(open_polyline_other[line_idx]);
                     }
@@ -417,14 +421,14 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     if (keep_none_closed)
     {
-        for(PolygonRef polyline : open_polylines)
+        for (PolygonRef polyline : open_polylines)
         {
             if (polyline.size() > 0)
                 openPolylines.add(polyline);
         }
     }
     
-    for(PolygonRef polyline : open_polylines)
+    for (PolygonRef polyline : open_polylines)
     {
         if (polyline.size() > 0)
             openPolylines.add(polyline);
