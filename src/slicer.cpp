@@ -38,8 +38,7 @@ void SlicerLayer::makeBasicPolygonLoop(Mesh* mesh, Polygons& open_polylines, uns
     for (int segment_idx = start_segment_idx; segment_idx != -1; )
     {
         SlicerSegment& segment = segments[segment_idx];
-        Point p0 = segment.end;
-        poly.add(p0);
+        poly.add(segment.end);
         segment.addedToPolygon = true;
         segment_idx = getNextSegmentIdx(mesh, segment, start_segment_idx);
         if (segment_idx == static_cast<int>(start_segment_idx)) 
