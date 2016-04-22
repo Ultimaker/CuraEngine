@@ -56,7 +56,7 @@ int SlicerLayer::getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned 
 {
     int next_segment_idx = -1;
     const MeshFace& face = mesh->faces[segment.faceIndex];
-    for(unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
+    for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
     { // check segments in connected faces
         decltype(face_idx_to_segment_idx.begin()) it;
         if (face.connected_face_index[face_edge_idx] > -1 && (it = face_idx_to_segment_idx.find(face.connected_face_index[face_edge_idx])) != face_idx_to_segment_idx.end())
@@ -67,9 +67,13 @@ int SlicerLayer::getNextSegmentIdx(Mesh* mesh, SlicerSegment& segment, unsigned 
             if (shorterThen(diff, largest_neglected_gap_first_phase))
             {
                 if (segment_idx == static_cast<int>(start_segment_idx))
+                {
                     return start_segment_idx;
+                }
                 if (segments[segment_idx].addedToPolygon)
+                {
                     continue;
+                }
                 next_segment_idx = segment_idx; // not immediately returned since we might still encounter the start_segment_idx
             }
         }
