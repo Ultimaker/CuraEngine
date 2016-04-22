@@ -103,7 +103,7 @@ void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
                 }
                 else
                 {
-                    for(unsigned int line_idx = 0; line_idx<open_polyline_other.size(); line_idx++)
+                    for (unsigned int line_idx = 0; line_idx < open_polyline_other.size(); line_idx++)
                     {
                         open_polyline.add(open_polyline_other[line_idx]);
                     }
