@@ -8,11 +8,11 @@
 namespace cura 
 {
 
-bool PolygonRef::shorterThan(int64_t check_length)
+bool PolygonRef::shorterThan(int64_t check_length) const
 {
-    PolygonRef& polygon = *this;
-    Point* p0 = &polygon.back();
-    for (Point& p1 : polygon)
+    const PolygonRef& polygon = *this;
+    const Point* p0 = &polygon.back();
+    for (const Point& p1 : polygon)
     {
         check_length += vSize(*p0 - p1);
         if (check_length >= check_length)
