@@ -186,10 +186,10 @@ private:
      * Return the first category with the given key as name, or a new one.
      * 
      * \param cat_name the key as it is in the JSON file
-     * \param category the JSON Value associated with the key
+     * \param category the JSON Value associated with the key or nullptr if no Value is available to get the label from
      * \return The first category in the list having the \p key (or a new one)
      */
-    SettingContainer& getOrCreateCategory(std::string cat_name, const rapidjson::Value& category);
+    SettingContainer& getOrCreateCategory(std::string cat_name, const rapidjson::Value* category = nullptr);
 public:
     bool settingsLoaded() const;
     /*!

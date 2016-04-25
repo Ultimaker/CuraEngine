@@ -66,6 +66,8 @@ void GCodeExport::preSetup(MeshGroup* settings)
     machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
     machine_dimensions.z = settings->getSettingInMicrons("machine_height");
 
+    machine_name = settings->getSettingString("machine_name");
+
     if (flavor == EGCodeFlavor::BFB)
     {
         new_line = "\r\n";
@@ -111,6 +113,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
+        prefix << ";TARGET_MACHINE.NAME:" << machine_name << new_line;
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {

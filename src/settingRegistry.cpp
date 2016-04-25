@@ -107,7 +107,7 @@ const SettingContainer* SettingRegistry::getCategory(std::string key) const
     return nullptr;
 }
 
-SettingContainer& SettingRegistry::getOrCreateCategory(std::string cat_name, const rapidjson::Value& category)
+SettingContainer& SettingRegistry::getOrCreateCategory(std::string cat_name, const rapidjson::Value* category)
 {
     std::list<SettingContainer>::iterator category_found = std::find_if(categories.begin(), categories.end(), [&cat_name](SettingContainer& cat) { return cat.getKey().compare(cat_name) == 0; });
     if (category_found != categories.end())
@@ -117,9 +117,9 @@ SettingContainer& SettingRegistry::getOrCreateCategory(std::string cat_name, con
     else 
     {
         std::string label = cat_name;
-        if (category.IsObject() && category.HasMember("label") && category["label"].IsString())
+        if (category && category->IsObject() && category->HasMember("label") && (*category)["label"].IsString())
         {
-            label = category["label"].GetString();
+            label = (*category)["label"].GetString();
         }
         categories.emplace_back(cat_name, label);
         return categories.back();
@@ -190,7 +190,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     if (json_document.HasMember("machine_extruder_trains"))
     {
         const rapidjson::Value& trains = json_document["machine_extruder_trains"];
-        SettingContainer& category_trains = getOrCreateCategory("machine_extruder_trains", trains);
+        SettingContainer& category_trains = getOrCreateCategory("machine_extruder_trains", &trains);
 
         if (trains.IsObject())
         {
@@ -208,13 +208,29 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     if (json_document.HasMember("machine_settings"))
     {
         const rapidjson::Value& machine_settings = json_document["machine_settings"];
-        SettingContainer& category = getOrCreateCategory("machine_settings", machine_settings);
+        SettingContainer& category = getOrCreateCategory("machine_settings", &machine_settings);
 //         _addCategory(std::string("machine_settings"), machine_settings, warn_duplicates); // TODO: make machine_settings a category with a settings field and a label field and throw away rest of the code in this code block
 
         for (rapidjson::Value::ConstMemberIterator setting_iterator = machine_settings.MemberBegin(); setting_iterator != machine_settings.MemberEnd(); ++setting_iterator)
         {
             _addSettingToContainer(&category, setting_iterator, warn_duplicates);
         }
+    }
+
+    { // handle machine name
+        std::string machine_name = "Unknown";
+        if (json_document.HasMember("name"))
+        {
+            const rapidjson::Value& machine_name_field = json_document["name"];
+            if (machine_name_field.IsString())
+            {
+                machine_name = machine_name_field.GetString();
+            }
+        }
+        SettingConfig& machine_name_setting = getOrCreateCategory("machine_settings").getOrCreateChild("machine_name", "Machine Name");
+        machine_name_setting.setDefault(machine_name);
+        machine_name_setting.setType("string");
+        settings["machine_name"] = &machine_name_setting;
     }
 
     if (json_document.HasMember("categories"))
@@ -254,7 +270,7 @@ void SettingRegistry::_addCategory(std::string cat_name, const rapidjson::Value&
     {
         return;
     }
-    SettingContainer& category = getOrCreateCategory(cat_name, fields);
+    SettingContainer& category = getOrCreateCategory(cat_name, &fields);
     const rapidjson::Value& json_object_container = fields["settings"];
     for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
     {
