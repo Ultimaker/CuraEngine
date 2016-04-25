@@ -200,6 +200,7 @@ private:
     ExtruderTrainAttributes extruder_attr[MAX_EXTRUDERS];
     unsigned int extruder_count;
     bool use_extruder_offset_to_offset_coords;
+    Point3 machine_dimensions;
 
     std::ostream* output_stream;
     std::string new_line;
