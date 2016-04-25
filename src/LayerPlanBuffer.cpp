@@ -3,6 +3,7 @@
 #include "LayerPlanBuffer.h"
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
+#include "FffProcessor.h"
 
 namespace cura {
 
@@ -142,17 +143,33 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     if (extruder_plan_idx == 0)
     {
         if (layer_plan_idx == 0)
-        { // the very first extruder plan
+        { // the very first extruder plan of the current meshgroup
             for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
-                if (extruder_idx == extruder)
+                if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
                 {
-//                     extruder_plan.insertCommand(0, extruder, required_temp, true);
-                    // the first used extruder should already be set to the required temp in the start gcode
+                    // override values from GCodeExport::setInitialTemps
+                    // the first used extruder should be set to the required temp in the start gcode
+                    // see  FffGcodeWriter::processStartingCode
+                    if (extruder_idx == extruder)
+                    {
+                        gcode.setInitialTemp(extruder_idx, required_temp);
+                    }
+                    else 
+                    {
+                        gcode.setInitialTemp(extruder_idx, preheat_config.getStandbyTemp(extruder_idx));
+                    }
                 }
-                else 
+                else
                 {
-                    extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), false);
+                    if (extruder_idx == extruder)
+                    {
+                        extruder_plan.insertCommand(0, extruder, required_temp, true);
+                    }
+                    else 
+                    {
+                        extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), false);
+                    }
                 }
             }
             return;

@@ -14,9 +14,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 {
     gcode.preSetup(storage.meshgroup);
     
-    if (meshgroup_number == 1)
-    {
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+    { // first meshgroup
         gcode.resetTotalPrintTimeAndFilament();
+        gcode.setInitialTemps(*storage.meshgroup);
     }
     
     if (CommandSocket::isInstantiated())
@@ -40,7 +41,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
     
-    if (meshgroup_number == 1)
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     {
         processStartingCode(storage);
     }
@@ -48,7 +49,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processNextMeshGroupCode(storage);
     }
-    meshgroup_number++;
 
     size_t total_layers = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -181,7 +181,10 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         std::string prefix = gcode.getFileHeader();
         gcode.writeCode(prefix.c_str());
     }
-    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE)
+
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
+    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
@@ -216,16 +219,29 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
             }
         }
     }
-    
+
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
 
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
         gcode.writeLine(tmp.str().c_str());
+    }
+    else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    { // initialize extruder trains
+        gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+        gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
+//         G1 X175 Y6 Z20 F9000
+        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writePrimeTrain();
+        gcode.switchExtruder(1);
+//         G1 X180 Y6 Z20 F9000
+        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
+        gcode.writePrimeTrain();
+        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_standby_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
     }
 }
 
@@ -976,14 +992,22 @@ void FffGcodeWriter::finalize()
 {
     if (CommandSocket::isInstantiated())
     {
-        std::string prefix = gcode.getFileHeader(gcode.getTotalPrintTime(), gcode.getTotalFilamentUsed(0), gcode.getTotalFilamentUsed(1));
+        double print_time = gcode.getTotalPrintTime();
+        std::vector<double> filament_used;
+        for (int extr_nr = 0; extr_nr < getSettingAsCount("machine_extruder_count"); extr_nr++)
+        {
+            filament_used.emplace_back(gcode.getTotalFilamentUsed(extr_nr));
+        }
+        std::string prefix = gcode.getFileHeader(&print_time, filament_used);
         CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
-    
+
     gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
-    for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
+    for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
+    {
         gcode.writeTemperatureCommand(e, 0, false);
-    
+    }
+
     gcode.writeComment("End of Gcode");
     /*
     the profile string below can be executed since the M25 doesn't end the gcode on an UMO and when printing via USB.

@@ -24,12 +24,7 @@ private:
      */
     static FffProcessor instance; 
     
-    FffProcessor()
-    : polygon_generator(this)
-    , gcode_writer(this)
-    , first_meshgroup(true)
-    {
-    }
+    FffProcessor();
 public:
     /*!
      * Get the instance
@@ -39,7 +34,12 @@ public:
     { 
         return &instance; 
     }
-    
+
+    /*!
+     * Get the index of the meshgroup currently being processed, starting at zero.
+     */
+    int getMeshgroupNr();
+
 private:
     /*!
      * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
@@ -52,9 +52,9 @@ private:
     FffGcodeWriter gcode_writer;
 
     /*!
-     * Whether the firs meshgroup is being processed.
+     * The index of the meshgroup currently being processed, starting at zero.
      */
-    bool first_meshgroup;
+    int meshgroup_number;
 
     /*!
      * A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
@@ -93,7 +93,7 @@ public:
      */
     void resetMeshGroupNumber()
     {
-        gcode_writer.resetMeshGroupNumber();
+        meshgroup_number = 0;
     }
 
     /*!

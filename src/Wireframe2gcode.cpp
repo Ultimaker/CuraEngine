@@ -17,6 +17,8 @@ void Wireframe2gcode::writeGCode()
 
     gcode.preSetup(wireFrame.meshgroup);
     
+    gcode.setInitialTemps(wireFrame.meshgroup);
+    
     if (CommandSocket::getInstance())
         CommandSocket::getInstance()->beginGCode();
     
@@ -546,12 +548,9 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
 
 void Wireframe2gcode::processStartingCode()
 {
-    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
+    if (!CommandSocket::isInstantiated())
     {
-        if (!CommandSocket::isInstantiated())
-        {
-            gcode.writeCode(gcode.getFileHeader().c_str());
-        }
+        gcode.writeCode(gcode.getFileHeader().c_str());
     }
     else 
     {
