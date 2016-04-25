@@ -122,7 +122,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
         }
-        prefix << ";BED.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
+        prefix << ";BUILD_PLATE.INITIAL_TEMPERATURE:" << initial_bed_temp << new_line;
 
         if (print_time)
         {
