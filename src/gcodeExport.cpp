@@ -6,6 +6,7 @@
 #include "gcodeExport.h"
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
+#include "utils/Date.h"
 
 namespace cura {
 
@@ -106,6 +107,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         prefix << ";FLAVOR:" << toString(flavor) << new_line;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line;
         prefix << ";GENERATOR.VERSION:" << VERSION << new_line;
+        prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line;
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {

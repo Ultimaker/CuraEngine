@@ -85,6 +85,7 @@ set(engine_SRCS # Except main.cpp.
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
 
+    src/utils/Date.cpp
     src/utils/gettime.cpp
     src/utils/LinearAlg2D.cpp
     src/utils/logoutput.cpp
