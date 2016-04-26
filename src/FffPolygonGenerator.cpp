@@ -151,8 +151,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
     }
 
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
-
     if (total_layers == 0)
     {
         log("Stopping process because there are no non-empty layers.\n");
@@ -174,6 +172,11 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processBasicWallsSkinInfill(mesh, time_keeper, total_layers, inset_skin_progress_estimate);
     }
     //layerparts2HTML(storage, "output/output.html");
+
+    // we need to remove empty layers after we have procesed the insets
+    // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
+    // brim depends on the first layer not being empty
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
 
