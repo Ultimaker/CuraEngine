@@ -875,14 +875,11 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     int extrusion_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
-    
+
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-    
-    
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr);
-    
+
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
-    
+
     std::vector<PolygonsPart> support_islands = support.splitIntoParts();
 
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
@@ -904,7 +901,11 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         {
             Polygons boundary;
             PolygonUtils::offsetSafe(island, -extrusion_width / 2, extrusion_width, boundary, remove_overlapping_perimeters);
-            gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
+            if (boundary.size() > 0)
+            {
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
+                gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
+            }
             offset_from_outline = -extrusion_width;
             infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
@@ -912,9 +913,12 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines, nullptr);
-
-        gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
-        gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        if (support_lines.size() > 0 || support_polygons.size() > 0)
+        {
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
+            gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
+            gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        }
     }
 }
 
