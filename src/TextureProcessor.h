@@ -14,7 +14,7 @@ class TextureProcessor
 {
 public:
 //     static void process(std::vector<Slicer*>& slicer_list);
-    static void process(const Mesh* mesh, SlicerLayer& layer);
+    static void processBumpMap(const Mesh* mesh, SlicerLayer& layer);
 protected:
     
 };

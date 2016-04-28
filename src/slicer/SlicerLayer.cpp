@@ -769,7 +769,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
 
-    TextureProcessor::process(mesh, *this);
+    TextureProcessor::processBumpMap(mesh, *this);
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons.simplify();
