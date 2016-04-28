@@ -116,7 +116,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<GCodePlann
             assert (extruder_plan_before.extruder != extruder);
             
             double time_here = extruder_plan_before.estimates.getTotalTime();
-            if (time_here > time_before_extruder_plan_to_insert)
+            if (time_here >= time_before_extruder_plan_to_insert)
             {
                 insertPreheatCommand(extruder_plan_before, time_here - time_before_extruder_plan_to_insert, extruder, required_temp);
                 return;

@@ -569,10 +569,26 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         return;
     }
-    
+
+    if (mesh->getSettingAsCount("wall_line_count") > 0)
+    { // don't switch extruder if there's nothing to print
+        bool empty = true;
+        for (SliceLayerPart& part : layer->parts)
+        {
+            if (part.insets.size() > 0)
+            {
+                empty = false;
+                break;
+            }
+        }
+        if (empty)
+        {
+            return;
+        }
+    }
+
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
-    
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     PathOrderOptimizer part_order_optimizer(last_position_planned, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
