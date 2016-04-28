@@ -721,7 +721,7 @@ void GCodeExport::writeCode(const char* str)
 
 void GCodeExport::writePrimeTrain()
 {
-    *output_stream << "M227" << new_line;
+    *output_stream << "G280" << new_line;
 }
 
 
