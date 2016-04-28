@@ -57,12 +57,19 @@ class TimeMaterialEstimates
 {
     friend class GCodePlanner;
 private:
-    double extrude_time; //!< in seconds
-    double unretracted_travel_time; //!< in seconds 
-    double retracted_travel_time; //!< in seconds
-    double material; //!< in mm^3
+    double extrude_time; //!< Time in seconds occupied by extrusion
+    double unretracted_travel_time; //!< Time in seconds occupied by non-retracted travel (non-extrusion)
+    double retracted_travel_time; //!< Time in seconds occupied by retracted travel (non-extrusion)
+    double material; //!< Material used (in mm^3)
 public:
-    
+    /*!
+     * Basic contructor
+     * 
+     * \param extrude_time Time in seconds occupied by extrusion
+     * \param unretracted_travel_time Time in seconds occupied by non-retracted travel (non-extrusion)
+     * \param retracted_travel_time Time in seconds occupied by retracted travel (non-extrusion)
+     * \param material Material used (in mm^3)
+     */
     TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material)
     : extrude_time(extrude_time)
     , unretracted_travel_time(unretracted_travel_time)
@@ -70,6 +77,10 @@ public:
     , material(material)
     {
     }
+
+    /*!
+     * Basic constructor initializing all estimates to zero.
+     */
     TimeMaterialEstimates()
     : extrude_time(0.0)
     , unretracted_travel_time(0.0)
@@ -77,7 +88,7 @@ public:
     , material(0.0)
     {
     }
-    
+
     /*!
      * Set all estimates to zero.
      */
@@ -88,12 +99,24 @@ public:
         retracted_travel_time = 0.0;
         material = 0.0;
     }
-    
+
+    /*!
+     * Pointwise addition of estimate stats
+     * 
+     * \param other The estimates to add to these estimates.
+     * \return The resulting estimates
+     */
     TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
     {
         return TimeMaterialEstimates(extrude_time+other.extrude_time, unretracted_travel_time+other.unretracted_travel_time, retracted_travel_time+other.retracted_travel_time, material+other.material);
     }
-    
+
+    /*!
+     * In place pointwise addition of estimate stats
+     * 
+     * \param other The estimates to add to these estimates.
+     * \return These estimates
+     */
     TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
     {
         extrude_time += other.extrude_time;
@@ -102,7 +125,7 @@ public:
         material += other.material;
         return *this;
     }
-    
+
     /*!
      * \brief Subtracts the specified estimates from these estimates and returns
      * the result.
@@ -113,7 +136,7 @@ public:
      * \return These estimates with the specified estimates subtracted.
      */
     TimeMaterialEstimates operator-(const TimeMaterialEstimates& other);
-    
+
     /*!
      * \brief Subtracts the specified elements from these estimates.
      * 
@@ -124,29 +147,72 @@ public:
      * \return A reference to this instance.
      */
     TimeMaterialEstimates& operator-=(const TimeMaterialEstimates& other);
-    
+
+    /*!
+     * Get total time estimate. The different time estimate member values added together.
+     * 
+     * \return the total of all different time estimate values 
+     */
     double getTotalTime() const
     {
         return extrude_time + unretracted_travel_time + retracted_travel_time;
     }
+
+    /*!
+     * Get the total time during which the head is not retracted.
+     * 
+     * This includes extrusion time and non-retracted travel time
+     * 
+     * \return the total time during which the head is not retracted.
+     */
     double getTotalUnretractedTime() const
     {
         return extrude_time + unretracted_travel_time;
     }
+
+    /*!
+     * Get the total travel time.
+     * 
+     * This includes the retracted travel time as well as the unretracted travel time.
+     * 
+     * \return the total travel time.
+     */
     double getTravelTime() const
     {
         return retracted_travel_time + unretracted_travel_time;
     }
+
+    /*!
+     * Get the extrusion time.
+     * 
+     * \return extrusion time.
+     */
     double getExtrudeTime() const
     {
         return extrude_time;
     }
+
+    /*!
+     * Get the amount of material used in mm^3.
+     * 
+     * \return amount of material
+     */
     double getMaterial() const
     {
         return material;
     }
 };
 
+/*!
+ * A class for representing a planned path.
+ * 
+ * A path consists of several segments of the same type of movement: retracted travel, infill extrusion, etc.
+ * 
+ * This is a compact premature representation in which are line segments have the same config, i.e. the config of this path.
+ * 
+ * In the final representation (gcode) each line segment may have different properties, 
+ * which are added when the generated GCodePaths are processed.
+ */
 class GCodePath
 {
 public:
@@ -156,16 +222,25 @@ public:
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
-    
+
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
-    
+
+    /*!
+     * Whether this config is the config of a travel path.
+     * 
+     * \return Whether this config is the config of a travel path.
+     */
     bool isTravelPath()
     {
         return config->isTravelPath();
     }
-    
+
     /*!
-     * Can only be called after the layer height has been set (which is done while writing the gcode!)
+     * Get the material flow in mm^3 per mm traversed.
+     * 
+     * \warning Can only be called after the layer height has been set (which is done while writing the gcode!)
+     * 
+     * \return The flow
      */
     double getExtrusionMM3perMM()
     {
@@ -182,46 +257,71 @@ public:
     }
 };
 
+/*!
+ * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
+ * 
+ * It allows for temperature command inserts which can be inserted in between paths.
+ */
 class ExtruderPlan
 {
 public:
-    std::vector<GCodePath> paths;
-    std::list<NozzleTempInsert> inserts;
-    
+    std::vector<GCodePath> paths; //!< The paths planned for this extruder
+    std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
+
     int extruder; //!< The extruder used for this paths in the current plan.
-    double required_temp;
-    
-    TimeMaterialEstimates estimates;
-    
+    double required_temp; //!< The required temperature at the start of this extruder plan.
+
+    TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+
+    /*!
+     * Simple contructor.
+     * 
+     * \warning Doesn't set the required temperature yet.
+     * 
+     * \param extruder The extruder number for which this object is a plan.
+     */
     ExtruderPlan(int extruder)
     : extruder(extruder)
     , required_temp(-1)
     {
     }
-        
+
     /*!
      * Add a new Insert, constructed with the given arguments
+     * 
+     * \see NozzleTempInsert
+     * 
+     * \param contructor_args The arguments for the constructor of an insert 
      */
     template<typename... Args>
     void insertCommand(Args&&... contructor_args)
     {
         inserts.emplace_back(contructor_args...);
     }
-    
+
     /*!
-     * Insert the inserts into gcode which should be inserted before @p path_idx
+     * Insert the inserts into gcode which should be inserted before \p path_idx
+     * 
+     * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
+     * \param gcode The gcode exporter to which to write the temperature command.
      */
     void handleInserts(unsigned int& path_idx, GCodeExport& gcode)
-    {            
+    {
         while ( ! inserts.empty() && path_idx >= inserts.front().path_idx)
         { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
             inserts.front().write(gcode);
             inserts.pop_front();
         }
     }
-    
+
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
+     * 
+     * Inserts temperature commands which should be inserted _after_ the last path.
+     * Also inserts all temperatures which should have been inserted earlier,
+     * but for which ExtruderPlan::handleInserts hasn't been called correctly.
+     * 
+     * \param gcode The gcode exporter to which to write the temperature command.
      */
     void handleAllRemainingInserts(GCodeExport& gcode)
     { 
@@ -236,18 +336,24 @@ public:
 };
 
 class LayerPlanBuffer; // forward declaration to prevent circular dependency
+
 /*! 
  * The GCodePlanner class stores multiple moves that are planned.
+ * 
+ * 
  * It facilitates the combing to keep the head inside the print.
  * It also keeps track of the print time estimate for this planning so speed adjustments can be made for the minimal-layer-time.
+ * 
+ * A GCodePlanner is also knows as a 'layer plan'.
+ * 
  */
 class GCodePlanner : public NoCopy
 {
     friend class LayerPlanBuffer;
 private:
-    SliceDataStorage& storage;
+    SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
-    int layer_nr;
+    int layer_nr; //!< The layer number of this layer plan
     
     int z; 
     
