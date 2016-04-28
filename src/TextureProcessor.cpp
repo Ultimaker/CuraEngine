@@ -24,7 +24,7 @@ void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
-void TextureProcessor::process(Mesh* mesh, SlicerLayer& layer)
+void TextureProcessor::processBumpMap(Mesh* mesh, SlicerLayer& layer)
 {
     Polygons results;
     for (PolygonRef poly : layer.polygonList)
