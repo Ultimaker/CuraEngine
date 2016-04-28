@@ -8,8 +8,8 @@ namespace cura
 {
 
 #define POINT_DIST 400
-#define AMPLITUDE 3000
-#define EXTRA_OFFSET 3000
+#define AMPLITUDE 500
+#define EXTRA_OFFSET 500
 
 /*
 void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
@@ -26,6 +26,21 @@ void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
 
 void TextureProcessor::processBumpMap(Mesh* mesh, SlicerLayer& layer)
 {
+    process(mesh, layer, false);
+}
+
+void TextureProcessor::processDualColorTexture(Mesh* mesh, SlicerLayer& layer)
+{
+    process(mesh, layer, true);
+}
+
+void TextureProcessor::process(Mesh* mesh, SlicerLayer& layer, bool dual_color_texture)
+{
+    bool flipped = false; 
+    if (dual_color_texture)
+    {
+        flipped = layer.layer_nr % 2 == 0;
+    }
     Polygons results;
     for (PolygonRef poly : layer.polygonList)
     {
@@ -34,8 +49,9 @@ void TextureProcessor::processBumpMap(Mesh* mesh, SlicerLayer& layer)
         
         int64_t dist_left_over = (POINT_DIST / 2); // the distance to be traversed on the line before making the first new point
         Point* p0 = &poly.back();
+        bool even = false;
         for (Point& p1 : poly)
-        { // 'a' is the (next) new point between p0 and p1
+        {
             SlicerSegment segment(*p0, p1);
             auto it = layer.segment_to_material_segment.find(segment);
             if (it != layer.segment_to_material_segment.end())
@@ -54,20 +70,37 @@ void TextureProcessor::processBumpMap(Mesh* mesh, SlicerLayer& layer)
                 // TODO: move start point (which was already moved last iteration
                 for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += POINT_DIST)
                 {
-                    MatCoord mat_coord_now = mat_start;
-                    mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
-                    float val = mesh->getColor(mat_coord_now);
-                    int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
-                    Point fuzz = normal(perp_to_p0p1, r);
-                    Point pa = *p0 + normal(p0p1, p0pa_dist) - fuzz;
+                    Point pa = *p0 + normal(p0p1, p0pa_dist);
+                    if (even ^ flipped)
+                    {
+                        MatCoord mat_coord_now = mat_start;
+                        mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
+                        float val = mesh->getColor(mat_coord_now); // between 0 and 1
+                        if (flipped)
+                        {
+                            val = 1.0f - val;
+                        }
+                        assert(val > -0.001 && val < 1.001);
+                        int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
+                        Point displacement = normal(perp_to_p0p1, r);
+                        pa -= displacement;
+                    }
                     result.add(pa);
                     dist_last_point = p0pa_dist;
+                    even = !even;
                 }
                 // TODO: move end point as well
                 float val = mesh->getColor(mat_end);
                 int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
-                Point fuzz = normal(perp_to_p0p1, r);
-                result.emplace_back(p1 - fuzz);
+                Point displacement = normal(perp_to_p0p1, r);
+                if (dual_color_texture)
+                {
+                    result.emplace_back(p1);
+                }
+                else
+                {
+                    result.emplace_back(p1 - displacement);
+                }
                 dist_left_over = p0p1_size - dist_last_point;
             }
             else
@@ -92,7 +125,6 @@ void TextureProcessor::processBumpMap(Mesh* mesh, SlicerLayer& layer)
     }
     layer.polygonList = results;
 }
-
 
 
 }//namespace cura

@@ -43,6 +43,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
     for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
     {
         layers[layer_nr].z = initial + thickness * layer_nr;
+        layers[layer_nr].layer_nr = layer_nr;
     }
     for (unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {

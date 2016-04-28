@@ -355,7 +355,8 @@ void SlicerLayer::makePolygons(Mesh* mesh, bool keep_none_closed, bool extensive
         }
     }
 
-    TextureProcessor::processBumpMap(mesh, *this);
+//     TextureProcessor::processBumpMap(mesh, *this);
+    TextureProcessor::processDualColorTexture(mesh, *this);
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygonList.simplify();

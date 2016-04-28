@@ -13,9 +13,17 @@ namespace cura
 class TextureProcessor
 {
 public:
-//     static void process(std::vector<Slicer*>& slicer_list);
+    /*!
+     * Apply offsets in the xy plane corresponding to pixel intensities
+     */
     static void processBumpMap(Mesh* mesh, SlicerLayer& layer);
+
+    /*!
+     * Apply a zigzag pattern with offsets corresponding to pixel intensities
+     */
+    static void processDualColorTexture(Mesh* mesh, SlicerLayer& layer);
 protected:
+    static void process(Mesh* mesh, SlicerLayer& layer, bool dual_color_texture);
     
 };
 

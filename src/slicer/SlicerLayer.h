@@ -25,6 +25,7 @@ public:
     std::unordered_map<int, int> face_idx_to_segment_index; // topology
 
     int z;
+    int layer_nr;
     Polygons polygonList;
     Polygons openPolylines;
     
