@@ -42,7 +42,7 @@ Date Date::getDate()
 
     std::sscanf(build_date, "%s %d %d", s_month, &ret.day, &ret.year);
 
-    ret.month = (strstr(month_names, s_month)-month_names)/3;
+    ret.month = (strstr(month_names, s_month) - month_names) / 3;
 
     ret.month++; // humans count Jan as month 1, not zero
     return ret;
