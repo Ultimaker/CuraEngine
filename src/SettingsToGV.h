@@ -122,7 +122,10 @@ private:
                 }
                 else if ( ! std::regex_match(inherited_setting_string, std::regex("[0-9]+")) && // exclude numbers
                     // result != "parent_value" && 
-                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
+                    inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" 
+                    && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" 
+                    && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
+                    && inherited_setting_string != "grid" && inherited_setting_string != "triangles" // exclude enum values
                     && function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
                 {
                     if (inherited_setting_string == parent)
