@@ -402,6 +402,7 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
     Point3 vertex_indices;
     float texture_x;
     float texture_y;
+    float temp;
     char face_index_buffer_1 [100];
     char face_index_buffer_2 [100];
     char face_index_buffer_3 [100];
@@ -443,6 +444,14 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
         else if (sscanf(buffer, "usemtl %s", str_buffer) == 1)
         {
             mesh->setMaterial(str_buffer);
+        }
+        else if (sscanf(buffer, "vn %f %f %f", &temp, &temp, &temp) == 3)
+        {
+            // do nothing
+        }
+        else if (buffer[0] == '\0')
+        {
+            // empty line, do nothing
         }
         else
         {
