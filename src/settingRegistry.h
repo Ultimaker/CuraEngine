@@ -201,6 +201,7 @@ public:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettings(std::string filename);
+    
     void debugOutputAllSettings() const
     {
         for (const SettingContainer& cat : categories)
@@ -216,6 +217,7 @@ private:
      * \return human readable version of json type
      */
     static std::string toString(rapidjson::Type type);
+public:
     /*!
      * Load a json document.
      * 
@@ -223,8 +225,8 @@ private:
      * \param json_document (output) the document to be loaded
      * \return an error code or zero of succeeded
      */
-    int loadJSON(std::string filename, rapidjson::Document& json_document);
-    
+    static int loadJSON(std::string filename, rapidjson::Document& json_document);
+private:
     /*!
      * Load settings from a single json file.
      * 
