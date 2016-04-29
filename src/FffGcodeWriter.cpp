@@ -562,7 +562,16 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         return;
     }
     
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
+    int extruder_nr = mesh->getSettingAsIndex("extruder_nr");
+
+    { // TODO: only do this for dual color texture
+        if (layer_nr % 2 == 0)
+        {
+            extruder_nr = 1 - extruder_nr;
+        }
+    }
+
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
 
     
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
