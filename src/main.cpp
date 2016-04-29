@@ -341,7 +341,7 @@ int main(int argc, char **argv)
         bool inherit_viz = false;
         bool warning_viz = false;
         bool error_viz = false;
-        if (argc >= 5)
+        if (argc >= 6)
         {
             char* str = argv[5];
             if (str[0] == '-')
