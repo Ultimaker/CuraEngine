@@ -162,7 +162,13 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
         }
         polygon->erase(polygon->begin() + writing_idx , polygon->end());
     }
-    
+
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+
     Point* last = &thiss[0];
     unsigned int writing_idx = 1;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
