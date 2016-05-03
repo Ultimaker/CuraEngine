@@ -39,103 +39,82 @@ public:
 class SlicerLayer
 {
 public:
-    std::vector<SlicerSegment> segmentList;
-    std::unordered_map<int, int> face_idx_to_segment_index; // topology
+    std::vector<SlicerSegment> segments;
+    std::unordered_map<int, int> face_idx_to_segment_idx; // topology
     
     int z;
-    Polygons polygonList;
+    Polygons polygons;
     Polygons openPolylines;
-    
-    void makePolygons(Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
-private:
-    GapCloserResult findPolygonGapCloser(Point ip0, Point ip1)
-    {
-        GapCloserResult ret;
-        ClosePolygonResult c1 = findPolygonPointClosestTo(ip0);
-        ClosePolygonResult c2 = findPolygonPointClosestTo(ip1);
-        if (c1.polygonIdx < 0 || c1.polygonIdx != c2.polygonIdx)
-        {
-            ret.len = -1;
-            return ret;
-        }
-        ret.polygonIdx = c1.polygonIdx;
-        ret.pointIdxA = c1.pointIdx;
-        ret.pointIdxB = c2.pointIdx;
-        ret.AtoB = true;
-        
-        if (ret.pointIdxA == ret.pointIdxB)
-        {
-            //Connection points are on the same line segment.
-            ret.len = vSize(ip0 - ip1);
-        }else{
-            //Find out if we have should go from A to B or the other way around.
-            Point p0 = polygonList[ret.polygonIdx][ret.pointIdxA];
-            int64_t lenA = vSize(p0 - ip0);
-            for(unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygonList[ret.polygonIdx].size())
-            {
-                Point p1 = polygonList[ret.polygonIdx][i];
-                lenA += vSize(p0 - p1);
-                p0 = p1;
-            }
-            lenA += vSize(p0 - ip1);
+    /*!
+     * Connect the segments into polygons for this layer of this \p mesh
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param keepNoneClosed Whether to throw away the data for segments which we couldn't stitch into a polygon
+     * \param extensiveStitching Whether to perform extra work to try and close polylines into polygons when there are large gaps
+     */
+    void makePolygons(const Mesh* mesh, bool keepNoneClosed, bool extensiveStitching);
 
-            p0 = polygonList[ret.polygonIdx][ret.pointIdxB];
-            int64_t lenB = vSize(p0 - ip1);
-            for(unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygonList[ret.polygonIdx].size())
-            {
-                Point p1 = polygonList[ret.polygonIdx][i];
-                lenB += vSize(p0 - p1);
-                p0 = p1;
-            }
-            lenB += vSize(p0 - ip0);
-            
-            if (lenA < lenB)
-            {
-                ret.AtoB = true;
-                ret.len = lenA;
-            }else{
-                ret.AtoB = false;
-                ret.len = lenB;
-            }
-        }
-        return ret;
-    }
+protected:
+    /*!
+     * Connect the segments into loops which correctly form polygons (don't perform stitching here)
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     */
+    void makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines);
 
-    ClosePolygonResult findPolygonPointClosestTo(Point input)
-    {
-        ClosePolygonResult ret;
-        for(unsigned int n=0; n<polygonList.size(); n++)
-        {
-            Point p0 = polygonList[n][polygonList[n].size()-1];
-            for(unsigned int i=0; i<polygonList[n].size(); i++)
-            {
-                Point p1 = polygonList[n][i];
-                
-                //Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
-                Point pDiff = p1 - p0;
-                int64_t lineLength = vSize(pDiff);
-                if (lineLength > 1)
-                {
-                    int64_t distOnLine = dot(pDiff, input - p0) / lineLength;
-                    if (distOnLine >= 0 && distOnLine <= lineLength)
-                    {
-                        Point q = p0 + pDiff * distOnLine / lineLength;
-                        if (shorterThen(q - input, 100))
-                        {
-                            ret.intersectionPoint = q;
-                            ret.polygonIdx = n;
-                            ret.pointIdx = i;
-                            return ret;
-                        }
-                    }
-                }
-                p0 = p1;
-            }
-        }
-        ret.polygonIdx = -1;
-        return ret;
-    }
+    /*!
+     * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
+     */
+    void makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polylines, unsigned int start_segment_idx);
+
+    /*!
+     * Get the next segment connected to the end of \p segment.
+     * Used to make closed polygon loops.
+     * Return ASAP if segment is (also) connected to SlicerLayer::segments[\p start_segment_idx]
+     * 
+     * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
+     * \param[in] segment The segment from which to start looking for the next
+     * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
+     */
+    int getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx);
+
+    /*!
+     * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
+     * First link up polygon ends that are within 2 microns.
+     * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
+     */
+    void connectOpenPolylines(Polygons& open_polylines);
+
+    /*!
+     * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
+     * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
+     */
+    void stitch(Polygons& open_polylines);
+
+    GapCloserResult findPolygonGapCloser(Point ip0, Point ip1);
+
+    ClosePolygonResult findPolygonPointClosestTo(Point input);
+
+    /*!
+     * Try to close up polylines into polygons while they have large gaps in them.
+     * 
+     * Clears all open polylines which are used up in the process
+     * 
+     * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
+     */
+    void stitch_extensive(Polygons& open_polylines);
 };
 
 class Slicer
