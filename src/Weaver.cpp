@@ -35,7 +35,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         {
             Polygons parts;
             for (cura::Slicer* slicer : slicerList)
-                parts.add(slicer->layers[starting_layer_idx].polygonList);  
+                parts.add(slicer->layers[starting_layer_idx].polygons);  
             
             if (parts.size() > 0)
                 break;
@@ -51,7 +51,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     {
         int starting_z = -1;
         for (cura::Slicer* slicer : slicerList)
-            wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
+            wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
         
         if (CommandSocket::isInstantiated())
             CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
@@ -78,7 +78,7 @@ void Weaver::weave(MeshGroup* meshgroup)
             
             Polygons parts1;
             for (cura::Slicer* slicer : slicerList)
-                parts1.add(slicer->layers[layer_idx].polygonList);
+                parts1.add(slicer->layers[layer_idx].polygons);
 
             
             Polygons chainified;

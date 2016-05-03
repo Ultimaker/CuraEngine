@@ -14,7 +14,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             {
                 SlicerLayer& layer1 = volumes[idx]->layers[layerNr];
                 SlicerLayer& layer2 = volumes[idx2]->layers[layerNr];
-                layer1.polygonList = layer1.polygonList.difference(layer2.polygonList);
+                layer1.polygons = layer1.polygons.difference(layer2.polygons);
             }
         }
     }
@@ -32,14 +32,14 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
         for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
         {
             SlicerLayer& layer1 = volumes[volIdx]->layers[layerNr];
-            fullLayer = fullLayer.unionPolygons(layer1.polygonList.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+            fullLayer = fullLayer.unionPolygons(layer1.polygons.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
         }
         fullLayer = fullLayer.offset(-20); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
         
         for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
         {
             SlicerLayer& layer1 = volumes[volIdx]->layers[layerNr];
-            layer1.polygonList = fullLayer.intersection(layer1.polygonList.offset(overlap / 2));
+            layer1.polygons = fullLayer.intersection(layer1.polygons.offset(overlap / 2));
         }
     }
 }

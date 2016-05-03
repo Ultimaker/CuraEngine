@@ -7,7 +7,23 @@
 
 namespace cura 
 {
-    
+
+bool PolygonRef::shorterThan(int64_t check_length) const
+{
+    const PolygonRef& polygon = *this;
+    const Point* p0 = &polygon.back();
+    for (const Point& p1 : polygon)
+    {
+        check_length += vSize(*p0 - p1);
+        if (check_length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
+
 bool PolygonRef::inside(Point p, bool border_result)
 {
     PolygonRef thiss = *this;
@@ -160,7 +176,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 last = &here;
             }
         }
-        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+        path->erase(path->begin() + writing_idx , path->end());
     }
 
     if (size() < 3)
@@ -191,7 +207,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             last = &here;
         }
     }
-    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    path->erase(path->begin() + writing_idx , path->end());
     
             
     if (size() < 3)
@@ -230,7 +246,7 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     std::vector<PolygonsPart> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -304,7 +320,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
