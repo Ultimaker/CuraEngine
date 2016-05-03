@@ -151,12 +151,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
     }
 
-    if (total_layers == 0)
-    {
-        log("Stopping process because there are no non-empty layers.\n");
-        return;
-    }
-    
     // handle meshes
     std::vector<double> mesh_timings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
@@ -177,6 +171,11 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
+    if (total_layers == 0)
+    {
+        log("Stopping process because there are no non-empty layers.\n");
+        return;
+    }
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
 
