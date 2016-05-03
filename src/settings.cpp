@@ -84,8 +84,8 @@ std::string SettingsBase::getSettingString(std::string key) const
     {
         return parent->getSettingString(key);
     }
-    
-		SettingsBase& nonConstThis = const_cast<SettingsBase&>(*this);
+
+    SettingsBase& nonConstThis = const_cast<SettingsBase&>(*this);
     if (SettingRegistry::getInstance()->settingExists(key))
     {
         nonConstThis.setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
