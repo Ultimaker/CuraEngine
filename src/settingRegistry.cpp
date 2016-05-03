@@ -6,8 +6,6 @@
 #include <string>
 #include <algorithm> // find_if
 
-#include "utils/logoutput.h"
-
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"

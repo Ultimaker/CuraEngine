@@ -400,7 +400,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
     
     if (layer_nr == 0)
-    {
+    { // process the skirt of the starting extruder
         int start_extruder = 0; // TODO: make settable
         gcode_layer.setExtruder(start_extruder);
         processSkirt(storage, gcode_layer, start_extruder);
@@ -430,6 +430,16 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, false);
 
+    if (layer_nr == 0)
+    { // add skirt for all extruders which haven't primed the skirt yet
+        for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+        {
+            if (!skirt_is_processed[extruder_nr])
+            {
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
+            }
+        }
+    }
     { // add prime tower if it hasn't already been added
         // print the prime tower if it hasn't been printed yet
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
@@ -445,7 +455,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
 void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
+    if (skirt_is_processed[extruder_nr])
+    {
+        return;
+    }
     Polygons& skirt = storage.skirt[extruder_nr];
+    skirt_is_processed[extruder_nr] = true;
     if (skirt.size() == 0)
     {
         return;
@@ -982,7 +997,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     
     if (extruder_changed)
     {
-        if (layer_nr == 0)
+        if (layer_nr == 0 && !skirt_is_processed[extruder_nr])
         {
             processSkirt(storage, gcode_layer, extruder_nr);
         }
