@@ -693,9 +693,10 @@ void GCodeExport::switchExtruder(int new_extruder)
 
     writeRetraction_extruderSwitch();
 
+    resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
+
     int old_extruder = current_extruder;
     current_extruder = new_extruder;
-
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
     if (flavor == EGCodeFlavor::MAKERBOT)
@@ -707,7 +708,8 @@ void GCodeExport::switchExtruder(int new_extruder)
         *output_stream << "T" << current_extruder << new_line;
     }
 
-    resetExtrusionValue(); // zero the E value on the new extruder
+    resetExtrusionValue(); // zero the E value on the new extruder, because a firmware bug in Griffin adjusted the E-value when performing a toolswitch (should be fixed as of 9 may 2016)
+
     writeCode(extruder_attr[new_extruder].start_code.c_str());
 
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
