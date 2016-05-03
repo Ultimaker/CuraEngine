@@ -138,9 +138,9 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         prefix << ";PRINT.SIZE.MIN.X:0" << new_line;
         prefix << ";PRINT.SIZE.MIN.Y:0" << new_line;
         prefix << ";PRINT.SIZE.MIN.Z:0" << new_line;
-        prefix << ";PRINT.SIZE.MAX.X:" << machine_dimensions.x << new_line;
-        prefix << ";PRINT.SIZE.MAX.Y:" << machine_dimensions.y << new_line;
-        prefix << ";PRINT.SIZE.MAX.Z:" << machine_dimensions.z << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(machine_dimensions.x) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(machine_dimensions.y) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(machine_dimensions.z) << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         return prefix.str();
     default:
