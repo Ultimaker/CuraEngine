@@ -161,7 +161,9 @@ int SettingRegistry::loadJSONsettings(std::string filename)
     
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
-    
+
+    log("Loading %s...\n", filename.c_str());
+
     if (json_document.HasMember("inherits"))
     {
         std::string filename_copy = std::string(filename.c_str()); // copy the string because dirname(.) changes the input string!!!
