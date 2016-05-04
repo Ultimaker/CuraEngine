@@ -235,11 +235,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
             if (use_support_xy_distance_overhang)
             {
-            Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-            Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
+                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
 
-            Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
-            supportLayer_this = supportLayer_this.difference(xy_disallowed);
+                Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
+                supportLayer_this = supportLayer_this.difference(xy_disallowed);
             }
             else
             {
