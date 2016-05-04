@@ -48,6 +48,7 @@ set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
     src/comb.cpp
     src/commandSocket.cpp
+    src/ConicalOverhang.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp

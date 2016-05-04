@@ -7,21 +7,22 @@
 
 namespace cura {
 
+
+/*!
+ * A class for changing the geometry of a model such that it is printable without support -
+ * Or at least with at least support as possible
+ */
 class ConicalOverhang
 {
 public:
-    static void apply(Slicer* slicer, double angle, int layer_thickness)
-    {
-        double tanAngle = tan(angle) - 0.01;  // the XY-component of the angle
-        int max_dist_from_lower_layer = tanAngle * layer_thickness; // max dist which can be bridged
-
-        for (unsigned int layer_nr = slicer->layers.size() - 2; static_cast<int>(layer_nr) >= 0; layer_nr--)
-        {
-            SlicerLayer& layer = slicer->layers[layer_nr];
-            SlicerLayer& layer_above = slicer->layers[layer_nr + 1];
-            layer.polygonList = layer.polygonList.unionPolygons(layer_above.polygonList.offset(-max_dist_from_lower_layer));
-        }
-    }
+    /*!
+     * Change the slice data such that the model becomes more printable
+     * 
+     * \param[in,out] slicer The slice data
+     * \param angle The maximum angle which can be printed without generating support (or at least generating least support)
+     * \param layer_thickness The general layer thickness
+     */
+    static void apply(Slicer* slicer, double angle, int layer_thickness);
 };
 
 }//namespace cura
