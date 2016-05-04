@@ -155,6 +155,12 @@ enum class CombingMode
     NO_SKIN
 };
 
+enum class SupportDistPriority
+{
+    XY_OVERRIDES_Z,
+    Z_OVERRIDES_XY
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.
@@ -207,6 +213,7 @@ public:
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key);
+    SupportDistPriority getSettingAsSupportDistPriority(std::string key);
 };
 
 /*!

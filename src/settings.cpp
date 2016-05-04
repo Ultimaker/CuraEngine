@@ -380,6 +380,20 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
     return CombingMode::ALL;
 }
 
+SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "xy_overrides_z")
+    {
+        return SupportDistPriority::XY_OVERRIDES_Z;
+    }
+    if (value == "z_overrides_xy")
+    {
+        return SupportDistPriority::Z_OVERRIDES_XY;
+    }
+    return SupportDistPriority::XY_OVERRIDES_Z;
+}
+
 
 }//namespace cura
 
