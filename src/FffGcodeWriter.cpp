@@ -725,7 +725,8 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
 
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
 {
-    bool compensate_overlap = mesh->getSettingBoolean("travel_compensate_overlapping_walls_enabled");
+    bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
+    bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         if (mesh->getSettingBoolean("magic_spiralize"))
@@ -739,7 +740,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
         {
             if (inset_number == 0)
             {
-                if (!compensate_overlap)
+                if (!compensate_overlap_0)
                 {
                     gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type);
                 }
@@ -752,7 +753,16 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             }
             else
             {
-                gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                if (!compensate_overlap_x)
+                {
+                    gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                }
+                else
+                {
+                    Polygons& outer_wall = part.insets[inset_number];
+                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
+                }
             }
         }
     }
