@@ -67,6 +67,22 @@ public:
         max.X = std::max(max.X,point.X);
         max.Y = std::max(max.Y,point.Y);
     }
+    /*!
+     * Expand the borders of the bounding box in each direction with the given amount
+     * 
+     * \param dist The distance by which to expand the borders of the bounding box
+     */
+    void expand(int dist)
+    {
+        if (min == Point(POINT_MAX, POINT_MAX) || max == Point(POINT_MIN, POINT_MIN))
+        {
+            return;
+        }
+        min.X -= dist;
+        min.Y -= dist;
+        max.X += dist;
+        max.Y += dist;
+    }
 };
 
 /*!
