@@ -12,10 +12,11 @@ bool PolygonRef::shorterThan(int64_t check_length) const
 {
     const PolygonRef& polygon = *this;
     const Point* p0 = &polygon.back();
+    int64_t length = 0;
     for (const Point& p1 : polygon)
     {
-        check_length += vSize(*p0 - p1);
-        if (check_length >= check_length)
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
         {
             return false;
         }
