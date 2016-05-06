@@ -1,9 +1,8 @@
 /** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
-#ifndef AABB_H
-#define AABB_H
+#ifndef UTILS_AABB_H
+#define UTILS_AABB_H
 
 
-#include <limits>
 #include "intpoint.h"
 #include "polygon.h"
 
@@ -51,38 +50,6 @@ public:
     void expand(int dist);
 };
 
-/*!
-An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
-*/
-struct AABB3D 
-{
-    Point3 min; //!< The minimal coordinates in x, y and z direction
-    Point3 max; //!< The maximal coordinates in x, y and z direction
-
-    /*!
-     * Create an AABB3D with coordinates at the numeric limits.
-     */
-    AABB3D();
-
-    /*!
-     * Expand the AABB3D to include the point \p p.
-     * \param p The point to include with the bounding box.
-     */
-    void include(Point3 p);
-
-    /*!
-     * Offset the coordinates of the bounding box.
-     * \param offset The offset with which to offset the AABB3D.
-     */
-    void offset(Point3 offset);
-
-    /*!
-     * Offset the coordinates of the bounding box.
-     * \param offset The offset with which to offset the AABB3D.
-     */
-    void offset(Point offset);
-};
-
 }//namespace cura
-#endif//AABB_H
+#endif//UTILS_AABB_H
 

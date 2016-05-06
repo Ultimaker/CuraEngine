@@ -5,6 +5,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "utils/NoCopy.h"
+#include "utils/AABB.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
 #include "MeshGroup.h"

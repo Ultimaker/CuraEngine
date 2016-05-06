@@ -2,7 +2,7 @@
 #define MESH_H
 
 #include "settings.h"
-#include "utils/AABB.h"
+#include "utils/AABB3D.h"
 
 namespace cura
 {
