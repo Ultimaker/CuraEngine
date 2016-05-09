@@ -4,7 +4,6 @@
 
 #include "RetractionConfig.h"
 #include "PrintFeature.h"
-#include "utils/intpoint.h"
 
 namespace cura 
 {
@@ -26,11 +25,10 @@ public:
     bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature.
     RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
 
-    // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
     /*!
      * Basic constructor.
      */
-    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_iconic(0), speed(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type);
     
     /*!
      * Initialize some of the member variables.
@@ -41,23 +39,13 @@ public:
      * \param line_width The line width for this feature
      * \param flow The flow modifier to apply to the extruded filament when printing this feature
      */
-    void init(double speed, int line_width, double flow)
-    {
-        speed_iconic = speed;
-        this->speed = speed;
-        this->line_width = line_width;
-        this->flow = flow;
-    }
+    void init(double speed, int line_width, double flow);
 
     /*!
      * Set the layer height and (re)compute the extrusion_per_mm
      */
-    void setLayerHeight(int layer_height)
-    {
-        this->layer_thickness = layer_height;
-        calculateExtrusion();
-    }
-    
+    void setLayerHeight(int layer_height);
+
     /*!
      * Set the speed to somewhere between the @p min_speed and the speed_iconic.
      * 
@@ -67,55 +55,31 @@ public:
      * \param layer_nr The layer number 
      * \param max_speed_layer The layer number for which the speed_iconic should be used.
      */
-    void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer) 
-    {
-        speed = (speed_iconic*layer_nr)/max_speed_layer + (min_speed*(max_speed_layer-layer_nr)/max_speed_layer);
-    }
+    void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer);
 
     /*!
      * Set the speed to the iconic speed, i.e. the normal speed of the feature type for which this is a config.
      */
-    void setSpeedIconic()
-    {
-        speed = speed_iconic;
-    }
+    void setSpeedIconic();
 
     /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
-    double getExtrusionMM3perMM()
-    {
-        return extrusion_mm3_per_mm;
-    }
-    
+    double getExtrusionMM3perMM();
+
     /*!
      * Get the movement speed in mm/s
      */
-    double getSpeed()
-    {
-        return speed;
-    }
-    
-    int getLineWidth()
-    {
-        return line_width;
-    }
-    
-    bool isTravelPath()
-    {
-        return line_width == 0;
-    }
-    
-    double getFlowPercentage()
-    {
-        return flow;
-    }
-    
+    double getSpeed();
+
+    int getLineWidth();
+
+    bool isTravelPath();
+
+    double getFlowPercentage();
+
 private:
-    void calculateExtrusion()
-    {
-        extrusion_mm3_per_mm = INT2MM(line_width) * INT2MM(layer_thickness) * double(flow) / 100.0;
-    }
+    void calculateExtrusion();
 };
 
 

@@ -52,6 +52,7 @@ set(engine_SRCS # Except main.cpp.
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
     src/gcodeExport.cpp
+    src/GCodePathConfig.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
     src/inset.cpp
