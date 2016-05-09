@@ -57,7 +57,9 @@ void GCodePathConfig::setLayerHeight(int layer_height)
 
 void GCodePathConfig::smoothSpeed(GCodePathConfig::BasicConfig first_layer_config, int layer_nr, double max_speed_layer) 
 {
-    current_config.speed = (iconic_config.speed*layer_nr)/max_speed_layer + (first_layer_config.speed*(max_speed_layer-layer_nr)/max_speed_layer);
+    current_config.speed = (iconic_config.speed * layer_nr) / max_speed_layer + (first_layer_config.speed * (max_speed_layer - layer_nr) / max_speed_layer);
+    current_config.acceleration = (iconic_config.acceleration * layer_nr) / max_speed_layer + (first_layer_config.acceleration * (max_speed_layer - layer_nr) / max_speed_layer);
+    current_config.jerk = (iconic_config.jerk * layer_nr) / max_speed_layer + (first_layer_config.jerk * (max_speed_layer - layer_nr) / max_speed_layer);
 }
 
 void GCodePathConfig::setSpeedIconic()
