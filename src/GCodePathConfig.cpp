@@ -8,22 +8,28 @@ namespace cura
 
 GCodePathConfig::BasicConfig::BasicConfig()
 : speed(0)
+, acceleration(0)
+, jerk(0)
 , line_width(0)
 , flow(100)
 {
 }
 
 
-GCodePathConfig::BasicConfig::BasicConfig(double speed, int line_width, double flow)
+GCodePathConfig::BasicConfig::BasicConfig(double speed, double acceleration, double jerk, int line_width, double flow)
 : speed(speed)
+, acceleration(acceleration)
+, jerk(jerk)
 , line_width(line_width)
 , flow(flow)
 {
 }
 
-void GCodePathConfig::BasicConfig::set(double speed, int line_width, double flow)
+void GCodePathConfig::BasicConfig::set(double speed, double acceleration, double jerk, int line_width, double flow)
 {
     this->speed = speed;
+    this->acceleration = acceleration;
+    this->jerk = jerk;
     this->line_width = line_width;
     this->flow = flow;
 }
@@ -37,9 +43,9 @@ GCodePathConfig::GCodePathConfig(RetractionConfig* retraction_config, PrintFeatu
 {
 }
 
-void GCodePathConfig::init(double speed, int line_width, double flow)
+void GCodePathConfig::init(double speed, double acceleration, double jerk, int line_width, double flow)
 {
-    iconic_config.set(speed, line_width, flow);
+    iconic_config.set(speed, acceleration, jerk, line_width, flow);
     current_config = iconic_config;
 }
 
@@ -57,6 +63,8 @@ void GCodePathConfig::smoothSpeed(GCodePathConfig::BasicConfig first_layer_confi
 void GCodePathConfig::setSpeedIconic()
 {
     current_config.speed = iconic_config.speed;
+    current_config.acceleration = iconic_config.acceleration;
+    current_config.jerk = iconic_config.jerk;
 }
 
 double GCodePathConfig::getExtrusionMM3perMM()

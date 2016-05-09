@@ -19,12 +19,14 @@ public:
      */
     struct BasicConfig
     {
-        double speed; //!< movement speed (mm/s) 
+        double speed; //!< movement speed (mm/s)
+        double acceleration; //!< acceleration of head movement (mm/s^2)
+        double jerk; //!< jerk of the head movement (around stand still) (mm/s^3)
         int line_width; //!< width of the line extruded
         double flow; //!< extrusion flow modifier in %
         BasicConfig(); //!< basic contructor initializing with inaccurate values
-        BasicConfig(double speed,  int line_width, double flow); //!< basic contructor initializing all values
-        void set(double speed,  int line_width, double flow); //!< Set all config values
+        BasicConfig(double speed, double acceleration, double jerk, int line_width, double flow); //!< basic contructor initializing all values
+        void set(double speed, double acceleration, double jerk, int line_width, double flow); //!< Set all config values
     };
 private:
     BasicConfig iconic_config; //!< The basic path configuration iconic to this print feature type
@@ -50,7 +52,7 @@ public:
      * \param line_width The line width for this feature
      * \param flow The flow modifier to apply to the extruded filament when printing this feature
      */
-    void init(double speed, int line_width, double flow);
+    void init(double speed, double acceleration, double jerk, int line_width, double flow);
 
     /*!
      * Set the layer height and (re)compute the extrusion_per_mm
@@ -69,7 +71,9 @@ public:
     void smoothSpeed(BasicConfig first_layer_config, int layer_nr, double max_speed_layer);
 
     /*!
-     * Set the speed to the iconic speed, i.e. the normal speed of the feature type for which this is a config.
+     * Set the speed config to the iconic speed config, i.e. the normal speed of the feature type for which this is a config.
+     * 
+     * Does the same for acceleration and jerk.
      */
     void setSpeedIconic();
 
