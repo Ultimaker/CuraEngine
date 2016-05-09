@@ -13,16 +13,27 @@ namespace cura
  */
 class GCodePathConfig
 {
-private:
-    double speed_iconic; //!< movement speed (mm/s) specific to this print feature
-    double speed; //!< current movement speed (mm/s) (modified by layer_nr etc.)
-    int line_width; //!< width of the line extruded
-    double flow; //!< extrusion flow modifier in %
-    int layer_thickness; //!< layer height in micron
-    double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line traversed
 public:
-    PrintFeatureType type; //!< name of the feature type
-    bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature.
+    /*!
+     * The path config settings which may change from layer to layer
+     */
+    struct BasicConfig
+    {
+        double speed; //!< movement speed (mm/s) 
+        int line_width; //!< width of the line extruded
+        double flow; //!< extrusion flow modifier in %
+        BasicConfig(); //!< basic contructor initializing with inaccurate values
+        BasicConfig(double speed,  int line_width, double flow); //!< basic contructor initializing all values
+        void set(double speed,  int line_width, double flow); //!< Set all config values
+    };
+private:
+    BasicConfig iconic_config; //!< The basic path configuration iconic to this print feature type
+    BasicConfig current_config; //!< The current path configuration for the current layer
+    int layer_thickness; //!< current layer height in micron
+    double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
+public:
+    const PrintFeatureType type; //!< name of the feature type
+    bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature. TODO: the fact that this option is here introduces a bug in combination with the fact that we have a LayerPlanBuffer; This value is set in FffGcodeWriter, meaning it has effect on previous layers!
     RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
 
     /*!
@@ -47,15 +58,15 @@ public:
     void setLayerHeight(int layer_height);
 
     /*!
-     * Set the speed to somewhere between the @p min_speed and the speed_iconic.
+     * Set the speed to somewhere between the speed of @p first_layer_config and the iconic speed.
      * 
-     * This functions should not be called with @p layer_nr > @p max_speed_layer !
+     * \warning This functions should not be called with @p layer_nr > @p max_speed_layer !
      * 
-     * \param min_speed The speed at layer zero
+     * \param first_layer_config The speed settings at layer zero
      * \param layer_nr The layer number 
      * \param max_speed_layer The layer number for which the speed_iconic should be used.
      */
-    void smoothSpeed(double min_speed, int layer_nr, double max_speed_layer);
+    void smoothSpeed(BasicConfig first_layer_config, int layer_nr, double max_speed_layer);
 
     /*!
      * Set the speed to the iconic speed, i.e. the normal speed of the feature type for which this is a config.
