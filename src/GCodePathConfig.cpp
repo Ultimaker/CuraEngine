@@ -79,6 +79,16 @@ double GCodePathConfig::getSpeed()
     return current_config.speed;
 }
 
+double GCodePathConfig::getAcceleration()
+{
+    return current_config.acceleration;
+}
+
+double GCodePathConfig::getJerk()
+{
+    return current_config.jerk;
+}
+
 int GCodePathConfig::getLineWidth()
 {
     return current_config.line_width;

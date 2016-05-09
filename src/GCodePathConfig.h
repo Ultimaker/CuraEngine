@@ -87,6 +87,16 @@ public:
      */
     double getSpeed();
 
+    /*!
+     * Get the current acceleration of this config
+     */
+    double getAcceleration();
+
+    /*!
+     * Get the current jerk of this config
+     */
+    double getJerk();
+
     int getLineWidth();
 
     bool isTravelPath();

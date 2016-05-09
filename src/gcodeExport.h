@@ -86,6 +86,9 @@ private:
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
     Point3 currentPosition;
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
+    double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
+    double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
+
     int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
@@ -248,6 +251,16 @@ public:
     void writeBedTemperatureCommand(double temperature, bool wait = false);
 
     /*!
+     * Write the command for setting the acceleration to a specific value
+     */
+    void writeAcceleration(double acceleration);
+
+    /*!
+     * Write the command for setting the jerk to a specific value
+     */
+    void writeJerk(double jerk);
+
+    /*!
      * Set member variables using the settings in \p settings
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
@@ -274,7 +287,6 @@ public:
     void setInitialTemp(int extruder_nr, double temp);
 
     void finalize(double moveSpeed, const char* endCode);
-    
 };
 
 }

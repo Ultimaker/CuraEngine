@@ -572,6 +572,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
+
+            if (storage.getSettingBoolean("acceleration_enabled"))
+            {
+                gcode.writeAcceleration(path.config->getAcceleration());
+            }
+            if (storage.getSettingBoolean("jerk_enabled"))
+            {
+                gcode.writeJerk(path.config->getJerk());
+            }
+
             if (path.retract)
             {
                 writeRetraction(gcode, extruder_plan_idx, path_idx);
