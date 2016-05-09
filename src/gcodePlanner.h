@@ -11,6 +11,7 @@
 #include "commandSocket.h"
 #include "FanSpeedLayerTime.h"
 #include "SpaceFillType.h"
+#include "GCodePathConfig.h"
 
 
 namespace cura 
