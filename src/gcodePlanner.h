@@ -411,8 +411,22 @@ public:
      */
     void addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0);
 
+    /*!
+     * Add polygon to the gcode starting at vertex \p startIdx
+     * \param polygon The polygon
+     * \param startIdx The index of the starting vertex of the \p polygon
+     * \param config The config with which to print the polygon lines
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     */
     void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
 
+    /*!
+     * Add polygons to the gcode with optimized order.
+     * \param polygons The polygons
+     * \param config The config with which to print the polygon lines
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param z_seam_type The seam type / poly start optimizer
+     */
     void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST);
 
     /*!
