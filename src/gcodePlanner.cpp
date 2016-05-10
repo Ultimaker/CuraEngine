@@ -613,25 +613,33 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
             { // SPIRALIZE
                 //If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
                 float totalLength = 0.0;
-                int z = gcode.getPositionZ();
                 Point p0 = gcode.getPositionXY();
-                for(unsigned int i=0; i<path.points.size(); i++)
+                for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && !paths[_path_idx].isTravelPath(); _path_idx++)
                 {
-                    Point p1 = path.points[i];
-                    totalLength += vSizeMM(p0 - p1);
-                    p0 = p1;
+                    GCodePath& _path = paths[_path_idx];
+                    for (unsigned int point_idx = 0; point_idx < _path.points.size(); point_idx++)
+                    {
+                        Point p1 = _path.points[point_idx];
+                        totalLength += vSizeMM(p0 - p1);
+                        p0 = p1;
+                    }
                 }
 
+                int z = gcode.getPositionZ();
                 float length = 0.0;
                 p0 = gcode.getPositionXY();
-                for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
-                {
-                    Point p1 = path.points[point_idx];
-                    length += vSizeMM(p0 - p1);
-                    p0 = p1;
-                    gcode.setZ(z + layerThickness * length / totalLength);
-                    sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
-                    gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
+                { // handle all consecutive spiralized paths > CHANGES path_idx!
+                    GCodePath& path = paths[path_idx];
+                    for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                    {
+                        Point p1 = path.points[point_idx];
+                        length += vSizeMM(p0 - p1);
+                        p0 = p1;
+                        gcode.setZ(z + layerThickness * length / totalLength);
+                        sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
+                        gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                    }
                 }
             }
         }
