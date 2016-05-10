@@ -21,6 +21,15 @@ void TimeEstimateCalculator::addTime(double time)
     extra_time += time;
 }
 
+void TimeEstimateCalculator::setAcceleration(double acc)
+{
+    acceleration = acc;
+}
+
+void TimeEstimateCalculator::setMaxXyJerk(double jerk)
+{
+    max_xy_jerk = jerk;
+}
 
 void TimeEstimateCalculator::reset()
 {

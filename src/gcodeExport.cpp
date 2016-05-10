@@ -781,6 +781,7 @@ void GCodeExport::writeAcceleration(double acceleration)
     {
         *output_stream << "M204 P" << acceleration << " T" << acceleration << new_line; // Print and Travel acceleration
         current_acceleration = acceleration;
+        estimateCalculator.setAcceleration(acceleration);
     }
 }
 
@@ -790,6 +791,7 @@ void GCodeExport::writeJerk(double jerk)
     {
         *output_stream << "M205 X" << jerk << new_line;
         current_jerk = jerk;
+        estimateCalculator.setMaxXyJerk(jerk);
     }
 }
 

@@ -74,6 +74,8 @@ public:
     void setPosition(Position newPos);
     void plan(Position newPos, double feedRate);
     void addTime(double time);
+    void setAcceleration(double acc); //!< Set the default acceleration to \p acc
+    void setMaxXyJerk(double jerk); //!< Set the max xy jerk to \p jerk
     void reset();
     
     double calculate();
