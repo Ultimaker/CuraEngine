@@ -297,11 +297,9 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
+    for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        int poly_idx = orderOptimizer.polyOrder[order_idx];
-        bool is_last_polygon = order_idx == orderOptimizer.polyOrder.size() - 1;
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize && is_last_polygon);
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize);
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
@@ -625,7 +623,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                     }
                 }
 
-                int z = gcode.getPositionZ();
                 float length = 0.0;
                 p0 = gcode.getPositionXY();
                 for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)

@@ -427,11 +427,18 @@ public:
 
     /*!
      * Add polygons to the gcode with optimized order.
+     * 
+     * When \p spiralize is true, each polygon will gradually increase from a z corresponding to this layer to the z corresponding to the next layer.
+     * Doing this for each polygon means there is a chance for the print head to crash into already printed parts,
+     * but doing it for the last polygon only would mean you are printing half of the layer in non-spiralize mode,
+     * while each layer starts with a different part.
+     * Two towers would result in alternating spiralize and non-spiralize layers.
+     * 
      * \param polygons The polygons
      * \param config The config with which to print the polygon lines
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param z_seam_type The seam type / poly start optimizer
-     * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over the last polygon printed
+     * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      */
     void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
 
