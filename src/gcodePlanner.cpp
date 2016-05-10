@@ -22,10 +22,10 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
     return *this;
 }
 
-GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow)
+GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow)
+    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
         return &paths.back();
     paths.emplace_back();
     GCodePath* ret = &paths.back();
@@ -33,6 +33,7 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceF
     ret->config = config;
     ret->done = false;
     ret->flow = flow;
+    ret->spiralize = spiralize;
     ret->space_fill_type = space_fill_type;
     if (config != &storage.travel_config)
     {
@@ -257,26 +258,26 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 }
 
 
-void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow)
+void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
-    getLatestPathWithConfig(config, space_fill_type, flow)->points.push_back(p);
+    getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation)
+void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, bool spiralize)
 {
     Point p0 = polygon[startIdx];
     addTravel(p0);
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         Point& p1 = polygon[startIdx];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0);
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0, spiralize);
     }
     else 
     {
@@ -284,7 +285,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -296,9 +297,11 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         orderOptimizer.addPolygon(polygons[poly_idx]);
     }
     orderOptimizer.optimize();
-    for (int poly_idx : orderOptimizer.polyOrder)
+    for (unsigned int order_idx = 0; order_idx < orderOptimizer.polyOrder.size(); order_idx++)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation);
+        int poly_idx = orderOptimizer.polyOrder[order_idx];
+        bool is_last_polygon = order_idx == orderOptimizer.polyOrder.size() - 1;
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize && is_last_polygon);
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
@@ -570,16 +573,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 continue;
             }
             
-            bool spiralize = path.config->spiralize;
-            if (spiralize)
-            {
-                //Check if we are the last spiralize path in the list, if not, do not spiralize.
-                for(unsigned int m=path_idx+1; m<paths.size(); m++)
-                {
-                    if (paths[m].config->spiralize)
-                        spiralize = false;
-                }
-            }
+            bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             { 
                 CoastingConfig& coasting_config = storage.coasting_config[extruder];
