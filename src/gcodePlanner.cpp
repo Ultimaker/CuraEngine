@@ -638,6 +638,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                         gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
                 }
+                path_idx--;
             }
         }
     
