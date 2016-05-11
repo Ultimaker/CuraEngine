@@ -1,6 +1,7 @@
 #include "FffPolygonGenerator.h"
 
 #include <algorithm>
+#include <map> // multimap (ordered map allowing duplicate keys)
 
 #include "slicer.h"
 #include "utils/gettime.h"
@@ -163,10 +164,22 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     ProgressStageEstimator inset_skin_progress_estimate(mesh_timings);
 
-    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper); 
-    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper);
+    std::vector<unsigned int> mesh_order;
+    { // compute mesh order
+        std::multimap<int, unsigned int> order_to_mesh_indices;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        {
+            order_to_mesh_indices.emplace(storage.meshes[mesh_idx].getSettingAsIndex("infill_mesh_order"), mesh_idx);
+        }
+        for (std::pair<const int, unsigned int>& order_and_mesh_idx : order_to_mesh_indices)
+        {
+            mesh_order.push_back(order_and_mesh_idx.second);
+        }
+    }
+    for (unsigned int mesh_idx : mesh_order)
     {
-        processBasicWallsSkinInfill(storage, mesh_idx, total_layers, inset_skin_progress_estimate);
+        processBasicWallsSkinInfill(storage, mesh_idx, mesh_order, total_layers, inset_skin_progress_estimate);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx + 1, storage.meshes.size());
     }
     //layerparts2HTML(storage, "output/output.html");
@@ -216,13 +229,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
 {
     
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     if (mesh.getSettingBoolean("infill_mesh"))
     {
-        processInfillMesh(storage, mesh_idx, total_layers);
+        processInfillMesh(storage, mesh_idx, mesh_order, total_layers);
     }
     
     // TODO: make progress more accurate!!
@@ -265,17 +278,20 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
 }
 
-void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers)
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
 {
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-
     for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         std::vector<PolygonsPart> new_parts;
 
-        for (unsigned int other_mesh_idx = 0; other_mesh_idx < mesh_idx; other_mesh_idx++)
+        for (unsigned int other_mesh_idx : mesh_order)
         {
+            if (other_mesh_idx == mesh_idx)
+            {
+                break; // all previous meshes have been processed
+            }
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (layer_idx >= other_mesh.layers.size())
             {
