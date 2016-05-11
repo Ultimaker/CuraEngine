@@ -292,7 +292,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     {
                         continue;
                     }
-                    Polygons& infill = other_part.infill_area[0];
+                    Polygons& infill = other_part.infill_area;
                     Polygons new_outline = part.outline.intersection(infill);
                     if (new_outline.size() == 1)
                     {
