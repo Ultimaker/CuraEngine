@@ -54,7 +54,7 @@ set(engine_SRCS # Except main.cpp.
     src/gcodeExport.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
-    src/inset.cpp
+    src/WallsComputation.cpp
     src/layerPart.cpp
     src/LayerPlanBuffer.cpp
     src/MergeInfillLines.cpp
@@ -72,6 +72,7 @@ set(engine_SRCS # Except main.cpp.
     src/slicer.cpp
     src/support.cpp
     src/timeEstimate.cpp
+    src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp

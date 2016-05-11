@@ -9,7 +9,7 @@
 #include "support.h"
 #include "multiVolumes.h"
 #include "layerPart.h"
-#include "inset.h"
+#include "WallsComputation.h"
 #include "skirt.h"
 #include "skin.h"
 #include "infill.h"

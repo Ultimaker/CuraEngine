@@ -1,5 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#include "inset.h"
+#include "WallsComputation.h"
 #include "utils/polygonUtils.h"
 namespace cura {
 
