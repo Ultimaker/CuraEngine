@@ -52,21 +52,21 @@ public:
      */
     WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall);
     /*!
-    * Generates the insets / perimeters for all parts in a layer.
-    * 
-    * Note that the second inset gets offsetted by WallsComputation::line_width_0 instead of the first, 
-    * which leads to better results for a smaller WallsComputation::line_width_0 than WallsComputation::line_width_x and when printing the outer wall last.
-    * 
-    * \param layer The layer for which to generate the insets.
-    */ 
+     * Generates the insets / perimeters for all parts in a layer.
+     * 
+     * Note that the second inset gets offsetted by WallsComputation::line_width_0 instead of the first, 
+     * which leads to better results for a smaller WallsComputation::line_width_0 than WallsComputation::line_width_x and when printing the outer wall last.
+     * 
+     * \param layer The layer for which to generate the insets.
+     */ 
     void generateInsets(SliceLayer* layer);
     
 private:
     /*!
-    * Generates the insets / perimeters for a single layer part.
-    * 
-    * \param part The part for which to generate the insets.
-    */
+     * Generates the insets / perimeters for a single layer part.
+     * 
+     * \param part The part for which to generate the insets.
+     */
     void generateInsets(SliceLayerPart* part);
 
 };
