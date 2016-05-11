@@ -55,7 +55,7 @@ void GCodeExport::preSetup(MeshGroup* settings)
         extruder_attr[n].extruder_switch_retraction_config.prime_volume = 0.0;
         extruder_attr[n].extruder_switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
         extruder_attr[n].extruder_switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-        extruder_attr[n].extruder_switch_retraction_config.zHop = 1000; // TODO: make configurable
+        extruder_attr[n].extruder_switch_retraction_config.zHop = train->getSettingInMicrons("switch_extruder_retraction_hop");
         extruder_attr[n].extruder_switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
         extruder_attr[n].extruder_switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
         extruder_attr[n].extruder_switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
