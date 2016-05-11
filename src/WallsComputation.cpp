@@ -67,7 +67,7 @@ void WallsComputation::generateInsets(SliceLayer* layer)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], wall_0_inset, line_width_0, line_width_x, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters, recompute_outline_based_on_outer_wall);
+        generateInsets(&layer->parts[partNr]);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
