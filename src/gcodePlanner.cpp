@@ -602,13 +602,18 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
                     gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                    if (point_idx == path.points.size() - 1)
+                    {
+                        gcode.setZ(z); // go down to extrusion level when we spiralized before on this layer
+                        gcode.writeMove(gcode.getPositionXY(), speed, path.getExtrusionMM3perMM());
+                    }
                 }
                 continue;
             }
             
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
-            { 
+            {
                 CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
