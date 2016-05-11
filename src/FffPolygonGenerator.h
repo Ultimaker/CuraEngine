@@ -70,16 +70,29 @@ private:
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param timeKeeper Object which keeps track of timings of each stage.
+     * \param mesh_idx The index of the mesh to process in the vector of meshes in \p storage
      * \param total_layers The total number of layers over all objects
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, unsigned int total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
     
     /*!
-     * TODO
+     * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
+     * 
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param mesh_idx The index of the mesh to process in the vector of meshes in \p storage
+     * \param total_layers The total number of layers over all objects
      */
-    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, TimeKeeper& timeKeeper, size_t total_layers);
+    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, size_t total_layers);
+    
+    /*!
+     * Process features which are derived from the basic walls, skin, and infill:
+     * fuzzy skin, infill combine
+     * 
+     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param total_layers The total number of layers over all objects
+     */
+    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, size_t total_layers);
     
     /*!
      * Remove all bottom layers which are empty.
