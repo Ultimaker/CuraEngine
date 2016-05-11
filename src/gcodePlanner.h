@@ -223,6 +223,8 @@ public:
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
+    bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
+
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
 
     /*!
@@ -389,9 +391,10 @@ private:
      * \param config The config used for the path returned
      * \param space_fill_type The type of space filling which this path employs
      * \param flow (optional) A ratio for the extrusion speed
+     * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
-    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0);
+    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
     
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
@@ -523,12 +526,36 @@ public:
      * \param config The config with which to extrude
      * \param space_fill_type Of what space filling type this extrusion move is a part
      * \param flow A modifier of the extrusion width which would follow from the \p config
+     * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      */
-    void addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0);
+    void addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
 
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr);
+    /*!
+     * Add polygon to the gcode starting at vertex \p startIdx
+     * \param polygon The polygon
+     * \param startIdx The index of the starting vertex of the \p polygon
+     * \param config The config with which to print the polygon lines
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
+     */
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, bool spiralize = false);
 
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST);
+    /*!
+     * Add polygons to the gcode with optimized order.
+     * 
+     * When \p spiralize is true, each polygon will gradually increase from a z corresponding to this layer to the z corresponding to the next layer.
+     * Doing this for each polygon means there is a chance for the print head to crash into already printed parts,
+     * but doing it for the last polygon only would mean you are printing half of the layer in non-spiralize mode,
+     * while each layer starts with a different part.
+     * Two towers would result in alternating spiralize and non-spiralize layers.
+     * 
+     * \param polygons The polygons
+     * \param config The config with which to print the polygon lines
+     * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param z_seam_type The seam type / poly start optimizer
+     * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
+     */
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
 
     /*!
      * Add lines to the gcode with optimized order.

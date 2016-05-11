@@ -59,14 +59,17 @@ private:
     double extrusion_mm3_per_mm;//!< mm^3 filament moved per mm line traversed
 public:
     PrintFeatureType type; //!< name of the feature type
-    bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature.
     RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
 
-    // GCodePathConfig() : speed(0), line_width(0), extrusion_mm3_per_mm(0.0), name(nullptr), spiralize(false), retraction_config(nullptr) {}
-    /*!
-     * Basic constructor.
-     */
-    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type) : speed_iconic(0), speed(0), line_width(0), extrusion_mm3_per_mm(0.0), type(type), spiralize(false), retraction_config(retraction_config) {}
+    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type)
+    : speed_iconic(0)
+    , speed(0)
+    , line_width(0)
+    , extrusion_mm3_per_mm(0.0)
+    , type(type)
+    , retraction_config(retraction_config)
+    {
+    }
     
     /*!
      * Initialize some of the member variables.
