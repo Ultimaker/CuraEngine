@@ -309,6 +309,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                         }
                     }
                     infill = infill.difference(part.outline);
+                    other_part.infill_area_per_combine.back() = infill;
                 }
             }
         }
