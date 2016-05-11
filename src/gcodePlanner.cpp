@@ -638,7 +638,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                         gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
                 }
-                path_idx--;
+                path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
         }
     
