@@ -7,6 +7,9 @@
 namespace cura 
 {
 
+/*!
+ * Function container for computing the outer walls / insets / perimeters polygons of a layer
+ */
 class WallsComputation
 {
 public:
@@ -51,6 +54,7 @@ public:
      * \param recompute_outline_based_on_outer_wall Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      */
     WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall);
+
     /*!
      * Generates the insets / perimeters for all parts in a layer.
      * 
@@ -60,7 +64,7 @@ public:
      * \param layer The layer for which to generate the insets.
      */ 
     void generateInsets(SliceLayer* layer);
-    
+
 private:
     /*!
      * Generates the insets / perimeters for a single layer part.
