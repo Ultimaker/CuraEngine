@@ -335,6 +335,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
         {
             layer.parts.emplace_back();
             layer.parts.back().outline = part;
+            layer.parts.back().boundaryBox.calculate(part);
         }
     }
     
