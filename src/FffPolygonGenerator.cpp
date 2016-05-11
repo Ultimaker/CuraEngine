@@ -279,7 +279,8 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
             inset_count += layer_nr % 2; 
         bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
-        generateInsets(layer, mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"));
+        WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, mesh.getSettingBoolean("remove_overlapping_walls_0_enabled"), mesh.getSettingBoolean("remove_overlapping_walls_x_enabled"), recompute_outline_based_on_outer_wall);
+        walls_computation.generateInsets(layer);
     }
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {

@@ -3,7 +3,18 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall)
+WallsComputation::WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall)
+: wall_0_inset(wall_0_inset)
+, line_width_0(line_width_0)
+, line_width_x(line_width_x)
+, insetCount(insetCount)
+, avoidOverlappingPerimeters_0(avoidOverlappingPerimeters_0)
+, avoidOverlappingPerimeters(avoidOverlappingPerimeters)
+, recompute_outline_based_on_outer_wall(recompute_outline_based_on_outer_wall)
+{
+}
+
+void WallsComputation::generateInsets(SliceLayerPart* part)
 {
     if (insetCount == 0)
     {
@@ -52,7 +63,7 @@ void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, in
     }
 }
 
-void generateInsets(SliceLayer* layer, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall)
+void WallsComputation::generateInsets(SliceLayer* layer)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
