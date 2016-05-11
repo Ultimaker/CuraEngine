@@ -35,6 +35,7 @@ class SliceLayerPart
 public:
     AABB boundaryBox;       //!< The boundaryBox is an axis-aligned bounardy box which is used to quickly check for possible collision between different parts on different layers. It's an optimalization used during skin calculations.
     PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
+    Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
     Polygons infill_area; //!< The areas which need to be filled with sparse (0-99%) infill. Like SliceLayerPart::outline, this class member is not used to actually determine the feature area, but is used to compute the infill_area_per_combine and the inside comb boundary.

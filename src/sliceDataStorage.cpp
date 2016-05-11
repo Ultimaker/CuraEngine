@@ -22,7 +22,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
         }
         else 
         {
-            result.add(part.outline);
+            result.add(part.print_outline);
         }
     }
 }

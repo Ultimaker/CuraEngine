@@ -8,6 +8,7 @@ void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, in
     if (insetCount == 0)
     {
         part->insets.push_back(part->outline);
+        part->print_outline = part->outline;
         return;
     }
     
@@ -32,6 +33,10 @@ void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, in
         
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         part->insets[i].simplify();
+        if (i == 0)
+        {
+            part->print_outline = part->insets[0].offset(line_width_0 / 2);
+        }
         if (part->insets[i].size() < 1)
         {
             part->insets.pop_back();
