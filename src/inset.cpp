@@ -3,7 +3,7 @@
 #include "utils/polygonUtils.h"
 namespace cura {
 
-void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall)
 {
     if (insetCount == 0)
     {
@@ -35,7 +35,14 @@ void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, in
         part->insets[i].simplify();
         if (i == 0)
         {
-            part->print_outline = part->insets[0].offset(line_width_0 / 2);
+            if (recompute_outline_based_on_outer_wall)
+            {
+                part->print_outline = part->insets[0].offset(line_width_0 / 2);
+            }
+            else
+            {
+                part->print_outline = part->outline;
+            }
         }
         if (part->insets[i].size() < 1)
         {
@@ -45,11 +52,11 @@ void generateInsets(SliceLayerPart* part, int wall_0_inset, int line_width_0, in
     }
 }
 
-void generateInsets(SliceLayer* layer, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateInsets(SliceLayer* layer, int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall)
 {
     for(unsigned int partNr = 0; partNr < layer->parts.size(); partNr++)
     {
-        generateInsets(&layer->parts[partNr], wall_0_inset, line_width_0, line_width_x, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
+        generateInsets(&layer->parts[partNr], wall_0_inset, line_width_0, line_width_x, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters, recompute_outline_based_on_outer_wall);
     }
     
     //Remove the parts which did not generate an inset. As these parts are too small to print,
