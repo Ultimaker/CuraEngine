@@ -123,7 +123,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     train->getSettingInMicrons("raft_base_thickness") 
                     + train->getSettingInMicrons("raft_interface_thickness") 
                     + train->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
-                    + train->getSettingInMicrons("raft_airgap");
+                    + train.getSettingInMicrons("raft_airgap")
+                    - train.getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
+                if (layer_nr == 0)
+                {
+                    layer.printZ += train.getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
+                }
             }
     
  
