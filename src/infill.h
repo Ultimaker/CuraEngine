@@ -48,7 +48,6 @@ public:
      * 
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
-     * \param in_between (optional output) The areas in between two concecutive concentric infill polygons
      */
     void generate(Polygons& result_polygons, Polygons& result_lines);
 

@@ -23,7 +23,6 @@ class SkinPart
 public:
     PolygonsPart outline;               //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
-    Polygons perimeterGaps;         //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -40,7 +39,6 @@ public:
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
     Polygons infill_area; //!< The areas which need to be filled with sparse (0-99%) infill. Like SliceLayerPart::outline, this class member is not used to actually determine the feature area, but is used to compute the infill_area_per_combine and the inside comb boundary.
     std::vector<Polygons> infill_area_per_combine; //!< The areas which need to be filled with sparse (0-99%) infill for different thicknesses. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
-    Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 
 /*!

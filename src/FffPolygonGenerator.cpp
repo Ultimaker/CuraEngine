@@ -446,14 +446,6 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
             infill_skin_overlap = skin_extrusion_width / 2;
         }
         generateInfill(layer_nr, mesh, innermost_wall_extrusion_width, infill_skin_overlap, wall_line_count);
-        if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::SKIN)
-        {
-            generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"));
-        }
-        else if (mesh.getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") == FillPerimeterGapMode::EVERYWHERE)
-        {
-            generatePerimeterGaps(layer_nr, mesh, skin_extrusion_width, 0, 0);
-        }
     }
 }
 

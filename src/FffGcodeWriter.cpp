@@ -798,15 +798,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             {
                 inner_skin_outline = &skin_part.insets.back();
                 offset_from_inner_skin_outline = -extrusion_width/2;
-                if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
-                {
-                    Polygons result_polygons; // should remain empty, since we're only allowing for lines infill
-                    int line_distance = extrusion_width;
-                    int outline_offset = 0;
-                    Infill infill_comp(EFillMethod::LINES, skin_part.perimeterGaps, outline_offset, extrusion_width, line_distance, infill_overlap, infill_angle);
-                    infill_comp.generate(result_polygons, skin_lines);
-                }
-            } 
+            }
         }
         
         if (inner_skin_outline == nullptr)
@@ -827,19 +819,6 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines); 
         }
-    }
-    
-    // handle gaps between perimeters etc.
-    if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
-    {
-        Polygons perimeter_gap_lines;
-        Polygons result_polygons; // should remain empty, since we're only allowing for lines infill
-        int line_distance = extrusion_width;
-        int outline_offset = 0;
-        Infill infill_comp(EFillMethod::LINES, part.perimeterGaps, outline_offset, extrusion_width, line_distance, infill_overlap, infill_angle);
-        infill_comp.generate(result_polygons, perimeter_gap_lines);
-        
-        gcode_layer.addLinesByOptimizer(perimeter_gap_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
     }
 }
 

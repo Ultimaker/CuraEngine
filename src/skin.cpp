@@ -119,8 +119,6 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             if (i == 0)
             {
                 skin_part.insets[0] = skin_part.outline.offset(- extrusionWidth/2);
-                Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
-                skin_part.perimeterGaps.add(in_between);
             } else
             {
                 skin_part.insets[i] = skin_part.insets[i - 1].offset(-extrusionWidth);
@@ -216,36 +214,5 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
     }
 }
 
-
-void generatePerimeterGaps(int layer_nr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount)
-{
-    SliceLayer& layer = mesh.layers[layer_nr];
-    
-    for (SliceLayerPart& part : layer.parts) 
-    { // handle gaps between perimeters etc.
-        if (downSkinCount > 0 && upSkinCount > 0 && // note: if both are zero or less, then all gaps will be used
-            layer_nr >= downSkinCount && layer_nr < static_cast<int>(mesh.layers.size() - upSkinCount)) // remove gaps which appear within print, i.e. not on the bottom most or top most skin
-        {
-            Polygons outlines_above;
-            for (SliceLayerPart& part_above : mesh.layers[layer_nr + upSkinCount].parts)
-            {
-                if (part.boundaryBox.hit(part_above.boundaryBox))
-                {
-                    outlines_above.add(part_above.outline);
-                }
-            }
-            Polygons outlines_below;
-            for (SliceLayerPart& part_below : mesh.layers[layer_nr - downSkinCount].parts)
-            {
-                if (part.boundaryBox.hit(part_below.boundaryBox))
-                {
-                    outlines_below.add(part_below.outline);
-                }
-            }
-            part.perimeterGaps = part.perimeterGaps.intersection(outlines_above.xorPolygons(outlines_below));
-        }
-        part.perimeterGaps.removeSmallAreas(MIN_AREA_SIZE);
-    }
-}
 
 }//namespace cura
