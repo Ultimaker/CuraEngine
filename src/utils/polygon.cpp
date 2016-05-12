@@ -351,6 +351,32 @@ void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Poly
     }
 }
 
+void Polygons::toPolygonsAndPolylines(const ClipperLib::PolyNode& node, Polygons* polygons, Polygons* polylines)
+{
+    if (!polygons && !polylines)
+    {
+        return;
+    }
+    for (int n = 0; n < node.ChildCount(); n++)
+    {
+        const ClipperLib::PolyNode& child = *node.Childs[n];
+        if (child.IsOpen())
+        {
+            if (polylines)
+            {
+                polylines->paths.push_back(child.Contour);
+            }
+        }
+        else
+        {
+            if (polygons)
+            {
+                polylines->paths.push_back(child.Contour);
+            }
+        }
+        toPolygonsAndPolylines(child, polygons, polylines);
+    }
+}
 
 
 }//namespace cura

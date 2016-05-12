@@ -307,6 +307,15 @@ class Polygons
 {
 protected:
     ClipperLib::Paths paths;
+
+    /*!
+     * Split a PolyTree to its constituent polygons and polylines
+     * 
+     * \param[in] polytree The tree to process
+     * \param[out] polygons (optional) The resulting polygons
+     * \param[out] polylines (optional) The resulting polylines
+     */
+    static void toPolygonsAndPolylines(const ClipperLib::PolyNode& polytree, Polygons* polygons, Polygons* polylines);
 public:
     unsigned int size() const
     {
@@ -409,6 +418,17 @@ public:
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
+        return ret;
+    }
+    Polygons intersectPolylines(const Polygons& area) const
+    {
+        Polygons ret;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(paths, ClipperLib::ptClip, true);
+        clipper.AddPaths(area.paths, ClipperLib::ptSubject, false);
+        ClipperLib::PolyTree result;
+        clipper.Execute(ClipperLib::ctIntersection, result);
+        toPolygonsAndPolylines(result, nullptr, &ret);
         return ret;
     }
     Polygons xorPolygons(const Polygons& other) const
