@@ -80,7 +80,15 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     polygon_generator.setParent(meshgroup);
     gcode_writer.setParent(meshgroup);
 
-    if (meshgroup->meshes.empty())
+    bool empty = true;
+    for (Mesh& mesh : meshgroup->meshes)
+    {
+        if (!mesh.getSettingBoolean("infill_mesh"))
+        {
+            empty = false;
+        }
+    }
+    if (empty)
     {
         Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
