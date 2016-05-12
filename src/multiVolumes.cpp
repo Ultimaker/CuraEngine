@@ -46,11 +46,19 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
     int offset_to_merge_other_merged_volumes = 20;
     for (Slicer* volume : volumes)
     {
+        if (volume->mesh->getSettingBoolean("infill_mesh"))
+        {
+            continue;
+        }
         for (unsigned int layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
             Polygons all_other_volumes;
             for (Slicer* other_volume : volumes)
             {
+                if (other_volume->mesh->getSettingBoolean("infill_mesh"))
+                {
+                    continue;
+                }
                 SlicerLayer& other_volume_layer = other_volume->layers[layer_nr];
                 all_other_volumes = all_other_volumes.unionPolygons(other_volume_layer.polygons.offset(offset_to_merge_other_merged_volumes));
             }
