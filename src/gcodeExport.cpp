@@ -779,7 +779,7 @@ void GCodeExport::writeAcceleration(double acceleration)
 {
     if (current_acceleration != acceleration)
     {
-        *output_stream << "M204 P" << acceleration << " T" << acceleration << new_line; // Print and Travel acceleration
+        *output_stream << "M204 S" << acceleration << new_line; // Print and Travel acceleration
         current_acceleration = acceleration;
         estimateCalculator.setAcceleration(acceleration);
     }
