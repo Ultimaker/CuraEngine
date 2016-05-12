@@ -1,6 +1,8 @@
 #include "mesh.h"
 #include "utils/logoutput.h"
 
+// #define LOG_MESH_ERRORS
+
 namespace cura
 {
 
@@ -131,14 +133,27 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
             )  candidateFaces.push_back(f);
 
     }
-
-    if (candidateFaces.size() == 0) { cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx); return -1; }
+    if (candidateFaces.size() == 0)
+    {
+#ifdef LOG_MESH_ERRORS
+        cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx);
+#endif
+        return -1;
+    }
     if (candidateFaces.size() == 1) { return candidateFaces[0]; }
 
 
-    if (notFaceVertexIdx < 0) { cura::logError("Couldn't find third point on face %i.\n", notFaceIdx); return -1; }
+    if (notFaceVertexIdx < 0)
+    {
+#ifdef LOG_MESH_ERRORS
+        cura::logError("Couldn't find third point on face %i.\n", notFaceIdx);
+#endif
+        return -1;
+    }
 
+#ifdef LOG_MESH_ERRORS
     if (candidateFaces.size() % 2 == 0) cura::log("Warning! Edge with uneven number of faces connecting it!(%i)\n", candidateFaces.size()+1);
+#endif
 
     FPoint3 vn = vertices[idx1].p - vertices[idx0].p;
     FPoint3 n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
@@ -147,7 +162,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
 // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
     FPoint3 n0 = FPoint3(vertices[notFaceVertexIdx].p - vertices[idx0].p).cross(v0);
 
+#ifdef LOG_MESH_ERRORS
     if (n0.vSize() <= 0) cura::log("Warning! Face %i has zero area!", notFaceIdx);
+#endif
 
     double smallestAngle = 1000; // more then 2 PI (impossible angle)
     int bestIdx = -1;
@@ -171,7 +188,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
 
         if (angle == 0)
         {
+#ifdef LOG_MESH_ERRORS
             cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
+#endif
             std::cerr<< n.vSize() <<"; "<<n1.vSize()<<";"<<n0.vSize() <<std::endl;
         }
         if (angle < smallestAngle)
@@ -180,7 +199,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
             bestIdx = candidateFace;
         }
     }
+#ifdef LOG_MESH_ERRORS
     if (bestIdx < 0) cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx);
+#endif
     return bestIdx;
 }
 
