@@ -8,7 +8,7 @@ namespace cura
 {
 
 /*!
- * Generate the gap areas which occur between consecutive insets.
+ * Limit the gap areas which occur between consecutive insets to skin only.
  * 
  * \param layerNr The index of the layer for which to generate the gaps.
  * \param mesh The storage where the layer outline information (input) is stored and where the gap areas (output) are stored.

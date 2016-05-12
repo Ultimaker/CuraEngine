@@ -803,7 +803,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 if (mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE)
                 {
                     Polygons result_polygons; // should remain empty, since we're only allowing for lines infill
-                    Polygons* in_between = nullptr;
+                    Polygons* in_between = nullptr; // The perimeter gaps shouldn't introduce new perimeter gaps
                     bool avoidOverlappingPerimeters = false;
                     int line_distance = extrusion_width;
                     int outline_offset = 0;
@@ -838,7 +838,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     {
         Polygons perimeter_gap_lines;
         Polygons result_polygons; // should remain empty, since we're only allowing for lines infill
-        Polygons* in_between = nullptr;
+        Polygons* in_between = nullptr; // The perimeter gaps shouldn't introduce new perimeter gaps
         bool avoidOverlappingPerimeters = false;
         int line_distance = extrusion_width;
         int outline_offset = 0;
