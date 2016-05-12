@@ -290,6 +290,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         std::vector<PolygonsPart> new_parts;
+        Polygons new_open_polylines;
 
         for (unsigned int other_mesh_idx : mesh_order)
         {
@@ -333,6 +334,17 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     other_part.infill_area_per_combine.back() = infill;
                 }
             }
+            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            {
+                for (SliceLayerPart& other_part : other_layer.parts)
+                {
+                    Polygons& infill = other_part.infill_area;
+                    new_open_polylines.add(layer.openPolyLines.intersectPolylines(infill));
+                    // TODO: Don't adjust infill area for open polylines? \/ 
+//                     infill = infill.difference(layer.openPolyLines.offsetPolyLine(mesh.getSettingInMicrons("wall_line_width") / 2));
+//                     other_part.infill_area_per_combine.back() = infill;
+                }
+            }
         }
         
         layer.parts.clear();
@@ -342,6 +354,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
         }
+        layer.openPolyLines = new_open_polylines;
     }
     
 }
