@@ -13,6 +13,17 @@ AABB3D::AABB3D()
 {
 }
 
+bool AABB3D::hit(const AABB3D& other) const
+{
+    if (max.x < other.min.y) return false;
+    if (min.x > other.max.y) return false;
+    if (max.y < other.min.y) return false;
+    if (min.y > other.max.y) return false;
+    if (max.z < other.min.z) return false;
+    if (min.z > other.max.z) return false;
+    return true;
+}
+
 void AABB3D::include(Point3 p)
 {
     min.x = std::min(min.x, p.x);

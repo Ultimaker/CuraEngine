@@ -63,6 +63,11 @@ Point3 Mesh::max() const
 {
     return aabb.max;
 }
+AABB3D Mesh::getAABB() const
+{
+    return aabb;
+}
+
 
 int Mesh::findIndexOfVertex(const Point3& v)
 {

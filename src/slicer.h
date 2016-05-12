@@ -121,6 +121,8 @@ class Slicer
 {
 public:
     std::vector<SlicerLayer> layers;
+
+    const Mesh* mesh; //!< The sliced mesh
     
     Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
     

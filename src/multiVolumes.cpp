@@ -6,14 +6,28 @@ namespace cura
 void carveMultipleVolumes(std::vector<Slicer*> &volumes)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
-    for(unsigned int idx=0; idx < volumes.size(); idx++)
+    for (unsigned int volume_1_idx = 0; volume_1_idx < volumes.size(); volume_1_idx++)
     {
-        for(unsigned int idx2=0; idx2<idx; idx2++)
+        Slicer& volume_1 = *volumes[volume_1_idx];
+        if (volume_1.mesh->getSettingBoolean("infill_mesh"))
         {
-            for(unsigned int layerNr=0; layerNr < volumes[idx]->layers.size(); layerNr++)
+            continue;
+        }
+        for (unsigned int volume_2_idx = 0; volume_2_idx < volume_1_idx; volume_2_idx++)
+        {
+            Slicer& volume_2 = *volumes[volume_2_idx];
+            if (volume_2.mesh->getSettingBoolean("infill_mesh"))
             {
-                SlicerLayer& layer1 = volumes[idx]->layers[layerNr];
-                SlicerLayer& layer2 = volumes[idx2]->layers[layerNr];
+                continue;
+            }
+            if (!volume_1.mesh->getAABB().hit(volume_2.mesh->getAABB()))
+            {
+                continue;
+            }
+            for (unsigned int layerNr = 0; layerNr < volume_1.layers.size(); layerNr++)
+            {
+                SlicerLayer& layer1 = volume_1.layers[layerNr];
+                SlicerLayer& layer2 = volume_2.layers[layerNr];
                 layer1.polygons = layer1.polygons.difference(layer2.polygons);
             }
         }

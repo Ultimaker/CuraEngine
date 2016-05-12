@@ -23,6 +23,16 @@ struct AABB3D
     AABB3D();
 
     /*!
+     * Check whether this aabb overlaps with another.
+     * 
+     * In the boundary case false is returned.
+     * 
+     * \param other the aabb to check for overlaps with
+     * \return Whether the two aabbs overlap
+     */
+    bool hit(const AABB3D& other) const;
+
+    /*!
      * Expand the AABB3D to include the point \p p.
      * \param p The point to include with the bounding box.
      */
