@@ -6,7 +6,7 @@
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -26,14 +26,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     case EFillMethod::CONCENTRIC:
         outline_offsetted = in_outline.offset(outline_offset - infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
         outline = &outline_offsetted;
-        if (abs(infill_line_width - line_distance) < 10)
-        {
-            generateConcentricInfillDense(*outline, result_polygons, in_between, remove_overlapping_perimeters);
-        }
-        else
-        {
-            generateConcentricInfill(*outline, result_polygons, line_distance);
-        }
+        generateConcentricInfill(*outline, result_polygons, line_distance);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
@@ -44,33 +37,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     }
 }
 
-
-
-void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
-{
-    while(outline.size() > 0)
-    {
-        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-        {
-            PolygonRef r = outline[polyNr];
-            result.add(r);
-        }
-        Polygons next_outline;
-        next_outline = outline.offset(-infill_line_width);
-        outline = next_outline;
-    }
-
-}
-
 void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
 {
     while(outline.size() > 0)
     {
-        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-        {
-            PolygonRef r = outline[polyNr];
-            result.add(r);
-        }
+        result.add(outline);
         outline = outline.offset(-inset_value);
     } 
 }

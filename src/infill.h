@@ -23,7 +23,6 @@ class Infill
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     int outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
-    bool remove_overlapping_perimeters; //!< Whether to remove overlapping perimeter parts
     int infill_line_width; //!< The line width of the infill lines to generate
     int line_distance; //!< The distance between two infill lines / polygons
     int infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
@@ -32,11 +31,10 @@ class Infill
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, bool remove_overlapping_perimeters, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endpieces = false)
+    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endpieces = false)
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
-    , remove_overlapping_perimeters(remove_overlapping_perimeters)
     , infill_line_width(infill_line_width)
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
@@ -52,7 +50,7 @@ public:
      * \param result_lines (output) The resulting line segments (from linear infill types)
      * \param in_between (optional output) The areas in between two concecutive concentric infill polygons
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between);
+    void generate(Polygons& result_polygons, Polygons& result_lines);
 
 private:
 
@@ -63,16 +61,6 @@ private:
      * \param inset_value The offset between each consecutive two polygons
      */
     void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
-
-    /*!
-     * Generate dense concentric infill (100%)
-     * 
-     * \param outline The actual outline of the area within which to generate infill
-     * \param result (output) The resulting polygons
-     * \param in_between (output) The areas in between each two consecutive polygons
-     * \param remove_overlapping_perimeters Whether to remove overlapping perimeter parts
-     */
-    void generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, bool remove_overlapping_perimeters);
 
     /*!
      * Generate a rectangular grid of infill lines
