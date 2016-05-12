@@ -28,17 +28,13 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         part->insets.push_back(Polygons());
         if (i == 0)
         {
-            PolygonUtils::offsetSafe(part->outline, -line_width_0 / 2 - wall_0_inset, line_width_0, part->insets[0], avoidOverlappingPerimeters_0);
+            part->insets[0] = part->outline.offset(-line_width_0 / 2 - wall_0_inset);
         } else if (i == 1)
         {
-            int offset_from_first_boundary_for_edge_of_outer_wall = -line_width_0 / 2; // the outer bounds of the perimeter gaps
-            // you might think this /\ should be (1): -line_width_0 / 2; or you might think it should be (2): -nozzle_size / 2
-            // (1): the volume extruded is the right volume; the infill gaps overlap more with the outer wall
-            // (2): the outer wall already fills up extra space due to the fact that the nozzle hole overlaps with a part inside the outer wall
-            PolygonUtils::offsetSafe(part->insets[0], -line_width_0 / 2 + wall_0_inset - line_width_x / 2, offset_from_first_boundary_for_edge_of_outer_wall, line_width_x, part->insets[1], &part->perimeterGaps, avoidOverlappingPerimeters);
+            part->insets[1] = part->insets[0].offset(-line_width_0 / 2 + wall_0_inset - line_width_x / 2);
         } else
         {
-            PolygonUtils::offsetExtrusionWidth(part->insets[i-1], true, line_width_x, part->insets[i], &part->perimeterGaps, avoidOverlappingPerimeters);
+            part->insets[i] = part->insets[i-1].offset(-line_width_x);
         }
         
         

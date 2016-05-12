@@ -49,21 +49,6 @@ struct PolygonsPointIndex
 class PolygonUtils 
 {
 public:
-    //! performs an offset compared to an adjacent inset/outset and also computes the area created by gaps between the two consecutive insets/outsets
-    static void offsetExtrusionWidth(const Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters);
-
-    /*!
-    * performs an offset compared to an adjacent inset/outset and also computes the area created by gaps between the two consecutive insets/outsets.
-    * This function allows for different extrusion widths between the two insets.
-    */
-    static void offsetSafe(const Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters);
-
-    //! performs an offset and makes sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
-    static void offsetSafe(const Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters);
-
-    //! performs offsets to make sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
-    static void removeOverlapping(const Polygons& poly, int extrusionWidth, Polygons& result);
-
     /*!
     * Get a point from the \p poly with a given \p offset.
     * 

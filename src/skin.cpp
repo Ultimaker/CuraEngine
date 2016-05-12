@@ -118,12 +118,12 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             skin_part.insets.push_back(Polygons());
             if (i == 0)
             {
-                PolygonUtils::offsetSafe(skin_part.outline, - extrusionWidth/2, extrusionWidth, skin_part.insets[0], avoidOverlappingPerimeters_0);
+                skin_part.insets[0] = skin_part.outline.offset(- extrusionWidth/2);
                 Polygons in_between = skin_part.outline.difference(skin_part.insets[0].offset(extrusionWidth/2)); 
                 skin_part.perimeterGaps.add(in_between);
             } else
             {
-                PolygonUtils::offsetExtrusionWidth(skin_part.insets[i-1], true, extrusionWidth, skin_part.insets[i], &skin_part.perimeterGaps, avoidOverlappingPerimeters);
+                skin_part.insets[i] = skin_part.insets[i - 1].offset(-extrusionWidth);
             }
             
             // optimize polygons: remove unnnecesary verts
