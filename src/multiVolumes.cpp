@@ -43,20 +43,21 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
         return;
     }
 
-    for (unsigned int layerNr = 0; layerNr < volumes[0]->layers.size(); layerNr++)
+    int offset_to_merge_other_merged_volumes = 20;
+    for (Slicer* volume : volumes)
     {
-        Polygons full_layer;
-        for (Slicer* volume : volumes)
+        for (unsigned int layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
-            SlicerLayer& layer1 = volume->layers[layerNr];
-            full_layer = full_layer.unionPolygons(layer1.polygons.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
-        }
-        full_layer = full_layer.offset(-20); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+            Polygons all_other_volumes;
+            for (Slicer* other_volume : volumes)
+            {
+                SlicerLayer& other_volume_layer = other_volume->layers[layer_nr];
+                all_other_volumes = all_other_volumes.unionPolygons(other_volume_layer.polygons.offset(offset_to_merge_other_merged_volumes));
+            }
+            all_other_volumes = all_other_volumes.offset(-offset_to_merge_other_merged_volumes);
 
-        for (Slicer* volume : volumes)
-        {
-            SlicerLayer& layer1 = volume->layers[layerNr];
-            layer1.polygons = full_layer.intersection(layer1.polygons.offset(overlap / 2));
+            SlicerLayer& volume_layer = volume->layers[layer_nr];
+            volume_layer.polygons = all_other_volumes.intersection(volume_layer.polygons.offset(overlap / 2));
         }
     }
 }
