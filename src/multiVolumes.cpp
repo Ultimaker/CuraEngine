@@ -38,22 +38,25 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
 //This generates some overlap in dual extrusion, for better bonding in touching parts.
 void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
 {
-    if (volumes.size() < 2 || overlap <= 0) return;
-    
-    for(unsigned int layerNr=0; layerNr < volumes[0]->layers.size(); layerNr++)
+    if (volumes.size() < 2 || overlap <= 0)
     {
-        Polygons fullLayer;
-        for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
+        return;
+    }
+
+    for (unsigned int layerNr = 0; layerNr < volumes[0]->layers.size(); layerNr++)
+    {
+        Polygons full_layer;
+        for (Slicer* volume : volumes)
         {
-            SlicerLayer& layer1 = volumes[volIdx]->layers[layerNr];
-            fullLayer = fullLayer.unionPolygons(layer1.polygons.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+            SlicerLayer& layer1 = volume->layers[layerNr];
+            full_layer = full_layer.unionPolygons(layer1.polygons.offset(20)); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
         }
-        fullLayer = fullLayer.offset(-20); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
-        
-        for(unsigned int volIdx = 0; volIdx < volumes.size(); volIdx++)
+        full_layer = full_layer.offset(-20); // TODO: put hard coded value in a variable with an explanatory name (and make var a parameter, and perhaps even a setting?)
+
+        for (Slicer* volume : volumes)
         {
-            SlicerLayer& layer1 = volumes[volIdx]->layers[layerNr];
-            layer1.polygons = fullLayer.intersection(layer1.polygons.offset(overlap / 2));
+            SlicerLayer& layer1 = volume->layers[layerNr];
+            layer1.polygons = full_layer.intersection(layer1.polygons.offset(overlap / 2));
         }
     }
 }
