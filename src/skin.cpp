@@ -8,7 +8,7 @@ namespace cura
 {
 
         
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic)
 {
     generateSkinAreas(layerNr, mesh, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
@@ -16,7 +16,7 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int 
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-        generateSkinInsets(part, extrusionWidth, insetCount, avoidOverlappingPerimeters_0, avoidOverlappingPerimeters);
+        generateSkinInsets(part, extrusionWidth, insetCount);
     }
 }
 
@@ -104,7 +104,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_
 }
 
 
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters)
+void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount)
 {
     if (insetCount == 0)
     {

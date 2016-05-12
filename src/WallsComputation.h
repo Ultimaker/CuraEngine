@@ -30,14 +30,6 @@ public:
      */
     int insetCount;
     /*!
-     * Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
-     */
-    bool avoidOverlappingPerimeters_0;
-    /*!
-     * Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p part)
-     */
-    bool avoidOverlappingPerimeters;
-    /*!
      * Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      */
     bool recompute_outline_based_on_outer_wall;
@@ -49,11 +41,9 @@ public:
      * \param line_width_0 line width of the outer wall
      * \param line_width_x line width of other walls
      * \param insetCount The number of insets to to generate
-     * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
-     * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p part)
      * \param recompute_outline_based_on_outer_wall Whether to compute a more accurate poly representation of the printed outlines, based on the outer wall
      */
-    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters, bool recompute_outline_based_on_outer_wall);
+    WallsComputation(int wall_0_inset, int line_width_0, int line_width_x, int insetCount, bool recompute_outline_based_on_outer_wall);
 
     /*!
      * Generates the insets / perimeters for all parts in a layer.
