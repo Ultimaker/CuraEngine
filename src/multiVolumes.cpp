@@ -36,9 +36,9 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
  
 //Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.
 //This generates some overlap in dual extrusion, for better bonding in touching parts.
-void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
+void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
 {
-    if (volumes.size() < 2 || overlap <= 0)
+    if (volumes.size() < 2)
     {
         return;
     }
@@ -46,7 +46,9 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
     int offset_to_merge_other_merged_volumes = 20;
     for (Slicer* volume : volumes)
     {
-        if (volume->mesh->getSettingBoolean("infill_mesh"))
+        int overlap = volume->mesh->getSettingInMicrons("multiple_mesh_overlap");
+        if (volume->mesh->getSettingBoolean("infill_mesh")
+            || overlap == 0)
         {
             continue;
         }
@@ -55,7 +57,9 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes, int overlap)
             Polygons all_other_volumes;
             for (Slicer* other_volume : volumes)
             {
-                if (other_volume->mesh->getSettingBoolean("infill_mesh"))
+                if (other_volume->mesh->getSettingBoolean("infill_mesh")
+                    || !other_volume->mesh->getAABB().hit(volume->mesh->getAABB())
+                )
                 {
                     continue;
                 }
