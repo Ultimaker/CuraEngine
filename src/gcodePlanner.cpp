@@ -115,6 +115,10 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
             }
             else
             {
+                if (mesh.getSettingBoolean("infill_mesh"))
+                {
+                    continue;
+                }
                 layer.getSecondOrInnermostWalls(layer_walls);
             }
         }
