@@ -424,8 +424,8 @@ public:
     {
         Polygons ret;
         ClipperLib::Clipper clipper(clipper_init);
-        clipper.AddPaths(paths, ClipperLib::ptClip, false);
-        clipper.AddPaths(area.paths, ClipperLib::ptSubject, true);
+        clipper.AddPaths(paths, ClipperLib::ptSubject, false);
+        clipper.AddPaths(area.paths, ClipperLib::ptClip, true);
         ClipperLib::PolyTree result;
         clipper.Execute(ClipperLib::ctIntersection, result);
         toPolygonsAndPolylines(result, nullptr, &ret);
