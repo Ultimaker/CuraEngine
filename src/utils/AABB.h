@@ -18,7 +18,7 @@ public:
     Point min, max;
 
     AABB(); //!< initializes with invalid min and max
-    AABB(Point& min, Point& max); //!< initializes with given min and max
+    AABB(const Point& min, const Point& max); //!< initializes with given min and max
     AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
 
     void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)

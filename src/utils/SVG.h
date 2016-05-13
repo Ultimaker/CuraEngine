@@ -48,7 +48,7 @@ private:
     const double scale;
 
 public:
-    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024 * 4, 1024 * 4))
+    SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024, 1024))
     : aabb(aabb)
     , aabb_size(aabb.max - aabb.min)
     , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
@@ -188,7 +188,7 @@ public:
      * \param color The colour of the line segments. If this is not specified,
      * black will be used.
      */
-    void writeLines(std::vector<Point> polyline,Color color = Color::BLACK)
+    void writeLines(PolygonRef polyline, Color color = Color::BLACK)
     {
         if(polyline.size() <= 1) //Need at least 2 points.
         {
@@ -203,6 +203,25 @@ public:
             fprintf(out,"L%lli,%lli",transformed.X,transformed.Y); //Write a line segment to the next point.
         }
         fprintf(out,"\" />\n"); //Write the end of the tag.
+    }
+    
+    /*!
+     * \brief Draws a polyline on the canvas.
+     * 
+     * The polyline is the set of line segments between each pair of consecutive
+     * points in the specified vector.
+     * 
+     * \param polyline A set of points between which line segments must be
+     * drawn.
+     * \param color The colour of the line segments. If this is not specified,
+     * black will be used.
+     */
+    void writeLines(Polygons& polylines,Color color = Color::BLACK)
+    {
+        for (PolygonRef polyline : polylines)
+        {
+            writeLines(polyline);
+        }
     }
     
     void writeLine(const Point& a, const Point& b, Color color = Color::BLACK)
