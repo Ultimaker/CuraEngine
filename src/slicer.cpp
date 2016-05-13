@@ -510,9 +510,31 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             layers[layer_nr].segments.push_back(s);
         }
     }
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+    {
+        for (SlicerLayer& layer : layers)
+        {
+            for (SlicerSegment& segment : layer.segments)
+            {
+                PolygonRef line = layer.openPolylines.newPoly();
+                line.add(segment.start);
+                line.add(segment.end);
+            }
+        }
+    }
+
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+    }
+
+    int surface_thickness = mesh->getSettingInMicrons("magic_surface_thickness");
+    if (surface_thickness)
+    {
+        for (SlicerLayer& layer : layers)
+        {
+            layer.polygons = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(surface_thickness / 2));
+        }
     }
 }
 
