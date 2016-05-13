@@ -895,7 +895,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     {
         PolygonsPart& island = support_islands[island_order_optimizer.polyOrder[n]];
 
-        int infill_overlap = 0; // support infill should not be expanded outward
+        int support_infill_overlap = 0; // support infill should not be expanded outward
         
         int offset_from_outline = 0;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
@@ -907,9 +907,9 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
                 gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             }
             offset_from_outline = -extrusion_width;
-            infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
+            support_infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
-        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
+        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, support_infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
@@ -959,10 +959,10 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
-    int infill_overlap = 0; // the roofs should never be expanded outwards
+    int support_skin_overlap = 0; // the roofs should never be expanded outwards
     int outline_offset =  0; 
     
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, infill_overlap, fillAngle, false, true);
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, false, true);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
