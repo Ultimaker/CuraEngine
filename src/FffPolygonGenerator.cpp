@@ -455,7 +455,8 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
     int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
     generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
-    if (mesh.getSettingInMicrons("infill_line_distance") > 0)
+//     if (mesh.getSettingInMicrons("infill_line_distance") > 0)
+//     TODO: only compute the area if there are any infill meshes to be computed
     {
         int infill_skin_overlap = 0;
         bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
