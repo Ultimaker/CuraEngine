@@ -531,7 +531,12 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     {
         return;
     }
-    
+
+    if (mesh->getSettingBoolean("infill_mesh"))
+    {
+        gcode_layer.setIsInside(true);
+    }
+
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
@@ -663,11 +668,15 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         {
             gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
         }
-        
-        gcode_layer.setIsInside(false);
+
+        gcode_layer.setIsInside(false); // we are going out of this part to a different part which might cross air
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
+        if (mesh->getSettingBoolean("infill_mesh"))
+        {
+            gcode_layer.setIsInside(true);
+        }
         addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
     }
 }
