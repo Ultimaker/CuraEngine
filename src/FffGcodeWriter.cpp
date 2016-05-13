@@ -655,7 +655,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             skin_angle -= 45;
         
-        int64_t skin_overlap = infill_overlap;
+        int64_t skin_overlap =  mesh->getSettingInMicrons("skin_overlap_mm");
         processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle, mesh->skin_config.getLineWidth());    
         
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
@@ -771,7 +771,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle, int extrusion_width)
 {
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
@@ -806,7 +806,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             inner_skin_outline = &skin_part.outline;
         }
         
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, infill_overlap, infill_angle, false, false);
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, skin_overlap, skin_angle, false, false);
         infill_comp.generate(skin_polygons, skin_lines);
         
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
