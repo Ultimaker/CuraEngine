@@ -581,7 +581,7 @@ public:
      * 
      * \param gcode The gcode to write the planned paths to
      */
-    void writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness);
+    void writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded);
     
     /*!
      * Complete all GcodePathConfig s by 

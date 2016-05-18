@@ -539,7 +539,7 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 }
 
 
-void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness)
+void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded)
 {
     completeConfigs();
     
@@ -618,7 +618,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layerThickness, coasting_config.coasting_volume, coasting_config.coasting_speed, coasting_config.coasting_min_volume);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness, coasting_config.coasting_volume, coasting_config.coasting_speed, coasting_config.coasting_min_volume);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -673,7 +673,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int lay
                         Point p1 = path.points[point_idx];
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
-                        gcode.setZ(z + layerThickness * length / totalLength);
+                        gcode.setZ(z + layer_thickness * length / totalLength);
                         sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
                         gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
