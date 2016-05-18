@@ -619,9 +619,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_angle = 45;
         if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
         {
-            unsigned int combined_infill_layers = mesh->getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1);
-            if ((combined_infill_layers & 1 && layer_nr & 1) || (!(combined_infill_layers & 1) && (layer_nr / 2) & 1))
-            { // odd combine count and odd, or even combine count and switch direction every two layers
+            unsigned int combined_infill_layers = std::max(1, mesh->getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1));
+            if ((layer_nr / combined_infill_layers) & 1)
+            { // switch every [combined_infill_layers] layers
                 infill_angle += 90;
             }
         }
