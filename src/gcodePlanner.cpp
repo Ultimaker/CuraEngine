@@ -539,7 +539,7 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 }
 
 
-void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded)
+void GCodePlanner::writeGCode(GCodeExport& gcode)
 {
     completeConfigs();
     
@@ -686,7 +686,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded)
     }
     
     gcode.updateTotalPrintTime();
-    if (liftHeadIfNeeded && extraTime > 0.0)
+    if (storage.getSettingBoolean("cool_lift_head") && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay");
         if (last_extrusion_config)

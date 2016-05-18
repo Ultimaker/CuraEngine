@@ -17,7 +17,7 @@ void LayerPlanBuffer::flush()
     }
     while (!buffer.empty())
     {
-        buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"));
+        buffer.front().writeGCode(gcode);
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->flushGcode();

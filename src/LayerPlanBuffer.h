@@ -51,7 +51,7 @@ public:
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
         {
-            buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"));
+            buffer.front().writeGCode(gcode);
             if (CommandSocket::isInstantiated())
             {
                 CommandSocket::getInstance()->flushGcode();
