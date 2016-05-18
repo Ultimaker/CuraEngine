@@ -5,6 +5,10 @@ namespace cura
 {
 
 const int vertex_meld_distance = MM2INT(0.03);
+/*!
+ * returns a hash for the location, but first divides by the vertex_meld_distance,
+ * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
+ */
 static inline uint32_t pointHash(const Point3& p)
 {
     return ((p.x + vertex_meld_distance/2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance/2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance/2) / vertex_meld_distance) << 20);
