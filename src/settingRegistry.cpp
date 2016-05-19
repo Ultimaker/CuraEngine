@@ -164,18 +164,7 @@ int SettingRegistry::loadJSONsettings(std::string filename)
 
     log("Loading %s...\n", filename.c_str());
 
-    if (json_document.HasMember("inherits"))
-    {
-        std::string filename_copy = std::string(filename.c_str()); // copy the string because dirname(.) changes the input string!!!
-        char* filename_cstr = (char*)filename_copy.c_str();
-        int err = loadJSONsettings(std::string(dirname(filename_cstr)) + std::string("/") + json_document["inherits"].GetString());
-        if (err) { return err; }
-        return loadJSONsettingsFromDoc(json_document, false);
-    }
-    else 
-    {
-        return loadJSONsettingsFromDoc(json_document, true);
-    }
+    return loadJSONsettingsFromDoc(json_document, true);
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
