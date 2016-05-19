@@ -194,17 +194,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             }
         }
     }
-    if (json_document.HasMember("machine_settings"))
-    {
-        const rapidjson::Value& machine_settings = json_document["machine_settings"];
-        SettingContainer& category = getOrCreateCategory("machine_settings", &machine_settings);
-//         _addCategory(std::string("machine_settings"), machine_settings, warn_duplicates); // TODO: make machine_settings a category with a settings field and a label field and throw away rest of the code in this code block
-
-        for (rapidjson::Value::ConstMemberIterator setting_iterator = machine_settings.MemberBegin(); setting_iterator != machine_settings.MemberEnd(); ++setting_iterator)
-        {
-            _addSettingToContainer(&category, setting_iterator, warn_duplicates);
-        }
-    }
 
     { // handle machine name
         std::string machine_name = "Unknown";
