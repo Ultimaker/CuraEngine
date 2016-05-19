@@ -57,7 +57,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     int layer_thickness = getSettingInMicrons("layer_height");
     if(layer_thickness <= 0) //Layer height of 0 is not allowed. Negative layer height is nonsense.
     {
-        logError("Layer height %i is disallowed.",layer_thickness);
+        logError("Layer height %i is disallowed.\n", layer_thickness);
         return false;
     }
     int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
