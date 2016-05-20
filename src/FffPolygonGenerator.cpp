@@ -22,6 +22,7 @@
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
 
+#include "utils/SVG.h" // debug
 
 namespace cura
 {
@@ -339,7 +340,58 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                 for (SliceLayerPart& other_part : other_layer.parts)
                 {
                     Polygons& infill = other_part.infill_area;
-                    new_open_polylines.add(layer.openPolyLines.intersectPolylines(infill));
+                    Polygons new_open_polylines_here = layer.openPolyLines.intersectPolylines(infill);
+                    new_open_polylines.add(new_open_polylines_here);
+                    if (layer_idx == 37)
+                    {
+                        Polygons wrong_line;
+                        { PolygonRef line = wrong_line.newPoly();
+                        line.emplace_back(130422,112525);
+                        line.emplace_back(130272,112525); }
+                        { PolygonRef line = wrong_line.newPoly();
+                        line.emplace_back(130422,112525);
+                        line.emplace_back(130272,112525); }
+                        { PolygonRef line = wrong_line.newPoly();
+                        line.emplace_back(132322,112525);
+                        line.emplace_back(130422,112525); }
+
+                        
+                        Polygons intersected = wrong_line.intersectPolylines(infill);
+                        {
+                            AABB aabb(infill);
+                            aabb.expand(MM2INT(5.0));
+                            SVG svg("debug_layer_37.html",aabb);
+                            svg.writeAreas(infill);
+                            svg.writeLines(layer.openPolyLines, SVG::Color::BLUE);
+                            svg.writeLines(new_open_polylines_here, SVG::Color::GREEN);
+//                             svg.writePoints(wrong_line, true, 1);
+                        }
+                        {
+                            AABB aabb(infill);
+                            aabb.expand(MM2INT(5.0));
+                            SVG svg("debug_layer_37_part.html",aabb);
+                            svg.writeAreas(infill);
+                            svg.writeLines(wrong_line, SVG::Color::BLUE);
+                            svg.writeLines(intersected, SVG::Color::GREEN);
+//                             svg.writePoints(wrong_line, true, 1);
+                        }
+                        {
+                            AABB aabb(infill);
+                            aabb.expand(MM2INT(5.0));
+                            SVG svg("debug_layer_37_polylines.html",aabb);
+                            svg.writeLines(layer.openPolyLines, SVG::Color::BLACK);
+//                             svg.writePoints(wrong_line, true, 1);
+                        }
+                        std::cerr << "start\n";
+                        for (PolygonRef poly : layer.openPolyLines)
+                        {
+                            std::cerr << "                        { PolygonRef line = wrong_line.newPoly();\n                        line.emplace_back" << poly[0] << ";\n                        line.emplace_back"<<poly[1]<<"; }" << std::endl;
+                        }
+                        for (PolygonRef poly : infill)
+                            for (Point& p : poly)
+                                std::cerr << " infill point " << p << std::endl;
+                        std::cerr << "written\n";
+                    }
                     // TODO: Don't adjust infill area for open polylines? \/ 
 //                     infill = infill.difference(layer.openPolyLines.offsetPolyLine(mesh.getSettingInMicrons("wall_line_width") / 2));
 //                     other_part.infill_area_per_combine.back() = infill;
@@ -369,6 +421,17 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, 
     if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
     {
         processFuzzyWalls(mesh);
+    }
+    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+    {
+        SliceLayer& layer = mesh.layers[1];
+                        {
+                            AABB aabb(layer.openPolyLines);
+                            aabb.expand(MM2INT(5.0));
+                            SVG svg("debug_layer_37_polylines.html",aabb);
+                            svg.writeLines(layer.openPolyLines, SVG::Color::BLACK);
+//                             svg.writePoints(wrong_line, true, 1);
+                        }
     }
 }
 
