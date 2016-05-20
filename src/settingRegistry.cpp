@@ -78,13 +78,13 @@ void SettingContainer::debugOutputAllSettings() const
 
 bool SettingRegistry::settingExists(std::string key) const
 {
-    return settings.find(key) != settings.end();
+    return setting_key_to_config.find(key) != setting_key_to_config.end();
 }
 
 SettingConfig* SettingRegistry::getSettingConfig(std::string key) const
 {
-    auto it = settings.find(key);
-    if (it == settings.end())
+    auto it = setting_key_to_config.find(key);
+    if (it == setting_key_to_config.end())
         return nullptr;
     return it->second;
 }
@@ -106,7 +106,7 @@ SettingRegistry::SettingRegistry()
 
 bool SettingRegistry::settingsLoaded() const
 {
-    return settings.size() > 0;
+    return setting_key_to_config.size() > 0;
 }
 
 int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_document)
@@ -288,7 +288,7 @@ SettingConfig& SettingRegistry::addSetting(std::__cxx11::string name, std::__cxx
         cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", config->getKey().c_str(), config->getLabel().c_str(), getSettingConfig(config->getKey())->getLabel().c_str());
     }
 
-    settings[name] = config;
+    setting_key_to_config[name] = config;
 
     return *config;
 }

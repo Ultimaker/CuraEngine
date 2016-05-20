@@ -151,7 +151,7 @@ private:
 
     SettingRegistry();
     
-    std::unordered_map<std::string, SettingConfig*> settings; //!< Mapping from setting keys to their configurations
+    std::unordered_map<std::string, SettingConfig*> setting_key_to_config; //!< Mapping from setting keys to their configurations
 
     SettingContainer setting_definitions; //!< All setting configurations (A flat list)
     
@@ -180,7 +180,12 @@ public:
     SettingContainer* getExtruderTrain(unsigned int extruder_nr);
 protected:
     /*!
+     * Whether this json settings object is a definition of a CuraEngine setting,
+     * or only a shorthand setting to control other settings.
+     * Only settings used by the engine will be recordedd in the registry.
      * 
+     * \param setting The setting to check whether CuraEngine uses it.
+     * \return Whether CuraEngine uses the setting.
      */
     bool settingIsUsedByEngine(const rapidjson::Value& setting);
 private:
