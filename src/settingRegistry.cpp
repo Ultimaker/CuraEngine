@@ -68,7 +68,7 @@ SettingConfig::SettingConfig(std::string key, std::string label)
 
 void SettingContainer::debugOutputAllSettings() const
 {
-    std::cerr << "\nCATEGORY: " << key << std::endl;
+    std::cerr << "\SETTINGS BASE: " << key << std::endl;
     for (const SettingConfig& child : children)
     {
         child.debugOutputAllSettings();

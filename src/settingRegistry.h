@@ -18,8 +18,8 @@ class SettingConfig;
 class SettingRegistry;
 
 /*!
- * Setting category.
- * Filled from the fdmprinter.json file. Contains one or more children settings.
+ * Setting container for a settings base of definitions and default values.
+ * Filled from the .def.json files. Contains one or more children settings.
  */
 class SettingContainer
 {
