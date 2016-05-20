@@ -158,7 +158,7 @@ public:
         
         if (write_coords)
         {
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 3;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
@@ -196,7 +196,7 @@ public:
         }
         
         Point transformed = transform(polyline[0]); //Element 0 must exist due to the check above.
-        fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
+        fprintf(out,"<path fill=\"none\" stroke=\"%s\" stroke-width=\"50\" stroke-opacity=\"0.3\" d=\"M%lli,%lli",toString(color).c_str(),transformed.X,transformed.Y); //Write the start of the path tag and the first endpoint.
         for(size_t point = 1;point < polyline.size();point++)
         {
             transformed = transform(polyline[point]);
@@ -228,7 +228,7 @@ public:
     {
         Point fa = transform(a);
         Point fb = transform(b);
-        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:1\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
+        fprintf(out, "<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:%s;stroke-width:2;stroke-opacity:0.3\" />\n", fa.X, fa.Y, fb.X, fb.Y, toString(color).c_str());
     }
     
     /*!
