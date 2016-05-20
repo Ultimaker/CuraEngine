@@ -111,15 +111,7 @@ std::string SettingsMessenger::getSettingString(std::string key) const
 
 void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
 {
-    const SettingContainer* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
-
-    if (!machine_extruder_trains) 
-    {
-        // no machine_extruder_trains setting present; just use defaults for each train..
-        return;
-    }
-
-    const SettingConfig* train = machine_extruder_trains->getChild(extruder_nr);
+    const SettingContainer* train = SettingRegistry::getInstance()->getExtruderTrain(extruder_nr);
 
     if (!train)
     {

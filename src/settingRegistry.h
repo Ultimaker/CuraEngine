@@ -29,10 +29,20 @@ private:
     std::string key;
     std::string label;
     std::list<SettingConfig> children; // must be a list cause the pointers to individual children are mapped to in SettingRegistry::settings.
+    std::list<std::string> path; //!< The path of parents (internal names) to this container
 public:
     std::string getKey() const { return key; }
     std::string getLabel() const { return label; }
     SettingContainer(std::string key, std::string label);
+    
+    /*!
+     * Get the SettingConfig::children.
+     * 
+     * This is used to get the extruder trains; see Settingsbase::setExtruderTrainDefaults
+     * 
+     * \return SettingConfig::children
+     */
+    const std::list<SettingConfig>& getChildren() const { return children; }
     
     SettingConfig* addChild(std::string key, std::string label);
     
@@ -83,15 +93,6 @@ private:
 public:
     SettingConfig(std::string key, std::string label);
     
-    /*!
-     * Get the SettingConfig::children.
-     * 
-     * This is used to get the extruder trains; see Settingsbase::setExtruderTrainDefaults
-     * 
-     * \return SettingConfig::children
-     */
-    const std::list<SettingConfig>& getChildren() const { return children; }
-    
     std::string getKey() const
     {
         return key;
@@ -140,9 +141,8 @@ public:
 /*!
  * Setting registry.
  * There is a single global setting registry.
- * This registry contains all known setting keys.
- * The registry also contains the settings categories to build up the setting hiarcy from the json file.
- * Also the default values are stored and retrieved in case a given setting doesn't get a value from the command line or the frontend.
+ * This registry contains all known setting keys and (some of) their attributes.
+ * The default values are stored and retrieved in case a given setting doesn't get a value from the command line or the frontend.
  */
 class SettingRegistry : NoCopy
 {
@@ -151,8 +151,13 @@ private:
 
     SettingRegistry();
     
-    std::unordered_map<std::string, SettingConfig*> settings;
-    std::list<SettingContainer> categories;
+    std::unordered_map<std::string, SettingConfig*> settings; //!< Mapping from setting keys to their configurations
+
+    SettingContainer setting_definitions; //!< All setting configurations (A flat list)
+    
+    std::vector<SettingContainer> extruder_trains; //!< The setting overrides per extruder train as defined in the json file
+
+    bool warn_duplicates = false; //!< whether to warn for duplicate setting definitions
 public:
     /*!
      * Get the SettingRegistry.
@@ -165,22 +170,19 @@ public:
     
     bool settingExists(std::string key) const;
     SettingConfig* getSettingConfig(std::string key) const;
-    
-    /*!
-     * Return the first category with the given key as name, or a null pointer.
-     * 
-     * \param key the key as it is in the JSON file
-     * \return The first category in the list having the \p key
-     */
-    SettingContainer* getCategory(std::string key);
 
     /*!
-     * Return the first category with the given key as name, or a null pointer. const style
+     * Retrieve the setting definitions container for all settings of a given extruder train.
      * 
-     * \param key the key as it is in the JSON file
-     * \return The first category in the list having the \p key
+     * \param extruder_nr The extruder train to retrieve
+     * \return The extruder train or nullptr if \p extruder_nr refers to an extruder train which is undefined in the json.
      */
-    const SettingContainer* getCategory(std::string key) const;
+    SettingContainer* getExtruderTrain(unsigned int extruder_nr);
+protected:
+    /*!
+     * 
+     */
+    bool settingIsUsedByEngine(const rapidjson::Value& setting);
 private:
     /*!
      * Return the first category with the given key as name, or a new one.
@@ -204,10 +206,7 @@ public:
     
     void debugOutputAllSettings() const
     {
-        for (const SettingContainer& cat : categories)
-        {
-            cat.debugOutputAllSettings();
-        }
+        setting_definitions.debugOutputAllSettings();
     }
     
 private:
@@ -243,21 +242,33 @@ private:
      * \return The string
      */
     static std::string toString(const rapidjson::Value& dflt, std::string setting_name = "?");
+
+    /*!
+     * Create a new SettingConfig and add it to the registry.
+     * 
+     * \param name The internal key of the setting
+     * \param label The human readable name for the frontend
+     * \return The config created
+     */
+    SettingConfig& addSetting(std::string name, std::string label);
+
+    void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it);
+
+    /*!
+     * Handle a json object which contains a list of settings.
+     * 
+     * \param settings_list The object containing one or more setting definitions
+     * \param path The path of (internal) setting names traversed to get to this object
+     */
+    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path);
     
     /*!
-     * \param warn_duplicates whether to warn for duplicate definitions
+     * Handle a json object for a setting.
+     * 
+     * \param json_setting_it Iterator for the setting which contains the key (setting name) and attributes info
+     * \param path The path of (internal) setting names traversed to get to this object
      */
-    void _addSettingToContainer(SettingContainer* parent, const rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
-
-    /*!
-     * Adds a category with a given name to the registry.
-     * \param cat_name the key of the category as it is in the JSON file
-     * \param fields The members of the category
-     * \param warn_duplicates whether to warn for duplicate definitions
-     */
-    void _addCategory(std::string cat_name, const rapidjson::Value& fields, bool warn_duplicates);
-
-    void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it, bool warn_duplicates, bool add_to_settings = true);
+    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path);
 };
 
 }//namespace cura
