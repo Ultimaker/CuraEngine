@@ -522,10 +522,12 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             }
         }
     }
-
-    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
+    else
     {
-        layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+        for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
+        {
+            layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+        }
     }
 
     int surface_thickness = mesh->getSettingInMicrons("magic_surface_thickness");
@@ -534,6 +536,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
         for (SlicerLayer& layer : layers)
         {
             layer.polygons = layer.polygons.unionPolygons(layer.openPolylines.offsetPolyLine(surface_thickness / 2));
+            layer.openPolylines.clear();
         }
     }
 }
