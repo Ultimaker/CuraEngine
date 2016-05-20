@@ -279,7 +279,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
     }
 }
 
-SettingConfig& SettingRegistry::addSetting(std::__cxx11::string name, std::__cxx11::string label)
+SettingConfig& SettingRegistry::addSetting(std::string name, std::string label)
 {
     SettingConfig* config = setting_definitions.addChild(name, label);
 
