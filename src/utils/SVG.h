@@ -220,7 +220,7 @@ public:
     {
         for (PolygonRef polyline : polylines)
         {
-            writeLines(polyline);
+            writeLines(polyline, color);
         }
     }
     
