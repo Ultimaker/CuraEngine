@@ -189,10 +189,9 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
                 machine_name = machine_name_field.GetString();
             }
         }
-        SettingConfig& machine_name_setting = setting_definitions.getOrCreateChild("machine_name", "Machine Name");
+        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
         machine_name_setting.setDefault(machine_name);
         machine_name_setting.setType("string");
-        settings["machine_name"] = &machine_name_setting;
     }
 
     if (json_document.HasMember("settings"))
