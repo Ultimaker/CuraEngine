@@ -30,23 +30,25 @@ void print_usage()
     cura::logError("CuraEngine help\n");
     cura::logError("\tShow this help message\n");
     cura::logError("\n");
-    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.json>]\n");
+    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     cura::logError("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
-    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults\n");
+    cura::logError("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
     cura::logError("\n");
-    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     cura::logError("  -v\n\tIncrease the verbose level (show log messages).\n");
     cura::logError("  -p\n\tLog progress information.\n");
-    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults.\n");
+    cura::logError("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
     cura::logError("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     cura::logError("  -l <model_file>\n\tLoad an STL model. \n");
     cura::logError("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
-    cura::logError("  -e\n\tAdd a new extruder train.\n");
+    cura::logError("  -e<extruder_nr>\n\tSwitch setting focus to the extruder train with the given number.\n");
     cura::logError("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
     cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     cura::logError("\n");
     cura::logError("The settings are appended to the last supplied object:\n");
-    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("\n");
+    cura::logError("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a colon.\n");
     cura::logError("\n");
 }
 
