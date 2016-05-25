@@ -225,17 +225,7 @@ private:
 public:
     SettingsBase(); //!< SettingsBase without a parent settings object
     SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
-    
-    /*!
-     * Retrieve the defaults for each extruder train from the machine_extruder_trains settings 
-     * and set the general settings to those defaults if they haven't been set yet.
-     * 
-     * Only sets those settings which haven't already been set on that level - not looking at its parent (FffProcessor, meshgroup) or children (meshes).
-     * 
-     * \param extruder_nr The index of which extruder train in machine_extruder_trains to get the settings from
-     */
-    void setExtruderTrainDefaults(unsigned int extruder_nr);
-    
+
     /*!
      * Set a setting to a value.
      * \param key the setting

@@ -115,26 +115,6 @@ std::string SettingsMessenger::getSettingString(std::string key) const
     return parent->getSettingString(key);
 }
 
-
-void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
-{
-    const SettingContainer* train = SettingRegistry::getInstance()->getExtruderTrain(extruder_nr);
-
-    if (!train)
-    {
-        // not enough machine_extruder_trains settings present; just use defaults for this train..
-        return;
-    }
-    
-    for (const SettingConfig& setting : train->getChildren())
-    {
-        if (setting_values.find(setting.getKey()) == setting_values.end())
-        {
-            setSetting(setting.getKey(), setting.getDefaultValue());
-        }
-    }
-}
-
 int SettingsBaseVirtual::getSettingAsIndex(std::string key) const
 {
     std::string value = getSettingString(key);
