@@ -205,7 +205,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             SettingConfig* conf = getSettingConfig(setting);
             if (!conf) //Setting could not be found.
             {
-                logWarning("Trying to override unknown setting %s.\n", setting.c_str());
+//                 logWarning("Trying to override unknown setting %s.\n", setting.c_str());
                 continue;
             }
             _loadSettingValues(conf, override_iterator);
@@ -326,11 +326,11 @@ std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson
             if (setting_content.HasMember("type") && setting_content["type"].IsString() && 
                 (setting_content["type"].GetString() == std::string("polygon") || setting_content["type"].GetString() == std::string("polygons")))
             {
-                logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+//                 logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
             }
             else
             {
-                logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+//                 logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
             }
         }
     }
