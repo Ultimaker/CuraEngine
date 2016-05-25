@@ -209,6 +209,7 @@ public:
     SupportDistPriority getSettingAsSupportDistPriority(std::string key);
 };
 
+class SettingRegistry;
 /*!
  * Base class for every object that can hold settings.
  * The SettingBase object can hold multiple key-value pairs that define settings.
@@ -218,6 +219,7 @@ public:
  */
 class SettingsBase : public SettingsBaseVirtual
 {
+    friend class SettingRegistry;
 private:
     std::unordered_map<std::string, std::string> setting_values;
 public:
@@ -234,6 +236,11 @@ public:
      */
     void setExtruderTrainDefaults(unsigned int extruder_nr);
     
+    /*!
+     * Set a setting to a value.
+     * \param key the setting
+     * \param value the value
+     */
     void setSetting(std::string key, std::string value);
     std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
@@ -255,6 +262,13 @@ public:
         for (auto pair : setting_values)
             std::cerr << pair.first << " : " << pair.second << std::endl;
     }
+protected:
+    /*!
+     * Set a setting without checking if it's registered.
+     * 
+     * Used in SettingsRegistry
+     */
+    void _setSetting(std::string key, std::string value);
 };
 
 /*!

@@ -62,16 +62,22 @@ SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
 {
 }
 
+void SettingsBase::_setSetting(std::string key, std::string value)
+{
+    setting_values[key] = value;
+}
+
+
 void SettingsBase::setSetting(std::string key, std::string value)
 {
     if (SettingRegistry::getInstance()->settingExists(key))
     {
-        setting_values[key] = value;
+        _setSetting(key, value);
     }
     else
     {
         cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
-        setting_values[key] = value; // Handy when programmers are in the process of introducing a new setting
+        _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
     }
 }
 

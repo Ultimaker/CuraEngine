@@ -137,8 +137,7 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
     return false;
 }
 
-
-int SettingRegistry::loadJSONsettings(std::string filename)
+int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base, bool overload_defaults_only)
 {
     rapidjson::Document json_document;
     
@@ -154,20 +153,20 @@ int SettingRegistry::loadJSONsettings(std::string filename)
         {
             return -1;
         }
-        int err = loadJSONsettings(child_filename); // load child first
+        int err = loadJSONsettings(child_filename, settings_base, overload_defaults_only); // load child first
         if (err)
         {
             return err;
         }
-        return loadJSONsettingsFromDoc(json_document, false); // overload settings of this definition file
+        return loadJSONsettingsFromDoc(json_document, settings_base, false, true); // overload settings of this definition file
     }
     else 
     {
-        return loadJSONsettingsFromDoc(json_document, true);
+        return loadJSONsettingsFromDoc(json_document, settings_base, true, overload_defaults_only);
     }
 }
 
-int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
+int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
 {
     
     if (!json_document.IsObject())
@@ -175,27 +174,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         cura::logError("JSON file is not an object.\n");
         return 3;
     }
-
-    /*
-    if (json_document.HasMember("machine_extruder_trains"))
-    {
-        const rapidjson::Value& trains = json_document["machine_extruder_trains"];
-        SettingContainer& category_trains = getOrCreateCategory("machine_extruder_trains", &trains);
-
-        if (trains.IsObject())
-        {
-            for (rapidjson::Value::ConstMemberIterator train_iterator = trains.MemberBegin(); train_iterator != trains.MemberEnd(); ++train_iterator)
-            {
-                SettingConfig& child = category_trains.getOrCreateChild(train_iterator->name.GetString(), std::string("Extruder ") + train_iterator->name.GetString());
-                const rapidjson::Value& train = train_iterator->value;
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = train.MemberBegin(); setting_iterator != train.MemberEnd(); ++setting_iterator)
-                {
-                    _addSettingToContainer(&child, setting_iterator, warn_duplicates, false);
-                }
-            }
-        }
-    }
-    */
 
     { // handle machine name
         std::string machine_name = "Unknown";
@@ -207,7 +185,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
                 machine_name = machine_name_field.GetString();
             }
         }
-        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name", warn_duplicates);
+        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
         machine_name_setting.setDefault(machine_name);
         machine_name_setting.setType("string");
     }
@@ -215,7 +193,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     if (json_document.HasMember("settings"))
     {
         std::list<std::string> path;
-        handleChildren(json_document["settings"], path, warn_duplicates);
+        handleChildren(json_document["settings"], path, settings_base, warn_duplicates, overload_defaults_only);
     }
     
     if (json_document.HasMember("overrides"))
@@ -237,7 +215,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     return 0;
 }
 
-void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, bool warn_duplicates)
+void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
 {
     if (!settings_list.IsObject())
     {
@@ -246,12 +224,12 @@ void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std:
     }
     for (rapidjson::Value::ConstMemberIterator setting_iterator = settings_list.MemberBegin(); setting_iterator != settings_list.MemberEnd(); ++setting_iterator)
     {
-        handleSetting(setting_iterator, path, warn_duplicates);
+        handleSetting(setting_iterator, path, settings_base, warn_duplicates, overload_defaults_only);
         if (setting_iterator->value.HasMember("children"))
         {
             std::list<std::string> path_here = path;
             path_here.push_back(setting_iterator->name.GetString());
-            handleChildren(setting_iterator->value["children"], path_here, warn_duplicates);
+            handleChildren(setting_iterator->value["children"], path_here, settings_base, warn_duplicates, overload_defaults_only);
         }
     }
 }
@@ -269,7 +247,7 @@ bool SettingRegistry::settingIsUsedByEngine(const rapidjson::Value& setting)
 }
 
 
-void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, bool warn_duplicates)
+void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
 {
     const rapidjson::Value& json_setting = json_setting_it->value;
     if (!json_setting.IsObject())
@@ -291,59 +269,62 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         }
         std::string label = json_setting["label"].GetString();
         
-        SettingConfig& setting = addSetting(name, label, warn_duplicates);
-        
-        _loadSettingValues(&setting, json_setting_it);
+        settings_base->_setSetting(name, getDefault(json_setting_it));
+        if (!overload_defaults_only)
+        {
+            SettingConfig* setting = nullptr;
+            std::unordered_map<std::string, SettingConfig*>::iterator setting_lookup_result = setting_key_to_config.find(name);
+            if (warn_duplicates && setting_lookup_result != setting_key_to_config.end())
+            {
+                cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
+                setting = setting_lookup_result->second;
+            }
+            else
+            {
+                setting = &addSetting(name, label);
+            }
+            _loadSettingValues(setting, json_setting_it);
+        }
     }
 }
 
-SettingConfig& SettingRegistry::addSetting(std::string name, std::string label, bool warn_duplicates)
+SettingConfig& SettingRegistry::addSetting(std::string name, std::string label)
 {
     SettingConfig* config = setting_definitions.addChild(name, label);
-
-    if (warn_duplicates && settingExists(config->getKey()))
-    {
-        cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", config->getKey().c_str(), config->getLabel().c_str(), getSettingConfig(config->getKey())->getLabel().c_str());
-    }
 
     setting_key_to_config[name] = config;
 
     return *config;
 }
 
-void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
+std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
 {
-    const rapidjson::Value& data = json_object_it->value;
-    /// Fill the setting config object with data we have in the json file.
-    if (data.HasMember("type") && data["type"].IsString())
+    const rapidjson::Value& setting_content = json_object_it->value;
+    if (setting_content.HasMember("default_value"))
     {
-        config->setType(data["type"].GetString());
-    }
-    if (data.HasMember("default_value"))
-    {
-        const rapidjson::Value& dflt = data["default_value"];
+        const rapidjson::Value& dflt = setting_content["default_value"];
         if (dflt.IsString())
         {
-            config->setDefault(dflt.GetString());
+            return dflt.GetString();
         }
         else if (dflt.IsTrue())
         {
-            config->setDefault("true");
+            return "true";
         }
         else if (dflt.IsFalse())
         {
-            config->setDefault("false");
+            return "false";
         }
         else if (dflt.IsNumber())
         {
             std::ostringstream ss;
             ss << dflt.GetDouble();
-            config->setDefault(ss.str());
+            return ss.str();
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
         else 
         {
-            if (data.HasMember("type") && data["type"].IsString() && 
-                (data["type"].GetString() == std::string("polygon") || data["type"].GetString() == std::string("polygons")))
+            if (setting_content.HasMember("type") && setting_content["type"].IsString() && 
+                (setting_content["type"].GetString() == std::string("polygon") || setting_content["type"].GetString() == std::string("polygons")))
             {
                 logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
             }
@@ -353,6 +334,20 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
             }
         }
     }
+    return "";
+}
+
+
+void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
+{
+    const rapidjson::Value& data = json_object_it->value;
+    /// Fill the setting config object with data we have in the json file.
+    if (data.HasMember("type") && data["type"].IsString())
+    {
+        config->setType(data["type"].GetString());
+    }
+    config->setDefault(getDefault(json_object_it));
+
     if (data.HasMember("unit") && data["unit"].IsString())
     {
         config->setUnit(data["unit"].GetString());
