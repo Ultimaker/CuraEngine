@@ -17,8 +17,8 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/filereadstream.h"
-#include "utils/logoutput.h"
-#include "settingRegistry.h"
+#include "../utils/logoutput.h"
+#include "SettingRegistry.h"
 
 namespace cura
 {

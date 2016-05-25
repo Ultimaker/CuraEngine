@@ -1,5 +1,5 @@
-#ifndef SETTING_REGISTRY_H
-#define SETTING_REGISTRY_H
+#ifndef SETTINGS_SETTING_REGISTRY_H
+#define SETTINGS_SETTING_REGISTRY_H
 
 #include <vector>
 #include <list>
@@ -7,7 +7,7 @@
 #include <string>
 #include <iostream> // debug out
 
-#include "utils/NoCopy.h"
+#include "../utils/NoCopy.h"
 #include "rapidjson/document.h"
 
 namespace cura
@@ -277,4 +277,4 @@ private:
 };
 
 }//namespace cura
-#endif//SETTING_REGISTRY_H
+#endif//SETTINGS_SETTING_REGISTRY_H

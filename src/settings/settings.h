@@ -1,14 +1,14 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+#ifndef SETTINGS_SETTINGS_H
+#define SETTINGS_SETTINGS_H
 
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <sstream>
 
-#include "utils/floatpoint.h"
+#include "../utils/floatpoint.h"
 
-#include "FlowTempGraph.h"
+#include "../FlowTempGraph.h"
 
 namespace cura
 {
@@ -272,5 +272,5 @@ public:
 
 
 }//namespace cura
-#endif//SETTINGS_H
+#endif//SETTINGS_SETTINGS_H
 

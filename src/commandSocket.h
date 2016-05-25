@@ -3,7 +3,7 @@
 
 #include "utils/socket.h"
 #include "utils/polygon.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 

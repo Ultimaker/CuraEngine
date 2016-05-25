@@ -1,7 +1,7 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
-#include "settings.h"
+#include "settings/settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
 #include "commandSocket.h"

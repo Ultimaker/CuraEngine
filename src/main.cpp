@@ -16,9 +16,9 @@
 #include "utils/string.h"
 
 #include "FffProcessor.h"
-#include "settingRegistry.h"
+#include "settings/SettingRegistry.h"
 
-#include "SettingsToGV.h"
+#include "settings/SettingsToGV.h"
 
 namespace cura
 {

@@ -3,7 +3,7 @@
 
 #include "weaveDataStorage.h"
 #include "commandSocket.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 #include "MeshGroup.h"
 #include "slicer.h"

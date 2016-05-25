@@ -2,10 +2,10 @@
 #include <fstream>
 #include <stdio.h>
 #include <sstream> // ostringstream
-#include "utils/logoutput.h"
+#include "../utils/logoutput.h"
 
 #include "settings.h"
-#include "settingRegistry.h"
+#include "SettingRegistry.h"
 
 namespace cura
 {

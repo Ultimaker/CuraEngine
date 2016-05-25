@@ -6,7 +6,7 @@
 #include "utils/polygonUtils.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "sliceDataStorage.h"
 #include "commandSocket.h"
 #include "PrintFeature.h"

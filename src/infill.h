@@ -3,7 +3,7 @@
 #define INFILL_H
 
 #include "utils/polygon.h"
-#include "settings.h"
+#include "settings/settings.h"
 // #include "ZigzagConnectorProcessor.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "infill/NoZigZagConnectorProcessor.h"

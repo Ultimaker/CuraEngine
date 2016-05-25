@@ -1,4 +1,4 @@
-#include "settingRegistry.h"
+#include "SettingRegistry.h"
 
 #include <sstream>
 #include <iostream> // debug IO
@@ -10,7 +10,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
 #include "rapidjson/filereadstream.h"
-#include "utils/logoutput.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {

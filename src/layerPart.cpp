@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 
 #include "layerPart.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "progress/Progress.h"
 
 #include "utils/SVG.h" // debug output

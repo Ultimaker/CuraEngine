@@ -64,8 +64,6 @@ set(engine_SRCS # Except main.cpp.
     src/pathOrderOptimizer.cpp
     src/PrimeTower.cpp
     src/raft.cpp
-    src/settingRegistry.cpp
-    src/settings.cpp
     src/skin.cpp
     src/skirt.cpp
     src/sliceDataStorage.cpp
@@ -85,6 +83,9 @@ set(engine_SRCS # Except main.cpp.
 
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
+
+    src/settings/SettingRegistry.cpp
+    src/settings/settings.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp
