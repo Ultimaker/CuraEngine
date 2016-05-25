@@ -36,7 +36,6 @@ private:
     
     std::vector<SettingContainer> extruder_trains; //!< The setting overrides per extruder train as defined in the json file
 
-    bool warn_duplicates = false; //!< whether to warn for duplicate setting definitions
 public:
     /*!
      * Get the SettingRegistry.
@@ -132,9 +131,10 @@ private:
      * 
      * \param name The internal key of the setting
      * \param label The human readable name for the frontend
+     * \param warn_duplicates whether to warn for duplicate setting definitions
      * \return The config created
      */
-    SettingConfig& addSetting(std::string name, std::string label);
+    SettingConfig& addSetting(std::string name, std::string label, bool warn_duplicates);
 
     void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it);
 
@@ -143,16 +143,18 @@ private:
      * 
      * \param settings_list The object containing one or more setting definitions
      * \param path The path of (internal) setting names traversed to get to this object
+     * \param warn_duplicates whether to warn for duplicate setting definitions
      */
-    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path);
+    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, bool warn_duplicates);
     
     /*!
      * Handle a json object for a setting.
      * 
      * \param json_setting_it Iterator for the setting which contains the key (setting name) and attributes info
      * \param path The path of (internal) setting names traversed to get to this object
+     * \param warn_duplicates whether to warn for duplicate setting definitions
      */
-    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path);
+    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, bool warn_duplicates);
 };
 
 }//namespace cura

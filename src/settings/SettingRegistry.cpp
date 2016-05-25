@@ -104,11 +104,6 @@ int SettingRegistry::loadJSONsettings(std::string filename)
 
     err = loadJSONsettingsFromDoc(json_document, true);
 
-    if (!err)
-    {
-        warn_duplicates = false; // Don't warn duplicates for further JSON files loaded
-    }
-
     return err;
 }
 
@@ -152,7 +147,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
                 machine_name = machine_name_field.GetString();
             }
         }
-        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
+        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name", warn_duplicates);
         machine_name_setting.setDefault(machine_name);
         machine_name_setting.setType("string");
     }
@@ -160,7 +155,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     if (json_document.HasMember("settings"))
     {
         std::list<std::string> path;
-        handleChildren(json_document["settings"], path);
+        handleChildren(json_document["settings"], path, warn_duplicates);
     }
     
     if (json_document.HasMember("overrides"))
@@ -182,7 +177,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     return 0;
 }
 
-void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path)
+void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, bool warn_duplicates)
 {
     if (!settings_list.IsObject())
     {
@@ -191,12 +186,12 @@ void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std:
     }
     for (rapidjson::Value::ConstMemberIterator setting_iterator = settings_list.MemberBegin(); setting_iterator != settings_list.MemberEnd(); ++setting_iterator)
     {
-        handleSetting(setting_iterator, path);
+        handleSetting(setting_iterator, path, warn_duplicates);
         if (setting_iterator->value.HasMember("children"))
         {
             std::list<std::string> path_here = path;
             path_here.push_back(setting_iterator->name.GetString());
-            handleChildren(setting_iterator->value["children"], path_here);
+            handleChildren(setting_iterator->value["children"], path_here, warn_duplicates);
         }
     }
 }
@@ -214,7 +209,7 @@ bool SettingRegistry::settingIsUsedByEngine(const rapidjson::Value& setting)
 }
 
 
-void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path)
+void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, bool warn_duplicates)
 {
     const rapidjson::Value& json_setting = json_setting_it->value;
     if (!json_setting.IsObject())
@@ -236,13 +231,13 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         }
         std::string label = json_setting["label"].GetString();
         
-        SettingConfig& setting = addSetting(name, label);
+        SettingConfig& setting = addSetting(name, label, warn_duplicates);
         
         _loadSettingValues(&setting, json_setting_it);
     }
 }
 
-SettingConfig& SettingRegistry::addSetting(std::string name, std::string label)
+SettingConfig& SettingRegistry::addSetting(std::string name, std::string label, bool warn_duplicates)
 {
     SettingConfig* config = setting_definitions.addChild(name, label);
 
