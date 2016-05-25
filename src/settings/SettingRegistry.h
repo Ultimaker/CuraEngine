@@ -77,7 +77,7 @@ protected:
      * \param result The filename of the machine definition
      * \return Whether we found the file.
      */
-    bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
+    static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
 private:
     /*!
      * Return the first category with the given key as name, or a new one.
