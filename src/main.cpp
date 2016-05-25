@@ -373,6 +373,23 @@ int main(int argc, char **argv)
                 }
             }
         }
+        else
+        {
+            cura::logError("\n");
+            cura::logError("usage:\n");
+            cura::logError("CuraEngine analyse <fdmPrinter.def.json> <output.gv> <engine_settings_list> -[p|i|e|w]\n");
+            cura::logError("\tGenerate a grpah to visualize the setting inheritance structure.\n");
+            cura::logError("\t<fdmPrinter.def.json>\n\tThe base seting definitions file.\n");
+            cura::logError("\t<output.gv>\n\tThe output file.\n");
+            cura::logError("\t<engine_settings_list>\n\tA text file with all setting keys used in the engine, separated by newlines.\n");
+            cura::logError("\t-[p|i|e|w]\n\tOptions for what to include in the visualization\n");
+            cura::logError("\t\tp\tVisualize the parent-child relationship.\n");
+            cura::logError("\t\ti\tVisualize inheritance function relationships.\n");
+            cura::logError("\t\te\tVisualize (max/min) error function relationships.\n");
+            cura::logError("\t\tw\tVisualize (max/min) warning function relationships.\n");
+            cura::logError("\n");
+    
+        }
         
         SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz);
         if (gv_out.generate(std::string(argv[2])))

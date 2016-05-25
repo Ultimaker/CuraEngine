@@ -155,19 +155,27 @@ private:
         
         const rapidjson::Value& data = json_object_it->value;
         
-        bool generated_edge_inherit = createFunctionEdges(data, "inherit_function", parent, name, RelationType::INHERIT_FUNCTION);
-        bool generated_edge_max = createFunctionEdges(data, "max_value", parent, name, RelationType::ERROR_FUNCTION);
-        bool generated_edge_min = createFunctionEdges(data, "min_value", parent, name, RelationType::ERROR_FUNCTION);
-        bool generated_edge_max_warn = createFunctionEdges(data, "max_value_warning", parent, name, RelationType::WARNING_FUNCTION);
-        bool generated_edge_min_warn = createFunctionEdges(data, "min_value_warning", parent, name, RelationType::WARNING_FUNCTION);
-        if (generated_edge_inherit || generated_edge_max_warn || generated_edge_min_warn || generated_edge_max || generated_edge_min)
+        if (data.HasMember("type") && data["type"].IsString() && data["type"].GetString() != std::string("category"))
         {
-            generated_edge = true;
+            
+            bool generated_edge_inherit = createFunctionEdges(data, "inherit_function", parent, name, RelationType::INHERIT_FUNCTION);
+            bool generated_edge_max = createFunctionEdges(data, "max_value", parent, name, RelationType::ERROR_FUNCTION);
+            bool generated_edge_min = createFunctionEdges(data, "min_value", parent, name, RelationType::ERROR_FUNCTION);
+            bool generated_edge_max_warn = createFunctionEdges(data, "max_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+            bool generated_edge_min_warn = createFunctionEdges(data, "min_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+            if (generated_edge_inherit || generated_edge_max_warn || generated_edge_min_warn || generated_edge_max || generated_edge_min)
+            {
+                generated_edge = true;
+            }
+            
+            if (!generated_edge && parent != "")
+            {
+                generateEdge(parent, name, RelationType::PARENT_CHILD);
+            }
         }
-        
-        if (!generated_edge && parent != "")
+        else
         {
-            generateEdge(parent, name, RelationType::PARENT_CHILD);
+            name = "";
         }
         
         // recursive part
@@ -183,25 +191,11 @@ private:
     
     void parseJson(const rapidjson::Document& json_document)
     {
-        if (json_document.HasMember("machine_settings"))
+        if (json_document.HasMember("settings"))
         {
-//             std::cerr << "machine settings:\n";
-            const rapidjson::Value& machine_settings = json_document["machine_settings"];
-            for (rapidjson::Value::ConstMemberIterator setting_iterator = machine_settings.MemberBegin(); setting_iterator != machine_settings.MemberEnd(); ++setting_iterator)
+            for (rapidjson::Value::ConstMemberIterator setting_iterator = json_document["settings"].MemberBegin(); setting_iterator != json_document["settings"].MemberEnd(); ++setting_iterator)
             {
                 parseSetting("", setting_iterator);
-            }
-        }
-        if (json_document.HasMember("categories"))
-        {
-//             std::cerr << "categories:\n";
-            for (rapidjson::Value::ConstMemberIterator category_iterator = json_document["categories"].MemberBegin(); category_iterator != json_document["categories"].MemberEnd(); ++category_iterator)
-            {
-                const rapidjson::Value& json_object_container = category_iterator->value["settings"];
-                for (rapidjson::Value::ConstMemberIterator setting_iterator = json_object_container.MemberBegin(); setting_iterator != json_object_container.MemberEnd(); ++setting_iterator)
-                {
-                    parseSetting("", setting_iterator);
-                }
             }
         }
     }
