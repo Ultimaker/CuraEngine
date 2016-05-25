@@ -66,6 +66,18 @@ protected:
      * \return Whether CuraEngine uses the setting.
      */
     bool settingIsUsedByEngine(const rapidjson::Value& setting);
+
+    /*!
+     * Get the filename for the machine definition with the given id.
+     * Also search the parent directory of \p parent_file.
+     * Check the directories in CURA_ENGINE_SEARCH_PATH (environment var).
+     * 
+     * \param machine_id The id and base filename (without extensions) of the machine definition to search for.
+     * \param parent_file A file probably at the same location of the file to be found.
+     * \param result The filename of the machine definition
+     * \return Whether we found the file.
+     */
+    bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
 private:
     /*!
      * Return the first category with the given key as name, or a new one.

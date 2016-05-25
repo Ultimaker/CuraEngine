@@ -5,6 +5,8 @@
 #include <iostream> // debug IO
 #include <libgen.h> // dirname
 #include <string>
+#include <cstring> // strtok (split string using delimiters)
+#include <fstream> // ifstream (to see if file exists)
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -93,6 +95,49 @@ int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_do
     return 0;
 }
 
+/*!
+ * Check whether a file exists.
+ * from https://techoverflow.net/blog/2013/01/11/cpp-check-if-file-exists/
+ * 
+ * \param filename The path to a filename to check if it exists
+ * \return Whether the file exists.
+ */
+bool fexists(const char *filename)
+{
+  std::ifstream ifile(filename);
+  return (bool)ifile;
+}
+
+bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result)
+{
+    // check for file in same directory as the file provided
+    std::string parent_filename_copy = std::string(parent_file.c_str()); // copy the string because dirname(.) changes the input string!!!
+    char* parent_filename_cstr = (char*)parent_filename_copy.c_str();
+    result = std::string(dirname(parent_filename_cstr)) + std::string("/") + machine_id + std::string(".def.json");
+    if (fexists(result.c_str()))
+    {
+        return true;
+    }
+
+    // check for file in the directories supplied in the environment variable CURA_ENGINE_SEARCH_PATH
+    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
+    if (paths)
+    {
+        char* path = strtok(paths,";:,"); // search for path delimited by ';', ':', ','
+        while (path != NULL)
+        {
+            result = std::string(path) + std::string("/") + machine_id + std::string(".def.json");
+            if (fexists(result.c_str()))
+            {
+                return true;
+            }
+            path = strtok(NULL, ";:,"); // continue searching in last call to strtok
+        }
+    }
+    return false;
+}
+
+
 int SettingRegistry::loadJSONsettings(std::string filename)
 {
     rapidjson::Document json_document;
@@ -101,10 +146,25 @@ int SettingRegistry::loadJSONsettings(std::string filename)
     if (err) { return err; }
 
     log("Loading %s...\n", filename.c_str());
-
-    err = loadJSONsettingsFromDoc(json_document, true);
-
-    return err;
+    if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
+    {
+        std::string child_filename;
+        bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
+        if (!found)
+        {
+            return -1;
+        }
+        int err = loadJSONsettings(child_filename); // load child first
+        if (err)
+        {
+            return err;
+        }
+        return loadJSONsettingsFromDoc(json_document, false); // overload settings of this definition file
+    }
+    else 
+    {
+        return loadJSONsettingsFromDoc(json_document, true);
+    }
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, bool warn_duplicates)
