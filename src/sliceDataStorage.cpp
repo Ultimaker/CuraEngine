@@ -194,7 +194,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
             }
             else 
             {
-                ret[getSettingAsIndex("support_extruder_nr")] = true;
+                ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
             }
         }
         if (support.supportLayers[layer_nr].roofs.size() > 0)
@@ -238,7 +238,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // support
     // support is presupposed to be present...
     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-    ret[getSettingAsIndex("support_extruder_nr")] = true;
+    ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
     ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content
