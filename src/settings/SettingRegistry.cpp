@@ -5,7 +5,6 @@
 #include <iostream> // debug IO
 #include <libgen.h> // dirname
 #include <string>
-#include <algorithm> // find_if
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"

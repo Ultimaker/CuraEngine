@@ -2,9 +2,6 @@
 #ifndef SETTINGS_SETTING_CONFIG_H
 #define SETTINGS_SETTING_CONFIG_H
 
-#include <vector>
-#include <list>
-#include <unordered_map>
 #include <string>
 #include <iostream> // debug out
 

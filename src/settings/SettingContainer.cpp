@@ -2,9 +2,6 @@
 #include "SettingContainer.h"
 #include "SettingConfig.h"
 
-#include <sstream>
-#include <iostream> // debug IO
-#include <libgen.h> // dirname
 #include <string>
 #include <algorithm> // find_if
 
