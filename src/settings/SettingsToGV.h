@@ -1,3 +1,4 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef SETTINGS_TO_GV_H
 #define SETTINGS_TO_GV_H
 
