@@ -92,17 +92,9 @@ std::string SettingsBase::getSettingString(std::string key) const
         return parent->getSettingString(key);
     }
 
-    SettingsBase& nonConstThis = const_cast<SettingsBase&>(*this);
-    if (SettingRegistry::getInstance()->settingExists(key))
-    {
-        nonConstThis.setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
-    }
-    else
-    {
-        nonConstThis.setting_values[key] = "";
-        cura::logError("Unregistered setting %s\n", key.c_str());
-    }
-    return setting_values.at(key);
+    const_cast<SettingsBase&>(*this).setting_values[key] = "";
+    cura::logError("Unregistered setting %s\n", key.c_str());
+    return "";
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
