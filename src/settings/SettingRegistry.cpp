@@ -267,16 +267,10 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         settings_base->_setSetting(name, getDefault(json_setting_it));
         if (!overload_defaults_only)
         {
-            SettingConfig* setting = nullptr;
-            std::unordered_map<std::string, SettingConfig*>::iterator setting_lookup_result = setting_key_to_config.find(name);
-            if (warn_duplicates && setting_lookup_result != setting_key_to_config.end())
+            SettingConfig* setting = getSettingConfig(name);
+            if (warn_duplicates && setting)
             {
                 cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
-                setting = setting_lookup_result->second;
-            }
-            else
-            {
-                setting = &addSetting(name, label);
             }
             _loadSettingValues(setting, json_setting_it);
         }
