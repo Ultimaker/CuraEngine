@@ -101,7 +101,6 @@ protected:
      */
     static std::string getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it);
 public:
-    bool settingsLoaded() const;
     /*!
      * Load settings from a json file and all the parents it inherits from.
      * 

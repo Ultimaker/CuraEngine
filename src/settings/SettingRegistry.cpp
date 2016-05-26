@@ -69,11 +69,6 @@ SettingRegistry::SettingRegistry()
 {
 }
 
-bool SettingRegistry::settingsLoaded() const
-{
-    return setting_key_to_config.size() > 0;
-}
-
 int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_document)
 {
     FILE* f = fopen(filename.c_str(), "rb");
