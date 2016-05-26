@@ -272,6 +272,10 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
             {
                 cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
             }
+            if (!setting)
+            {
+                setting = &addSetting(name, label);
+            }
             _loadSettingValues(setting, json_setting_it);
         }
     }
