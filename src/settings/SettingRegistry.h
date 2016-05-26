@@ -47,7 +47,20 @@ public:
      */
     static SettingRegistry* getInstance() { return &instance; }
     
+    /*!
+     * Check whether a setting exists, according to the settings json files.
+     * 
+     * \param key The internal key for the setting to test
+     * \return Whether a definition of the setting is recorded in this registry.
+     */
     bool settingExists(std::string key) const;
+
+    /*!
+     * Get the config of a setting with a given key.
+     * 
+     * \param key the (internal) key for a setting
+     * \return the setting definition values
+     */
     SettingConfig* getSettingConfig(std::string key) const;
 
     /*!
@@ -81,7 +94,7 @@ protected:
     static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
     
     /*!
-     * Get the default value of a setting
+     * Get the default value of a json setting object.
      * 
      * \param json_object_it An iterator for a given setting json object
      * \return The default vlaue as stored internally (rather than as stored in the json file)

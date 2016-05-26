@@ -21,12 +21,12 @@ namespace cura
 class SettingConfig : public SettingContainer
 {
 private:
-    std::string type;
-    std::string default_value;
-    std::string unit;
+    std::string type; //!< The type of the default_value, e.g. str, int, bool
+    std::string default_value; //!< The default value for this setting
+    std::string unit; //!< The unit of the physical quantity in which this setting is measured, e.g. "mm", "mm/s", ""
 public:
     SettingConfig(std::string key, std::string label);
-    
+
     std::string getKey() const
     {
         return key;
