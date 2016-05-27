@@ -117,7 +117,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_layers)
 {
-    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
     {
         generatePaths3(storage);
     }
@@ -125,7 +125,7 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_lay
 void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int total_layers)
 {
     
-    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0)
+    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
     {
         PolygonRef p = storage.primeTower.ground_poly.newPoly();
         int tower_size = storage.getSettingInMicrons("prime_tower_size");
