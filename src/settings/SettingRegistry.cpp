@@ -136,11 +136,12 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
 {
     rapidjson::Document json_document;
     
+    log("Loading %s...\n", filename.c_str());
+
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
     bool overload_defaults_only;
 
-    log("Loading %s...\n", filename.c_str());
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {
         std::string child_filename;
