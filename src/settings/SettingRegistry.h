@@ -140,10 +140,9 @@ private:
      * \param filename The filename of the json file to parse
      * \param settings_base The settings base where to store the default values.
      * \param warn_duplicates whether to warn for duplicate definitions
-     * \param overload_defaults_only whether to make new setting definitions, or override existing ones
      * \return an error code or zero of succeeded
      */
-    int loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only);
+    int loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates);
     
     /*!
      * Get the string from a json value (generally the default value field of a setting)
@@ -177,9 +176,8 @@ private:
      * \param path The path of (internal) setting names traversed to get to this object
      * \param settings_base The settings base where to store the default values.
      * \param warn_duplicates whether to warn for duplicate setting definitions
-     * \param overload_defaults_only whether to make new setting definitions, or override existing ones
      */
-    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only);
+    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates);
     
     /*!
      * Handle a json object for a setting.
@@ -188,9 +186,8 @@ private:
      * \param path The path of (internal) setting names traversed to get to this object
      * \param settings_base The settings base where to store the default values.
      * \param warn_duplicates whether to warn for duplicate setting definitions
-     * \param overload_defaults_only whether to make new setting definitions, or override existing ones
      */
-    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only);
+    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates);
 };
 
 }//namespace cura

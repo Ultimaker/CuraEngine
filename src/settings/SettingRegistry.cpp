@@ -140,7 +140,6 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
 
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
-    bool overload_defaults_only;
 
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {
@@ -155,17 +154,15 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         {
             return err;
         }
-        overload_defaults_only = true;
-        return loadJSONsettingsFromDoc(json_document, settings_base, false, overload_defaults_only); // overload settings of this definition file
+        return loadJSONsettingsFromDoc(json_document, settings_base, false);
     }
     else 
     {
-        overload_defaults_only = false;
-        return loadJSONsettingsFromDoc(json_document, settings_base, true, overload_defaults_only);
+        return loadJSONsettingsFromDoc(json_document, settings_base, true);
     }
 }
 
-int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
+int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates)
 {
     
     if (!json_document.IsObject())
@@ -192,7 +189,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     if (json_document.HasMember("settings"))
     {
         std::list<std::string> path;
-        handleChildren(json_document["settings"], path, settings_base, warn_duplicates, overload_defaults_only);
+        handleChildren(json_document["settings"], path, settings_base, warn_duplicates);
     }
     
     if (json_document.HasMember("overrides"))
@@ -204,7 +201,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
             SettingConfig* conf = getSettingConfig(setting);
             if (!conf) //Setting could not be found.
             {
-//                 logWarning("Trying to override unknown setting %s.\n", setting.c_str());
+                logWarning("Trying to override unknown setting %s.\n", setting.c_str());
                 continue;
             }
             _loadSettingValues(conf, override_iterator);
@@ -214,7 +211,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     return 0;
 }
 
-void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
+void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates)
 {
     if (!settings_list.IsObject())
     {
@@ -223,12 +220,12 @@ void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std:
     }
     for (rapidjson::Value::ConstMemberIterator setting_iterator = settings_list.MemberBegin(); setting_iterator != settings_list.MemberEnd(); ++setting_iterator)
     {
-        handleSetting(setting_iterator, path, settings_base, warn_duplicates, overload_defaults_only);
+        handleSetting(setting_iterator, path, settings_base, warn_duplicates);
         if (setting_iterator->value.HasMember("children"))
         {
             std::list<std::string> path_here = path;
             path_here.push_back(setting_iterator->name.GetString());
-            handleChildren(setting_iterator->value["children"], path_here, settings_base, warn_duplicates, overload_defaults_only);
+            handleChildren(setting_iterator->value["children"], path_here, settings_base, warn_duplicates);
         }
     }
 }
@@ -246,7 +243,7 @@ bool SettingRegistry::settingIsUsedByEngine(const rapidjson::Value& setting)
 }
 
 
-void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates, bool overload_defaults_only)
+void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates)
 {
     const rapidjson::Value& json_setting = json_setting_it->value;
     if (!json_setting.IsObject())
@@ -269,19 +266,16 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         std::string label = json_setting["label"].GetString();
         
         settings_base->_setSetting(name, getDefault(json_setting_it));
-        if (!overload_defaults_only)
+        SettingConfig* setting = getSettingConfig(name);
+        if (warn_duplicates && setting)
         {
-            SettingConfig* setting = getSettingConfig(name);
-            if (warn_duplicates && setting)
-            {
-                cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
-            }
-            if (!setting)
-            {
-                setting = &addSetting(name, label);
-            }
-            _loadSettingValues(setting, json_setting_it);
+            cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
         }
+        if (!setting)
+        {
+            setting = &addSetting(name, label);
+        }
+        _loadSettingValues(setting, json_setting_it);
     }
 }
 
