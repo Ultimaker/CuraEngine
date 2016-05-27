@@ -997,7 +997,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
 void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)
 {
     
-    if (getSettingInMicrons("prime_tower_size") < 1)
+    if (getSettingInMicrons("prime_tower_size") < 1 || !getSettingBoolean("prime_tower_enable"))
     {
         return;
     }
