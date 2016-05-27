@@ -81,8 +81,6 @@ void connect(int argc, char **argv)
         port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
     }
 
-    
-    bool overload_defaults_only = false; // Always create the setting definitions
     for(int argn = 3; argn < argc; argn++)
     {
         char* str = argv[argn];
@@ -97,7 +95,7 @@ void connect(int argc, char **argv)
                     break;
                 case 'j':
                     argn++;
-                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], FffProcessor::getInstance(), overload_defaults_only))
+                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], FffProcessor::getInstance()))
                     {
                         cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                     }
@@ -176,7 +174,7 @@ void slice(int argc, char **argv)
                         break;
                     case 'j':
                         argn++;
-                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], last_settings_object, last_settings_object != FffProcessor::getInstance())) // only create setting definitions when loading the json file for the global setting defaults (not when loading the extruder train defaults)
+                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], last_settings_object))
                         {
                             cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                         }

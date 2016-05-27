@@ -108,10 +108,9 @@ public:
      * 
      * \param filename The filename of the json file to parse
      * \param settings_base The settings base where to store the default values.
-     * \param overload_defaults_only whether to make new setting definitions, or override existing ones
      * \return an error code or zero of succeeded
      */
-    int loadJSONsettings(std::string filename, SettingsBase* settings_base, bool overload_defaults_only);
+    int loadJSONsettings(std::string filename, SettingsBase* settings_base);
     
     void debugOutputAllSettings() const
     {

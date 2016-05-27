@@ -132,12 +132,13 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
     return false;
 }
 
-int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base, bool overload_defaults_only)
+int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base)
 {
     rapidjson::Document json_document;
     
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
+    bool overload_defaults_only;
 
     log("Loading %s...\n", filename.c_str());
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
@@ -148,15 +149,17 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         {
             return -1;
         }
-        int err = loadJSONsettings(child_filename, settings_base, overload_defaults_only); // load child first
+        int err = loadJSONsettings(child_filename, settings_base); // load child first
         if (err)
         {
             return err;
         }
-        return loadJSONsettingsFromDoc(json_document, settings_base, false, true); // overload settings of this definition file
+        overload_defaults_only = true;
+        return loadJSONsettingsFromDoc(json_document, settings_base, false, overload_defaults_only); // overload settings of this definition file
     }
     else 
     {
+        overload_defaults_only = false;
         return loadJSONsettingsFromDoc(json_document, settings_base, true, overload_defaults_only);
     }
 }
