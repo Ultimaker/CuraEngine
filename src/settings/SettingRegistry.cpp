@@ -204,7 +204,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
                 logWarning("Trying to override unknown setting %s.\n", setting.c_str());
                 continue;
             }
-            _loadSettingValues(conf, override_iterator);
+            _loadSettingValues(conf, override_iterator, settings_base);
         }
     }
     
@@ -265,7 +265,6 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         }
         std::string label = json_setting["label"].GetString();
         
-        settings_base->_setSetting(name, getDefault(json_setting_it));
         SettingConfig* setting = getSettingConfig(name);
         if (warn_duplicates && setting)
         {
@@ -275,7 +274,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         {
             setting = &addSetting(name, label);
         }
-        _loadSettingValues(setting, json_setting_it);
+        _loadSettingValues(setting, json_setting_it, settings_base);
     }
 }
 
@@ -329,7 +328,7 @@ std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson
 }
 
 
-void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
+void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, SettingsBase* settings_base)
 {
     const rapidjson::Value& data = json_object_it->value;
     /// Fill the setting config object with data we have in the json file.
@@ -337,12 +336,15 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
     {
         config->setType(data["type"].GetString());
     }
+
     config->setDefault(getDefault(json_object_it));
 
     if (data.HasMember("unit") && data["unit"].IsString())
     {
         config->setUnit(data["unit"].GetString());
     }
+
+    settings_base->_setSetting(config->getKey(), config->getDefaultValue());
 }
 
 }//namespace cura

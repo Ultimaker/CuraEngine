@@ -166,8 +166,9 @@ private:
      * 
      * \param[out] config Where to store the data
      * \param[in] json_object_it Iterator to a setting json object
+     * \param[out] settings_base The settings base where to store the default values.
      */
-    void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it);
+    void _loadSettingValues(SettingConfig* config, const rapidjson::Value::ConstMemberIterator& json_object_it, SettingsBase* settings_base);
 
     /*!
      * Handle a json object which contains a list of settings.
