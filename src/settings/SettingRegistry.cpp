@@ -146,6 +146,34 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
 
+    if (json_document.HasMember("metadata") && json_document["metadata"].IsObject())
+    {
+        const rapidjson::Value& json_metadata = json_document["metadata"];
+        if (json_metadata.HasMember("machine_extruder_trains") && json_metadata["machine_extruder_trains"].IsObject())
+        {
+            const rapidjson::Value& json_machine_extruder_trains = json_metadata["machine_extruder_trains"];
+            for (rapidjson::Value::ConstMemberIterator extr_train_iterator = json_machine_extruder_trains.MemberBegin(); extr_train_iterator != json_machine_extruder_trains.MemberEnd(); ++extr_train_iterator)
+            {
+                int extruder_train_nr = atoi(extr_train_iterator->name.GetString());
+                if (extruder_train_nr < 0)
+                {
+                    continue;
+                }
+                const rapidjson::Value& json_id = extr_train_iterator->value;
+                if (!json_id.IsString())
+                {
+                    continue;
+                }
+                const char* id = json_id.GetString();
+                if (extruder_train_nr >= (int) extruder_train_ids.size())
+                {
+                    extruder_train_ids.resize(extruder_train_nr + 1);
+                }
+                extruder_train_ids[extruder_train_nr] = std::string(id);
+            }
+        }
+    }
+    
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {
         std::string child_filename;

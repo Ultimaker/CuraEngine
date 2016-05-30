@@ -36,6 +36,8 @@ private:
     SettingContainer setting_definitions; //!< All setting configurations (A flat list)
     
     std::vector<SettingContainer> extruder_trains; //!< The setting overrides per extruder train as defined in the json file
+    
+    std::vector<std::string> extruder_train_ids; //!< The internal id's of each extruder (the filename without the extension)
 
 public:
     /*!
