@@ -99,8 +99,8 @@ int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_do
  */
 bool fexists(const char *filename)
 {
-  std::ifstream ifile(filename);
-  return (bool)ifile;
+    std::ifstream ifile(filename);
+    return (bool)ifile;
 }
 
 bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result)
