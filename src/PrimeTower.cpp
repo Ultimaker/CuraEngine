@@ -28,7 +28,7 @@ void PrimeTower::initConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>
     for (int extr = 0; extr < extruder_count; extr++)
     {
         ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
-        config_per_extruder[extr].init(train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMicrons("prime_tower_line_width"), train->getSettingInPercentage("prime_tower_flow"));
+        config_per_extruder[extr].init(train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower"), train->getSettingInMicrons("prime_tower_line_width"), train->getSettingInPercentage("prime_tower_flow"));
     }
 }
 
