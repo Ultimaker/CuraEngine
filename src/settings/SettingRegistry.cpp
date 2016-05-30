@@ -141,10 +141,11 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
     {
         return -1;
     }
-    return loadJSONsettings(definition_file, settings_base);
+    bool warn_base_file_duplicates = false;
+    return loadJSONsettings(definition_file, settings_base, warn_base_file_duplicates);
 }
 
-int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base)
+int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base, bool warn_base_file_duplicates)
 {
     rapidjson::Document json_document;
     
@@ -189,7 +190,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         {
             return -1;
         }
-        int err = loadJSONsettings(child_filename, settings_base); // load child first
+        int err = loadJSONsettings(child_filename, settings_base, warn_base_file_duplicates); // load child first
         if (err)
         {
             return err;
@@ -198,7 +199,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     }
     else 
     {
-        return loadJSONsettingsFromDoc(json_document, settings_base, true);
+        return loadJSONsettingsFromDoc(json_document, settings_base, warn_base_file_duplicates);
     }
 }
 

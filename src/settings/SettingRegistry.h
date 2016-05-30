@@ -100,9 +100,10 @@ public:
      * 
      * \param filename The filename of the json file to parse
      * \param settings_base The settings base where to store the default values.
+     * \param warn_base_file_duplicates Whether to warn if there are duplicate definitions in the base file (the .def.json which has no inherits).
      * \return an error code or zero of succeeded
      */
-    int loadJSONsettings(std::string filename, SettingsBase* settings_base);
+    int loadJSONsettings(std::string filename, SettingsBase* settings_base, bool warn_base_file_duplicates = true);
     
     void debugOutputAllSettings() const
     {
