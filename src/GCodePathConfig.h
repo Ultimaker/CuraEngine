@@ -35,7 +35,6 @@ private:
     double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
 public:
     const PrintFeatureType type; //!< name of the feature type
-    bool spiralize; //!< Whether the Z should increment slowly over the whole layer when printing this feature. TODO: the fact that this option is here introduces a bug in combination with the fact that we have a LayerPlanBuffer; This value is set in FffGcodeWriter, meaning it has effect on previous layers!
     RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
 
     /*!
