@@ -54,16 +54,6 @@ SettingConfig* SettingRegistry::getSettingConfig(std::string key) const
     return it->second;
 }
 
-SettingContainer* SettingRegistry::getExtruderTrain(unsigned int extruder_nr)
-{
-    if (extruder_nr < 0 || extruder_nr >= extruder_trains.size())
-    {
-        return nullptr;
-    }
-    return &extruder_trains[extruder_nr];
-}
-
-
 SettingRegistry::SettingRegistry()
 : setting_definitions("settings", "Settings")
 {

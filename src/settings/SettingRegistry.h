@@ -35,8 +35,6 @@ private:
 
     SettingContainer setting_definitions; //!< All setting configurations (A flat list)
     
-    std::vector<SettingContainer> extruder_trains; //!< The setting overrides per extruder train as defined in the json file
-    
     std::vector<std::string> extruder_train_ids; //!< The internal id's of each extruder (the filename without the extension)
 
 public:
@@ -64,14 +62,6 @@ public:
      * \return the setting definition values
      */
     SettingConfig* getSettingConfig(std::string key) const;
-
-    /*!
-     * Retrieve the setting definitions container for all settings of a given extruder train.
-     * 
-     * \param extruder_nr The extruder train to retrieve
-     * \return The extruder train or nullptr if \p extruder_nr refers to an extruder train which is undefined in the json.
-     */
-    SettingContainer* getExtruderTrain(unsigned int extruder_nr);
 protected:
     /*!
      * Whether this json settings object is a definition of a CuraEngine setting,
@@ -118,7 +108,18 @@ public:
     {
         setting_definitions.debugOutputAllSettings();
     }
-    
+
+    /*!
+     * Load settings from the extruder definition json file and all the parents it inherits from.
+     * Use the json file refered to in the machine_extruder_trains attribute of the last loaded machine json file.
+     * 
+     * Uses recursion to load the parent json file.
+     * 
+     * \param extruder_nr The number of the extruder to load
+     * \param settings_base The settings base where to store the default values. (The extruder settings base)
+     * \return an error code or zero of succeeded
+     */
+    int loadExtruderJSONsettings(int extruder_nr, SettingsBase* settings_base);
 private:
     
     /*!
