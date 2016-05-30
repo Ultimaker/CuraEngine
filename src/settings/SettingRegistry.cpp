@@ -127,6 +127,23 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
     return false;
 }
 
+
+int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base)
+{
+    if (extruder_nr >= extruder_train_ids.size())
+    {
+        return -1;
+    }
+    
+    std::string definition_file;
+    bool found = getDefinitionFile(extruder_train_ids[extruder_nr], "", definition_file);
+    if (!found)
+    {
+        return -1;
+    }
+    return loadJSONsettings(definition_file, settings_base);
+}
+
 int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base)
 {
     rapidjson::Document json_document;

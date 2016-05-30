@@ -119,7 +119,7 @@ public:
      * \param settings_base The settings base where to store the default values. (The extruder settings base)
      * \return an error code or zero of succeeded
      */
-    int loadExtruderJSONsettings(int extruder_nr, SettingsBase* settings_base);
+    int loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base);
 private:
     
     /*!
