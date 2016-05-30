@@ -118,7 +118,12 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
     char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
     if (paths)
     {
-        char* path = strtok(paths,";:,"); // search for path delimited by ';', ':', ','
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+        char delims[] = ":"; // colon
+#else
+        char delims[] = ";"; // semicolon
+#endif
+        char* path = strtok(paths, delims); // search for next path delimited by any of the characters in delims
         while (path != NULL)
         {
             result = std::string(path) + std::string("/") + machine_id + std::string(".def.json");
