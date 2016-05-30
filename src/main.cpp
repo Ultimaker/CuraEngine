@@ -48,7 +48,7 @@ void print_usage()
     cura::logError("The settings are appended to the last supplied object:\n");
     cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
     cura::logError("\n");
-    cura::logError("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a colon.\n");
+    cura::logError("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a (semi-)colon.\n");
     cura::logError("\n");
 }
 
