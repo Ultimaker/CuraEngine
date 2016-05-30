@@ -146,14 +146,6 @@ private:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates);
-    
-    /*!
-     * Get the string from a json value (generally the default value field of a setting)
-     * \param dflt The value to convert to string
-     * \param setting_name The name of the setting (in case we need to display an error message)
-     * \return The string
-     */
-    static std::string toString(const rapidjson::Value& dflt, std::string setting_name = "?");
 
     /*!
      * Create a new SettingConfig and add it to the registry.
