@@ -154,6 +154,26 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
 
+    if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
+    {
+        std::string child_filename;
+        bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
+        if (!found)
+        {
+            return -1;
+        }
+        err = loadJSONsettings(child_filename, settings_base, warn_base_file_duplicates); // load child first
+        if (err)
+        {
+            return err;
+        }
+        err = loadJSONsettingsFromDoc(json_document, settings_base, false);
+    }
+    else 
+    {
+        err = loadJSONsettingsFromDoc(json_document, settings_base, warn_base_file_duplicates);
+    }
+
     if (json_document.HasMember("metadata") && json_document["metadata"].IsObject())
     {
         const rapidjson::Value& json_metadata = json_document["metadata"];
@@ -181,26 +201,8 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
             }
         }
     }
-    
-    if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
-    {
-        std::string child_filename;
-        bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
-        if (!found)
-        {
-            return -1;
-        }
-        int err = loadJSONsettings(child_filename, settings_base, warn_base_file_duplicates); // load child first
-        if (err)
-        {
-            return err;
-        }
-        return loadJSONsettingsFromDoc(json_document, settings_base, false);
-    }
-    else 
-    {
-        return loadJSONsettingsFromDoc(json_document, settings_base, warn_base_file_duplicates);
-    }
+
+    return err;
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates)
