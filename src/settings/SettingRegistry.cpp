@@ -356,15 +356,7 @@ void SettingRegistry::loadDefault(const rapidjson::GenericValue< rapidjson::UTF8
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
         else 
         {
-            if (setting_content.HasMember("type") && setting_content["type"].IsString() && 
-                (setting_content["type"].GetString() == std::string("polygon") || setting_content["type"].GetString() == std::string("polygons")))
-            {
-                logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
-            }
-            else
-            {
-                logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
-            }
+            logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
         }
     }
 }
@@ -377,6 +369,11 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
     if (data.HasMember("type") && data["type"].IsString())
     {
         config->setType(data["type"].GetString());
+    }
+    if (config->getType() == std::string("polygon") || config->getType() == std::string("polygons"))
+    { // skip polygon settings : not implemented yet and not used yet (TODO)
+//         logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+        return;
     }
 
     loadDefault(json_object_it, config);
