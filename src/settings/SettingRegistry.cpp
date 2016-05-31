@@ -330,7 +330,7 @@ SettingConfig& SettingRegistry::addSetting(std::string name, std::string label)
     return *config;
 }
 
-std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
+void SettingRegistry::loadDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, SettingConfig* config)
 {
     const rapidjson::Value& setting_content = json_object_it->value;
     if (setting_content.HasMember("default_value"))
@@ -338,36 +338,35 @@ std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson
         const rapidjson::Value& dflt = setting_content["default_value"];
         if (dflt.IsString())
         {
-            return dflt.GetString();
+            config->setDefault(dflt.GetString());
         }
         else if (dflt.IsTrue())
         {
-            return "true";
+            config->setDefault("true");
         }
         else if (dflt.IsFalse())
         {
-            return "false";
+            config->setDefault("false");
         }
         else if (dflt.IsNumber())
         {
             std::ostringstream ss;
             ss << dflt.GetDouble();
-            return ss.str();
+            config->setDefault(ss.str());
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
         else 
         {
             if (setting_content.HasMember("type") && setting_content["type"].IsString() && 
                 (setting_content["type"].GetString() == std::string("polygon") || setting_content["type"].GetString() == std::string("polygons")))
             {
-//                 logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+                logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
             }
             else
             {
-//                 logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
+                logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
             }
         }
     }
-    return "";
 }
 
 
@@ -380,7 +379,7 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
         config->setType(data["type"].GetString());
     }
 
-    config->setDefault(getDefault(json_object_it));
+    loadDefault(json_object_it, config);
 
     if (data.HasMember("unit") && data["unit"].IsString())
     {

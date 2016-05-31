@@ -86,12 +86,12 @@ protected:
     static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
     
     /*!
-     * Get the default value of a json setting object.
+     * Get the default value of a json setting object in the format used internally (c style).
      * 
-     * \param json_object_it An iterator for a given setting json object
-     * \return The default vlaue as stored internally (rather than as stored in the json file)
+     * \param[in] json_object_it An iterator for a given setting json object
+     * \param[out] config Where the default value is stored
      */
-    static std::string getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it);
+    static void loadDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, SettingConfig* config);
 public:
     /*!
      * Load settings from a json file and all the parents it inherits from.
