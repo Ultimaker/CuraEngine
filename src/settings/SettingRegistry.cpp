@@ -227,6 +227,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
         machine_name_setting.setDefault(machine_name);
         machine_name_setting.setType("string");
+        settings_base->_setSetting(machine_name_setting.getKey(), machine_name_setting.getDefaultValue());
     }
 
     if (json_document.HasMember("settings"))
