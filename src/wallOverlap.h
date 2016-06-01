@@ -238,6 +238,8 @@ public:
     /*!
      * Compute the flow for a given line segment in the wall.
      * 
+     * \warning the first time this function is called it returns a different thing than the second, because the second time it thinks it already passed this segment once.
+     * 
      * \param from The beginning of the line segment
      * \param to The ending of the line segment
      * \return a value between zero and one representing the reduced flow of the line segment

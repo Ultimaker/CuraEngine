@@ -133,7 +133,7 @@ bool WallOverlapComputation::addOverlapPoint(ListPolyIt from, ListPolyIt to, int
         overlap_point_links.emplace(link, attr);
         
     if (! result.second)
-    {
+    { // we already have the link
 //         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
         result.first->second = attr;
     }
