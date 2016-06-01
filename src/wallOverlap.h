@@ -245,8 +245,10 @@ public:
     float getFlow(Point& from, Point& to);
     
     void debugCheck(); //!< debug
+
+    void debugCheckNonePassedYet(); //!< check whether no link has passed set to true
     
-    void wallOverlaps2HTML(const char* filename); //!< debug
+    void wallOverlaps2HTML(const char* filename) const; //!< debug
     
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.

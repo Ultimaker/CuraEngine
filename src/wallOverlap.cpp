@@ -325,56 +325,82 @@ void WallOverlapComputation::debugCheck()
     }
 }
 
+void WallOverlapComputation::debugCheckNonePassedYet()
+{
+    for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> pair : overlap_point_links)
+    {
+        if (pair.second.passed)
+        {
+            logError("ERROR: WallOverlapComputation link passed just after contruction!!!\n");
+        }
+        
+    }
+}
 
-void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
+
+
+void WallOverlapComputation::wallOverlaps2HTML(const char* filename) const
 {   
-    AABB aabb(polygons);
+    
+    WallOverlapComputation copy = *this; // copy, cause getFlow might change the state of the overlap computation!
+    
+    AABB aabb(copy.polygons);
+    
+    aabb.expand(200);
     
     SVG svg(filename, aabb, Point(1024 * 2, 1024 * 2));
     
     
-    svg.writeAreas(polygons);
-    /*
-    for(PolygonsPart part : polygons.splitIntoParts())
-    {
-        for (unsigned int j = 0; j < part.size(); j++)
+    svg.writeAreas(copy.polygons);
+    
+    { // output points and coords
+        for (ListPolygon poly : copy.list_polygons)
         {
-            fprintf(out, "<polygon points=\"");
-            for(Point& p : part[j])
+            for (Point& p : poly)
             {
-                Point pf = transform(p);
-                fprintf(out, "%lli,%lli ", pf.Y, pf.X);
+                svg.writePoint(p, true);
             }
-            if (j == 0)
-                fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-            else
-                fprintf(out, "\" style=\"fill:white; stroke:black;stroke-width:1\" />\n");
         }
-    }*/
-    
-    for (ListPolygon poly : list_polygons)
-    {
-        for (Point& p : poly)
+    }
+
+    { // output links
+        // output normal links
+        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links)
         {
-            svg.writePoint(p, true);
+            WallOverlapPointLink& link = link_pair.first;
+            Point a = svg.transform(link.a.p());
+            Point b = svg.transform(link.b.p());
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        }
+        
+        // output ending links
+        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links_endings)
+        {
+            WallOverlapPointLink& link = link_pair.first;
+            Point a = svg.transform(link.a.p());
+            Point b = svg.transform(link.b.p());
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
         }
     }
-    
-    
-    for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
-    {
-        WallOverlapPointLink& link = link_pair.first;
-        Point a = svg.transform(link.a.p());
-        Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
-    }
-    
-    for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links_endings)
-    {
-        WallOverlapPointLink& link = link_pair.first;
-        Point a = svg.transform(link.a.p());
-        Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+
+    { // output flow
+        for (ListPolygon poly : copy.list_polygons)
+        {
+            Point p0 = poly.back();
+            svg.writePoint(p0, false, 5, SVG::Color::BLUE); // make start points of each poly blue
+            for (Point& p1 : poly)
+            {
+                Point middle = (p0 + p1) / 2;
+                
+                float flow = copy.getFlow(p0, p1);
+                
+                std::ostringstream oss;
+                oss << "flow: " << flow;
+                svg.writeText(middle, oss.str());
+                
+                p0 = p1;
+            }
+        }
     }
 }
     
