@@ -36,6 +36,7 @@ namespace cura
  * to the current line segment being produced when producing gcode.
  * 
  * When producing gcode, the first line crossing the overlap area is laid down normally and the second line is reduced by the overlap amount.
+ * For this reason the function WallOverlapComputation::getFlow changes the internal state of this WallOverlapComputation.
  * 
  * The main functionality of this class is performed by the constructor.
  * The adjustment during gcode generation is made with the help of WallOverlapComputation::getFlow
