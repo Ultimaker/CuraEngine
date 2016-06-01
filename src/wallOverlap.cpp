@@ -13,13 +13,23 @@ WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int lineWidth
  : polygons(polygons)
  , line_width(lineWidth) 
 { 
+    unsigned int n_points = 0;
+    for (PolygonRef poly : polygons)
+    {
+        n_points += poly.size();
+    }
+
+    // reserve enough elements so that iterators don't get invalidated
+    overlap_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
+    overlap_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
+
     // convert to list polygons for insertion of points
     convertPolygonsToLists(polygons, list_polygons); 
-    
+
     findOverlapPoints();
     addOverlapEndings();
     // TODO: add sharp corners
-    
+
     // convert list polygons back
     convertListPolygonsToPolygons(list_polygons, polygons);
 //     wallOverlaps2HTML("output/output.html");
@@ -123,11 +133,11 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         int64_t dist = sqrt(dist2);
         
-        if (closest == last_point)
+        if (shorterThen(closest - last_point, 10))
         {
             addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
         }
-        else if (closest == point)
+        else if (shorterThen(closest - point, 10))
         {
             addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
         }

@@ -144,7 +144,7 @@ class WallOverlapComputation
     };
     
     typedef std::unordered_map<WallOverlapPointLink, WallOverlapPointLinkAttributes, WallOverlapPointLink_Hasher> WallOverlapPointLinks; //!< The type of WallOverlapComputation::overlap_point_links
-    typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link; //!< The type of WallOverlapComputation::point_to_link
+    typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link; //!< The type of WallOverlapComputation::point_to_link \warning mapping to iterators which might get invalidated!
     
     
     /////////////////////////////////////////////////////////////////////////////////////////////
@@ -158,7 +158,7 @@ class WallOverlapComputation
     WallOverlapPointLinks overlap_point_links; //!< mapping from each link to its attributes
     WallOverlapPointLinks overlap_point_links_endings; //!< mapping from each ending link to its attributes (which has a distance field equal to WallOverlapComputation::line_width). Note that this is a separate map from WallOverlapComputation::overlap_point_links, because that magically solved a bug .
     
-    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
+    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet) \warning mapping to iterators which might get invalidated!
 
     void findOverlapPoints(); //!< find the basic overlap links (for trapezoids) and record them into WallOverlapComputation::overlap_point_links
     /*!
