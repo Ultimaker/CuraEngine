@@ -257,20 +257,7 @@ public:
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons, int lineWidth) : polygons(polygons), line_width(lineWidth) 
-    { 
-        // convert to list polygons for insertion of points
-        convertPolygonsToLists(polygons, list_polygons); 
-        
-        findOverlapPoints();
-        addOverlapEndings();
-        // TODO: add sharp corners
-        
-        // convert list polygons back
-        convertListPolygonsToPolygons(list_polygons, polygons);
-//         wallOverlaps2HTML("output/output.html");
-//         list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
-    }
+    WallOverlapComputation(Polygons& polygons, int lineWidth);
     
 };
 
