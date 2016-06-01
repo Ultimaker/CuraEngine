@@ -288,13 +288,14 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     Point2Link::iterator from_link_pair = point_to_link.find(from);
     if (from_link_pair == point_to_link.end()) { return 1; }
     WallOverlapPointLinks::iterator from_link = from_link_pair->second;
-    if (!from_link->second.passed)// || !to_link->second.passed)
+    WallOverlapPointLinkAttributes& from_attr = from_link->second;
+    if (!from_attr.passed)// || !to_link->second.passed)
     {
-        from_link->second.passed = true;
+        from_attr.passed = true;
 //         to_link->second.passed = true;
         return 1;
     }
-    from_link->second.passed = true;
+    from_attr.passed = true;
     
     Point2Link::iterator to_link_pair = point_to_link.find(to);
     if (to_link_pair == point_to_link.end()) { return 1; }
