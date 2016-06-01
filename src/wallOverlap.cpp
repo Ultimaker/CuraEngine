@@ -317,24 +317,25 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     if (from_link_pair == point_to_link.end()) { return 1; }
     WallOverlapPointLinks::iterator from_link = from_link_pair->second;
     WallOverlapPointLinkAttributes& from_attr = from_link->second;
-    if (!from_attr.passed)// || !to_link->second.passed)
-    {
-        from_attr.passed = true;
-//         to_link->second.passed = true;
-        return 1;
-    }
-    from_attr.passed = true;
-    
+
     Point2Link::iterator to_link_pair = point_to_link.find(to);
     if (to_link_pair == point_to_link.end()) { return 1; }
     WallOverlapPointLinks::iterator to_link = to_link_pair->second;
-//     to_link->second = true;
-    
-    
+    WallOverlapPointLinkAttributes& to_attr = to_link->second;
+
+    if (!from_attr.passed || !to_attr.passed)
+    {
+        from_attr.passed = true;
+        to_attr.passed = true;
+        return 1;
+    }
+    from_attr.passed = true;
+    to_attr.passed = true;
+
     // both points have already been passed
-    
+
     float avg_link_dist = 0.5 * ( INT2MM(from_link->second.dist) + INT2MM(to_link->second.dist) );
-   
+
     float ratio = avg_link_dist / INT2MM(line_width);
 
     if (ratio > 1.0) { return 1.0; }
