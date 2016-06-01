@@ -307,13 +307,15 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     for(unsigned int i=1; i<polygon.size(); i++)
     {
         Point p1 = polygon[(startIdx + i) % polygon.size()];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0, spiralize);
+        float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
         Point& p1 = polygon[startIdx];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0, spiralize);
+        float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
+        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
     }
     else 
     {
