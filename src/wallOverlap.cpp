@@ -330,7 +330,7 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
 {   
     AABB aabb(polygons);
     
-    SVG svg(filename, aabb);
+    SVG svg(filename, aabb, Point(1024 * 2, 1024 * 2));
     
     
     svg.writeAreas(polygons);
@@ -366,7 +366,7 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
         WallOverlapPointLink& link = link_pair.first;
         Point a = svg.transform(link.a.p());
         Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
     }
     
     for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links_endings)
@@ -374,7 +374,7 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
         WallOverlapPointLink& link = link_pair.first;
         Point a = svg.transform(link.a.p());
         Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
     }
 }
     
