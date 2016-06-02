@@ -138,7 +138,8 @@ public:
     
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
 
-    GCodePathConfig travel_config; //!< The config used for travel moves (only the speed and retraction config are set!)
+    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
+
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
     
@@ -165,6 +166,16 @@ public:
     {
         std::vector<RetractionConfig> ret;
         ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
+        return ret;
+    }
+    std::vector<GCodePathConfig> initializeTravelConfigs()
+    {
+        std::vector<GCodePathConfig> ret;
+        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+        {
+            RetractionConfig* retraction_config = nullptr;
+            travel_config_per_extruder.emplace_back(retraction_config, PrintFeatureType::MoveCombing);
+        }
         return ret;
     }
     std::vector<GCodePathConfig> initializeSkirtConfigs()

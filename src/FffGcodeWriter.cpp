@@ -135,12 +135,11 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 
 void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
 {
-    storage.travel_config.init(getSettingInMillimetersPerSecond("speed_travel"), 0, 0);
-    
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { // skirt
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
         storage.skirt_config[extruder].init(train->getSettingInMillimetersPerSecond("skirt_speed"), train->getSettingInMicrons("skirt_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.travel_config_per_extruder[extruder].init(train->getSettingInMillimetersPerSecond("speed_travel"), 0, 0);
     }
 
     { // support 
