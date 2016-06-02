@@ -615,7 +615,7 @@ void Wireframe2gcode::processSkirt()
 
 void Wireframe2gcode::finalize()
 {
-    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }

@@ -772,7 +772,7 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << temperature << new_line;
 }
 
-void GCodeExport::finalize(double moveSpeed, const char* endCode)
+void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
