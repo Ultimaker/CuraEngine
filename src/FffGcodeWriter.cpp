@@ -364,6 +364,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     }
 
     int max_inner_wall_width = 0;
+    bool avoid_other_parts = false;
+    int avoid_distance = 10; // stub
     std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
@@ -371,13 +373,20 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
         {
             ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
             max_inner_wall_width = std::max(max_inner_wall_width, extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
+
+            if (extr->getSettingBoolean("travel_avoid_other_parts"))
+            {
+                avoid_other_parts = true;
+                avoid_distance = std::max(avoid_distance, extr->getSettingInMicrons("travel_avoid_distance"));
+            }
         }
     }
     ExtruderTrain* current_extruder_train = storage.meshgroup->getExtruderTrain(current_extruder_planned);
     
     int64_t comb_offset_from_outlines = current_extruder_train->getSettingInMicrons((current_extruder_train->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 2; // TODO: only used when there is no second wall.
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, getSettingBoolean("travel_avoid_other_parts"), getSettingInMicrons("travel_avoid_distance"));
+
+    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
     
     if (layer_nr == 0)
     { // process the skirt of the starting extruder
