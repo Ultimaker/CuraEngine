@@ -162,33 +162,19 @@ public:
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
-    std::vector<RetractionConfig> initializeRetractionConfigs()
-    {
-        std::vector<RetractionConfig> ret;
-        ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
-        return ret;
-    }
-    std::vector<GCodePathConfig> initializeTravelConfigs()
-    {
-        std::vector<GCodePathConfig> ret;
-        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-        {
-            RetractionConfig* retraction_config = nullptr;
-            travel_config_per_extruder.emplace_back(retraction_config, PrintFeatureType::MoveCombing);
-        }
-        return ret;
-    }
-    std::vector<GCodePathConfig> initializeSkirtConfigs()
-    {
-        std::vector<GCodePathConfig> ret;
-        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-        {
-            RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-            skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
-        }
-        return ret;
-    }
-    
+    /*!
+     * Construct the initial retraction_config_per_extruder
+     */
+    std::vector<RetractionConfig> initializeRetractionConfigs();
+    /*!
+     * Construct the initial travel_config_per_extruder
+     */
+    std::vector<GCodePathConfig> initializeTravelConfigs();
+    /*!
+     * Construct the initial skirt_config s for each extruder
+     */
+    std::vector<GCodePathConfig> initializeSkirtConfigs();
+
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
      * specified mesh group.
