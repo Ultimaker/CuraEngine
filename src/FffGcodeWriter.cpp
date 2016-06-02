@@ -216,11 +216,11 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
         gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
 //         G1 X175 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(0)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writePrimeTrain();
         gcode.switchExtruder(1);
 //         G1 X180 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), getSettingInMillimetersPerSecond("speed_travel"), 0.0);
+        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(1)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
         gcode.writePrimeTrain();
         gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_standby_temperature"), false); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
@@ -232,9 +232,9 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.writeFanCommand(0);
     gcode.resetExtrusionValue();
     gcode.setZ(max_object_height + 5000);
-    gcode.writeMove(gcode.getPositionXY(), getSettingInMillimetersPerSecond("speed_travel"), 0);
+    gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
     last_position_planned = Point(storage.model_min.x, storage.model_min.y);
-    gcode.writeMove(last_position_planned, getSettingInMillimetersPerSecond("speed_travel"), 0);
+    gcode.writeMove(last_position_planned, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
 }
     
 void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_layers)
