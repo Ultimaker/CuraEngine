@@ -106,15 +106,6 @@ void FffGcodeWriter::setConfigCoasting(SliceDataStorage& storage)
 
 void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage) 
 {
-    storage.retraction_config.distance = (storage.getSettingBoolean("retraction_enable"))? getSettingInMillimeters("retraction_amount") : 0;
-    storage.retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
-    storage.retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
-    storage.retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
-    storage.retraction_config.zHop = getSettingInMicrons("retraction_hop");
-    storage.retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
-    storage.retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
-    storage.retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
-    
     int extruder_count = storage.meshgroup->getExtruderCount();
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {

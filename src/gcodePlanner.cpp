@@ -64,7 +64,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    last_retraction_config = &storage.retraction_config; // start with general config
+    last_retraction_config = &storage.retraction_config_per_extruder[current_extruder]; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
@@ -428,6 +428,7 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
     Point p0 = start_position;
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
+    RetractionConfig* last_retraction_config = nullptr;
     for(ExtruderPlan& extr_plan : extruder_plans)
     {
         for (GCodePath& path : extr_plan.paths)
@@ -450,10 +451,11 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 {
                     path_time_estimate = &path.estimates.unretracted_travel_time;
                 }
-                if (path.retract != was_retracted)
+                if (path.retract != was_retracted && last_retraction_config != nullptr)
                 { // handle retraction times
                     double retract_unretract_time;
-                    RetractionConfig& retraction_config = *path.config->retraction_config;
+                    assert(last_retraction_config != nullptr);
+                    RetractionConfig& retraction_config = *last_retraction_config;
                     if (path.retract)
                     {
                         retract_unretract_time = retraction_config.distance / retraction_config.speed;
@@ -478,6 +480,10 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 p0 = p1;
             }
             extr_plan.estimates += path.estimates;
+            if (is_extrusion_path)
+            {
+                last_retraction_config = path.config->retraction_config;
+            }
         }
         ret += extr_plan.estimates;
     }
@@ -776,21 +782,12 @@ void GCodePlanner::writeRetraction(GCodeExport& gcode, unsigned int extruder_pla
     }
     else 
     {
-        std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
-        RetractionConfig* extrusion_retraction_config = nullptr;
-        for(int extrusion_path_idx = int(path_idx_travel_after) - 1; extrusion_path_idx >= 0; extrusion_path_idx--)
-        { // backtrack to find the last extrusion path
-            if (paths[extrusion_path_idx].config != &storage.travel_config)
-            {
-                extrusion_retraction_config = paths[extrusion_path_idx].config->retraction_config;
-                break;
-            }
-        }
-        writeRetraction(gcode, false, extrusion_retraction_config);
+        writeRetraction(gcode, false, last_retraction_config);
     }
 }
 void GCodePlanner::writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config)
 {    
+    assert(retraction_config != nullptr);
     if (extruder_switch_retract)
     {
         gcode.writeRetraction_extruderSwitch();
