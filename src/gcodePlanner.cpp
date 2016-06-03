@@ -740,7 +740,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (storage.getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        if (storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
             if (extruder_plan_idx == extruder_plans.size() - 1 || !storage.getSettingBoolean("machine_extruder_end_pos_abs"))
