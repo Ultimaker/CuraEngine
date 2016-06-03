@@ -740,10 +740,11 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        if (storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
-            if (extruder_plan_idx == extruder_plans.size() - 1 || !storage.getSettingBoolean("machine_extruder_end_pos_abs"))
+            if (extruder_plan_idx == extruder_plans.size() - 1 || !train->getSettingBoolean("machine_extruder_end_pos_abs"))
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
                 if (last_extrusion_config)
