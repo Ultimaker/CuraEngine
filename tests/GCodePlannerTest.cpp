@@ -14,13 +14,17 @@ CPPUNIT_TEST_SUITE_REGISTRATION(GCodePlannerTest);
 
 void GCodePlannerTest::setUp()
 {
-    storage = new SliceDataStorage(nullptr); //Empty data.
-/*
-    storage->retraction_config.speed = 1; //We'll set some of the configurations, just in order to get valid g-code (speed not zero, etc.)
-    storage->retraction_config.primeSpeed = 1;
-    storage->retraction_config.distance = 10;
-    storage->travel_config.init(1,1,1);
-*/
+    SettingsBase settings;
+    settings.setSetting("machine_extruder_count", "1");
+    MeshGroup meshgroup(&settings);
+    storage = new SliceDataStorage(&meshgroup); //Empty data.
+    storage->retraction_config_per_extruder[0].speed = 1; //We'll set some of the configurations, just in order to get valid g-code (speed not zero, etc.)
+    storage->retraction_config_per_extruder[0].primeSpeed = 1;
+    storage->retraction_config_per_extruder[0].distance = 10;
+    // make a new GCodePathConfig and put it at a dummy place (note that the config is not a n actual travel config!)
+    storage->travel_config_per_extruder.emplace_back(&storage->retraction_config_per_extruder[0], PrintFeatureType::MoveCombing);
+    storage->travel_config_per_extruder.back().init(1,1,1);
+
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;
     fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = 1;
@@ -42,13 +46,13 @@ void GCodePlannerTest::tearDown()
 
 void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
 {
-/*
+
     TimeMaterialEstimates estimate_empty = gCodePlanner->computeNaiveTimeEstimates(); //First try estimating time and material without any content.
     TimeMaterialEstimates estimate_empty_expected(0,0,0,0); //We expect the estimate of all time and material used to be 0.
     verifyEstimates(estimate_empty,estimate_empty_expected,"Empty GCodePlanner");
     
     GCodeExport gcode;
-    GCodePathConfig configuration = storage->travel_config;
+    GCodePathConfig configuration = storage->travel_config_per_extruder.back();
     gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::Lines, 1.0f); //Need to have at least one path to have a configuration.
     TimeMaterialEstimates before_retract = gCodePlanner->computeNaiveTimeEstimates();
     gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
@@ -57,7 +61,6 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     double retract_unretract_time = configuration.retraction_config->distance / configuration.retraction_config->primeSpeed;
     TimeMaterialEstimates estimate_one_retraction_expected(0,retract_unretract_time * 0.5,retract_unretract_time * 0.5,0);
     verifyEstimates(estimate_one_retraction,estimate_one_retraction_expected,"One retraction");
-*/
 }
 
 void GCodePlannerTest::verifyEstimates(const TimeMaterialEstimates& observed,const TimeMaterialEstimates& expected,std::string test_description)
