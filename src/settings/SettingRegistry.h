@@ -77,15 +77,13 @@ protected:
 
     /*!
      * Get the filename for the machine definition with the given id.
-     * Also search the parent directory of \p parent_file.
-     * Check the directories in CURA_ENGINE_SEARCH_PATH (environment var).
+     * Check the directories in SettingRegistry::search_paths.
      * 
      * \param machine_id The id and base filename (without extensions) of the machine definition to search for.
-     * \param parent_file A file probably at the same location of the file to be found.
      * \param result The filename of the machine definition
      * \return Whether we found the file.
      */
-    bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
+    bool getDefinitionFile(const std::string machine_id, std::string& result);
     
     /*!
      * Get the default value of a json setting object in the format used internally (c style).

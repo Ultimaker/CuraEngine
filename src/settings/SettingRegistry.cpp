@@ -109,7 +109,7 @@ bool fexists(const char *filename)
     return (bool)ifile;
 }
 
-bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result)
+bool SettingRegistry::getDefinitionFile(const std::string machine_id, std::string& result)
 {
     for (const std::string& search_path : search_paths)
     {
@@ -131,7 +131,7 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
     }
     
     std::string definition_file;
-    bool found = getDefinitionFile(extruder_train_ids[extruder_nr], "", definition_file);
+    bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
     if (!found)
     {
         return -1;
@@ -159,7 +159,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {
         std::string child_filename;
-        bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
+        bool found = getDefinitionFile(json_document["inherits"].GetString(), child_filename);
         if (!found)
         {
             return -1;
