@@ -745,6 +745,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         if (storage.getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
+            if (extruder_plan_idx == extruder_plans.size() - 1 || !storage.getSettingBoolean("machine_extruder_end_pos_abs"))
+            { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
+                // or do it anyway when we switch extruder in-place
             if (last_extrusion_config)
             {
                 bool extruder_switch_retract = false;// TODO: check whether we should do a retractoin_extruderSwitch; is the next path with a different extruder?
@@ -752,7 +755,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
             gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
             gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
-            gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
+            // TODO: is this safe?! wouldn't the head move into the sides then?!
+            gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+            }
             gcode.writeDelay(extruder_plan.extraTime);
         }
     } // extruder plans /\  .
