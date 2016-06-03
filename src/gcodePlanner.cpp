@@ -417,14 +417,14 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         if (minExtrudeTime < 1)
             minExtrudeTime = 1;
         double factor = extrudeTime / minExtrudeTime;
-            for (GCodePath& path : paths)
-            {
-                if (path.isTravelPath())
-                    continue;
-                double speed = path.config->getSpeed() * factor;
-                if (speed < minimalSpeed)
-                    factor = minimalSpeed / path.config->getSpeed();
-            }
+        for (GCodePath& path : paths)
+        {
+            if (path.isTravelPath())
+                continue;
+            double speed = path.config->getSpeed() * factor;
+            if (speed < minimalSpeed)
+                factor = minimalSpeed / path.config->getSpeed();
+        }
 
         //Only slow down for the minimal time if that will be slower.
         assert(getExtrudeSpeedFactor() == 1.0); // The extrude speed factor is assumed not to be changed yet
@@ -441,10 +441,10 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         
         // Adjust stored naive time estimates
         estimates.extrude_time *= inv_factor;
-            for (GCodePath& path : paths)
-            {
-                path.estimates.extrude_time *= inv_factor;
-            }
+        for (GCodePath& path : paths)
+        {
+            path.estimates.extrude_time *= inv_factor;
+        }
 
         if (minTime - (extrudeTime * inv_factor) - travelTime > 0.1)
         {
@@ -464,60 +464,60 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     RetractionConfig* last_retraction_config = nullptr;
-        for (GCodePath& path : paths)
+    for (GCodePath& path : paths)
+    {
+        bool is_extrusion_path = false;
+        double* path_time_estimate;
+        double& material_estimate = path.estimates.material;
+        if (!path.isTravelPath())
         {
-            bool is_extrusion_path = false;
-            double* path_time_estimate;
-            double& material_estimate = path.estimates.material;
-            if (!path.isTravelPath())
+            is_extrusion_path = true;
+            path_time_estimate = &path.estimates.extrude_time;
+        }
+        else 
+        {
+            if (path.retract)
             {
-                is_extrusion_path = true;
-                path_time_estimate = &path.estimates.extrude_time;
+                path_time_estimate = &path.estimates.retracted_travel_time;
             }
             else 
             {
+                path_time_estimate = &path.estimates.unretracted_travel_time;
+            }
+            if (path.retract != was_retracted && last_retraction_config != nullptr)
+            { // handle retraction times
+                double retract_unretract_time;
+                assert(last_retraction_config != nullptr);
+                RetractionConfig& retraction_config = *last_retraction_config;
                 if (path.retract)
                 {
-                    path_time_estimate = &path.estimates.retracted_travel_time;
+                    retract_unretract_time = retraction_config.distance / retraction_config.speed;
                 }
                 else 
                 {
-                    path_time_estimate = &path.estimates.unretracted_travel_time;
+                    retract_unretract_time = retraction_config.distance / retraction_config.primeSpeed;
                 }
-                if (path.retract != was_retracted && last_retraction_config != nullptr)
-                { // handle retraction times
-                    double retract_unretract_time;
-                    assert(last_retraction_config != nullptr);
-                    RetractionConfig& retraction_config = *last_retraction_config;
-                    if (path.retract)
-                    {
-                        retract_unretract_time = retraction_config.distance / retraction_config.speed;
-                    }
-                    else 
-                    {
-                        retract_unretract_time = retraction_config.distance / retraction_config.primeSpeed;
-                    }
-                    path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
-                    path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
-                }
-            }
-            for(Point& p1 : path.points)
-            {
-                double length = vSizeMM(p0 - p1);
-                if (is_extrusion_path)
-                {
-                    material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
-                }
-                double thisTime = length / path.config->getSpeed();
-                *path_time_estimate += thisTime;
-                p0 = p1;
-            }
-            estimates += path.estimates;
-            if (is_extrusion_path)
-            {
-                last_retraction_config = path.config->retraction_config;
+                path.estimates.retracted_travel_time += 0.5 * retract_unretract_time;
+                path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
             }
         }
+        for(Point& p1 : path.points)
+        {
+            double length = vSizeMM(p0 - p1);
+            if (is_extrusion_path)
+            {
+                material_estimate += length * INT2MM(layer_thickness) * INT2MM(path.config->getLineWidth());
+            }
+            double thisTime = length / path.config->getSpeed();
+            *path_time_estimate += thisTime;
+            p0 = p1;
+        }
+        estimates += path.estimates;
+        if (is_extrusion_path)
+        {
+            last_retraction_config = path.config->retraction_config;
+        }
+    }
     return estimates;
 }
 
