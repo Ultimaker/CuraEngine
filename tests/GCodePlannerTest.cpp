@@ -18,12 +18,13 @@ void GCodePlannerTest::setUp()
     settings.setSetting("machine_extruder_count", "1");
     MeshGroup meshgroup(&settings);
     storage = new SliceDataStorage(&meshgroup); //Empty data.
-    storage->retraction_config_per_extruder[0].speed = 1; //We'll set some of the configurations, just in order to get valid g-code (speed not zero, etc.)
-    storage->retraction_config_per_extruder[0].primeSpeed = 1;
+    storage->retraction_config_per_extruder[0].speed = 25; // set some semi realistic data
+    storage->retraction_config_per_extruder[0].primeSpeed = 25;
     storage->retraction_config_per_extruder[0].distance = 10;
-    // make a new GCodePathConfig and put it at a dummy place (note that the config is not a n actual travel config!)
+
+    // make a new GCodePathConfig and put it at a dummy place (note that the config is not an actual travel config!)
     storage->travel_config_per_extruder.emplace_back(&storage->retraction_config_per_extruder[0], PrintFeatureType::MoveCombing);
-    storage->travel_config_per_extruder.back().init(1,1,1);
+    storage->travel_config_per_extruder.back().init(60, MM2INT(0.4), 1.0);
 
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;
