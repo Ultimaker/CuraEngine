@@ -297,9 +297,11 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
         is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
-        
-        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_base_fan_speed"));
+
         gcode_layer.processFanSpeedAndMinimalLayerTime();
+        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
+        // TODO: should I override the fan speeds, or set the mbefore, so that the fan speed control can alter them?
+        // Or does the fan speed control override what was set before?
     }
 
     { // raft interface layer
@@ -325,8 +327,10 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         current_extruder_planned = gcode_layer.getExtruder();
         is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
-        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_interface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
+        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_interface_fan_speed"));
+        // TODO: should I override the fan speeds, or set the mbefore, so that the fan speed control can alter them?
+        // Or does the fan speed control override what was set before?
     }
     
     int layer_height = train->getSettingInMicrons("raft_surface_thickness");
@@ -354,8 +358,10 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         current_extruder_planned = gcode_layer.getExtruder();
         is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
         
-        gcode_layer.setFanSpeed(train->getSettingInPercentage("raft_surface_fan_speed"));
         gcode_layer.processFanSpeedAndMinimalLayerTime();
+        gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_surface_fan_speed"));
+        // TODO: should I override the fan speeds, or set the mbefore, so that the fan speed control can alter them?
+        // Or does the fan speed control override what was set before?
     }
 }
 

@@ -22,6 +22,48 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
     return *this;
 }
 
+ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings)
+: extruder(extruder)
+, required_temp(-1)
+, start_position(start_position)
+, layer_nr(layer_nr)
+, layer_thickness(layer_thickness)
+, fan_speed_layer_time_settings(fan_speed_layer_time_settings)
+, extrudeSpeedFactor(1.0)
+, travelSpeedFactor(1.0)
+, extraTime(0.0)
+, totalPrintTime(0)
+{
+}
+
+void ExtruderPlan::setExtrudeSpeedFactor(double speedFactor)
+{
+    this->extrudeSpeedFactor = speedFactor;
+}
+double ExtruderPlan::getExtrudeSpeedFactor()
+{
+    return this->extrudeSpeedFactor;
+}
+void ExtruderPlan::setTravelSpeedFactor(double speedFactor)
+{
+    if (speedFactor < 1) speedFactor = 1.0;
+    this->travelSpeedFactor = speedFactor;
+}
+double ExtruderPlan::getTravelSpeedFactor()
+{
+    return this->travelSpeedFactor;
+}
+
+void ExtruderPlan::setFanSpeed(double _fan_speed)
+{
+    fan_speed = _fan_speed;
+}
+double ExtruderPlan::getFanSpeed()
+{
+    return fan_speed;
+}
+
+
 GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
@@ -60,15 +102,11 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder);
+    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder]);
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     last_retraction_config = &storage.retraction_config_per_extruder[current_extruder]; // start with general config
-    setExtrudeSpeedFactor(1.0);
-    setTravelSpeedFactor(1.0);
-    extraTime = 0.0;
-    totalPrintTime = 0.0;
     if (combing_mode != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
@@ -155,7 +193,7 @@ bool GCodePlanner::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder);
+        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder]);
     }
 
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
@@ -369,7 +407,8 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     }
 }
 
-void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
+
+void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrudeTime)
 {
     double totalTime = travelTime + extrudeTime; 
     if (totalTime < minTime && extrudeTime > 0.0)
@@ -378,9 +417,7 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         if (minExtrudeTime < 1)
             minExtrudeTime = 1;
         double factor = extrudeTime / minExtrudeTime;
-        for(ExtruderPlan& extr_plan : extruder_plans)
-        {
-            for (GCodePath& path : extr_plan.paths)
+            for (GCodePath& path : paths)
             {
                 if (path.isTravelPath())
                     continue;
@@ -388,7 +425,6 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
                 if (speed < minimalSpeed)
                     factor = minimalSpeed / path.config->getSpeed();
             }
-        }
 
         //Only slow down for the minimal time if that will be slower.
         assert(getExtrudeSpeedFactor() == 1.0); // The extrude speed factor is assumed not to be changed yet
@@ -404,35 +440,31 @@ void GCodePlanner::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         double inv_factor = 1.0 / factor; // cause multiplication is faster than division
         
         // Adjust stored naive time estimates
-        for(ExtruderPlan& extr_plan : extruder_plans)
-        {
-            extr_plan.estimates.extrude_time *= inv_factor;
-            for (GCodePath& path : extr_plan.paths)
+        estimates.extrude_time *= inv_factor;
+            for (GCodePath& path : paths)
             {
                 path.estimates.extrude_time *= inv_factor;
             }
-        }
 
         if (minTime - (extrudeTime * inv_factor) - travelTime > 0.1)
         {
             this->extraTime = minTime - (extrudeTime * inv_factor) - travelTime;
         }
         this->totalPrintTime = (extrudeTime * inv_factor) + travelTime;
-    }else{
+    }
+    else
+    {
         this->totalPrintTime = totalTime;
     }
 }
-
-TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
+TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
 {
     TimeMaterialEstimates ret;
     Point p0 = start_position;
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
     RetractionConfig* last_retraction_config = nullptr;
-    for(ExtruderPlan& extr_plan : extruder_plans)
-    {
-        for (GCodePath& path : extr_plan.paths)
+        for (GCodePath& path : paths)
         {
             bool is_extrusion_path = false;
             double* path_time_estimate;
@@ -480,18 +512,16 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 *path_time_estimate += thisTime;
                 p0 = p1;
             }
-            extr_plan.estimates += path.estimates;
+            estimates += path.estimates;
             if (is_extrusion_path)
             {
                 last_retraction_config = path.config->retraction_config;
             }
         }
-        ret += extr_plan.estimates;
-    }
-    return ret;
+    return estimates;
 }
 
-void GCodePlanner::processFanSpeedAndMinimalLayerTime()
+void ExtruderPlan::processFanSpeedAndMinimalLayerTime()
 {
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
@@ -547,6 +577,25 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
     }
 }
 
+TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
+{
+    TimeMaterialEstimates ret;
+    for (ExtruderPlan& extruder_plan : extruder_plans)
+    {
+        ret += extruder_plan.computeNaiveTimeEstimates();
+    }
+    return ret;
+}
+
+void GCodePlanner::processFanSpeedAndMinimalLayerTime()
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans)
+    {
+        extruder_plan.processFanSpeedAndMinimalLayerTime();
+    }
+}
+
+
 
 void GCodePlanner::writeGCode(GCodeExport& gcode)
 {
@@ -558,7 +607,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     
     gcode.setZ(z);
     
-    gcode.writeFanCommand(fan_speed);
     
     GCodePathConfig* last_extrusion_config = nullptr;
     int extruder = gcode.getExtruderNr();
@@ -571,6 +619,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder = extruder_plan.extruder;
             gcode.switchExtruder(extruder);
         }
+        gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
         
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
@@ -594,9 +643,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             double speed = path.config->getSpeed();
 
             if (path.isTravelPath())// Only apply the extrudeSpeed to extrusion moves
-                speed *= getTravelSpeedFactor();
+                speed *= extruder_plan.getTravelSpeedFactor();
             else
-                speed *= getExtrudeSpeedFactor();
+                speed *= extruder_plan.getExtrudeSpeedFactor();
             
             int64_t nozzle_size = 400; // TODO
             
@@ -689,26 +738,36 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
-        }
+        } // paths for this extruder /\  .
     
         extruder_plan.handleAllRemainingInserts(gcode);
-    }
+
+        if (storage.getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
+        {
+            gcode.writeComment("Small layer, adding delay");
+            if (last_extrusion_config)
+            {
+                bool extruder_switch_retract = false;// TODO: check whether we should do a retractoin_extruderSwitch; is the next path with a different extruder?
+                writeRetraction(gcode, extruder_switch_retract, last_extrusion_config->retraction_config);
+            }
+            gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
+            gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+            gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
+            gcode.writeDelay(extruder_plan.extraTime);
+        }
+    } // extruder plans /\  .
     
     gcode.updateTotalPrintTime();
-    if (storage.getSettingBoolean("cool_lift_head") && extraTime > 0.0)
+}
+
+void GCodePlanner::overrideFanSpeeds(double speed)
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans)
     {
-        gcode.writeComment("Small layer, adding delay");
-        if (last_extrusion_config)
-        {
-            bool extruder_switch_retract = false;// TODO: check whether we should do a retractoin_extruderSwitch; is the next path with a different extruder?
-            writeRetraction(gcode, extruder_switch_retract, last_extrusion_config->retraction_config);
-        }
-        gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-        gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
-        gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
-        gcode.writeDelay(extraTime);
+        extruder_plan.setFanSpeed(speed);
     }
 }
+
 
 void GCodePlanner::completeConfigs()
 {
@@ -833,7 +892,8 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     { 
         return false; 
     }
-    std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
+    ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+    std::vector<GCodePath>& paths = extruder_plan.paths;
     GCodePath& path = paths[path_idx];
     if (path_idx + 1 >= paths.size()
         ||
@@ -848,7 +908,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     int64_t coasting_min_dist_considered = 100; // hardcoded setting for when to not perform coasting
 
     
-    double extrude_speed = path.config->getSpeed() * getExtrudeSpeedFactor(); // travel speed 
+    double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(); // travel speed 
     
     int64_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
     int64_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
