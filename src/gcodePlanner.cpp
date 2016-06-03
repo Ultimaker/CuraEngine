@@ -739,8 +739,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
         } // paths for this extruder /\  .
-    
-        extruder_plan.handleAllRemainingInserts(gcode);
 
         if (storage.getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
@@ -760,6 +758,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
+
+        extruder_plan.handleAllRemainingInserts(gcode);
     } // extruder plans /\  .
     
     gcode.updateTotalPrintTime();
