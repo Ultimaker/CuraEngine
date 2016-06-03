@@ -5,7 +5,7 @@
 #include <iostream> // debug IO
 #include <libgen.h> // dirname
 #include <string>
-#include <cstring> // strtok (split string using delimiters)
+#include <cstring> // strtok (split string using delimiters) strcpy
 #include <fstream> // ifstream (to see if file exists)
 
 #include "rapidjson/rapidjson.h"
@@ -57,6 +57,22 @@ SettingConfig* SettingRegistry::getSettingConfig(std::string key) const
 SettingRegistry::SettingRegistry()
 : setting_definitions("settings", "Settings")
 {
+    // load search paths from environment variable CURA_ENGINE_SEARCH_PATH
+    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
+    if (paths)
+    {
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+        char delims[] = ":"; // colon
+#else
+        char delims[] = ";"; // semicolon
+#endif
+        char* path = strtok(paths, delims); // search for next path delimited by any of the characters in delims
+        while (path != NULL)
+        {
+            search_paths.emplace(path);
+            path = strtok(NULL, ";:,"); // continue searching in last call to strtok
+        }
+    }
 }
 
 int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_document)
@@ -95,33 +111,12 @@ bool fexists(const char *filename)
 
 bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result)
 {
-    // check for file in same directory as the file provided
-    std::string parent_filename_copy = std::string(parent_file.c_str()); // copy the string because dirname(.) changes the input string!!!
-    char* parent_filename_cstr = (char*)parent_filename_copy.c_str();
-    result = std::string(dirname(parent_filename_cstr)) + std::string("/") + machine_id + std::string(".def.json");
-    if (fexists(result.c_str()))
+    for (const std::string& search_path : search_paths)
     {
-        return true;
-    }
-
-    // check for file in the directories supplied in the environment variable CURA_ENGINE_SEARCH_PATH
-    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
-    if (paths)
-    {
-#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
-        char delims[] = ":"; // colon
-#else
-        char delims[] = ";"; // semicolon
-#endif
-        char* path = strtok(paths, delims); // search for next path delimited by any of the characters in delims
-        while (path != NULL)
+        result = search_path + std::string("/") + machine_id + std::string(".def.json");
+        if (fexists(result.c_str()))
         {
-            result = std::string(path) + std::string("/") + machine_id + std::string(".def.json");
-            if (fexists(result.c_str()))
-            {
-                return true;
-            }
-            path = strtok(NULL, ";:,"); // continue searching in last call to strtok
+            return true;
         }
     }
     return false;
@@ -153,6 +148,13 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
 
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
+
+    { // add parent folder to search paths
+        char filename_cstr[500];
+        std::strcpy(filename_cstr, filename.c_str()); // copy the string because dirname(.) changes the input string!!!
+        std::string folder_name = std::string(dirname(filename_cstr));
+        search_paths.emplace(folder_name);
+    }
 
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {

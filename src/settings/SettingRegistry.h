@@ -3,6 +3,7 @@
 #define SETTINGS_SETTING_REGISTRY_H
 
 #include <vector>
+#include <unordered_set>
 #include <list>
 #include <unordered_map>
 #include <string>
@@ -37,6 +38,7 @@ private:
     
     std::vector<std::string> extruder_train_ids; //!< The internal id's of each extruder (the filename without the extension)
 
+    std::unordered_set<std::string> search_paths; //!< The paths to search for json files.
 public:
     /*!
      * Get the SettingRegistry.
@@ -83,7 +85,7 @@ protected:
      * \param result The filename of the machine definition
      * \return Whether we found the file.
      */
-    static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
+    bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
     
     /*!
      * Get the default value of a json setting object in the format used internally (c style).
