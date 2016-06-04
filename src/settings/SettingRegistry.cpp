@@ -108,7 +108,7 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
     // check for file in same directory as the file provided
     std::string parent_filename_copy = std::string(parent_file.c_str()); // copy the string because dirname(.) changes the input string!!!
     char* parent_filename_cstr = (char*)parent_filename_copy.c_str();
-    result = std::string(dirname(parent_filename_cstr)) + std::string("/") + machine_id + std::string(".def.json");
+    result = std::string(dirname(parent_filename_cstr)) + std::string("/") + machine_id;
     if (fexists(result.c_str()))
     {
         return true;
@@ -121,7 +121,7 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std:
         char* path = strtok(paths,";:,"); // search for path delimited by ';', ':', ','
         while (path != NULL)
         {
-            result = std::string(path) + std::string("/") + machine_id + std::string(".def.json");
+            result = std::string(path) + std::string("/") + machine_id;
             if (fexists(result.c_str()))
             {
                 return true;
