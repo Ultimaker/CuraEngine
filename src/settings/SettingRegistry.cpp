@@ -147,6 +147,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
         if (!found)
         {
+            cura::logError("Inherited JSON file \"%s\" not found\n", json_document["inherits"].GetString());
             return -1;
         }
         int err = loadJSONsettings(child_filename, settings_base); // load child first
