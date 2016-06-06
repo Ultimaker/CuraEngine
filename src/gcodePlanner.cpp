@@ -452,10 +452,6 @@ void ExtruderPlan::forceMinimalLayerTime(double minTime, double minimalSpeed, do
         }
         this->totalPrintTime = (extrudeTime * inv_factor) + travelTime;
     }
-    else
-    {
-        this->totalPrintTime = totalTime;
-    }
 }
 TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
 {
@@ -521,12 +517,16 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
     return estimates;
 }
 
-void ExtruderPlan::processFanSpeedAndMinimalLayerTime()
+void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time)
 {
     FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
-    forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
-    
+    totalPrintTime = estimates.getTotalTime();
+    if (force_minimal_layer_time)
+    {
+        forceMinimalLayerTime(fsml.cool_min_layer_time, fsml.cool_min_speed, estimates.getTravelTime(), estimates.getExtrudeTime());
+    }
+
     /*
                    min layer time
                    :
@@ -544,11 +544,11 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime()
     // interpolate fan speed (for cool_fan_full_layer and for cool_min_layer_time_fan_speed_max)
     fan_speed = fsml.cool_fan_speed_min;
     double totalLayerTime = estimates.unretracted_travel_time + estimates.extrude_time;
-    if (totalLayerTime < fsml.cool_min_layer_time)
+    if (force_minimal_layer_time && totalLayerTime < fsml.cool_min_layer_time)
     {
         fan_speed = fsml.cool_fan_speed_max;
     }
-    else if (totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
+    else if (force_minimal_layer_time && totalLayerTime < fsml.cool_min_layer_time_fan_speed_max)
     { 
         // when forceMinimalLayerTime didn't change the extrusionSpeedFactor, we adjust the fan speed
         double fan_speed_diff = fsml.cool_fan_speed_max - fsml.cool_fan_speed_min;
@@ -589,9 +589,11 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
 
 void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 {
-    for (ExtruderPlan& extruder_plan : extruder_plans)
+    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans.size(); extr_plan_idx++)
     {
-        extruder_plan.processFanSpeedAndMinimalLayerTime();
+        ExtruderPlan& extruder_plan = extruder_plans[extr_plan_idx];
+        bool force_minimal_layer_time = extr_plan_idx == extruder_plans.size() - 1;
+        extruder_plan.processFanSpeedAndMinimalLayerTime(force_minimal_layer_time);
     }
 }
 

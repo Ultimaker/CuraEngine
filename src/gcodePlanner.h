@@ -342,8 +342,10 @@ public:
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     * 
+     * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
      */
-    void processFanSpeedAndMinimalLayerTime();
+    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time);
 
     void setExtrudeSpeedFactor(double speedFactor);
     double getExtrudeSpeedFactor();
