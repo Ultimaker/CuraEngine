@@ -2,9 +2,11 @@
 #ifndef UTILS_BUCKET_GRID_2D_H
 #define UTILS_BUCKET_GRID_2D_H
 
+#include <unordered_map>
+#include <functional> // std::function
+
 #include "logoutput.h"
 #include "intpoint.h"
-#include <unordered_map>
 
 namespace cura
 {
@@ -13,22 +15,31 @@ namespace cura
  * Container for items with location for which the lookup for nearby items is optimized.
  * 
  * It functions by hashing the items location and lookuping up based on the hash of that location and the hashes of nearby locations.
+ * 
+ * We're mapping a cell location multiple times to an object within the cell, 
+ * instead of mapping each cell location only once to a vector of objects within the cell.
+ * 
+ * The first (current) implementation has the overhead of 'bucket-collisions' where all mappings of two different cells get placed in the same bucket, 
+ * which causes findNearby to loop over unneeded elements.
+ * The second (alternative) implementation has the overhead and indirection of creating vectors and all that comes with it."
+ * 
  */
 template<typename T>
 class BucketGrid2D
 {
 private:
 
+    typedef Point Cellidx;
     /*!
-     * Returns a point for which the hash is at a grid position of \p relativeHash relative to \p p.
+     * Returns a point for which the hash is at a grid position of \p relative_hash relative to \p p.
      * 
      * \param p The point for which to get the relative point to hash
-     * \param relativeHash The relative position - in grid terms - of the relative point. 
-     * \return A point for which the hash is at a grid position of \p relativeHash relative to \p p.
+     * \param relative_hash The relative position - in grid terms - of the relative point. 
+     * \return A point for which the hash is at a grid position of \p relative_hash relative to \p p.
      */
-    inline Point getRelativeForHash(const Point& p, const Point& relativeHash)
+    inline Point getRelativeForHash(const Point& p, const Cellidx& relative_hash) const
     {
-        return p + relativeHash*squareSize;
+        return p + relative_hash * squareSize;
     }
 
 
@@ -43,7 +54,7 @@ private:
          * \param p The grid location to hash
          * \return the hash
          */
-        inline uint32_t pointHash_simple(const Point& p) const
+        inline uint32_t pointHash_simple(const Cellidx& p) const
         {
             return p.X ^ (p.Y << 8);
         }
@@ -55,13 +66,13 @@ private:
          */
         inline uint32_t pointHash(const Point& point) const
         {
-            Point p = point/squareSize;
+            Cellidx p = point / squareSize;
             return pointHash_simple(p);
         }
 /*
         inline uint32_t pointHash(const Point& point, const Point& relativeHash) const
         {
-            Point p = p/squareSize + relativeHash;
+            Point p = p / squareSize + relativeHash;
             return pointHash_simple(p);
         }*/
 
@@ -101,6 +112,10 @@ private:
      * \param squareSize The horizontal and vertical size of a cell in the grid; the width and height of a bucket.
      */
     int squareSize;
+    
+    PointHasher point_hasher; //!< The hasher used by the unordered_map
+    
+    int max_load_factor; //!< The average number of elements per cell/bucket
     /*!
      * The map type used to associate points with their objects.
      */
@@ -117,9 +132,17 @@ public:
      * The constructor for a bucket grid.
      * 
      * \param squareSize The horizontal and vertical size of a cell in the grid; the width and height of a bucket.
-     * \param initial_map_size The minimal number of initial buckets 
+     * \param initial_map_size The number of elements to be inserted
      */
-    BucketGrid2D(int squareSize, unsigned int initial_map_size = 4) : squareSize(squareSize), point2object(initial_map_size, PointHasher(squareSize)) {};
+    BucketGrid2D(int squareSize, unsigned int initial_map_size = 4)
+    : squareSize(squareSize)
+    , point_hasher(squareSize)
+    , max_load_factor(2)
+    , point2object(initial_map_size / max_load_factor, point_hasher)
+    {
+        point2object.max_load_factor(max_load_factor); // we expect each cell to contain at least two points on average
+        point2object.reserve(initial_map_size);
+    }
 
     /*!
      * Find all objects with a point in a grid cell at a distance of one cell from the cell of \p p.
@@ -129,16 +152,20 @@ public:
      * \param p The point for which to find close points.
      * \param ret Ouput parameter: all objects close to \p p.
      */
-    void findNearbyObjects(Point& p, std::vector<T>& ret)
+    void findNearbyObjects(Point& p, std::vector<T>& ret) const
     {
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
             {
-                int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y))); // when the hash is not a hash of a present item, the bucket_idx returned may be one already encountered
+                Point relative_point = getRelativeForHash(p, Point(x,y));
+                int bucket_idx = point2object.bucket(relative_point); // when the hash is not a hash of a present item, the bucket_idx returned may be one already encountered
                 for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
                 {
-                    ret.push_back(local_it->second);
+                    if (point_hasher(relative_point) == point_hasher(local_it->first))
+                    {
+                        ret.push_back(local_it->second);
+                    }
                 }
             }
         }
@@ -152,24 +179,27 @@ public:
      * \param p The point for which to find close points.
      * \return All objects close to \p p.
      */
-    std::vector<T> findNearbyObjects(Point& p)
+    std::vector<T> findNearbyObjects(Point& p) const
     {
         std::vector<T> ret;
         findNearbyObjects(p, ret);
         return ret;
     }
 
+    static const std::function<bool(Point, const T&)> no_precondition;
+    
     /*!
      * Find the nearest object to a given lcoation \p p, if there is any in a neighboring cell in the grid.
      * 
      * \param p The point for which to find the nearest object.
      * \param nearby Output parameter: the nearest object, if any
+     * \param precondition A precondition which must be satisfied before considering a \p object at a specific \p location as output
      * \return Whether an object has been found.
      */
-    bool findNearestObject(Point& p, T& nearby)
+    bool findNearestObject(Point& p, T& nearby, std::function<bool(Point location, const T& object)> precondition = no_precondition) const
     {
         bool found = false;
-        int64_t bestDist2 = squareSize*9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
+        int64_t bestDist2 = squareSize * 9; // 9 > sqrt(2*2 + 2*2)^2  which is the square of the largest distance of a point to a point in a neighboring cell
         for (int x = -1; x <= 1; x++)
         {
             for (int y = -1; y <= 1; y++)
@@ -177,6 +207,10 @@ public:
                 int bucket_idx = point2object.bucket(getRelativeForHash(p, Point(x,y)));
                 for ( auto local_it = point2object.begin(bucket_idx); local_it!= point2object.end(bucket_idx); ++local_it )
                 {
+                    if (!precondition(local_it->first, local_it->second))
+                    {
+                        continue;
+                    }
                     int32_t dist2 = vSize2(local_it->first - p);
                     if (dist2 < bestDist2)
                     {
@@ -197,7 +231,7 @@ public:
      * \param p The location associated with \p t.
      * \param t The object to insert in the grid cell for position \p p.
      */
-    void insert(Point& p, T& t)
+    void insert(Point& p, T t)
     {
 //         typedef typename Map::iterator iter;
 //         std::pair<iter, bool> emplaced = 
@@ -211,6 +245,8 @@ public:
 
 
 };
+template<typename T>
+const std::function<bool(Point, const T&)> BucketGrid2D<T>::no_precondition = [](Point loc, const T&) { return true; };
 
 }//namespace cura
 #endif//BUCKET_GRID_2D_H

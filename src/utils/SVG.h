@@ -233,6 +233,11 @@ public:
     {
         fprintf(out, txt, args...);
     }
+    void writeText(Point p, std::string txt)
+    {
+        Point pf = transform(p);
+        fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
+    }
     
     
     

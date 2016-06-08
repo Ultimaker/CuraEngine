@@ -7,7 +7,24 @@
 
 namespace cura 
 {
-    
+
+bool PolygonRef::shorterThan(int64_t check_length) const
+{
+    const PolygonRef& polygon = *this;
+    const Point* p0 = &polygon.back();
+    int64_t length = 0;
+    for (const Point& p1 : polygon)
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
+
 bool PolygonRef::inside(Point p, bool border_result)
 {
     PolygonRef thiss = *this;
@@ -36,19 +53,19 @@ bool PolygonRef::inside(Point p, bool border_result)
     return (crossings % 2) == 1;
 }
 
-bool Polygons::inside(Point p, bool border_result)
+bool Polygons::inside(Point p, bool border_result) const
 {
-    Polygons& thiss = *this;
+    const Polygons& thiss = *this;
     if (size() < 1)
     {
         return false;
     }
     
     int crossings = 0;
-    for (PolygonRef poly : thiss)
+    for (const ClipperLib::Path& poly : thiss)
     {
         Point p0 = poly.back();
-        for(Point& p1 : poly)
+        for (const Point& p1 : poly)
         {
             short comp = LinearAlg2D::pointLiesOnTheRightOfLine(p, p0, p1);
             if (comp == 1)
@@ -160,9 +177,15 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 last = &here;
             }
         }
-        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+        path->erase(path->begin() + writing_idx , path->end());
     }
-    
+
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+
     Point* last = &thiss[0];
     unsigned int writing_idx = 1;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
@@ -185,7 +208,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             last = &here;
         }
     }
-    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    path->erase(path->begin() + writing_idx , path->end());
     
             
     if (size() < 3)
@@ -224,7 +247,7 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     std::vector<PolygonsPart> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -298,7 +321,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -310,7 +333,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     return partsView;
 }
 
-void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node)
+void Polygons::splitIntoPartsView_processPolyTreeNode(PartsView& partsView, Polygons& reordered, ClipperLib::PolyNode* node) const
 {
     for(int n=0; n<node->ChildCount(); n++)
     {

@@ -3,7 +3,7 @@
 
 #include <list>
 
-#include "settings.h"
+#include "settings/settings.h"
 #include "commandSocket.h"
 
 #include "gcodeExport.h"
@@ -51,7 +51,7 @@ public:
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
         {
-            buffer.front().writeGCode(gcode, getSettingBoolean("cool_lift_head"), buffer.front().getLayerNr() > 0 ? getSettingInMicrons("layer_height") : getSettingInMicrons("layer_height_0"));
+            buffer.front().writeGCode(gcode);
             if (CommandSocket::isInstantiated())
             {
                 CommandSocket::getInstance()->flushGcode();

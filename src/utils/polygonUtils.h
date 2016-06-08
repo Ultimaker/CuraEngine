@@ -3,6 +3,7 @@
 #define UTILS_POLYGON_UTILS_H
 
 #include "polygon.h"
+#include "BucketGrid2D.h"
 
 namespace cura 
 {
@@ -28,25 +29,26 @@ struct GivenDistPoint
     Point location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
-    
+
+struct PolygonsPointIndex
+{
+    unsigned int poly_idx;
+    unsigned int point_idx;
+    PolygonsPointIndex()
+    : poly_idx(0)
+    , point_idx(0)
+    {
+    }
+    PolygonsPointIndex(unsigned int poly_idx, unsigned int point_idx)
+    : poly_idx(poly_idx)
+    , point_idx(point_idx)
+    {
+    }
+};
+
 class PolygonUtils 
 {
 public:
-    //! performs an offset compared to an adjacent inset/outset and also computes the area created by gaps between the two consecutive insets/outsets
-    static void offsetExtrusionWidth(const Polygons& poly, bool inward, int extrusionWidth, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters);
-
-    /*!
-    * performs an offset compared to an adjacent inset/outset and also computes the area created by gaps between the two consecutive insets/outsets.
-    * This function allows for different extrusion widths between the two insets.
-    */
-    static void offsetSafe(const Polygons& poly, int distance, int offset_first_boundary, int extrusion_width, Polygons& result, Polygons* in_between, bool removeOverlappingPerimeters);
-
-    //! performs an offset and makes sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
-    static void offsetSafe(const Polygons& poly, int distance, int extrusionWidth, Polygons& result, bool removeOverlappingPerimeters);
-
-    //! performs offsets to make sure the lines don't overlap (ignores any area between the original poly and the resulting poly)
-    static void removeOverlapping(const Polygons& poly, int extrusionWidth, Polygons& result);
-
     /*!
     * Get a point from the \p poly with a given \p offset.
     * 
@@ -69,7 +71,45 @@ public:
     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
     * \return The index to the polygon onto which we have moved the point.
     */
-    static unsigned int moveInside(Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static unsigned int moveInside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    
+    /*!
+     * The opposite of moveInside.
+     * 
+     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+     * Given a \p distance more than zero, the point will end up outside, and conversely inside.
+     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
+     * 
+     * \param polygons The polygons onto which to move the point
+     * \param from The point to move.
+     * \param distance The distance by which to move the point.
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The index to the polygon onto which we have moved the point.
+     */
+    static unsigned int moveOutside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    
+    /*!
+     * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
+     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+     * 
+     * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param distance The distance by which to move the point.
+     * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
+     */
+    static Point moveInside(const ClosestPolygonPoint& cpp, const int distance);
+    
+    /*!
+     * The opposite of moveInside.
+     * 
+     * Compute a point at a distance from a point on the boundary in orthogonal direction to the boundary.
+     * Given a \p distance more than zero, the point will end up outside, and conversely inside.
+     * 
+     * \param cpp The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param distance The distance by which to move the point.
+     * \return A point at a \p distance from the point in \p cpp orthogonal to the boundary there.
+     */
+    static Point moveOutside(const ClosestPolygonPoint& cpp, const int distance);
 
     /*!
     * Find the two points in two polygons with the smallest distance.
@@ -121,6 +161,37 @@ public:
     * Find the point closest to \p from in the polygon \p polygon.
     */
     static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
+
+    /*!
+     * Create a BucketGrid mapping from locations to line segments occurring in the \p polygons
+     * 
+     * \warning The caller of this function is responsible for deleting the returned object
+     * 
+     * \param polygons The polygons for which to create the mapping
+     * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
+     * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
+     */
+    static BucketGrid2D<PolygonsPointIndex>* createLocToLineGrid(const Polygons& polygons, int square_size);
+
+    /*!
+     * Find the line segment closest to a given point \p from within a cell-block of a size defined in the BucketGrid \p loc_to_line
+     * 
+     * \param from The location to find a polygon edge close to
+     * \param polygons The polygons for which the \p loc_to_line has been built up
+     * \param loc_to_line A BucketGrid mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
+     */
+    static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex> loc_to_line);
+    
+    /*!
+     * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the BucketGrid \p destination_loc_to_line
+     * 
+     * \param from The polygon for which to find a polygon edge close to
+     * \param destination The polygons for which the \p destination_loc_to_line has been built up
+     * \param destination_loc_to_line A BucketGrid mapping locations to starting vertices of line segments of the \p destination 
+     * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
+     */
+    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.

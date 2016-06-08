@@ -5,7 +5,11 @@ namespace cura
 {
 
 const int vertex_meld_distance = MM2INT(0.03);
-static inline uint32_t pointHash(Point3& p)
+/*!
+ * returns a hash for the location, but first divides by the vertex_meld_distance,
+ * so that any point within a box of vertex_meld_distance by vertex_meld_distance would get mapped to the same hash.
+ */
+static inline uint32_t pointHash(const Point3& p)
 {
     return ((p.x + vertex_meld_distance/2) / vertex_meld_distance) ^ (((p.y + vertex_meld_distance/2) / vertex_meld_distance) << 10) ^ (((p.z + vertex_meld_distance/2) / vertex_meld_distance) << 20);
 }
@@ -55,16 +59,21 @@ void Mesh::finish()
     }
 }
 
-Point3 Mesh::min()
+Point3 Mesh::min() const
 {
     return aabb.min;
 }
-Point3 Mesh::max()
+Point3 Mesh::max() const
 {
     return aabb.max;
 }
+AABB3D Mesh::getAABB() const
+{
+    return aabb;
+}
 
-int Mesh::findIndexOfVertex(Point3& v)
+
+int Mesh::findIndexOfVertex(const Point3& v)
 {
     uint32_t hash = pointHash(v);
 
@@ -107,7 +116,7 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 
 
 */
-int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx)
+int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
 {
     std::vector<int> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
     int notFaceVertexIdx = -1; // index of the third vertex of the face corresponding to notFaceIdx

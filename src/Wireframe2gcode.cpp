@@ -4,7 +4,7 @@
 #include <fstream> // debug IO
 
 #include "weaveDataStorage.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 
 #include "pathOrderOptimizer.h" // for skirt
 
@@ -16,6 +16,8 @@ void Wireframe2gcode::writeGCode()
 {
 
     gcode.preSetup(wireFrame.meshgroup);
+    
+    gcode.setInitialTemps(wireFrame.meshgroup);
     
     if (CommandSocket::getInstance())
         CommandSocket::getInstance()->beginGCode();
@@ -239,7 +241,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     retraction_config.primeSpeed = 15; // 30;
     retraction_config.zHop = 0; //getSettingInt("retraction_hop");
     retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
-    retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
+    retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
     retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 
     double top_retract_pause = 2.0;
@@ -534,24 +536,21 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     roof_outer_delay = getSettingInSeconds("wireframe_roof_outer_delay");
     
     
-    standard_retraction_config.distance = INT2MM(getSettingInMicrons("retraction_amount"));
+    standard_retraction_config.distance = getSettingInMillimeters("retraction_amount");
     standard_retraction_config.prime_volume = getSettingInCubicMillimeters("retraction_extra_prime_amount");
     standard_retraction_config.speed = getSettingInMillimetersPerSecond("retraction_retract_speed");
     standard_retraction_config.primeSpeed = getSettingInMillimetersPerSecond("retraction_prime_speed");
     standard_retraction_config.zHop = getSettingInMicrons("retraction_hop");
     standard_retraction_config.retraction_count_max = getSettingAsCount("retraction_count_max");
-    standard_retraction_config.retraction_extrusion_window = INT2MM(getSettingInMicrons("retraction_extrusion_window"));
+    standard_retraction_config.retraction_extrusion_window = getSettingInMillimeters("retraction_extrusion_window");
     standard_retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 }
 
 void Wireframe2gcode::processStartingCode()
 {
-    if (gcode.getFlavor() == EGCodeFlavor::ULTIGCODE)
+    if (!CommandSocket::isInstantiated())
     {
-        if (!CommandSocket::isInstantiated())
-        {
-            gcode.writeCode(";FLAVOR:UltiGCode\n;TIME:666\n;MATERIAL:666\n;MATERIAL2:-1\n");
-        }
+        gcode.writeCode(gcode.getFileHeader().c_str());
     }
     else 
     {
@@ -600,14 +599,14 @@ void Wireframe2gcode::processSkirt()
     order.addPolygons(skirt);
     order.optimize();
     
-    for (unsigned int poly_idx = 0; poly_idx < skirt.size(); poly_idx++)
+    for (unsigned int poly_order_idx = 0; poly_order_idx < skirt.size(); poly_order_idx++)
     {
-        unsigned int actual_poly_idx = order.polyOrder[poly_idx];
-        PolygonRef poly = skirt[actual_poly_idx];
-        gcode.writeMove(poly[order.polyStart[actual_poly_idx]], getSettingInMillimetersPerSecond("speed_travel"), 0);
+        unsigned int poly_idx = order.polyOrder[poly_order_idx];
+        PolygonRef poly = skirt[poly_idx];
+        gcode.writeMove(poly[order.polyStart[poly_idx]], getSettingInMillimetersPerSecond("speed_travel"), 0);
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point& p = poly[(point_idx + order.polyStart[actual_poly_idx] + 1) % poly.size()];
+            Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
             gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_speed"), getSettingInMillimetersPerSecond("skirt_line_width"));
         }
     }
@@ -616,7 +615,7 @@ void Wireframe2gcode::processSkirt()
 
 void Wireframe2gcode::finalize()
 {
-    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }

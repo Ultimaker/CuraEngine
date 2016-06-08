@@ -5,6 +5,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "utils/NoCopy.h"
+#include "utils/AABB.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
@@ -22,7 +23,6 @@ class SkinPart
 public:
     PolygonsPart outline;               //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
     std::vector<Polygons> insets;   //!< The skin can have perimeters so that the skin lines always start at a perimeter instead of in the middle of an infill cell.
-    Polygons perimeterGaps;         //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
 };
 /*!
     The SliceLayerPart is a single enclosed printable area for a single layer. (Also known as islands)
@@ -34,10 +34,11 @@ class SliceLayerPart
 public:
     AABB boundaryBox;       //!< The boundaryBox is an axis-aligned bounardy box which is used to quickly check for possible collision between different parts on different layers. It's an optimalization used during skin calculations.
     PolygonsPart outline;       //!< The outline is the first member that is filled, and it's filled with polygons that match a cross section of the 3D model. The first polygon is the outer boundary polygon and the rest are holes.
+    Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
-    std::vector<Polygons> infill_area; //!< The infill_area are the areas which need to be filled with sparse (0-99%) infill. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
-    Polygons perimeterGaps; //!< The gaps introduced by avoidOverlappingPerimeters which would otherwise be overlapping perimeters.
+    Polygons infill_area; //!< The areas which need to be filled with sparse (0-99%) infill. Like SliceLayerPart::outline, this class member is not used to actually determine the feature area, but is used to compute the infill_area_per_combine and the inside comb boundary.
+    std::vector<Polygons> infill_area_per_combine; //!< The areas which need to be filled with sparse (0-99%) infill for different thicknesses. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
 };
 
 /*!
@@ -58,7 +59,7 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \return A collection of all the outline polygons
      */
-    Polygons getOutlines(bool external_polys_only = false);
+    Polygons getOutlines(bool external_polys_only = false) const;
     
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -67,20 +68,20 @@ public:
      * \param external_polys_only Whether to only include the outermost outline of each layer part
      * \param result The result: a collection of all the outline polygons
      */
-    void getOutlines(Polygons& result, bool external_polys_only = false);
+    void getOutlines(Polygons& result, bool external_polys_only = false) const;
     
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
      * \return The collection of all polygons thus obtained
      */
-    Polygons getSecondOrInnermostWalls();
+    Polygons getSecondOrInnermostWalls() const;
     
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
      * Add those polygons to @p result.
      * \param result The result: the collection of all polygons thus obtained
      */
-    void getSecondOrInnermostWalls(Polygons& result);
+    void getSecondOrInnermostWalls(Polygons& result) const;
 };
 
 /******************/
@@ -136,9 +137,9 @@ public:
     std::vector<SliceMeshStorage> meshes;
     
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
-    RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
-    
-    GCodePathConfig travel_config; //!< The config used for travel moves (only the speed and retraction config are set!)
+
+    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
+
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
     
@@ -161,23 +162,19 @@ public:
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
-    std::vector<RetractionConfig> initializeRetractionConfigs()
-    {
-        std::vector<RetractionConfig> ret;
-        ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
-        return ret;
-    }
-    std::vector<GCodePathConfig> initializeSkirtConfigs()
-    {
-        std::vector<GCodePathConfig> ret;
-        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-        {
-            RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-            skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
-        }
-        return ret;
-    }
-    
+    /*!
+     * Construct the initial retraction_config_per_extruder
+     */
+    std::vector<RetractionConfig> initializeRetractionConfigs();
+    /*!
+     * Construct the initial travel_config_per_extruder
+     */
+    std::vector<GCodePathConfig> initializeTravelConfigs();
+    /*!
+     * Construct the initial skirt_config s for each extruder
+     */
+    std::vector<GCodePathConfig> initializeSkirtConfigs();
+
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
      * specified mesh group.
@@ -201,7 +198,7 @@ public:
      * \param include_helper_parts whether to include support and prime tower
      * \param external_polys_only whether to disregard all hole polygons
      */
-    Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false);
+    Polygons getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only = false) const;
     
     /*!
      * Collects the second wall of every part, or the outer wall if it has no second, or the outline, if it has no outer wall.
@@ -211,7 +208,7 @@ public:
      * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)
      * \param include_helper_parts whether to include support and prime tower
      */
-    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts);
+    Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
     
     /*!
      * Get the extruder numbers of all extruders used in a given layer.

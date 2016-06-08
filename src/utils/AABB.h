@@ -1,8 +1,8 @@
-#ifndef AABB_H
-#define AABB_H
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+#ifndef UTILS_AABB_H
+#define UTILS_AABB_H
 
 
-#include <limits>
 #include "intpoint.h"
 #include "polygon.h"
 
@@ -17,42 +17,22 @@ class AABB
 public:
     Point min, max;
 
-    AABB()
-    : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
-    {
-    }
-    AABB(Point&min, Point& max)
-    : min(min), max(max)
-    {
-    }
-    AABB(Polygons& polys)
-    : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
-    {
-        calculate(polys);
-    }
+    AABB(); //!< initializes with invalid min and max
+    AABB(Point& min, Point& max); //!< initializes with given min and max
+    AABB(const Polygons& polys); //!< Computes the boundary box for the given polygons
 
-    void calculate(Polygons& polys)
-    {
-        min = Point(POINT_MAX, POINT_MAX);
-        max = Point(POINT_MIN, POINT_MIN);
-        for(unsigned int i=0; i<polys.size(); i++)
-        {
-            for(unsigned int j=0; j<polys[i].size(); j++)
-            {
-                include(polys[i][j]);
-            }
-        }
-    }
+    void calculate(const Polygons& polys); //!< Calculates the aabb for the given polygons (throws away old min and max data of this aabb)
 
-    bool hit(const AABB& other) const
-    {
-        if (max.X < other.min.X) return false;
-        if (min.X > other.max.X) return false;
-        if (max.Y < other.min.Y) return false;
-        if (min.Y > other.max.Y) return false;
-        return true;
-    }
-    
+    /*!
+     * Check whether this aabb overlaps with another.
+     * 
+     * In the boundary case false is returned.
+     * 
+     * \param other the aabb to check for overlaps with
+     * \return Whether the two aabbs overlap
+     */
+    bool hit(const AABB& other) const;
+
     /*!
      * \brief Includes the specified point in the bounding box.
      * 
@@ -60,66 +40,16 @@ public:
      * 
      * \param point The point to include in the bounding box.
      */
-    void include(Point point)
-    {
-        min.X = std::min(min.X,point.X);
-        min.Y = std::min(min.Y,point.Y);
-        max.X = std::max(max.X,point.X);
-        max.Y = std::max(max.Y,point.Y);
-    }
-};
+    void include(Point point);
 
-/*!
-An Axis Aligned Bounding Box. Has a min and max vector, representing minimal and maximal coordinates in the three axes.
-*/
-struct AABB3D 
-{
-    Point3 min; //!< The minimal coordinates in x, y and z direction
-    Point3 max; //!< The maximal coordinates in x, y and z direction
-    
     /*!
-     * Create an AABB3D with coordinates at the numeric limits.
+     * Expand the borders of the bounding box in each direction with the given amount
+     * 
+     * \param dist The distance by which to expand the borders of the bounding box
      */
-    AABB3D() 
-    : min(std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::max())
-    , max(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min())
-    {   
-    }
-    
-    /*!
-     * Expand the AABB3D to include the point \p p.
-     * \param p The point to include with the bounding box.
-     */
-    void include(Point3 p)
-    {
-        min.x = std::min(min.x, p.x);
-        min.y = std::min(min.y, p.y);
-        min.z = std::min(min.z, p.z);
-        max.x = std::max(max.x, p.x);
-        max.y = std::max(max.y, p.y);
-        max.z = std::max(max.z, p.z);   
-    }
-    
-    /*!
-     * Offset the coordinates of the bounding box.
-     * \param offset The offset with which to offset the AABB3D.
-     */
-    void offset(Point3 offset)
-    {
-        min += offset;
-        max += offset;
-    }
-    /*!
-     * Offset the coordinates of the bounding box.
-     * \param offset The offset with which to offset the AABB3D.
-     */
-    void offset(Point offset)
-    {
-        min += offset;
-        max += offset;
-    }
+    void expand(int dist);
 };
 
 }//namespace cura
-#endif//AABB_H
+#endif//UTILS_AABB_H
 

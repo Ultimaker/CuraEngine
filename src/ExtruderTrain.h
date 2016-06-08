@@ -1,7 +1,7 @@
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
-#include "settings.h"
+#include "settings/settings.h"
 
 namespace cura 
 {

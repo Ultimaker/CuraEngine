@@ -4,7 +4,7 @@
 #include <fstream> // debug IO
 #include <unistd.h>
 
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "weaveDataStorage.h"
 #include "PrintFeature.h"
 
@@ -35,7 +35,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         {
             Polygons parts;
             for (cura::Slicer* slicer : slicerList)
-                parts.add(slicer->layers[starting_layer_idx].polygonList);  
+                parts.add(slicer->layers[starting_layer_idx].polygons);  
             
             if (parts.size() > 0)
                 break;
@@ -51,7 +51,7 @@ void Weaver::weave(MeshGroup* meshgroup)
     {
         int starting_z = -1;
         for (cura::Slicer* slicer : slicerList)
-            wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygonList);
+            wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
         
         if (CommandSocket::isInstantiated())
             CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
@@ -71,14 +71,14 @@ void Weaver::weave(MeshGroup* meshgroup)
         else 
             starting_point_in_layer = (Point(0,0) + meshgroup->max() + meshgroup->min()) / 2;
         
-        Progress::messageProgressStage(Progress::Stage::INSET, nullptr);
+        Progress::messageProgressStage(Progress::Stage::INSET_SKIN, nullptr);
         for (int layer_idx = starting_layer_idx + 1; layer_idx < layer_count; layer_idx++)
         {
-            Progress::messageProgress(Progress::Stage::INSET, layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::INSET_SKIN, layer_idx+1, layer_count); // abuse the progress system of the normal mode of CuraEngine
             
             Polygons parts1;
             for (cura::Slicer* slicer : slicerList)
-                parts1.add(slicer->layers[layer_idx].polygonList);
+                parts1.add(slicer->layers[layer_idx].polygons);
 
             
             Polygons chainified;
@@ -109,10 +109,10 @@ void Weaver::weave(MeshGroup* meshgroup)
     {
         Polygons* lower_top_parts = &wireFrame.bottom_outline;
         
-        Progress::messageProgressStage(Progress::Stage::SKIN, nullptr);
+        Progress::messageProgressStage(Progress::Stage::SUPPORT, nullptr);
         for (unsigned int layer_idx = 0; layer_idx < wireFrame.layers.size(); layer_idx++)
         {
-            Progress::messageProgress(Progress::Stage::SKIN, layer_idx+1, wireFrame.layers.size()); // abuse the progress system of the normal mode of CuraEngine
+            Progress::messageProgress(Progress::Stage::SUPPORT, layer_idx+1, wireFrame.layers.size()); // abuse the progress system of the normal mode of CuraEngine
             
             WeaveLayer& layer = wireFrame.layers[layer_idx];
             

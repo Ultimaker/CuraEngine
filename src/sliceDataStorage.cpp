@@ -5,47 +5,47 @@
 namespace cura
 {
 
-Polygons SliceLayer::getOutlines(bool external_polys_only)
+Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
     getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(Polygons& result, bool external_polys_only)
+void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
 {
-    for (SliceLayerPart& part : parts)
+    for (const SliceLayerPart& part : parts)
     {
         if (external_polys_only)
         {
-            result.add(part.outline.outerPolygon());
+            result.add(const_cast<SliceLayerPart&>(part).outline.outerPolygon()); // TODO: make a const version of outerPolygon()
         }
         else 
         {
-            result.add(part.outline);
+            result.add(part.print_outline);
         }
     }
 }
 
-Polygons SliceLayer::getSecondOrInnermostWalls()
+Polygons SliceLayer::getSecondOrInnermostWalls() const
 {
     Polygons ret;
     getSecondOrInnermostWalls(ret);
     return ret;
 }
 
-void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls)
+void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
 {
-    for (SliceLayerPart& part : parts)
+    for (const SliceLayerPart& part : parts)
     {
         // we want the 2nd inner walls
         if (part.insets.size() >= 2) {
-            layer_walls.add(part.insets[1]);
+            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[1]); // TODO const cast!
             continue;
         }
         // but we'll also take the inner wall if the 2nd doesn't exist
         if (part.insets.size() == 1) {
-            layer_walls.add(part.insets[0]);
+            layer_walls.add(const_cast<SliceLayerPart&>(part).insets[0]); // TODO const cast!
             continue;
         }
         // offset_from_outlines was so large that it completely destroyed our isle,
@@ -56,21 +56,47 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls)
 }
 
 
+std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
+{
+    std::vector<RetractionConfig> ret;
+    ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
+    return ret;
+}
+std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
+{
+    std::vector<GCodePathConfig> ret;
+    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+    {
+        RetractionConfig* retraction_config = nullptr;
+        travel_config_per_extruder.emplace_back(retraction_config, PrintFeatureType::MoveCombing);
+    }
+    return ret;
+}
+std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
+{
+    std::vector<GCodePathConfig> ret;
+    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+    {
+        RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
+        skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
+    }
+    return ret;
+}
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     retraction_config_per_extruder(initializeRetractionConfigs()),
-    travel_config(&retraction_config, PrintFeatureType::MoveCombing),
+    travel_config_per_extruder(initializeTravelConfigs()),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_interface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_surface_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    support_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
-    support_roof_config(&retraction_config_per_extruder[this->meshgroup->getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
+    raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    raft_interface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    raft_surface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
+    support_config(&retraction_config_per_extruder[getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
+    support_roof_config(&retraction_config_per_extruder[getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }
 
-Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only)
+Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {
     if (layer_nr < 0)
     { // when processing raft
@@ -99,11 +125,11 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     else 
     {
         Polygons total;
-        for (SliceMeshStorage& mesh : meshes)
+        for (const SliceMeshStorage& mesh : meshes)
         {
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getOutlines(total, external_polys_only);
-            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
             {
                 total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
             }
@@ -121,7 +147,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     }
 }
 
-Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts)
+Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const
 {
     if (layer_nr < 0)
     { // when processing raft
@@ -137,11 +163,11 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
     else 
     {
         Polygons total;
-        for (SliceMeshStorage& mesh : meshes)
+        for (const SliceMeshStorage& mesh : meshes)
         {
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getSecondOrInnermostWalls(total);
-            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make getSetting const? make settings.setting_values mapping mutable??
             {
                 total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
             }
@@ -194,7 +220,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
             }
             else 
             {
-                ret[getSettingAsIndex("support_extruder_nr")] = true;
+                ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
             }
         }
         if (support.supportLayers[layer_nr].roofs.size() > 0)
@@ -238,7 +264,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // support
     // support is presupposed to be present...
     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-    ret[getSettingAsIndex("support_extruder_nr")] = true;
+    ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
     ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content

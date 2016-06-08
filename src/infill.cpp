@@ -6,7 +6,7 @@
 
 namespace cura {
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygons* in_between)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -24,16 +24,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
         generateTriangleInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        PolygonUtils::offsetSafe(in_outline, outline_offset - infill_line_width / 2, infill_line_width, outline_offsetted, false); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
+        outline_offsetted = in_outline.offset(outline_offset - infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
         outline = &outline_offsetted;
-        if (abs(infill_line_width - line_distance) < 10)
-        {
-            generateConcentricInfillDense(*outline, result_polygons, in_between, remove_overlapping_perimeters);
-        }
-        else
-        {
-            generateConcentricInfill(*outline, result_polygons, line_distance);
-        }
+        generateConcentricInfill(*outline, result_polygons, line_distance);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
@@ -44,33 +37,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, Polygon
     }
 }
 
-
-
-void Infill::generateConcentricInfillDense(Polygons outline, Polygons& result, Polygons* in_between, bool avoidOverlappingPerimeters)
-{
-    while(outline.size() > 0)
-    {
-        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-        {
-            PolygonRef r = outline[polyNr];
-            result.add(r);
-        }
-        Polygons next_outline;
-        PolygonUtils::offsetExtrusionWidth(outline, true, infill_line_width, next_outline, in_between, avoidOverlappingPerimeters);
-        outline = next_outline;
-    }
-
-}
-
 void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
 {
     while(outline.size() > 0)
     {
-        for (unsigned int polyNr = 0; polyNr < outline.size(); polyNr++)
-        {
-            PolygonRef r = outline[polyNr];
-            result.add(r);
-        }
+        result.add(outline);
         outline = outline.offset(-inset_value);
     } 
 }
@@ -78,15 +49,15 @@ void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int in
 
 void Infill::generateGridInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance * 2, fill_angle);
-    generateLineInfill(result, line_distance * 2, fill_angle + 90);
+    generateLineInfill(result, line_distance, fill_angle);
+    generateLineInfill(result, line_distance, fill_angle + 90);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)
 {
-    generateLineInfill(result, line_distance * 3, fill_angle);
-    generateLineInfill(result, line_distance * 3, fill_angle + 60);
-    generateLineInfill(result, line_distance * 3, fill_angle + 120);
+    generateLineInfill(result, line_distance, fill_angle);
+    generateLineInfill(result, line_distance, fill_angle + 60);
+    generateLineInfill(result, line_distance, fill_angle + 120);
 }
 
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list)
@@ -201,17 +172,14 @@ void Infill::generateLinearBasedInfill(const int outline_offset, bool safe_outli
     Polygons outline;
     if (outline_offset != 0)
     {
-        PolygonUtils::offsetSafe(in_outline, outline_offset, infill_line_width, outline, remove_overlapping_perimeters && safe_outline_offset);
+        outline = in_outline.offset(outline_offset);
     }
     else
     {
         outline = in_outline;
     }
     
-    if (line_distance > infill_line_width * 3 / 2) 
-    { // infill is not too dense to have overlap with surrounding polygon
         outline = outline.offset(infill_overlap);
-    }
     
     if (outline.size() == 0)
     {
