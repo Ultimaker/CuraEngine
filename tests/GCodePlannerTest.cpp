@@ -18,7 +18,7 @@ void GCodePlannerTest::setUp()
     storage->retraction_config.speed = 1; //We'll set some of the configurations, just in order to get valid g-code (speed not zero, etc.)
     storage->retraction_config.primeSpeed = 1;
     storage->retraction_config.distance = 10;
-    storage->travel_config.init(1,1,1,1,1);
+    storage->travel_config.init(1, 1, 1, 1, 1);
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;
     fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = 1;
