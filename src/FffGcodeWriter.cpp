@@ -364,7 +364,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     }
 
     bool avoid_other_parts = false;
-    int avoid_distance = 10; // stub
+    int avoid_distance = 0; // minimal avoid distance is zero
     std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
