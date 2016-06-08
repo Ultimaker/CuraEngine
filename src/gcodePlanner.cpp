@@ -635,7 +635,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                         false &&
                         path_idx + 2 < paths.size() // has a next move
                         && paths[path_idx+1].points.size() == 1 // is single extruded line
-                        && paths[path_idx+1].config->isTravelPath() // next move is extrusion
+                        && !paths[path_idx+1].config->isTravelPath() // next move is extrusion
                         && paths[path_idx+2].config->isTravelPath() // next next move is travel
                         && shorterThen(path.points.back() - gcode.getPositionXY(), 2 * nozzle_size) // preceding extrusion is close by
                         && shorterThen(paths[path_idx+1].points.back() - path.points.back(), 2 * nozzle_size) // extrusion move is small
