@@ -175,19 +175,17 @@ void CommandSocket::connect(const std::string& ip, int port)
         cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice; returns nullptr otherwise
         if (slice)
         {
+            const cura::proto::SettingList& global_settings = slice->global_settings();
+            for (auto setting : global_settings.settings())
+            {
+                FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
+            }
             // Reset object counts
             private_data->object_count = 0;
             for (auto object : slice->object_lists())
             {
                 handleObjectList(&object, slice->extruders());
             }
-            const cura::proto::SettingList& global_settings = slice->global_settings();
-            for (auto setting : global_settings.settings())
-            {
-                FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
-            }
-            
-            // TODO extruder settings!
         }
 
         //If there is an object to slice, do so.
