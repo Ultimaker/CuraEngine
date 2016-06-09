@@ -44,15 +44,6 @@ public:
      * Loads all objects from the message and starts the slicing process
      */
     void handleObjectList(cura::proto::ObjectList* list);
-    
-    /*! 
-     * Handler for SettingList message. 
-     * This simply sets all the settings by using key value pair
-     * 
-     * \param[in] list The proto message list from which to retrieve the settings.
-     * \param[out] setting_base Where to store the settings.
-     */
-    void handleSettingList(cura::proto::SettingList* list, SettingsBaseVirtual* setting_base);
 #endif
     
     /*!
