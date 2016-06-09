@@ -221,10 +221,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     private_data->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* meshgroup = private_data->objects_to_slice.back().get();
     
-    for (auto setting : list->settings())
-    {
-        meshgroup->setSetting(setting.name(), setting.value());
-    }
+    handleSettingList(list->settings(), meshgroup);
     
     for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
     { // initialize remaining extruder trains and load the defaults
@@ -278,10 +275,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  endfacet\n");
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("endsolid Cura_out\n");
-        for (auto setting : object.settings())
-        {
-            mesh.setSetting(setting.name(), setting.value());
-        }
+        handleSettingList(object.settings(), mesh);
 
         mesh.finish();
     }
@@ -290,11 +284,11 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     meshgroup->finalize();
 }
 
-void CommandSocket::handleSettingList(cura::proto::SettingList* list)
+void CommandSocket::handleSettingList(cura::proto::SettingList* list, SettingsBaseVirtual* setting_base)
 {
     for (auto setting : list->settings())
     {
-        FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
+        setting_base->setSetting(setting.name(), setting.value());
     }
 }
 #endif
