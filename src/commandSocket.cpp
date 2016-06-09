@@ -253,7 +253,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         {
             int extruder_nr = extruder.id();
             ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
-            for (auto setting : extruder.settings())
+            for (auto setting : extruder.settings().settings())
             {
                 train->setSetting(setting.name(), setting.value());
             }
