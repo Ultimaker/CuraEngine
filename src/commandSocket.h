@@ -42,6 +42,11 @@ public:
     /*! 
      * Handler for ObjectList message. 
      * Loads all objects from the message and starts the slicing process
+     * 
+     * Also handles meshgroup settings and extruder settings.
+     * 
+     * \param[in] list The list of objects to slice
+     * \param[in] settings_per_extruder_train The extruder train settings to load into the meshgroup
      */
     void handleObjectList(cura::proto::ObjectList* list, const google::protobuf::RepeatedPtrField<cura::proto::Extruder> settings_per_extruder_train);
 #endif
