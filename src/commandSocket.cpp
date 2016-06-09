@@ -152,19 +152,27 @@ void CommandSocket::connect(const std::string& ip, int port)
     {
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
+
+        /*
+         * handle a message which consists purely of a SettingList
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if (setting_list)
         {
             handleSettingList(setting_list);
         }
+        */
 
-        /*cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
+        /*
+         * handle a message which consists purely of an ObjectList
+        cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
         if (object_list)
         {
             handleObjectList(object_list);
-        }*/
-        
-        cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get());
+        }
+        */
+
+        // Handle the main Slice message
+        cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice; returns nullptr otherwise
         if (slice)
         {
             // Reset object counts
@@ -173,6 +181,10 @@ void CommandSocket::connect(const std::string& ip, int port)
             {
                 handleObjectList(&object);
             }
+            cura::proto::SettingList& global_settings = slice->global_settings();
+            handleSettingList(&global_settings, FffProcessor::getInstance());
+            
+            // TODO extruder settings!
         }
 
         //If there is an object to slice, do so.
