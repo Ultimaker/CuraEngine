@@ -179,7 +179,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             private_data->object_count = 0;
             for (auto object : slice->object_lists())
             {
-                handleObjectList(&object);
+                handleObjectList(&object, slice->extruders());
             }
             const cura::proto::SettingList& global_settings = slice->global_settings();
             for (auto setting : global_settings.settings())
@@ -223,7 +223,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 }
 
 #ifdef ARCUS
-void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
+void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google::protobuf::RepeatedPtrField<cura::proto::Extruder> settings_per_extruder_train)
 {
     if (list->objects_size() <= 0)
     {
@@ -236,18 +236,30 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     private_data->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* meshgroup = private_data->objects_to_slice.back().get();
 
-    
+    // load meshgroup settings
     for (auto setting : list->settings())
     {
         meshgroup->setSetting(setting.name(), setting.value());
     }
-    
-    for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
-    { // initialize remaining extruder trains and load the defaults
-        ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
-        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
+
+    { // load extruder settings
+        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
+        { // initialize remaining extruder trains and load the defaults
+            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
+        }
+
+        for (auto extruder : settings_per_extruder_train)
+        {
+            int extruder_nr = extruder.id();
+            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            for (auto setting : extruder.settings())
+            {
+                train->setSetting(setting.name(), setting.value());
+            }
+        }
     }
-    
+
     for (auto object : list->objects())
     {
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
@@ -259,6 +271,8 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             continue;
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
+
+        // Check to which extruder train this object belongs
         int extruder_train_nr = 0; // TODO: make primary extruder configurable!
         for (auto setting : object.settings())
         {
