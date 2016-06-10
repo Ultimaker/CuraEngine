@@ -10,6 +10,7 @@
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
+#include "GCodePathConfig.h"
 
 namespace cura 
 {

@@ -582,6 +582,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
+
+            if (storage.getSettingBoolean("acceleration_enabled"))
+            {
+                gcode.writeAcceleration(path.config->getAcceleration());
+            }
+            if (storage.getSettingBoolean("jerk_enabled"))
+            {
+                gcode.writeJerk(path.config->getJerk());
+            }
+
             if (path.retract)
             {
                 writeRetraction(gcode, extruder_plan_idx, path_idx);
@@ -738,23 +748,30 @@ void GCodePlanner::processInitialLayersSpeedup()
     int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
     if (static_cast<int>(layer_nr) < initial_speedup_layers)
     {
-        double initial_layer_speed;
+        GCodePathConfig::BasicConfig initial_layer_speed_config;
         int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
-        initial_layer_speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_layer_0");
-        storage.support_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-        
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("acceleration_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("jerk_layer_0");
+
+        storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+
         int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
-        initial_layer_speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_layer_0");
-        storage.support_roof_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("acceleration_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("jerk_layer_0");
+        storage.support_roof_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            initial_layer_speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
-            mesh.inset0_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-            mesh.insetX_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
-            mesh.skin_config.smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+            initial_layer_speed_config.speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
+            initial_layer_speed_config.acceleration = mesh.getSettingInMillimetersPerSecond("acceleration_layer_0");
+            initial_layer_speed_config.jerk = mesh.getSettingInMillimetersPerSecond("jerk_layer_0");
+            mesh.inset0_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+            mesh.insetX_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+            mesh.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
-                mesh.infill_config[idx].smoothSpeed(initial_layer_speed, layer_nr, initial_speedup_layers);
+                mesh.infill_config[idx].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
             }
         }
     }

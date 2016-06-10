@@ -24,7 +24,7 @@ void GCodePlannerTest::setUp()
 
     // make a new GCodePathConfig and put it at a dummy place (note that the config is not an actual travel config!)
     storage->travel_config_per_extruder.emplace_back(&storage->retraction_config_per_extruder[0], PrintFeatureType::MoveCombing);
-    storage->travel_config_per_extruder.back().init(60, MM2INT(0.4), 1.0);
+    storage->travel_config_per_extruder.back().init(60, MM2INT(0.4), 3000, 20, 1.0);
 
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
     fan_speed_layer_time_settings.cool_min_layer_time = 0;

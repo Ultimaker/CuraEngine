@@ -22,6 +22,9 @@ GCodeExport::GCodeExport()
     totalPrintTime = 0.0;
 
     currentSpeed = 1;
+    current_acceleration = -1;
+    current_jerk = -1;
+
     isZHopped = 0;
     setFlavor(EGCodeFlavor::REPRAP);
     initial_bed_temp = 0;
@@ -770,6 +773,26 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     else
         *output_stream << "M140 S";
     *output_stream << temperature << new_line;
+}
+
+void GCodeExport::writeAcceleration(double acceleration)
+{
+    if (current_acceleration != acceleration)
+    {
+        *output_stream << "M204 S" << acceleration << new_line; // Print and Travel acceleration
+        current_acceleration = acceleration;
+        estimateCalculator.setAcceleration(acceleration);
+    }
+}
+
+void GCodeExport::writeJerk(double jerk)
+{
+    if (current_jerk != jerk)
+    {
+        *output_stream << "M205 X" << jerk << new_line;
+        current_jerk = jerk;
+        estimateCalculator.setMaxXyJerk(jerk);
+    }
 }
 
 void GCodeExport::finalize(const char* endCode)
