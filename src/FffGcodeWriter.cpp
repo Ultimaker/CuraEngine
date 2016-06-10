@@ -186,14 +186,14 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 
         if (getSettingBoolean("material_print_temp_prepend")) 
         {
-            for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("extruder_count"); extruder_nr++)
+            for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
                 double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
                 gcode.writeTemperatureCommand(extruder_nr, print_temp);
             }
             if (getSettingBoolean("material_print_temp_wait")) 
             {
-                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("extruder_count"); extruder_nr++)
+                for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
                 {
                     double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
                     gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
