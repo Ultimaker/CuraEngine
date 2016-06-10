@@ -3,6 +3,7 @@
 #define SETTINGS_SETTING_REGISTRY_H
 
 #include <vector>
+#include <unordered_set>
 #include <list>
 #include <unordered_map>
 #include <string>
@@ -35,8 +36,9 @@ private:
 
     SettingContainer setting_definitions; //!< All setting configurations (A flat list)
     
-    std::vector<SettingContainer> extruder_trains; //!< The setting overrides per extruder train as defined in the json file
+    std::vector<std::string> extruder_train_ids; //!< The internal id's of each extruder (the filename without the extension)
 
+    std::unordered_set<std::string> search_paths; //!< The paths to search for json files.
 public:
     /*!
      * Get the SettingRegistry.
@@ -62,14 +64,6 @@ public:
      * \return the setting definition values
      */
     SettingConfig* getSettingConfig(std::string key) const;
-
-    /*!
-     * Retrieve the setting definitions container for all settings of a given extruder train.
-     * 
-     * \param extruder_nr The extruder train to retrieve
-     * \return The extruder train or nullptr if \p extruder_nr refers to an extruder train which is undefined in the json.
-     */
-    SettingContainer* getExtruderTrain(unsigned int extruder_nr);
 protected:
     /*!
      * Whether this json settings object is a definition of a CuraEngine setting,
@@ -83,23 +77,21 @@ protected:
 
     /*!
      * Get the filename for the machine definition with the given id.
-     * Also search the parent directory of \p parent_file.
-     * Check the directories in CURA_ENGINE_SEARCH_PATH (environment var).
+     * Check the directories in SettingRegistry::search_paths.
      * 
      * \param machine_id The id and base filename (without extensions) of the machine definition to search for.
-     * \param parent_file A file probably at the same location of the file to be found.
      * \param result The filename of the machine definition
      * \return Whether we found the file.
      */
-    static bool getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result);
+    bool getDefinitionFile(const std::string machine_id, std::string& result);
     
     /*!
-     * Get the default value of a json setting object.
+     * Get the default value of a json setting object in the format used internally (c style).
      * 
-     * \param json_object_it An iterator for a given setting json object
-     * \return The default vlaue as stored internally (rather than as stored in the json file)
+     * \param[in] json_object_it An iterator for a given setting json object
+     * \param[out] config Where the default value is stored
      */
-    static std::string getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it);
+    static void loadDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, SettingConfig* config);
 public:
     /*!
      * Load settings from a json file and all the parents it inherits from.
@@ -108,15 +100,27 @@ public:
      * 
      * \param filename The filename of the json file to parse
      * \param settings_base The settings base where to store the default values.
+     * \param warn_base_file_duplicates Whether to warn if there are duplicate definitions in the base file (the .def.json which has no inherits).
      * \return an error code or zero of succeeded
      */
-    int loadJSONsettings(std::string filename, SettingsBase* settings_base);
+    int loadJSONsettings(std::string filename, SettingsBase* settings_base, bool warn_base_file_duplicates = true);
     
     void debugOutputAllSettings() const
     {
         setting_definitions.debugOutputAllSettings();
     }
-    
+
+    /*!
+     * Load settings from the extruder definition json file and all the parents it inherits from.
+     * Use the json file refered to in the machine_extruder_trains attribute of the last loaded machine json file.
+     * 
+     * Uses recursion to load the parent json file.
+     * 
+     * \param extruder_nr The number of the extruder to load
+     * \param settings_base The settings base where to store the default values. (The extruder settings base)
+     * \return an error code or zero of succeeded
+     */
+    int loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base);
 private:
     
     /*!
@@ -143,14 +147,6 @@ private:
      * \return an error code or zero of succeeded
      */
     int loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates);
-    
-    /*!
-     * Get the string from a json value (generally the default value field of a setting)
-     * \param dflt The value to convert to string
-     * \param setting_name The name of the setting (in case we need to display an error message)
-     * \return The string
-     */
-    static std::string toString(const rapidjson::Value& dflt, std::string setting_name = "?");
 
     /*!
      * Create a new SettingConfig and add it to the registry.

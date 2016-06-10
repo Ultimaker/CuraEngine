@@ -286,7 +286,13 @@ public:
      */
     void setInitialTemp(int extruder_nr, double temp);
 
-    void finalize(double moveSpeed, const char* endCode);
+    /*!
+     * Finish the gcode: turn fans off, write end gcode and flush all gcode left in the buffer.
+     * 
+     * \param endCode The end gcode to be appended at the very end.
+     */
+    void finalize(const char* endCode);
+
 };
 
 }

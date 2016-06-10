@@ -8,7 +8,35 @@
 
 namespace cura 
 {
-    
+
+WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int lineWidth)
+ : polygons(polygons)
+ , line_width(lineWidth) 
+{ 
+    unsigned int n_points = 0;
+    for (PolygonRef poly : polygons)
+    {
+        n_points += poly.size();
+    }
+
+    // reserve enough elements so that iterators don't get invalidated
+    overlap_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
+    overlap_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
+
+    // convert to list polygons for insertion of points
+    convertPolygonsToLists(polygons, list_polygons); 
+
+    findOverlapPoints();
+    addOverlapEndings();
+    // TODO: add sharp corners
+
+    // convert list polygons back
+    convertListPolygonsToPolygons(list_polygons, polygons);
+//     wallOverlaps2HTML("output/output.html");
+//     list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
+}
+
+
 void WallOverlapComputation::findOverlapPoints()
 {
     for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
@@ -105,11 +133,11 @@ void WallOverlapComputation::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         int64_t dist = sqrt(dist2);
         
-        if (closest == last_point)
+        if (shorterThen(closest - last_point, 10))
         {
             addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
         }
-        else if (closest == point)
+        else if (shorterThen(closest - point, 10))
         {
             addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
         }
@@ -133,7 +161,7 @@ bool WallOverlapComputation::addOverlapPoint(ListPolyIt from, ListPolyIt to, int
         overlap_point_links.emplace(link, attr);
         
     if (! result.second)
-    {
+    { // we already have the link
 //         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
         result.first->second = attr;
     }
@@ -288,24 +316,26 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     Point2Link::iterator from_link_pair = point_to_link.find(from);
     if (from_link_pair == point_to_link.end()) { return 1; }
     WallOverlapPointLinks::iterator from_link = from_link_pair->second;
-    if (!from_link->second.passed)// || !to_link->second.passed)
-    {
-        from_link->second.passed = true;
-//         to_link->second.passed = true;
-        return 1;
-    }
-    from_link->second.passed = true;
-    
+    WallOverlapPointLinkAttributes& from_attr = from_link->second;
+
     Point2Link::iterator to_link_pair = point_to_link.find(to);
     if (to_link_pair == point_to_link.end()) { return 1; }
     WallOverlapPointLinks::iterator to_link = to_link_pair->second;
-//     to_link->second = true;
-    
-    
+    WallOverlapPointLinkAttributes& to_attr = to_link->second;
+
+    if (!from_attr.passed || !to_attr.passed)
+    {
+        from_attr.passed = true;
+        to_attr.passed = true;
+        return 1;
+    }
+    from_attr.passed = true;
+    to_attr.passed = true;
+
     // both points have already been passed
-    
+
     float avg_link_dist = 0.5 * ( INT2MM(from_link->second.dist) + INT2MM(to_link->second.dist) );
-   
+
     float ratio = avg_link_dist / INT2MM(line_width);
 
     if (ratio > 1.0) { return 1.0; }
@@ -325,56 +355,82 @@ void WallOverlapComputation::debugCheck()
     }
 }
 
+void WallOverlapComputation::debugCheckNonePassedYet()
+{
+    for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> pair : overlap_point_links)
+    {
+        if (pair.second.passed)
+        {
+            logError("ERROR: WallOverlapComputation link passed just after contruction!!!\n");
+        }
+        
+    }
+}
 
-void WallOverlapComputation::wallOverlaps2HTML(const char* filename)
+
+
+void WallOverlapComputation::wallOverlaps2HTML(const char* filename) const
 {   
-    AABB aabb(polygons);
     
-    SVG svg(filename, aabb);
+    WallOverlapComputation copy = *this; // copy, cause getFlow might change the state of the overlap computation!
+    
+    AABB aabb(copy.polygons);
+    
+    aabb.expand(200);
+    
+    SVG svg(filename, aabb, Point(1024 * 2, 1024 * 2));
     
     
-    svg.writeAreas(polygons);
-    /*
-    for(PolygonsPart part : polygons.splitIntoParts())
-    {
-        for (unsigned int j = 0; j < part.size(); j++)
+    svg.writeAreas(copy.polygons);
+    
+    { // output points and coords
+        for (ListPolygon poly : copy.list_polygons)
         {
-            fprintf(out, "<polygon points=\"");
-            for(Point& p : part[j])
+            for (Point& p : poly)
             {
-                Point pf = transform(p);
-                fprintf(out, "%lli,%lli ", pf.Y, pf.X);
+                svg.writePoint(p, true);
             }
-            if (j == 0)
-                fprintf(out, "\" style=\"fill:gray; stroke:black;stroke-width:1\" />\n");
-            else
-                fprintf(out, "\" style=\"fill:white; stroke:black;stroke-width:1\" />\n");
         }
-    }*/
-    
-    for (ListPolygon poly : list_polygons)
-    {
-        for (Point& p : poly)
+    }
+
+    { // output links
+        // output normal links
+        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links)
         {
-            svg.writePoint(p, true);
+            WallOverlapPointLink& link = link_pair.first;
+            Point a = svg.transform(link.a.p());
+            Point b = svg.transform(link.b.p());
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+        }
+        
+        // output ending links
+        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links_endings)
+        {
+            WallOverlapPointLink& link = link_pair.first;
+            Point a = svg.transform(link.a.p());
+            Point b = svg.transform(link.b.p());
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
         }
     }
-    
-    
-    for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
-    {
-        WallOverlapPointLink& link = link_pair.first;
-        Point a = svg.transform(link.a.p());
-        Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
-    }
-    
-    for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : overlap_point_links_endings)
-    {
-        WallOverlapPointLink& link = link_pair.first;
-        Point a = svg.transform(link.a.p());
-        Point b = svg.transform(link.b.p());
-        svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.Y, a.X, b.Y, b.X, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+
+    { // output flow
+        for (ListPolygon poly : copy.list_polygons)
+        {
+            Point p0 = poly.back();
+            svg.writePoint(p0, false, 5, SVG::Color::BLUE); // make start points of each poly blue
+            for (Point& p1 : poly)
+            {
+                Point middle = (p0 + p1) / 2;
+                
+                float flow = copy.getFlow(p0, p1);
+                
+                std::ostringstream oss;
+                oss << "flow: " << flow;
+                svg.writeText(middle, oss.str());
+                
+                p0 = p1;
+            }
+        }
     }
 }
     

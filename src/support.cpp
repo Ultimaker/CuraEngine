@@ -86,7 +86,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
     // given settings
-    ESupportType support_type = mesh.getSettingAsSupportType("support_type");
+    ESupportType support_type = storage.getSettingAsSupportType("support_type");
     
     if (!mesh.getSettingBoolean("support_enable"))
         return;

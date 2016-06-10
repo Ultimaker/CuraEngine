@@ -795,7 +795,7 @@ void GCodeExport::writeJerk(double jerk)
     }
 }
 
-void GCodeExport::finalize(double moveSpeed, const char* endCode)
+void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);

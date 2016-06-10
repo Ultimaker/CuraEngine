@@ -104,7 +104,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
-        bool has_raft = meshStorage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
+        bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
         //Add the raft offset to each layer.
         for(unsigned int layer_nr=0; layer_nr<meshStorage.layers.size(); layer_nr++)
         {
@@ -118,7 +118,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 layer.printZ += 
                     train->getSettingInMicrons("raft_base_thickness") 
                     + train->getSettingInMicrons("raft_interface_thickness") 
-                    + train->getSettingAsCount("raft_surface_layers") * getSettingInMicrons("raft_surface_thickness")
+                    + train->getSettingAsCount("raft_surface_layers") * train->getSettingInMicrons("raft_surface_thickness")
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
                 if (layer_nr == 0)
@@ -264,13 +264,13 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // skin & infill
 //     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
-    if (getSettingBoolean("magic_spiralize"))
+    if (mesh.getSettingBoolean("magic_spiralize"))
     {
         mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
-        if (!getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+        if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkinsAndInfill(mesh, layer_number);
         }
@@ -345,7 +345,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers)
 {
     // combine infill
-    unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(mesh.getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
+    unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
     combineInfillLayers(mesh,combined_infill_layers);
 
     // fuzzy skin
@@ -507,19 +507,20 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
+    SettingsBaseVirtual* train = storage.meshgroup->getExtruderTrain(getSettingBoolean("adhesion_extruder_nr"));
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
-        if (getSettingInMicrons("draft_shield_height") == 0)
+        if (train->getSettingInMicrons("draft_shield_height") == 0)
         { // draft screen replaces skirt
-            generateSkirt(storage, getSettingInMicrons("skirt_gap"), getSettingAsCount("skirt_line_count"), getSettingInMicrons("skirt_minimal_length"));
+            generateSkirt(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_minimal_length"));
         }
         break;
     case EPlatformAdhesion::BRIM:
-        generateSkirt(storage, 0, getSettingAsCount("brim_line_count"), getSettingInMicrons("skirt_minimal_length"));
+        generateSkirt(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingInMicrons("skirt_minimal_length"));
         break;
     case EPlatformAdhesion::RAFT:
-        generateRaft(storage, getSettingInMicrons("raft_margin"));
+        generateRaft(storage, train->getSettingInMicrons("raft_margin"));
         break;
     }
     
