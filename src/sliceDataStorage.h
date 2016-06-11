@@ -136,7 +136,7 @@ public:
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;
     
-    std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
+    std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
 

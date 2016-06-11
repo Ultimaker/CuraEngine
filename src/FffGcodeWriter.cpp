@@ -364,7 +364,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     }
 
     bool avoid_other_parts = false;
-    int avoid_distance = 10; // stub
+    int avoid_distance = 0; // minimal avoid distance is zero
     std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
@@ -385,7 +385,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     {
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
     }
-    int64_t comb_offset_from_outlines = max_inner_wall_width;
+    int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
 
