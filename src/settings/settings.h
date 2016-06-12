@@ -260,7 +260,11 @@ public:
                 sstream << "\"" << pair.first << "\": {\"default_value\":\"" << out_val << "\"},\n";
             }
         }
-        return sstream.str();
+        std::string out_str = sstream.str();
+        if (!out_str.empty()) {
+            out_str = out_str.substr(0,out_str.size()-2) + "\n";
+        }
+        return out_str;
     }
     
     void debugOutputAllLocalSettings()  const
