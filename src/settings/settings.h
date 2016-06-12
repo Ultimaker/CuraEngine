@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <map>
+#include <regex>
 #include <unordered_map>
 #include <sstream>
 
@@ -242,6 +243,21 @@ public:
             if (!pair.second.empty())
             {
                 sstream << " -s " << pair.first << "=\"" << pair.second << "\"";
+            }
+        }
+        return sstream.str();
+    }
+    
+    std::string getAllLocalSettingsJson() const
+    {
+        std::stringstream sstream;
+        for (auto pair : setting_values)
+        {
+            if (!pair.second.empty())
+            {
+                std::string out_val;
+                out_val = std::regex_replace(pair.second, std::regex("\n"), "\\n");
+                sstream << "\"" << pair.first << "\": {\"default_value\":\"" << out_val << "\"},\n";
             }
         }
         return sstream.str();
