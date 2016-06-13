@@ -785,6 +785,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         if (bridge > -1)
         {
             pattern = EFillMethod::LINES;
+            skin_angle = bridge;
         } 
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
