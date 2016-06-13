@@ -181,7 +181,7 @@ public:
      * \param loc_to_line A BucketGrid mapping locations to starting vertices of line segmetns of the \p polygons 
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
      */
-    static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex> loc_to_line);
+    static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line);
     
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the BucketGrid \p destination_loc_to_line
@@ -191,7 +191,7 @@ public:
      * \param destination_loc_to_line A BucketGrid mapping locations to starting vertices of line segments of the \p destination 
      * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
      */
-    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex > destination_loc_to_line);
+    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
