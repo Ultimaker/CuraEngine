@@ -91,11 +91,59 @@ public:
 
     std::unordered_map<int, std::shared_ptr<cura::proto::Layer>> sliced_layers;
 };
+
+class CommandSocket::PolygonCompiler
+{
+	static_assert(sizeof(PrintFeatureType) == 1, "To be compatible with the Cura frontend code PrintFeatureType needs to be of size 1");
+	CommandSocket::Private& _cs_private_data;
+	int _layer_nr;
+	std::vector<PrintFeatureType> _line_types;
+	std::vector<int> _line_widths;
+	cura::Polygon _poly;
+
+	PolygonCompiler(const PolygonCompiler&) = delete;
+	PolygonCompiler& operator=(const PolygonCompiler&) = delete;
+public:
+	PolygonCompiler(CommandSocket::Private& cs_private_data):
+		_cs_private_data(cs_private_data),
+		_layer_nr( 0 ),
+		_line_widths(),
+		_poly()
+	{}
+	~PolygonCompiler(){
+		if( _poly.size() )
+			flushPolygon();
+	}
+
+	void setLayer(int new_layer_nr){
+		if(_layer_nr != new_layer_nr ){
+			flushPolygon();
+			_layer_nr = new_layer_nr;
+		}
+	}
+
+	void handleInitialPoint( Point from ){
+		if( _poly.size() == 0 ){
+			_poly.add( from );
+		}
+		else if( from != _poly.back() )
+		{
+			_poly.add( from );
+			_line_types.push_back( PrintFeatureType::NoneType );
+			_line_widths.push_back( 1.0 );
+		}
+	}
+
+	void flushPolygon();
+	void sendLine(PrintFeatureType print_feature_type, Point from, Point to, int line_width);
+    void sendPolygon(PrintFeatureType print_feature_type, Polygon poly, int line_width);
+};
 #endif
 
 CommandSocket::CommandSocket()
 #ifdef ARCUS
-    : private_data(new Private)
+    : private_data(new Private),
+	  poly_comp(new PolygonCompiler(*private_data))
 #endif
 {
 #ifdef ARCUS
@@ -335,19 +383,31 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& 
     if (polygons.size() == 0)
         return;
 
-    std::shared_ptr<cura::proto::Layer> proto_layer = private_data->getLayerById(layer_nr);
+    poly_comp->setLayer( layer_nr );
 
     for (unsigned int i = 0; i < polygons.size(); ++i)
     {
-        cura::proto::Polygon* p = proto_layer->add_polygons();
-        p->set_type(static_cast<cura::proto::Polygon_Type>(type));
-        std::string polydata;
-        polydata.append(reinterpret_cast<const char*>(polygons[i].data()), polygons[i].size() * sizeof(Point));
-        p->set_points(polydata);
-        p->set_line_width(line_width);
+   		poly_comp->sendPolygon( type, polygons[i], line_width );
     }
 #endif
 }
+
+void CommandSocket::sendPolygon(PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width)
+{
+#ifdef ARCUS
+    poly_comp->setLayer( layer_nr );
+    poly_comp->sendPolygon( type, polygon, line_width );
+#endif
+}
+
+void CommandSocket::sendLine(cura::PrintFeatureType type, int layer_nr, Point from, Point to, int line_width)
+{
+#ifdef ARCUS
+    poly_comp->setLayer( layer_nr );
+    poly_comp->sendLine( type, from, to, line_width );
+#endif
+}
+
 
 void CommandSocket::sendProgress(float amount)
 {
@@ -389,17 +449,19 @@ void CommandSocket::sendLayerData()
 #ifdef ARCUS
 #endif
 #ifdef ARCUS
-    private_data->sliced_objects++;
-    private_data->current_layer_offset = private_data->current_layer_count;
-    log("End sliced object called. Sending ", private_data->current_layer_count, " layers.");
+	poly_comp->flushPolygon(); // make sure all polygons have been flushed from the compiler
 
-    if (private_data->sliced_objects >= private_data->object_count)
-    {
-        for (std::pair<const int, std::shared_ptr<cura::proto::Layer>> entry : private_data->sliced_layers) //Note: This is in no particular order!
-        {
-            private_data->socket->sendMessage(entry.second); //Send the actual layers.
-        }
-        private_data->sliced_objects = 0;
+	private_data->sliced_objects++;
+	private_data->current_layer_offset = private_data->current_layer_count;
+	log("End sliced object called. Sending ", private_data->current_layer_count, " layers.");
+
+	if (private_data->sliced_objects >= private_data->object_count)
+	{
+		for (std::pair<const int, std::shared_ptr<cura::proto::Layer>> entry : private_data->sliced_layers) //Note: This is in no particular order!
+		{
+			private_data->socket->sendMessage(entry.second); //Send the actual layers.
+		}
+		private_data->sliced_objects = 0;
         private_data->current_layer_count = 0;
         private_data->current_layer_offset = 0;
         private_data->sliced_layers.clear();
@@ -465,6 +527,61 @@ std::shared_ptr<cura::proto::Layer> CommandSocket::Private::getLayerById(int id)
     }
 
     return layer;
+}
+#endif
+
+#ifdef ARCUS
+void CommandSocket::PolygonCompiler::flushPolygon(){
+	if( _poly.size() > 0 && CommandSocket::isInstantiated() )
+	{
+        std::shared_ptr<cura::proto::Layer> proto_layer = _cs_private_data.getLayerById(_layer_nr);
+
+        cura::proto::Polygon* p = proto_layer->add_polygons();
+        std::string line_type_data;
+        line_type_data.append(reinterpret_cast<const char*>(_line_types.data()),_line_types.size()*sizeof(PrintFeatureType));
+        p->set_line_type(line_type_data);
+        std::string polydata;
+        polydata.append(reinterpret_cast<const char*>(_poly.data()), _poly.size() * sizeof(Point));
+        p->set_points(polydata);
+        std::string line_width_data;
+        line_width_data.append(reinterpret_cast<const char*>(_line_widths.data()),_line_widths.size()*sizeof(int));
+        p->set_line_width(line_width_data);
+	}
+	_poly.clear();
+	_line_widths.clear();
+	_line_types.clear();
+}
+
+//TODO: Reason about these functions when _poly is empty or the polygon entered is empty
+void CommandSocket::PolygonCompiler::sendLine(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+{
+	handleInitialPoint( from );
+
+	// Ignore zero-length segments.
+	if( from != to ){
+		_poly.add( to );
+		_line_types.push_back( print_feature_type );
+		_line_widths.push_back( line_width );
+	}
+}
+
+void CommandSocket::PolygonCompiler::sendPolygon(PrintFeatureType print_feature_type, Polygon polygon, int line_width)
+{
+	if( polygon.size() < 2 )
+		return;
+	auto it = polygon.begin();
+	handleInitialPoint( *it );
+
+	const auto it_end = polygon.end();
+	while(++it != it_end){
+		// Ignore zero-length segments.
+		if(*it != _poly.back())
+		{
+			_poly.add( *it );
+			_line_types.push_back( print_feature_type );
+			_line_widths.push_back( line_width );
+		}
+	}
 }
 #endif
 

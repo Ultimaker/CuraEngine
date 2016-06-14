@@ -569,11 +569,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         if (CommandSocket::isInstantiated()) 
         {
             // we should send this travel as a non-retraction move
-            cura::Polygons travelPoly;
-            PolygonRef travel = travelPoly.newPoly();
-            travel.add(Point(currentPosition.x, currentPosition.y));
-            travel.add(Point(x, y));
-            CommandSocket::getInstance()->sendPolygons(extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing, layer_nr, travelPoly, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
+            auto from = Point(currentPosition.x, currentPosition.y);
+            auto to = Point(x, y);
+            CommandSocket::getInstance()->sendLine(extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing, layer_nr, from, to, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
         }
     }
 

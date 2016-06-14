@@ -62,6 +62,16 @@ public:
     void sendPolygons(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
 
     /*! 
+     * Send a polygon to the engine with variable line widths. This is used for the layerview in the GUI
+     */
+    void sendPolygon(cura::PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width);
+
+    /*!
+     * Send a line to the engine with variable line widths. This is used for the layerview in the GUI
+     */
+    void sendLine(cura::PrintFeatureType type, int layer_nr, Point from, Point to, int line_width);
+
+    /*!
      * Send a polygon to the engine if the command socket is instantiated. This is used for the layerview in the GUI
      */
     static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
@@ -114,6 +124,8 @@ public:
 private:
     class Private;
     const std::unique_ptr<Private> private_data;
+    class PolygonCompiler;
+    const std::unique_ptr<PolygonCompiler> poly_comp;
 #endif
 };
 

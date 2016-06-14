@@ -1,12 +1,14 @@
 #ifndef PRINT_FEATURE
 #define PRINT_FEATURE
 
+#include <cstdint>
+
 namespace cura
 {
 
-enum class PrintFeatureType
+enum class PrintFeatureType: std::uint8_t
 {
-    NoneType, // unused, but libArcus depends on it
+    NoneType, // used to mark unspecified jumps in polygons. libArcus depends on it
     OuterWall,
     InnerWall,
     Skin,
