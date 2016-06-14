@@ -6,7 +6,9 @@
 
 namespace cura
 {
-    
+
+class SettingsBaseVirtual;
+
 /*!
  *  The TimeEstimateCalculator class generates a estimate of printing time calculated with acceleration in mind.
  *  Some of this code has been adapted from the Marlin sources.
@@ -71,6 +73,12 @@ private:
 
     std::vector<Block> blocks;
 public:
+    /*!
+     * Set the movement configuration of the firmware.
+     * 
+     * \param settings_base Where to get the settings from
+     */
+    void setFirmwareDefaults(const SettingsBaseVirtual* settings_base);
     void setPosition(Position newPos);
     void plan(Position newPos, double feedRate);
     void addTime(double time);

@@ -3,11 +3,29 @@
 #include <string.h>
 #include <algorithm>
 #include "timeEstimate.h"
+#include "settings/settings.h" 
 
 namespace cura
 {
-    
+
 #define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
+
+void TimeEstimateCalculator::setFirmwareDefaults(const SettingsBaseVirtual* settings_base)
+{
+    max_feedrate[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_x");
+    max_feedrate[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_y");
+    max_feedrate[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
+    max_feedrate[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_e");
+    max_acceleration[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_x");
+    max_acceleration[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_y");
+    max_acceleration[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_z");
+    max_acceleration[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_e");
+    max_xy_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_xy");
+    max_z_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_z");
+    max_e_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_e");
+    minimumfeedrate = settings_base->getSettingInMillimetersPerSecond("machine_minimum_feedrate");
+    acceleration = settings_base->getSettingInMillimetersPerSecond("machine_acceleration");
+}
 
 template<typename T> const T square(const T& a) { return a * a; }
 
