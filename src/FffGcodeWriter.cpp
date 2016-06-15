@@ -278,7 +278,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         }
         if (CommandSocket::isInstantiated())
         {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
         gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &storage.raft_base_config);
 
@@ -305,7 +305,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         if (CommandSocket::isInstantiated())
         {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
         
         Polygons raftLines;
@@ -334,7 +334,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         if (CommandSocket::isInstantiated())
         {
-            CommandSocket::getInstance()->sendLayerInfo(layer_nr, z, layer_height);
+            CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
         
         Polygons raft_lines;

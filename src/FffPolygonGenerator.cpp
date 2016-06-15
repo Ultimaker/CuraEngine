@@ -135,7 +135,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 
             if (CommandSocket::isInstantiated())
             {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer.printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
         
