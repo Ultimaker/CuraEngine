@@ -209,7 +209,7 @@ public:
     void writeTypeComment(PrintFeatureType type);
 
     /*!
-     * Write a comment saying waht (estimated) time has passed up to this point
+     * Write a comment saying what (estimated) time has passed up to this point
      * 
      * \param time The time passed up till this point
      */
