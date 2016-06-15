@@ -208,6 +208,13 @@ public:
     void writeComment(std::string comment);
     void writeTypeComment(const char* type);
     void writeTypeComment(PrintFeatureType type);
+
+    /*!
+     * Write a comment saying waht (estimated) time has passed up to this point
+     * 
+     * \param time The time passed up till this point
+     */
+    void writeTimeComment(const double time);
     void writeLayerComment(int layer_nr);
     void writeLayerCountComment(int layer_count);
     
