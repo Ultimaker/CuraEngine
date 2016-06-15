@@ -206,7 +206,6 @@ public:
     void resetTotalPrintTimeAndFilament();
     
     void writeComment(std::string comment);
-    void writeTypeComment(const char* type);
     void writeTypeComment(PrintFeatureType type);
 
     /*!

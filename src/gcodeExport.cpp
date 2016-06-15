@@ -354,11 +354,6 @@ void GCodeExport::writeComment(std::string comment)
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTypeComment(const char* type)
-{
-    *output_stream << ";TYPE:" << type << new_line;
-}
-
 void GCodeExport::writeTimeComment(const double time)
 {
     *output_stream << ";TIME_ELAPSED:" << time << new_line;
