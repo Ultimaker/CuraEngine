@@ -1015,7 +1015,14 @@ void FffGcodeWriter::finalize()
         std::string prefix = gcode.getFileHeader(&print_time, filament_used);
         CommandSocket::getInstance()->sendGCodePrefix(prefix);
     }
-
+    if (getSettingBoolean("acceleration_enabled"))
+    {
+        gcode.writeAcceleration(getSettingInMillimetersPerSecond("machine_acceleration"));
+    }
+    if (getSettingBoolean("jerk_enabled"))
+    {
+        gcode.writeJerk(getSettingInMillimetersPerSecond("machine_max_jerk_xy"));
+    }
     gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
     {
