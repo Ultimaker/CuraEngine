@@ -3,7 +3,6 @@
 
 #include "PolygonUtilsTest.h"
 
-#include <../src/utils/polygonUtils.h>
 
 namespace cura
 {
@@ -223,15 +222,28 @@ void PolygonUtilsTest::edgeFindCloseTest()
     findCloseAssert(test_square, Point(50,110), Point(50,100), 15);
 }
 
+void PolygonUtilsTest::middleEdgeFindCloseTest()
+{
+    std::function<int(Point)> penalty_function([](Point candidate){ return -vSize2(candidate - Point(50,100)); }); // further from 50,100 is less penalty
+    findCloseAssert(test_square, Point(50,50), Point(50,0), 60, &penalty_function);
+}
 
 
-void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size)
+void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size, const std::function<int(Point)>* penalty_function)
 {
     Polygons polys;
     polys.add(poly);
     BucketGrid2D<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
     
-    ClosestPolygonPoint* cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line);
+    ClosestPolygonPoint* cpp;
+    if (penalty_function)
+    {
+        cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line, *penalty_function);
+    }
+    else
+    {
+        cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line);
+    }
     if (cpp)
     {
         std::stringstream ss;

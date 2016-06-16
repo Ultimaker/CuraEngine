@@ -4,10 +4,14 @@
 #ifndef POLYGON_UTILS_TEST_H
 #define POLYGON_UTILS_TEST_H
 
+#include <functional> // function
+
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <../src/utils/intpoint.h>
-#include <../src/utils/polygon.h>
+
+#include "../src/utils/intpoint.h"
+#include "../src/utils/polygon.h"
+#include "../src/utils/polygonUtils.h"
 
 namespace cura
 {
@@ -33,6 +37,7 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(edgeOutsideTest2);
     CPPUNIT_TEST(cornerFindCloseTest);
     CPPUNIT_TEST(edgeFindCloseTest);
+    CPPUNIT_TEST(middleEdgeFindCloseTest);
     CPPUNIT_TEST(cornerCrookedTest2);
     CPPUNIT_TEST(cornerEdgeTest2);
     CPPUNIT_TEST(onBorderTest2);
@@ -86,6 +91,7 @@ public:
     
     void cornerFindCloseTest();
     void edgeFindCloseTest();
+    void middleEdgeFindCloseTest();
 
 private:
     /*!
@@ -108,7 +114,7 @@ private:
     /*!
      * cppunit assert for PolygonUtils::findClose
      */
-    void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size);
+    void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size, const std::function<int(Point)>* penalty_function = nullptr);
 };
 
 }
