@@ -157,14 +157,22 @@ public:
     static ClosestPolygonPoint findNearestClosest(Point from, PolygonRef polygon, int start_idx, int direction);
 
     /*!
-    * Find the point closest to \p from in all polygons in \p polygons.
-    */
-    static ClosestPolygonPoint findClosest(Point from, Polygons& polygons, std::function<int(Point)> penalty_function = no_penalty_function);
+     * Find the point closest to \p from in all polygons in \p polygons.
+     * 
+     * \note The penalty term is applied to the *squared* distance score
+     * 
+     * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
+     */
+    static ClosestPolygonPoint findClosest(Point from, Polygons& polygons, const std::function<int(Point)>& penalty_function = no_penalty_function);
         
     /*!
-    * Find the point closest to \p from in the polygon \p polygon.
-    */
-    static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon, std::function<int(Point)> penalty_function = no_penalty_function);
+     * Find the point closest to \p from in the polygon \p polygon.
+     * 
+     * \note The penalty term is applied to the *squared* distance score
+     * 
+     * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
+     */
+    static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
      * Create a BucketGrid mapping from locations to line segments occurring in the \p polygons

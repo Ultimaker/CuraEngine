@@ -323,7 +323,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, std::function<int(Point)> penalty_function)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, const std::function<int(Point)>& penalty_function)
 {
 
     Polygon emptyPoly;
@@ -355,7 +355,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, st
     return best;
 }
 
-ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon, std::function<int(Point)> penalty_function)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon, const std::function<int(Point)>& penalty_function)
 {
     if (polygon.size() == 0)
     {
