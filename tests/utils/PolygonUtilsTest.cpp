@@ -93,6 +93,23 @@ void PolygonUtilsTest::middleTest()
     }
 }
 
+void PolygonUtilsTest::middleTestPenalty()
+{
+    const Point close_to(50, 50);
+    const Point supposed(80, 50); 
+    const Point preferred_dir(120, 60);
+    const int distance = 20;
+    const ClosestPolygonPoint cpp = PolygonUtils::findClosest(close_to, test_square, [preferred_dir](Point candidate) { return vSize2(candidate - preferred_dir); } );
+    const Point result = PolygonUtils::moveInside(cpp, distance);
+    {
+        std::stringstream ss;
+        ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
+        ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
+    }
+}
+
 void PolygonUtilsTest::noMoveTest()
 {
     moveInsideAssert(test_square, Point(110, 50), 0, Point(100, 50));
