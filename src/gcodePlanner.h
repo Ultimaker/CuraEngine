@@ -366,7 +366,8 @@ private:
     Point lastPosition;
     
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
-    
+
+    SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
@@ -419,6 +420,11 @@ public:
     GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    /*!
+     * Get the settings base of the last extruder planned.
+     * \return the settings base of the last extruder planned.
+     */
+    SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.

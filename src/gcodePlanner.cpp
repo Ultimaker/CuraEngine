@@ -56,6 +56,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
+, last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(current_extruder))
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 {
@@ -82,6 +83,12 @@ GCodePlanner::~GCodePlanner()
     if (comb)
         delete comb;
 }
+
+SettingsBaseVirtual* GCodePlanner::getLastPlannedExtruderTrainSettings()
+{
+    return last_planned_extruder_setting_base;
+}
+
 
 Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
 {
@@ -129,13 +136,13 @@ void GCodePlanner::setIsInside(bool _is_inside)
 
 bool GCodePlanner::setExtruder(int extruder)
 {
-    if (extruder == extruder_plans.back().extruder)
+    if (extruder == getExtruder())
     {
         return false;
     }
     setIsInside(false);
     { // handle end position of the prev extruder
-        SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder_plans.back().extruder);
+        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
         bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
         Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
         if (!end_pos_absolute)
@@ -157,11 +164,12 @@ bool GCodePlanner::setExtruder(int extruder)
     {
         extruder_plans.emplace_back(extruder);
     }
+    last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
 
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
     { // handle starting pos of the new extruder
-        SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
+        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
         bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
         Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
         if (!start_pos_absolute)
@@ -199,7 +207,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
-    GCodePathConfig& travel_config = storage.travel_config_per_extruder[extruder_plans.back().extruder];
+    GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
     
     bool combed = false;
     
@@ -288,7 +296,7 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(&storage.travel_config_per_extruder[extruder_plans.back().extruder], SpaceFillType::None);
+        path = getLatestPathWithConfig(&storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
     path->points.push_back(p);
     lastPosition = p;
