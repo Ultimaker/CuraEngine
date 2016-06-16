@@ -438,10 +438,9 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
     std::vector<PolygonsPointIndex> near_lines;
     loc_to_line.findNearbyObjects(from, near_lines);
 
-    const Point arbitrary_point = polygons[0][0];
-    Point best = arbitrary_point;
+    Point best(0, 0);
 
-    int64_t closest_dist2 = vSize2(from - best);
+    int64_t closest_dist2_score = std::numeric_limits<int64_t>::max();
     PolygonsPointIndex best_point_poly_idx(NO_INDEX, NO_INDEX);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
