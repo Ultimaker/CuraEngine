@@ -166,7 +166,9 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             crossing_1_out = crossing_1_in_or_mid;
             if (startInside || outside.inside(crossing_1_in_or_mid, true)) // start in_between
             { // move outside
-                ClosestPolygonPoint* crossing_1_out_cpp = PolygonUtils::findClose(crossing_1_in_or_mid, outside, getOutsideLocToLine());
+                Point preferred_crossing_1_out = crossing_1_in_or_mid + normal(crossing_2_in_or_mid - crossing_1_in_or_mid, offset_from_outlines + offset_from_outlines_outside);
+                std::function<int(Point)> close_towards_crossing_2_in_penalty_function([preferred_crossing_1_out](Point candidate){ return vSize2((candidate - preferred_crossing_1_out) / 2); });
+                ClosestPolygonPoint* crossing_1_out_cpp = PolygonUtils::findClose(crossing_1_in_or_mid, outside, getOutsideLocToLine(), close_towards_crossing_2_in_penalty_function);
                 if (crossing_1_out_cpp)
                 {
                     crossing_1_out = PolygonUtils::moveOutside(*crossing_1_out_cpp, offset_dist_to_get_from_on_the_polygon_to_outside);
@@ -192,7 +194,9 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             crossing_2_out = crossing_2_in_or_mid;
             if (endInside || outside.inside(crossing_2_in_or_mid, true))
             { // move outside
-                ClosestPolygonPoint* crossing_2_out_cpp = PolygonUtils::findClose(crossing_2_in_or_mid, outside, getOutsideLocToLine());
+                Point preferred_crossing_2_out = crossing_2_in_or_mid + normal(crossing_1_out - crossing_2_in_or_mid, offset_from_outlines + offset_from_outlines_outside);
+                std::function<int(Point)> close_towards_crossing_1_out_penalty_function([preferred_crossing_2_out](Point candidate){ return vSize2((candidate - preferred_crossing_2_out) / 2); });
+                ClosestPolygonPoint* crossing_2_out_cpp = PolygonUtils::findClose(crossing_2_in_or_mid, outside, getOutsideLocToLine(), close_towards_crossing_1_out_penalty_function);
                 if (crossing_2_out_cpp)
                 {
                     crossing_2_out = PolygonUtils::moveOutside(*crossing_2_out_cpp, offset_dist_to_get_from_on_the_polygon_to_outside);
