@@ -433,7 +433,7 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
-ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line)
+ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines;
     loc_to_line.findNearbyObjects(from, near_lines);
@@ -449,11 +449,11 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
         Point& p2 = poly[(point_poly_index.point_idx + 1) % poly.size()];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
-        int64_t dist = vSize2(from - closest_here);
-        if (dist < closest_dist2)
+        int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
+        if (dist2_score < closest_dist2_score)
         {
             best = closest_here;
-            closest_dist2 = dist;
+            closest_dist2_score = dist2_score;
             best_point_poly_idx = point_poly_index;
         }
     }
@@ -468,13 +468,13 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
 }
 
 
-std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line)
+std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
     for (unsigned int point_idx = 0; point_idx < from.size(); point_idx++)
     {
         const Point& point = from[point_idx];
-        ClosestPolygonPoint* best_here = findClose(point, destination, destination_loc_to_line);
+        ClosestPolygonPoint* best_here = findClose(point, destination, destination_loc_to_line, penalty_function);
         if (best_here)
         {
             ret.push_back(std::make_pair(ClosestPolygonPoint(point, point_idx, from), *best_here));
