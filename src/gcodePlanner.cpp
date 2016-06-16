@@ -30,6 +30,7 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceF
     paths.emplace_back();
     GCodePath* ret = &paths.back();
     ret->retract = false;
+    ret->perform_z_hop = false;
     ret->config = config;
     ret->done = false;
     ret->flow = flow;
@@ -245,16 +246,17 @@ void GCodePlanner::addTravel(Point p)
                 }
             }
             
-            if (retract && last_retraction_config->zHop > 0)
+            if (retract && getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled") && !getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides"))
             { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
                 path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
                 if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
                 {
                     path->retract = true;
+                    path->perform_z_hop = true;
                 }
             }
             else 
-            {
+            { // if not performing a z-hop:
                 for (CombPath& combPath : combPaths)
                 { // add all comb paths (don't do anything special for paths which are moving through air)
                     if (combPath.size() == 0)
@@ -263,6 +265,7 @@ void GCodePlanner::addTravel(Point p)
                     }
                     path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
                     path->retract = retract;
+                    // don't perform a z-hop
                     for (Point& combPoint : combPath)
                     {
                         path->points.push_back(combPoint);
@@ -279,12 +282,13 @@ void GCodePlanner::addTravel(Point p)
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-                ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(getExtruder());
+                SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
             }
             path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;
+            path->perform_z_hop = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled") && getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides");
         }
     }
 
@@ -603,6 +607,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             if (path.retract)
             {
                 writeRetraction(gcode, extruder_plan_idx, path_idx);
+                if (path.perform_z_hop)
+                {
+                    gcode.writeZhopStart(last_retraction_config->zHop);
+                }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
             {

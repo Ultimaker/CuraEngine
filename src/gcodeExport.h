@@ -233,7 +233,14 @@ private:
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
-    
+
+    /*!
+     * Start a z hop with the given \p hop_height
+     * 
+     * \param hop_height The height to move above the current layer
+     */
+    void writeZhopStart(int hop_height);
+
     void writeRetraction_extruderSwitch();
     
     void switchExtruder(int newExtruder);
