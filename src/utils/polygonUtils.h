@@ -2,6 +2,8 @@
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
+#include <functional> // function
+
 #include "polygon.h"
 #include "BucketGrid2D.h"
 
@@ -49,6 +51,8 @@ struct PolygonsPointIndex
 class PolygonUtils 
 {
 public:
+    static const std::function<int(Point)> no_penalty_function; //!< Function always returning zero
+
     /*!
     * Get a point from the \p poly with a given \p offset.
     * 
@@ -155,12 +159,12 @@ public:
     /*!
     * Find the point closest to \p from in all polygons in \p polygons.
     */
-    static ClosestPolygonPoint findClosest(Point from, Polygons& polygons);
+    static ClosestPolygonPoint findClosest(Point from, Polygons& polygons, std::function<int(Point)> penalty_function = no_penalty_function);
         
     /*!
     * Find the point closest to \p from in the polygon \p polygon.
     */
-    static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon);
+    static ClosestPolygonPoint findClosest(Point from, PolygonRef polygon, std::function<int(Point)> penalty_function = no_penalty_function);
 
     /*!
      * Create a BucketGrid mapping from locations to line segments occurring in the \p polygons

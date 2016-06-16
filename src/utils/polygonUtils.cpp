@@ -11,6 +11,8 @@
 namespace cura 
 {
 
+const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point){ return 0; };
+
 Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
 {
     Point p1 = poly[point_idx];
@@ -321,7 +323,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, std::function<int(Point)> penalty_function)
 {
 
     Polygon emptyPoly;
@@ -334,18 +336,18 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons)
 
     ClosestPolygonPoint best(aPoint, 0, aPolygon);
 
-    int64_t closestDist = vSize2(from - best.location);
+    int64_t closestDist2_score = vSize2(from - best.location) + penalty_function(best.location);
     
     for (unsigned int ply = 0; ply < polygons.size(); ply++)
     {
         PolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
-        ClosestPolygonPoint closest_here = findClosest(from, poly);
-        int64_t dist = vSize2(from - closest_here.location);
-        if (dist < closestDist)
+        ClosestPolygonPoint closest_here = findClosest(from, poly, penalty_function);
+        int64_t dist2_score = vSize2(from - closest_here.location) + penalty_function(closest_here.location);
+        if (dist2_score < closestDist2_score)
         {
             best = closest_here;
-            closestDist = dist;
+            closestDist2_score = dist2_score;
         }
 
     }
@@ -353,7 +355,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons)
     return best;
 }
 
-ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
+ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon, std::function<int(Point)> penalty_function)
 {
     if (polygon.size() == 0)
     {
@@ -362,7 +364,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
     Point aPoint = polygon[0];
     Point best = aPoint;
 
-    int64_t closestDist = vSize2(from - best);
+    int64_t closestDist2_score = vSize2(from - best) + penalty_function(best);
     int bestPos = 0;
 //
     for (unsigned int p = 0; p<polygon.size(); p++)
@@ -374,11 +376,11 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, PolygonRef polygon)
         Point& p2 = polygon[p2_idx];
 
         Point closest_here = LinearAlg2D::getClosestOnLineSegment(from, p1 ,p2);
-        int64_t dist = vSize2(from - closest_here);
-        if (dist < closestDist)
+        int64_t dist2_score = vSize2(from - closest_here) + penalty_function(closest_here);
+        if (dist2_score < closestDist2_score)
         {
             best = closest_here;
-            closestDist = dist;
+            closestDist2_score = dist2_score;
             bestPos = p;
         }
     }
