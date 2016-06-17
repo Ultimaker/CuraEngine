@@ -136,8 +136,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         PolygonsPart start_part; // will be initialized below when startInside holds
         PolygonsPart end_part; // will be initialized below when endInside holds
 
-        PolygonRef* start_part_crossing_poly(nullptr); // will maybe refer to a polygon in start_part
-        PolygonRef* end_part_crossing_poly(nullptr); // will maybe refer to a polygon in end_part
+        PolygonRef start_part_crossing_poly(boundary_inside[start_part_boundary_poly_idx]); // will refer to the polygon in start_part which should be crossed (mostly the boundary poly, but sometimes a hole)
+        PolygonRef end_part_crossing_poly(boundary_inside[end_part_boundary_poly_idx]);     // will refer to the polygon in end_part   which should be crossed (mostly the boundary poly, but sometimes a hole)
 
         { // find crossing over the in-between area between inside and outside
             if (startInside)
@@ -146,7 +146,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 std::function<int(Point)> close_towards_start_penalty_function([startPoint](Point candidate){ return vSize2((candidate - startPoint) / 10); });
                 start_part = partsView_inside.assemblePart(start_part_idx);
                 ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(endPoint, start_part, close_towards_start_penalty_function);
-                start_part_crossing_poly = &crossing_1_in_cp.poly;
+                start_part_crossing_poly = crossing_1_in_cp.poly;
                 crossing_1_in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
@@ -160,7 +160,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 std::function<int(Point)> close_towards_end_crossing_penalty_function([endPoint](Point candidate){ return vSize2((candidate - endPoint) / 10); });
                 end_part = partsView_inside.assemblePart(end_part_idx);
                 ClosestPolygonPoint crossing_2_in_cp = PolygonUtils::findClosest(crossing_1_in_or_mid, end_part, close_towards_end_crossing_penalty_function);
-                end_part_crossing_poly = &crossing_2_in_cp.poly;
+                end_part_crossing_poly = crossing_2_in_cp.poly;
                 crossing_2_in_or_mid = PolygonUtils::moveInside(crossing_2_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
             }
             else 
@@ -199,7 +199,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             if (startInside && in_out_dist2_1 > max_crossing_dist2) // moveInside moved too far
             { // if move is to far over in_between
                 // find crossing closer by
-                assert(start_part_crossing_poly);
                 std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(*start_part_crossing_poly, startPoint, endPoint);
                 if (best)
                 {
@@ -228,7 +227,6 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             if (endInside && in_out_dist2_2 > max_crossing_dist2) // moveInside moved too far
             { // if move is to far over in_between
                 // find crossing closer by
-                assert(end_part_crossing_poly);
                 std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(*end_part_crossing_poly, endPoint, crossing_1_out);
                 if (best)
                 {
