@@ -251,22 +251,20 @@ void GCodePlanner::addTravel(Point p)
                 }
             }
 
-            { // if not performing a z-hop:
-                for (CombPath& combPath : combPaths)
-                { // add all comb paths (don't do anything special for paths which are moving through air)
-                    if (combPath.size() == 0)
-                    {
-                        continue;
-                    }
-                    path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-                    path->retract = retract;
-                    // don't perform a z-hop
-                    for (Point& combPoint : combPath)
-                    {
-                        path->points.push_back(combPoint);
-                    }
-                    lastPosition = combPath.back();
+            for (CombPath& combPath : combPaths)
+            { // add all comb paths (don't do anything special for paths which are moving through air)
+                if (combPath.size() == 0)
+                {
+                    continue;
                 }
+                path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+                path->retract = retract;
+                // don't perform a z-hop
+                for (Point& combPoint : combPath)
+                {
+                    path->points.push_back(combPoint);
+                }
+                lastPosition = combPath.back();
             }
         }
     }
@@ -283,7 +281,7 @@ void GCodePlanner::addTravel(Point p)
             }
             path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;
-            path->perform_z_hop = perform_z_hops && perform_z_hops_only_when_collides;
+            path->perform_z_hop = perform_z_hops;
         }
     }
 
