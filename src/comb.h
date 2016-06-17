@@ -64,6 +64,7 @@ private:
         unsigned int poly_idx; //!< The index of the polygon which crosses the scanline
         Crossing min; //!< The point where the polygon first crosses the scanline.
         Crossing max; //!< The point where the polygon last crosses the scanline.
+        int n_crossings; //!< The number of times the polygon crossed the scanline.
         /*!
          * Create a PolyCrossings with minimal initialization. PolyCrossings::min and PolyCrossings::max are not yet computed.
          * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
@@ -71,6 +72,7 @@ private:
         PolyCrossings(unsigned int poly_idx) 
         : poly_idx(poly_idx)
         , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
+        , n_crossings(0)
         { 
         }
     };
@@ -109,15 +111,17 @@ private:
     
     /*!
      * Calculate Comb::crossings, Comb::min_crossing_idx and Comb::max_crossing_idx.
+     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    void calcScanlineCrossings();
+    bool calcScanlineCrossings();
     
     /*! 
      * Get the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
+     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    void getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored = MM2INT(1.5));
+    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored = MM2INT(1.5));
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -181,11 +185,12 @@ public:
      * \param startPoint From where to start the combing move.
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
+     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    static void comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored = MM2INT(1.5))
+    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored = MM2INT(1.5))
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored);
+        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored);
     };
 };
 
@@ -235,7 +240,7 @@ private:
      * Get the BucketGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
     BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
-    
+
     /*!
      * Find the best crossing from some inside polygon to the outside boundary.
      * 
