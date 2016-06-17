@@ -348,16 +348,10 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool over_inavoidable_obstacle
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point p1 = transformation_matrix.apply(poly[point_idx]);
-            if((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
+            if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
             { // if line segment crosses the line through the transformed start and end point (aka scanline)
-                if(p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
+                if (p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
                 {
-                    if (p0.X >= transformed_startPoint.X && p0.X <= transformed_endPoint.X && 
-                        p1.X >= transformed_startPoint.X && p1.X <= transformed_endPoint.X &&
-                        transformation_matrix.apply(poly[(point_idx + 1) % poly.size()]).Y != p1.Y)
-                    { // if whole segment lies between start and end (and is the last such line segment in a row)
-                        minMax.n_crossings--; // Don't count both the previous and consecutive segment both as a line crossing
-                    }
                     p0 = p1;
                     continue;
                 }
@@ -365,7 +359,11 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool over_inavoidable_obstacle
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
-                    minMax.n_crossings++;
+                    if (!((p1.Y == transformed_startPoint.Y && p1.Y < p0.Y) || (p0.Y == transformed_startPoint.Y && p0.Y < p1.Y)))
+                    { // perform edge case only for line segments on and below the scanline, not for line segments on and above.
+                        // \/ will be no crossings and /\ two, but most importantly | will be one crossing.
+                        minMax.n_crossings++;
+                    }
                     if(x < minMax.min.x) //For the leftmost intersection, move x left to stay outside of the border.
                                          //Note: The actual distance from the intersection to the border is almost always less than dist_to_move_boundary_point_outside, since it only moves along the direction of the scanline.
                     {
