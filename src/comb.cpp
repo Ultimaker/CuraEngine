@@ -205,6 +205,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                     crossing_1_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
                     crossing_1_out = PolygonUtils::moveOutside(best->second, offset_dist_to_get_from_on_the_polygon_to_outside);
                 }
+                if (over_inavoidable_obstacles_makes_combing_fail && vSize2(crossing_1_out - crossing_1_in_or_mid) > max_crossing_dist2) // moveInside moved still too far
+                {
+                    return false;
+                }
             }
 
 
@@ -232,6 +236,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
                 {
                     crossing_2_in_or_mid = PolygonUtils::moveInside(best->first, offset_dist_to_get_from_on_the_polygon_to_outside);
                     crossing_2_out = PolygonUtils::moveOutside(best->second, offset_dist_to_get_from_on_the_polygon_to_outside);
+                }
+                if (over_inavoidable_obstacles_makes_combing_fail && vSize2(crossing_2_out - crossing_2_in_or_mid) > max_crossing_dist2) // moveInside moved still too far
+                {
+                    return false;
                 }
             }
         }
