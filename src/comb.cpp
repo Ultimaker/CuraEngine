@@ -310,13 +310,13 @@ void LinePolygonsCrossings::calcScanlineCrossings()
         {
             Point p1 = transformation_matrix.apply(poly[point_idx]);
             if((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
-            {
+            { // if line segment crosses the line through the transformed start and end point (aka scanline)
                 if(p1.Y == p0.Y) //Line segment is parallel with the scanline. That means that both endpoints lie on the scanline, so they will have intersected with the adjacent line.
                 {
                     p0 = p1;
                     continue;
                 }
-                int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
+                int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y); // intersection point between line segment and the scanline
                 
                 if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
                 {
