@@ -60,7 +60,7 @@ Comb::~Comb()
     }
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
@@ -69,7 +69,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
 
     //Move start and end point inside the comb boundary
     unsigned int start_inside_poly = NO_INDEX;
-    if (startInside) 
+    if (_startInside) 
     {
         start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
         if (!boundary_inside.inside(start_inside_poly) || start_inside_poly == NO_INDEX)
@@ -80,12 +80,14 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
             if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
             {
-                startInside = false;
+                _startInside = false;
             }
         }
     }
+    const bool startInside = _startInside;
+
     unsigned int end_inside_poly = NO_INDEX;
-    if (endInside)
+    if (_endInside)
     {
         end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
         if (!boundary_inside.inside(endPoint) || end_inside_poly == NO_INDEX)
@@ -96,12 +98,12 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool sta
             }
             if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
             {
-                endInside = false;
+                _endInside = false;
             }
         }
     }
+    const bool endInside = _endInside;
 
-    
     unsigned int start_part_boundary_poly_idx;
     unsigned int end_part_boundary_poly_idx;
     unsigned int start_part_idx =   (start_inside_poly == NO_INDEX)?    NO_INDEX : partsView_inside.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
