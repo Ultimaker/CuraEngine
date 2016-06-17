@@ -66,10 +66,14 @@ static inline double intersection_distance(double initial_rate, double final_rat
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
 static inline double acceleration_time_from_distance(double initial_feedrate, double distance, double acceleration)
 {
-    double discriminant = sqrt(square(initial_feedrate) - 2 * acceleration * -distance);
-    return (-initial_feedrate + discriminant) / acceleration;
+    const double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
+    if (discriminant < 0) //Going in the wrong direction. Could happen due to floating point rounding errors.
+    {
+        return 0;
+    }
+    return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
-
+    
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor)
 {
