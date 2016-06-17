@@ -51,7 +51,7 @@ public:
     SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024 * 4, 1024 * 4))
     : aabb(aabb)
     , aabb_size(aabb.max - aabb.min)
-    , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
+    , scale(std::min(double(canvas_size.X - 100) / aabb_size.X, double(canvas_size.Y - 100) / aabb_size.Y))
     {
         out = fopen(filename, "w");
         if(!out)
@@ -78,7 +78,7 @@ public:
      */
     Point transform(const Point& p) 
     {
-        return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + Point(10,10);
+        return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + Point(50,50);
     }
 
 private:
@@ -237,6 +237,20 @@ public:
     {
         Point pf = transform(p);
         fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
+    }
+    void writePolygons(Polygons& polys, Color color = Color::BLACK)
+    {
+        for (PolygonRef poly : polys)
+            writePolygon(poly, color);
+    }
+    void writePolygon(PolygonRef poly, Color color = Color::BLACK)
+    {
+        Point p0 = poly.back();
+        for (Point p1 : poly)
+        {
+            writeLine(p0, p1, color);
+            p0 = p1;
+        }
     }
     
     
