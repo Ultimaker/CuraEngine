@@ -211,11 +211,16 @@ void GCodePlanner::addTravel(Point p)
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
     
     bool combed = false;
-    
+
+    bool perform_z_hops = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled");
+    bool perform_z_hops_only_when_collides = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides");
+
     if (comb != nullptr && lastPosition != no_point)
     {
         CombPaths combPaths;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_retraction_config->retraction_min_travel_distance);
+        bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
+        bool over_inavoidable_obstacles_makes_combing_fail = perform_z_hops && perform_z_hops_only_when_collides;
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, over_inavoidable_obstacles_makes_combing_fail);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -245,17 +250,7 @@ void GCodePlanner::addTravel(Point p)
                     }
                 }
             }
-            
-            if (retract && getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled") && !getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides"))
-            { // TODO: stop comb calculation early! (as soon as we see we don't end in the same part as we began)
-                path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-                if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
-                {
-                    path->retract = true;
-                    path->perform_z_hop = true;
-                }
-            }
-            else 
+
             { // if not performing a z-hop:
                 for (CombPath& combPath : combPaths)
                 { // add all comb paths (don't do anything special for paths which are moving through air)
@@ -288,7 +283,7 @@ void GCodePlanner::addTravel(Point p)
             }
             path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;
-            path->perform_z_hop = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled") && getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides");
+            path->perform_z_hop = perform_z_hops && perform_z_hops_only_when_collides;
         }
     }
 

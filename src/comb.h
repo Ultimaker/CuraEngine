@@ -111,17 +111,19 @@ private:
     
     /*!
      * Calculate Comb::crossings, Comb::min_crossing_idx and Comb::max_crossing_idx.
-     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
+     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+     * \return Whether combing succeeded, i.e. when over_inavoidable_obstacles_makes_combing_fail: we didn't cross any gaps/other parts
      */
-    bool calcScanlineCrossings();
+    bool calcScanlineCrossings(bool over_inavoidable_obstacles_makes_combing_fail);
     
     /*! 
      * Get the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
+     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored = MM2INT(1.5));
+    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool over_inavoidable_obstacles_makes_combing_fail);
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -185,12 +187,13 @@ public:
      * \param startPoint From where to start the combing move.
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
+     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored = MM2INT(1.5))
+    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool over_inavoidable_obstacles_makes_combing_fail)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored);
+        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
     };
 };
 
@@ -275,9 +278,11 @@ public:
      * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
      * \param startInside Whether we want to start inside the comb boundary
      * \param endInside Whether we want to end up inside the comb boundary
+     * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
+     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false, int64_t max_comb_distance_ignored = MM2INT(1.5));
+    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool over_inavoidable_obstacles_makes_combing_fail);
 };
 
 }//namespace cura
