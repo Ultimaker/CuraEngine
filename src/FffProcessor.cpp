@@ -1,5 +1,7 @@
 #include "FffProcessor.h" 
 
+#include "mason/MasonBackend.hpp"
+
 namespace cura 
 {
 
@@ -138,6 +140,9 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     } else if (meshgroup->getSettingBoolean("mason_backend_enabled"))
     {
         log("starting Mason backend...\n");
+
+        mason::MasonBackend backend;
+        backend.process(meshgroup, &gcode_writer.gcode);
     } else 
     {
         SliceDataStorage storage(meshgroup);
