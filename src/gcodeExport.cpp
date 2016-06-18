@@ -33,7 +33,7 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(MeshGroup* settings)
+void GCodeExport::preSetup(const MeshGroup* settings)
 {
     setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
@@ -42,7 +42,7 @@ void GCodeExport::preSetup(MeshGroup* settings)
 
     for (unsigned int n = 0; n < extruder_count; n++)
     {
-        ExtruderTrain* train = settings->getExtruderTrain(n);
+        const ExtruderTrain* train = settings->getExtruderTrain(n);
         setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
