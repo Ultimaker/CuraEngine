@@ -135,6 +135,9 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         gcoder.writeGCode();
         log("finished Neith Gcode generation...\n");
         
+    } else if (meshgroup->getSettingBoolean("lenser_backend_enabled"))
+    {
+        log("starting Lenser backend...\n");
     } else 
     {
         SliceDataStorage storage(meshgroup);
