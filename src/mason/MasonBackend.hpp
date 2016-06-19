@@ -8,6 +8,7 @@
 #include "../settings/settings.h"
 
 #include "PlanToGcode.hpp"
+#include "VolumeStore.hpp"
 
 namespace cura {
 namespace mason {
@@ -16,9 +17,10 @@ class MasonBackend {
 public:
     MasonBackend();
     
-    void process(const SettingsBaseVirtual *settings, const MeshGroup *meshgroup, GCodeExport *gcode_out);
+    void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, GCodeExport *gcode_out);
     
 private:
+    VolumeStore m_volume_store;
     PlanToGcode m_plan_to_gcode;
 };
 
