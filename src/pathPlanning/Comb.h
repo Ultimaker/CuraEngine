@@ -34,6 +34,56 @@ class Comb
 {
     friend class LinePolygonsCrossings;
 private:
+    /*!
+     * A crossing from the inside boundary to the outside boundary.
+     * 
+     * 'dest' is either the startPoint or the endpoint of a whole combing move.
+     */
+    class Crossing
+    {
+    public:
+        bool dest_is_inside; //!< Whether the startPoint or endPoint is inside the inside boundary
+        Point in_or_mid; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
+        Point out; //!< The point on the outside boundary
+        PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
+        PolygonRef dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+
+        /*!
+         * Simple constructor
+         * 
+         * \param dest_point Either the eventual startPoint or the eventual endPoint of this combing move.
+         * \param dest_is_inside Whether the startPoint or endPoint is inside the inside boundary.
+         * \param dest_part_idx The index into Comb:partsView_inside of the part in which the \p dest_point is.
+         * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon).
+         * \param boundary_inside The boundary within which to comb.
+         */
+        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside);
+
+        /*!
+         * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary
+         * 
+         * \param partsView_inside Structured indices onto Comb::boundary_inside which shows which polygons belong to which part. 
+         * \param close_to[in] Try to get a crossing close to this point
+         */
+        void findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to);
+
+        /*!
+         * Find the outside location (Combing::out)
+         * 
+         * \param outside The outside boundary polygons
+         * \param close_to A point to get closer to when there are multiple candidates on the outside boundary which are almost equally close to the Crossing::in_or_mid
+         * \param findBestCrossing_estimated_end ??AFS?FS TODO
+         * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+         * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
+         */
+        bool findOutside(const Polygons& outside, const Point close_to, const Point findBestCrossing_estimated_end, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber);
+
+    private:
+        const Point dest_point; //!< Either the eventual startPoint or the eventual endPoint of this combing move
+        unsigned int dest_part_idx; //!< The index into Comb:partsView_inside of the part in which the \p dest_point is.
+    };
+
+
     SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
@@ -73,7 +123,7 @@ private:
      * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
      */
     std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end);
-    
+
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
