@@ -72,15 +72,28 @@ private:
          * 
          * \param outside The outside boundary polygons
          * \param close_to A point to get closer to when there are multiple candidates on the outside boundary which are almost equally close to the Crossing::in_or_mid
-         * \param findBestCrossing_estimated_end ??AFS?FS TODO
          * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          */
-        bool findOutside(const Polygons& outside, const Point close_to, const Point findBestCrossing_estimated_end, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber);
+        bool findOutside(const Polygons& outside, const Point close_to, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber);
 
     private:
         const Point dest_point; //!< Either the eventual startPoint or the eventual endPoint of this combing move
         unsigned int dest_part_idx; //!< The index into Comb:partsView_inside of the part in which the \p dest_point is.
+
+        /*!
+         * Find the best crossing from some inside polygon to the outside boundary.
+         * 
+         * The detour from \p estimated_start to \p estimated_end is minimized.
+         * 
+         * \param outside The outside boundary polygons
+         * \param from From which inside boundary the crossing to the outside starts or ends
+         * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
+         * \param estimated_end The other point to which to stay close when evaluating crossings which cross about the same distance
+         * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
+         * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
+         */
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, const PolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
     };
 
 
@@ -111,18 +124,6 @@ private:
      * Get the BucketGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
     BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
-
-    /*!
-     * Find the best crossing from some inside polygon to the outside boundary.
-     * 
-     * The detour from \p estimated_start to \p estimated_end is minimized.
-     * 
-     * \param from From which inside boundary the crossing to the outside starts or ends
-     * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
-     * \param estimated_end The other point to which to stay close when evaluating crossings which cross about the same distance
-     * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
-     */
-    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end);
 
 public:
     /*!

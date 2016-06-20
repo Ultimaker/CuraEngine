@@ -146,13 +146,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         { // compute the crossing points when moving through air
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
 
-            bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, endPoint, over_inavoidable_obstacles_makes_combing_fail, *this);
+            bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, over_inavoidable_obstacles_makes_combing_fail, *this);
             if (!success)
             {
                 return false;
             }
 
-            success = end_crossing.findOutside(outside, start_crossing.out, start_crossing.out, over_inavoidable_obstacles_makes_combing_fail, *this);
+            success = end_crossing.findOutside(outside, start_crossing.out, over_inavoidable_obstacles_makes_combing_fail, *this);
             if (!success)
             {
                 return false;
@@ -244,7 +244,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     }
 };
 
-bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const Point findBestCrossing_estimated_end, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber)
+bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber)
 {
     out = in_or_mid;
     if (dest_is_inside || outside.inside(in_or_mid, true)) // start in_between
@@ -265,7 +265,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
     if (dest_is_inside && in_out_dist2_1 > comber.max_crossing_dist2) // moveInside moved too far
     { // if move is to far over in_between
         // find crossing closer by
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = comber.findBestCrossing(dest_crossing_poly, dest_point, findBestCrossing_estimated_end);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(outside, dest_crossing_poly, dest_point, close_to, comber);
         if (best)
         {
             in_or_mid = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
@@ -280,16 +280,16 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
 }
 
 
-std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::findBestCrossing(const PolygonRef from, const Point estimated_start, const Point estimated_end)
+std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(const Polygons& outside, const PolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber)
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;
     int64_t best_detour_dist = std::numeric_limits<int64_t>::max();
-    std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, getBoundaryOutside(), getOutsideLocToLine());
+    std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine());
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
         int64_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
-        if (crossing_dist2 > max_crossing_dist2)
+        if (crossing_dist2 > comber.max_crossing_dist2)
         {
             continue;
         }
