@@ -286,12 +286,13 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;
     int64_t best_detour_dist = std::numeric_limits<int64_t>::max();
+    int64_t best_crossing_dist2;
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine());
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
         int64_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
-        if (crossing_dist2 > comber.max_crossing_dist2)
-        {
+        if (crossing_dist2 > comber.max_crossing_dist2 * 2)
+        { // preliminary filtering
             continue;
         }
         
@@ -303,11 +304,21 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
             best_in = &crossing_candidate.first;
             best_out = &crossing_candidate.second;
             best_detour_dist = detour_dist;
+            best_crossing_dist2 = crossing_dist2;
         }
     }
     if (best_detour_dist == std::numeric_limits<int64_t>::max())
     {
         return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
+    }
+    if (best_crossing_dist2 > comber.max_crossing_dist2)
+    { // find closer point on line segments, rather than moving between vertices of the polygons only
+        PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
+        best_crossing_dist2 = vSize2(best_in->location - best_out->location);
+        if (best_crossing_dist2 > comber.max_crossing_dist2)
+        {
+            return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
+        }
     }
     return std::make_shared<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>(*best_in, *best_out);
 }
