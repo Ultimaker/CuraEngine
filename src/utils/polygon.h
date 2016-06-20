@@ -799,7 +799,7 @@ public:
      * \param part_idx The index of the part
      * \return The PolygonsPart with index \p poly_idx
      */
-    PolygonsPart assemblePart(unsigned int part_idx);
+    PolygonsPart assemblePart(unsigned int part_idx) const;
 };
 
 }//namespace cura

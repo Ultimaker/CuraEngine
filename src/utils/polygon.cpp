@@ -290,9 +290,9 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
     return NO_INDEX;
 }
 
-PolygonsPart PartsView::assemblePart(unsigned int part_idx) 
+PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
 {
-    PartsView& partsView = *this;
+    const PartsView& partsView = *this;
     PolygonsPart ret;
     if (part_idx != NO_INDEX)
     {
