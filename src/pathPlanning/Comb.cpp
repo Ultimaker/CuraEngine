@@ -159,6 +159,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             }
         }
 
+        // generate the actual comb paths
         if (startInside)
         {
             // start to boundary
