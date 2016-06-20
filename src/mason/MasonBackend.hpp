@@ -8,6 +8,7 @@
 #include "../settings/settings.h"
 
 #include "PlanToGcode.hpp"
+#include "PrintPlan.hpp"
 #include "VolumeStore.hpp"
 
 namespace cura {
@@ -20,7 +21,10 @@ public:
     void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, GCodeExport *gcode_out);
     
 private:
+    void createPlan();
+
     VolumeStore m_volume_store;
+    PrintPlan m_print_plan;
     PlanToGcode m_plan_to_gcode;
 };
 

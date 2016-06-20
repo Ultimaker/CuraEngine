@@ -100,6 +100,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/mason/MasonBackend.cpp
     src/mason/PlanToGcode.cpp
+    src/mason/PrintPlan.cpp
     src/mason/VolumeStore.cpp
 )
 
