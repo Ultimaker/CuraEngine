@@ -82,6 +82,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
     src/pathPlanning/Comb.cpp
+    src/pathPlanning/LinePolygonsCrossings.cpp
 
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp

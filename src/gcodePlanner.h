@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "gcodeExport.h"
-#include "comb.h"
+#include "pathPlanning/Comb.h"
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
