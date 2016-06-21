@@ -70,40 +70,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
     //Move start and end point inside the comb boundary
     unsigned int start_inside_poly = NO_INDEX;
-    if (_startInside) 
-    {
-        start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
-        if (!boundary_inside.inside(start_inside_poly) || start_inside_poly == NO_INDEX)
-        {
-            if (start_inside_poly != NO_INDEX)
-            { // if not yet inside because of overshoot, try again
-                start_inside_poly = PolygonUtils::moveInside(boundary_inside, startPoint, offset_extra_start_end, max_moveInside_distance2);
-            }
-            if (start_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
-            {
-                _startInside = false;
-            }
-        }
-    }
-    const bool startInside = _startInside;
+    const bool startInside = moveInside(_startInside, startPoint, start_inside_poly);
 
     unsigned int end_inside_poly = NO_INDEX;
-    if (_endInside)
-    {
-        end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
-        if (!boundary_inside.inside(endPoint) || end_inside_poly == NO_INDEX)
-        {
-            if (end_inside_poly != NO_INDEX)
-            { // if not yet inside because of overshoot, try again
-                end_inside_poly = PolygonUtils::moveInside(boundary_inside, endPoint, offset_extra_start_end, max_moveInside_distance2);
-            }
-            if (end_inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
-            {
-                _endInside = false;
-            }
-        }
-    }
-    const bool endInside = _endInside;
+    const bool endInside = moveInside(_endInside, endPoint, end_inside_poly);
 
     unsigned int start_part_boundary_poly_idx;
     unsigned int end_part_boundary_poly_idx;
@@ -226,6 +196,30 @@ Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, con
 , dest_part_idx(dest_part_idx)
 {
 
+}
+
+bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_poly)
+{
+    if (is_inside) 
+    {
+        inside_poly = PolygonUtils::moveInside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2);
+        if (!boundary_inside.inside(inside_poly) || inside_poly == NO_INDEX)
+        {
+            if (inside_poly != NO_INDEX)
+            { // if not yet inside because of overshoot, try again
+                inside_poly = PolygonUtils::moveInside(boundary_inside, dest_point, offset_extra_start_end / 2, max_moveInside_distance2);
+                if (!boundary_inside.inside(inside_poly))
+                {
+                    is_inside = false;
+                }
+            }
+            if (inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
+            {
+                is_inside = false;
+            }
+        }
+    }
+    return is_inside;
 }
 
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)

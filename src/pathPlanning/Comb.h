@@ -126,6 +126,15 @@ private:
      */
     BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
 
+    /*!
+     * Move the startPoint or endPoint inside when it should be inside
+     * \param is_inside[in] Whether the \p dest_point should be inside
+     * \param dest_point[in,out] The point to move
+     * \param start_inside_poly[out] The polygon in which the point has been moved
+     * \return Whether we have moved the point inside
+     */
+    bool moveInside(bool is_inside, Point& dest_point, unsigned int& start_inside_poly);
+
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
