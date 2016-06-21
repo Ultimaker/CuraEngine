@@ -218,13 +218,12 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
                 {
                     return false;
                 }
-                new_dest_point = dest_point;
-                inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_now, max_moveInside_distance2);
+                inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_now);
             }
         }
         dest_point = new_dest_point;
     }
-    return true;
+    return false;
 }
 
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
