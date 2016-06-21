@@ -72,7 +72,7 @@ unsigned int PolygonUtils::moveInside(const Polygons& polygons, Point& from, int
             continue;
         Point p0 = poly[poly.size()-2];
         Point p1 = poly.back();
-        bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) > vSize2(p1 - p0);
+        bool projected_p_beyond_prev_segment = dot(p1 - p0, from - p0) >= vSize2(p1 - p0);
         for(const Point& p2 : poly)
         {   
             // X = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
