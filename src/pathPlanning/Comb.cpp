@@ -26,7 +26,7 @@ BucketGrid2D<PolygonsPointIndex>& Comb::getOutsideLocToLine()
     Polygons& outside = getBoundaryOutside();
     if (!outside_loc_to_line)
     {
-        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_outlines_outside * 3 / 2);
+        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_inside_to_outside * 3 / 2);
     }
     return *outside_loc_to_line;
 }
@@ -38,7 +38,8 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
-, max_crossing_dist2((comb_boundary_offset + offset_from_outlines_outside) * (comb_boundary_offset + offset_from_outlines_outside) * 3) // so max_crossing_dist = offset_from_outlines_outside * sqrt(3), which is a bit more than sqrt(2) which is necesary for 90* corners
+, offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
+, max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 3) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(3), which is a bit more than sqrt(2) which is necesary for 90* corners
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
@@ -137,7 +138,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         }
 
         bool avoid_other_parts_now = avoid_other_parts;
-        if (avoid_other_parts_now && vSize2(start_crossing.in_or_mid - end_crossing.in_or_mid) < offset_from_outlines_outside * offset_from_outlines_outside * 4)
+        if (avoid_other_parts_now && vSize2(start_crossing.in_or_mid - end_crossing.in_or_mid) < offset_from_inside_to_outside * offset_from_inside_to_outside * 4)
         { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings via outside
             avoid_other_parts_now = false;
         }
@@ -250,7 +251,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
     out = in_or_mid;
     if (dest_is_inside || outside.inside(in_or_mid, true)) // start in_between
     { // move outside
-        Point preferred_crossing_1_out = in_or_mid + normal(close_to - in_or_mid, comber.offset_from_outlines + comber.offset_from_outlines_outside);
+        Point preferred_crossing_1_out = in_or_mid + normal(close_to - in_or_mid, comber.offset_from_inside_to_outside);
         std::function<int(Point)> close_to_penalty_function([preferred_crossing_1_out](Point candidate){ return vSize2((candidate - preferred_crossing_1_out) / 2); });
         ClosestPolygonPoint* crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid, outside, comber.getOutsideLocToLine(), close_to_penalty_function);
         if (crossing_1_out_cpp)
