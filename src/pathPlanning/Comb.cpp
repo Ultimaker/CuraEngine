@@ -223,7 +223,7 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
         }
         dest_point = new_dest_point;
     }
-    return false;
+    return is_inside;
 }
 
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
