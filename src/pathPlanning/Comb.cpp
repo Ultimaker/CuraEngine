@@ -200,26 +200,31 @@ Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, con
 
 bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_poly)
 {
-    if (is_inside) 
+    if (is_inside)
     {
-        inside_poly = PolygonUtils::moveInside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2);
-        if (!boundary_inside.inside(inside_poly) || inside_poly == NO_INDEX)
-        {
-            if (inside_poly != NO_INDEX)
-            { // if not yet inside because of overshoot, try again
-                inside_poly = PolygonUtils::moveInside(boundary_inside, dest_point, offset_extra_start_end / 2, max_moveInside_distance2);
-                if (!boundary_inside.inside(inside_poly))
+        Point new_dest_point(dest_point);
+        inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_extra_start_end, max_moveInside_distance2);
+        if (inside_poly == NO_INDEX)
+        { // couldn't find any poly close by enough
+            return false;
+        }
+        if (!boundary_inside.inside(new_dest_point))
+        { // by moving inside we overshot and got outside again
+            unsigned int offset_now = offset_extra_start_end;
+            while (!boundary_inside.inside(new_dest_point))
+            { // try moving inside with decreasing distances
+                offset_now /= 2;
+                if (offset_now == 0)
                 {
-                    is_inside = false;
+                    return false;
                 }
-            }
-            if (inside_poly == NO_INDEX)    //If we fail to move the point inside the comb boundary we need to retract.
-            {
-                is_inside = false;
+                new_dest_point = dest_point;
+                inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_now, max_moveInside_distance2);
             }
         }
+        dest_point = new_dest_point;
     }
-    return is_inside;
+    return true;
 }
 
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
