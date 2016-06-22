@@ -471,14 +471,32 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
 std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
-    for (unsigned int point_idx = 0; point_idx < from.size(); point_idx++)
+    int p0_idx = from.size() - 1;
+    Point p0(from[p0_idx]);
+    int grid_size = destination_loc_to_line.getCellSize();
+    for (unsigned int p1_idx = 0; p1_idx < from.size(); p1_idx++)
     {
-        const Point& point = from[point_idx];
-        ClosestPolygonPoint* best_here = findClose(point, destination, destination_loc_to_line, penalty_function);
+        const Point& p1 = from[p1_idx];
+        ClosestPolygonPoint* best_here = findClose(p1, destination, destination_loc_to_line, penalty_function);
         if (best_here)
         {
-            ret.push_back(std::make_pair(ClosestPolygonPoint(point, point_idx, from), *best_here));
+            ret.push_back(std::make_pair(ClosestPolygonPoint(p1, p1_idx, from), *best_here));
         }
+        Point p0p1 = p1 - p0;
+        int dist_to_p1 = vSize(p0p1);
+        for (unsigned int middle_point_nr = 1; dist_to_p1 > grid_size * 2; ++middle_point_nr)
+        {
+            Point x = p0 + normal(p0p1, middle_point_nr * grid_size);
+            dist_to_p1 -= grid_size;
+
+            ClosestPolygonPoint* best_here = findClose(x, destination, destination_loc_to_line, penalty_function);
+            if (best_here)
+            {
+                ret.push_back(std::make_pair(ClosestPolygonPoint(x, p0_idx, from), *best_here));
+            }
+        }
+        p0 = p1;
+        p0_idx = p1_idx;
     }
     return ret;
 }
