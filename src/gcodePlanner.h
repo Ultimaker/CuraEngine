@@ -631,14 +631,6 @@ public:
     bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
 
     /*!
-     * Write a retraction: either an extruder switch retraction or a normal retraction based on the last extrusion paths retraction config.
-     * \param gcode The gcode to write the planned paths to
-     * \param extruder_plan_idx The index of the current extruder plan
-     * \param path_idx_travel_after Index in GCodePlanner::paths to the travel move before which to do the retraction
-     */
-    void writeRetraction(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx_travel_after);
-    
-    /*!
      * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
      * \param gcode The gcode to write the planned paths to
      * \param extruder_switch_retract Whether to write an extruder switch retract

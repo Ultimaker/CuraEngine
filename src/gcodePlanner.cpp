@@ -599,10 +599,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                writeRetraction(gcode, extruder_plan_idx, path_idx);
+                writeRetraction(gcode, false, last_extrusion_config->retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(last_retraction_config->zHop);
+                    gcode.writeZhopStart(path.config->retraction_config->zHop);
                 }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
@@ -801,17 +801,6 @@ void GCodePlanner::processInitialLayersSpeedup()
     }
 }
 
-void GCodePlanner::writeRetraction(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx_travel_after)
-{
-    if (makeRetractSwitchRetract(gcode, extruder_plan_idx, path_idx_travel_after))
-    {
-        gcode.writeRetraction_extruderSwitch();
-    }
-    else 
-    {
-        writeRetraction(gcode, false, last_retraction_config);
-    }
-}
 void GCodePlanner::writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config)
 {    
     assert(retraction_config != nullptr);
