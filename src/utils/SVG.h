@@ -241,12 +241,12 @@ public:
         Point pf = transform(p);
         fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
     }
-    void writePolygons(Polygons& polys, Color color = Color::BLACK)
+    void writePolygons(const Polygons& polys, Color color = Color::BLACK)
     {
-        for (PolygonRef poly : polys)
+        for (const PolygonRef poly : const_cast<Polygons&>(polys))
             writePolygon(poly, color);
     }
-    void writePolygon(PolygonRef poly, Color color = Color::BLACK)
+    void writePolygon(const PolygonRef poly, Color color = Color::BLACK)
     {
         Point p0 = poly.back();
         for (Point p1 : poly)
