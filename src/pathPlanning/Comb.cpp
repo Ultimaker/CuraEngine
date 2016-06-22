@@ -229,14 +229,20 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
 {
     if (dest_is_inside)
-    {
+    { // in-case
         // find the point on the start inside-polygon closest to the endpoint, but also kind of close to the start point
         Point _dest_point(dest_point); // copy to local variable for lambda capture
         std::function<int(Point)> close_towards_start_penalty_function([_dest_point](Point candidate){ return vSize2((candidate - _dest_point) / 10); });
         dest_part = partsView_inside.assemblePart(dest_part_idx);
         ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(close_to, dest_part, close_towards_start_penalty_function);
         dest_crossing_poly = crossing_1_in_cp.poly;
-        in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_dist_to_get_from_on_the_polygon_to_outside); // in-case
+        int offset_to_get_off_boundary = offset_dist_to_get_from_on_the_polygon_to_outside;
+        in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_to_get_off_boundary);
+        while (!dest_part.inside(in_or_mid) && offset_to_get_off_boundary != 0)
+        { // on very small segments, try again with smaller offset
+            offset_to_get_off_boundary /= 2;
+            in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_to_get_off_boundary);
+        }
     }
     else 
     {
