@@ -566,6 +566,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.writeFanCommand(fan_speed);
     
     GCodePathConfig* last_extrusion_config = nullptr;
+    RetractionConfig* last_retraction_config = &storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+
     int extruder = gcode.getExtruderNr();
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
@@ -599,16 +601,17 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                writeRetraction(gcode, false, last_extrusion_config->retraction_config);
+                writeRetraction(gcode, false, last_retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(path.config->retraction_config->zHop);
+                    gcode.writeZhopStart(last_retraction_config->zHop);
                 }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
             {
                 gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
+                last_retraction_config = last_extrusion_config->retraction_config;
             }
             double speed = path.config->getSpeed();
 
@@ -717,11 +720,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     if (storage.getSettingBoolean("cool_lift_head") && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay");
-        if (last_extrusion_config)
-        {
-            bool extruder_switch_retract = false;// TODO: check whether we should do a retractoin_extruderSwitch; is the next path with a different extruder?
-            writeRetraction(gcode, extruder_switch_retract, last_extrusion_config->retraction_config);
-        }
+        bool extruder_switch_retract = false;
+        writeRetraction(gcode, extruder_switch_retract, last_retraction_config);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
