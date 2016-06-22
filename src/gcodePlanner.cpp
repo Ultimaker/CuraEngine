@@ -38,7 +38,7 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceF
     ret->space_fill_type = space_fill_type;
     if (!config->isTravelPath())
     {
-        last_retraction_config = config->retraction_config;
+        last_planned_retraction_config = config->retraction_config;
     }
     return ret;
 }
@@ -66,7 +66,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    last_retraction_config = &storage.retraction_config_per_extruder[current_extruder]; // start with general config
+    last_planned_retraction_config = &storage.retraction_config_per_extruder[current_extruder]; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
@@ -220,7 +220,7 @@ void GCodePlanner::addTravel(Point p)
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
         bool over_inavoidable_obstacles_makes_combing_fail = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, over_inavoidable_obstacles_makes_combing_fail);
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_planned_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, over_inavoidable_obstacles_makes_combing_fail);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -271,7 +271,7 @@ void GCodePlanner::addTravel(Point p)
     
     if (!combed) {
         // no combing? always retract!
-        if (!shorterThen(lastPosition - p, last_retraction_config->retraction_min_travel_distance))
+        if (!shorterThen(lastPosition - p, last_planned_retraction_config->retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.

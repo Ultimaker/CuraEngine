@@ -374,7 +374,7 @@ private:
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
 
-    RetractionConfig* last_retraction_config;
+    RetractionConfig* last_planned_retraction_config;
     
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
 
