@@ -284,9 +284,10 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;
-    int64_t best_detour_dist = std::numeric_limits<int64_t>::max();
+    int64_t best_detour_score = std::numeric_limits<int64_t>::max();
     int64_t best_crossing_dist2;
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine());
+    bool seen_close_enough_connection = false;
     for (std::pair<ClosestPolygonPoint, ClosestPolygonPoint>& crossing_candidate : crossing_out_candidates)
     {
         int64_t crossing_dist2 = vSize2(crossing_candidate.first.location - crossing_candidate.second.location);
@@ -298,15 +299,22 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         int64_t dist_to_start = vSize(crossing_candidate.second.location - estimated_start); // use outside location, so that the crossing direction is taken into account
         int64_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
         int64_t detour_dist = dist_to_start + dist_to_end;
-        if (detour_dist < best_detour_dist)
+        int64_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
+        if ((!seen_close_enough_connection && detour_score < best_detour_score) // keep the best as long as we havent seen one close enough (so that we may walk along the polygon to find a closer connection from it in the code below)
+            || (!seen_close_enough_connection && crossing_dist2 <= comber.max_crossing_dist2) // make the one which is close enough the best as soon as we see one close enough
+            || (seen_close_enough_connection && crossing_dist2 <= comber.max_crossing_dist2 && detour_score < best_detour_score)) // update to keep the best crossing which is close enough already
         {
+            if (!seen_close_enough_connection && crossing_dist2 <= comber.max_crossing_dist2)
+            {
+                seen_close_enough_connection = true;
+            }
             best_in = &crossing_candidate.first;
             best_out = &crossing_candidate.second;
-            best_detour_dist = detour_dist;
+            best_detour_score = detour_score;
             best_crossing_dist2 = crossing_dist2;
         }
     }
-    if (best_detour_dist == std::numeric_limits<int64_t>::max())
+    if (best_detour_score == std::numeric_limits<int64_t>::max())
     {
         return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
     }
