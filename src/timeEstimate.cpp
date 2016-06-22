@@ -66,11 +66,10 @@ static inline double intersection_distance(double initial_rate, double final_rat
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
 static inline double acceleration_time_from_distance(double initial_feedrate, double distance, double acceleration)
 {
-    const double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
-    if (discriminant < 0) //Going in the wrong direction. Could happen due to floating point rounding errors.
-    {
-        return 0;
-    }
+    double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
+    //If discriminant is negative, we're moving in the wrong direction.
+    //Making the discriminant 0 then gives the extremum of the parabola instead of the intersection.
+    discriminant = max(0, discriminant);
     return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
     
