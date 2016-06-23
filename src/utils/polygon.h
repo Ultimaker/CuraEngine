@@ -23,6 +23,7 @@ namespace cura {
 
 
 class PartsView;
+class Polygons;
 
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
@@ -96,6 +97,8 @@ public:
     {
         ClipperLib::ReversePath(*path);
     }
+
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     int64_t polygonLength() const
     {
@@ -305,6 +308,8 @@ class PolygonsPart;
 
 class Polygons
 {
+    friend class Polygon;
+    friend class PolygonRef;
 protected:
     ClipperLib::Paths paths;
 public:
