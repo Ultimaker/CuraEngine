@@ -121,7 +121,7 @@ public:
 //         fprintf(out, "</g>\n");
 //     }
     
-    void writeAreas(Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
     {
             
         for(PolygonsPart& parts : polygons.splitIntoParts())
