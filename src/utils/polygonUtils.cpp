@@ -261,6 +261,43 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     }
 }
 
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point from, int preferred_dist_inside, int64_t max_dist2)
+{
+    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2);
+    PolygonRef closest_poly = closest_polygon_point.poly;
+    bool is_outside_boundary = closest_poly.orientation();
+
+    {
+        bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
+        if (is_inside == (preferred_dist_inside > 0))
+        { // we ended up on the right side of the polygon
+            return closest_polygon_point;
+        }
+    }
+
+    // try once more with half the preferred distance inside
+    // TODO: use moveInside on closest_poly alone
+    moveInside2(closest_poly, from, preferred_dist_inside / 2);
+    bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
+    if (is_inside == (preferred_dist_inside > 0))
+    { // we ended up on the right side of the polygon
+        return closest_polygon_point;
+    }
+    // if above fails, we perform an offset and sit directly on the offsetted polygon (and keep the result from the above moveInside)
+    else
+    {
+        int offset = (is_outside_boundary)? -preferred_dist_inside : preferred_dist_inside; // perform inset on outer boundary and outset on holes
+        Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
+        if (insetted.size() == 0)
+        {
+            return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
+        }
+        ClosestPolygonPoint inside = findClosest(from, insetted);
+        from = inside.location;
+        return closest_polygon_point; // don't return a ClosestPolygonPoint with a reference to the above local polygons variable
+    }
+}
+
 
 void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, ClosestPolygonPoint& poly2_result, int sample_size)
 {

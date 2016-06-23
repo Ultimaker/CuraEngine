@@ -145,6 +145,20 @@ public:
     static Point moveOutside(const ClosestPolygonPoint& cpp, const int distance);
 
     /*!
+     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
+     * 
+     * \param polygons The polygons onto which to move the point
+     * \param from The point to move.
+     * \param preferred_dist_inside The preferred distance from the boundary to the point
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The point on the polygon closest to \p from
+     */
+    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point from, int preferred_dist_inside, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+
+    /*!
     * Find the two points in two polygons with the smallest distance.
     * 
     * Note: The amount of preliminary distance checks is quadratic in \p sample_size : `O(sample_size ^2)`.
