@@ -261,7 +261,7 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     }
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point from, int preferred_dist_inside, int64_t max_dist2)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2)
 {
     ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2);
     PolygonRef closest_poly = closest_polygon_point.poly;

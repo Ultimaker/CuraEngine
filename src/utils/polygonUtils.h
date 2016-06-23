@@ -71,7 +71,7 @@ public:
     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
     * 
     * \param polygons The polygons onto which to move the point
-    * \param from The point to move.
+    * \param from[in,out] The point to move.
     * \param distance The distance by which to move the point.
     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
     * \return The index to the polygon onto which we have moved the point.
@@ -85,7 +85,7 @@ public:
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
      * \param polygons The polygons onto which to move the point
-     * \param from The point to move.
+     * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The point on the polygon closest to \p from
@@ -99,7 +99,7 @@ public:
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
      * \param polygon The polygon onto which to move the point
-     * \param from The point to move.
+     * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The point on the polygon closest to \p from
@@ -115,7 +115,7 @@ public:
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
      * \param polygons The polygons onto which to move the point
-     * \param from The point to move.
+     * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The index to the polygon onto which we have moved the point.
@@ -151,12 +151,12 @@ public:
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
      * \param polygons The polygons onto which to move the point
-     * \param from The point to move.
+     * \param from[in,out] The point to move.
      * \param preferred_dist_inside The preferred distance from the boundary to the point
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point from, int preferred_dist_inside, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
 
     /*!
     * Find the two points in two polygons with the smallest distance.
