@@ -209,10 +209,11 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
         }
         else
         {
+            inside_poly = cpp.poly_idx;
             return true;
         }
     }
-    return is_inside;
+    return false;
 }
 
 void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point close_to)
