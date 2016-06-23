@@ -161,7 +161,7 @@ public:
         
         if (write_coords)
         {
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
@@ -239,7 +239,7 @@ public:
     void writeText(Point p, std::string txt)
     {
         Point pf = transform(p);
-        fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
+        fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
     }
     void writePolygons(const Polygons& polys, Color color = Color::BLACK)
     {
