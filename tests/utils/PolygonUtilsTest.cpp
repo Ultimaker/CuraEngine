@@ -14,6 +14,18 @@ void PolygonUtilsTest::setUp()
     test_square.emplace_back(100, 0);
     test_square.emplace_back(100, 100);
     test_square.emplace_back(0, 100);
+
+
+    pointy_square.emplace_back(0, 0);
+    pointy_square.emplace_back(47, 0);
+    pointy_square.emplace_back(50, 80);
+    pointy_square.emplace_back(53, 0);
+    pointy_square.emplace_back(100, 0);
+    pointy_square.emplace_back(100, 100);
+    pointy_square.emplace_back(55, 100);
+    pointy_square.emplace_back(50, 180);
+    pointy_square.emplace_back(45, 100);
+    pointy_square.emplace_back(0, 100);
 }
 
 void PolygonUtilsTest::tearDown()
@@ -153,7 +165,7 @@ void PolygonUtilsTest::cornerEdgeTest2()
     Polygons polys;
     polys.add(test_square);
     Point result = close_to;
-    PolygonUtils::moveInside(polys, result, distance);
+    PolygonUtils::moveInside2(polys, result, distance);
     {
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".\n";
@@ -227,7 +239,7 @@ void PolygonUtilsTest::moveInside2Assert(const PolygonRef poly, Point close_to, 
     Polygons polys;
     polys.add(poly);
     Point result = close_to;
-    PolygonUtils::moveInside(polys, result, distance);
+    PolygonUtils::moveInside2(polys, result, distance);
     {
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
@@ -283,5 +295,102 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
     
     delete loc_to_line;
 }
+
+void PolygonUtilsTest::moveInsidePointyCornerTest()
+{
+    Point from(55,170); // above pointy bit
+    Point result(from);
+    Point supposed(50,170); // 10 below pointy bit
+    Polygons inside;
+    inside.add(pointy_square);
+//     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
+    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
+    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
+    {
+        std::stringstream ss;
+        ss << "Couldn't ensure point inside close to " << from << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << from << " couldn't be moved inside.\n";
+//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+    }
+}
+
+void PolygonUtilsTest::moveInsidePointyCornerTestFail()
+{ // should fail with normal moveInside2 (and the like)
+    Point from(55,170); // above pointy bit
+    Point result(from);
+    Point supposed(50,170); // 10 below pointy bit
+    Polygons inside;
+    inside.add(pointy_square);
+    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
+//     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
+    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
+    {
+        std::stringstream ss;
+        ss << "Couldn't ensure point inside close to " << from << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << from << " could be moved inside, while it was designed to fail.\n";
+//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+    }
+}
+
+void PolygonUtilsTest::moveOutsidePointyCornerTest()
+{
+    Point from(60,70); // above pointy bit
+    Point result(from);
+    Point supposed(50,70); // 10 below pointy bit
+    Polygons inside;
+    inside.add(pointy_square);
+//     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
+    ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
+    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
+    {
+        std::stringstream ss;
+        ss << "Couldn't ensure point inside close to " << from << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << from << " couldn't be moved inside.\n";
+//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+    }
+}
+
+void PolygonUtilsTest::moveOutsidePointyCornerTestFail()
+{ // should fail with normal moveInside2 (and the like)
+    Point from(60,70); // above pointy bit
+    Point result(from);
+    Point supposed(50,70); // 10 below pointy bit
+    Polygons inside;
+    inside.add(pointy_square);
+    ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
+//     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, -10);
+    if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
+    {
+        std::stringstream ss;
+        ss << "Couldn't ensure point inside close to " << from << ".\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), false);
+    }
+    else
+    {
+        std::stringstream ss;
+        ss << from << " could be moved inside to " << result << ", while it was designed to fail.\n";
+//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+    }
+}
+
 
 }

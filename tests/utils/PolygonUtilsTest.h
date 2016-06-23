@@ -38,6 +38,10 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(cornerFindCloseTest);
     CPPUNIT_TEST(edgeFindCloseTest);
     CPPUNIT_TEST(middleEdgeFindCloseTest);
+    CPPUNIT_TEST(moveInsidePointyCornerTest);
+    CPPUNIT_TEST(moveOutsidePointyCornerTest);
+    CPPUNIT_TEST(moveInsidePointyCornerTestFail);
+    CPPUNIT_TEST(moveOutsidePointyCornerTestFail);
     CPPUNIT_TEST(cornerCrookedTest2);
     CPPUNIT_TEST(cornerEdgeTest2);
     CPPUNIT_TEST(onBorderTest2);
@@ -89,11 +93,17 @@ public:
     void middleTest2();
     void noMoveTest2();
     void farMoveTest2();
+
     void polygonOffsetTest();
-    
+
     void cornerFindCloseTest();
     void edgeFindCloseTest();
     void middleEdgeFindCloseTest();
+
+    void moveInsidePointyCornerTest();
+    void moveOutsidePointyCornerTest();
+    void moveInsidePointyCornerTestFail();
+    void moveOutsidePointyCornerTestFail();
 
 private:
     /*!
@@ -102,6 +112,7 @@ private:
     static const int64_t maximum_error = 10;
     
     Polygon test_square;
+    Polygon pointy_square;
     
     /*!
      * cppunit assert for PolygonUtils::moveInside(ClosestPolygonPoint, int)
