@@ -77,7 +77,35 @@ public:
     * \return The index to the polygon onto which we have moved the point.
     */
     static unsigned int moveInside(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
-    
+
+    /*!
+     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
+     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
+     * 
+     * \param polygons The polygons onto which to move the point
+     * \param from The point to move.
+     * \param distance The distance by which to move the point.
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The point on the polygon closest to \p from
+     */
+    static ClosestPolygonPoint moveInside2(const Polygons& polygons, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+
+    /*!
+     * Moves the point \p from onto the nearest segment of \p polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
+     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
+     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
+     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
+     * 
+     * \param polygon The polygon onto which to move the point
+     * \param from The point to move.
+     * \param distance The distance by which to move the point.
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The point on the polygon closest to \p from
+     */
+    static ClosestPolygonPoint moveInside2(const PolygonRef polygon, Point& from, int distance = 0, int64_t max_dist2 = std::numeric_limits<int64_t>::max());
+
     /*!
      * The opposite of moveInside.
      * 
@@ -302,6 +330,12 @@ public:
      * polygon(s)
      */
     static bool polygonCollidesWithlineSegment(Polygons& polys, Point& startPoint, Point& endPoint);
+private:
+    /*!
+     * Helper function: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
+     * 
+     */
+    static ClosestPolygonPoint _moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, const Point v_boundary_from, Point& from);
 };
 
 
