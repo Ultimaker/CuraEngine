@@ -405,9 +405,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
 
 ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygons, const std::function<int(Point)>& penalty_function)
 {
-
-    Polygon emptyPoly;
-    ClosestPolygonPoint none(from, -1, emptyPoly, -1);
+    ClosestPolygonPoint none(from, -1, polygons[0], -1);
     
     if (polygons.size() == 0) return none;
     PolygonRef aPolygon = polygons[0];

@@ -19,9 +19,9 @@ struct ClosestPolygonPoint
     PolygonRef poly; //!< Polygon in which the result was found
     int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
     int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
-    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), poly_idx(-1), point_idx(pos) {};
+    ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
-    ClosestPolygonPoint(PolygonRef poly) : poly(poly), poly_idx(-1), point_idx(-1) {};
+    ClosestPolygonPoint(PolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
 };
 
 /*!
@@ -65,7 +65,7 @@ public:
     static Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset);
 
     /*!
-    * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within \p distance.
+    * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
     * Given a \p distance more than zero, the point will end up inside, and conversely outside.
     * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
     * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
@@ -344,7 +344,7 @@ public:
      * polygon(s)
      */
     static bool polygonCollidesWithlineSegment(const Polygons& polys, Point& startPoint, Point& endPoint);
-    
+
 private:
     /*!
      * Helper function: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
