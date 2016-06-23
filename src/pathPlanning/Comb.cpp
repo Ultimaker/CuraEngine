@@ -226,11 +226,14 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         dest_part = partsView_inside.assemblePart(dest_part_idx);
         Point result(close_to);
         ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside);
-        assert(crossing_1_in_cp.point_idx != NO_INDEX);
         if (crossing_1_in_cp.point_idx != NO_INDEX)
         {
             dest_crossing_poly = crossing_1_in_cp.poly;
             in_or_mid = result;
+        }
+        else
+        { // part is too small to be ensuring a point inside with the given distance
+            in_or_mid = dest_point; // just use the startPoint or endPoint itself
         }
     }
     else 
