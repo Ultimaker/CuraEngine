@@ -202,26 +202,15 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
 {
     if (is_inside)
     {
-        Point new_dest_point(dest_point);
-        inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_extra_start_end, max_moveInside_distance2);
-        if (inside_poly == NO_INDEX)
-        { // couldn't find any poly close by enough
+        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2);
+        if (cpp.point_idx == NO_INDEX)
+        {
             return false;
         }
-        if (!boundary_inside.inside(new_dest_point))
-        { // by moving inside we overshot and got outside again
-            unsigned int offset_now = offset_extra_start_end;
-            while (!boundary_inside.inside(new_dest_point))
-            { // try moving inside with decreasing distances
-                offset_now /= 2;
-                if (offset_now == 0)
-                {
-                    return false;
-                }
-                inside_poly = PolygonUtils::moveInside(boundary_inside, new_dest_point, offset_now);
-            }
+        else
+        {
+            return true;
         }
-        dest_point = new_dest_point;
     }
     return is_inside;
 }
