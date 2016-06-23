@@ -286,6 +286,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
         if (is_inside == (preferred_dist_inside > 0))
         { // we ended up on the right side of the polygon
+            // assume we didn't overshoot another polygon in [polygons]
             return closest_polygon_point;
         }
     }
@@ -296,6 +297,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
     if (is_inside == (preferred_dist_inside > 0))
     { // we ended up on the right side of the polygon
+        // assume we didn't overshoot another polygon in [polygons]
         return closest_polygon_point;
     }
     // if above fails, we perform an offset and sit directly on the offsetted polygon (and keep the result from the above moveInside)

@@ -150,6 +150,11 @@ public:
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
+     * \warning May give false positives.
+     * Some checking is done to make sure we end up inside the polygon, 
+     * but it might still be the case that we end up outside:
+     * when the closest point on the boundary is very close to another polygon
+     * 
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param preferred_dist_inside The preferred distance from the boundary to the point
