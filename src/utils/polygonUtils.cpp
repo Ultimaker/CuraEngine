@@ -341,9 +341,9 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     int equilibirum_limit = 100; // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
-        int pos1_before = poly1_result.point_idx;
+        unsigned int pos1_before = poly1_result.point_idx;
         poly1_result = findNearestClosest(poly2_result.location, poly1, poly1_result.point_idx);
-        int pos2_before = poly2_result.point_idx;
+        unsigned int pos2_before = poly2_result.point_idx;
         poly2_result = findNearestClosest(poly1_result.location, poly2, poly2_result.point_idx);
        
         if (poly1_result.point_idx == pos1_before && poly2_result.point_idx == pos2_before)

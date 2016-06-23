@@ -17,8 +17,8 @@ struct ClosestPolygonPoint
 {
     Point location; //!< Result location
     PolygonRef poly; //!< Polygon in which the result was found
-    int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
-    int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
+    unsigned int poly_idx; //!< The index of the polygon in some Polygons where ClosestPolygonPoint::poly can be found
+    unsigned int point_idx; //!< Index to the first point in the polygon of the line segment on which the result was found
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
     ClosestPolygonPoint(PolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
