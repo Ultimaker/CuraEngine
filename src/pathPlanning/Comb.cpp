@@ -137,9 +137,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             assert(start_crossing.dest_part.size() > 0 && "The part we start inside when combing should have been computed already!");
             combPaths.emplace_back();
             bool combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
-            assert(combing_succeeded && "Couldn't comb between start point and computed crossing from the start part!");
             if (!combing_succeeded)
-            {
+            { // Couldn't comb between start point and computed crossing from the start part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
                 return false;
             }
         }
@@ -177,10 +176,10 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             // boundary to end
             assert(end_crossing.dest_part.size() > 0 && "The part we end up inside when combing should have been computed already!");
             combPaths.emplace_back();
+            
             bool combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
-            assert(combing_succeeded && "Couldn't comb between end point and computed crossing to the end part!");
             if (!combing_succeeded)
-            {
+            { // Couldn't comb between end point and computed crossing to the end part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
                 return false;
             }
         }
