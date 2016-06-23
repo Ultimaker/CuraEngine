@@ -7,6 +7,10 @@
 #include "BucketGrid2D.h"
 #include "../debug.h"
 
+#ifdef DEBUG
+#include "AABB.h"
+#include "SVG.h"
+#endif
 
 namespace cura 
 {
@@ -312,7 +316,8 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                 /*
                  * somehow the insetted polygon is not inside of [closest_poly]
                  * Clipper seems to fuck up sometimes.
-                closests.add(closest_poly);
+                 */
+#ifdef DEBUG
                 {
                     AABB aabb(insetted);
                     aabb.expand(std::abs(preferred_dist_inside) * 2);
@@ -327,7 +332,8 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     svg.writePoint(from, false, 5, SVG::Color::GREEN);
                     svg.writePoint(inside.location, false, 5, SVG::Color::RED);
                 }
-                */
+                logError("ERROR! ERROR!\n\tClipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
+#endif
                 return ClosestPolygonPoint(polygons[0]);
             }
             from = inside.location;
