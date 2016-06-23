@@ -205,11 +205,29 @@ public:
      * 
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
      * 
+     * \deprecated This function is no longer used, since the Clipper function is used by the function PolygonRef::inside(.)
+     * 
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false);
+    bool _inside(Point p, bool border_result = false);
+
+    /*!
+     * Clipper function.
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return 'border_result'.
+     * 
+     * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
+     */
+    bool inside(Point p, bool border_result = false)
+    {
+        int res = ClipperLib::PointInPolygon(p, *path);
+        if (res == -1)
+        {
+            return border_result;
+        }
+        return res == 1;
+    }
     
     /*!
      * Smooth out the polygon and store the result in \p result.
