@@ -347,10 +347,16 @@ public:
 
 private:
     /*!
-     * Helper function: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
+     * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already inside/outside by enough distance.
      * 
+     * \param closest_polygon_point The ClosestPolygonPoint we have to move inside
+     * \param distance The distance by which to move the point.
+     * \param from[in,out] The point to move.
+     * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint _moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, const Point v_boundary_from, Point& from);
+    static ClosestPolygonPoint _moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, int64_t max_dist2);
+    
 };
 
 

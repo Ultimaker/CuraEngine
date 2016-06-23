@@ -60,49 +60,48 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
 ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, int distance, int64_t max_dist2)
 {
     const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygons);
-    if (closest_polygon_point.point_idx == NO_INDEX)
-    {
-        return ClosestPolygonPoint(polygons[0]); // stub with invalid indices to signify we haven't found any
-    }
-    const Point v_boundary_from = from - closest_polygon_point.location;
-    if (vSize2(v_boundary_from) > max_dist2)
-    {
-        return ClosestPolygonPoint(polygons[0]); // stub with invalid indices to signify we haven't found any
-    }
-
-    return _moveInside2(closest_polygon_point, distance, v_boundary_from, from);
+    return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
 ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, int distance, int64_t max_dist2)
 {
     const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygon);
-    if (closest_polygon_point.point_idx == NO_INDEX)
-    {
-        return ClosestPolygonPoint(polygon); // stub with invalid indices to signify we haven't found any
-    }
-    const Point v_boundary_from = from - closest_polygon_point.location;
-    if (vSize2(v_boundary_from) > max_dist2)
-    {
-        return ClosestPolygonPoint(polygon); // stub with invalid indices to signify we haven't found any
-    }
-
-    return _moveInside2(closest_polygon_point, distance, v_boundary_from, from);
+    return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, const Point v_boundary_from, Point& from)
+ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, int64_t max_dist2)
 {
+    if (closest_polygon_point.point_idx == NO_INDEX)
+    {
+        return ClosestPolygonPoint(closest_polygon_point.poly); // stub with invalid indices to signify we haven't found any
+    }
+    const Point v_boundary_from = from - closest_polygon_point.location;
     Point result = moveInside(closest_polygon_point, distance);
     const Point v_boundary_result = result - closest_polygon_point.location;
-    if (dot(v_boundary_result, v_boundary_from) > 0 // point was already on the correct side of the polygon
-        && vSize2(v_boundary_from) > distance * distance)
-    { // [from] was already on the correct side of the boudary by enough distance
-        // don't change [from]
-        return closest_polygon_point;
+    if (dot(v_boundary_result, v_boundary_from) > 0)
+    { // point was already on the correct side of the polygon
+        if (vSize2(v_boundary_from) > distance * distance)
+        { // [from] was already on the correct side of the boudary by enough distance
+            // don't change [from]
+            return closest_polygon_point;
+        }
+        else
+        {
+            from = result;
+            return closest_polygon_point;
+        }
     }
     else
     {
-        from = result;
-        return closest_polygon_point;
+        if (vSize2(v_boundary_from) > max_dist2)
+        {
+            return ClosestPolygonPoint(closest_polygon_point.poly); // stub with invalid indices to signify we haven't found any
+        }
+        else
+        {
+            from = result;
+            return closest_polygon_point;
+        }
     }
 }
 
