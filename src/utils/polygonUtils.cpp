@@ -306,6 +306,30 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         ClosestPolygonPoint inside = findClosest(from, insetted);
         if (inside.point_idx != NO_INDEX)
         {
+            bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part
+            if (is_inside != (preferred_dist_inside > 0))
+            {
+                /*
+                 * somehow the insetted polygon is not inside of [closest_poly]
+                 * Clipper seems to fuck up sometimes.
+                closests.add(closest_poly);
+                {
+                    AABB aabb(insetted);
+                    aabb.expand(std::abs(preferred_dist_inside) * 2);
+                    SVG svg("debug.html", aabb);
+                    svg.writePolygon(closest_poly, SVG::Color::BLACK);
+                    for (auto point : closest_poly)
+                        svg.writePoint(point, true, 2);
+                    svg.writePolygons(insetted, SVG::Color::BLUE);
+                    for (auto poly : insetted)
+                    for (auto point : poly)
+                        svg.writePoint(point, true, 2);
+                    svg.writePoint(from, false, 5, SVG::Color::GREEN);
+                    svg.writePoint(inside.location, false, 5, SVG::Color::RED);
+                }
+                */
+                return ClosestPolygonPoint(polygons[0]);
+            }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
         return closest_polygon_point; // don't return a ClosestPolygonPoint with a reference to the above local polygons variable
