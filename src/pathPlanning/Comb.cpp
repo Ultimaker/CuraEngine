@@ -39,7 +39,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
-, max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 3) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(3), which is a bit more than sqrt(2) which is necesary for 90* corners
+, max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
