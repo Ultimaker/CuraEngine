@@ -209,7 +209,6 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
         else
         {
             inside_poly = cpp.poly_idx;
-            assert(boundary_inside.inside(dest_point));
             return true;
         }
     }
