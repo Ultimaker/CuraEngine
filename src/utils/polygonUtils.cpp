@@ -327,14 +327,14 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, co
 {
 
     Polygon emptyPoly;
-    ClosestPolygonPoint none(from, -1, emptyPoly);
+    ClosestPolygonPoint none(from, -1, emptyPoly, -1);
     
     if (polygons.size() == 0) return none;
     PolygonRef aPolygon = polygons[0];
     if (aPolygon.size() == 0) return none;
     Point aPoint = aPolygon[0];
 
-    ClosestPolygonPoint best(aPoint, 0, aPolygon);
+    ClosestPolygonPoint best(aPoint, 0, aPolygon, 0);
 
     int64_t closestDist2_score = vSize2(from - best.location) + penalty_function(best.location);
     
@@ -348,8 +348,8 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, Polygons& polygons, co
         {
             best = closest_here;
             closestDist2_score = dist2_score;
+            best.poly_idx = ply;
         }
-
     }
 
     return best;
@@ -463,7 +463,7 @@ ClosestPolygonPoint* PolygonUtils::findClose(Point from, const Polygons& polygon
     }
     else
     {
-        return new ClosestPolygonPoint(best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx]);
+        return new ClosestPolygonPoint(best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
     }
 }
 
