@@ -223,14 +223,13 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         Point _dest_point(dest_point); // copy to local variable for lambda capture
         std::function<int(Point)> close_towards_start_penalty_function([_dest_point](Point candidate){ return vSize2((candidate - _dest_point) / 10); });
         dest_part = partsView_inside.assemblePart(dest_part_idx);
-        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::findClosest(close_to, dest_part, close_towards_start_penalty_function);
-        dest_crossing_poly = crossing_1_in_cp.poly;
-        int offset_to_get_off_boundary = offset_dist_to_get_from_on_the_polygon_to_outside;
-        in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_to_get_off_boundary);
-        while (!dest_part.inside(in_or_mid) && offset_to_get_off_boundary != 0)
-        { // on very small segments, try again with smaller offset
-            offset_to_get_off_boundary /= 2;
-            in_or_mid = PolygonUtils::moveInside(crossing_1_in_cp, offset_to_get_off_boundary);
+        Point result(close_to);
+        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside);
+        assert(crossing_1_in_cp.point_idx != NO_INDEX);
+        if (crossing_1_in_cp.point_idx != NO_INDEX)
+        {
+            dest_crossing_poly = crossing_1_in_cp.poly;
+            in_or_mid = result;
         }
     }
     else 
