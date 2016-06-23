@@ -45,6 +45,7 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(middleTest2);
     CPPUNIT_TEST(noMoveTest2);
     CPPUNIT_TEST(farMoveTest2);
+    CPPUNIT_TEST(polygonOffsetTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -88,6 +89,7 @@ public:
     void middleTest2();
     void noMoveTest2();
     void farMoveTest2();
+    void polygonOffsetTest();
     
     void cornerFindCloseTest();
     void edgeFindCloseTest();
