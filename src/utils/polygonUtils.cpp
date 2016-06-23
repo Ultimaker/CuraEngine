@@ -183,7 +183,7 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
         return cpp.location;
     }
     const PolygonRef poly = cpp.poly;
-    unsigned int point_idx = cpp.pos;
+    unsigned int point_idx = cpp.point_idx;
     const Point& on_boundary = cpp.location;
 
     Point& p1 = poly[point_idx];
@@ -240,8 +240,8 @@ void PolygonUtils::findSmallestConnection(ClosestPolygonPoint& poly1_result, Clo
             if (bestDist2 == -1 || dist2 < bestDist2)
             {   
                 bestDist2 = dist2;
-                poly1_result.pos = i;
-                poly2_result.pos = j;
+                poly1_result.point_idx = i;
+                poly2_result.point_idx = j;
             }
         }
     }
@@ -253,7 +253,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
 {
     PolygonRef poly1 = poly1_result.poly;
     PolygonRef poly2 = poly2_result.poly;
-    if (poly1_result.pos < 0 || poly2_result.pos < 0)
+    if (poly1_result.point_idx < 0 || poly2_result.point_idx < 0)
     {
         return;
     }
@@ -261,12 +261,12 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
     int equilibirum_limit = 100; // hard coded value
     for (int loop_counter = 0; loop_counter < equilibirum_limit; loop_counter++)
     {
-        int pos1_before = poly1_result.pos;
-        poly1_result = findNearestClosest(poly2_result.location, poly1, poly1_result.pos);
-        int pos2_before = poly2_result.pos;
-        poly2_result = findNearestClosest(poly1_result.location, poly2, poly2_result.pos);
+        int pos1_before = poly1_result.point_idx;
+        poly1_result = findNearestClosest(poly2_result.location, poly1, poly1_result.point_idx);
+        int pos2_before = poly2_result.point_idx;
+        poly2_result = findNearestClosest(poly1_result.location, poly2, poly2_result.point_idx);
        
-        if (poly1_result.pos == pos1_before && poly2_result.pos == pos2_before)
+        if (poly1_result.point_idx == pos1_before && poly2_result.point_idx == pos2_before)
         {
             break;
         }

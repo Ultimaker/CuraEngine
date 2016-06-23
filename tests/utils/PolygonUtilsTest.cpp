@@ -58,7 +58,7 @@ void PolygonUtilsTest::cornerEdgeTest()
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << " or " << supposed2 << ".\n";
         ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
-        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".\n";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error);
     }
 }
@@ -87,7 +87,7 @@ void PolygonUtilsTest::middleTest()
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed1 << ", " << supposed2 << ", " << supposed3 << " or " << supposed4 << ".\n";
         ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
-        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".\n";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed1) <= maximum_error || vSize(result - supposed2) <= maximum_error || vSize(result - supposed3) <= maximum_error || vSize(result - supposed4) <= maximum_error);
     }
 }
@@ -104,7 +104,7 @@ void PolygonUtilsTest::middleTestPenalty()
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
         ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
-        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".\n";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
     }
 }
@@ -217,7 +217,7 @@ void PolygonUtilsTest::moveInsideAssert(const PolygonRef poly, Point close_to, c
         std::stringstream ss;
         ss << close_to << " moved with " << distance << " micron inside to " << result << " rather than " << supposed << ".\n";
         ss << "\tPS: dist to boundary computed = " << vSize(cpp.location - result) << "; idem supposed = " << vSize(cpp.location - result) << ".\n";
-        ss << "\tclosest point = " << cpp.location << " at index " << cpp.pos << ".\n";
+        ss << "\tclosest point = " << cpp.location << " at index " << cpp.point_idx << ".\n";
         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) <= maximum_error);
     }
 }
