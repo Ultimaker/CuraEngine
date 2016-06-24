@@ -580,8 +580,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         if (extruder != extruder_plan.extruder)
         {
+            const int old_extruder = extruder;
+            assert(old_extruder >= 0);
             extruder = extruder_plan.extruder;
-            gcode.switchExtruder(extruder);
+            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[old_extruder]);
         }
         std::vector<GCodePath>& paths = extruder_plan.paths;
         
@@ -606,7 +608,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                writeRetraction(gcode, false, last_retraction_config);
+                gcode.writeRetraction(last_retraction_config);
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(last_retraction_config->zHop);
@@ -725,8 +727,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     if (storage.getSettingBoolean("cool_lift_head") && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay");
-        bool extruder_switch_retract = false;
-        writeRetraction(gcode, extruder_switch_retract, last_retraction_config);
+        gcode.writeRetraction(last_retraction_config);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
@@ -803,19 +804,6 @@ void GCodePlanner::processInitialLayersSpeedup()
                 mesh.infill_config[idx].setSpeedIconic();
             }
         }
-    }
-}
-
-void GCodePlanner::writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config)
-{    
-    assert(retraction_config != nullptr);
-    if (extruder_switch_retract)
-    {
-        gcode.writeRetraction_extruderSwitch();
-    }
-    else 
-    {
-        gcode.writeRetraction(retraction_config);
     }
 }
 

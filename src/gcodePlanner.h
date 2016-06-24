@@ -632,14 +632,6 @@ public:
     bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
 
     /*!
-     * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
-     * \param gcode The gcode to write the planned paths to
-     * \param extruder_switch_retract Whether to write an extruder switch retract
-     * \param retraction_config The config used.
-     */
-    void writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config);
-    
-    /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
      */
     void processFanSpeedAndMinimalLayerTime();

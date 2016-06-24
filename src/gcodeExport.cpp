@@ -54,15 +54,6 @@ void GCodeExport::preSetup(MeshGroup* settings)
         extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
         extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
 
-        extruder_attr[n].extruder_switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
-        extruder_attr[n].extruder_switch_retraction_config.prime_volume = 0.0;
-        extruder_attr[n].extruder_switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
-        extruder_attr[n].extruder_switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-        extruder_attr[n].extruder_switch_retraction_config.zHop = train->getSettingInMicrons("switch_extruder_retraction_hop");
-        extruder_attr[n].extruder_switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
-        extruder_attr[n].extruder_switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
-        extruder_attr[n].extruder_switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
-
         extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
     machine_dimensions.x = settings->getSettingInMicrons("machine_width");
@@ -685,21 +676,12 @@ void GCodeExport::writeZhopStart(int hop_height)
     }
 }
 
-
-void GCodeExport::writeRetraction_extruderSwitch()
-{
-    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
-    RetractionConfig* config = &extr_attr.extruder_switch_retraction_config;
-
-    writeRetraction(config, true, true);
-}
-
-void GCodeExport::switchExtruder(int new_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
         return;
 
-    writeRetraction_extruderSwitch();
+    writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), true, true);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
