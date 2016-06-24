@@ -129,20 +129,19 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
 
 bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    ProximityPointLink link(from, to);
-    ProximityPointLinkAttributes attr(dist, false);
+    ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links.emplace(link, attr);
+        proximity_point_links.emplace(link);
         
-    if (! result.second)
-    { // we already have the link
+//     if (! result.second)
+//     { // we already have the link
 //         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
-        result.first->second = attr;
-    }
+//         result.first->second = attr;
+//     }
     
     ProximityPointLinks::iterator it = result.first;
-    addToPoint2LinkMap(*it->first.a.it, it);
-    addToPoint2LinkMap(*it->first.b.it, it);
+    (*it->a.it, it);
+    addToPoint2LinkMap(*it->b.it, it);
     
     
     return result.second;
@@ -150,20 +149,19 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
 
 bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    ProximityPointLink link(from, to);
-    ProximityPointLinkAttributes attr(dist, false);
+    ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links_endings.emplace(link, attr);
+        proximity_point_links_endings.emplace(link);
         
-    if (! result.second)
-    {
+//     if (! result.second)
+//     {
 //         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
-        result.first->second = attr;
-    }
+//         result.first->second = attr;
+//     }
     
     ProximityPointLinks::iterator it = result.first;
-    addToPoint2LinkMap(*it->first.a.it, it);
-    addToPoint2LinkMap(*it->first.b.it, it);
+    addToPoint2LinkMap(*it->a.it, it);
+    addToPoint2LinkMap(*it->b.it, it);
     
     
     return result.second;
@@ -171,33 +169,31 @@ bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyI
 
 void PolygonProximityLinker::addProximityEndings()
 {
-    for (std::pair<ProximityPointLink, ProximityPointLinkAttributes> link_pair : proximity_point_links)
+    for (const ProximityPointLink& link : proximity_point_links)
     {
 
-        if (link_pair.second.dist == proximity_distance)
+        if (link.dist == proximity_distance)
         { // its ending itself
             continue;
         }
-        ProximityPointLink& link = link_pair.first;
         const ListPolyIt& a_1 = link.a;
         const ListPolyIt& b_1 = link.b;
         // an overlap segment can be an ending in two directions
         { 
             ListPolyIt a_2 = a_1.next();
             ListPolyIt b_2 = b_1.prev();
-            addProximityEnding(link_pair, a_2, b_2, a_2, b_1);
+            addProximityEnding(link, a_2, b_2, a_2, b_1);
         }
         { 
             ListPolyIt a_2 = a_1.prev();
             ListPolyIt b_2 = b_1.next();
-            addProximityEnding(link_pair, a_2, b_2, a_1, b_2);
+            addProximityEnding(link, a_2, b_2, a_1, b_2);
         }
     }
 }
 
-void PolygonProximityLinker::addProximityEnding(std::pair<ProximityPointLink, ProximityPointLinkAttributes> link_pair, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle)
+void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle)
 {
-    ProximityPointLink& link = link_pair.first;
     Point& a1 = link.a.p();
     Point& a2 = a2_it.p();
     Point& b1 = link.b.p();
@@ -208,7 +204,7 @@ void PolygonProximityLinker::addProximityEnding(std::pair<ProximityPointLink, Pr
     if (point_to_link.find(a2_it.p()) == point_to_link.end() 
         || point_to_link.find(b2_it.p()) == point_to_link.end())
     {
-        int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link_pair.second.dist);
+        int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link.dist);
         if (dist < 0) { return; }
         int64_t a_length2 = vSize2(a);
         int64_t b_length2 = vSize2(b);
@@ -281,7 +277,7 @@ void PolygonProximityLinker::addSharpCorners()
     
 void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it)
 {
-    point_to_link.emplace(p, it);
+    point_to_link.emplace(p, *it); // copy element from proximity_point_links set to Point2Link map
     // TODO: what to do if the map already contained a link? > three-way proximity
 }
 
@@ -312,21 +308,19 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
 
     { // output links
         // output normal links
-        for (std::pair<ProximityPointLink , ProximityPointLinkAttributes> link_pair : copy.proximity_point_links)
+        for (const ProximityPointLink& link : copy.proximity_point_links)
         {
-            ProximityPointLink& link = link_pair.first;
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
-            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == proximity_distance? 0 : 255, link_pair.second.dist==proximity_distance? 255 : 0);
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
         
         // output ending links
-        for (std::pair<ProximityPointLink , ProximityPointLinkAttributes> link_pair : copy.proximity_point_links_endings)
+        for (const ProximityPointLink& link: copy.proximity_point_links_endings)
         {
-            ProximityPointLink& link = link_pair.first;
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
-            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == proximity_distance? 0 : 255, link_pair.second.dist==proximity_distance? 255 : 0);
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
     }
 

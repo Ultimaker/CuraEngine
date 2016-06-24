@@ -52,8 +52,19 @@ class PolygonProximityLinker
     {
         const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
         const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
-        ProximityPointLink(const ListPolyIt a, const ListPolyIt b) : a(a), b(b) { }
-        bool operator==(const ProximityPointLink& other) const { return (a == other.a && b == other.b) || (a == other.b && b == other.a); }
+        const int dist; //!< The distance between the two points
+        mutable bool passed; //!< Whether this point has been processed already. mutable, because it doesn't change the hash of the object.
+        ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
+        : a(a)
+        , b(b)
+        , dist(dist)
+        , passed(false)
+        {
+        }
+        bool operator==(const ProximityPointLink& other) const
+        {
+            return (a == other.a && b == other.b) || (a == other.b && b == other.a);
+        }
     };
     
     /*!
@@ -66,16 +77,9 @@ class PolygonProximityLinker
             return std::hash<Point>()(*pp.a.it) + std::hash<Point>()(*pp.b.it);
         }
     };
-
-    struct ProximityPointLinkAttributes
-    {
-        int dist; //!< The distance between the two points
-        bool passed; //!< Whether this point has been passed while writing gcode
-        ProximityPointLinkAttributes(int dist, bool passed) : dist(dist), passed(passed) { }
-    };
     
-    typedef std::unordered_map<ProximityPointLink, ProximityPointLinkAttributes, ProximityPointLink_Hasher> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
-    typedef std::unordered_map<Point, ProximityPointLinks::iterator> Point2Link; //!< The type of PolygonProximityLinker::point_to_link \warning mapping to iterators which might get invalidated!
+    typedef std::unordered_set<ProximityPointLink, ProximityPointLink_Hasher> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
+    typedef std::unordered_map<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link 
     
     
     /////////////////////////////////////////////////////////////////////////////////////////////
@@ -89,7 +93,7 @@ class PolygonProximityLinker
     ProximityPointLinks proximity_point_links; //!< mapping from each link to its attributes
     ProximityPointLinks proximity_point_links_endings; //!< mapping from each ending link to its attributes (which has a distance field equal to PolygonProximityLinker::line_width). Note that this is a separate map from PolygonProximityLinker::overlap_point_links, because that magically solved a bug .
     
-    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet) \warning mapping to iterators which might get invalidated!
+    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
 
     void findProximatePoints(); //!< find the basic overlap links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
     /*!
@@ -143,7 +147,7 @@ class PolygonProximityLinker
      * \param a_before_middle Where to insert a new point for a if this is indeed en ending
      * \param b_before_middle Where to insert a new point for b if this is indeed en ending
      */
-    void addProximityEnding(std::pair<ProximityPointLink, ProximityPointLinkAttributes> link_pair, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
+    void addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
     
     /*!
      * Compute the distance between the points of the last link and the points introduced to account for the overlap endings.
