@@ -57,6 +57,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
+, last_extruder_previous_layer(current_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(current_extruder))
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
@@ -217,8 +218,8 @@ void GCodePlanner::addTravel(Point p)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
     const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
-    const bool is_first_travel_of_extruder_plan = extruder_plans.back().paths.size() == 0;
-    const bool bypass_combing = is_first_travel_of_extruder_plan && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
     if (comb != nullptr && !bypass_combing && lastPosition != no_point)
     {

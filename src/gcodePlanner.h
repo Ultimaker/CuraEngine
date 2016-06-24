@@ -368,6 +368,7 @@ private:
     
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
+    int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
