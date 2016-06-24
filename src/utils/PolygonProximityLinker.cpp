@@ -150,7 +150,7 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
 //     }
     
     ProximityPointLinks::iterator it = result.first;
-    (*it->a.it, it);
+    addToPoint2LinkMap(*it->a.it, it);
     addToPoint2LinkMap(*it->b.it, it);
     
     
