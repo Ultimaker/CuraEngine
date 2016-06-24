@@ -9,9 +9,9 @@
 namespace cura 
 {
 
-PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int lineWidth)
+PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity_distance)
  : polygons(polygons)
- , line_width(lineWidth) 
+ , proximity_distance(proximity_distance) 
 { 
     unsigned int n_points = 0;
     for (PolygonRef poly : polygons)
@@ -20,14 +20,14 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int lineWidth
     }
 
     // reserve enough elements so that iterators don't get invalidated
-    overlap_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
-    overlap_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
+    proximity_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
+    proximity_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
 
     // convert to list polygons for insertion of points
     ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
 
-    findOverlapPoints();
-    addOverlapEndings();
+    findProximatePoints();
+    addProximityEndings();
     // TODO: add sharp corners
 
     // convert list polygons back
@@ -37,7 +37,7 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int lineWidth
 }
 
 
-void PolygonProximityLinker::findOverlapPoints()
+void PolygonProximityLinker::findProximatePoints()
 {
     for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
     {
@@ -53,24 +53,24 @@ void PolygonProximityLinker::findOverlapPoints()
 //                     ++it2;
 //                     if (it2 != poly.end())
                     {
-                        findOverlapPoints(lpi, poly2_idx, it);
+                        findProximatePoints(lpi, poly2_idx, it);
                     }
                 }
                 else 
                 {
-                    findOverlapPoints(lpi, poly2_idx);
+                    findProximatePoints(lpi, poly2_idx);
                 }
             }
         }
     }
 }
 
-void PolygonProximityLinker::findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx)
+void PolygonProximityLinker::findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx)
 {
-    findOverlapPoints(from, to_list_poly_idx, list_polygons[to_list_poly_idx].begin());
+    findProximatePoints(from, to_list_poly_idx, list_polygons[to_list_poly_idx].begin());
 }
 
-void PolygonProximityLinker::findOverlapPoints(ListPolyIt from_it, unsigned int to_list_poly_idx, const ListPolygon::iterator start)
+void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned int to_list_poly_idx, const ListPolygon::iterator start)
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
     Point& from = from_it.p();
@@ -95,12 +95,12 @@ void PolygonProximityLinker::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         int64_t dist2 = vSize2(closest - from);
         
-        if (dist2 > line_width * line_width
+        if (dist2 > proximity_distance * proximity_distance
             || (&from_it.poly == &to_list_poly 
                 && dot(from_it.next().p() - from, point - last_point) > 0 
                 && dot(from - from_it.prev().p(), point - last_point) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
         )
-        { // line segment too far away to have overlap
+        { // line segment too far away to be proximate
             last_it = it;
             continue;
         }
@@ -109,16 +109,16 @@ void PolygonProximityLinker::findOverlapPoints(ListPolyIt from_it, unsigned int 
         
         if (shorterThen(closest - last_point, 10))
         {
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, last_it), dist);
+            addProximityLink(from_it, ListPolyIt(to_list_poly, last_it), dist);
         }
         else if (shorterThen(closest - point, 10))
         {
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, it), dist);
+            addProximityLink(from_it, ListPolyIt(to_list_poly, it), dist);
         }
         else 
         {
             ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
-            addOverlapPoint(from_it, ListPolyIt(to_list_poly, new_it), dist);
+            addProximityLink(from_it, ListPolyIt(to_list_poly, new_it), dist);
         }
         
         last_it = it;
@@ -127,12 +127,12 @@ void PolygonProximityLinker::findOverlapPoints(ListPolyIt from_it, unsigned int 
 }
 
 
-bool PolygonProximityLinker::addOverlapPoint(ListPolyIt from, ListPolyIt to, int64_t dist)
+bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    WallOverlapPointLink link(from, to);
-    WallOverlapPointLinkAttributes attr(dist, false);
-    std::pair<WallOverlapPointLinks::iterator, bool> result =
-        overlap_point_links.emplace(link, attr);
+    ProximityPointLink link(from, to);
+    ProximityPointLinkAttributes attr(dist, false);
+    std::pair<ProximityPointLinks::iterator, bool> result =
+        proximity_point_links.emplace(link, attr);
         
     if (! result.second)
     { // we already have the link
@@ -140,7 +140,7 @@ bool PolygonProximityLinker::addOverlapPoint(ListPolyIt from, ListPolyIt to, int
         result.first->second = attr;
     }
     
-    WallOverlapPointLinks::iterator it = result.first;
+    ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->first.a.it, it);
     addToPoint2LinkMap(*it->first.b.it, it);
     
@@ -148,12 +148,12 @@ bool PolygonProximityLinker::addOverlapPoint(ListPolyIt from, ListPolyIt to, int
     return result.second;
 }
 
-bool PolygonProximityLinker::addOverlapPoint_endings(ListPolyIt from, ListPolyIt to, int64_t dist)
+bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    WallOverlapPointLink link(from, to);
-    WallOverlapPointLinkAttributes attr(dist, false);
-    std::pair<WallOverlapPointLinks::iterator, bool> result =
-        overlap_point_links_endings.emplace(link, attr);
+    ProximityPointLink link(from, to);
+    ProximityPointLinkAttributes attr(dist, false);
+    std::pair<ProximityPointLinks::iterator, bool> result =
+        proximity_point_links_endings.emplace(link, attr);
         
     if (! result.second)
     {
@@ -161,7 +161,7 @@ bool PolygonProximityLinker::addOverlapPoint_endings(ListPolyIt from, ListPolyIt
         result.first->second = attr;
     }
     
-    WallOverlapPointLinks::iterator it = result.first;
+    ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->first.a.it, it);
     addToPoint2LinkMap(*it->first.b.it, it);
     
@@ -169,35 +169,35 @@ bool PolygonProximityLinker::addOverlapPoint_endings(ListPolyIt from, ListPolyIt
     return result.second;
 }
 
-void PolygonProximityLinker::addOverlapEndings()
+void PolygonProximityLinker::addProximityEndings()
 {
-    for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> link_pair : overlap_point_links)
+    for (std::pair<ProximityPointLink, ProximityPointLinkAttributes> link_pair : proximity_point_links)
     {
 
-        if (link_pair.second.dist == line_width)
+        if (link_pair.second.dist == proximity_distance)
         { // its ending itself
             continue;
         }
-        WallOverlapPointLink& link = link_pair.first;
+        ProximityPointLink& link = link_pair.first;
         const ListPolyIt& a_1 = link.a;
         const ListPolyIt& b_1 = link.b;
         // an overlap segment can be an ending in two directions
         { 
             ListPolyIt a_2 = a_1.next();
             ListPolyIt b_2 = b_1.prev();
-            addOverlapEnding(link_pair, a_2, b_2, a_2, b_1);
+            addProximityEnding(link_pair, a_2, b_2, a_2, b_1);
         }
         { 
             ListPolyIt a_2 = a_1.prev();
             ListPolyIt b_2 = b_1.next();
-            addOverlapEnding(link_pair, a_2, b_2, a_1, b_2);
+            addProximityEnding(link_pair, a_2, b_2, a_1, b_2);
         }
     }
 }
 
-void PolygonProximityLinker::addOverlapEnding(std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> link_pair, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle)
+void PolygonProximityLinker::addProximityEnding(std::pair<ProximityPointLink, ProximityPointLinkAttributes> link_pair, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle)
 {
-    WallOverlapPointLink& link = link_pair.first;
+    ProximityPointLink& link = link_pair.first;
     Point& a1 = link.a.p();
     Point& a2 = a2_it.p();
     Point& b1 = link.b.p();
@@ -208,7 +208,7 @@ void PolygonProximityLinker::addOverlapEnding(std::pair<WallOverlapPointLink, Wa
     if (point_to_link.find(a2_it.p()) == point_to_link.end() 
         || point_to_link.find(b2_it.p()) == point_to_link.end())
     {
-        int64_t dist = overlapEndingDistance(a1, a2, b1, b2, link_pair.second.dist);
+        int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link_pair.second.dist);
         if (dist < 0) { return; }
         int64_t a_length2 = vSize2(a);
         int64_t b_length2 = vSize2(b);
@@ -220,17 +220,17 @@ void PolygonProximityLinker::addOverlapEnding(std::pair<WallOverlapPointLink, Wa
             {
                 Point b_p = b1 + normal(b, dist);
                 ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-                addOverlapPoint_endings(a2_it, ListPolyIt(link.b.poly, new_b), line_width);
+                addProximityLink_endings(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance);
             }
             else if (b_length2 < a_length2)
             {
                 Point a_p = a1 + normal(a, dist);
                 ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-                addOverlapPoint_endings(ListPolyIt(link.a.poly, new_a), b2_it, line_width);
+                addProximityLink_endings(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance);
             }
             else // equal
             {
-                addOverlapPoint_endings(a2_it, b2_it, line_width);
+                addProximityLink_endings(a2_it, b2_it, proximity_distance);
             }
         }
         if (dist > 0)
@@ -239,18 +239,18 @@ void PolygonProximityLinker::addOverlapEnding(std::pair<WallOverlapPointLink, Wa
             ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
             Point b_p = b1 + normal(b, dist);
             ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-            addOverlapPoint_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), line_width);
+            addProximityLink_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance);
         }
         else if (dist == 0)
         {
-            addOverlapPoint_endings(link.a, link.b, line_width);
+            addProximityLink_endings(link.a, link.b, proximity_distance);
         }
     }
 }
 
-int64_t PolygonProximityLinker::overlapEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
+int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
 {
-    int overlap = line_width - a1b1_dist;
+    int overlap = proximity_distance - a1b1_dist;
     Point a = a2-a1;
     Point b = b2-b1;
     double cos_angle = INT2MM2(dot(a, b)) / vSizeMM(a) / vSizeMM(b);
@@ -279,15 +279,15 @@ void PolygonProximityLinker::addSharpCorners()
     
 }
     
-void PolygonProximityLinker::addToPoint2LinkMap(Point p, WallOverlapPointLinks::iterator it)
+void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it)
 {
     point_to_link.emplace(p, it);
-    // TODO: what to do if the map already contained a link? > three-way overlap
+    // TODO: what to do if the map already contained a link? > three-way proximity
 }
 
 void PolygonProximityLinker::debugCheckNonePassedYet()
 {
-    for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> pair : overlap_point_links)
+    for (std::pair<ProximityPointLink, ProximityPointLinkAttributes> pair : proximity_point_links)
     {
         if (pair.second.passed)
         {
@@ -299,7 +299,7 @@ void PolygonProximityLinker::debugCheckNonePassedYet()
 
 
 
-void PolygonProximityLinker::wallOverlaps2HTML(const char* filename) const
+void PolygonProximityLinker::proximity2HTML(const char* filename) const
 {   
     
     PolygonProximityLinker copy = *this; // copy, cause getFlow might change the state of the overlap computation!
@@ -325,21 +325,21 @@ void PolygonProximityLinker::wallOverlaps2HTML(const char* filename) const
 
     { // output links
         // output normal links
-        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links)
+        for (std::pair<ProximityPointLink , ProximityPointLinkAttributes> link_pair : copy.proximity_point_links)
         {
-            WallOverlapPointLink& link = link_pair.first;
+            ProximityPointLink& link = link_pair.first;
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
-            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == proximity_distance? 0 : 255, link_pair.second.dist==proximity_distance? 255 : 0);
         }
         
         // output ending links
-        for (std::pair<WallOverlapPointLink , WallOverlapPointLinkAttributes> link_pair : copy.overlap_point_links_endings)
+        for (std::pair<ProximityPointLink , ProximityPointLinkAttributes> link_pair : copy.proximity_point_links_endings)
         {
-            WallOverlapPointLink& link = link_pair.first;
+            ProximityPointLink& link = link_pair.first;
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
-            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == line_width? 0 : 255, link_pair.second.dist==line_width? 255 : 0);
+            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link_pair.second.dist == proximity_distance? 0 : 255, link_pair.second.dist==proximity_distance? 255 : 0);
         }
     }
 
