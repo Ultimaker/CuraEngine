@@ -44,6 +44,7 @@ namespace cura
  */
 class PolygonProximityLinker
 {
+public:
     /*!
      * A class recording the amount of overlap implicitly by recording the distance between two points on two different polygons or one and the same polygon.
      * The order of the two points doesn't matter.
@@ -53,7 +54,16 @@ class PolygonProximityLinker
         const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
         const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
         const int dist; //!< The distance between the two points
-        mutable bool passed; //!< Whether this point has been processed already. mutable, because it doesn't change the hash of the object.
+        /*!
+         * Whether this point has been processed already. 
+         * 
+         * Controlled by outside this class. This is free to be used as you will from outside.
+         * 
+         * mutable, because it doesn't change the hash of the object. 
+         * 
+         * Initialized false.
+         */
+        mutable bool passed;
         ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
         : a(a)
         , b(b)
@@ -66,7 +76,7 @@ class PolygonProximityLinker
             return (a == other.a && b == other.b) || (a == other.b && b == other.a);
         }
     };
-    
+private:
     /*!
      * The hash function object for WallOverlapPointLink
      */
@@ -178,7 +188,9 @@ public:
      * \param polygons The wall polygons for which to compute the overlaps
      */
     PolygonProximityLinker(Polygons& polygons, int proximity_distance);
+
     
+    const ProximityPointLink* getLink(Point from);
 };
 
 

@@ -36,6 +36,16 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
 //     list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
 }
 
+const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLink(Point from)
+{
+    Point2Link::iterator from_link_pair = point_to_link.find(from);
+    if (from_link_pair == point_to_link.end())
+    {
+        return nullptr;
+    }
+    return &from_link_pair->second;
+}
+
 
 void PolygonProximityLinker::findProximatePoints()
 {
