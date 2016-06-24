@@ -1,5 +1,5 @@
-#ifndef POLYGON_PROXIMITY_LINKER_H
-#define POLYGON_PROXIMITY_LINKER_H
+#ifndef UTILS_POLYGON_PROXIMITY_LINKER_H
+#define UTILS_POLYGON_PROXIMITY_LINKER_H
 
 #include <vector>
 #include <unordered_map>
@@ -12,6 +12,7 @@
 #include "polygon.h"
 #include "linearAlg2D.h"
 
+#include "ListPolyIt.h"
 
 namespace cura 
 {
@@ -42,76 +43,6 @@ namespace cura
  */
 class PolygonProximityLinker
 {
-    
-    typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
-    typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
-        
-    /*!
-     * Convert Polygons to ListPolygons
-     * 
-     * \param polys The polygons to convert
-     * \param result The converted polygons
-     */
-    static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
-    /*!
-     * Convert ListPolygons to Polygons
-     * 
-     * \param list_polygons The polygons to convert
-     * \param polygons The converted polygons
-     */
-    static void convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons);
-    
-    
-    /*!
-     * A wrapper class for a ListPolygon::iterator and a reference to the containing ListPolygon
-     */
-    struct ListPolyIt
-    {
-        ListPolygon& poly; //!< The polygon
-        ListPolygon::iterator it; //!< The iterator into ListPolyIt::poly
-        ListPolyIt(const ListPolyIt& other)
-        : poly(other.poly), it(other.it) { }
-        ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
-        : poly(poly), it(it) { }
-        Point& p() const { return *it; }
-        /*!
-         * Test whether two iterators refer to the same polygon in the same polygon list.
-         * 
-         * \param other The ListPolyIt to test for equality
-         * \return Wether the right argument refers to the same polygon in the same ListPolygon as the left argument.
-         */
-        bool operator==(const ListPolyIt& other) const
-        {
-            return &poly == &other.poly && it == other.it;
-        }
-        void operator=(const ListPolyIt& other) { poly = other.poly; it = other.it; }
-        //!< move the iterator forward (and wrap around at the end)
-        ListPolyIt& operator++() 
-        { 
-            ++it; 
-            if (it == poly.end()) { it = poly.begin(); }
-            return *this; 
-        }
-        //!< move the iterator backward (and wrap around at the beginning)
-        ListPolyIt& operator--() 
-        { 
-            if (it == poly.begin()) { it = poly.end(); }
-            --it; 
-            return *this; 
-        }
-        ListPolyIt next() const 
-        {
-            ListPolyIt ret(*this);
-            ++ret;
-            return ret;
-        }
-        ListPolyIt prev() const 
-        {
-            ListPolyIt ret(*this);
-            --ret;
-            return ret;
-        }
-    };
     /*!
      * A class recording the amount of overlap implicitly by recording the distance between two points on two different polygons or one and the same polygon.
      * The order of the two points doesn't matter.
@@ -235,18 +166,6 @@ class PolygonProximityLinker
     void addToPoint2LinkMap(Point p, WallOverlapPointLinks::iterator it);
     
 public:
-    /*!
-     * Compute the flow for a given line segment in the wall.
-     * 
-     * \warning the first time this function is called it returns a different thing than the second, because the second time it thinks it already passed this segment once.
-     * 
-     * \param from The beginning of the line segment
-     * \param to The ending of the line segment
-     * \return a value between zero and one representing the reduced flow of the line segment
-     */
-    float getFlow(Point& from, Point& to);
-    
-    void debugCheck(); //!< debug
 
     void debugCheckNonePassedYet(); //!< check whether no link has passed set to true
     
@@ -265,4 +184,4 @@ public:
 
 
 
-#endif//POLYGON_PROXIMITY_LINKER_H
+#endif//UTILS_POLYGON_PROXIMITY_LINKER_H

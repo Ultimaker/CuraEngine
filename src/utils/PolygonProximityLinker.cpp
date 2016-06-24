@@ -24,14 +24,14 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int lineWidth
     overlap_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
 
     // convert to list polygons for insertion of points
-    convertPolygonsToLists(polygons, list_polygons); 
+    ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
 
     findOverlapPoints();
     addOverlapEndings();
     // TODO: add sharp corners
 
     // convert list polygons back
-    convertListPolygonsToPolygons(list_polygons, polygons);
+    ListPolyIt::convertListPolygonsToPolygons(list_polygons, polygons);
 //     wallOverlaps2HTML("output/output.html");
 //     list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
 }
@@ -65,32 +65,6 @@ void PolygonProximityLinker::findOverlapPoints()
     }
 }
 
-
-    
-void PolygonProximityLinker::convertPolygonsToLists(Polygons& polys, ListPolygons& result)
-{
-    for (PolygonRef poly : polys)
-    {
-        result.emplace_back();
-        for (Point& p : poly) 
-        {
-            result.back().push_back(p);
-        }
-    }
-}    
-
-void PolygonProximityLinker::convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons)
-{
-    for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
-    {
-        polygons[poly_idx].clear();
-        for (Point& p : list_polygons[poly_idx])
-        {
-            polygons[poly_idx].add(p);
-        }
-    }
-}
-    
 void PolygonProximityLinker::findOverlapPoints(ListPolyIt from, unsigned int to_list_poly_idx)
 {
     findOverlapPoints(from, to_list_poly_idx, list_polygons[to_list_poly_idx].begin());
@@ -311,44 +285,6 @@ void PolygonProximityLinker::addToPoint2LinkMap(Point p, WallOverlapPointLinks::
     // TODO: what to do if the map already contained a link? > three-way overlap
 }
 
-float PolygonProximityLinker::getFlow(Point& from, Point& to)
-{
-    Point2Link::iterator from_link_pair = point_to_link.find(from);
-    if (from_link_pair == point_to_link.end()) { return 1; }
-    WallOverlapPointLinks::iterator from_link = from_link_pair->second;
-    WallOverlapPointLinkAttributes& from_attr = from_link->second;
-
-    Point2Link::iterator to_link_pair = point_to_link.find(to);
-    if (to_link_pair == point_to_link.end()) { return 1; }
-    WallOverlapPointLinks::iterator to_link = to_link_pair->second;
-    WallOverlapPointLinkAttributes& to_attr = to_link->second;
-
-    if (!from_attr.passed || !to_attr.passed)
-    {
-        from_attr.passed = true;
-        to_attr.passed = true;
-        return 1;
-    }
-    from_attr.passed = true;
-    to_attr.passed = true;
-
-    // both points have already been passed
-
-    float avg_link_dist = 0.5 * ( INT2MM(from_link->second.dist) + INT2MM(to_link->second.dist) );
-
-    float ratio = avg_link_dist / INT2MM(line_width);
-
-    if (ratio > 1.0) { return 1.0; }
-    
-    return ratio;
-}
-
-
-
-void PolygonProximityLinker::debugCheck()
-{
-}
-
 void PolygonProximityLinker::debugCheckNonePassedYet()
 {
     for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> pair : overlap_point_links)
@@ -407,6 +343,7 @@ void PolygonProximityLinker::wallOverlaps2HTML(const char* filename) const
         }
     }
 
+    /*
     { // output flow
         for (ListPolygon poly : copy.list_polygons)
         {
@@ -426,6 +363,7 @@ void PolygonProximityLinker::wallOverlaps2HTML(const char* filename) const
             }
         }
     }
+    */
 }
     
 }//namespace cura 
