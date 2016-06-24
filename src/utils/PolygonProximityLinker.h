@@ -167,9 +167,6 @@ class PolygonProximityLinker
     void addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it);
     
 public:
-
-    void debugCheckNonePassedYet(); //!< check whether no link has passed set to true
-    
     void proximity2HTML(const char* filename) const; //!< debug
     
     /*!

@@ -285,19 +285,6 @@ void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::it
     // TODO: what to do if the map already contained a link? > three-way proximity
 }
 
-void PolygonProximityLinker::debugCheckNonePassedYet()
-{
-    for (std::pair<ProximityPointLink, ProximityPointLinkAttributes> pair : proximity_point_links)
-    {
-        if (pair.second.passed)
-        {
-            logError("ERROR: PolygonProximityLinker link passed just after contruction!!!\n");
-        }
-        
-    }
-}
-
-
 
 void PolygonProximityLinker::proximity2HTML(const char* filename) const
 {   
