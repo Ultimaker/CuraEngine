@@ -129,7 +129,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
@@ -368,9 +368,15 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 void CommandSocket::sendPrintTime()
 {
 #ifdef ARCUS
-    auto message = std::make_shared<cura::proto::ObjectPrintTime>();
+    auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
+
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
-    message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
+
+    for (unsigned int extruder_nr (0) ; extruder_nr < MAX_EXTRUDERS ; ++extruder_nr)
+    {
+      message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr));
+    }
+
     private_data->socket->sendMessage(message);
 #endif
 }
