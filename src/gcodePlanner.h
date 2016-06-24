@@ -354,6 +354,7 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
 class GCodePlanner : public NoCopy
 {
     friend class LayerPlanBuffer;
+    friend class GCodePlannerTest;
 private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
