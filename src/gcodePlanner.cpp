@@ -212,10 +212,15 @@ void GCodePlanner::addTravel(Point p)
     
     bool combed = false;
 
-    bool perform_z_hops = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_enabled");
-    bool perform_z_hops_only_when_collides = getLastPlannedExtruderTrainSettings()->getSettingBoolean("retraction_hop_only_when_collides");
+    SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
-    if (comb != nullptr && lastPosition != no_point)
+    const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
+    const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
+
+    const bool is_first_travel_of_extruder_plan = extruder_plans.back().paths.size() == 0;
+    const bool bypass_combing = is_first_travel_of_extruder_plan && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+
+    if (comb != nullptr && !bypass_combing && lastPosition != no_point)
     {
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
@@ -275,7 +280,6 @@ void GCodePlanner::addTravel(Point p)
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-                SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
                 assert (extr != nullptr);
                 moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
             }
