@@ -125,7 +125,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         switch_retraction_config.prime_volume = 0.0;
         switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
         switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-        switch_retraction_config.zHop = train->getSettingInMicrons("switch_extruder_retraction_hop");
+        switch_retraction_config.zHop = retraction_config.zHop; // not used, because the last_retraction_config is used to govern how how high to zHop
         switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
         switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
         switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
