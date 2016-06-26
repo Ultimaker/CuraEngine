@@ -35,6 +35,7 @@ public:
     size_t getNumLayers() const;
     const VolumeStoreLayer &getLayer(size_t layer_idx) const;
     LayerBounds getLayerBounds(size_t layer_idx) const;
+    size_t getLayerIdx(coord_t z) const;
 
 private:
     void addMesh(const Mesh *mesh);

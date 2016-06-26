@@ -8,6 +8,7 @@
 namespace mason {
 
 using coord_t = ClipperLib::cInt;
+using Point = ClipperLib::IntPoint;
 
 double intToMm(coord_t val);
 coord_t mmToInt(double val);

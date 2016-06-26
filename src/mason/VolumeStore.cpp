@@ -76,4 +76,12 @@ VolumeStore::LayerBounds VolumeStore::getLayerBounds(size_t layer_idx) const
     return bounds;
 }
 
+size_t VolumeStore::getLayerIdx(coord_t z) const
+{
+    std::vector<coord_t>::const_iterator iter = std::lower_bound(m_layer_zs.begin(),m_layer_zs.end(),z);
+    assert(iter != m_layer_zs.end());
+
+    return iter - m_layer_zs.begin();
+}
+
 }
