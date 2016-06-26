@@ -1,0 +1,21 @@
+- Required slicer capabilities
+  - Skirt
+  - Skin
+  - Shell
+  - Infill
+- Extra slicer capabilities
+  - Retraction
+  - TSP for wires
+  - Combing
+  - Brim
+  - Bridges
+  - Raft
+  - Support
+  - Multi-extruder support
+- Program features
+  - Drawing of intermediate representations
+  - Experimental region designation
+- Refactoring / cleanup
+  - Rearrange such that Mason write the end gcode
+
+  
