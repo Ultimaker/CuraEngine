@@ -46,8 +46,6 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 namespace cura
 {
 
-typedef int32_t int_coord_t;
-    
 class Point3
 {
 public:

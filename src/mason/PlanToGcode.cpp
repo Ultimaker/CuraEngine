@@ -2,7 +2,6 @@
 
 #include "PlanToGcode.hpp"
 
-namespace cura {
 namespace mason {
 
 PlanToGcode::PlanToGcode()
@@ -39,5 +38,4 @@ void PlanToGcode::writeFooter(const SettingsBaseVirtual *settings, GCodeExport *
    // which is called by FffProcessor::finalize().
 }
 
-}
 }

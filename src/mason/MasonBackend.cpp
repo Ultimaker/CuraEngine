@@ -2,7 +2,8 @@
 
 #include "MasonBackend.hpp"
 
-namespace cura {
+#include "Point3.hpp"
+
 namespace mason {
 
 MasonBackend::MasonBackend()
@@ -12,12 +13,12 @@ MasonBackend::MasonBackend()
 void MasonBackend::createWirePlan()
 {
     Wire wire;
-    Point3 start_pt(MM2INT(150.0),MM2INT(140.0),MM2INT(0.25));
-    Point3 end_pt(MM2INT(170.0),MM2INT(140.0),MM2INT(0.25));
+    Point3 start_pt(mmToInt(150.0),mmToInt(140.0),mmToInt(0.25));
+    Point3 end_pt(mmToInt(170.0),mmToInt(140.0),mmToInt(0.25));
     wire.pt0 = start_pt;
     wire.pt1 = end_pt;
-    wire.width = MM2INT(0.5);
-    wire.height = MM2INT(0.25);
+    wire.width = mmToInt(0.5);
+    wire.height = mmToInt(0.25);
     m_wire_plan.addWire(wire);
 }
 
@@ -35,13 +36,13 @@ void MasonBackend::createPrintPlan()
             
             elem.reset(new HeadMove(wire.pt0,30.0));
             m_print_plan.addElement(elem);
-            elem.reset(new ExtrudedSegment(wire.pt0,wire.pt1,30.0,INT2MM(wire.width)*INT2MM(wire.height)));
+            elem.reset(new ExtrudedSegment(wire.pt0,wire.pt1,30.0,intToMm(wire.width)*intToMm(wire.height)));
             m_print_plan.addElement(elem);
         }
     }
 }
 
-void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, GCodeExport *gcode_out)
+void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out)
 {
     // GCode generation proceeds in several stages:
     //*1. Model is sliced into thin slices to make a volumetric representation of the object (VolumeStore).
@@ -55,18 +56,18 @@ void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup 
     // 2c. The modified VolumeStore is filled with wires and wire sequences (indivisible sequences of wires).
     //     Typical wires specify a w x l x d box that should be filled.  Some of the box might be filled
     //     before the wire is printed.  Flow rate is adjusted to make this work.
-    //+3. The wire plan is converted to a tool head plan.
+    //*3. The wire plan is converted to a tool head plan.
     //*4. The tool head plan is converted to GCode.
 
-    gcode_out->preSetup(mesh_group);
+    m_gcode_out.setGCodeExporter(gcode_out);
+    m_gcode_out.preSetup(mesh_group);
 
     m_volume_store.addMeshGroup(mesh_group);
 
     createWirePlan();
     createPrintPlan();
     
-    m_plan_to_gcode.process(settings, &m_print_plan, gcode_out);
+    m_plan_to_gcode.process(settings, &m_print_plan, &m_gcode_out);
 }
 
-}
 }

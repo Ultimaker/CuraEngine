@@ -3,11 +3,10 @@
 #ifndef INCLUDED_MASON_VOLUME_STORE_HPP
 #define INCLUDED_MASON_VOLUME_STORE_HPP
 
-#include "../mesh.h"
-#include "../MeshGroup.h"
-#include "../utils/polygon.h"
+#include "Mesh.hpp"
+#include "Point3.hpp"
+#include "Polygon.hpp"
 
-namespace cura {
 namespace mason {
 
 class VolumeStoreLayer {
@@ -25,8 +24,8 @@ private:
 class VolumeStore {
 public:
     struct LayerBounds {
-        int64_t z_min;
-        int64_t z_max;
+        coord_t z_min;
+        coord_t z_max;
     };
     
     VolumeStore();
@@ -42,10 +41,9 @@ private:
 
     std::vector<VolumeStoreLayer> m_layers;
     // m_layers[i] covers [m_layer_zs[i], m_layer_zs[i+1])
-    std::vector<int64_t> m_layer_zs;
+    std::vector<coord_t> m_layer_zs;
 };
 
-}
 }
 
 #endif

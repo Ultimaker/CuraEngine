@@ -98,8 +98,10 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
 
+    src/mason/GCodeExport.cpp
     src/mason/MasonBackend.cpp
     src/mason/PlanToGcode.cpp
+    src/mason/Point3.cpp
     src/mason/PrintPlan.cpp
     src/mason/VolumeStore.cpp
     src/mason/WirePlan.cpp

@@ -2,14 +2,13 @@
 
 #include "WirePlan.hpp"
 
-namespace cura {
 namespace mason {
 
 void WirePlan::addWire(const Wire &wire)
 {
-    int_coord_t z = std::max(wire.pt0.z, wire.pt1.z);
+    coord_t z = std::max(wire.pt0.z, wire.pt1.z);
 
-    int_coord_t layer_height = MM2INT(0.25);
+    coord_t layer_height = mmToInt(0.25);
     size_t layer_idx = (z-1) / layer_height;
     size_t num_layers = m_layers.size();
     if (m_layers.size() <= layer_idx) {
@@ -33,5 +32,4 @@ const WireLayer &WirePlan::getLayer(size_t layer_idx) const
     return m_layers[layer_idx];
 }
 
-}
 }

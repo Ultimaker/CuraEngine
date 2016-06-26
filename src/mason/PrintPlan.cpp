@@ -2,7 +2,6 @@
 
 #include "PrintPlan.hpp"
 
-namespace cura {
 namespace mason {
 
 HeadMove::HeadMove(Point3 to, double speed) :
@@ -52,5 +51,4 @@ PrintPlan::getElement(size_t elem_idx) const
     return m_plan_elements[elem_idx];
 }
 
-}
 }

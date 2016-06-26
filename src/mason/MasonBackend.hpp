@@ -3,23 +3,21 @@
 #ifndef INCLUDED_MASON_MASON_BACKEND_HPP
 #define INCLUDED_MASON_MASON_BACKEND_HPP
 
-#include "../gcodeExport.h"
-#include "../MeshGroup.h"
-#include "../settings/settings.h"
-
+#include "GCodeExport.hpp"
+#include "Mesh.hpp"
 #include "PlanToGcode.hpp"
 #include "PrintPlan.hpp"
+#include "Settings.hpp"
 #include "VolumeStore.hpp"
 #include "WirePlan.hpp"
 
-namespace cura {
 namespace mason {
 
 class MasonBackend {
 public:
     MasonBackend();
     
-    void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, GCodeExport *gcode_out);
+    void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out);
     
 private:
     void createWirePlan();
@@ -29,9 +27,9 @@ private:
     WirePlan m_wire_plan;
     PrintPlan m_print_plan;
     PlanToGcode m_plan_to_gcode;
+    GCodeExport m_gcode_out;
 };
 
-}
 }
 
 #endif

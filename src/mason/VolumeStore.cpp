@@ -2,9 +2,6 @@
 
 #include "VolumeStore.hpp"
 
-#include "../slicer.h"
-
-namespace cura {
 namespace mason {
 
 void VolumeStoreLayer::addPolygons(const Polygons &polygons)
@@ -35,7 +32,7 @@ void VolumeStore::addMesh(const Mesh *mesh)
     // TODO: Make slicing thickness configurable.
     static const int layer_thickness = 50;
     static const int initial_slice_z = layer_thickness/2;
-    Point3 mesh_max = mesh->max();
+    Point3 mesh_max = fromCuraPoint3(mesh->max());
     size_t layer_count = mesh_max.z / layer_thickness + 1;
     bool keep_open_polygons = mesh->getSettingBoolean("meshfix_keep_open_polygons");
     bool extensive_stitching = mesh->getSettingBoolean("meshfix_extensive_stitching");
@@ -79,5 +76,4 @@ VolumeStore::LayerBounds VolumeStore::getLayerBounds(size_t layer_idx) const
     return bounds;
 }
 
-}
 }

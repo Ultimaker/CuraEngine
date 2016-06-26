@@ -5,9 +5,8 @@
 
 #include <vector>
 
-#include "../utils/intpoint.h"
+#include "Point3.hpp"
 
-namespace cura {
 namespace mason {
 
 /** \brief A wire represents a volume that should be filled.
@@ -24,14 +23,14 @@ struct Wire {
 public:
     Point3 pt0;
     Point3 pt1;
-    int_coord_t width;
-    int_coord_t height;
+    coord_t width;
+    coord_t height;
 };
 
 struct WireLayer {
 public:
     /** \brief z of top of layer. */
-    int_coord_t z;
+    coord_t z;
     std::vector<Wire> wires;
 };
 
@@ -52,7 +51,6 @@ private:
     std::vector<WireLayer> m_layers;
 };
 
-}
 }
 
 #endif

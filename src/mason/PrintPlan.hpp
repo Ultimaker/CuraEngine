@@ -3,9 +3,9 @@
 #ifndef INCLUDED_MASON_PRINT_PLAN_HPP
 #define INCLUDED_MASON_PRINT_PLAN_HPP
 
-#include "../gcodeExport.h"
+#include "GCodeExport.hpp"
+#include "Point3.hpp"
 
-namespace cura {
 namespace mason {
 
 class PrintPlanElement {
@@ -50,7 +50,6 @@ private:
     std::vector<std::shared_ptr<PrintPlanElement> > m_plan_elements;
 };
 
-}
 }
 
 #endif

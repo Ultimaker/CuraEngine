@@ -3,12 +3,10 @@
 #ifndef INCLUDED_MASON_PLAN_TO_GCODE_HPP
 #define INCLUDED_MASON_PLAN_TO_GCODE_HPP
 
-#include "../gcodeExport.h"
-#include "../settings/settings.h"
-
+#include "GCodeExport.hpp"
+#include "Settings.hpp"
 #include "PrintPlan.hpp"
 
-namespace cura {
 namespace mason {
 
 class PlanToGcode {
@@ -23,7 +21,6 @@ private:
     void writeFooter(const SettingsBaseVirtual *settings, GCodeExport *gcode_out);
 };
 
-}
 }
 
 #endif
