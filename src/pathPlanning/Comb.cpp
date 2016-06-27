@@ -235,7 +235,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
             in_or_mid = dest_point; // just use the startPoint or endPoint itself
         }
     }
-    else 
+    else
     {
         in_or_mid = dest_point; // mid-case
     }
