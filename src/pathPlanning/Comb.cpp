@@ -61,7 +61,7 @@ Comb::~Comb()
     }
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool over_inavoidable_obstacles_makes_combing_fail)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
@@ -84,7 +84,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     { // normal combing within part
         PolygonsPart part = partsView_inside.assemblePart(start_part_idx);
         combPaths.emplace_back();
-        return LinePolygonsCrossings::comb(part, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
+        return LinePolygonsCrossings::comb(part, startPoint, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     }
     else 
     { // comb inside part to edge (if needed) >> move through air avoiding other parts >> comb inside end part upto the endpoint (if needed) 
@@ -117,13 +117,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         { // compute the crossing points when moving through air
             Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
 
-            bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, over_inavoidable_obstacles_makes_combing_fail, *this);
+            bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, fail_on_unavoidable_obstacles, *this);
             if (!success)
             {
                 return false;
             }
 
-            success = end_crossing.findOutside(outside, start_crossing.out, over_inavoidable_obstacles_makes_combing_fail, *this);
+            success = end_crossing.findOutside(outside, start_crossing.out, fail_on_unavoidable_obstacles, *this);
             if (!success)
             {
                 return false;
@@ -136,7 +136,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             // start to boundary
             assert(start_crossing.dest_part.size() > 0 && "The part we start inside when combing should have been computed already!");
             combPaths.emplace_back();
-            bool combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
+            bool combing_succeeded = LinePolygonsCrossings::comb(start_crossing.dest_part, startPoint, start_crossing.in_or_mid, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
             if (!combing_succeeded)
             { // Couldn't comb between start point and computed crossing from the start part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
                 return false;
@@ -155,7 +155,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             }
             else
             {
-                bool combing_succeeded = LinePolygonsCrossings::comb(getBoundaryOutside(), start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
+                bool combing_succeeded = LinePolygonsCrossings::comb(getBoundaryOutside(), start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
                 if (!combing_succeeded)
                 {
                     return false;
@@ -177,7 +177,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             assert(end_crossing.dest_part.size() > 0 && "The part we end up inside when combing should have been computed already!");
             combPaths.emplace_back();
             
-            bool combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
+            bool combing_succeeded = LinePolygonsCrossings::comb(end_crossing.dest_part, end_crossing.in_or_mid, endPoint, combPaths.back(), -offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
             if (!combing_succeeded)
             { // Couldn't comb between end point and computed crossing to the end part! Happens for very thin parts when the offset_to_get_off_boundary moves points to outside the polygon
                 return false;
@@ -242,7 +242,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     }
 };
 
-bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber)
+bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {
     out = in_or_mid;
     if (dest_is_inside || outside.inside(in_or_mid, true)) // start in_between
@@ -269,7 +269,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
             in_or_mid = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
             out = PolygonUtils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside);
         }
-        if (over_inavoidable_obstacles_makes_combing_fail && vSize2(out - in_or_mid) > comber.max_crossing_dist2) // moveInside moved still too far
+        if (fail_on_unavoidable_obstacles && vSize2(out - in_or_mid) > comber.max_crossing_dist2) // moveInside moved still too far
         {
             return false;
         }

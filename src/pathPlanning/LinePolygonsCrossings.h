@@ -100,19 +100,19 @@ private:
     
     /*!
      * Calculate Comb::crossings, Comb::min_crossing_idx and Comb::max_crossing_idx.
-     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
-     * \return Whether combing succeeded, i.e. when over_inavoidable_obstacles_makes_combing_fail: we didn't cross any gaps/other parts
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \return Whether combing succeeded, i.e. when fail_on_unavoidable_obstacles: we didn't cross any gaps/other parts
      */
-    bool calcScanlineCrossings(bool over_inavoidable_obstacles_makes_combing_fail);
+    bool calcScanlineCrossings(bool fail_on_unavoidable_obstacles);
     
     /*! 
      * Get the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
-     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool over_inavoidable_obstacles_makes_combing_fail);
+    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -176,13 +176,13 @@ public:
      * \param startPoint From where to start the combing move.
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
-     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool over_inavoidable_obstacles_makes_combing_fail)
+    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, over_inavoidable_obstacles_makes_combing_fail);
+        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     };
 };
 

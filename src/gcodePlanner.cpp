@@ -225,8 +225,8 @@ void GCodePlanner::addTravel(Point p)
     {
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
-        bool over_inavoidable_obstacles_makes_combing_fail = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_planned_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, over_inavoidable_obstacles_makes_combing_fail);
+        bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_planned_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
             bool retract = combPaths.size() > 1;

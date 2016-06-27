@@ -10,7 +10,7 @@
 namespace cura {
 
 
-bool LinePolygonsCrossings::calcScanlineCrossings(bool over_inavoidable_obstacles_makes_combing_fail)
+bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obstacles)
 {
     
     min_crossing_idx = NO_INDEX;
@@ -56,7 +56,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool over_inavoidable_obstacle
             p0 = p1;
         }
 
-        if (over_inavoidable_obstacles_makes_combing_fail && minMax.n_crossings % 2 == 1)
+        if (fail_on_unavoidable_obstacles && minMax.n_crossings % 2 == 1)
         { // if start area and end area are not the same
             return false;
         }
@@ -100,7 +100,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
 }
 
 
-bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool over_inavoidable_obstacles_makes_combing_fail)
+bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored) || !lineSegmentCollidesWithBoundary())
     {
@@ -110,7 +110,7 @@ bool LinePolygonsCrossings::getCombingPath(CombPath& combPath, int64_t max_comb_
         return true;
     }
     
-    bool success = calcScanlineCrossings(over_inavoidable_obstacles_makes_combing_fail);
+    bool success = calcScanlineCrossings(fail_on_unavoidable_obstacles);
     if (!success)
     {
         return false;

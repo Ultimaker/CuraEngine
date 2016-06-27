@@ -72,10 +72,10 @@ private:
          * 
          * \param outside The outside boundary polygons
          * \param close_to A point to get closer to when there are multiple candidates on the outside boundary which are almost equally close to the Crossing::in_or_mid
-         * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+         * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          */
-        bool findOutside(const Polygons& outside, const Point close_to, const bool over_inavoidable_obstacles_makes_combing_fail, Comb& comber);
+        bool findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
 
     private:
         const Point dest_point; //!< Either the eventual startPoint or the eventual endPoint of this combing move
@@ -158,10 +158,10 @@ public:
      * \param startInside Whether we want to start inside the comb boundary
      * \param endInside Whether we want to end up inside the comb boundary
      * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
-     * \param over_inavoidable_obstacles_makes_combing_fail When moving over other parts is inavoidable, stop calculation early and return false.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool over_inavoidable_obstacles_makes_combing_fail);
+    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
 };
 
 }//namespace cura
