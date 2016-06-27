@@ -260,7 +260,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
     }
     int64_t in_out_dist2_1 = vSize2(out - in_or_mid); 
     if (dest_is_inside && in_out_dist2_1 > comber.max_crossing_dist2) // moveInside moved too far
-    { // if move is to far over in_between
+    { // if move is too far over in_between
         // find crossing closer by
         std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(outside, dest_crossing_poly, dest_point, close_to, comber);
         if (best)
