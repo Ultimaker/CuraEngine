@@ -200,12 +200,10 @@ void PolygonUtilsTest::farMoveTest2()
 
 void PolygonUtilsTest::polygonOffsetTest()
 {
-//     std::cerr << "\n normal orientation: " << test_square.orientation() << "\n";
     Polygons test_squares;
     test_squares.add(test_square);
     Polygons expanded = test_squares.offset(25);
     int64_t expanded_length = expanded.polygonLength();
-//     std::cerr << "\n normal orientation: " << expanded[0].orientation() << "\n";
 
     Polygons square_hole;
     PolygonRef square_inverted = square_hole.newPoly();
@@ -213,7 +211,6 @@ void PolygonUtilsTest::polygonOffsetTest()
     {
         square_inverted.add(test_square[i]);
     }
-//     std::cerr << "\n inverted orientation: " << square_inverted.orientation() << "\n";
     Polygons contracted = square_hole.offset(25);
     int64_t contracted_length = contracted.polygonLength();
 
@@ -300,10 +297,8 @@ void PolygonUtilsTest::moveInsidePointyCornerTest()
 {
     Point from(55,170); // above pointy bit
     Point result(from);
-    Point supposed(50,170); // 10 below pointy bit
     Polygons inside;
     inside.add(pointy_square);
-//     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
     if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
     {
@@ -315,8 +310,7 @@ void PolygonUtilsTest::moveInsidePointyCornerTest()
     {
         std::stringstream ss;
         ss << from << " couldn't be moved inside.\n";
-//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result));
     }
 }
 
@@ -324,11 +318,9 @@ void PolygonUtilsTest::moveInsidePointyCornerTestFail()
 { // should fail with normal moveInside2 (and the like)
     Point from(55,170); // above pointy bit
     Point result(from);
-    Point supposed(50,170); // 10 below pointy bit
     Polygons inside;
     inside.add(pointy_square);
     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, 10);
-//     ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(inside, result, 10);
     if (cpp.point_idx == NO_INDEX || cpp.poly_idx == NO_INDEX)
     {
         std::stringstream ss;
@@ -339,8 +331,7 @@ void PolygonUtilsTest::moveInsidePointyCornerTestFail()
     {
         std::stringstream ss;
         ss << from << " could be moved inside, while it was designed to fail.\n";
-//         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
-        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), !inside.inside(result));
     }
 }
 
