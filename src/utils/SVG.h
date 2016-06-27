@@ -244,7 +244,9 @@ public:
     void writePolygons(const Polygons& polys, Color color = Color::BLACK)
     {
         for (const PolygonRef poly : const_cast<Polygons&>(polys))
+        {
             writePolygon(poly, color);
+        }
     }
     void writePolygon(const PolygonRef poly, Color color = Color::BLACK)
     {
