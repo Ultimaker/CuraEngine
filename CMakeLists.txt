@@ -98,6 +98,7 @@ set(engine_SRCS # Except main.cpp.
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
 
+    src/mason/BuildPlanner.cpp
     src/mason/GCodeExport.cpp
     src/mason/MasonBackend.cpp
     src/mason/PlanToGcode.cpp

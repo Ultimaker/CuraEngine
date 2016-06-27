@@ -4,6 +4,7 @@
 #define INCLUDED_MASON_MASON_BACKEND_HPP
 
 #include "BuildPlan.hpp"
+#include "BuildPlanner.hpp"
 #include "GCodeExport.hpp"
 #include "Mesh.hpp"
 #include "PlanToGcode.hpp"
@@ -18,10 +19,9 @@ public:
     void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out);
     
 private:
-    void createWirePlan();
-    void createPrintPlan();
-
+    VolumeStore m_target_volume;
     BuildPlan m_build_plan;
+    BuildPlanner m_build_planner;
     PlanToGcode m_plan_to_gcode;
     GCodeExport m_gcode_out;
 };

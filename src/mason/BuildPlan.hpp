@@ -11,7 +11,7 @@ namespace mason {
 
 struct BuildPlan {
 public:
-    VolumeStore target;
+    const VolumeStore *target;
     VolumeStore volume_plan;
     WirePlan wire_plan;
     PrintPlan print_plan;
