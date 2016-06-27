@@ -5,6 +5,10 @@
 
 #include "BuildPlan.hpp"
 
+#include "BuildSubPlanner.hpp"
+
+#include <memory>
+
 namespace mason {
 
 /** \brief Implements algorithm for going from target volume to tool path plan.
@@ -23,6 +27,7 @@ private:
     void createPrintPlan();
 
     BuildPlan *m_build_plan;
+    std::vector<std::shared_ptr<BuildSubPlanner> > m_sub_planners;
 };
 
 }
