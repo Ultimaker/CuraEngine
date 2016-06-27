@@ -298,6 +298,11 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         int64_t dist_to_end = vSize(crossing_candidate.second.location - estimated_end);
         int64_t detour_dist = dist_to_start + dist_to_end;
         int64_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
+        // The detour distance is generally large compared to the crossing distance.
+        // While the crossing is generally about 1mm across,
+        // the distance between an arbitrary point and the boundary may well be a couple of centimetres.
+        // So the crossing_dist2 is about 1.000.000 while the detour_dist_2 is in the order of 400.000.000
+        // In the end we just want to choose between two points which have the _same_ crossing distance, modulo rounding error.
         if ((!seen_close_enough_connection && detour_score < best_detour_score) // keep the best as long as we havent seen one close enough (so that we may walk along the polygon to find a closer connection from it in the code below)
             || (!seen_close_enough_connection && crossing_dist2 <= comber.max_crossing_dist2) // make the one which is close enough the best as soon as we see one close enough
             || (seen_close_enough_connection && crossing_dist2 <= comber.max_crossing_dist2 && detour_score < best_detour_score)) // update to keep the best crossing which is close enough already
@@ -313,7 +318,7 @@ std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Cross
         }
     }
     if (best_detour_score == std::numeric_limits<int64_t>::max())
-    {
+    { // i.e. if best_in == nullptr or if best_out == nullptr
         return std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>>();
     }
     if (best_crossing_dist2 > comber.max_crossing_dist2)
