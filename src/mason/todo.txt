@@ -16,6 +16,4 @@
   - Drawing of intermediate representations
   - Experimental region designation
 - Refactoring / cleanup
-  - Rearrange such that Mason write the end gcode
-
-  
+  - Rearrange such that Mason writes the end gcode
