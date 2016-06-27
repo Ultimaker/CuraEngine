@@ -130,17 +130,6 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
         switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
     }
-    for(SliceMeshStorage& mesh : storage.meshes)
-    {
-        mesh.retraction_config.distance = (mesh.getSettingBoolean("retraction_enable"))? mesh.getSettingInMillimeters("retraction_amount") : 0;
-        mesh.retraction_config.prime_volume = mesh.getSettingInCubicMillimeters("retraction_extra_prime_amount");
-        mesh.retraction_config.speed = mesh.getSettingInMillimetersPerSecond("retraction_retract_speed");
-        mesh.retraction_config.primeSpeed = mesh.getSettingInMillimetersPerSecond("retraction_prime_speed");
-        mesh.retraction_config.zHop = mesh.getSettingInMicrons("retraction_hop");
-        mesh.retraction_config.retraction_min_travel_distance = mesh.getSettingInMicrons("retraction_min_travel");
-        mesh.retraction_config.retraction_extrusion_window = mesh.getSettingInMillimeters("retraction_extrusion_window");
-        mesh.retraction_config.retraction_count_max = mesh.getSettingAsCount("retraction_count_max");
-    }
 }
 
 void FffGcodeWriter::initConfigs(SliceDataStorage& storage)

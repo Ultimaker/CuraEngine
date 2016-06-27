@@ -67,8 +67,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        RetractionConfig* retraction_config = nullptr;
-        travel_config_per_extruder.emplace_back(retraction_config, PrintFeatureType::MoveCombing);
+        travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
     }
     return ret;
 }
@@ -77,8 +76,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-        skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
+        skirt_config.emplace_back(PrintFeatureType::Skirt);
     }
     return ret;
 }
@@ -88,11 +86,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_interface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_surface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    support_config(&retraction_config_per_extruder[getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
-    support_roof_config(&retraction_config_per_extruder[getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
+    raft_base_config(PrintFeatureType::Support),
+    raft_interface_config(PrintFeatureType::Support),
+    raft_surface_config(PrintFeatureType::Support),
+    support_config(PrintFeatureType::Support),
+    support_roof_config(PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }
