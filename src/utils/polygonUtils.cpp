@@ -326,11 +326,17 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     SVG svg("debug.html", aabb);
                     svg.writePolygon(closest_poly, SVG::Color::BLACK);
                     for (auto point : closest_poly)
+                    {
                         svg.writePoint(point, true, 2);
+                    }
                     svg.writePolygons(insetted, SVG::Color::BLUE);
                     for (auto poly : insetted)
-                    for (auto point : poly)
-                        svg.writePoint(point, true, 2);
+                    {
+                        for (auto point : poly)
+                        {
+                            svg.writePoint(point, true, 2);
+                        }
+                    }
                     svg.writePoint(from, false, 5, SVG::Color::GREEN);
                     svg.writePoint(inside.location, false, 5, SVG::Color::RED);
                 }
