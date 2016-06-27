@@ -61,15 +61,15 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
     return moveInside(polygons, from, -distance, maxDist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, int distance, int64_t max_dist2)
+ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, int distance, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
 {
-    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygons);
+    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygons, penalty_function);
     return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, int distance, int64_t max_dist2)
+ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, int distance, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
 {
-    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygon);
+    const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygon, penalty_function);
     return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
@@ -272,9 +272,9 @@ Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distanc
     }
 }
 
-ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2)
+ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2);
+    ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, penalty_function);
     if (closest_polygon_point.point_idx == NO_INDEX)
     {
         return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
@@ -292,8 +292,8 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     }
 
     // try once more with half the preferred distance inside
-    // TODO: use moveInside on closest_poly alone
-    moveInside2(closest_poly, from, preferred_dist_inside / 2);
+    int64_t max_dist2_here = std::numeric_limits<int64_t>::max(); // we already concluded we are close enough to the closest_poly
+    moveInside2(closest_poly, from, preferred_dist_inside / 2, max_dist2_here, penalty_function);
     bool is_inside = closest_poly.inside(from) == is_outside_boundary; // inside a hole is outside the part
     if (is_inside == (preferred_dist_inside > 0))
     { // we ended up on the right side of the polygon
@@ -309,7 +309,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         {
             return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
         }
-        ClosestPolygonPoint inside = findClosest(from, insetted);
+        ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
         if (inside.point_idx != NO_INDEX)
         {
             bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part

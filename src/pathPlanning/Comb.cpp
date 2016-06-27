@@ -224,7 +224,8 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         std::function<int(Point)> close_towards_start_penalty_function([_dest_point](Point candidate){ return vSize2((candidate - _dest_point) / 10); });
         dest_part = partsView_inside.assemblePart(dest_part_idx);
         Point result(close_to);
-        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside);
+        int64_t max_dist2 = std::numeric_limits<int64_t>::max();
+        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside, max_dist2, close_towards_start_penalty_function);
         if (crossing_1_in_cp.point_idx != NO_INDEX)
         {
             dest_crossing_poly = crossing_1_in_cp.poly;
