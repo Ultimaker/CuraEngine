@@ -61,19 +61,19 @@ unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, in
     return moveInside(polygons, from, -distance, maxDist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, int distance, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(const Polygons& polygons, Point& from, const int distance, const int64_t max_dist2, const std::function<int(Point)>& penalty_function)
 {
     const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygons, penalty_function);
     return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, int distance, int64_t max_dist2, const std::function<int(Point)>& penalty_function)
+ClosestPolygonPoint PolygonUtils::moveInside2(const PolygonRef polygon, Point& from, const int distance, const int64_t max_dist2, const std::function<int(Point)>& penalty_function)
 {
     const ClosestPolygonPoint closest_polygon_point = findClosest(from, polygon, penalty_function);
     return _moveInside2(closest_polygon_point, distance, from, max_dist2);
 }
 
-ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, int64_t max_dist2)
+ClosestPolygonPoint PolygonUtils::_moveInside2(const ClosestPolygonPoint& closest_polygon_point, const int distance, Point& from, const int64_t max_dist2)
 {
     if (closest_polygon_point.point_idx == NO_INDEX)
     {
