@@ -203,11 +203,7 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
                 }
                 else
                 {
-                    if (extruder_idx == extruder)
-                    {
-                        extruder_plan.required_temp = required_temp;
-                    }
-                    else 
+                    if (extruder_idx != extruder)
                     { // TODO: do we need to do this?
                         extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(extruder_idx);
                     }
