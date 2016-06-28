@@ -2,10 +2,7 @@
 #ifndef UTILS_OPTIONAL_H
 #define UTILS_OPTIONAL_H
 
-
-#include "intpoint.h"
-#include "polygon.h"
-
+#include <algorithm> // swap
 
 namespace std
 {
