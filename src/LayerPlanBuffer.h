@@ -126,6 +126,18 @@ public:
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
     void insertPreheatCommands();
+private:
+    /*!
+     * Reconfigure the standby temperature during which we didn't print with this extruder.
+     * Find the previous extruder plan with the same extruder as layers[layer_plan_idx].extruder_plans[extruder_plan_idx]
+     * Set the prev_extruder_standby_temp in the next extruder plan
+     * 
+     * \param layers The layers of the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param layer_plan_idx The index of the layer plan before which to reconfigure the standby temperature
+     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx before which to reconfigure the standby temperature
+     * \param standby_temp The temperature to which to cool down when the extruder is in standby mode.
+     */
+    void handleStandbyTemp(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx, double standby_temp);
 };
 
 
