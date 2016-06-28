@@ -61,7 +61,18 @@ public:
     {
         return config_per_extruder[extruder].standby_temp;
     }
-    
+
+    /*!
+     * Get the time it takes to heat up one degree celsius
+     * 
+     * \param extruder the extruder train for which to get time it takes to heat up one degree celsius
+     * \return the time it takes to heat up one degree celsius
+     */
+    double getTimeToHeatup1Degree(int extruder)
+    {
+        return config_per_extruder[extruder].time_to_heatup_1_degree;
+    }
+
     /*!
      * Set the nozzle and material temperature settings for each extruder train.
      */

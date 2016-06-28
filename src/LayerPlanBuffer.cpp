@@ -78,10 +78,15 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
     // The last extruder plan with the same extruder falls outside of the buffer
     // assume the nozzle has cooled down to strandby temperature already.
     Preheat::WarmUpResult warm_up;
+    warm_up.total_time_window = in_between_time;
     warm_up.lowest_temperature = preheat_config.getStandbyTemp(extruder);
     warm_up.heating_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(warm_up.lowest_temperature, extruder, required_temp, false);
-    warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
-    warm_up.total_time_window = in_between_time;
+    if (warm_up.heating_time > in_between_time)
+    {
+        warm_up.heating_time = in_between_time;
+        warm_up.lowest_temperature = in_between_time / preheat_config.getTimeToHeatup1Degree(extruder);
+    }
+    warm_up.heating_time = warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait;
     return warm_up;
     
 }
