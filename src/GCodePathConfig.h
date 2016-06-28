@@ -13,6 +13,7 @@ namespace cura
  */
 class GCodePathConfig
 {
+    friend class GCodePlannerTest;
 public:
     /*!
      * The path config settings which may change from layer to layer

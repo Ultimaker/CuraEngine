@@ -45,8 +45,6 @@ private:
         std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
 
-        RetractionConfig extruder_switch_retraction_config; //!< Retraction configuration used when performing extruder switches
-
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
         int initial_temp; //!< Temperature this nozzle needs to be at the start of the print.
@@ -233,10 +231,26 @@ private:
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
-    
-    void writeRetraction_extruderSwitch();
-    
-    void switchExtruder(int newExtruder);
+
+    /*!
+     * Start a z hop with the given \p hop_height
+     * 
+     * \param hop_height The height to move above the current layer
+     */
+    void writeZhopStart(int hop_height);
+
+    /*!
+     * Switch to the new_extruder: 
+     * - perform neccesary retractions
+     * - fiddle with E-values
+     * - write extruder end gcode
+     * - set new extruder
+     * - write extruder start gcode
+     * 
+     * \param new_extruder The extruder to switch to
+     * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     */
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
     
     void writeCode(const char* str);
     

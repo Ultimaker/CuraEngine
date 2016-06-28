@@ -85,6 +85,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     retraction_config_per_extruder(initializeRetractionConfigs()),
+    extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
     skirt_config(initializeSkirtConfigs()),
     raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),

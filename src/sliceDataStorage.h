@@ -138,6 +138,7 @@ public:
     std::vector<SliceMeshStorage> meshes;
     
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
+    std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
 

@@ -119,6 +119,16 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         retraction_config.retraction_min_travel_distance = train->getSettingInMicrons("retraction_min_travel");
         retraction_config.retraction_extrusion_window = train->getSettingInMillimeters("retraction_extrusion_window");
         retraction_config.retraction_count_max = train->getSettingAsCount("retraction_count_max");
+
+        RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder];
+        switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
+        switch_retraction_config.prime_volume = 0.0;
+        switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
+        switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
+        switch_retraction_config.zHop = retraction_config.zHop; // not used, because the last_retraction_config is used to govern how how high to zHop
+        switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
+        switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
+        switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
     }
     for(SliceMeshStorage& mesh : storage.meshes)
     {
@@ -218,7 +228,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 //         G1 X175 Y6 Z20 F9000
         gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(0)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writePrimeTrain();
-        gcode.switchExtruder(1);
+        gcode.switchExtruder(1, storage.extruder_switch_retraction_config_per_extruder[0]);
 //         G1 X180 Y6 Z20 F9000
         gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(1)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
         gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to

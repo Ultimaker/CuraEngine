@@ -17,6 +17,8 @@ void GCodePlannerTest::setUp()
     SettingsBase settings;
     settings.setSetting("machine_extruder_count", "1");
     MeshGroup meshgroup(&settings);
+    meshgroup.createExtruderTrain(0);
+
     storage = new SliceDataStorage(&meshgroup); //Empty data.
     storage->retraction_config_per_extruder[0].speed = 25; // set some semi realistic data
     storage->retraction_config_per_extruder[0].primeSpeed = 25;
@@ -32,6 +34,7 @@ void GCodePlannerTest::setUp()
     fan_speed_layer_time_settings.cool_fan_speed_min = 0;
     fan_speed_layer_time_settings.cool_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
+
     //                              Slice     layer  z  layer   last        current   is inside  fan speed and layer            combing           comb    travel  travel avoid
     //                              storage   nr        height  position    extruder  mesh       time settings                  mode              offset  avoid   distance
     gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        false,     fan_speed_layer_time_settings, CombingMode::OFF, 100,    false,  50          );
@@ -55,8 +58,10 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     GCodeExport gcode;
     GCodePathConfig configuration = storage->travel_config_per_extruder.back();
     gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::Lines, 1.0f); //Need to have at least one path to have a configuration.
+    GCodePath* travel_path = gCodePlanner->getLatestPathWithConfig(&configuration, SpaceFillType::None);
+    gCodePlanner->addTravel_simple(Point(10, 0), travel_path);
     TimeMaterialEstimates before_retract = gCodePlanner->computeNaiveTimeEstimates();
-    gCodePlanner->writeRetraction(gcode,(unsigned int)0,(unsigned int)0); //Make a retract.
+    travel_path->retract = true;
     TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
     TimeMaterialEstimates estimate_one_retraction = after_retract - before_retract;
     double retract_unretract_time = configuration.retraction_config->distance / configuration.retraction_config->primeSpeed;

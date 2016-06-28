@@ -1,24 +1,13 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef COMB_H
-#define COMB_H
+#ifndef PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
+#define PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
 
-#include <memory> // shared_ptr
+#include "../utils/polygon.h"
 
-#include "utils/polygon.h"
-#include "utils/BucketGrid2D.h"
-#include "utils/polygonUtils.h"
+#include "CombPath.h"
 
 namespace cura 
 {
-    
-struct CombPath : public  std::vector<Point> //!< A single path either inside or outise the parts
-{
-    bool cross_boundary = false; //!< Whether the path crosses a boundary.
-};
-struct CombPaths : public  std::vector<CombPath> //!< A list of paths alternating between inside a part and outside a part
-{
-    bool throughAir = false; //!< Whether the path is one which moves through air.
-}; 
 
 /*!
  * Class for generating a combing move action from point a to point b and avoiding collision with other parts when moving through air.
@@ -64,6 +53,7 @@ private:
         unsigned int poly_idx; //!< The index of the polygon which crosses the scanline
         Crossing min; //!< The point where the polygon first crosses the scanline.
         Crossing max; //!< The point where the polygon last crosses the scanline.
+        int n_crossings; //!< The number of times the polygon crossed the scanline.
         /*!
          * Create a PolyCrossings with minimal initialization. PolyCrossings::min and PolyCrossings::max are not yet computed.
          * \param poly_idx The index of the polygon in LinePolygonsCrossings::boundary
@@ -71,6 +61,7 @@ private:
         PolyCrossings(unsigned int poly_idx) 
         : poly_idx(poly_idx)
         , min(INT64_MAX, NO_INDEX), max(INT64_MIN, NO_INDEX) 
+        , n_crossings(0)
         { 
         }
     };
@@ -95,8 +86,8 @@ private:
     int64_t dist_to_move_boundary_point_outside; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary due to computational rounding problems. Use negative value for insicde combing.
     
     PointMatrix transformation_matrix; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
-    Point transformed_startPoint; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix
-    Point transformed_endPoint; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix
+    Point transformed_startPoint; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_endPoint
+    Point transformed_endPoint; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as transformed_startPoint
 
     
     /*!
@@ -109,15 +100,19 @@ private:
     
     /*!
      * Calculate Comb::crossings, Comb::min_crossing_idx and Comb::max_crossing_idx.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \return Whether combing succeeded, i.e. when fail_on_unavoidable_obstacles: we didn't cross any gaps/other parts
      */
-    void calcScanlineCrossings();
+    bool calcScanlineCrossings(bool fail_on_unavoidable_obstacles);
     
     /*! 
      * Get the basic combing path and optimize it.
      * 
      * \param combPath Output parameter: the points along the combing path.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    void getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored = MM2INT(1.5));
+    bool getCombingPath(CombPath& combPath, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles);
     
     /*! 
      * Get the basic combing path, without shortcuts. The path goes straight toward the endPoint and follows the boundary when it hits it, until it passes the scanline again.
@@ -181,100 +176,16 @@ public:
      * \param startPoint From where to start the combing move.
      * \param endPoint Where to end the combing move.
      * \param combPath Output parameter: the combing path generated.
+     * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
+     * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    static void comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored = MM2INT(1.5))
+    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
-        linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored);
+        return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
     };
-};
-
-class SliceDataStorage;
-
-/*!
- * Class for generating a full combing actions from a travel move from a start point to an end point.
- * A single Comb object is used for each layer.
- * 
- * Comb::calc is the main function of this class.
- * 
- * Typical output: A combing path to the boundary of the polygon + a move through air avoiding other parts in the layer + a combing path from the boundary of the ending polygon to the end point.
- * Each of these three is a CombPath; the first and last are within Comb::boundary_inside while the middle is outside of Comb::boundary_outside.
- * Between these there is a little gap where the nozzle crosses the boundary of an object approximately perpendicular to its boundary.
- * 
- * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts, 
- * because generally there is only one outside part; encapsulated holes occur less often.
- */
-class Comb 
-{
-    friend class LinePolygonsCrossings;
-private:
-    SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
-    const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
-    
-    const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
-    const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
-    const int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
-    static const int64_t max_moveOutside_distance2 = INT64_MAX; //!< Any point which is not inside should be considered outside.
-    static const int64_t offset_dist_to_get_from_on_the_polygon_to_outside = 40; //!< in order to prevent on-boundary vs crossing boundary confusions (precision thing)
-    static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
-
-    const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
-    
-    Polygons& boundary_inside; //!< The boundary within which to comb.
-    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    BucketGrid2D<PolygonsPointIndex>* outside_loc_to_line; //!< The BucketGrid mapping locations to line segments of the outside boundary.
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
-
-    /*!
-     * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
-     */
-    Polygons& getBoundaryOutside();
-    
-    /*!
-     * Get the BucketGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
-     */
-    BucketGrid2D<PolygonsPointIndex>& getOutsideLocToLine();
-    
-    /*!
-     * Find the best crossing from some inside polygon to the outside boundary.
-     * 
-     * The detour from \p estimated_start to \p estimated_end is minimized.
-     * 
-     * \param from From which inside boundary the crossing to the outside starts or ends
-     * \param estimated_start The one point to which to stay close when evaluating crossings which cross about the same distance
-     * \param estimated_end The other point to which to stay close when evaluating crossings which cross about the same distance
-     * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
-     */
-    std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(PolygonRef from, Point estimated_start, Point estimated_end);
-    
-public:
-    /*!
-     * Initializes the combing areas for every mesh in the layer (not support)
-     * \param storage Where the layer polygon data is stored
-     * \param layer_nr The number of the layer for which to generate the combing areas.
-     * \param comb_boundary_inside The comb boundary within which to comb within layer parts.
-     * \param offset_from_outlines The offset from the outline polygon, to create the combing boundary in case there is no second wall.
-     * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
-     * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
-     */
-    Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
-    
-    ~Comb();
-
-    /*!
-     * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
-     * 
-     * \param startPoint Where to start moving from
-     * \param endPoint Where to move to
-     * \param combPoints Output parameter: The points along the combing path, excluding the \p startPoint (?) and \p endPoint
-     * \param startInside Whether we want to start inside the comb boundary
-     * \param endInside Whether we want to end up inside the comb boundary
-     * \return Whether combing has succeeded; otherwise a retraction is needed.
-     */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside = false, bool endInside = false, int64_t max_comb_distance_ignored = MM2INT(1.5));
 };
 
 }//namespace cura
 
-#endif//COMB_H
+#endif//PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
