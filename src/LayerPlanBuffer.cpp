@@ -188,7 +188,7 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     
     if (prev_extruder != extruder)
     { // set previous extruder to standby temperature
-        prev_extruder_plan->insertCommand(prev_extruder_plan->paths.size(), prev_extruder, preheat_config.getStandbyTemp(prev_extruder), false);
+        extruder_plan.insertCommand(0, prev_extruder, preheat_config.getStandbyTemp(prev_extruder), false);
     }
     
     if (prev_extruder == extruder)
