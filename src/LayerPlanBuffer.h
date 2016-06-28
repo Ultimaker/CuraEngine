@@ -82,12 +82,11 @@ public:
      * Compute the time needed to preheat, based either on the time the extruder has been on standby 
      * or based on the temp of the previous extruder plan which has the same extruder nr.
      * 
-     * \param layers The layers in the buffer, moved to a vector
-     * \param layer_plan_idx The index into @p layers in which to find the extruder plan
-     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to find the preheat time needed
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to find the preheat time needed
      * \return the time needed to preheat and the temperature from which heating starts
      */
-    Preheat::WarmUpResult timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx);
+    Preheat::WarmUpResult timeBeforeExtruderPlanToInsert(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
     
     /*!
      * For two consecutive extruder plans of the same extruder (so on different layers), 
@@ -107,20 +106,18 @@ public:
      * and compute at what time the preheat command needs to be inserted.
      * Then insert the preheat command in the right extruder plan.
      * 
-     * \param layers The layers in the buffer, moved to a vector
-     * \param layer_plan_idx The index into @p layers in which to find the extruder plan
-     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to find the preheat time needed
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to find the preheat time needed
      */
-    void insertPreheatCommand_multiExtrusion(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx);
+    void insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
     
     /*!
      * Insert the preheat command for the extruder plan corersponding to @p extruder_plan_idx of the layer corresponding to @p layer_plan_idx.
      * 
-     * \param layers The layers of the buffer, moved to a temporary vector (from lower to upper layers)
-     * \param layer_plan_idx The index of the layer plan for which to generate a preheat command
-     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to generate the preheat command
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command
      */
-    void insertPreheatCommand(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx);
+    void insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
 
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
@@ -132,12 +129,11 @@ private:
      * Find the previous extruder plan with the same extruder as layers[layer_plan_idx].extruder_plans[extruder_plan_idx]
      * Set the prev_extruder_standby_temp in the next extruder plan
      * 
-     * \param layers The layers of the buffer, moved to a temporary vector (from lower to upper layers)
-     * \param layer_plan_idx The index of the layer plan before which to reconfigure the standby temperature
-     * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx before which to reconfigure the standby temperature
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans before which to reconfigure the standby temperature
      * \param standby_temp The temperature to which to cool down when the extruder is in standby mode.
      */
-    void handleStandbyTemp(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx, double standby_temp);
+    void handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp);
 };
 
 
