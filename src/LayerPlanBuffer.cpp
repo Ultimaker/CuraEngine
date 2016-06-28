@@ -55,14 +55,14 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
     double in_between_time = 0.0;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
-            ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_before_idx];
-            if (extruder_plan.extruder == extruder)
-            {
-                Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
-                warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
-                return warm_up;
-            }
-            in_between_time += extruder_plan.estimates.getTotalTime();
+        ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_before_idx];
+        if (extruder_plan.extruder == extruder)
+        {
+            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
+            warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+            return warm_up;
+        }
+        in_between_time += extruder_plan.estimates.getTotalTime();
     }
     // The last extruder plan with the same extruder falls outside of the buffer
     // assume the nozzle has cooled down to strandby temperature already.
@@ -100,11 +100,11 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
     int extruder = extruder_plan.extruder;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 2; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     {
-            if (extruder_plans[extruder_plan_before_idx]->extruder == extruder)
-            {
-                extruder_plans[extruder_plan_before_idx + 1]->prev_extruder_standby_temp = standby_temp;
-                return;
-            }
+        if (extruder_plans[extruder_plan_before_idx]->extruder == extruder)
+        {
+            extruder_plans[extruder_plan_before_idx + 1]->prev_extruder_standby_temp = standby_temp;
+            return;
+        }
     }
 }
 
@@ -121,16 +121,16 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     double time_before_extruder_plan_to_insert = heating_time_and_from_temp.heating_time;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     {
-            ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
-            assert (extruder_plan_before.extruder != extruder);
-            
-            double time_here = extruder_plan_before.estimates.getTotalTime();
-            if (time_here >= time_before_extruder_plan_to_insert)
-            {
-                insertPreheatCommand(extruder_plan_before, time_here - time_before_extruder_plan_to_insert, extruder, required_temp);
-                return;
-            }
-            time_before_extruder_plan_to_insert -= time_here;
+        ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
+        assert (extruder_plan_before.extruder != extruder);
+        
+        double time_here = extruder_plan_before.estimates.getTotalTime();
+        if (time_here >= time_before_extruder_plan_to_insert)
+        {
+            insertPreheatCommand(extruder_plan_before, time_here - time_before_extruder_plan_to_insert, extruder, required_temp);
+            return;
+        }
+        time_before_extruder_plan_to_insert -= time_here;
     }
     
     // time_before_extruder_plan_to_insert falls before all plans in the buffer
