@@ -9,8 +9,8 @@
 
 namespace std
 {
-    
-    
+
+
 /*!
  * optional value
  * 
@@ -28,7 +28,7 @@ public:
     : instance(nullptr)
     {
     }
-    optional(const optional& other)
+    optional(const optional& other) //!< copy construction
     {
         if (other.instance)
         {
@@ -39,23 +39,29 @@ public:
             instance = nullptr;
         }
     }
-    optional(optional&& other)
+    optional(optional&& other) //!< move construction
     : instance(other.instance)
     {
         other.instance = nullptr;
     }
     template<class... Args>
-    constexpr explicit optional(bool not_used, Args&&... args )
+    constexpr explicit optional(bool not_used, Args&&... args ) //!< construct the value in place
     : instance(new T(args...))
     {
     }
-    ~optional()
+    ~optional() //!< simple destructor
     {
         if (instance)
         {
             delete instance;
         }
     }
+    /*!
+     * Assign none to this optional value.
+     * 
+     * \param null_ptr exactly [nullptr]
+     * \return this
+     */
     optional& operator=(void* null_ptr)
     {
         instance = nullptr;
@@ -140,7 +146,7 @@ public:
         std::swap(instance, other.instance);
     }
     template<class... Args>
-    void emplace(Args&&... args)
+    void emplace(Args&&... args) //!< construct a new value in place
     {
         if (instance)
         {
@@ -153,6 +159,6 @@ public:
     }
 };
 
-}//namespace cura
+}//namespace std
 #endif//UTILS_OPTIONAL_H
 
