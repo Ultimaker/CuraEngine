@@ -59,6 +59,7 @@ public:
     optional& operator=(void* null_ptr)
     {
         instance = nullptr;
+        return *this;
     }
     optional& operator=(const optional& other)
     {
@@ -85,13 +86,16 @@ public:
                 instance = nullptr;
             }
         }
+        return *this;
     }
     optional& operator=(optional&& other)
     {
         instance = other.instance;
         other.instance = nullptr;
+        return *this;
     }
-    optional& operator=(T&& value)
+    template<class U> 
+    optional& operator=(U&& value)
     {
         if (instance)
         {
@@ -101,6 +105,7 @@ public:
         {
             instance = new T(value);
         }
+        return *this;
     }
     constexpr T* operator->()
     {
@@ -118,7 +123,8 @@ public:
     {
         return *instance;
     }
-    constexpr T value_or(T&& default_value) const&
+    template<class U> 
+    constexpr T value_or(U&& default_value) const&
     {
         if (instance)
         {

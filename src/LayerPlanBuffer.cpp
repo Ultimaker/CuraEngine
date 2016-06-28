@@ -41,6 +41,7 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, d
             return;
         }
     }
+    // TODO: walk over paths from back to front instead of front to back!
     extruder_plan_before.insertCommand(extruder_plan_before.paths.size(), extruder, temp, false); // insert at end of extruder plan if time_after_extruder_plan_start > extruder_plan.time 
     // = special insert after all extruder plans
 }
@@ -104,9 +105,29 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<GCodePlann
     int extruder = extruder_plan.extruder;
     double required_temp = extruder_plan.required_temp;
     
-    extruder_plan.insertCommand(0, extruder, required_temp, true); // just after the extruder switch, wait for the destination temperature to be reached
-    
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(layers, layer_plan_idx, extruder_plan_idx);
+
+    { // handle from_temp
+        unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
+        bool first_it = true;
+        for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
+        { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
+            GCodePlanner& layer = *layers[layer_idx];
+            if (!first_it)
+            {
+                extruder_plan_before_idx = layer.extruder_plans.size() - 1;
+            }
+            for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
+            {
+                ExtruderPlan& extruder_plan = layer.extruder_plans[extruder_plan_before_idx];
+                if (extruder_plan.extruder == extruder)
+                {
+                    extruder_plan.prev_extruder_standby_temp = heating_time_and_from_temp.lowest_temperature;
+                }
+            }
+            first_it = false;
+        }
+    }
 
     double time_before_extruder_plan_to_insert = heating_time_and_from_temp.heating_time;
     unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
@@ -172,11 +193,11 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
                 {
                     if (extruder_idx == extruder)
                     {
-                        extruder_plan.insertCommand(0, extruder, required_temp, true);
+                        extruder_plan.required_temp = required_temp;
                     }
                     else 
-                    {
-                        extruder_plan.insertCommand(0, extruder_idx, preheat_config.getStandbyTemp(extruder_idx), false);
+                    { // TODO: do we need to do this?
+                        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(extruder_idx);
                     }
                 }
             }
@@ -194,7 +215,7 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     
     if (prev_extruder != extruder)
     { // set previous extruder to standby temperature
-        extruder_plan.insertCommand(0, prev_extruder, preheat_config.getStandbyTemp(prev_extruder), false);
+        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(prev_extruder);
     }
     
     if (prev_extruder == extruder)
