@@ -183,34 +183,6 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<GCodePlanner*>& layers, u
     ExtruderPlan* prev_extruder_plan = nullptr;
     if (extruder_plan_idx == 0)
     {
-        if (layer_plan_idx == 0)
-        { // the very first extruder plan of the current meshgroup
-            for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
-            { // set temperature of the first nozzle, turn other nozzles down
-                if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
-                {
-                    // override values from GCodeExport::setInitialTemps
-                    // the first used extruder should be set to the required temp in the start gcode
-                    // see  FffGcodeWriter::processStartingCode
-                    if (extruder_idx == extruder)
-                    {
-                        gcode.setInitialTemp(extruder_idx, required_temp);
-                    }
-                    else 
-                    {
-                        gcode.setInitialTemp(extruder_idx, preheat_config.getStandbyTemp(extruder_idx));
-                    }
-                }
-                else
-                {
-                    if (extruder_idx != extruder)
-                    { // TODO: do we need to do this?
-                        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(extruder_idx);
-                    }
-                }
-            }
-            return;
-        }
         prev_extruder_plan = &layers[layer_plan_idx - 1]->extruder_plans.back();
     }
     else 
@@ -269,9 +241,40 @@ void LayerPlanBuffer::insertPreheatCommands()
         {
             continue;
         }
+        
         double avg_flow = extruder_plan.estimates.getMaterial() / time; // TODO: subtract retracted travel time
         extruder_plan.required_temp = preheat_config.getTemp(extruder_plan.extruder, avg_flow);
-        
+
+        if (buffer.size() == 1 && extruder_plan_idx == 0)
+        { // the very first extruder plan of the current meshgroup
+            int extruder = extruder_plan.extruder;
+            for (int extruder_idx = 0; extruder_idx < getSettingAsCount("machine_extruder_count"); extruder_idx++)
+            { // set temperature of the first nozzle, turn other nozzles down
+                if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+                {
+                    // override values from GCodeExport::setInitialTemps
+                    // the first used extruder should be set to the required temp in the start gcode
+                    // see  FffGcodeWriter::processStartingCode
+                    if (extruder_idx == extruder)
+                    {
+                        gcode.setInitialTemp(extruder_idx, extruder_plan.required_temp);
+                    }
+                    else 
+                    {
+                        gcode.setInitialTemp(extruder_idx, preheat_config.getStandbyTemp(extruder_idx));
+                    }
+                }
+                else
+                {
+                    if (extruder_idx != extruder)
+                    { // TODO: do we need to do this?
+                        extruder_plan.prev_extruder_standby_temp = preheat_config.getStandbyTemp(extruder_idx);
+                    }
+                }
+            }
+            continue;
+        }
+
         insertPreheatCommand(layers, layer_idx, extruder_plan_idx);
     }
 }
