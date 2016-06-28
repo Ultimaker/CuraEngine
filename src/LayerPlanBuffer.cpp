@@ -55,7 +55,7 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
     bool first_it = true;
     double in_between_time = 0.0;
     for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
-    {
+    { // find the previous extruder plan where the same extruder is used
         GCodePlanner& layer = *layers[layer_idx];
         if (!first_it)
         {
@@ -66,7 +66,8 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
             ExtruderPlan& extruder_plan = layer.extruder_plans[extruder_plan_before_idx];
             if (extruder_plan.extruder == extruder)
             {
-                return preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
+                const double warm_up_time = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
+                return std::min(in_between_time, warm_up_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
             }
             in_between_time += extruder_plan.estimates.getTotalTime();
         }
@@ -74,7 +75,8 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
     }
     // The last extruder plan with the same extruder falls outside of the buffer
     // assume the nozzle has cooled down to strandby temperature already.
-    return preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp, false);
+    const double warm_up_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp, false);
+    return std::min(in_between_time, warm_up_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
     
 }
 

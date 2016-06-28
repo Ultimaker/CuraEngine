@@ -23,7 +23,8 @@ class LayerPlanBuffer : SettingsMessenger
     
     static constexpr unsigned int buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
-    
+
+    const double time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
