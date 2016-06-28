@@ -45,7 +45,7 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, d
     // = special insert after all extruder plans
 }
 
-double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
+Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx)
 {
     ExtruderPlan& extruder_plan = layers[layer_plan_idx]->extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
@@ -55,7 +55,7 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
     bool first_it = true;
     double in_between_time = 0.0;
     for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
-    { // find the previous extruder plan where the same extruder is used
+    { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
         GCodePlanner& layer = *layers[layer_idx];
         if (!first_it)
         {
@@ -66,8 +66,9 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
             ExtruderPlan& extruder_plan = layer.extruder_plans[extruder_plan_before_idx];
             if (extruder_plan.extruder == extruder)
             {
-                const double warm_up_time = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
-                return std::min(in_between_time, warm_up_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+                Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
+                warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+                return warm_up;
             }
             in_between_time += extruder_plan.estimates.getTotalTime();
         }
@@ -75,8 +76,12 @@ double LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*
     }
     // The last extruder plan with the same extruder falls outside of the buffer
     // assume the nozzle has cooled down to strandby temperature already.
-    const double warm_up_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(preheat_config.getStandbyTemp(extruder), extruder, required_temp, false);
-    return std::min(in_between_time, warm_up_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+    Preheat::WarmUpResult warm_up;
+    warm_up.lowest_temperature = preheat_config.getStandbyTemp(extruder);
+    warm_up.heating_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(warm_up.lowest_temperature, extruder, required_temp, false);
+    warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+    warm_up.total_time_window = in_between_time;
+    return warm_up;
     
 }
 
@@ -101,15 +106,16 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<GCodePlann
     
     extruder_plan.insertCommand(0, extruder, required_temp, true); // just after the extruder switch, wait for the destination temperature to be reached
     
-    double time_before_extruder_plan_to_insert = timeBeforeExtruderPlanToInsert(layers, layer_plan_idx, extruder_plan_idx);
-    
+    Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(layers, layer_plan_idx, extruder_plan_idx);
+
+    double time_before_extruder_plan_to_insert = heating_time_and_from_temp.heating_time;
     unsigned int extruder_plan_before_idx = extruder_plan_idx - 1;
     bool first_it = true; // Whether it's the first iteration of the for loop below
     for (unsigned int layer_idx = layer_plan_idx; int(layer_idx) >= 0; layer_idx--)
     {
         GCodePlanner& layer = *layers[layer_idx];
         if (!first_it)
-        {
+        { // go over all extruder plans in the layer except for the layer of this extruder plan
             extruder_plan_before_idx = layer.extruder_plans.size() - 1;
         }
         for ( ; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)

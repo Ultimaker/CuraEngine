@@ -24,7 +24,8 @@ class LayerPlanBuffer : SettingsMessenger
     static constexpr unsigned int buffer_size = 5; // should be as low as possible while still allowing enough time in the buffer to heat up from standby temp to printing temp // TODO: hardcoded value
     // this value should be higher than 1, cause otherwise each layer is viewed as the first layer and no temp commands are inserted.
 
-    const double time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
+    static constexpr const double time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
+
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
@@ -84,9 +85,9 @@ public:
      * \param layers The layers in the buffer, moved to a vector
      * \param layer_plan_idx The index into @p layers in which to find the extruder plan
      * \param extruder_plan_idx The index of the extruder plan in the layer corresponding to @p layer_plan_idx for which to find the preheat time needed
-     * \return the time needed to preheat
+     * \return the time needed to preheat and the temperature from which heating starts
      */
-    double timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx);
+    Preheat::WarmUpResult timeBeforeExtruderPlanToInsert(std::vector<GCodePlanner*>& layers, unsigned int layer_plan_idx, unsigned int extruder_plan_idx);
     
     /*!
      * For two consecutive extruder plans of the same extruder (so on different layers), 
