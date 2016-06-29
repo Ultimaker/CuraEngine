@@ -58,7 +58,7 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
         if (extruder_plan.extruder == extruder)
         {
             Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, required_temp);
-            warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait);
+            warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
         in_between_time += extruder_plan.estimates.getTotalTime();
@@ -74,7 +74,7 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
         warm_up.heating_time = in_between_time;
         warm_up.lowest_temperature = in_between_time / preheat_config.getTimeToHeatup1Degree(extruder);
     }
-    warm_up.heating_time = warm_up.heating_time + time_to_start_warmup_earlier_to_be_extra_sure_we_dont_have_to_wait;
+    warm_up.heating_time = warm_up.heating_time + extra_preheat_time;
     return warm_up;
     
 }
