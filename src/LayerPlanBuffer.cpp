@@ -33,10 +33,12 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, d
     for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1 ; path_idx--)
     {
         GCodePath& path = extruder_plan_before.paths[path_idx];
-        acc_time += path.estimates.getTotalTime();
+        const double time_this_path = path.estimates.getTotalTime();
+        acc_time += time_this_path;
         if (acc_time > time_after_extruder_plan_start)
         {
-            extruder_plan_before.insertCommand(path_idx, extruder, temp, false, acc_time - time_after_extruder_plan_start);
+            const double time_before_path_end = acc_time - time_after_extruder_plan_start;
+            extruder_plan_before.insertCommand(path_idx, extruder, temp, false, time_this_path - time_before_path_end);
             return;
         }
     }
