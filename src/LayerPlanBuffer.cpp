@@ -111,7 +111,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(extruder_plans, extruder_plan_idx);
 
-    if (heating_time_and_from_temp.total_time_window < min_time_window)
+    if (heating_time_and_from_temp.total_time_window < preheat_config.getMinimalTimeWindow(extruder))
     {
         handleStandbyTemp(extruder_plans, extruder_plan_idx, required_temp);
         return; // don't insert preheat command and just stay on printing temperature

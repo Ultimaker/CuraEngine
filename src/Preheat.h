@@ -33,6 +33,8 @@ class Preheat
 
         double standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
 
+        double min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
+
         double material_print_temperature; //!< default print temp (backward compatilibily)
         
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
@@ -88,7 +90,9 @@ public:
             config.time_to_heatup_1_degree = 1.0 / extruder_train.getSettingInSeconds("machine_nozzle_heat_up_speed"); // 0.5
             config.heatup_cooldown_time_mod_while_printing = 1.0 / extruder_train.getSettingInSeconds("material_extrusion_cool_down_speed"); // 0.1
             config.standby_temp = extruder_train.getSettingInSeconds("material_standby_temperature"); // 150
-            
+
+            config.min_time_window = extruder_train.getSettingInSeconds("machine_min_cool_heat_time_window");
+
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
             
             config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
@@ -126,7 +130,17 @@ public:
     {
         return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
     }
-    
+
+    /*!
+     * Return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
+     * \param extruder The extruder for which to get the minimal time window
+     * \return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
+     */
+    double getMinimalTimeWindow(unsigned int extruder)
+    {
+        return config_per_extruder[extruder].min_time_window;
+    }
+
     /*!
      * Decide when to start warming up again after starting to cool down towards the standby temperature.
      * Two cases are considered: 
