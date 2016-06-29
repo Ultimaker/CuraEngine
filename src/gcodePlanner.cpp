@@ -580,10 +580,19 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         if (extruder != extruder_plan.extruder)
         {
-            const int old_extruder = extruder;
-            assert(old_extruder >= 0);
+            int prev_extruder = extruder;
             extruder = extruder_plan.extruder;
-            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[old_extruder]);
+            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+
+            { // require printing temperature to be met
+                constexpr bool wait = true;
+                gcode.writeTemperatureCommand(extruder, extruder_plan.required_temp, wait);
+            }
+            if (extruder_plan.prev_extruder_standby_temp)
+            { // turn off previous extruder
+                constexpr bool wait = false;
+                gcode.writeTemperatureCommand(prev_extruder, *extruder_plan.prev_extruder_standby_temp, wait);
+            }
         }
         std::vector<GCodePath>& paths = extruder_plan.paths;
         

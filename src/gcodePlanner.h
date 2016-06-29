@@ -13,6 +13,7 @@
 #include "SpaceFillType.h"
 #include "GCodePathConfig.h"
 
+#include "utils/optional.h"
 
 namespace cura 
 {
@@ -274,6 +275,7 @@ public:
 
     int extruder; //!< The extruder used for this paths in the current plan.
     double required_temp; //!< The required temperature at the start of this extruder plan.
+    std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 
