@@ -26,6 +26,8 @@ class LayerPlanBuffer : SettingsMessenger
 
     static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
+    static constexpr const double min_time_window = 50.0; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
+
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
