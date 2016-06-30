@@ -58,7 +58,7 @@ void Infill::generateGridInfill(Polygons& result)
 
 void Infill::generateCubicInfill(Polygons& result)
 {
-    int64_t shift = z / sqrt(2);
+    int64_t shift = one_over_sqrt_2 * z;
     generateLineInfill(result, line_distance, fill_angle, shift);
     generateLineInfill(result, line_distance, fill_angle + 120, shift);
     generateLineInfill(result, line_distance, fill_angle + 240, shift);
