@@ -172,6 +172,8 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
     
     generateGroundpoly(storage);
     
+    int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
+    
     for (int extruder = 0; extruder < extruder_count; extruder++)
     {
         int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
@@ -184,7 +186,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
             Polygons& result_lines = patterns[pattern_idx];
-            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle);
+            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z);
             infill_comp.generate(result_polygons, result_lines);
         }
     }

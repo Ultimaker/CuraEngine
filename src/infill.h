@@ -27,11 +27,12 @@ class Infill
     int line_distance; //!< The distance between two infill lines / polygons
     int infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
+    int64_t z; //!< height of the layer for which we generate infill
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, bool connected_zigzags = false, bool use_endpieces = false)
+    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, bool connected_zigzags = false, bool use_endpieces = false)
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
@@ -39,6 +40,7 @@ public:
     , line_distance(line_distance)
     , infill_overlap(infill_overlap)
     , fill_angle(fill_angle)
+    , z(z)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     {
