@@ -125,6 +125,10 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
+            if (!extruder_attr[extr_nr].is_used)
+            {
+                continue;
+            }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".INITIAL_TEMPERATURE:" << extruder_attr[extr_nr].initial_temp << new_line;
             if (filament_used.size() == extruder_count)
             {
