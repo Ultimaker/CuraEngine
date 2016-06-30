@@ -51,7 +51,6 @@ void GCodeExport::preSetup(const MeshGroup* settings)
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
-        extruder_attr[extruder_nr].is_used = train->getSettingInMicrons("machine_nozzle_size");
 
         if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
             || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
