@@ -20,6 +20,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     case EFillMethod::LINES:
         generateLineInfill(result_lines, line_distance, fill_angle, 0);
         break;
+    case EFillMethod::CUBIC:
+        generateCubicInfill(result_lines);
+        break;
     case EFillMethod::TRIANGLES:
         generateTriangleInfill(result_lines);
         break;
@@ -53,6 +56,12 @@ void Infill::generateGridInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle + 90, 0);
 }
 
+void Infill::generateCubicInfill(Polygons& result)
+{
+    int64_t shift = z / sqrt(2);
+    generateLineInfill(result, line_distance, fill_angle, shift);
+    generateLineInfill(result, line_distance, fill_angle + 120, shift);
+    generateLineInfill(result, line_distance, fill_angle + 240, shift);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)

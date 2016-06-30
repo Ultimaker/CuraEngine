@@ -70,6 +70,12 @@ private:
     void generateGridInfill(Polygons& result);
 
     /*!
+     * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
+     * \param result (output) The resulting lines
+     */
+    void generateCubicInfill(Polygons& result);
+
+    /*!
      * Generate a triangular grid of infill lines
      * \param result (output) The resulting lines
      */
