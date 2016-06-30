@@ -281,7 +281,7 @@ public:
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
      */
-    void preSetup(MeshGroup* settings);
+    void preSetup(const MeshGroup* settings);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.

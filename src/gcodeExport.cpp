@@ -36,16 +36,31 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(MeshGroup* settings)
+void GCodeExport::preSetup(const MeshGroup* settings)
 {
     setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
     extruder_count = settings->getSettingAsCount("machine_extruder_count");
 
+    for (const Mesh& mesh : settings->meshes)
+    {
+        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+    }
+
     for (unsigned int n = 0; n < extruder_count; n++)
     {
-        ExtruderTrain* train = settings->getExtruderTrain(n);
+        const ExtruderTrain* train = settings->getExtruderTrain(n);
+        extruder_attr[n].is_used = train->getSettingInMicrons("machine_nozzle_size");
+
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(n)
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(n))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(n))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(n))
+            )
+        {
+            extruder_attr[n].is_used = true;
+        }
         setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
