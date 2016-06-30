@@ -105,14 +105,12 @@ void Infill::generateLineInfill(Polygons& result, int line_distance, const doubl
     PointMatrix rotation_matrix(fill_angle);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    bool safe_outline_offset = false;
-    generateLinearBasedInfill(outline_offset, safe_outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags);
+    generateLinearBasedInfill(outline_offset, result, line_distance, rotation_matrix, lines_processor, connected_zigzags);
 }
 
 
 void Infill::generateZigZagInfill(Polygons& result, const int line_distance, const double& fill_angle, const bool connected_zigzags, const bool use_endpieces)
 {
-    bool safe_outline_offset = true;
 
     PointMatrix rotation_matrix(fill_angle);
     if (use_endpieces)
@@ -120,18 +118,18 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
         if (connected_zigzags)
         {
             ZigzagConnectorProcessorConnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, safe_outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
         }
         else
         {
             ZigzagConnectorProcessorDisconnectedEndPieces zigzag_processor(rotation_matrix, result);
-            generateLinearBasedInfill(outline_offset - infill_line_width / 2, safe_outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
+            generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
         }
     }
     else 
     {
         ZigzagConnectorProcessorNoEndPieces zigzag_processor(rotation_matrix, result);
-        generateLinearBasedInfill(outline_offset - infill_line_width / 2, safe_outline_offset, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
+        generateLinearBasedInfill(outline_offset - infill_line_width / 2, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags);
     }
 }
 
@@ -158,7 +156,7 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(const int outline_offset, bool safe_outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
+void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags)
 {
     if (line_distance == 0)
     {

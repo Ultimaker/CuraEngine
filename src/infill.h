@@ -105,14 +105,13 @@ private:
      * It is called only from Infill::generateLineinfill and Infill::generateZigZagInfill.
      * 
      * \param outline_offset An offset from the reference polygon (Infill::in_outline) to get the actual outline within which to generate infill
-     * \param safe_outline_offset Whether to consider removing overlapping wall parts (not so for normal line infill)
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
      */
-    void generateLinearBasedInfill(const int outline_offset, bool safe_outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
+    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
 
     /*!
      * 
