@@ -48,28 +48,28 @@ void GCodeExport::preSetup(const MeshGroup* settings)
         extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
     }
 
-    for (unsigned int n = 0; n < extruder_count; n++)
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = settings->getExtruderTrain(n);
-        extruder_attr[n].is_used = train->getSettingInMicrons("machine_nozzle_size");
+        const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
+        extruder_attr[extruder_nr].is_used = train->getSettingInMicrons("machine_nozzle_size");
 
-        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(n)
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(n))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(n))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(n))
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
             )
         {
-            extruder_attr[n].is_used = true;
+            extruder_attr[extruder_nr].is_used = true;
         }
-        setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
+        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
-        extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
 
-        extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
+        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
+        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
 
-        extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
     machine_dimensions.x = settings->getSettingInMicrons("machine_width");
     machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
