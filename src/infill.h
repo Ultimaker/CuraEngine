@@ -81,8 +81,9 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param boundary The axis aligned boundary box within which the polygon is
      * \param cut_list A mapping of each scanline to all y-coordinates (in the space transformed by rotation_matrix) where the polygons are crossing the scanline
+     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list);
+    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t shift);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
@@ -93,8 +94,9 @@ private:
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
+     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle);
+    void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t shift);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -110,8 +112,9 @@ private:
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
+     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags);
+    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t shift);
 
     /*!
      * 
