@@ -686,15 +686,16 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-        for(unsigned int n=1; n<part.infill_area_per_combine.size(); n++)
+        // TODO allow for gradual infill
+        for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-            Infill infill_comp(infill_pattern, part.infill_area_per_combine[n], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
+            Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[0][combine_idx], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
             Polygons infill_polygons;
             Polygons infill_lines;
             infill_comp.generate(infill_polygons, infill_lines);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[n]);
-            gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[n], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
+            gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
     }
 }
@@ -702,7 +703,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
 void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
 {
     
-    if (infill_line_distance == 0 || part.infill_area_per_combine.size() == 0)
+    if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
         return;
     }
@@ -714,7 +715,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    Infill infill_comp(pattern, part.infill_area_per_combine[0], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
+    Infill infill_comp(pattern, part.infill_area_per_combine_per_density[0][0], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
     infill_comp.generate(infill_polygons, infill_lines);
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)

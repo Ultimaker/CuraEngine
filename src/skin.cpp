@@ -143,7 +143,6 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
     {
         if (int(part.insets.size()) < wall_line_count)
         {
-            part.infill_area_per_combine.emplace_back(); // put empty polygons as initial infill_per_combine
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
         Polygons infill = part.insets.back().offset(-innermost_wall_extrusion_width / 2 - infill_skin_overlap);
@@ -161,18 +160,26 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
         infill.removeSmallAreas(MIN_AREA_SIZE);
         
         part.infill_area = infill.offset(infill_skin_overlap);
-        part.infill_area_per_combine.push_back(part.infill_area);
     }
 }
 
 void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
-    // Note that *all* parts should have an [infill_area_per_combine] with one element in it, which up till now only contains the exact same polygons as [infill].
-    if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
+    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
     }
-    if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
+
+    for (SliceLayer& layer : mesh.layers)
+    { // initialize infill_area_per_combine_per_density with simple infill_area
+        for (SliceLayerPart& part : layer.parts)
+        {
+            assert(part.infill_area_per_combine_per_density.size() == 0);
+            part.infill_area_per_combine_per_density.emplace_back();
+            part.infill_area_per_combine_per_density[0].push_back(part.infill_area);
+        }
+    }
+    if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;
     }
@@ -188,29 +195,30 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
     {
         SliceLayer* layer = &mesh.layers[layer_idx];
 
-        for(unsigned int n = 1;n < amount;n++)
+        for(unsigned int combine_count_here = 1; combine_count_here < amount; combine_count_here++)
         {
-            if(layer_idx < n)
+            if(layer_idx < combine_count_here)
             {
                 break;
             }
 
-            SliceLayer* layer2 = &mesh.layers[layer_idx - n];
-            for(SliceLayerPart& part : layer->parts)
+            SliceLayer* lower_layer = &mesh.layers[layer_idx - combine_count_here];
+            for (SliceLayerPart& upper_layer_part : layer->parts)
             {
                 Polygons result;
-                for(SliceLayerPart& part2 : layer2->parts)
+                for (SliceLayerPart& lower_layer_part : lower_layer->parts)
                 {
-                    if(part.boundaryBox.hit(part2.boundaryBox))
+                    // TODO change combine algorithm so that it works gradual infill
+                    if (upper_layer_part.boundaryBox.hit(lower_layer_part.boundaryBox))
                     {
-                        Polygons intersection = part.infill_area_per_combine[n - 1].intersection(part2.infill_area_per_combine[0]).offset(-200).offset(200);
+                        Polygons intersection = upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1].intersection(lower_layer_part.infill_area_per_combine_per_density[0][0]).offset(-200).offset(200);
                         result.add(intersection);
-                        part.infill_area_per_combine[n - 1] = part.infill_area_per_combine[n - 1].difference(intersection);
-                        part2.infill_area_per_combine[0] = part2.infill_area_per_combine[0].difference(intersection);
+                        upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1] = upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1].difference(intersection);
+                        lower_layer_part.infill_area_per_combine_per_density[0][0] = lower_layer_part.infill_area_per_combine_per_density[0][0].difference(intersection);
                     }
                 }
 
-                part.infill_area_per_combine.push_back(result);
+                upper_layer_part.infill_area_per_combine_per_density[0].push_back(result);
             }
         }
     }

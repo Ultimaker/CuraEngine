@@ -38,8 +38,21 @@ public:
     Polygons print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall. Too small parts will be omitted compared to the outline.
     std::vector<Polygons> insets;         //!< The insets are generated with: an offset of (index * line_width + line_width/2) compared to the outline. The insets are also known as perimeters, and printed inside out.
     std::vector<SkinPart> skin_parts;     //!< The skin parts which are filled for 100% with lines and/or insets.
-    Polygons infill_area; //!< The areas which need to be filled with sparse (0-99%) infill. Like SliceLayerPart::outline, this class member is not used to actually determine the feature area, but is used to compute the infill_area_per_combine and the inside comb boundary.
-    std::vector<Polygons> infill_area_per_combine; //!< The areas which need to be filled with sparse (0-99%) infill for different thicknesses. The infill_area is an array to support thicker layers of sparse infill. infill_area[n] is infill_area of (n+1) layers thick. 
+    /*!
+     * The areas which need to be filled with sparse (0-99%) infill.
+     * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
+     * but is used to compute the infill_area_per_combine_per_density and the inside comb boundary.
+     */
+    Polygons infill_area;
+    /*!
+     * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
+     * The infill_area is an array to support thicker layers of sparse infill and areas of different infill density.
+     * infill_area[x][n] is infill_area of (n+1) layers thick. 
+     * 
+     * infill_area[0] corresponds to the least dense infill area.
+     * infill_area[x+1] will lie fully inside infill_area[x].
+     */
+    std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;
 };
 
 /*!
