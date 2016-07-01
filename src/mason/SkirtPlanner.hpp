@@ -12,6 +12,9 @@ public:
     virtual ~SkirtPlanner();
 
     virtual void process(BuildPlan *build_plan);
+
+private:
+    void writePolygonsToBuildPlan(const Polygons &polys, BuildPlan *build_plan);
 };
 
 }

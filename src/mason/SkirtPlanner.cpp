@@ -13,11 +13,19 @@ void SkirtPlanner::process(BuildPlan *build_plan)
     coord_t top_z = mmToInt(0.25);
     coord_t bot_z = mmToInt(0.0);
     coord_t mid_z = (top_z + bot_z)/2;
-    coord_t height = top_z - bot_z;
 
     size_t layer_idx = build_plan->target->getLayerIdx(mid_z);
     const VolumeStoreLayer &layer = build_plan->target->getLayer(layer_idx);
     const Polygons &polygons = layer.getPolygons();
+
+    writePolygonsToBuildPlan(polygons, build_plan);
+}
+
+void SkirtPlanner::writePolygonsToBuildPlan(const Polygons &polygons, BuildPlan *build_plan)
+{    
+    coord_t top_z = mmToInt(0.25);
+    coord_t bot_z = mmToInt(0.0);
+    coord_t height = top_z - bot_z;
 
     Wire wire;
     size_t num_polygons = polygons.size();
