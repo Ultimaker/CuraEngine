@@ -55,7 +55,14 @@ public:
     void generate(Polygons& result_polygons, Polygons& result_lines);
 
 private:
-
+    /*!
+     * Function returning the floor of dividing two integer numbers.
+     * 
+     * For negative dividend this is different from simple division.
+     * 
+     * \warning the divisor is assumed to be positive
+     */
+    static inline int floor_divide(int dividend, int divisor);
     /*!
      * Generate sparse concentric infill 
      * \param outline The actual outline of the area within which to generate infill

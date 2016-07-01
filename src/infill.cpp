@@ -6,6 +6,15 @@
 
 namespace cura {
 
+int Infill::floor_divide(int dividend, int divisor)
+{
+    if (dividend < 0)
+    {
+        return dividend / divisor - 1;
+    }
+    return dividend / divisor;
+}
+
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
 {
     if (in_outline.size() == 0) return;
@@ -208,8 +217,8 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
     AABB boundary(outline);
 
-    int scanline_min_idx = (boundary.min.X - shift) / line_distance;
-    int line_count = (boundary.max.X + (line_distance - 1) - shift) / line_distance - scanline_min_idx;
+    int scanline_min_idx = floor_divide(boundary.min.X - shift, line_distance);
+    int line_count = floor_divide(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
 
     std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
 
@@ -235,8 +244,8 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 continue; 
             }
 
-            int scanline_idx0 = (p0.X + ((p0.X > 0)? -1 : -line_distance) - shift) / line_distance; // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
-            int scanline_idx1 = (p1.X + ((p1.X > 0)? -1 : -line_distance) - shift) / line_distance; // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
+            int scanline_idx0 = floor_divide(p0.X - shift, line_distance); // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
+            int scanline_idx1 = floor_divide(p1.X - shift, line_distance); // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
             // this way of handling the indices takes care of the case where a boundary line segment ends exactly on a scanline:
             // in case the next segment moves back from that scanline either 2 or 0 scanline-boundary intersections are created
             // otherwise only 1 will be created, counting as an actual intersection
@@ -255,6 +264,7 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
             {
                 int x = scanline_idx * line_distance + shift;
                 int y = p1.Y + (p0.Y - p1.Y) * (x - p1.X) / (p0.X - p1.X);
+                assert(scanline_idx - scanline_min_idx >= 0 && scanline_idx - scanline_min_idx < int(cut_list.size()) && "reading infill cutlist index out of bounds!");
                 cut_list[scanline_idx - scanline_min_idx].push_back(y);
                 Point scanline_linesegment_intersection(x, y);
                 zigzag_connector_processor.registerScanlineSegmentIntersection(scanline_linesegment_intersection, scanline_idx % 2 == 0);
