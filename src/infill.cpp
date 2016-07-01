@@ -6,13 +6,15 @@
 
 namespace cura {
 
-int Infill::floor_divide(int dividend, int divisor)
+int Infill::computeScanSegmentIdx(int x, int line_width)
 {
-    if (dividend < 0)
+    if (x < 0)
     {
-        return dividend / divisor - 1;
+        return (x + 1) / line_width - 1;
+        // - 1 because -1 belongs to scansegment -1
+        // + 1 because -line_width belongs to scansegment -1
     }
-    return dividend / divisor;
+    return x / line_width;
 }
 
 void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
@@ -219,8 +221,8 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
 
     AABB boundary(outline);
 
-    int scanline_min_idx = floor_divide(boundary.min.X - shift, line_distance);
-    int line_count = floor_divide(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
+    int scanline_min_idx = computeScanSegmentIdx(boundary.min.X - shift, line_distance);
+    int line_count = computeScanSegmentIdx(boundary.max.X - shift, line_distance) + 1 - scanline_min_idx;
 
     std::vector<std::vector<int64_t> > cut_list; // mapping from scanline to all intersections with polygon segments
 
@@ -246,20 +248,22 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
                 continue; 
             }
 
-            int scanline_idx0 = floor_divide(p0.X - shift, line_distance); // -1 cause a linesegment on scanline x counts as belonging to scansegment x-1   ...
-            int scanline_idx1 = floor_divide(p1.X - shift, line_distance); // -linespacing because a line between scanline -n and -n-1 belongs to scansegment -n-1 (for n=positive natural number)
+            int scanline_idx0;
+            int scanline_idx1;
             // this way of handling the indices takes care of the case where a boundary line segment ends exactly on a scanline:
             // in case the next segment moves back from that scanline either 2 or 0 scanline-boundary intersections are created
             // otherwise only 1 will be created, counting as an actual intersection
             int direction = 1;
-            if (p0.X > p1.X) 
+            if (p0.X < p1.X) 
             { 
-                direction = -1; 
-                scanline_idx1 += 1; // only consider the scanlines in between the scansegments
+                scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
+                scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance); // -1 cause the vertex point is handled in the next segment (or not in the case which looks like >)
             }
             else
             {
-                scanline_idx0 += 1; // only consider the scanlines in between the scansegments
+                direction = -1; 
+                scanline_idx0 = computeScanSegmentIdx(p0.X - shift, line_distance); // -1 cause the vertex point is handled in the previous segment (or not in the case which looks like >)
+                scanline_idx1 = computeScanSegmentIdx(p1.X - shift, line_distance) + 1; // + 1 cause we don't cross the scanline of the first scan segment
             }
 
             for(int scanline_idx = scanline_idx0; scanline_idx != scanline_idx1 + direction; scanline_idx += direction)
