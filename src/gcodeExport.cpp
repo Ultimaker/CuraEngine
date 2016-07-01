@@ -327,6 +327,7 @@ void GCodeExport::updateTotalPrintTime()
 {
     totalPrintTime += estimateCalculator.calculate();
     estimateCalculator.reset();
+    writeTimeComment(totalPrintTime);
 }
 
 void GCodeExport::writeComment(std::string comment)
@@ -344,9 +345,9 @@ void GCodeExport::writeComment(std::string comment)
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTypeComment(const char* type)
+void GCodeExport::writeTimeComment(const double time)
 {
-    *output_stream << ";TYPE:" << type << new_line;
+    *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
 
 void GCodeExport::writeTypeComment(PrintFeatureType type)
