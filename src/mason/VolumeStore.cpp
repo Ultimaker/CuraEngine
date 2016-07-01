@@ -2,6 +2,8 @@
 
 #include "VolumeStore.hpp"
 
+#include "Time.hpp"
+
 namespace mason {
 
 void VolumeStoreLayer::addPolygons(const Polygons &polygons)
@@ -36,8 +38,10 @@ void VolumeStore::addMesh(const Mesh *mesh)
     size_t layer_count = mesh_max.z / layer_thickness + 1;
     bool keep_open_polygons = mesh->getSettingBoolean("meshfix_keep_open_polygons");
     bool extensive_stitching = mesh->getSettingBoolean("meshfix_extensive_stitching");
+    TimeKeeper part_timer;
     Slicer slicer(mesh, initial_slice_z, layer_thickness, layer_count,
                   keep_open_polygons, extensive_stitching);
+    std::cout << "slicing time " << part_timer.restart() << std::endl;
 
     if (m_layers.size() < layer_count) {
         m_layers.resize(layer_count);

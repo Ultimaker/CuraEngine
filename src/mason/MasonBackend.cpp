@@ -3,6 +3,7 @@
 #include "MasonBackend.hpp"
 
 #include "Point3.hpp"
+#include "Time.hpp"
 
 namespace mason {
 
@@ -30,11 +31,16 @@ void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup 
     m_gcode_out.setGCodeExporter(gcode_out);
     m_gcode_out.preSetup(mesh_group);
 
+    TimeKeeper part_timer;
     m_target_volume.addMeshGroup(mesh_group);
+    std::cout << "target_volume time " << part_timer.restart() << std::endl;
+
     m_build_plan.target = &m_target_volume;
     m_build_planner.process(&m_build_plan);
+    std::cout << "build_planner time " << part_timer.restart() << std::endl;
 
     m_plan_to_gcode.process(settings, &m_build_plan.print_plan, &m_gcode_out);
+    std::cout << "plan_to_gcode time " << part_timer.restart() << std::endl;
 }
 
 }

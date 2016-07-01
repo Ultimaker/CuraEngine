@@ -145,8 +145,12 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     {
         log("starting Mason backend...\n");
 
+        TimeKeeper time_mason;
+
         mason::MasonBackend backend;
         backend.process(this, meshgroup, &gcode_writer.gcode);
+
+        log("Mason total time elapsed %5.2fs.\n", time_mason.restart());
     } else 
     {
         SliceDataStorage storage(meshgroup);
