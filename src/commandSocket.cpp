@@ -154,7 +154,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         if (setting_list)
         {
             std::string readable_settings;
-            google::protobuf::TextFormat::PrintToString(*setting_list, &readable_settings);
+            //google::protobuf::TextFormat::PrintToString(*setting_list, &readable_settings);
             log("settings\n%s\n", readable_settings.c_str());
             
             handleSettingList(setting_list);
@@ -170,7 +170,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         if (slice)
         {
             std::string readable_slice;
-            google::protobuf::TextFormat::PrintToString(*slice, &readable_slice);
+            //google::protobuf::TextFormat::PrintToString(*slice, &readable_slice);
             log("slice\n%s\n", readable_slice.c_str());
             
             // Reset object counts
