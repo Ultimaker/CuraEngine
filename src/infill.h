@@ -56,13 +56,16 @@ public:
 
 private:
     /*!
-     * Function returning the floor of dividing two integer numbers.
+     * Function which returns the scanline_idx for a given x coordinate
      * 
-     * For negative dividend this is different from simple division.
+     * For negative \p x this is different from simple division.
      * 
-     * \warning the divisor is assumed to be positive
+     * \warning \p line_distance is assumed to be positive
+     * 
+     * \param x the point to get the scansegment index for
+     * \param line_distance the width of the scan segments
      */
-    static inline int floor_divide(int dividend, int divisor);
+    static inline int computeScanSegmentIdx(int x, int line_distance);
     /*!
      * Generate sparse concentric infill 
      * \param outline The actual outline of the area within which to generate infill
