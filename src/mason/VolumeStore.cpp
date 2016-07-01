@@ -32,7 +32,7 @@ void VolumeStore::addMeshGroup(const MeshGroup *mesh_group)
 void VolumeStore::addMesh(const Mesh *mesh)
 {
     // TODO: Make slicing thickness configurable.
-    static const int layer_thickness = 50;
+    static const int layer_thickness = 250;
     static const int initial_slice_z = layer_thickness/2;
     Point3 mesh_max = fromCuraPoint3(mesh->max());
     size_t layer_count = mesh_max.z / layer_thickness + 1;
