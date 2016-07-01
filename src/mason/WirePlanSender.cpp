@@ -45,9 +45,7 @@ void WirePlanSender::sendLayer(GuiSocket *socket, const WireLayer &wire_layer)
         const std::vector<size_t> &wire_idxs = compat_iter->second;
         coord_t height = params.first;
         coord_t width = params.second;
-        std::cout << "h=" << height << " w=" << width << std::endl;
 
-        std::cout << "Sending layer " << m_gui_layer_idx << std::endl;
         if (socket) {
             socket->sendLayerInfo(m_gui_layer_idx, wire_layer.z, height);
         }
