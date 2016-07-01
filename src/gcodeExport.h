@@ -38,6 +38,7 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
+        bool is_used; //!< Whether this extruder train is actually used during the printing of the current meshgroup
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
@@ -58,7 +59,8 @@ private:
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
-        : nozzle_offset(0,0)
+        : is_used(false)
+        , nozzle_offset(0,0)
         , extruderCharacter(0)
         , start_code("")
         , end_code("")
@@ -285,7 +287,7 @@ public:
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
      */
-    void preSetup(MeshGroup* settings);
+    void preSetup(const MeshGroup* settings);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.

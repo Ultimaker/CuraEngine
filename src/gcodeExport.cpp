@@ -36,25 +36,39 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(MeshGroup* settings)
+void GCodeExport::preSetup(const MeshGroup* settings)
 {
     setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
     extruder_count = settings->getSettingAsCount("machine_extruder_count");
 
-    for (unsigned int n = 0; n < extruder_count; n++)
+    for (const Mesh& mesh : settings->meshes)
     {
-        ExtruderTrain* train = settings->getExtruderTrain(n);
-        setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
+        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+    }
 
-        extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
 
-        extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
+            )
+        {
+            extruder_attr[extruder_nr].is_used = true;
+        }
+        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
-        extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+
+        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
+        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
+
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
     machine_dimensions.x = settings->getSettingInMicrons("machine_width");
     machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
@@ -111,6 +125,10 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
+            if (!extruder_attr[extr_nr].is_used)
+            {
+                continue;
+            }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".INITIAL_TEMPERATURE:" << extruder_attr[extr_nr].initial_temp << new_line;
             if (filament_used.size() == extruder_count)
             {
