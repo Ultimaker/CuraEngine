@@ -72,6 +72,16 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
  */
 void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount);
 
+/*!
+ * Class containing all skin and infill area computation functions
+ */
+class SkinInfillAreaComputation
+{
+public:
+    static void generateGradualInfill(SliceMeshStorage& mesh);
+    
+};
+
 }//namespace cura
 
 #endif//SKIN_H

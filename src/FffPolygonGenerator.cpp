@@ -343,6 +343,9 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
 
 void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers)
 {
+    // create gradual infill areas
+    SkinInfillAreaComputation::generateGradualInfill(mesh);
+
     // combine infill
     unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
     combineInfillLayers(mesh,combined_infill_layers);

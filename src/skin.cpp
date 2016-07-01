@@ -163,21 +163,73 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
     }
 }
 
+void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
+{
+    int top_layers = mesh.getSettingAsCount("top_layers");
+    unsigned int layer_skip_count = top_layers;
+    unsigned int gradual_infill_step_height = 5000 / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
+    layer_skip_count = gradual_infill_step_height / ((gradual_infill_step_height - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
+
+    size_t min_layer = mesh.getSettingAsCount("bottom_layers");
+    size_t max_layer = mesh.layers.size() - 1 - top_layers;
+
+    for (size_t layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
+    { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
+        SliceLayer& layer = mesh.layers[layer_idx];
+
+        for (SliceLayerPart& part : layer.parts)
+        {
+            assert(part.infill_area_per_combine_per_density.size() == 0 && "infill_area_per_combine_per_density is supposed to be uninitialized");
+
+            if (part.infill_area.size() == 0 || layer_idx < min_layer || layer_idx > max_layer)
+            { // initialize infill_area_per_combine_per_density empty
+                part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
+                part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly contructed infill_area_per_combine
+                continue;
+            }
+
+            Polygons infill_current_density = part.infill_area;
+            for (unsigned int infill_step = 0; infill_current_density.size() != 0; infill_step++)
+            {
+                // add new infill_area_per_combine for the current density
+                part.infill_area_per_combine_per_density.emplace_back();
+                std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+                infill_area_per_combine_current_density.push_back(infill_current_density);
+
+                size_t min_layer = layer_idx + infill_step * gradual_infill_step_height + layer_skip_count;
+                size_t max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_height;
+
+                for (size_t upper_layer_idx = min_layer; upper_layer_idx < max_layer; upper_layer_idx++)
+                {
+                    if (upper_layer_idx >= mesh.layers.size())
+                    {
+                        infill_current_density.clear();
+                        break;
+                    }
+                    SliceLayer& upper_layer = mesh.layers[upper_layer_idx];
+                    Polygons relevent_upper_polygons;
+                    for (SliceLayerPart& upper_layer_part : upper_layer.parts)
+                    {
+                        if (!upper_layer_part.boundaryBox.hit(part.boundaryBox))
+                        {
+                            continue;
+                        }
+                        relevent_upper_polygons.add(upper_layer_part.infill_area);
+                    }
+                    infill_current_density = infill_current_density.intersection(relevent_upper_polygons);
+                }
+                mesh.max_gradual_infill_steps = std::max(mesh.max_gradual_infill_steps, infill_step);
+            }
+            assert(part.infill_area_per_combine_per_density.size() != 0 && "infill_area_per_combine_per_density is now initialized");
+        }
+    }
+}
+
 void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
     if (mesh.layers.empty() || mesh.layers.size() - 1 < static_cast<size_t>(mesh.getSettingAsCount("top_layers")) || mesh.getSettingAsCount("infill_line_distance") <= 0) //No infill is even generated.
     {
         return;
-    }
-
-    for (SliceLayer& layer : mesh.layers)
-    { // initialize infill_area_per_combine_per_density with simple infill_area
-        for (SliceLayerPart& part : layer.parts)
-        {
-            assert(part.infill_area_per_combine_per_density.size() == 0);
-            part.infill_area_per_combine_per_density.emplace_back();
-            part.infill_area_per_combine_per_density[0].push_back(part.infill_area);
-        }
     }
     if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
