@@ -134,11 +134,8 @@ public:
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
 
-    unsigned int max_gradual_infill_steps; //!< The maximum number of steps taken in infill graduality
-
     SliceMeshStorage(SettingsBaseVirtual* settings)
     : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, PrintFeatureType::OuterWall), insetX_config(&retraction_config, PrintFeatureType::InnerWall), skin_config(&retraction_config, PrintFeatureType::Skin)
-    , max_gradual_infill_steps(0)
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
