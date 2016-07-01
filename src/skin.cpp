@@ -170,7 +170,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     unsigned int gradual_infill_step_height = 5000 / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
     layer_skip_count = gradual_infill_step_height / ((gradual_infill_step_height - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
 
-    int max_infill_steps = 5;
+    unsigned int max_infill_steps = 5;
 
     size_t min_layer = mesh.getSettingAsCount("bottom_layers");
     size_t max_layer = mesh.layers.size() - 1 - top_layers;
@@ -259,7 +259,6 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
     for(size_t layer_idx = min_layer;layer_idx <= max_layer;layer_idx += amount) //Skip every few layers, but extrude more.
     {
         SliceLayer* layer = &mesh.layers[layer_idx];
-
         for(unsigned int combine_count_here = 1; combine_count_here < amount; combine_count_here++)
         {
             if(layer_idx < combine_count_here)
@@ -267,23 +266,39 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
                 break;
             }
 
-            SliceLayer* lower_layer = &mesh.layers[layer_idx - combine_count_here];
-            for (SliceLayerPart& upper_layer_part : layer->parts)
+            size_t lower_layer_idx = layer_idx - combine_count_here;
+            if (lower_layer_idx < min_layer)
             {
-                Polygons result;
-                for (SliceLayerPart& lower_layer_part : lower_layer->parts)
-                {
-                    // TODO change combine algorithm so that it works gradual infill
-                    if (upper_layer_part.boundaryBox.hit(lower_layer_part.boundaryBox))
+                break;
+            }
+            SliceLayer* lower_layer = &mesh.layers[lower_layer_idx];
+            for (SliceLayerPart& part : layer->parts)
+            {
+                for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
+                { // go over eacht density of gradual infill (these density areas overlap!)
+                    std::vector<Polygons>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
+                    Polygons result;
+                    for (SliceLayerPart& lower_layer_part : lower_layer->parts)
                     {
-                        Polygons intersection = upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1].intersection(lower_layer_part.infill_area_per_combine_per_density[0][0]).offset(-200).offset(200);
-                        result.add(intersection);
-                        upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1] = upper_layer_part.infill_area_per_combine_per_density[0][combine_count_here - 1].difference(intersection);
-                        lower_layer_part.infill_area_per_combine_per_density[0][0] = lower_layer_part.infill_area_per_combine_per_density[0][0].difference(intersection);
-                    }
-                }
+                        if (part.boundaryBox.hit(lower_layer_part.boundaryBox))
+                        {
 
-                upper_layer_part.infill_area_per_combine_per_density[0].push_back(result);
+                            Polygons intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
+                            result.add(intersection); // add area to be thickened
+                            infill_area_per_combine[combine_count_here - 1] = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
+                            if (density_idx < lower_layer_part.infill_area_per_combine_per_density.size())
+                            { // only remove from *same density* areas on layer below
+                                // If there are no same density areas, then it's ok to print them anyway
+                                // Don't remove other density areas
+                                unsigned int lower_density_idx = density_idx;
+                                std::vector<Polygons>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
+                                lower_infill_area_per_combine[0] = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (thickened) layer
+                            }
+                        }
+                    }
+
+                    infill_area_per_combine.push_back(result);
+                }
             }
         }
     }

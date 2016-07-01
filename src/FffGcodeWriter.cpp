@@ -687,15 +687,23 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-        // TODO allow for gradual infill
         for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-            int extra_infill_shift = 0;
-            Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[0][combine_idx], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, extra_infill_shift, false, false);
             Polygons infill_polygons;
             Polygons infill_lines;
-            infill_comp.generate(infill_polygons, infill_lines);
+            for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
+            { // combine different density infill areas (for gradual infill)
+                unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
+                int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+                int infill_shift = infill_line_distance_here / 2;
+                if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
+                {
+                    infill_line_distance_here /= 2;
+                }
+                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, extrusion_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+                infill_comp.generate(infill_polygons, infill_lines);
+            }
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
             gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
