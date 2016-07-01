@@ -375,7 +375,7 @@ void CommandSocket::sendLayerData()
 #ifdef ARCUS
     private_data->sliced_objects++;
     private_data->current_layer_offset = private_data->current_layer_count;
-    log("End sliced object called. Sending ", private_data->current_layer_count, " layers.");
+    log("End sliced object called. Sending %d layers.", private_data->current_layer_count);
 
     if (private_data->sliced_objects >= private_data->object_count)
     {
@@ -387,8 +387,6 @@ void CommandSocket::sendLayerData()
         private_data->current_layer_count = 0;
         private_data->current_layer_offset = 0;
         private_data->sliced_layers.clear();
-        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
-        private_data->socket->sendMessage(done_message);
     }
 #endif
 }
