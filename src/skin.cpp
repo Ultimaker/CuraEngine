@@ -163,17 +163,20 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
     }
 }
 
-void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
+void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps)
 {
-    int top_layers = mesh.getSettingAsCount("top_layers");
-    unsigned int layer_skip_count = top_layers;
-    unsigned int gradual_infill_step_height = 5000 / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
-    layer_skip_count = gradual_infill_step_height / ((gradual_infill_step_height - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
+    // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
+    unsigned int layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    if (!mesh.getSettingBoolean("skin_no_small_gaps_heuristic"))
+    {
+        layer_skip_count = 1;
+    }
+    unsigned int gradual_infill_step_layer_count = gradual_infill_step_height / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
+    layer_skip_count = gradual_infill_step_layer_count / ((gradual_infill_step_layer_count - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
 
-    unsigned int max_infill_steps = 5;
 
     size_t min_layer = mesh.getSettingAsCount("bottom_layers");
-    size_t max_layer = mesh.layers.size() - 1 - top_layers;
+    size_t max_layer = mesh.layers.size() - 1 - mesh.getSettingAsCount("top_layers");
 
     for (size_t layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
@@ -187,16 +190,17 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             { // initialize infill_area_per_combine_per_density empty
                 part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
                 part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly contructed infill_area_per_combine
+                // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
 
             Polygons less_dense_infill = part.infill_area; // one step less dense with each infill_step
             for (unsigned int infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
-                size_t min_layer = layer_idx + infill_step * gradual_infill_step_height + layer_skip_count;
-                size_t max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_height;
+                size_t min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + layer_skip_count;
+                size_t max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_layer_count;
 
-                for (size_t upper_layer_idx = min_layer; upper_layer_idx < max_layer; upper_layer_idx++)
+                for (size_t upper_layer_idx = min_layer; upper_layer_idx < max_layer; upper_layer_idx += layer_skip_count)
                 {
                     if (upper_layer_idx >= mesh.layers.size())
                     {
