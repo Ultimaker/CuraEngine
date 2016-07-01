@@ -25,8 +25,8 @@ void SkirtPlanner::process(BuildPlan *build_plan)
         const PolygonRef polygon = polygons[polygon_idx];
         size_t num_points = polygon.size();
         assert(num_points > 0U);
-        const Point *prev_point = &polygon[0];
-        for (size_t point_idx=1U; point_idx<num_points; ++point_idx) {
+        const Point *prev_point = &polygon[num_points-1];
+        for (size_t point_idx=0U; point_idx!=num_points; ++point_idx) {
             const Point *point = &polygon[point_idx];
 
             Point3 start_pt(prev_point->X,prev_point->Y,top_z);
