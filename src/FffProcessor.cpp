@@ -105,6 +105,10 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 
     TimeKeeper time_keeper_total;
 
+    if (CommandSocket::isInstantiated()) {
+        CommandSocket::getInstance()->beginGCode();
+    }
+
     polygon_generator.setParent(meshgroup);
     gcode_writer.setParent(meshgroup);
 
