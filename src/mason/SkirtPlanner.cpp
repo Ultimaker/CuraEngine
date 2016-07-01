@@ -10,15 +10,17 @@ SkirtPlanner::~SkirtPlanner()
 
 void SkirtPlanner::process(BuildPlan *build_plan)
 {
-    coord_t top_z = mmToInt(0.25);
-    coord_t bot_z = mmToInt(0.0);
-    coord_t mid_z = (top_z + bot_z)/2;
+    Polygons skirt_polys;
+    
+    size_t num_layers = build_plan->target->getNumLayers();
+    for (size_t layer_idx=0U; layer_idx!=num_layers; ++layer_idx) {
+        const VolumeStoreLayer &layer = build_plan->target->getLayer(layer_idx);
+        const Polygons &layer_polys = layer.getPolygons();
 
-    size_t layer_idx = build_plan->target->getLayerIdx(mid_z);
-    const VolumeStoreLayer &layer = build_plan->target->getLayer(layer_idx);
-    const Polygons &polygons = layer.getPolygons();
-
-    writePolygonsToBuildPlan(polygons, build_plan);
+        skirt_polys = skirt_polys.unionPolygons(layer_polys);
+    }
+    
+    writePolygonsToBuildPlan(skirt_polys, build_plan);
 }
 
 void SkirtPlanner::writePolygonsToBuildPlan(const Polygons &polygons, BuildPlan *build_plan)
