@@ -41,6 +41,10 @@ public:
     void addWire(const Wire &wire);
     
     size_t numLayers() const;
+    /** \brief Gets the specified layer.
+     *
+     * getLayer(a).z < getLayer(b).z if a < b
+     */
     const WireLayer &getLayer(size_t layer_idx) const;
     
 private:

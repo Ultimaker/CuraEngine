@@ -107,6 +107,7 @@ set(engine_SRCS # Except main.cpp.
     src/mason/SkirtPlanner.cpp
     src/mason/VolumeStore.cpp
     src/mason/WirePlan.cpp
+    src/mason/WirePlanSender.cpp
     src/mason/WireToPrintPlanner.cpp
 )
 

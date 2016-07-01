@@ -11,7 +11,7 @@ class BuildSubPlanner {
 public:
     virtual ~BuildSubPlanner() {}
 
-    virtual void process(BuildPlan *BuildPlan) = 0;
+    virtual void process(BuildPlan *buildPlan) = 0;
 };
 
 }

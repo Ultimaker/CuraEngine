@@ -3,6 +3,7 @@
 #include "BuildPlanner.hpp"
 
 #include "SkirtPlanner.hpp"
+#include "WirePlanSender.hpp"
 #include "WireToPrintPlanner.hpp"
 
 namespace mason {
@@ -15,6 +16,7 @@ void BuildPlanner::process(BuildPlan *build_plan)
 
     sub_planner.reset(new SkirtPlanner);
     m_sub_planners.push_back(sub_planner);
+    m_sub_planners.emplace_back(new WirePlanSender);
     sub_planner.reset(new WireToPrintPlanner);
     m_sub_planners.push_back(sub_planner);
 
