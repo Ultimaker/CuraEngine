@@ -49,8 +49,9 @@ public:
      * The infill_area is an array to support thicker layers of sparse infill and areas of different infill density.
      * infill_area[x][n] is infill_area of (n+1) layers thick. 
      * 
-     * infill_area[0] corresponds to the least dense infill area.
-     * infill_area[x+1] will lie fully inside infill_area[x].
+     * infill_area[0] corresponds to the most dense infill area.
+     * infill_area[x] will lie fully inside infill_area[x+1].
+     * infill_area_per_combine_per_density.back()[0] == part.infill area initially
      */
     std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;
 };

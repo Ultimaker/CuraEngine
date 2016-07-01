@@ -170,6 +170,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     unsigned int gradual_infill_step_height = 5000 / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
     layer_skip_count = gradual_infill_step_height / ((gradual_infill_step_height - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
 
+    int max_infill_steps = 5;
+
     size_t min_layer = mesh.getSettingAsCount("bottom_layers");
     size_t max_layer = mesh.layers.size() - 1 - top_layers;
 
@@ -188,14 +190,9 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 continue;
             }
 
-            Polygons infill_current_density = part.infill_area;
-            for (unsigned int infill_step = 0; infill_current_density.size() != 0; infill_step++)
+            Polygons less_dense_infill = part.infill_area; // one step less dense with each infill_step
+            for (unsigned int infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
-                // add new infill_area_per_combine for the current density
-                part.infill_area_per_combine_per_density.emplace_back();
-                std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-                infill_area_per_combine_current_density.push_back(infill_current_density);
-
                 size_t min_layer = layer_idx + infill_step * gradual_infill_step_height + layer_skip_count;
                 size_t max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_height;
 
@@ -203,7 +200,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 {
                     if (upper_layer_idx >= mesh.layers.size())
                     {
-                        infill_current_density.clear();
+                        less_dense_infill.clear();
                         break;
                     }
                     SliceLayer& upper_layer = mesh.layers[upper_layer_idx];
@@ -216,10 +213,26 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                         }
                         relevent_upper_polygons.add(upper_layer_part.infill_area);
                     }
-                    infill_current_density = infill_current_density.intersection(relevent_upper_polygons);
+                    less_dense_infill = less_dense_infill.intersection(relevent_upper_polygons);
                 }
-                mesh.max_gradual_infill_steps = std::max(mesh.max_gradual_infill_steps, infill_step);
+                if (less_dense_infill.size() == 0)
+                {
+                    break;
+                }
+                // add new infill_area_per_combine for the current density
+                part.infill_area_per_combine_per_density.emplace_back();
+                std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+                const Polygons more_dense_infill = part.infill_area.difference(less_dense_infill);
+                infill_area_per_combine_current_density.push_back(more_dense_infill);
+
+                if (less_dense_infill.size() == 0)
+                {
+                    break;
+                }
             }
+            part.infill_area_per_combine_per_density.emplace_back();
+            std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+            infill_area_per_combine_current_density.push_back(part.infill_area);
             assert(part.infill_area_per_combine_per_density.size() != 0 && "infill_area_per_combine_per_density is now initialized");
         }
     }

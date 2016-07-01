@@ -719,11 +719,10 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
     for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
     {
-        unsigned int density_step = mesh->max_gradual_infill_steps - part.infill_area_per_combine_per_density.size() + density_idx + 1; // higher is less dense
-        unsigned int density_factor = 2 << density_step; // == pow(2, density_step + 1)
+        unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
         int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
-        if (density_idx == 0)
+        if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
         {
             infill_line_distance_here /= 2;
         }
