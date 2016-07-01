@@ -3,6 +3,7 @@
 #include "BuildPlanner.hpp"
 
 #include "SkirtPlanner.hpp"
+#include "Time.hpp"
 #include "WirePlanSender.hpp"
 #include "WireToPrintPlanner.hpp"
 
@@ -14,15 +15,16 @@ void BuildPlanner::process(BuildPlan *build_plan)
 
     std::shared_ptr<BuildSubPlanner> sub_planner;
 
-    sub_planner.reset(new SkirtPlanner);
-    m_sub_planners.push_back(sub_planner);
+    m_sub_planners.emplace_back(new SkirtPlanner);
     m_sub_planners.emplace_back(new WirePlanSender);
-    sub_planner.reset(new WireToPrintPlanner);
-    m_sub_planners.push_back(sub_planner);
+    m_sub_planners.emplace_back(new WireToPrintPlanner);
 
     size_t num_sub_planners = m_sub_planners.size();
+    TimeKeeper part_timer;
     for (size_t sub_planner_idx=0U; sub_planner_idx!=num_sub_planners; ++sub_planner_idx) {
         m_sub_planners[sub_planner_idx]->process(m_build_plan);
+        std::cout << m_sub_planners[sub_planner_idx]->getName() << " took " <<
+            part_timer.restart() << " secs" << std::endl;
     }
 }
 

@@ -11,6 +11,10 @@ namespace mason {
 /** \brief Sends the wire plan to the GUI for display if connected. */
 class WirePlanSender : public BuildSubPlanner {
 public:
+    WirePlanSender();
+
+    virtual const std::string &getName() const;
+    
     virtual ~WirePlanSender() {}
 
     virtual void process(BuildPlan *build_plan);
@@ -18,6 +22,8 @@ public:
 private:
     void sendLayer(GuiSocket *socket, const WireLayer &wire_layer);
 
+    std::string m_name;
+    
     int m_gui_layer_idx;
 };
 

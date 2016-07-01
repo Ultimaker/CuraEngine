@@ -4,10 +4,20 @@
 
 namespace mason {
 
+WireToPrintPlanner::WireToPrintPlanner() :
+    m_name("WireToPrintPlanner")
+{
+}
+
 WireToPrintPlanner::~WireToPrintPlanner()
 {
 }
 
+const std::string &WireToPrintPlanner::getName() const
+{
+    return m_name;
+}
+    
 void WireToPrintPlanner::process(BuildPlan *build_plan)
 {
     std::shared_ptr<PrintPlanElement> elem;

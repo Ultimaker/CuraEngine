@@ -11,6 +11,8 @@ class BuildSubPlanner {
 public:
     virtual ~BuildSubPlanner() {}
 
+    virtual const std::string &getName() const = 0;
+    
     virtual void process(BuildPlan *buildPlan) = 0;
 };
 

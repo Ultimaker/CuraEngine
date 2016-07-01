@@ -9,12 +9,18 @@ namespace mason {
 
 class SkirtPlanner : public BuildSubPlanner {
 public:
+    SkirtPlanner();
+
     virtual ~SkirtPlanner();
 
+    virtual const std::string &getName() const;
+    
     virtual void process(BuildPlan *build_plan);
 
 private:
     void writePolygonsToBuildPlan(const Polygons &polys, BuildPlan *build_plan);
+
+    std::string m_name;
 };
 
 }

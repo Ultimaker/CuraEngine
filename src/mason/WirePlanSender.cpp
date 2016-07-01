@@ -6,6 +6,16 @@
 
 namespace mason {
 
+WirePlanSender::WirePlanSender() :
+    m_name("WirePlanSender")
+{
+}
+
+const std::string &WirePlanSender::getName() const
+{
+    return m_name;
+}
+    
 void WirePlanSender::process(BuildPlan *build_plan)
 {
     // We execute even if socket isn't connected for debugging purposes.

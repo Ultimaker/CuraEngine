@@ -9,9 +9,16 @@ namespace mason {
 
 class WireToPrintPlanner : public BuildSubPlanner {
 public:
+    WireToPrintPlanner();
+
+    virtual const std::string &getName() const;
+        
     virtual ~WireToPrintPlanner();
 
     virtual void process(BuildPlan *build_plan);
+
+private:
+    std::string m_name;
 };
 
 }
