@@ -360,9 +360,9 @@ public:
     {
         paths.push_back(*poly.path);
     }
-    void add(PolygonRef&& poly)
+    void add(Polygon&& other_poly)
     {
-        paths.emplace_back(std::move(*poly.path));
+        paths.emplace_back(std::move(*other_poly));
     }
     void add(const Polygons& other)
     {
