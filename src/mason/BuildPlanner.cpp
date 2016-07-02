@@ -16,7 +16,7 @@ void BuildPlanner::process(BuildPlan *build_plan)
     std::shared_ptr<BuildSubPlanner> sub_planner;
 
     m_sub_planners.emplace_back(new SkirtPlanner);
-    //m_sub_planners.emplace_back(new WirePlanSender);
+    m_sub_planners.emplace_back(new WirePlanSender);
     m_sub_planners.emplace_back(new WireToPrintPlanner);
 
     size_t num_sub_planners = m_sub_planners.size();

@@ -18,7 +18,9 @@ public:
     virtual void process(BuildPlan *build_plan);
 
 private:
-    void writePolygonsToBuildPlan(const Polygons &polys, BuildPlan *build_plan);
+    void writePolygonsToBuildPlan(const Polygons &polys,
+                                  coord_t top_z, coord_t height,
+                                  BuildPlan *build_plan);
 
     std::string m_name;
 };

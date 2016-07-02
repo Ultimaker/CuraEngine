@@ -29,11 +29,14 @@ void VolumeStore::addMeshGroup(const MeshGroup *mesh_group)
         addMesh(&mesh_group->meshes[mesh_idx]);
     }
 
-    sendToGui();
+    //sendToGui();
 }
 
 void VolumeStore::addMesh(const Mesh *mesh)
 {
+    std::cout << "mesh has " << mesh->vertices.size() << " vertices and " <<
+        mesh->faces.size() << " faces" << std::endl;
+    
     // TODO: Make slicing thickness configurable.
     static const int layer_thickness = 250;
     static const int initial_slice_z = layer_thickness/2;

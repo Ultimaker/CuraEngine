@@ -23,6 +23,7 @@
   - Experimental region designation
 - Refactoring / cleanup
   - Rearrange such that Mason writes the end gcode
+  - Strategy for handling settings
 - Bug squashing
   - Slicing
     - Figure out why union of slices of polygons generate more edges than source polygons have
