@@ -62,23 +62,32 @@ void SkirtPlanner::process(BuildPlan *build_plan)
     // Add some space between obstacles and skirt
     skirt_polys = skirt_polys.offset(bloat_offset, ClipperLib::jtRound);
     //std::cout << "skirt: offset time " << part_timer.restart() << std::endl;
+    
+    int64_t skirt_length = skirt_polys.polygonLength();
+    coord_t min_skirt_length =
+        build_plan->settings->getSettingInMicrons("skirt_minimal_length");
+    coord_t skirt_line_width =
+        build_plan->settings->getSettingInMicrons("skirt_line_width");
 
-    // Calculate / print size for debugging
-    //size_t total_points = 0U;
-    //for (size_t poly_idx=0U; poly_idx!=skirt_polys.size(); ++poly_idx) {
-    //    total_points += skirt_polys[poly_idx].size();
-    //}
-    //std::cout << "skirt total size " << total_points << std::endl;
-    //std::cout << "skirt: total size time " << part_timer.restart() << std::endl;
-
+    if (skirt_length < min_skirt_length) {
+        Polygons skirt_loop = skirt_polys;
+        while (skirt_length < min_skirt_length) {
+            skirt_loop = skirt_loop.offset(skirt_line_width);
+            int64_t loop_length = skirt_loop.polygonLength();
+            skirt_polys.add(skirt_loop);
+            skirt_length += loop_length;
+        }
+    }
+    
     // Write result into wire plan
-    writePolygonsToBuildPlan(skirt_polys, skirt_top_z, skirt_height, build_plan);
+    writePolygonsToBuildPlan(skirt_polys, skirt_top_z, skirt_height, skirt_line_width, build_plan);
     //std::cout << "write to build plan time " << part_timer.restart() << std::endl;
 }
 
-void SkirtPlanner::writePolygonsToBuildPlan(const Polygons &polygons,
-                                            coord_t top_z, coord_t height,
-                                            BuildPlan *build_plan)
+void SkirtPlanner::writePolygonsToBuildPlan(
+    const Polygons &polygons,
+    coord_t top_z, coord_t height, coord_t width,
+    BuildPlan *build_plan)
 {    
     Wire wire;
     size_t num_polygons = polygons.size();
@@ -94,7 +103,7 @@ void SkirtPlanner::writePolygonsToBuildPlan(const Polygons &polygons,
             Point3 end_pt  (point     ->X,point     ->Y,top_z);
             wire.pt0 = start_pt;
             wire.pt1 = end_pt;
-            wire.width = mmToInt(0.5);
+            wire.width = width;
             wire.height = height;
             build_plan->wire_plan.addWire(wire);
 

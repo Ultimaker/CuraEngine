@@ -1,6 +1,5 @@
 - Required slicer capabilities
   - Skirt
-    - Obey minimum length
     - Simplify outline
   - Skin
     - Side
