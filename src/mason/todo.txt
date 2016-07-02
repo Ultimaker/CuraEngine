@@ -14,6 +14,16 @@
   - Multi-extruder support
 - Program features
   - Drawing of intermediate representations
+    X Drawing of slicing output / volume store
+    X Drawing of wire plan
+    - Drawing of tool head plan
+    - Easy way to switch between what is drawn
+      - Manual with single variable
+      - All sent, button on gui to select
   - Experimental region designation
 - Refactoring / cleanup
   - Rearrange such that Mason writes the end gcode
+- Bug squashing
+  - Slicing
+    - Figure out why union of slices of polygons generate more edges than source polygons have
+    

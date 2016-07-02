@@ -54,6 +54,11 @@ public:
         return path->data();
     }
 
+    const void* data() const
+    {
+        return path->data();
+    }
+
     void add(const Point p)
     {
         path->push_back(p);

@@ -40,6 +40,8 @@ public:
 private:
     void addMesh(const Mesh *mesh);
 
+    void sendToGui() const;
+
     std::vector<VolumeStoreLayer> m_layers;
     // m_layers[i] covers [m_layer_zs[i], m_layer_zs[i+1])
     std::vector<coord_t> m_layer_zs;

@@ -313,7 +313,7 @@ void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
 #endif
 }
 
-void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
+void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Polygons& polygons, int line_width)
 {
 #ifdef ARCUS
     if (polygons.size() == 0)

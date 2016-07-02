@@ -2,6 +2,7 @@
 
 #include "VolumeStore.hpp"
 
+#include "GuiSocket.hpp"
 #include "Time.hpp"
 
 namespace mason {
@@ -27,6 +28,8 @@ void VolumeStore::addMeshGroup(const MeshGroup *mesh_group)
     for (size_t mesh_idx=0U; mesh_idx!=num_meshes; ++mesh_idx) {
         addMesh(&mesh_group->meshes[mesh_idx]);
     }
+
+    sendToGui();
 }
 
 void VolumeStore::addMesh(const Mesh *mesh)
@@ -57,6 +60,30 @@ void VolumeStore::addMesh(const Mesh *mesh)
 
     for (size_t layer_idx=0; layer_idx!=layer_count; ++layer_idx) {
         m_layers[layer_idx].addPolygons(slicer.layers[layer_idx].polygons);
+    }
+}
+
+void VolumeStore::sendToGui() const
+{
+    static const coord_t line_width = mmToInt(0.1);
+
+    GuiSocket *socket = NULL;
+    if (GuiSocket::isInstantiated()) {
+        socket = GuiSocket::getInstance();
+    } else {
+        return;
+    }
+    
+    size_t num_layers = m_layers.size();
+    for (size_t layer_idx=0U; layer_idx!=num_layers; ++layer_idx) {
+        const VolumeStoreLayer &layer = m_layers[layer_idx];
+        coord_t z_low = m_layer_zs[layer_idx];
+        coord_t z_high = m_layer_zs[layer_idx+1];
+        coord_t height = z_high - z_low;
+
+        socket->sendLayerInfo(layer_idx, z_high, height);
+
+        socket->sendPolygons(PrintFeatureType::OuterWall, layer_idx, layer.getPolygons(), line_width);
     }
 }
 
