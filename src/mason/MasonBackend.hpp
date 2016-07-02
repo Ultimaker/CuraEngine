@@ -16,7 +16,7 @@ class MasonBackend {
 public:
     MasonBackend();
     
-    void process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out);
+    void process(const SettingsStore *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out);
     
 private:
     VolumeStore m_target_volume;

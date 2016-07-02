@@ -4,6 +4,7 @@
 #define INCLUDED_BUILD_PLAN_HPP
 
 #include "PrintPlan.hpp"
+#include "Settings.hpp"
 #include "VolumeStore.hpp"
 #include "WirePlan.hpp"
 
@@ -11,6 +12,7 @@ namespace mason {
 
 struct BuildPlan {
 public:
+    const SettingsStore *settings;
     const VolumeStore *target;
     VolumeStore volume_plan;
     WirePlan wire_plan;

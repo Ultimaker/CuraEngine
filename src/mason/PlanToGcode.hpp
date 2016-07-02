@@ -4,8 +4,8 @@
 #define INCLUDED_MASON_PLAN_TO_GCODE_HPP
 
 #include "GCodeExport.hpp"
-#include "Settings.hpp"
 #include "PrintPlan.hpp"
+#include "Settings.hpp"
 
 namespace mason {
 
@@ -13,12 +13,16 @@ class PlanToGcode {
 public:
     PlanToGcode();
 
-    void process(const SettingsBaseVirtual *settings, const PrintPlan *plan, GCodeExport *gcode_out);
+    void process(const SettingsStore *settings, const PrintPlan *plan, GCodeExport *gcode_out);
 
 private:
-    void writeHeader(const SettingsBaseVirtual *settings, GCodeExport *gcode_out);
-    void writePlan(const PrintPlan *plan, GCodeExport *gcode_out);
-    void writeFooter(const SettingsBaseVirtual *settings, GCodeExport *gcode_out);
+    void writeHeader();
+    void writePlan();
+    void writeFooter();
+
+    const SettingsStore *m_settings;
+    const PrintPlan *m_plan;
+    GCodeExport *m_gcode_out;
 };
 
 }

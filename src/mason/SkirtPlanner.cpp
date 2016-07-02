@@ -22,17 +22,32 @@ const std::string &SkirtPlanner::getName() const
 
 void SkirtPlanner::process(BuildPlan *build_plan)
 {
-    static const coord_t bloat_offset = mmToInt(3.0);
+    coord_t bloat_offset =
+        build_plan->settings->getSettingInMicrons("skirt_gap");
+
+    coord_t skirt_top_z =
+        build_plan->settings->getSettingInMicrons("layer_height_0");
+    coord_t skirt_bot_z = mmToInt(0.0);
+    coord_t skirt_height = skirt_top_z - skirt_bot_z;
+
+    coord_t norm_layer_height =
+        build_plan->settings->getSettingInMicrons("layer_height");
+    coord_t avoid_top_z = skirt_top_z + norm_layer_height;
     
     Polygons skirt_polys;
     //TimeKeeper part_timer;
 
     // Union bottom layers to find areas to avoid
     size_t num_layers = build_plan->target->getNumLayers();
-    size_t max_avoid_layer = std::min(num_layers,(size_t)2U);
-    for (size_t layer_idx=0U; layer_idx!=max_avoid_layer; ++layer_idx) {
+    for (size_t layer_idx=0U; layer_idx!=num_layers; ++layer_idx) {
         const VolumeStoreLayer &layer = build_plan->target->getLayer(layer_idx);
         const Polygons &layer_polys = layer.getPolygons();
+        VolumeStore::LayerBounds layer_bounds =
+            build_plan->target->getLayerBounds(layer_idx);
+
+        if (layer_bounds.z_min >= avoid_top_z) {
+            break;
+        }
 
         skirt_polys = skirt_polys.unionPolygons(layer_polys);
     }
@@ -57,10 +72,7 @@ void SkirtPlanner::process(BuildPlan *build_plan)
     //std::cout << "skirt: total size time " << part_timer.restart() << std::endl;
 
     // Write result into wire plan
-    coord_t top_z = mmToInt(0.25);
-    coord_t bot_z = mmToInt(0.0);
-    coord_t height = top_z - bot_z;
-    writePolygonsToBuildPlan(skirt_polys, top_z, height, build_plan);
+    writePolygonsToBuildPlan(skirt_polys, skirt_top_z, skirt_height, build_plan);
     //std::cout << "write to build plan time " << part_timer.restart() << std::endl;
 }
 

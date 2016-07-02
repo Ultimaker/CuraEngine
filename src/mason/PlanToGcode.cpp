@@ -8,31 +8,33 @@ PlanToGcode::PlanToGcode()
 {
 }
 
-void PlanToGcode::process(const SettingsBaseVirtual *settings, const PrintPlan *plan, GCodeExport *gcode_out)
+void PlanToGcode::process(const SettingsStore *settings, const PrintPlan *plan, GCodeExport *gcode_out)
 {
-   writeHeader(settings,gcode_out);
-
-   writePlan(plan, gcode_out);
-   
-   writeFooter(settings,gcode_out);
+    m_settings = settings;
+    m_plan = plan;
+    m_gcode_out = gcode_out;
+    
+    writeHeader();
+    writePlan();
+    writeFooter();
 }
 
-void PlanToGcode::writeHeader(const SettingsBaseVirtual *settings, GCodeExport *gcode_out)
+void PlanToGcode::writeHeader()
 {
-   gcode_out->writeComment("Created by Mason backend.");
+   m_gcode_out->writeComment("Created by Mason backend.");
    
-   gcode_out->writeCode(settings->getSettingString("machine_start_gcode").c_str());
+   m_gcode_out->writeCode(m_settings->getSettingString("machine_start_gcode").c_str());
 }
 
-void PlanToGcode::writePlan(const PrintPlan *plan, GCodeExport *gcode_out)
+void PlanToGcode::writePlan()
 {
-    size_t num_elems = plan->numElements();
+    size_t num_elems = m_plan->numElements();
     for (size_t elem_idx=0U; elem_idx!=num_elems; ++elem_idx) {
-        plan->getElement(elem_idx)->addGcode(gcode_out);
+        m_plan->getElement(elem_idx)->addGcode(m_gcode_out);
     }
 }
 
-void PlanToGcode::writeFooter(const SettingsBaseVirtual *settings, GCodeExport *gcode_out)
+void PlanToGcode::writeFooter()
 {
    // Most of footer is written by FffGcodeWriter::finalize()
    // which is called by FffProcessor::finalize().

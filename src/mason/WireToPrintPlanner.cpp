@@ -20,6 +20,11 @@ const std::string &WireToPrintPlanner::getName() const
     
 void WireToPrintPlanner::process(BuildPlan *build_plan)
 {
+    double move_speed =
+        build_plan->settings->getSettingInMillimetersPerSecond("speed_travel");
+    double extrude_speed =
+        build_plan->settings->getSettingInMillimetersPerSecond("speed_wall_0");
+
     std::shared_ptr<PrintPlanElement> elem;
 
     size_t num_layers = build_plan->wire_plan.numLayers();
@@ -30,9 +35,10 @@ void WireToPrintPlanner::process(BuildPlan *build_plan)
         for (size_t wire_idx=0U; wire_idx!=num_wires; ++wire_idx) {
             const Wire &wire = layer.wires[wire_idx];
             
-            elem.reset(new HeadMove(wire.pt0,30.0));
+            elem.reset(new HeadMove(wire.pt0,move_speed));
             build_plan->print_plan.addElement(elem);
-            elem.reset(new ExtrudedSegment(wire.pt0,wire.pt1,30.0,intToMm(wire.width)*intToMm(wire.height)));
+            elem.reset(new ExtrudedSegment(wire.pt0,wire.pt1,extrude_speed,
+                                           intToMm(wire.width)*intToMm(wire.height)));
             build_plan->print_plan.addElement(elem);
         }
     }

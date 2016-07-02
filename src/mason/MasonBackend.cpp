@@ -11,7 +11,7 @@ MasonBackend::MasonBackend()
 {
 }
 
-void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out)
+void MasonBackend::process(const SettingsStore *settings, const MeshGroup *mesh_group, cura::GCodeExport *gcode_out)
 {
     // GCode generation proceeds in several stages:
     // 1. Model is sliced into thin slices to make a volumetric representation of the object (VolumeStore).
@@ -35,6 +35,7 @@ void MasonBackend::process(const SettingsBaseVirtual *settings, const MeshGroup 
     m_target_volume.addMeshGroup(mesh_group);
     std::cout << "target_volume time " << part_timer.restart() << std::endl;
 
+    m_build_plan.settings = settings;
     m_build_plan.target = &m_target_volume;
     m_build_planner.process(&m_build_plan);
     std::cout << "build_planner time " << part_timer.restart() << std::endl;

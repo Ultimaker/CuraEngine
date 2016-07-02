@@ -7,7 +7,7 @@
 
 namespace mason {
 
-using SettingsBaseVirtual = cura::SettingsBaseVirtual;
+using SettingsStore = cura::SettingsBaseVirtual;
 
 }
 

@@ -17,6 +17,8 @@
   - Raft
   - Support
   - Multi-extruder support
+  - Better speed control
+    - Split speed control for different types of wires
 - Program features
   - Drawing of intermediate representations
     X Drawing of slicing output / volume store
@@ -28,6 +30,5 @@
   - Experimental region designation
 - Refactoring / cleanup
   - Rearrange such that Mason writes the end gcode
-  - Strategy for handling settings
 - Bug squashing
     
