@@ -22,13 +22,12 @@ const std::string &SkirtPlanner::getName() const
 
 void SkirtPlanner::process(BuildPlan *build_plan)
 {
-    static const coord_t bloat_offset = mmToInt(100.0);
-    static const coord_t bloat_offset2 = -mmToInt(97.0);
+    static const coord_t bloat_offset = mmToInt(3.0);
     
     Polygons skirt_polys;
+    //TimeKeeper part_timer;
 
-    TimeKeeper part_timer;
-    TimeKeeper layer_timer;
+    // Union bottom layers to find areas to avoid
     size_t num_layers = build_plan->target->getNumLayers();
     size_t max_avoid_layer = std::min(num_layers,(size_t)2U);
     for (size_t layer_idx=0U; layer_idx!=max_avoid_layer; ++layer_idx) {
@@ -37,20 +36,32 @@ void SkirtPlanner::process(BuildPlan *build_plan)
 
         skirt_polys = skirt_polys.unionPolygons(layer_polys);
     }
-    std::cout << "skirt: union total time " << part_timer.restart() << std::endl;
-    
+    //std::cout << "skirt: union total time " << part_timer.restart() << std::endl;
+
+    // Take convex hull to find perimeter outside all obstacles
+    Polygon hull = skirt_polys.convexHullMason();
+    skirt_polys.clear();
+    skirt_polys.add(std::move(hull));
+    //std::cout << "skirt: hull time " << part_timer.restart() << std::endl;
+
+    // Add some space between obstacles and skirt
+    skirt_polys = skirt_polys.offset(bloat_offset, ClipperLib::jtRound);
+    //std::cout << "skirt: offset time " << part_timer.restart() << std::endl;
+
+    // Calculate / print size for debugging
+    //size_t total_points = 0U;
+    //for (size_t poly_idx=0U; poly_idx!=skirt_polys.size(); ++poly_idx) {
+    //    total_points += skirt_polys[poly_idx].size();
+    //}
+    //std::cout << "skirt total size " << total_points << std::endl;
+    //std::cout << "skirt: total size time " << part_timer.restart() << std::endl;
+
+    // Write result into wire plan
     coord_t top_z = mmToInt(0.25);
     coord_t bot_z = mmToInt(0.0);
     coord_t height = top_z - bot_z;
-
-    skirt_polys = skirt_polys.offset(bloat_offset, ClipperLib::jtRound).offset(bloat_offset2, ClipperLib::jtRound);
-    size_t total_points = 0U;
-    for (size_t poly_idx=0U; poly_idx!=skirt_polys.size(); ++poly_idx) {
-        total_points += skirt_polys[poly_idx].size();
-    }
-    std::cout << "skirt total size " << total_points << std::endl;
     writePolygonsToBuildPlan(skirt_polys, top_z, height, build_plan);
-    std::cout << "write to build plan time " << part_timer.restart() << std::endl;
+    //std::cout << "write to build plan time " << part_timer.restart() << std::endl;
 }
 
 void SkirtPlanner::writePolygonsToBuildPlan(const Polygons &polygons,

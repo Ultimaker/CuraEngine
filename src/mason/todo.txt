@@ -1,6 +1,11 @@
 - Required slicer capabilities
   - Skirt
+    - Obey minimum length
+    - Simplify outline
   - Skin
+    - Side
+    - Top
+    - Bottom
   - Shell
   - Infill
 - Extra slicer capabilities
@@ -25,6 +30,4 @@
   - Rearrange such that Mason writes the end gcode
   - Strategy for handling settings
 - Bug squashing
-  - Slicing
-    - Figure out why union of slices of polygons generate more edges than source polygons have
     
