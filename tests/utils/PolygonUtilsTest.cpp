@@ -295,7 +295,7 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
 
 void PolygonUtilsTest::moveInsidePointyCornerTest()
 {
-    Point from(55,170); // above pointy bit
+    Point from(55, 170); // above pointy bit
     Point result(from);
     Polygons inside;
     inside.add(pointy_square);
@@ -316,7 +316,7 @@ void PolygonUtilsTest::moveInsidePointyCornerTest()
 
 void PolygonUtilsTest::moveInsidePointyCornerTestFail()
 { // should fail with normal moveInside2 (and the like)
-    Point from(55,170); // above pointy bit
+    Point from(55, 170); // above pointy bit
     Point result(from);
     Polygons inside;
     inside.add(pointy_square);
@@ -337,9 +337,9 @@ void PolygonUtilsTest::moveInsidePointyCornerTestFail()
 
 void PolygonUtilsTest::moveOutsidePointyCornerTest()
 {
-    Point from(60,70); // above pointy bit
+    Point from(60, 70); // above pointy bit
     Point result(from);
-    Point supposed(50,70); // 10 below pointy bit
+    Point supposed(50, 70); // 10 below pointy bit
     Polygons inside;
     inside.add(pointy_square);
 //     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);
@@ -361,9 +361,9 @@ void PolygonUtilsTest::moveOutsidePointyCornerTest()
 
 void PolygonUtilsTest::moveOutsidePointyCornerTestFail()
 { // should fail with normal moveInside2 (and the like)
-    Point from(60,70); // above pointy bit
+    Point from(60, 70); // above pointy bit
     Point result(from);
-    Point supposed(50,70); // 10 below pointy bit
+    Point supposed(50, 70); // 10 below pointy bit
     Polygons inside;
     inside.add(pointy_square);
     ClosestPolygonPoint cpp = PolygonUtils::moveInside2(inside, result, -10);

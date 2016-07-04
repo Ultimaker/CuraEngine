@@ -216,13 +216,14 @@ void GCodePlanner::addTravel(Point p)
     SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
-    const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
     if (comb != nullptr && !bypass_combing && lastPosition != no_point)
     {
+        const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
+
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
         bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
