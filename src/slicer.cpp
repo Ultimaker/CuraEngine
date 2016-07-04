@@ -91,42 +91,20 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
 
 void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
 {
-    // TODO use some space partitioning data structure to make this run faster than O(n^2)
-    for(unsigned int open_polyline_idx = 0; open_polyline_idx < open_polylines.size(); open_polyline_idx++)
-    {
-        PolygonRef open_polyline = open_polylines[open_polyline_idx];
-        
-        if (open_polyline.size() < 1) continue;
-        for(unsigned int open_polyline_other_idx = 0; open_polyline_other_idx < open_polylines.size(); open_polyline_other_idx++)
-        {
-            PolygonRef open_polyline_other = open_polylines[open_polyline_other_idx];
-            
-            if (open_polyline_other.size() < 1) continue;
-            
-            Point diff = open_polyline.back() - open_polyline_other[0];
-
-            if (shorterThen(diff, largest_neglected_gap_second_phase))
-            {
-                if (open_polyline_idx == open_polyline_other_idx)
-                {
-                    polygons.add(open_polyline);
-                    open_polyline.clear();
-                    break;
-                }
-                else
-                {
-                    for (unsigned int line_idx = 0; line_idx < open_polyline_other.size(); line_idx++)
-                    {
-                        open_polyline.add(open_polyline_other[line_idx]);
-                    }
-                    open_polyline_other.clear();
-                }
-            }
-        }
-    }
+    bool allow_reverse = false;
+    // Search a bit fewer cells but at cost of covering more area.
+    // Since acceptance area is small to start with, the extra is unlikely to hurt much.
+    coord_t cell_size = largest_neglected_gap_first_phase * 2;
+    connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
 void SlicerLayer::stitch(Polygons& open_polylines)
+{
+    bool allow_reverse = true;
+    connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
+}
+
+void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
 
@@ -175,7 +153,7 @@ void SlicerLayer::stitch(Polygons& open_polylines)
     std::priority_queue<PossibleStitch> stitch_queue;
 
     {
-        int64_t max_dist2 = max_stitch1 * max_stitch1;
+        int64_t max_dist2 = max_dist * max_dist;
 
         struct StitchGridVal {
             unsigned int polyline_idx;
@@ -188,7 +166,7 @@ void SlicerLayer::stitch(Polygons& open_polylines)
             }
         };
         
-        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(max_stitch1);
+        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
 
         // populate grid
         for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
@@ -211,7 +189,7 @@ void SlicerLayer::stitch(Polygons& open_polylines)
             if (polyline_1.size() < 1) continue;
 
             std::vector<StitchGridVal> nearby_ends;
-            nearby_ends = grid.getNearby(polyline_1[0], max_stitch1);
+            nearby_ends = grid.getNearby(polyline_1[0], max_dist);
             for (const auto &nearby_end : nearby_ends)
             {
                 Point diff = nearby_end.polyline_end - polyline_1[0];
@@ -225,23 +203,25 @@ void SlicerLayer::stitch(Polygons& open_polylines)
                     stitch_queue.push(poss_stitch);
                 }
             }
-            
-            nearby_ends = grid.getNearby(polyline_1.back(), max_stitch1);
-            for (const auto &nearby_end : nearby_ends)
-            {
-                if (nearby_end.polyline_idx == polyline_1_idx) {
-                    continue;
-                }
-                
-                Point diff = nearby_end.polyline_end - polyline_1.back();
-                int64_t dist2 = vSize2(diff);
-                if (dist2 < max_dist2)
+
+            if (allow_reverse) {
+                nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
+                for (const auto &nearby_end : nearby_ends)
                 {
-                    PossibleStitch poss_stitch;
-                    poss_stitch.dist2 = dist2;
-                    poss_stitch.terminus_0_idx = nearby_end.polyline_idx*2 + 1;
-                    poss_stitch.terminus_1_idx = polyline_1_idx*2 + 1;
-                    stitch_queue.push(poss_stitch);
+                    if (nearby_end.polyline_idx == polyline_1_idx) {
+                        continue;
+                    }
+                    
+                    Point diff = nearby_end.polyline_end - polyline_1.back();
+                    int64_t dist2 = vSize2(diff);
+                    if (dist2 < max_dist2)
+                    {
+                        PossibleStitch poss_stitch;
+                        poss_stitch.dist2 = dist2;
+                        poss_stitch.terminus_0_idx = nearby_end.polyline_idx*2 + 1;
+                        poss_stitch.terminus_1_idx = polyline_1_idx*2 + 1;
+                        stitch_queue.push(poss_stitch);
+                    }
                 }
             }
         }

@@ -24,7 +24,7 @@ public:
      * Average running time is a*(1 + 2 * radius / cell_size)**2 +
      * b*cnt where a and b are proportionality constance and cnt is
      * the number of returned items.  The search will return items in
-     * a volume of (2*radius + cell_size)**2 on average.
+     * an area of (2*radius + cell_size)**2 on average.
      */
     std::vector<Val> getNearby(const Point &query_pt, coord_t radius) const;
     

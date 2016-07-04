@@ -33,8 +33,6 @@
     - Making initial polygons blocked on segments ending on a vertex
       - Need to record when ends on a vertex and consider connected face's segments
       - getNextSegmentIdx could only look around correct edge if this was recorded in segment
-    - connectOpenPolylines needs some sort of spatial data structure (coarse grid hash?)
-    - connectOpenPolylines and stitch might be sped up by avoiding iterating over dead polylines
     - Mesh::getFaceIdxWithPoints could benefit from more info being passed in, particularly the third point
     - Mesh::findIndexOfVertex is really wasteful implementation (should look in neighboring buckets)
     - Mesh::vertex_hash_map has an extra layer of indirection that isn't needed in output value (could be unordered_multimap)

@@ -115,6 +115,9 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
     void stitch_extensive(Polygons& open_polylines);
+
+private:
+    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer
