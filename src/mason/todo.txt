@@ -35,8 +35,6 @@
       - getNextSegmentIdx could only look around correct edge if this was recorded in segment
     - connectOpenPolylines needs some sort of spatial data structure (coarse grid hash?)
     - connectOpenPolylines and stitch might be sped up by avoiding iterating over dead polylines
-    - stitch needs some sort of spatial data structure (coarse grid hash?)
-    - stitch needs a priority queue plus aliasing of polylines to deal with merges
     - Mesh::getFaceIdxWithPoints could benefit from more info being passed in, particularly the third point
     - Mesh::findIndexOfVertex is really wasteful implementation (should look in neighboring buckets)
     - Mesh::vertex_hash_map has an extra layer of indirection that isn't needed in output value (could be unordered_multimap)
