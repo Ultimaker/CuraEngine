@@ -5,6 +5,7 @@
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/SparseGrid.h"
 
 #include "slicer.h"
 #include "debug.h" // TODO remove
@@ -124,6 +125,7 @@ void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
     }
 }
 
+//#define USE_OLD_STITCH_ALG
 void SlicerLayer::stitch(Polygons& open_polylines)
 { // TODO This is an inefficient implementation which can run in O(n^3) time.
     // below code closes smallest gaps first
@@ -133,6 +135,8 @@ void SlicerLayer::stitch(Polygons& open_polylines)
         unsigned int best_polyline_1_idx = -1;
         unsigned int best_polyline_2_idx = -1;
         bool reversed = false;
+
+#ifdef USE_OLD_STITCH_ALG
         for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
         {
             PolygonRef polyline_1 = open_polylines[polyline_1_idx];
@@ -168,12 +172,91 @@ void SlicerLayer::stitch(Polygons& open_polylines)
                 }
             }
         }
+#else
+        struct StitchGridVal {
+            unsigned int polyline_idx;
+            Point polyline_end;
+        };
+
+        struct StitchGridValPointAccess {
+            Point operator()(const StitchGridVal &val) const {
+                return val.polyline_end;
+            }
+        };
         
+        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(max_stitch1);
+
+        // populate grid
+        for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
+        {
+            PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+            
+            if (polyline_1.size() < 1) continue;
+
+            StitchGridVal grid_val;
+            grid_val.polyline_idx = polyline_1_idx;
+            grid_val.polyline_end = polyline_1.back();
+            grid.insert(grid_val);
+        }
+
+        // search for nearby end points
+        for(unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
+        {
+            PolygonRef polyline_2 = open_polylines[polyline_2_idx];
+            
+            if (polyline_2.size() < 1) continue;
+
+            std::vector<StitchGridVal> nearby_ends;
+            nearby_ends = grid.getNearby(polyline_2[0], max_stitch1);
+            for (const auto &nearby_end : nearby_ends)
+            {
+                Point diff = nearby_end.polyline_end - polyline_2[0];
+                int64_t dist2 = vSize2(diff);
+                if (dist2 < best_dist2)
+                {
+                    best_dist2 = dist2;
+                    best_polyline_1_idx = nearby_end.polyline_idx;
+                    best_polyline_2_idx = polyline_2_idx;
+                    reversed = false;
+                }
+            }
+            
+            nearby_ends = grid.getNearby(polyline_2.back(), max_stitch1);
+            for (const auto &nearby_end : nearby_ends)
+            {
+                if (nearby_end.polyline_idx == polyline_2_idx) {
+                    continue;
+                }
+                
+                Point diff = nearby_end.polyline_end - polyline_2.back();
+                int64_t dist2 = vSize2(diff);
+                if (dist2 < best_dist2)
+                {
+                    best_dist2 = dist2;
+                    best_polyline_1_idx = nearby_end.polyline_idx;
+                    best_polyline_2_idx = polyline_2_idx;
+                    reversed = true;
+                }
+            }
+        }
+#endif
+
         if (best_dist2 >= max_stitch1 * max_stitch1)
             break; // this code is reached if there was nothing to stitch within the distance limits
-        
+
         PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
         PolygonRef polyline_2 = open_polylines[best_polyline_2_idx];
+        
+        std::cout << "stitching " << best_polyline_1_idx << " and " << best_polyline_2_idx <<
+            " reversed=" << reversed << std::endl;
+        Point pt2;
+        if (reversed) {
+            pt2 = polyline_2.back();
+        } else {
+            pt2 = polyline_2[0];
+        }
+        std::cout << "pt1=" << polyline_1.back() << " pt2=" << pt2 << " best_dist2=" <<
+            best_dist2 << std::endl;
         
         if (best_polyline_1_idx == best_polyline_2_idx)
         { // connect last piece of 'circle'
