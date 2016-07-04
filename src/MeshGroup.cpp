@@ -4,6 +4,7 @@
 #include <stdio.h>
 
 #include "MeshGroup.h"
+#include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
@@ -283,6 +284,8 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
 
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMatrix3x3& transformation, SettingsBaseVirtual* object_parent_settings)
 {
+    TimeKeeper load_timer;
+
     const char* ext = strrchr(filename, '.');
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
@@ -290,6 +293,8 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
         if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
+            std::cout << "loading " << filename << " took " <<
+                load_timer.restart() << " seconds." << std::endl;
             return true;
         }
     }
