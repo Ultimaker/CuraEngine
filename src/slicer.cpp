@@ -126,143 +126,8 @@ void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
     }
 }
 
-//#define USE_OLD_STITCH_ALGORITHM
-#ifdef USE_OLD_STITCH_ALGORITHM
 void SlicerLayer::stitch(Polygons& open_polylines)
-{ // TODO This is an inefficient implementation which can run in O(n^2) time.
-    // below code closes smallest gaps first
-
-    while(1)
-    {
-        // used as max_dist2 in new algorithm
-        int64_t best_dist2 = max_stitch1 * max_stitch1;
-        unsigned int best_polyline_1_idx = -1;
-        unsigned int best_polyline_2_idx = -1;
-        bool reversed = false;
-
-        struct StitchGridVal {
-            unsigned int polyline_idx;
-            Point polyline_end;
-        };
-
-        struct StitchGridValPointAccess {
-            Point operator()(const StitchGridVal &val) const {
-                return val.polyline_end;
-            }
-        };
-        
-        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(max_stitch1);
-
-        // populate grid
-        for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
-        {
-            PolygonRef polyline_1 = open_polylines[polyline_1_idx];
-            
-            if (polyline_1.size() < 1) continue;
-
-            StitchGridVal grid_val;
-            grid_val.polyline_idx = polyline_1_idx;
-            grid_val.polyline_end = polyline_1.back();
-            grid.insert(grid_val);
-        }
-
-        // search for nearby end points
-        for(unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
-        {
-            PolygonRef polyline_2 = open_polylines[polyline_2_idx];
-            
-            if (polyline_2.size() < 1) continue;
-
-            std::vector<StitchGridVal> nearby_ends;
-            nearby_ends = grid.getNearby(polyline_2[0], max_stitch1);
-            for (const auto &nearby_end : nearby_ends)
-            {
-                Point diff = nearby_end.polyline_end - polyline_2[0];
-                int64_t dist2 = vSize2(diff);
-                if (dist2 < best_dist2)
-                {
-                    best_dist2 = dist2;
-                    best_polyline_1_idx = nearby_end.polyline_idx;
-                    best_polyline_2_idx = polyline_2_idx;
-                    reversed = false;
-                }
-            }
-            
-            nearby_ends = grid.getNearby(polyline_2.back(), max_stitch1);
-            for (const auto &nearby_end : nearby_ends)
-            {
-                if (nearby_end.polyline_idx == polyline_2_idx) {
-                    continue;
-                }
-                
-                Point diff = nearby_end.polyline_end - polyline_2.back();
-                int64_t dist2 = vSize2(diff);
-                if (dist2 < best_dist2)
-                {
-                    best_dist2 = dist2;
-                    best_polyline_1_idx = nearby_end.polyline_idx;
-                    best_polyline_2_idx = polyline_2_idx;
-                    reversed = true;
-                }
-            }
-        }
-
-        if (best_dist2 >= max_stitch1 * max_stitch1)
-            break; // this code is reached if there was nothing to stitch within the distance limits
-
-        
-        PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
-        PolygonRef polyline_2 = open_polylines[best_polyline_2_idx];
-
-        bool reversed_1 = false;
-        bool reversed_2 = false;
-        
-        if (best_polyline_1_idx == best_polyline_2_idx)
-        { // connect last piece of 'circle'
-            polygons.add(polyline_1);
-            polyline_1.clear();
-            std::cout << "finished polygon " << best_polyline_1_idx << std::endl;
-        }
-        else
-        { // connect two polylines
-            if (reversed)
-            {
-                if (polyline_1.size() > polyline_2.size()) // decide which polygon to copy into the other
-                {
-                    for(int poly_idx = polyline_2.size()-1; poly_idx >= 0; poly_idx--)
-                        polyline_1.add(polyline_2[poly_idx]);
-                    polyline_2.clear();
-                    reversed_2 = true;
-                } 
-                else
-                {
-                    for(int poly_idx = polyline_1.size()-1; poly_idx >= 0; poly_idx--)
-                        polyline_2.add(polyline_1[poly_idx]);
-                    polyline_1.clear();
-                    reversed_1 = true;
-                }
-                // note that either way we end up with the end of former polyline_1 next to the start of former polyline_2
-            }
-            else
-            {
-                for(Point& p : polyline_2)
-                    polyline_1.add(p);
-                polyline_2.clear();
-            }
-        }
-
-        if (reversed_1) {
-            std::swap(best_polyline_1_idx,best_polyline_2_idx);
-            std::swap(reversed_1,reversed_2);
-        }
-        std::cout << "stitching " << best_polyline_1_idx << " reverse=" << reversed_1 <<
-            " with " << best_polyline_2_idx << " reverse=" << reversed_2 <<
-            " best_dist2=" << best_dist2 << std::endl;
-    }
-}
-#else
-void SlicerLayer::stitch(Polygons& open_polylines)
-{ // TODO This is an inefficient implementation which can run in O(n^2) time.
+{
     // below code closes smallest gaps first
 
     struct PossibleStitch {
@@ -429,7 +294,7 @@ void SlicerLayer::stitch(Polygons& open_polylines)
                 terminus_old_to_cur_map[old_terms[idx]] = INVALID_TERMINUS;
                 terminus_cur_to_old_map[cur_terms[idx]] = INVALID_TERMINUS;
             }
-            std::cout << "finished polygon " << best_polyline_0_idx << std::endl;
+            //std::cout << "finished polygon " << best_polyline_0_idx << std::endl;
             continue;
         }
         
@@ -478,9 +343,9 @@ void SlicerLayer::stitch(Polygons& open_polylines)
             polyline_1.clear();
         }
 
-        std::cout << "stitching " << best_polyline_0_idx << " reverse=" << reverse[0] <<
-            " with " << best_polyline_1_idx << " reverse=" << reverse[1] <<
-            " best_dist2=" << next_stitch.dist2 << std::endl;
+        //std::cout << "stitching " << best_polyline_0_idx << " reverse=" << reverse[0] <<
+        //    " with " << best_polyline_1_idx << " reverse=" << reverse[1] <<
+        //    " best_dist2=" << next_stitch.dist2 << std::endl;
 
         // update terminus_update_map
         unsigned int cur_terms[4] = {best_polyline_0_idx*2 + 0,
@@ -512,7 +377,6 @@ void SlicerLayer::stitch(Polygons& open_polylines)
         terminus_cur_to_old_map[cur_terms[3]] = INVALID_TERMINUS;
     }
 }
-#endif
 
 void SlicerLayer::stitch_extensive(Polygons& open_polylines)
 {
