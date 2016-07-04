@@ -35,10 +35,9 @@ void GCodePathConfig::BasicConfig::set(double speed, double acceleration, double
 }
 
 
-GCodePathConfig::GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type)
+GCodePathConfig::GCodePathConfig(PrintFeatureType type)
 : extrusion_mm3_per_mm(0.0)
 , type(type)
-, retraction_config(retraction_config)
 {
 }
 
