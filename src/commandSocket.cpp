@@ -129,7 +129,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
@@ -202,7 +202,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             private_data->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
             flushGcode();
-            sendPrintTime();
+            sendPrintTimeMaterialEstimates();
             sendFinishedSlicing();
             slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
             //TODO: Support all-at-once/one-at-a-time printing
@@ -210,7 +210,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             //private_data->object_to_slice.reset();
             //private_data->processor->resetFileNumber();
 
-            //sendPrintTime();
+            //sendPrintTimeMaterialEstimates();
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -365,12 +365,21 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
     // TODO
 }
 
-void CommandSocket::sendPrintTime()
+void CommandSocket::sendPrintTimeMaterialEstimates()
 {
 #ifdef ARCUS
-    auto message = std::make_shared<cura::proto::ObjectPrintTime>();
+    auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
+
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
-    message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
+    int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
+    for (unsigned int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
+    {
+        cura::proto::MaterialEstimates* material_message = message->add_materialestimates();
+
+        material_message->set_id(extruder_nr);
+        material_message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr));
+    }
+
     private_data->socket->sendMessage(message);
 #endif
 }
