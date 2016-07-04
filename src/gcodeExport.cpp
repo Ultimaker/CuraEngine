@@ -15,6 +15,8 @@ GCodeExport::GCodeExport()
 , currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
 {
+    *output_stream << std::fixed;
+
     current_e_value = 0;
     current_extruder = 0;
     currentFanSpeed = -1;
