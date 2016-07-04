@@ -106,7 +106,7 @@ class Setting():
     #   \param locals The local variables for eventual function evaluation.
     def __init__(self, key, data, locals):
         self._key = key
-        self._default = data["default"]
+        self._default = data["default_value"]
         self._type = data["type"]
         self._min_value = self._evaluateFunction(data.get("min_value", None), locals)
         self._max_value = self._evaluateFunction(data.get("max_value", None), locals)
@@ -127,7 +127,7 @@ class Setting():
     #  For enums and booleans it will contain the exact possible values.
     #  For string settings only the default value is returned.
     def getSettingValues(self):
-        if self._type == "boolean":
+        if self._type == "bool":
             return ["True", "False"]
         if self._type == "float" or self._type == "int":
             ret = [self._default]
@@ -160,6 +160,8 @@ class Setting():
             return self._options
         if self._type == "string":
             return self._default
+        if self._type == "extruder":
+            return self._default # TODO: also allow for other values below machine_extruder_count
         print("Unknown setting type:", self._type)
 
     ## Return a random value for this setting. The returned value will be a valid value according to the settings json file.
