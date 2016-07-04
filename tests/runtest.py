@@ -224,12 +224,13 @@ class EngineTest():
         self._flattenAllSettings()
 
     def _flattenAllSettings(self):
-        for key, data in self._json["categories"].items():
-            self._flattenSettings(data["settings"])
+        for key, data in self._json["settings"].items(): # top level settings are categories
+            self._flattenSettings(data["children"]) # actual settings are children of top level category-settings
     
     def _flattenSettings(self, settings):
             for key, setting in settings.items():
-                self._settings[key] = Setting(key, setting, self._locals)
+                if not ("type" in setting and setting["type"] == "category"):
+                    self._settings[key] = Setting(key, setting, self._locals)
                 if "children" in setting:
                     self._flattenSettings(setting["children"])
 
@@ -307,9 +308,8 @@ class EngineTest():
     #
     #   The results are stored in self._locals, keyed by the setting name.
     def _addAllLocals(self):
-        for key, data in self._json["categories"].items():
-            self._addLocals(data["settings"])
-        self._addLocals(self._json["machine_settings"])
+        for key, data in self._json["settings"].items(): # top level categories
+            self._addLocals(data["children"]) # the actual settings in each category
 
     ##  Adds the default values in a node of the setting tree to the locals.
     #
@@ -318,7 +318,8 @@ class EngineTest():
     #   \param settings The JSON node of which to add the default values.
     def _addLocals(self, settings):
         for key, setting in settings.items():
-            self._locals[key] = setting["default"]
+            if not ("type" in setting and setting["type"] == "category"): # skip category-settings
+                self._locals[key] = setting["default_value"]
             if "children" in setting:
                 self._addLocals(setting["children"]) #Recursively go down the tree.
 
