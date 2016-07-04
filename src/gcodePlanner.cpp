@@ -36,10 +36,6 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceF
     ret->flow = flow;
     ret->spiralize = spiralize;
     ret->space_fill_type = space_fill_type;
-    if (!config->isTravelPath())
-    {
-        last_planned_retraction_config = config->retraction_config;
-    }
     return ret;
 }
 
@@ -67,7 +63,6 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    last_planned_retraction_config = &storage.retraction_config_per_extruder[current_extruder]; // start with general config
     setExtrudeSpeedFactor(1.0);
     setTravelSpeedFactor(1.0);
     extraTime = 0.0;
@@ -210,23 +205,25 @@ void GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
+    RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
     
     bool combed = false;
 
     SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
-    const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
     const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
 
     if (comb != nullptr && !bypass_combing && lastPosition != no_point)
     {
+        const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
+
         CombPaths combPaths;
         bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
         bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, last_planned_retraction_config->retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -277,7 +274,7 @@ void GCodePlanner::addTravel(Point p)
     
     if (!combed) {
         // no combing? always retract!
-        if (!shorterThen(lastPosition - p, last_planned_retraction_config->retraction_min_travel_distance))
+        if (!shorterThen(lastPosition - p, retraction_config.retraction_min_travel_distance))
         {
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
@@ -439,7 +436,6 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
     Point p0 = start_position;
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
-    RetractionConfig* last_retraction_config = nullptr;
     for(ExtruderPlan& extr_plan : extruder_plans)
     {
         for (GCodePath& path : extr_plan.paths)
@@ -462,11 +458,10 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 {
                     path_time_estimate = &path.estimates.unretracted_travel_time;
                 }
-                if (path.retract != was_retracted && last_retraction_config != nullptr)
+                if (path.retract != was_retracted)
                 { // handle retraction times
                     double retract_unretract_time;
-                    assert(last_retraction_config != nullptr);
-                    RetractionConfig& retraction_config = *last_retraction_config;
+                    RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extr_plan.extruder];
                     if (path.retract)
                     {
                         retract_unretract_time = retraction_config.distance / retraction_config.speed;
@@ -491,10 +486,6 @@ TimeMaterialEstimates GCodePlanner::computeNaiveTimeEstimates()
                 p0 = p1;
             }
             extr_plan.estimates += path.estimates;
-            if (is_extrusion_path)
-            {
-                last_retraction_config = path.config->retraction_config;
-            }
         }
         ret += extr_plan.estimates;
     }
@@ -570,8 +561,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     
     gcode.writeFanCommand(fan_speed);
     
-    GCodePathConfig* last_extrusion_config = nullptr;
-    RetractionConfig* last_retraction_config = &storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+    GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     int extruder = gcode.getExtruderNr();
 
@@ -595,7 +585,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         }
         std::vector<GCodePath>& paths = extruder_plan.paths;
-        
+
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
@@ -617,17 +609,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                gcode.writeRetraction(last_retraction_config);
+                gcode.writeRetraction(&retraction_config);
                 if (path.perform_z_hop)
                 {
-                    gcode.writeZhopStart(last_retraction_config->zHop);
+                    gcode.writeZhopStart(retraction_config.zHop);
                 }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)
             {
                 gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
-                last_retraction_config = last_extrusion_config->retraction_config;
             }
             double speed = path.config->getSpeed();
 
@@ -736,7 +727,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     if (storage.getSettingBoolean("cool_lift_head") && extraTime > 0.0)
     {
         gcode.writeComment("Small layer, adding delay");
-        gcode.writeRetraction(last_retraction_config);
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+        gcode.writeRetraction(&retraction_config);
         gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
         gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
         gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0); // TODO: is this safe?! wouldn't the head move into the sides then?!
