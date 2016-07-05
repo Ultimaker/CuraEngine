@@ -57,9 +57,11 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
 {
     int next_segment_idx = -1;
     const MeshFace& face = mesh->faces[segment.faceIndex];
-    for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
+    //for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
+    for (unsigned int face_edge_idx = 0; face_edge_idx < 1; face_edge_idx++)
     { // check segments in connected faces
-        int other_face_idx = face.connected_face_index[face_edge_idx];
+        //int other_face_idx = face.connected_face_index[face_edge_idx];
+        int other_face_idx = segment.endOtherFaceIdx;
         if (other_face_idx == -1) {
             continue;
         }
@@ -564,6 +566,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     
     makeBasicPolygonLoops(mesh, open_polylines);
     std::cout << "makeBasicPolygonLoops took " << part_timer.restart() << std::endl;
+    std::cout << "polygons.size()=" << polygons.size() <<
+        " open_polylines.size()=" << open_polylines.size() << std::endl;
     
     connectOpenPolylines(open_polylines);
     std::cout << "connectOpenPolylines took " << part_timer.restart() << std::endl;
@@ -649,28 +653,39 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
             if (layer_nr < 0) continue;
             
             SlicerSegment s;
-            if (p0.z < z && p1.z >= z && p2.z >= z)
+            int end_edge_start_pt = -1;
+            if (p0.z < z && p1.z >= z && p2.z >= z) {
                 s = project2D(p0, p2, p1, z);
-            else if (p0.z > z && p1.z < z && p2.z < z)
+                end_edge_start_pt = 0;
+            } else if (p0.z > z && p1.z < z && p2.z < z) {
                 s = project2D(p0, p1, p2, z);
+                end_edge_start_pt = 2;
 
-            else if (p1.z < z && p0.z >= z && p2.z >= z)
+            } else if (p1.z < z && p0.z >= z && p2.z >= z) {
                 s = project2D(p1, p0, p2, z);
-            else if (p1.z > z && p0.z < z && p2.z < z)
+                end_edge_start_pt = 1;
+            } else if (p1.z > z && p0.z < z && p2.z < z) {
                 s = project2D(p1, p2, p0, z);
+                end_edge_start_pt = 0;
 
-            else if (p2.z < z && p1.z >= z && p0.z >= z)
+            } else if (p2.z < z && p1.z >= z && p0.z >= z) {
                 s = project2D(p2, p1, p0, z);
-            else if (p2.z > z && p1.z < z && p0.z < z)
+                end_edge_start_pt = 2;
+            } else if (p2.z > z && p1.z < z && p0.z < z) {
                 s = project2D(p2, p0, p1, z);
-            else
-            {
+                end_edge_start_pt = 1;
+            } else {
                 //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
                 //  on the slice would create two segments
                 continue;
             }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
+            if (end_edge_start_pt >= 0) {
+                s.endOtherFaceIdx = face.connected_face_index[end_edge_start_pt];
+            } else {
+                s.endOtherFaceIdx = -1;
+            }
             s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
         }

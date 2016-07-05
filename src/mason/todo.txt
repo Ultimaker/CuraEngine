@@ -33,7 +33,6 @@
     - Making initial polygons blocked on segments ending on a vertex
       - Need to record when ends on a vertex and consider connected face's segments
       - getNextSegmentIdx could only look around correct edge if this was recorded in segment
-    - Mesh::getFaceIdxWithPoints could benefit from more info being passed in, particularly the third point
 - Bug squashing
   - Slicing making of polygons may not work correctly for small gaps in part
     - Stitching can reverse edge directions

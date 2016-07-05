@@ -15,6 +15,8 @@ class SlicerSegment
 public:
     Point start, end;
     int faceIndex;
+    // The index of the other face connected via the edge that created end
+    int endOtherFaceIdx;
     bool addedToPolygon;
 };
 
