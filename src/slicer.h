@@ -17,6 +17,10 @@ public:
     int faceIndex;
     // The index of the other face connected via the edge that created end
     int endOtherFaceIdx;
+    // If end corresponds to a vertex of the mesh, then this is populated
+    // with the candidate edges that might have the next segment.  If end
+    // doesn't correspond to a vertex of the mesh than this will be empty.
+    std::vector<uint32_t> endOtherFaces;
     bool addedToPolygon;
 };
 
@@ -119,6 +123,7 @@ protected:
     void stitch_extensive(Polygons& open_polylines);
 
 private:
+    int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
     void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 

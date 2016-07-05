@@ -53,41 +53,60 @@ void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polyline
     open_polylines.add(poly);
 }
 
+int SlicerLayer::tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
+{
+    decltype(face_idx_to_segment_idx.begin()) it;
+    auto it_end = face_idx_to_segment_idx.end();
+    it = face_idx_to_segment_idx.find(face_idx);
+    if (it != it_end)
+    {
+        int segment_idx = (*it).second;
+        Point p1 = segments[segment_idx].start;
+        Point diff = segment.end - p1;
+        if (shorterThen(diff, largest_neglected_gap_first_phase))
+        {
+            if (segment_idx == static_cast<int>(start_segment_idx))
+            {
+                return start_segment_idx;
+            }
+            if (segments[segment_idx].addedToPolygon)
+            {
+                return -1;
+            }
+            return segment_idx;
+        }
+    }
+
+    return -1;
+}
+
 int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx)
 {
     int next_segment_idx = -1;
-    const MeshFace& face = mesh->faces[segment.faceIndex];
-    //for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
-    for (unsigned int face_edge_idx = 0; face_edge_idx < 1; face_edge_idx++)
-    { // check segments in connected faces
-        //int other_face_idx = face.connected_face_index[face_edge_idx];
-        int other_face_idx = segment.endOtherFaceIdx;
-        if (other_face_idx == -1) {
-            continue;
+
+    const std::vector<uint32_t> &faces_to_try = segment.endOtherFaces;
+    bool segment_ended_at_edge = faces_to_try.empty();
+    if (segment_ended_at_edge) {
+        int face_to_try = segment.endOtherFaceIdx;
+        if (face_to_try == -1) {
+            return -1;
         }
+        return tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+    } else {
+        // segment ended at vertex
         
-        decltype(face_idx_to_segment_idx.begin()) it;
-        auto it_end = face_idx_to_segment_idx.end();
-        it = face_idx_to_segment_idx.find(other_face_idx);
-        if (it != it_end)
-        {
-            int segment_idx = (*it).second;
-            Point p1 = segments[segment_idx].start;
-            Point diff = segment.end - p1;
-            if (shorterThen(diff, largest_neglected_gap_first_phase))
-            {
-                if (segment_idx == static_cast<int>(start_segment_idx))
-                {
-                    return start_segment_idx;
-                }
-                if (segments[segment_idx].addedToPolygon)
-                {
-                    continue;
-                }
-                next_segment_idx = segment_idx; // not immediately returned since we might still encounter the start_segment_idx
+        for (int face_to_try : faces_to_try) {
+            int result_segment_idx =
+                tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+            if (result_segment_idx == static_cast<int>(start_segment_idx)) {
+                return start_segment_idx;
+            } else if (result_segment_idx != -1) {
+                // not immediately returned since we might still encounter the start_segment_idx
+                next_segment_idx = result_segment_idx;
             }
         }
     }
+
     return next_segment_idx;
 }
 
@@ -636,9 +655,12 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
     for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
         const MeshFace& face = mesh->faces[mesh_idx];
-        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
-        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
-        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
+        const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
+        const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
+        const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
+        Point3 p0 = v0.p;
+        Point3 p1 = v1.p;
+        Point3 p2 = v2.p;
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ) minZ = p1.z;
@@ -657,6 +679,9 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
             if (p0.z < z && p1.z >= z && p2.z >= z) {
                 s = project2D(p0, p2, p1, z);
                 end_edge_start_pt = 0;
+                if (p1.z == z) {
+                    s.endOtherFaces = v1.connected_faces;
+                }
             } else if (p0.z > z && p1.z < z && p2.z < z) {
                 s = project2D(p0, p1, p2, z);
                 end_edge_start_pt = 2;
@@ -664,6 +689,9 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
             } else if (p1.z < z && p0.z >= z && p2.z >= z) {
                 s = project2D(p1, p0, p2, z);
                 end_edge_start_pt = 1;
+                if (p2.z == z) {
+                    s.endOtherFaces = v2.connected_faces;
+                }
             } else if (p1.z > z && p0.z < z && p2.z < z) {
                 s = project2D(p1, p2, p0, z);
                 end_edge_start_pt = 0;
@@ -671,6 +699,9 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
             } else if (p2.z < z && p1.z >= z && p0.z >= z) {
                 s = project2D(p2, p1, p0, z);
                 end_edge_start_pt = 2;
+                if (p0.z == z) {
+                    s.endOtherFaces = v0.connected_faces;
+                }
             } else if (p2.z > z && p1.z < z && p0.z < z) {
                 s = project2D(p2, p0, p1, z);
                 end_edge_start_pt = 1;
@@ -681,11 +712,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bo
             }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
-            if (end_edge_start_pt >= 0) {
-                s.endOtherFaceIdx = face.connected_face_index[end_edge_start_pt];
-            } else {
-                s.endOtherFaceIdx = -1;
-            }
+            s.endOtherFaceIdx = face.connected_face_index[end_edge_start_pt];
             s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
         }
