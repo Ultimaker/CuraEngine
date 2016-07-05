@@ -4,7 +4,7 @@
 
 #include <stdint.h>
 #include "utils/polygon.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 namespace cura {
  

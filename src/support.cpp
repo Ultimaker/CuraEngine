@@ -4,7 +4,7 @@
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
-#include "Progress.h"
+#include "progress/Progress.h"
 
 namespace cura 
 {
@@ -86,7 +86,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         
     // given settings
-    ESupportType support_type = mesh.getSettingAsSupportType("support_type");
+    ESupportType support_type = storage.getSettingAsSupportType("support_type");
     
     if (!mesh.getSettingBoolean("support_enable"))
         return;
@@ -115,7 +115,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     int layerThickness = storage.getSettingInMicrons("layer_height");
     int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
     int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
-    
+    int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
+
+    bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+
     bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
     double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
     int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
@@ -230,11 +233,18 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
 
-            Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
-            Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
+            if (use_support_xy_distance_overhang)
+            {
+                Polygons xy_overhang_disallowed = basic_overhang.offset(supportZDistanceTop * tanAngle);
+                Polygons xy_non_overhang_disallowed = outlines.difference(basic_overhang.offset(supportXYDistance)).offset(supportXYDistance);
 
-            Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines));
-            supportLayer_this = supportLayer_this.difference(xy_disallowed);
+                Polygons xy_disallowed = xy_overhang_disallowed.unionPolygons(xy_non_overhang_disallowed.unionPolygons(outlines.offset(support_xy_distance_overhang)));
+                supportLayer_this = supportLayer_this.difference(xy_disallowed);
+            }
+            else
+            {
+                supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(layer_idx, false).offset(supportXYDistance));
+            }
         }
 
         supportAreas[layer_idx] = supportLayer_this;

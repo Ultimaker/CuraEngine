@@ -39,14 +39,6 @@ class FffGcodeWriter : public SettingsMessenger, NoCopy
 private:
     int max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
-    /*!
-     * The number of the current meshgroup being processed.
-     * 
-     * Used for sequential printing of objects.
-     * The first meshgroup will get number 1.
-     */
-    int meshgroup_number; 
-
     /*
      * Buffer for all layer plans (of type GCodePlanner)
      * 
@@ -74,6 +66,8 @@ private:
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
 
+    bool skirt_is_processed[MAX_EXTRUDERS]; //!< Whether the skirt polygons have been processed into planned paths for each extruder train
+
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //!< The settings used relating to minimal layer time and fan speeds.
 
     Point last_position_planned; //!< The position of the head before planning the next layer
@@ -87,16 +81,11 @@ public:
     , current_extruder_planned(0) // TODO: make configurable
     , is_inside_mesh_layer_part(false)
     {
-        meshgroup_number = 1;
         max_object_height = 0;
-    }
-
-    /*!
-     * Reset the meshgroup number to process the next slicing.
-     */
-    void resetMeshGroupNumber()
-    {
-        meshgroup_number = 1;
+        for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+        {
+            skirt_is_processed[extruder_nr] = false;
+        }
     }
 
     /*!
@@ -337,11 +326,11 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
-     * \param infill_overlap The distance by which the infill overlaps with the wall insets.
+     * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int infill_overlap, int infill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle, int extrusion_width);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.

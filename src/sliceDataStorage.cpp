@@ -22,7 +22,7 @@ void SliceLayer::getOutlines(Polygons& result, bool external_polys_only) const
         }
         else 
         {
-            result.add(part.outline);
+            result.add(part.print_outline);
         }
     }
 }
@@ -56,16 +56,41 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
 }
 
 
+std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
+{
+    std::vector<RetractionConfig> ret;
+    ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
+    return ret;
+}
+std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
+{
+    std::vector<GCodePathConfig> ret;
+    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+    {
+        travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
+    }
+    return ret;
+}
+std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
+{
+    std::vector<GCodePathConfig> ret;
+    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
+    {
+        skirt_config.emplace_back(PrintFeatureType::Skirt);
+    }
+    return ret;
+}
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     retraction_config_per_extruder(initializeRetractionConfigs()),
-    travel_config(&retraction_config, PrintFeatureType::MoveCombing),
+    extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
+    travel_config_per_extruder(initializeTravelConfigs()),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_interface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_surface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    support_config(&retraction_config_per_extruder[getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
-    support_roof_config(&retraction_config_per_extruder[getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
+    raft_base_config(PrintFeatureType::Support),
+    raft_interface_config(PrintFeatureType::Support),
+    raft_surface_config(PrintFeatureType::Support),
+    support_config(PrintFeatureType::Support),
+    support_roof_config(PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }
@@ -194,7 +219,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
             }
             else 
             {
-                ret[getSettingAsIndex("support_extruder_nr")] = true;
+                ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
             }
         }
         if (support.supportLayers[layer_nr].roofs.size() > 0)
@@ -238,7 +263,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // support
     // support is presupposed to be present...
     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-    ret[getSettingAsIndex("support_extruder_nr")] = true;
+    ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
     ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content

@@ -51,13 +51,20 @@ Running
 =======
 Other than running CuraEngine from a frontend, such as Ultimaker/Cura, one can run CuraEngine from the command line.
 For that one needs a settings JSON file, which can be found in the Ultimaker/Cura repository.
+Note that the structure of the json files has changed since 2.1. In the corresponding branch of the Cura repository you can find how the json files used to be structured.
+
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
-./build/CuraEngine slice -v -j ../Cura/resources/machines/dual_extrusion_printer.json -o "output/test.gcode" -e1 -s infill_line_distance=0 -e0 -l "/model_1.stl" -e1 -l "fully_filled_model.stl" 
+./build/CuraEngine slice -v -j ../Cura/resources/definitions/dual_extrusion_printer.def.json -o "output/test.gcode" -e1 -s infill_line_distance=0 -e0 -l "/model_1.stl" -e1 -l "fully_filled_model.stl" 
 ```
 
 Run `CuraEngine help` for a general description of how to use the CuraEngine tool.
+
+[Set the environment variable](https://help.ubuntu.com/community/EnvironmentVariables) CURA_ENGINE_SEARCH_PATH to the appropriate paths, delimited by a colon e.g.
+```
+CURA_ENGINE_SEARCH_PATH=/path/to/Cura/resources/definitions:/user/defined/path
+```
 
 Internals
 =========

@@ -36,6 +36,7 @@ namespace cura
  * to the current line segment being produced when producing gcode.
  * 
  * When producing gcode, the first line crossing the overlap area is laid down normally and the second line is reduced by the overlap amount.
+ * For this reason the function WallOverlapComputation::getFlow changes the internal state of this WallOverlapComputation.
  * 
  * The main functionality of this class is performed by the constructor.
  * The adjustment during gcode generation is made with the help of WallOverlapComputation::getFlow
@@ -143,7 +144,7 @@ class WallOverlapComputation
     };
     
     typedef std::unordered_map<WallOverlapPointLink, WallOverlapPointLinkAttributes, WallOverlapPointLink_Hasher> WallOverlapPointLinks; //!< The type of WallOverlapComputation::overlap_point_links
-    typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link; //!< The type of WallOverlapComputation::point_to_link
+    typedef std::unordered_map<Point, WallOverlapPointLinks::iterator> Point2Link; //!< The type of WallOverlapComputation::point_to_link \warning mapping to iterators which might get invalidated!
     
     
     /////////////////////////////////////////////////////////////////////////////////////////////
@@ -157,7 +158,7 @@ class WallOverlapComputation
     WallOverlapPointLinks overlap_point_links; //!< mapping from each link to its attributes
     WallOverlapPointLinks overlap_point_links_endings; //!< mapping from each ending link to its attributes (which has a distance field equal to WallOverlapComputation::line_width). Note that this is a separate map from WallOverlapComputation::overlap_point_links, because that magically solved a bug .
     
-    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
+    Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet) \warning mapping to iterators which might get invalidated!
 
     void findOverlapPoints(); //!< find the basic overlap links (for trapezoids) and record them into WallOverlapComputation::overlap_point_links
     /*!
@@ -238,6 +239,8 @@ public:
     /*!
      * Compute the flow for a given line segment in the wall.
      * 
+     * \warning the first time this function is called it returns a different thing than the second, because the second time it thinks it already passed this segment once.
+     * 
      * \param from The beginning of the line segment
      * \param to The ending of the line segment
      * \return a value between zero and one representing the reduced flow of the line segment
@@ -245,27 +248,16 @@ public:
     float getFlow(Point& from, Point& to);
     
     void debugCheck(); //!< debug
+
+    void debugCheckNonePassedYet(); //!< check whether no link has passed set to true
     
-    void wallOverlaps2HTML(const char* filename); //!< debug
+    void wallOverlaps2HTML(const char* filename) const; //!< debug
     
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons, int lineWidth) : polygons(polygons), line_width(lineWidth) 
-    { 
-        // convert to list polygons for insertion of points
-        convertPolygonsToLists(polygons, list_polygons); 
-        
-        findOverlapPoints();
-        addOverlapEndings();
-        // TODO: add sharp corners
-        
-        // convert list polygons back
-        convertListPolygonsToPolygons(list_polygons, polygons);
-//         wallOverlaps2HTML("output/output.html");
-//         list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
-    }
+    WallOverlapComputation(Polygons& polygons, int lineWidth);
     
 };
 

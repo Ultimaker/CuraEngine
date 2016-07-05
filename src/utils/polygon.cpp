@@ -7,8 +7,25 @@
 
 namespace cura 
 {
-    
-bool PolygonRef::inside(Point p, bool border_result)
+
+bool PolygonRef::shorterThan(int64_t check_length) const
+{
+    const PolygonRef& polygon = *this;
+    const Point* p0 = &polygon.back();
+    int64_t length = 0;
+    for (const Point& p1 : polygon)
+    {
+        length += vSize(*p0 - p1);
+        if (length >= check_length)
+        {
+            return false;
+        }
+        p0 = &p1;
+    }
+    return true;
+}
+
+bool PolygonRef::_inside(Point p, bool border_result)
 {
     PolygonRef thiss = *this;
     if (size() < 1)
@@ -129,6 +146,16 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
+Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
+{
+    Polygons ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    clipper.AddPath(*path, joinType, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret.paths, distance);
+    return ret;
+}
+
 void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared){
     PolygonRef& thiss = *this;
     
@@ -160,9 +187,15 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 last = &here;
             }
         }
-        polygon->erase(polygon->begin() + writing_idx , polygon->end());
+        path->erase(path->begin() + writing_idx , path->end());
     }
-    
+
+    if (size() < 3)
+    {
+        clear();
+        return;
+    }
+
     Point* last = &thiss[0];
     unsigned int writing_idx = 1;
     for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
@@ -185,7 +218,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             last = &here;
         }
     }
-    polygon->erase(polygon->begin() + writing_idx , polygon->end());
+    path->erase(path->begin() + writing_idx , path->end());
     
             
     if (size() < 3)
@@ -224,7 +257,7 @@ std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
     std::vector<PolygonsPart> ret;
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else
@@ -267,9 +300,9 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
     return NO_INDEX;
 }
 
-PolygonsPart PartsView::assemblePart(unsigned int part_idx) 
+PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
 {
-    PartsView& partsView = *this;
+    const PartsView& partsView = *this;
     PolygonsPart ret;
     if (part_idx != NO_INDEX)
     {
@@ -298,7 +331,7 @@ PartsView Polygons::splitIntoPartsView(bool unionAll)
     PartsView partsView(*this);
     ClipperLib::Clipper clipper(clipper_init);
     ClipperLib::PolyTree resultPolyTree;
-    clipper.AddPaths(polygons, ClipperLib::ptSubject, true);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
     if (unionAll)
         clipper.Execute(ClipperLib::ctUnion, resultPolyTree, ClipperLib::pftNonZero, ClipperLib::pftNonZero);
     else

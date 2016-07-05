@@ -4,10 +4,14 @@
 #ifndef POLYGON_UTILS_TEST_H
 #define POLYGON_UTILS_TEST_H
 
+#include <functional> // function
+
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
-#include <../src/utils/intpoint.h>
-#include <../src/utils/polygon.h>
+
+#include "../src/utils/intpoint.h"
+#include "../src/utils/polygon.h"
+#include "../src/utils/polygonUtils.h"
 
 namespace cura
 {
@@ -19,12 +23,33 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(edgeInsideTest);
     CPPUNIT_TEST(cornerOutsideTest);
     CPPUNIT_TEST(edgeOutsideTest);
+    CPPUNIT_TEST(cornerCrookedTest);
+    CPPUNIT_TEST(cornerEdgeTest);
+    CPPUNIT_TEST(onBorderTest);
+    CPPUNIT_TEST(insideTest);
+    CPPUNIT_TEST(middleTest);
+    CPPUNIT_TEST(middleTestPenalty);
+    CPPUNIT_TEST(noMoveTest);
+    CPPUNIT_TEST(farMoveTest);
     CPPUNIT_TEST(cornerInsideTest2);
     CPPUNIT_TEST(edgeInsideTest2);
     CPPUNIT_TEST(cornerOutsideTest2);
     CPPUNIT_TEST(edgeOutsideTest2);
     CPPUNIT_TEST(cornerFindCloseTest);
     CPPUNIT_TEST(edgeFindCloseTest);
+    CPPUNIT_TEST(middleEdgeFindCloseTest);
+    CPPUNIT_TEST(moveInsidePointyCornerTest);
+    CPPUNIT_TEST(moveOutsidePointyCornerTest);
+    CPPUNIT_TEST(moveInsidePointyCornerTestFail);
+    CPPUNIT_TEST(moveOutsidePointyCornerTestFail);
+    CPPUNIT_TEST(cornerCrookedTest2);
+    CPPUNIT_TEST(cornerEdgeTest2);
+    CPPUNIT_TEST(onBorderTest2);
+    CPPUNIT_TEST(insideTest2);
+    CPPUNIT_TEST(middleTest2);
+    CPPUNIT_TEST(noMoveTest2);
+    CPPUNIT_TEST(farMoveTest2);
+    CPPUNIT_TEST(polygonOffsetTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -49,14 +74,36 @@ public:
     void edgeInsideTest();
     void cornerOutsideTest();
     void edgeOutsideTest();
-    
+    void cornerCrookedTest();
+    void cornerEdgeTest();
+    void onBorderTest();
+    void insideTest();
+    void middleTest();
+    void middleTestPenalty();
+    void noMoveTest();
+    void farMoveTest();
     void cornerInsideTest2();
     void edgeInsideTest2();
     void cornerOutsideTest2();
     void edgeOutsideTest2();
-    
+    void cornerCrookedTest2();
+    void cornerEdgeTest2();
+    void onBorderTest2();
+    void insideTest2();
+    void middleTest2();
+    void noMoveTest2();
+    void farMoveTest2();
+
+    void polygonOffsetTest();
+
     void cornerFindCloseTest();
     void edgeFindCloseTest();
+    void middleEdgeFindCloseTest();
+
+    void moveInsidePointyCornerTest();
+    void moveOutsidePointyCornerTest();
+    void moveInsidePointyCornerTestFail();
+    void moveOutsidePointyCornerTestFail();
 
 private:
     /*!
@@ -65,6 +112,7 @@ private:
     static const int64_t maximum_error = 10;
     
     Polygon test_square;
+    Polygon pointy_square;
     
     /*!
      * cppunit assert for PolygonUtils::moveInside(ClosestPolygonPoint, int)
@@ -79,7 +127,7 @@ private:
     /*!
      * cppunit assert for PolygonUtils::findClose
      */
-    void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size);
+    void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size, const std::function<int(Point)>* penalty_function = nullptr);
 };
 
 }

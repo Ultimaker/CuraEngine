@@ -6,18 +6,6 @@
 
 namespace cura 
 {
-
-/*!
- * Generate the gap areas which occur between consecutive insets.
- * 
- * \param layerNr The index of the layer for which to generate the gaps.
- * \param mesh The storage where the layer outline information (input) is stored and where the gap areas (output) are stored.
- * \param extrusionWidth extrusionWidth
- * \param downSkinCount The number of layers of bottom gaps
- * \param upSkinCount The number of layers of top gaps
- */
-void generatePerimeterGaps(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount);
-
 /*!
  * Generate the skin areas and its insets.
  * 
@@ -30,10 +18,8 @@ void generatePerimeterGaps(int layerNr, SliceMeshStorage& mesh, int extrusionWid
  * \param innermost_wall_extrusion_width The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
- * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p mesh)
- * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p mesh)
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)
@@ -55,10 +41,8 @@ void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, 
  * \param part The part where the skin outline information (input) is stored and where the skin insets (output) are stored.
  * \param extrusionWidth extrusionWidth
  * \param insetCount The number of perimeters to surround the skin
- * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p mesh)
- * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p mesh)
  */
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
+void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount);
 
 /*!
  * Generate Infill by offsetting from the last wall.

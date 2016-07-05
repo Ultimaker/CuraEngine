@@ -1,8 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 
 #include "layerPart.h"
-#include "settings.h"
-#include "Progress.h"
+#include "settings/settings.h"
+#include "progress/Progress.h"
 
 #include "utils/SVG.h" // debug output
 
@@ -26,15 +26,15 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 
     if (union_all_remove_holes)
     {
-        for(unsigned int i=0; i<layer->polygonList.size(); i++)
+        for(unsigned int i=0; i<layer->polygons.size(); i++)
         {
-            if (layer->polygonList[i].orientation())
-                layer->polygonList[i].reverse();
+            if (layer->polygons[i].orientation())
+                layer->polygons[i].reverse();
         }
     }
     
     std::vector<PolygonsPart> result;
-    result = layer->polygonList.splitIntoParts(union_layers || union_all_remove_holes);
+    result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.emplace_back();

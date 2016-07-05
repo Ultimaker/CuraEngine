@@ -14,7 +14,7 @@ void ConicalOverhang::apply(Slicer* slicer, double angle, int layer_thickness)
     {
         SlicerLayer& layer = slicer->layers[layer_nr];
         SlicerLayer& layer_above = slicer->layers[layer_nr + 1];
-        layer.polygonList = layer.polygonList.unionPolygons(layer_above.polygonList.offset(-max_dist_from_lower_layer));
+        layer.polygons = layer.polygons.unionPolygons(layer_above.polygons.offset(-max_dist_from_lower_layer));
     }
 }
 

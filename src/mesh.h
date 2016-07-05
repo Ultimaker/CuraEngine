@@ -1,8 +1,8 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "settings.h"
-#include "utils/AABB.h"
+#include "settings/settings.h"
+#include "utils/AABB3D.h"
 
 namespace cura
 {
@@ -71,6 +71,7 @@ public:
 
     Point3 min() const; //!< min (in x,y and z) vertex of the bounding box
     Point3 max() const; //!< max (in x,y and z) vertex of the bounding box
+    AABB3D getAABB() const; //!< Get the axis aligned bounding box
     
     /*!
      * Offset the whole mesh (all vertices and the bounding box).
