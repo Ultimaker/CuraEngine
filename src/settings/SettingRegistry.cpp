@@ -150,7 +150,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     if (err) { return err; }
 
     { // add parent folder to search paths
-        char filename_cstr[500];
+        char filename_cstr[filename.size()];
         std::strcpy(filename_cstr, filename.c_str()); // copy the string because dirname(.) changes the input string!!!
         std::string folder_name = std::string(dirname(filename_cstr));
         search_paths.emplace(folder_name);
