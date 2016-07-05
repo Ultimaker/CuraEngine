@@ -1,10 +1,10 @@
 - Required slicer capabilities
-  - Skirt
-    - Simplify outline
   - Skin
     - Side
     - Top
     - Bottom
+  - Skirt
+    - Simplify outline
   - Shell
   - Infill
 - Extra slicer capabilities
@@ -28,6 +28,8 @@
       - All sent, button on gui to select
   - Experimental region designation
 - Refactoring / cleanup
+  - Add wire types to wire plan
+  - Make WireToPrintPlanner prioritize certain wire types (like skirt)
   - Rearrange such that Mason writes the end gcode
 - Bug squashing
   - Slicing making of polygons may not work correctly for small gaps in part
