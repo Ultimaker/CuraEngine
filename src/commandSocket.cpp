@@ -155,7 +155,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
 
         /*
-         * handle a message which consists purely of a SettingList */
+         * handle a message which consists purely of a SettingList
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if (setting_list)
         {
@@ -168,6 +168,7 @@ void CommandSocket::connect(const std::string& ip, int port)
                 FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
             }
         }
+        */
         
 
         /*

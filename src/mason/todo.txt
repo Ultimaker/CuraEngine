@@ -1,6 +1,6 @@
 - Required slicer capabilities
   - Skin
-    - Side
+    2 Side
     - Top
     - Bottom
   - Skirt
@@ -36,3 +36,6 @@
     - Stitching can reverse edge directions
   - Meshing can collapse nearby points
     - Mesh::findIndexOfVertex doesn't collapse consistently (discretization effects)
+- Other
+  1 Attempt to get slicer improvements into master
+  
