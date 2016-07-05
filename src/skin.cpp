@@ -49,7 +49,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_
                 {
                     if (part.boundaryBox.hit(part2.boundaryBox))
                     {
-                        unsigned int wall_idx = std::min(wall_line_count, (int) part2.insets.size()) - 1;
+                        unsigned int wall_idx = std::max(0, std::min(wall_line_count, (int) part2.insets.size()) - 1);
                         result.add(part2.insets[wall_idx]);
                     }
                 }
@@ -143,6 +143,7 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
     {
         if (int(part.insets.size()) < wall_line_count)
         {
+            part.infill_area_per_combine.emplace_back(); // put empty polygons as initial infill_per_combine
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
         Polygons infill = part.insets.back().offset(-innermost_wall_extrusion_width / 2 - infill_skin_overlap);
@@ -166,6 +167,7 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
 
 void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
 {
+    // Note that *all* parts should have an [infill_area_per_combine] with one element in it, which up till now only contains the exact same polygons as [infill].
     if(amount <= 1) //If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;

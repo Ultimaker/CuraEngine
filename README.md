@@ -51,6 +51,8 @@ Running
 =======
 Other than running CuraEngine from a frontend, such as Ultimaker/Cura, one can run CuraEngine from the command line.
 For that one needs a settings JSON file, which can be found in the Ultimaker/Cura repository.
+Note that the structure of the json files has changed since 2.1. In the corresponding branch of the Cura repository you can find how the json files used to be structured.
+
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```

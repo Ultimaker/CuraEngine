@@ -4,6 +4,7 @@
 #include "utils/intpoint.h"
 #include "gcodeExport.h"
 #include "gcodePlanner.h"
+#include "GCodePathConfig.h"
 
 namespace cura
 {

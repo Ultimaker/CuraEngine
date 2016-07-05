@@ -46,12 +46,13 @@ add_library(clipper STATIC libs/clipper/clipper.cpp)
 
 set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
-    src/comb.cpp
     src/commandSocket.cpp
+    src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
     src/gcodeExport.cpp
+    src/GCodePathConfig.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
     src/WallsComputation.cpp
@@ -80,6 +81,9 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
+
+    src/pathPlanning/Comb.cpp
+    src/pathPlanning/LinePolygonsCrossings.cpp
 
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp

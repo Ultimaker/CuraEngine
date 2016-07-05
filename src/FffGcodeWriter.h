@@ -326,7 +326,7 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
-     * \param skin_overlap The distance by which the skinfill overlaps with the wall insets.
+     * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */

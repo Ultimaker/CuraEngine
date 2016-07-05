@@ -10,6 +10,7 @@
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
 #include "PrimeTower.h"
+#include "GCodePathConfig.h"
 
 namespace cura 
 {
@@ -113,18 +114,17 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
     
-    RetractionConfig retraction_config;
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
-    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, PrintFeatureType::OuterWall), insetX_config(&retraction_config, PrintFeatureType::InnerWall), skin_config(&retraction_config, PrintFeatureType::Skin)
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(PrintFeatureType::OuterWall), insetX_config(PrintFeatureType::InnerWall), skin_config(PrintFeatureType::Skin)
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
-            infill_config.emplace_back(&retraction_config, PrintFeatureType::Infill);
+            infill_config.emplace_back(PrintFeatureType::Infill);
     }
 };
 
@@ -136,10 +136,11 @@ public:
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;
     
-    std::vector<RetractionConfig> retraction_config_per_extruder; //!< used for support, skirt, etc.
-    RetractionConfig retraction_config; //!< The retraction config used as fallback when getting the per_extruder_config or the mesh config was impossible (for travelConfig)
-    
-    GCodePathConfig travel_config; //!< The config used for travel moves (only the speed and retraction config are set!)
+    std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
+    std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
+
+    std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
+
     std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
     
@@ -162,23 +163,19 @@ public:
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
     Point wipePoint;
     
-    std::vector<RetractionConfig> initializeRetractionConfigs()
-    {
-        std::vector<RetractionConfig> ret;
-        ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
-        return ret;
-    }
-    std::vector<GCodePathConfig> initializeSkirtConfigs()
-    {
-        std::vector<GCodePathConfig> ret;
-        for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-        {
-            RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-            skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
-        }
-        return ret;
-    }
-    
+    /*!
+     * Construct the initial retraction_config_per_extruder
+     */
+    std::vector<RetractionConfig> initializeRetractionConfigs();
+    /*!
+     * Construct the initial travel_config_per_extruder
+     */
+    std::vector<GCodePathConfig> initializeTravelConfigs();
+    /*!
+     * Construct the initial skirt_config s for each extruder
+     */
+    std::vector<GCodePathConfig> initializeSkirtConfigs();
+
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
      * specified mesh group.

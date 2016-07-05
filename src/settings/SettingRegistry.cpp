@@ -5,7 +5,7 @@
 #include <iostream> // debug IO
 #include <libgen.h> // dirname
 #include <string>
-#include <cstring> // strtok (split string using delimiters)
+#include <cstring> // strtok (split string using delimiters) strcpy
 #include <fstream> // ifstream (to see if file exists)
 
 #include "rapidjson/rapidjson.h"
@@ -54,19 +54,25 @@ SettingConfig* SettingRegistry::getSettingConfig(std::string key) const
     return it->second;
 }
 
-SettingContainer* SettingRegistry::getExtruderTrain(unsigned int extruder_nr)
-{
-    if (extruder_nr < 0 || extruder_nr >= extruder_trains.size())
-    {
-        return nullptr;
-    }
-    return &extruder_trains[extruder_nr];
-}
-
-
 SettingRegistry::SettingRegistry()
 : setting_definitions("settings", "Settings")
 {
+    // load search paths from environment variable CURA_ENGINE_SEARCH_PATH
+    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
+    if (paths)
+    {
+#if defined(__linux__) || (defined(__APPLE__) && defined(__MACH__))
+        char delims[] = ":"; // colon
+#else
+        char delims[] = ";"; // semicolon
+#endif
+        char* path = strtok(paths, delims); // search for next path delimited by any of the characters in delims
+        while (path != NULL)
+        {
+            search_paths.emplace(path);
+            path = strtok(NULL, ";:,"); // continue searching in last call to strtok
+        }
+    }
 }
 
 int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_document)
@@ -99,40 +105,42 @@ int SettingRegistry::loadJSON(std::string filename, rapidjson::Document& json_do
  */
 bool fexists(const char *filename)
 {
-  std::ifstream ifile(filename);
-  return (bool)ifile;
+    std::ifstream ifile(filename);
+    return (bool)ifile;
 }
 
-bool SettingRegistry::getDefinitionFile(const std::string machine_id, const std::string parent_file, std::string& result)
+bool SettingRegistry::getDefinitionFile(const std::string machine_id, std::string& result)
 {
-    // check for file in same directory as the file provided
-    std::string parent_filename_copy = std::string(parent_file.c_str()); // copy the string because dirname(.) changes the input string!!!
-    char* parent_filename_cstr = (char*)parent_filename_copy.c_str();
-    result = std::string(dirname(parent_filename_cstr)) + std::string("/") + machine_id + std::string(".def.json");
-    if (fexists(result.c_str()))
+    for (const std::string& search_path : search_paths)
     {
-        return true;
-    }
-
-    // check for file in the directories supplied in the environment variable CURA_ENGINE_SEARCH_PATH
-    char* paths = getenv("CURA_ENGINE_SEARCH_PATH");
-    if (paths)
-    {
-        char* path = strtok(paths,";:,"); // search for path delimited by ';', ':', ','
-        while (path != NULL)
+        result = search_path + std::string("/") + machine_id + std::string(".def.json");
+        if (fexists(result.c_str()))
         {
-            result = std::string(path) + std::string("/") + machine_id + std::string(".def.json");
-            if (fexists(result.c_str()))
-            {
-                return true;
-            }
-            path = strtok(NULL, ";:,"); // continue searching in last call to strtok
+            return true;
         }
     }
     return false;
 }
 
-int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base)
+
+int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base)
+{
+    if (extruder_nr >= extruder_train_ids.size())
+    {
+        return -1;
+    }
+    
+    std::string definition_file;
+    bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
+    if (!found)
+    {
+        return -1;
+    }
+    bool warn_base_file_duplicates = false;
+    return loadJSONsettings(definition_file, settings_base, warn_base_file_duplicates);
+}
+
+int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settings_base, bool warn_base_file_duplicates)
 {
     rapidjson::Document json_document;
     
@@ -141,26 +149,63 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     int err = loadJSON(filename, json_document);
     if (err) { return err; }
 
+    { // add parent folder to search paths
+        char filename_cstr[filename.size()];
+        std::strcpy(filename_cstr, filename.c_str()); // copy the string because dirname(.) changes the input string!!!
+        std::string folder_name = std::string(dirname(filename_cstr));
+        search_paths.emplace(folder_name);
+    }
+
     if (json_document.HasMember("inherits") && json_document["inherits"].IsString())
     {
         std::string child_filename;
-        bool found = getDefinitionFile(json_document["inherits"].GetString(), filename, child_filename);
+        bool found = getDefinitionFile(json_document["inherits"].GetString(), child_filename);
         if (!found)
         {
             cura::logError("Inherited JSON file \"%s\" not found\n", json_document["inherits"].GetString());
             return -1;
         }
-        int err = loadJSONsettings(child_filename, settings_base); // load child first
+        err = loadJSONsettings(child_filename, settings_base, warn_base_file_duplicates); // load child first
         if (err)
         {
             return err;
         }
-        return loadJSONsettingsFromDoc(json_document, settings_base, false);
+        err = loadJSONsettingsFromDoc(json_document, settings_base, false);
     }
     else 
     {
-        return loadJSONsettingsFromDoc(json_document, settings_base, true);
+        err = loadJSONsettingsFromDoc(json_document, settings_base, warn_base_file_duplicates);
     }
+
+    if (json_document.HasMember("metadata") && json_document["metadata"].IsObject())
+    {
+        const rapidjson::Value& json_metadata = json_document["metadata"];
+        if (json_metadata.HasMember("machine_extruder_trains") && json_metadata["machine_extruder_trains"].IsObject())
+        {
+            const rapidjson::Value& json_machine_extruder_trains = json_metadata["machine_extruder_trains"];
+            for (rapidjson::Value::ConstMemberIterator extr_train_iterator = json_machine_extruder_trains.MemberBegin(); extr_train_iterator != json_machine_extruder_trains.MemberEnd(); ++extr_train_iterator)
+            {
+                int extruder_train_nr = atoi(extr_train_iterator->name.GetString());
+                if (extruder_train_nr < 0)
+                {
+                    continue;
+                }
+                const rapidjson::Value& json_id = extr_train_iterator->value;
+                if (!json_id.IsString())
+                {
+                    continue;
+                }
+                const char* id = json_id.GetString();
+                if (extruder_train_nr >= (int) extruder_train_ids.size())
+                {
+                    extruder_train_ids.resize(extruder_train_nr + 1);
+                }
+                extruder_train_ids[extruder_train_nr] = std::string(id);
+            }
+        }
+    }
+
+    return err;
 }
 
 int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document, SettingsBase* settings_base, bool warn_duplicates)
@@ -185,6 +230,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
         machine_name_setting.setDefault(machine_name);
         machine_name_setting.setType("string");
+        settings_base->_setSetting(machine_name_setting.getKey(), machine_name_setting.getDefaultValue());
     }
 
     if (json_document.HasMember("settings"))
@@ -288,7 +334,7 @@ SettingConfig& SettingRegistry::addSetting(std::string name, std::string label)
     return *config;
 }
 
-std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it)
+void SettingRegistry::loadDefault(const rapidjson::GenericValue< rapidjson::UTF8< char > >::ConstMemberIterator& json_object_it, SettingConfig* config)
 {
     const rapidjson::Value& setting_content = json_object_it->value;
     if (setting_content.HasMember("default_value"))
@@ -296,36 +342,27 @@ std::string SettingRegistry::getDefault(const rapidjson::GenericValue< rapidjson
         const rapidjson::Value& dflt = setting_content["default_value"];
         if (dflt.IsString())
         {
-            return dflt.GetString();
+            config->setDefault(dflt.GetString());
         }
         else if (dflt.IsTrue())
         {
-            return "true";
+            config->setDefault("true");
         }
         else if (dflt.IsFalse())
         {
-            return "false";
+            config->setDefault("false");
         }
         else if (dflt.IsNumber())
         {
             std::ostringstream ss;
             ss << dflt.GetDouble();
-            return ss.str();
+            config->setDefault(ss.str());
         } // arrays are ignored because machine_extruder_trains needs to be handled separately
         else 
         {
-            if (setting_content.HasMember("type") && setting_content["type"].IsString() && 
-                (setting_content["type"].GetString() == std::string("polygon") || setting_content["type"].GetString() == std::string("polygons")))
-            {
-//                 logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
-            }
-            else
-            {
-//                 logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
-            }
+            logWarning("WARNING: Unrecognized data type in JSON: %s has type %s\n", json_object_it->name.GetString(), toString(dflt.GetType()).c_str());
         }
     }
-    return "";
 }
 
 
@@ -337,8 +374,13 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
     {
         config->setType(data["type"].GetString());
     }
+    if (config->getType() == std::string("polygon") || config->getType() == std::string("polygons"))
+    { // skip polygon settings : not implemented yet and not used yet (TODO)
+//         logWarning("WARNING: Loading polygon setting %s not implemented...\n", json_object_it->name.GetString());
+        return;
+    }
 
-    config->setDefault(getDefault(json_object_it));
+    loadDefault(json_object_it, config);
 
     if (data.HasMember("unit") && data["unit"].IsString())
     {

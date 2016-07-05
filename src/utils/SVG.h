@@ -7,10 +7,11 @@
 #include "intpoint.h"
 #include "AABB.h"
 #include "logoutput.h"
+#include "NoCopy.h"
 
 namespace cura {
 
-class SVG 
+class SVG : NoCopy
 {
 public:
     enum class Color {
@@ -45,13 +46,15 @@ private:
     FILE* out; // the output file
     const AABB aabb; // the boundary box to display
     const Point aabb_size;
+    const Point border;
     const double scale;
 
 public:
     SVG(const char* filename, AABB aabb, Point canvas_size = Point(1024 * 4, 1024 * 4))
     : aabb(aabb)
     , aabb_size(aabb.max - aabb.min)
-    , scale(std::min(double(canvas_size.X - 20) / aabb_size.X, double(canvas_size.Y - 20) / aabb_size.Y))
+    , border(200,100)
+    , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
     {
         out = fopen(filename, "w");
         if(!out)
@@ -78,7 +81,7 @@ public:
      */
     Point transform(const Point& p) 
     {
-        return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + Point(10,10);
+        return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + border;
     }
 
 private:
@@ -118,7 +121,7 @@ public:
 //         fprintf(out, "</g>\n");
 //     }
     
-    void writeAreas(Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
+    void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
     {
             
         for(PolygonsPart& parts : polygons.splitIntoParts())
@@ -158,7 +161,7 @@ public:
         
         if (write_coords)
         {
-            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
+            fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
@@ -232,6 +235,27 @@ public:
     void printf(const char* txt, Args&&... args)
     {
         fprintf(out, txt, args...);
+    }
+    void writeText(Point p, std::string txt)
+    {
+        Point pf = transform(p);
+        fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%s</text>\n",pf.X, pf.Y, txt.c_str());
+    }
+    void writePolygons(const Polygons& polys, Color color = Color::BLACK)
+    {
+        for (const PolygonRef poly : const_cast<Polygons&>(polys))
+        {
+            writePolygon(poly, color);
+        }
+    }
+    void writePolygon(const PolygonRef poly, Color color = Color::BLACK)
+    {
+        Point p0 = poly.back();
+        for (Point p1 : poly)
+        {
+            writeLine(p0, p1, color);
+            p0 = p1;
+        }
     }
     
     

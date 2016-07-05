@@ -25,7 +25,7 @@ bool PolygonRef::shorterThan(int64_t check_length) const
     return true;
 }
 
-bool PolygonRef::inside(Point p, bool border_result)
+bool PolygonRef::_inside(Point p, bool border_result)
 {
     PolygonRef thiss = *this;
     if (size() < 1)
@@ -143,6 +143,16 @@ unsigned int Polygons::findInside(Point p, bool border_result)
         }
     }
     if (n_unevens % 2 == 0) { ret = NO_INDEX; }
+    return ret;
+}
+
+Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
+{
+    Polygons ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    clipper.AddPath(*path, joinType, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret.paths, distance);
     return ret;
 }
 
@@ -365,9 +375,9 @@ unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* b
     return NO_INDEX;
 }
 
-PolygonsPart PartsView::assemblePart(unsigned int part_idx) 
+PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
 {
-    PartsView& partsView = *this;
+    const PartsView& partsView = *this;
     PolygonsPart ret;
     if (part_idx != NO_INDEX)
     {

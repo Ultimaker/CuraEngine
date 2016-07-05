@@ -15,6 +15,8 @@ GCodeExport::GCodeExport()
 , currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
 {
+    *output_stream << std::fixed;
+
     current_e_value = 0;
     current_extruder = 0;
     currentFanSpeed = -1;
@@ -22,6 +24,9 @@ GCodeExport::GCodeExport()
     totalPrintTime = 0.0;
 
     currentSpeed = 1;
+    current_acceleration = -1;
+    current_jerk = -1;
+
     isZHopped = 0;
     setFlavor(EGCodeFlavor::REPRAP);
     initial_bed_temp = 0;
@@ -40,27 +45,32 @@ void GCodeExport::preSetup(const MeshGroup* settings)
 
     extruder_count = settings->getSettingAsCount("machine_extruder_count");
 
-    for (unsigned int n = 0; n < extruder_count; n++)
+    for (const Mesh& mesh : settings->meshes)
     {
-        const ExtruderTrain* train = settings->getExtruderTrain(n);
-        setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
+        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+    }
 
-        extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
 
-        extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
+            )
+        {
+            extruder_attr[extruder_nr].is_used = true;
+        }
+        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
-        extruder_attr[n].extruder_switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
-        extruder_attr[n].extruder_switch_retraction_config.prime_volume = 0.0;
-        extruder_attr[n].extruder_switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
-        extruder_attr[n].extruder_switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-        extruder_attr[n].extruder_switch_retraction_config.zHop = train->getSettingInMicrons("switch_extruder_retraction_hop");
-        extruder_attr[n].extruder_switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
-        extruder_attr[n].extruder_switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
-        extruder_attr[n].extruder_switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
+        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
 
-        extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
+        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
+
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
     machine_dimensions.x = settings->getSettingInMicrons("machine_width");
     machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
@@ -117,6 +127,10 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
+            if (!extruder_attr[extr_nr].is_used)
+            {
+                continue;
+            }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".INITIAL_TEMPERATURE:" << extruder_attr[extr_nr].initial_temp << new_line;
             if (filament_used.size() == extruder_count)
             {
@@ -333,6 +347,7 @@ void GCodeExport::updateTotalPrintTime()
 {
     totalPrintTime += estimateCalculator.calculate();
     estimateCalculator.reset();
+    writeTimeComment(totalPrintTime);
 }
 
 void GCodeExport::writeComment(std::string comment)
@@ -350,9 +365,9 @@ void GCodeExport::writeComment(std::string comment)
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTypeComment(const char* type)
+void GCodeExport::writeTimeComment(const double time)
 {
-    *output_stream << ";TYPE:" << type << new_line;
+    *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
 
 void GCodeExport::writeTypeComment(PrintFeatureType type)
@@ -671,27 +686,25 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool ext
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config->prime_volume;
 
-    if (config->zHop > 0)
+}
+
+void GCodeExport::writeZhopStart(int hop_height)
+{
+    if (hop_height > 0)
     {
-        isZHopped = config->zHop;
+        isZHopped = hop_height;
         *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << new_line;
     }
 }
 
-void GCodeExport::writeRetraction_extruderSwitch()
-{
-    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
-    RetractionConfig* config = &extr_attr.extruder_switch_retraction_config;
-
-    writeRetraction(config, true, true);
-}
-
-void GCodeExport::switchExtruder(int new_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
         return;
 
-    writeRetraction_extruderSwitch();
+    bool force = true;
+    bool extruder_switch = true;
+    writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
@@ -772,7 +785,27 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
     *output_stream << temperature << new_line;
 }
 
-void GCodeExport::finalize(double moveSpeed, const char* endCode)
+void GCodeExport::writeAcceleration(double acceleration)
+{
+    if (current_acceleration != acceleration)
+    {
+        *output_stream << "M204 S" << acceleration << new_line; // Print and Travel acceleration
+        current_acceleration = acceleration;
+        estimateCalculator.setAcceleration(acceleration);
+    }
+}
+
+void GCodeExport::writeJerk(double jerk)
+{
+    if (current_jerk != jerk)
+    {
+        *output_stream << "M205 X" << jerk << new_line;
+        current_jerk = jerk;
+        estimateCalculator.setMaxXyJerk(jerk);
+    }
+}
+
+void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
