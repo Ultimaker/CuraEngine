@@ -45,31 +45,6 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     return sstream.str();
 }
 
-void FffProcessor::saveAllSettings(MeshGroup& meshgroup, bool first_meshgroup)
-{
-    log("Saving all settings\n");
-    std::stringstream sstream;
-    if (first_meshgroup)
-    {
-        std::ofstream fstream("all_settings.json");
-        fstream << "{\n\"overrides\":{\n";
-        fstream << getAllLocalSettingsJson(); // global settings
-        fstream << "}\n}";
-    }
-    //sstream << meshgroup.getAllLocalSettingsString();
-    //for (int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
-    //{
-    //    ExtruderTrain* train = meshgroup.getExtruderTrain(extruder_nr);
-    //    sstream << " -e" << extruder_nr << train->getAllLocalSettingsString();
-    //}
-    //for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
-    //{
-    //    Mesh& mesh = meshgroup.meshes[mesh_idx];
-    //    sstream << " -e" << mesh.getSettingAsIndex("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
-    //}
-    //sstream << "\n";
-}
-
 bool FffProcessor::processFiles(const std::vector< std::string >& files)
 {
     time_keeper.restart();
@@ -96,16 +71,11 @@ bool FffProcessor::processFiles(const std::vector< std::string >& files)
 bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 {
     if (SHOW_ALL_SETTINGS) { logWarning(getAllSettingsString(*meshgroup, meshgroup_number == 0).c_str()); }
-    if (SAVE_ALL_SETTINGS) { saveAllSettings(*meshgroup, meshgroup_number == 0); }
     time_keeper.restart();
     if (!meshgroup)
         return false;
 
     TimeKeeper time_keeper_total;
-
-    if (CommandSocket::isInstantiated()) {
-        CommandSocket::getInstance()->beginGCode();
-    }
 
     polygon_generator.setParent(meshgroup);
     gcode_writer.setParent(meshgroup);

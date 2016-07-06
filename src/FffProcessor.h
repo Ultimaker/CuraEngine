@@ -12,7 +12,6 @@
 #include "utils/NoCopy.h"
 
 #define SHOW_ALL_SETTINGS true
-#define SAVE_ALL_SETTINGS true
 
 namespace cura {
 
@@ -75,18 +74,6 @@ private:
      * \param first_meshgroup Whether this is the first meshgroup and all global settigns should be included as well
      */
     std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup);
-
-    /*!
-     * Save all settings for the current meshgroup in the CuraEngine json format.
-     * 
-     * Also includes all global settings if this is the first meshgroup.
-     * 
-     * Used in debugging.
-     * 
-     * \param meshgroup The meshgroup for which to save all settings
-     * \param first_meshgroup Whether this is the first meshgroup and all global settigns should be included as well
-     */
-    void saveAllSettings(MeshGroup& meshgroup, bool first_meshgroup);
 
 public:
     /*!

@@ -248,25 +248,6 @@ public:
         return sstream.str();
     }
     
-    std::string getAllLocalSettingsJson() const
-    {
-        std::stringstream sstream;
-        for (auto pair : setting_values)
-        {
-            if (!pair.second.empty())
-            {
-                std::string out_val;
-                out_val = std::regex_replace(pair.second, std::regex("\n"), "\\n");
-                sstream << "\"" << pair.first << "\": {\"default_value\":\"" << out_val << "\"},\n";
-            }
-        }
-        std::string out_str = sstream.str();
-        if (!out_str.empty()) {
-            out_str = out_str.substr(0,out_str.size()-2) + "\n";
-        }
-        return out_str;
-    }
-    
     void debugOutputAllLocalSettings()  const
     {
         for (auto pair : setting_values)
