@@ -1,5 +1,0 @@
-- Cleanup for possible pull request
-  - On main branch
-    - ?Test cases for SparseGrid?
-    - ?Support for findNearest in SparseGrid?
-  - After fork to remove mason / in progress stuff
