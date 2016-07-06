@@ -30,8 +30,12 @@
 - Refactoring / cleanup
   - Cleanup for possible pull request
     - On main branch
-      - Rename convexHull* functions
-    - After fork to remove mason / in progress stuf
+      - Document new functions in slicer.h
+      - Document functions in SparseGrid.h
+    - After fork to remove mason / in progress stuff
+      - Remove mason stuff
+      - Remove saveAllSettingsStuff
+      - Remove protobuf/text_format stuff
   - Add wire types to wire plan
   - Make WireToPrintPlanner prioritize certain wire types (like skirt)
   - Rearrange such that Mason writes the end gcode

@@ -164,20 +164,24 @@ Polygon Polygons::convexHull() const
     using IntPoint = ClipperLib::IntPoint;
     
     std::vector<IntPoint> all_points;
-    for (const ClipperLib::Path &path : paths) {
+    for (const ClipperLib::Path &path : paths)
+    {
         // Reserve big enough for result, but also maintain O(1)
         // amortized resize cost
         size_t reserve_size = std::max(all_points.size() + path.size(),
                                        2*all_points.size());
         all_points.reserve(reserve_size);
-        for (const IntPoint &point : path) {
+        for (const IntPoint &point : path)
+        {
             all_points.push_back(point);
         }
     }
 
-    struct HullSort {
+    struct HullSort
+    {
         bool operator()(const IntPoint &a,
-                        const IntPoint &b) {
+                        const IntPoint &b)
+        {
             return (a.X < b.X) ||
                 (a.X == b.X && a.Y < b.Y);
         }
@@ -204,10 +208,12 @@ Polygon Polygons::convexHull() const
     size_t hull_idx = 0;
     
     // Build lower hull
-    for (size_t pt_idx=0U; pt_idx!=num_points; ++pt_idx) {
+    for (size_t pt_idx=0U; pt_idx!=num_points; ++pt_idx)
+    {
         while (hull_idx >= 2 &&
                ccw(hull_points[hull_idx-2], hull_points[hull_idx-1],
-                   all_points[pt_idx]) <= 0) {
+                   all_points[pt_idx]) <= 0)
+        {
             --hull_idx;
         }
         hull_points[hull_idx] = all_points[pt_idx];
@@ -216,10 +222,12 @@ Polygon Polygons::convexHull() const
 
     // Build upper hull
     size_t min_upper_hull_chain_end_idx = hull_idx+1;
-    for (int pt_idx=num_points-2; pt_idx>=0; --pt_idx) {
+    for (int pt_idx=num_points-2; pt_idx>=0; --pt_idx)
+    {
         while (hull_idx >= min_upper_hull_chain_end_idx &&
                ccw(hull_points[hull_idx-2], hull_points[hull_idx-1],
-                   all_points[pt_idx]) <= 0) {
+                   all_points[pt_idx]) <= 0)
+        {
             --hull_idx;
         }
         hull_points[hull_idx] = all_points[pt_idx];
