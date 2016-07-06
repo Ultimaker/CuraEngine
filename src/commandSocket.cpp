@@ -10,7 +10,6 @@
 #include <Arcus/Socket.h>
 #include <Arcus/SocketListener.h>
 #include <Arcus/Error.h>
-#include <google/protobuf/text_format.h>
 #endif
 
 #include <string> // stoi
@@ -159,14 +158,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if (setting_list)
         {
-            std::string readable_settings;
-            //google::protobuf::TextFormat::PrintToString(*setting_list, &readable_settings);
-            log("settings\n%s\n", readable_settings.c_str());
-            
-            for (auto setting : setting_list->settings())
-            {
-                FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
-            }
+            handleSettingList(setting_list);
         }
         */
         
@@ -184,10 +176,6 @@ void CommandSocket::connect(const std::string& ip, int port)
         cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice; returns nullptr otherwise
         if (slice)
         {
-            //std::string readable_slice;
-            //google::protobuf::TextFormat::PrintToString(*slice, &readable_slice);
-            //log("slice\n%s\n", readable_slice.c_str());
-            
             const cura::proto::SettingList& global_settings = slice->global_settings();
             for (auto setting : global_settings.settings())
             {

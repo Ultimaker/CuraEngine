@@ -3,4 +3,3 @@
     - ?Test cases for SparseGrid?
     - ?Support for findNearest in SparseGrid?
   - After fork to remove mason / in progress stuff
-    - Remove protobuf/text_format stuff
