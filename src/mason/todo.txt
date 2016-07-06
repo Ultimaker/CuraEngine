@@ -28,6 +28,10 @@
       - All sent, button on gui to select
   - Experimental region designation
 - Refactoring / cleanup
+  - Cleanup for possible pull request
+    - On main branch
+      - Rename convexHull* functions
+    - After fork to remove mason / in progress stuf
   - Add wire types to wire plan
   - Make WireToPrintPlanner prioritize certain wire types (like skirt)
   - Rearrange such that Mason writes the end gcode

@@ -11,7 +11,8 @@
 namespace cura {
 
 template<class Val, class PointAccess>
-class SparseGrid {
+class SparseGrid
+{
 public:
     SparseGrid(coord_t cell_size);
 
@@ -110,6 +111,9 @@ std::vector<Val> SG_THIS::getNearby(const Point &query_pt, coord_t radius) const
     addNearby(query_pt, radius, ret);
     return ret;
 }
+
+#undef SG_TEMPLATE
+#undef SG_THIS
 
 }
 

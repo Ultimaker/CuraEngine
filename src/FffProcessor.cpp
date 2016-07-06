@@ -181,4 +181,4 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     return true;
 }
 
-} // namespace cura 
+} // namespace cura
