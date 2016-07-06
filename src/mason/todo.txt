@@ -30,8 +30,8 @@
 - Refactoring / cleanup
   - Cleanup for possible pull request
     - On main branch
-      - Document new functions in slicer.h
-      - Document functions in SparseGrid.h
+      - ?Test cases for SparseGrid?
+      - ?Support for findNearest in SparseGrid?
     - After fork to remove mason / in progress stuff
       - Remove mason stuff
       - Remove saveAllSettingsStuff

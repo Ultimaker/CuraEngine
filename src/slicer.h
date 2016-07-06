@@ -123,7 +123,26 @@ protected:
     void stitch_extensive(Polygons& open_polylines);
 
 private:
+    /*!
+     * Try to find a segment from face \p face_idx to continue \p segment.
+     *
+     * \param[in] mesh The mesh being sliced.
+     * \param[in] segment The previous segment that we want to find a continuation for.
+     * \param[in] face_idx The index of the face that might have generated a continuation segment.
+     * \param[in] start_segment_idx The index of the segment that started this polyline.
+     */
     int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
+
+    /*!
+     * Connecting polylines that are not closed yet.
+     *
+     * Any polylines that are closed by this function are added to this->polygons. 
+     *
+     * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
+     * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
+     * \param[in] cell_size The cell size to use internally in the grid.  This affects speed but not results.
+     * \param[in] allow_reverse If true, then this function is allowed to reverse edge directions to merge polylines.
+     */
     void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
