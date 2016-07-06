@@ -156,7 +156,7 @@ Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double 
     return ret;
 }
 
-Polygon Polygons::convexHullMason() const
+Polygon Polygons::convexHull() const
 {
     // Implements Andrew's monotone chain convex hull algorithm
     // See https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain

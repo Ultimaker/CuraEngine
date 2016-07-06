@@ -40,7 +40,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     
         if (get_convex_hull)
         {
-            skirt_polygons = skirt_polygons.convexHull(); 
+            skirt_polygons = skirt_polygons.approxConvexHull(); 
         } 
 
         skirt_primary_extruder.add(skirt_polygons);

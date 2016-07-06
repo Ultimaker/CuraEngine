@@ -54,7 +54,7 @@ void SkirtPlanner::process(BuildPlan *build_plan)
     //std::cout << "skirt: union total time " << part_timer.restart() << std::endl;
 
     // Take convex hull to find perimeter outside all obstacles
-    Polygon hull = skirt_polys.convexHullMason();
+    Polygon hull = skirt_polys.convexHull();
     skirt_polys.clear();
     skirt_polys.add(std::move(hull));
     //std::cout << "skirt: hull time " << part_timer.restart() << std::endl;

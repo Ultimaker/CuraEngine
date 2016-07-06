@@ -512,7 +512,7 @@ public:
      * \return the convex hull (approximately)
      * 
      */
-    Polygons convexHull(int extra_outset = 0)
+    Polygons approxConvexHull(int extra_outset = 0)
     {
         int overshoot = 100000; // 10 cm (hardcoded value)
         
@@ -520,11 +520,11 @@ public:
     }
     
     /*!
-     * Actual convex hull of the polygons.
+     * Convex hull of all the points in the polygons.
      * \return the convex hull
      * 
      */
-    Polygon convexHullMason() const;
+    Polygon convexHull() const;
     
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
