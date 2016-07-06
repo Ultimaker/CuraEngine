@@ -1,0 +1,8 @@
+- Cleanup for possible pull request
+  - On main branch
+    - ?Test cases for SparseGrid?
+    - ?Support for findNearest in SparseGrid?
+  - After fork to remove mason / in progress stuff
+    - Remove mason stuff
+    - Remove saveAllSettingsStuff
+    - Remove protobuf/text_format stuff

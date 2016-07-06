@@ -1,7 +1,5 @@
 #include "FffProcessor.h" 
 
-#include "mason/MasonBackend.hpp"
-
 namespace cura 
 {
 
@@ -141,16 +139,6 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         gcoder.writeGCode();
         log("finished Neith Gcode generation...\n");
         
-    } else if (meshgroup->getSettingBoolean("mason_backend_enabled"))
-    {
-        log("starting Mason backend...\n");
-
-        TimeKeeper time_mason;
-
-        mason::MasonBackend backend;
-        backend.process(this, meshgroup, &gcode_writer.gcode);
-
-        log("Mason total time elapsed %5.2fs.\n", time_mason.restart());
     } else 
     {
         SliceDataStorage storage(meshgroup);

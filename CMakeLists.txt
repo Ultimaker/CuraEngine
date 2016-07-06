@@ -101,18 +101,6 @@ set(engine_SRCS # Except main.cpp.
     src/utils/logoutput.cpp
     src/utils/polygonUtils.cpp
     src/utils/polygon.cpp
-
-    src/mason/BuildPlanner.cpp
-    src/mason/GCodeExport.cpp
-    src/mason/MasonBackend.cpp
-    src/mason/PlanToGcode.cpp
-    src/mason/Point3.cpp
-    src/mason/PrintPlan.cpp
-    src/mason/SkirtPlanner.cpp
-    src/mason/VolumeStore.cpp
-    src/mason/WirePlan.cpp
-    src/mason/WirePlanSender.cpp
-    src/mason/WireToPrintPlanner.cpp
 )
 
 # List of tests. For each test there must be a file tests/${NAME}.cpp and a file tests/${NAME}.h.
