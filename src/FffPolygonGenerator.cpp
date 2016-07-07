@@ -178,10 +178,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             mesh_order.push_back(order_and_mesh_idx.second);
         }
     }
-    for (unsigned int mesh_idx : mesh_order)
+    for (unsigned int mesh_order_idx(0); mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
-        processBasicWallsSkinInfill(storage, mesh_idx, mesh_order, total_layers, inset_skin_progress_estimate);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx + 1, storage.meshes.size());
+        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, total_layers, inset_skin_progress_estimate);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -230,13 +230,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
 {
-    
+    unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     if (mesh.getSettingBoolean("infill_mesh"))
     {
-        processInfillMesh(storage, mesh_idx, mesh_order, total_layers);
+        processInfillMesh(storage, mesh_order_idx, mesh_order, total_layers);
     }
     
     // TODO: make progress more accurate!!
@@ -260,7 +260,25 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(total_layers);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
-    
+
+    bool process_infill = mesh.getSettingInMicrons("infill_line_distance") > 0;
+    if (!process_infill)
+    { // do process infill anyway if it's modified by modifier meshes
+        for (unsigned int other_mesh_order_idx(mesh_order_idx + 1); other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
+        {
+            unsigned int other_mesh_idx = mesh_order[other_mesh_order_idx];
+            SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
+            if (other_mesh.getSettingBoolean("infill_mesh"))
+            {
+                const Mesh& other_mesh_data = storage.meshgroup->meshes[other_mesh_idx];
+                const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
+                if (mesh_data.getAABB().hit(other_mesh_data.getAABB()))
+                {
+                    process_infill = true;
+                }
+            }
+        }
+    }
     // skin & infill
 //     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
@@ -272,15 +290,16 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
         if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            processSkinsAndInfill(mesh, layer_number);
+            processSkinsAndInfill(mesh, layer_number, process_infill);
         }
         double progress = inset_skin_progress_estimate.progress(layer_number);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 }
 
-void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
 {
+    unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
@@ -427,7 +446,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
     }
 }
   
-void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr) 
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill) 
 {
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) 
     { 
@@ -438,8 +457,10 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
     int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
     generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
-    if (mesh.getSettingInMicrons("infill_line_distance") > 0)
-    {
+
+    if (process_infill)
+    { // process infill when infill density > 0
+        // or when other infill meshes want to modify this infill
         int infill_skin_overlap = 0;
         bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
         if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
