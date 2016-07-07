@@ -19,7 +19,17 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialTemps(*storage.meshgroup);
     }
-    
+
+    // set the initial extruder of this meshgroup
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+    { // first meshgroup
+        current_extruder_planned = getSettingAsIndex("adhesion_extruder_nr");
+    }
+    else
+    {
+        current_extruder_planned = gcode.getExtruderNr();
+    }
+
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->beginGCode();
