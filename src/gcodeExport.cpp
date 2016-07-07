@@ -711,11 +711,11 @@ void GCodeExport::startExtruder(int new_extruder, double travel_speed)
     {
         if (flavor == EGCodeFlavor::MAKERBOT)
         {
-            *output_stream << "M135 T" << current_extruder << new_line;
+            *output_stream << "M135 T" << new_extruder << new_line;
         }
         else
         {
-            *output_stream << "T" << current_extruder << new_line;
+            *output_stream << "T" << new_extruder << new_line;
         }
     }
 
