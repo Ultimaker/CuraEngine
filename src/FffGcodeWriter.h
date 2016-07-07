@@ -78,7 +78,7 @@ public:
     : SettingsMessenger(settings_)
     , layer_plan_buffer(this, gcode)
     , last_position_planned(no_point)
-    , current_extruder_planned(0) // TODO: make configurable
+    , current_extruder_planned(0) // changed somewhere early in FffGcodeWriter::writeGCode
     , is_inside_mesh_layer_part(false)
     {
         max_object_height = 0;

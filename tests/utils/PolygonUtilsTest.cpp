@@ -267,7 +267,7 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
     polys.add(poly);
     BucketGrid2D<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
     
-    ClosestPolygonPoint* cpp;
+    std::optional<ClosestPolygonPoint> cpp;
     if (penalty_function)
     {
         cpp = PolygonUtils::findClose(close_to, polys, *loc_to_line, *penalty_function);

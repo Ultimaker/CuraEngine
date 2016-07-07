@@ -271,7 +271,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
 
         // Check to which extruder train this object belongs
-        int extruder_train_nr = 0; // TODO: make primary extruder configurable!
+        int extruder_train_nr = 0; // assume extruder 0 if setting wasn't supplied
         for (auto setting : object.settings())
         {
             if (setting.name() == "extruder_nr")
@@ -372,7 +372,7 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
 
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
     int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
-    for (unsigned int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
+    for (int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
     {
         cura::proto::MaterialEstimates* material_message = message->add_materialestimates();
 

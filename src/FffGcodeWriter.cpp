@@ -19,7 +19,17 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialTemps(*storage.meshgroup);
     }
-    
+
+    // set the initial extruder of this meshgroup
+    if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
+    { // first meshgroup
+        current_extruder_planned = getSettingAsIndex("adhesion_extruder_nr");
+    }
+    else
+    {
+        current_extruder_planned = gcode.getExtruderNr();
+    }
+
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->beginGCode();
@@ -177,6 +187,8 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.writeCode(prefix.c_str());
     }
 
+    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
@@ -219,16 +231,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
-        gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
-//         G1 X175 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(0)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
-        gcode.writePrimeTrain();
-        gcode.switchExtruder(1, storage.extruder_switch_retraction_config_per_extruder[0]);
-//         G1 X180 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(1)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
-        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
-        gcode.writePrimeTrain();
-        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_standby_temperature"), false); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
+        gcode.startExtruder(start_extruder_nr, storage.meshgroup->getExtruderTrain(start_extruder_nr)->getSettingInMillimetersPerSecond("speed_travel"));
     }
 }
 
@@ -376,10 +379,9 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
     bool avoid_other_parts = false;
     int avoid_distance = 0; // minimal avoid distance is zero
-    std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
-        if (extruders_used[extr_nr])
+        if (gcode.getExtruderIsUsed(extr_nr))
         {
             ExtruderTrain* extr = storage.meshgroup->getExtruderTrain(extr_nr);
 
@@ -401,14 +403,17 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
 
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
-    
+
     if (layer_nr == 0)
     { // process the skirt of the starting extruder
-        int start_extruder = 0; // TODO: make settable
-        gcode_layer.setExtruder(start_extruder);
-        processSkirt(storage, gcode_layer, start_extruder);
+        int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+        if (storage.skirt[extruder_nr].size() > 0)
+        {
+            gcode_layer.setExtruder(extruder_nr);
+            processSkirt(storage, gcode_layer, extruder_nr);
+        }
     }
-    
+
     int extruder_nr_before = gcode_layer.getExtruder();
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, true);
 
@@ -437,7 +442,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     { // add skirt for all extruders which haven't primed the skirt yet
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
         {
-            if (!skirt_is_processed[extruder_nr])
+            if (gcode.getExtruderIsUsed(extruder_nr) && !skirt_is_processed[extruder_nr])
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             }

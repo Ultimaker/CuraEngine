@@ -64,6 +64,9 @@ void GCodeExport::preSetup(const MeshGroup* settings)
         }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
+        extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
+        extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
 
@@ -183,9 +186,14 @@ void GCodeExport::setOutputStream(std::ostream* stream)
     *output_stream << std::fixed;
 }
 
-int GCodeExport::getNozzleSize(int extruder_idx)
+bool GCodeExport::getExtruderIsUsed(int extruder_nr)
 {
-    return extruder_attr[extruder_idx].nozzle_size;
+    return extruder_attr[extruder_nr].is_used;
+}
+
+int GCodeExport::getNozzleSize(int extruder_nr)
+{
+    return extruder_attr[extruder_nr].nozzle_size;
 }
 
 Point GCodeExport::getExtruderOffset(int id)
@@ -697,7 +705,32 @@ void GCodeExport::writeZhopStart(int hop_height)
     }
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::startExtruder(int new_extruder, double travel_speed)
+{
+    if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
+    {
+        if (flavor == EGCodeFlavor::MAKERBOT)
+        {
+            *output_stream << "M135 T" << current_extruder << new_line;
+        }
+        else
+        {
+            *output_stream << "T" << current_extruder << new_line;
+        }
+    }
+
+    assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
+    resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
+
+    writeCode(extruder_attr[new_extruder].start_code.c_str());
+
+    writePrimeTrain(travel_speed);
+
+    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    currentPosition.z += 1;
+}
+
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, double travel_speed_new_extruder)
 {
     if (current_extruder == new_extruder)
         return;
@@ -712,21 +745,8 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     current_extruder = new_extruder;
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
-    if (flavor == EGCodeFlavor::MAKERBOT)
-    {
-        *output_stream << "M135 T" << current_extruder << new_line;
-    }
-    else
-    {
-        *output_stream << "T" << current_extruder << new_line;
-    }
 
-    resetExtrusionValue(); // zero the E value on the new extruder, because a firmware bug in Griffin adjusted the E-value when performing a toolswitch (should be fixed as of 9 may 2016)
-
-    writeCode(extruder_attr[new_extruder].start_code.c_str());
-
-    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
-    currentPosition.z += 1;
+    startExtruder(new_extruder, travel_speed_new_extruder);
 }
 
 void GCodeExport::writeCode(const char* str)
@@ -734,9 +754,29 @@ void GCodeExport::writeCode(const char* str)
     *output_stream << str << new_line;
 }
 
-void GCodeExport::writePrimeTrain()
+void GCodeExport::writePrimeTrain(double travel_speed)
 {
-    *output_stream << "G280" << new_line;
+    if (extruder_attr[current_extruder].is_primed)
+    { // extruder is already primed once!
+        return;
+    }
+    Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
+    if (!extruder_attr[current_extruder].prime_pos_is_abs)
+    {
+        prime_pos += currentPosition;
+    }
+    writeMove(prime_pos, travel_speed, 0.0);
+
+    if (flavor == EGCodeFlavor::GRIFFIN)
+    {
+        *output_stream << "G280" << new_line;
+    }
+    else
+    {
+        // there is no prime gcode for other firmware versions...
+    }
+
+    extruder_attr[current_extruder].is_primed = true;
 }
 
 
