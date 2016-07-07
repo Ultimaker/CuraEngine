@@ -196,7 +196,7 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
 
     int submatches[] = { 1, 2, 3 }; // match whole pair, first number and second number of a pair
     std::regex_token_iterator<std::string::iterator> a(value_string.begin(), value_string.end(), regex, submatches);
-    while (a!=rend)
+    while (a != rend)
     {
         a++; // match the whole pair
         if (a == rend)
