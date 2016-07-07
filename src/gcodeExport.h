@@ -38,6 +38,10 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
+        Point3 prime_pos; //!< The location this nozzle is primed before printing
+        bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
+        bool is_primed; //!< Whether this extruder has currently already been primed in this print
+
         bool is_used; //!< Whether this extruder train is actually used during the printing of the current meshgroup
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
@@ -59,7 +63,10 @@ private:
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
-        : is_used(false)
+        : prime_pos(0, 0, 0)
+        , prime_pos_is_abs(false)
+        , is_primed(false)
+        , is_used(false)
         , nozzle_offset(0,0)
         , extruderCharacter(0)
         , start_code("")
@@ -256,8 +263,9 @@ public:
      * - write extruder start gcode
      * 
      * \param new_extruder The extruder to start with
+     * \param travel_speed The travel speed when we need to move to a prime location
      */
-    void startExtruder(int new_extruder);
+    void startExtruder(int new_extruder, double travel_speed);
 
     /*!
      * Switch to the new_extruder: 
@@ -269,15 +277,18 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param travel_speed_new_extruder The travel speed of the new extruder in case we need to prime the new extruder at a specific location
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
-    
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, double travel_speed_new_extruder);
+
     void writeCode(const char* str);
     
     /*!
      * Write the gcode for priming the current extruder train so that it can be used.
+     * 
+     * \param travel_speed The travel speed when priming involves a movement
      */
-    void writePrimeTrain();
+    void writePrimeTrain(double travel_speed);
     
     void writeFanCommand(double speed);
     
