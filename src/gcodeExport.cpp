@@ -766,7 +766,15 @@ void GCodeExport::writePrimeTrain(double travel_speed)
         prime_pos += currentPosition;
     }
     writeMove(prime_pos, travel_speed, 0.0);
-    *output_stream << "G280" << new_line;
+
+    if (flavor == EGCodeFlavor::GRIFFIN)
+    {
+        *output_stream << "G280" << new_line;
+    }
+    else
+    {
+        // there is no prime gcode for other firmware versions...
+    }
 
     extruder_attr[current_extruder].is_primed = true;
 }
