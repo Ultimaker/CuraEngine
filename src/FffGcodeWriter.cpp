@@ -181,6 +181,8 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.writeCode(prefix.c_str());
     }
 
+    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
     if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
@@ -223,16 +225,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
-        gcode.writeCode("G92 E0"); // E-value already assumed to be at E0, but writing it just to be safe...
-//         G1 X175 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(175, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(0)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
-        gcode.writePrimeTrain();
-        gcode.switchExtruder(1, storage.extruder_switch_retraction_config_per_extruder[0]);
-//         G1 X180 Y6 Z20 F9000
-        gcode.writeMove(FPoint3(198, 6, 2).toPoint3(), storage.meshgroup->getExtruderTrain(1)->getSettingInMillimetersPerSecond("speed_travel"), 0.0);
-        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_print_temperature"), true); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
-        gcode.writePrimeTrain();
-        gcode.writeTemperatureCommand(1, storage.meshgroup->getExtruderTrain(1)->getSettingInDegreeCelsius("material_standby_temperature"), false); // TODO: this is a hack job which should get fixed as soon as we prime the first time we need to
+        gcode.startExtruder(start_extruder_nr, storage.meshgroup->getExtruderTrain(start_extruder_nr)->getSettingInMillimetersPerSecond("speed_travel"));
     }
 }
 
