@@ -384,7 +384,7 @@ protected:
     void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
 
     /*!
-     * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
      * 
      * \return the total estimates of this layer
@@ -602,7 +602,7 @@ public:
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
-     * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
      * 
      * \warning This function recomputes values which are already computed if you've called processFanSpeedAndMinimalLayerTime
