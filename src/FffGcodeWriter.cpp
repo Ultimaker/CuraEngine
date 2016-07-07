@@ -388,14 +388,17 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     int64_t z = storage.meshes[0].layers[layer_nr].printZ;
 
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
-    
+
     if (layer_nr == 0)
     { // process the skirt of the starting extruder
-        int start_extruder = 0; // TODO: make settable
-        gcode_layer.setExtruder(start_extruder);
-        processSkirt(storage, gcode_layer, start_extruder);
+        int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+        if (storage.skirt[extruder_nr].size() > 0)
+        {
+            gcode_layer.setExtruder(extruder_nr);
+            processSkirt(storage, gcode_layer, extruder_nr);
+        }
     }
-    
+
     int extruder_nr_before = gcode_layer.getExtruder();
     addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr_before, true);
 
@@ -424,7 +427,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     { // add skirt for all extruders which haven't primed the skirt yet
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
         {
-            if (!skirt_is_processed[extruder_nr])
+            if (gcode.getExtruderIsUsed(extruder_nr) && !skirt_is_processed[extruder_nr])
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             }
