@@ -167,5 +167,4 @@ std::vector<Val> SG_THIS::getNearby(const Point &query_pt, coord_t radius) const
 
 }
 
-#endif
-    
+#endif // SPARSE_GRID_H
