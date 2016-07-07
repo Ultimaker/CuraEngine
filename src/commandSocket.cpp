@@ -373,7 +373,7 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
 
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
     unsigned int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
-    for (unsigned int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
+    for (int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
     {
         cura::proto::MaterialEstimates* material_message = message->add_materialestimates();
 
