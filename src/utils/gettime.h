@@ -31,7 +31,7 @@ static inline double getTime()
     double user_time =  double(usage.ru_utime.tv_sec) + double(usage.ru_utime.tv_usec) / 1000000.0;
     double sys_time  =  double(usage.ru_stime.tv_sec) + double(usage.ru_stime.tv_usec) / 1000000.0;
     return user_time + sys_time;
-#else    
+#else
     struct timeval tv;
     gettimeofday(&tv, nullptr);
     return double(tv.tv_sec) + double(tv.tv_usec) / 1000000.0;

@@ -522,10 +522,10 @@ public:
     /*!
      * Convex hull of all the points in the polygons.
      * \return the convex hull
-     * 
+     *
      */
     Polygon convexHull() const;
-    
+
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;

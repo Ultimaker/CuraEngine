@@ -50,7 +50,7 @@ public:
      * \return Vector of values found
      */
     std::vector<Val> getNearby(const Point &query_pt, coord_t radius) const;
-    
+
 private:
     using GridPoint = Point;
     using GridMap = std::unordered_multimap<GridPoint, Val>;
@@ -62,7 +62,7 @@ private:
      */
     void addFromCell(const GridPoint &grid_pt,
                      std::vector<Val> &ret) const;
-    
+
     /*! \brief Add values from cells that might contain sought after points.
      *
      * Appends values from cell that might have values within \p
@@ -131,7 +131,7 @@ void SG_THIS::addFromCell(const GridPoint &grid_pt,
     {
         ret.push_back(iter->second);
     }
-    
+
 }
 
 SG_TEMPLATE

@@ -136,7 +136,7 @@ private:
     /*!
      * Connecting polylines that are not closed yet.
      *
-     * Any polylines that are closed by this function are added to this->polygons. 
+     * Any polylines that are closed by this function are added to this->polygons.
      *
      * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
      * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
@@ -172,7 +172,7 @@ public:
         seg.start.Y = interp(z, p0.z, p1.z, p0.y, p1.y);
         seg.end  .X = interp(z, p0.z, p2.z, p0.x, p2.x);
         seg.end  .Y = interp(z, p0.z, p2.z, p0.y, p2.y);
-        
+
         return seg;
     }
     

@@ -162,7 +162,7 @@ Polygon Polygons::convexHull() const
     // See https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
 
     using IntPoint = ClipperLib::IntPoint;
-    
+
     std::vector<IntPoint> all_points;
     for (const ClipperLib::Path &path : paths)
     {
@@ -186,7 +186,7 @@ Polygon Polygons::convexHull() const
                 (a.X == b.X && a.Y < b.Y);
         }
     };
-    
+
     std::sort(all_points.begin(), all_points.end(), HullSort());
 
     // positive for left turn, 0 for straight, negative for right turn
@@ -195,7 +195,7 @@ Polygon Polygons::convexHull() const
         IntPoint v12(p2.X - p1.X, p2.Y - p1.Y);
 
         return
-            static_cast<int64_t>(v01.X) * v12.Y - 
+            static_cast<int64_t>(v01.X) * v12.Y -
             static_cast<int64_t>(v01.Y) * v12.X;
     };
 
@@ -206,7 +206,7 @@ Polygon Polygons::convexHull() const
     hull_points.resize(2*num_points);
     // index to insert next hull point, also number of valid hull points
     size_t hull_idx = 0;
-    
+
     // Build lower hull
     for (size_t pt_idx=0U; pt_idx!=num_points; ++pt_idx)
     {
