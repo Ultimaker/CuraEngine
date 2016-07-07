@@ -293,8 +293,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const FMa
         if(loadMeshSTL(&mesh,filename,transformation)) //Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            std::cout << "loading " << filename << " took " <<
-                load_timer.restart() << " seconds." << std::endl;
+            log("loading '%s' took %.3f seconds\n",filename,load_timer.restart());
             return true;
         }
     }
