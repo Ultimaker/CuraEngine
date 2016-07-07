@@ -719,6 +719,8 @@ void GCodeExport::startExtruder(int new_extruder, double travel_speed)
         }
     }
 
+    current_extruder = new_extruder;
+
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
@@ -742,7 +744,6 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
     int old_extruder = current_extruder;
-    current_extruder = new_extruder;
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
 
