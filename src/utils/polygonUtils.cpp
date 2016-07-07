@@ -602,7 +602,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Pol
     }
     else
     {
-        bool bs_arg; // doesn't mean anything. Just to make clear we call the variable arguments of the constructor.
+        bool bs_arg(true); // doesn't mean anything. Just to make clear we call the variable arguments of the constructor.
         return std::optional<ClosestPolygonPoint>(bs_arg, best, best_point_poly_idx.point_idx, polygons[best_point_poly_idx.poly_idx], best_point_poly_idx.poly_idx);
     }
 }
