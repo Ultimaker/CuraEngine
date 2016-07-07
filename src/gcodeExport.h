@@ -158,7 +158,9 @@ public:
     
     void setOutputStream(std::ostream* stream);
 
-    int getNozzleSize(int extruder_idx);
+    bool getExtruderIsUsed(int extruder_nr); //!< Returns whether the extruder with the given index is used up until the current meshgroup
+
+    int getNozzleSize(int extruder_nr);
 
     Point getExtruderOffset(int id);
     

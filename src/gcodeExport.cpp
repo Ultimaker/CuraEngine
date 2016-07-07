@@ -183,9 +183,14 @@ void GCodeExport::setOutputStream(std::ostream* stream)
     *output_stream << std::fixed;
 }
 
-int GCodeExport::getNozzleSize(int extruder_idx)
+bool GCodeExport::getExtruderIsUsed(int extruder_nr)
 {
-    return extruder_attr[extruder_idx].nozzle_size;
+    return extruder_attr[extruder_nr].is_used;
+}
+
+int GCodeExport::getNozzleSize(int extruder_nr)
+{
+    return extruder_attr[extruder_nr].nozzle_size;
 }
 
 Point GCodeExport::getExtruderOffset(int id)

@@ -185,61 +185,6 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
 
 }
 
-
-std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
-{
-    std::vector<bool> ret;
-    ret.resize(meshgroup->getExtruderCount(), false);
-    if (layer_nr < 0)
-    {
-        ret[getSettingAsIndex("adhesion_extruder_nr")] = true; // raft
-    }
-    else 
-    {
-        if (layer_nr == 0)
-        { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
-            {
-                if (skirt[extr_nr].size() > 0)
-                {
-                    ret[extr_nr] = true;
-                    continue;
-                }
-            }
-        }
-
-        // TODO: ooze shield, draft shield
-
-        // support
-        if (support.supportLayers[layer_nr].supportAreas.size() > 0)
-        {
-            if (layer_nr == 0)
-            {
-                ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-            }
-            else 
-            {
-                ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-            }
-        }
-        if (support.supportLayers[layer_nr].roofs.size() > 0)
-        {
-            ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
-        }
-
-        for (SliceMeshStorage& mesh : meshes)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            if (layer.parts.size() > 0)
-            {
-                ret[extr_nr] = true;
-            }
-        }
-    }
-    return ret;
-}
-
 std::vector< bool > SliceDataStorage::getExtrudersUsed()
 {
 
