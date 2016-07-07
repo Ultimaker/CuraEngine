@@ -250,6 +250,16 @@ public:
     void writeZhopStart(int hop_height);
 
     /*!
+     * Start the new_extruder: 
+     * - set new extruder
+     * - zero E value
+     * - write extruder start gcode
+     * 
+     * \param new_extruder The extruder to start with
+     */
+    void startExtruder(int new_extruder);
+
+    /*!
      * Switch to the new_extruder: 
      * - perform neccesary retractions
      * - fiddle with E-values

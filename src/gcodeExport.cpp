@@ -702,6 +702,26 @@ void GCodeExport::writeZhopStart(int hop_height)
     }
 }
 
+void GCodeExport::startExtruder(int new_extruder)
+{
+   if (flavor == EGCodeFlavor::MAKERBOT)
+    {
+        *output_stream << "M135 T" << current_extruder << new_line;
+    }
+    else
+    {
+        *output_stream << "T" << current_extruder << new_line;
+    }
+
+    assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
+    resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
+
+    writeCode(extruder_attr[new_extruder].start_code.c_str());
+
+    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
+    currentPosition.z += 1;
+}
+
 void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
@@ -717,21 +737,8 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     current_extruder = new_extruder;
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
-    if (flavor == EGCodeFlavor::MAKERBOT)
-    {
-        *output_stream << "M135 T" << current_extruder << new_line;
-    }
-    else
-    {
-        *output_stream << "T" << current_extruder << new_line;
-    }
 
-    resetExtrusionValue(); // zero the E value on the new extruder, because a firmware bug in Griffin adjusted the E-value when performing a toolswitch (should be fixed as of 9 may 2016)
-
-    writeCode(extruder_attr[new_extruder].start_code.c_str());
-
-    //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
-    currentPosition.z += 1;
+    startExtruder(new_extruder);
 }
 
 void GCodeExport::writeCode(const char* str)
