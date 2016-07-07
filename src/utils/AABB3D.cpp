@@ -46,5 +46,16 @@ void AABB3D::offset(Point offset)
     max += offset;
 }
 
+void AABB3D::expandXY(int outset)
+{
+    min -= Point3(outset, outset, 0);
+    max += Point3(outset, outset, 0);
+    if (min.x > max.x || min.y > max.y)
+    { // make this AABB3D invalid
+        *this = AABB3D();
+    }
+}
+
+
 }//namespace cura
 

@@ -270,9 +270,11 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (other_mesh.getSettingBoolean("infill_mesh"))
             {
-                const Mesh& other_mesh_data = storage.meshgroup->meshes[other_mesh_idx];
-                const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
-                if (mesh_data.getAABB().hit(other_mesh_data.getAABB()))
+                AABB3D aabb = storage.meshgroup->meshes[mesh_idx].getAABB();
+                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx].getAABB();
+                aabb.expandXY(mesh.getSettingInMicrons("xy_offset"));
+                other_aabb.expandXY(other_mesh.getSettingInMicrons("xy_offset"));
+                if (aabb.hit(other_aabb))
                 {
                     process_infill = true;
                 }
