@@ -53,9 +53,10 @@ void Mesh::finish()
     for(unsigned int i=0; i<faces.size(); i++)
     {
         MeshFace& face = faces[i];
-        face.connected_face_index[0] = getFaceIdxWithPoints(face.vertex_index[0], face.vertex_index[1], i); // faces are connected via the outside
-        face.connected_face_index[1] = getFaceIdxWithPoints(face.vertex_index[1], face.vertex_index[2], i);
-        face.connected_face_index[2] = getFaceIdxWithPoints(face.vertex_index[2], face.vertex_index[0], i);
+        // faces are connected via the outside
+        face.connected_face_index[0] = getFaceIdxWithPoints(face.vertex_index[0], face.vertex_index[1], i, face.vertex_index[2]);
+        face.connected_face_index[1] = getFaceIdxWithPoints(face.vertex_index[1], face.vertex_index[2], i, face.vertex_index[0]);
+        face.connected_face_index[2] = getFaceIdxWithPoints(face.vertex_index[2], face.vertex_index[0], i, face.vertex_index[1]);
     }
 }
 
@@ -116,17 +117,13 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 
 
 */
-int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
+int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const
 {
     std::vector<int> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
-    int notFaceVertexIdx = -1; // index of the third vertex of the face corresponding to notFaceIdx
     for(int f : vertices[idx0].connected_faces) // search through all faces connected to the first vertex and find those that are also connected to the second
     {
         if (f == notFaceIdx)
         {
-            for (int i = 0; i<3; i++) // find the vertex which is not idx0 or idx1
-                if (faces[f].vertex_index[i] != idx0 && faces[f].vertex_index[i] != idx1)
-                    notFaceVertexIdx = faces[f].vertex_index[i];
             continue;
         }
         if ( faces[f].vertex_index[0] == idx1 // && faces[f].vertex_index[1] == idx0 // next face should have the right direction!
@@ -139,8 +136,6 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const
     if (candidateFaces.size() == 0) { cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx); return -1; }
     if (candidateFaces.size() == 1) { return candidateFaces[0]; }
 
-
-    if (notFaceVertexIdx < 0) { cura::logError("Couldn't find third point on face %i.\n", notFaceIdx); return -1; }
 
     if (candidateFaces.size() % 2 == 0) cura::log("Warning! Edge with uneven number of faces connecting it!(%i)\n", candidateFaces.size()+1);
 
