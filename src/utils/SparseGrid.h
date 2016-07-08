@@ -5,6 +5,7 @@
 
 #include "intpoint.h"
 
+#include <cassert>
 #include <unordered_map>
 #include <vector>
 
@@ -68,7 +69,7 @@ public:
      * \return True if and only if an object has been found within the radius.
      */
     bool getNearest(const Point &query_pt, coord_t radius, Elem &elem_nearest,
-                    std::function<bool(const Elem& elem)> precondition = no_precondition) const;
+                    const std::function<bool(const Elem& elem)> precondition = no_precondition) const;
 
     /*! \brief Process elements from cells that might contain sought after points.
      *
@@ -182,6 +183,8 @@ public:
 SGI_TEMPLATE
 SGI_THIS::SparseGridInvasive(coord_t cell_size, size_t elem_reserve, float max_load_factor)
 {
+    assert(cell_size > 0U);
+
     m_cell_size = cell_size;
 
     // Must be before the reserve call.
@@ -271,7 +274,7 @@ const std::function<bool(const typename SGI_THIS::Elem &)>
 SGI_TEMPLATE
 bool SGI_THIS::getNearest(
     const Point &query_pt, coord_t radius, Elem &elem_nearest,
-    std::function<bool(const Elem& elem)> precondition) const
+    const std::function<bool(const Elem& elem)> precondition) const
 {
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
@@ -309,7 +312,8 @@ SG_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_facto
 SG_TEMPLATE
 void SG_THIS::insert(const Point &point, const Val &val)
 {
-    insert(SparseGridElem(point,val));
+    typename SG_THIS::Elem elem(point,val);
+    Base::insert(elem);
 }
 
 
