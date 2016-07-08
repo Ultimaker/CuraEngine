@@ -87,6 +87,8 @@ public:
     void processNearby(const Point &query_pt, coord_t radius,
                        ProcessFunc &process_func) const;
 
+    coord_t getCellSize() const;
+
 private:
     using GridPoint = Point;
     using GridMap = std::unordered_multimap<GridPoint, Elem>;
@@ -175,6 +177,20 @@ public:
      * \param[in] val The value for the element.
      */
     void insert(const Point &point, const Val &val);
+
+    /*! \brief Returns all values within radius of query_pt.
+     *
+     * Finds all values with location within radius of \p query_pt.  May
+     * return additional values that are beyond radius.
+     *
+     * See \ref getNearby().
+     *
+     * \param[in] query_pt The point to search around.
+     * \param[in] radius The search radius.
+     * \return Vector of values found
+     */
+    std::vector<Val> getNearbyVals(const Point &query_pt, coord_t radius) const;
+
 };
 
 #define SGI_TEMPLATE template<class ElemT, class PointAccess>
@@ -297,6 +313,12 @@ bool SGI_THIS::getNearest(
     return found;
 }
 
+SGI_TEMPLATE
+coord_t SGI_THIS::getCellSize() const
+{
+    return m_cell_size;
+}
+
 #undef SGI_TEMPLATE
 #undef SGI_THIS
 
@@ -314,6 +336,19 @@ void SG_THIS::insert(const Point &point, const Val &val)
 {
     typename SG_THIS::Elem elem(point,val);
     Base::insert(elem);
+}
+
+SG_TEMPLATE
+std::vector<Val>
+SG_THIS::getNearbyVals(const Point &query_pt, coord_t radius) const
+{
+    std::vector<Val> ret;
+    auto process_func = [&ret](const typename SG_THIS::Elem &elem)
+        {
+            ret.push_back(elem.val);
+        };
+    this->processNearby(query_pt, radius, process_func);
+    return ret;
 }
 
 
