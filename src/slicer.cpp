@@ -211,7 +211,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             }
         };
 
-        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
+        SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
 
         // populate grid
         for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
