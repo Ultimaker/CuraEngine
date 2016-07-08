@@ -68,20 +68,6 @@ public:
     bool getNearest(const Point &query_pt, coord_t radius, Elem &elem_nearest,
                     std::function<bool(const Elem& elem)> precondition = no_precondition) const;
 
-private:
-    using GridPoint = Point;
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
-
-    /*! \brief Process elements from the cell indicated by \p grid_pt.
-     *
-     * \param[in] grid_pt The grid coordinates of the cell.
-     * \param[in] process_func Processes each element.  process_func(elem) is
-     *    called for each element in the cell.
-     */
-    template<class ProcessFunc>
-    void processFromCell(const GridPoint &grid_pt,
-                         ProcessFunc &process_func) const;
-
     /*! \brief Process elements from cells that might contain sought after points.
      *
      * Processes elements from cell that might have elements within \p
@@ -97,6 +83,20 @@ private:
     template<class ProcessFunc>
     void processNearby(const Point &query_pt, coord_t radius,
                        ProcessFunc &process_func) const;
+
+private:
+    using GridPoint = Point;
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+
+    /*! \brief Process elements from the cell indicated by \p grid_pt.
+     *
+     * \param[in] grid_pt The grid coordinates of the cell.
+     * \param[in] process_func Processes each element.  process_func(elem) is
+     *    called for each element in the cell.
+     */
+    template<class ProcessFunc>
+    void processFromCell(const GridPoint &grid_pt,
+                         ProcessFunc &process_func) const;
 
     /*! \brief Compute the grid coordinates of a point.
      *
