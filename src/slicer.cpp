@@ -622,17 +622,11 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
 
 void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
-    TimeKeeper part_timer;
-
     Polygons open_polylines;
     
     makeBasicPolygonLoops(mesh, open_polylines);
-    log("makeBasicPolygonLoops took %.3f seconds\n", part_timer.restart());
-    log("makeBasicPolygonLoops #polygons=%u #open_polylines=%u\n",
-        polygons.size(),open_polylines.size());
     
     connectOpenPolylines(open_polylines);
-    log("connectOpenPolylines took %.3f seconds",part_timer.restart());
     
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in the middle between the two open polygons.
 
@@ -640,7 +634,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be open will be closed
         stitch(open_polylines);
     }
-    log("stitch took %.3f seconds\n",part_timer.restart());
     
     if (extensive_stitching)
     {
@@ -677,7 +670,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     {
         polygons = polygons.offset(xy_offset);
     }
-    log("makePolygons rest took %.3f seconds\n",part_timer.restart());
 }
 
 

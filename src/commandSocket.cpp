@@ -161,7 +161,6 @@ void CommandSocket::connect(const std::string& ip, int port)
             handleSettingList(setting_list);
         }
         */
-        
 
         /*
          * handle a message which consists purely of an ObjectList
