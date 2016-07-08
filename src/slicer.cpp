@@ -2,9 +2,11 @@
 #include <stdio.h>
 
 #include <algorithm> // remove_if
+#include <queue>
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
+#include "utils/SparseGrid.h"
 
 #include "slicer.h"
 #include "debug.h" // TODO remove
@@ -51,153 +53,372 @@ void SlicerLayer::makeBasicPolygonLoop(const Mesh* mesh, Polygons& open_polyline
     open_polylines.add(poly);
 }
 
+int SlicerLayer::tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const
+{
+    decltype(face_idx_to_segment_idx.begin()) it;
+    auto it_end = face_idx_to_segment_idx.end();
+    it = face_idx_to_segment_idx.find(face_idx);
+    if (it != it_end)
+    {
+        int segment_idx = (*it).second;
+        Point p1 = segments[segment_idx].start;
+        Point diff = segment.end - p1;
+        if (shorterThen(diff, largest_neglected_gap_first_phase))
+        {
+            if (segment_idx == static_cast<int>(start_segment_idx))
+            {
+                return start_segment_idx;
+            }
+            if (segments[segment_idx].addedToPolygon)
+            {
+                return -1;
+            }
+            return segment_idx;
+        }
+    }
+
+    return -1;
+}
+
 int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, unsigned int start_segment_idx)
 {
     int next_segment_idx = -1;
-    const MeshFace& face = mesh->faces[segment.faceIndex];
-    for (unsigned int face_edge_idx = 0; face_edge_idx < 3; face_edge_idx++)
-    { // check segments in connected faces
-        decltype(face_idx_to_segment_idx.begin()) it;
-        if (face.connected_face_index[face_edge_idx] > -1 && (it = face_idx_to_segment_idx.find(face.connected_face_index[face_edge_idx])) != face_idx_to_segment_idx.end())
+
+    const std::vector<uint32_t> &faces_to_try = segment.endOtherFaces;
+    bool segment_ended_at_edge = faces_to_try.empty();
+    if (segment_ended_at_edge)
+    {
+        int face_to_try = segment.endOtherFaceIdx;
+        if (face_to_try == -1)
         {
-            int segment_idx = (*it).second;
-            Point p1 = segments[segment_idx].start;
-            Point diff = segment.end - p1;
-            if (shorterThen(diff, largest_neglected_gap_first_phase))
+            return -1;
+        }
+        return tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+    }
+    else
+    {
+        // segment ended at vertex
+
+        for (int face_to_try : faces_to_try)
+        {
+            int result_segment_idx =
+                tryFaceNextSegmentIdx(mesh,segment,face_to_try,start_segment_idx);
+            if (result_segment_idx == static_cast<int>(start_segment_idx))
             {
-                if (segment_idx == static_cast<int>(start_segment_idx))
-                {
-                    return start_segment_idx;
-                }
-                if (segments[segment_idx].addedToPolygon)
-                {
-                    continue;
-                }
-                next_segment_idx = segment_idx; // not immediately returned since we might still encounter the start_segment_idx
+                return start_segment_idx;
+            }
+            else if (result_segment_idx != -1)
+            {
+                // not immediately returned since we might still encounter the start_segment_idx
+                next_segment_idx = result_segment_idx;
             }
         }
     }
+
     return next_segment_idx;
 }
 
 void SlicerLayer::connectOpenPolylines(Polygons& open_polylines)
 {
-    // TODO use some space partitioning data structure to make this run faster than O(n^2)
-    for(unsigned int open_polyline_idx = 0; open_polyline_idx < open_polylines.size(); open_polyline_idx++)
-    {
-        PolygonRef open_polyline = open_polylines[open_polyline_idx];
-        
-        if (open_polyline.size() < 1) continue;
-        for(unsigned int open_polyline_other_idx = 0; open_polyline_other_idx < open_polylines.size(); open_polyline_other_idx++)
-        {
-            PolygonRef open_polyline_other = open_polylines[open_polyline_other_idx];
-            
-            if (open_polyline_other.size() < 1) continue;
-            
-            Point diff = open_polyline.back() - open_polyline_other[0];
-
-            if (shorterThen(diff, largest_neglected_gap_second_phase))
-            {
-                if (open_polyline_idx == open_polyline_other_idx)
-                {
-                    polygons.add(open_polyline);
-                    open_polyline.clear();
-                    break;
-                }
-                else
-                {
-                    for (unsigned int line_idx = 0; line_idx < open_polyline_other.size(); line_idx++)
-                    {
-                        open_polyline.add(open_polyline_other[line_idx]);
-                    }
-                    open_polyline_other.clear();
-                }
-            }
-        }
-    }
+    bool allow_reverse = false;
+    // Search a bit fewer cells but at cost of covering more area.
+    // Since acceptance area is small to start with, the extra is unlikely to hurt much.
+    coord_t cell_size = largest_neglected_gap_first_phase * 2;
+    connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
 void SlicerLayer::stitch(Polygons& open_polylines)
-{ // TODO This is an inefficient implementation which can run in O(n^3) time.
+{
+    bool allow_reverse = true;
+    connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
+}
+
+void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+{
     // below code closes smallest gaps first
-    while(1)
+
+    struct PossibleStitch
     {
-        int64_t best_dist2 = max_stitch1 * max_stitch1;
-        unsigned int best_polyline_1_idx = -1;
-        unsigned int best_polyline_2_idx = -1;
-        bool reversed = false;
+        int64_t dist2;
+        // polyline_idx*2 + {0 | front, 1 | back}
+        unsigned int terminus_0_idx;
+        unsigned int terminus_1_idx;
+
+        bool in_order() const
+        {
+            // in order if using back of line 1 and front of line 2
+            return (terminus_0_idx & 1) &&
+                !(terminus_1_idx & 1);
+        }
+
+        // priority_queue will give greatest first so greatest
+        // must be most desirable stitch
+        bool operator<(const PossibleStitch &other) const
+        {
+            if (dist2 > other.dist2)
+            {
+                return true;
+            }
+            else if (dist2 < other.dist2)
+            {
+                return false;
+            }
+
+            // use in order connections before reverse connections
+            if (!in_order() && other.in_order())
+            {
+                return true;
+            }
+
+            if (terminus_0_idx > other.terminus_0_idx)
+            {
+                return true;
+            }
+            else if (terminus_0_idx < other.terminus_0_idx)
+            {
+                return false;
+            }
+
+            if (terminus_1_idx > other.terminus_1_idx)
+            {
+                return true;
+            }
+            else if (terminus_1_idx < other.terminus_1_idx)
+            {
+                return false;
+            }
+
+            return false;
+        }
+    };
+
+    std::priority_queue<PossibleStitch> stitch_queue;
+
+    {
+        int64_t max_dist2 = max_dist * max_dist;
+
+        struct StitchGridVal
+        {
+            unsigned int polyline_idx;
+            Point polyline_end;
+        };
+
+        struct StitchGridValPointAccess
+        {
+            Point operator()(const StitchGridVal &val) const
+            {
+                return val.polyline_end;
+            }
+        };
+
+        SparseGrid<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
+
+        // populate grid
+        for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
+        {
+            PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+
+            if (polyline_0.size() < 1) continue;
+
+            StitchGridVal grid_val;
+            grid_val.polyline_idx = polyline_0_idx;
+            grid_val.polyline_end = polyline_0.back();
+            grid.insert(grid_val);
+        }
+
+        // search for nearby end points
         for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
         {
             PolygonRef polyline_1 = open_polylines[polyline_1_idx];
             
             if (polyline_1.size() < 1) continue;
-            for(unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
-            {
-                PolygonRef polyline_2 = open_polylines[polyline_2_idx];
-                
-                if (polyline_2.size() < 1) continue;
-                
-                Point diff = polyline_1.back() - polyline_2[0];
-                int64_t dist2 = vSize2(diff);
-                if (dist2 < best_dist2)
-                {
-                    best_dist2 = dist2;
-                    best_polyline_1_idx = polyline_1_idx;
-                    best_polyline_2_idx = polyline_2_idx;
-                    reversed = false;
-                }
 
-                if (polyline_1_idx != polyline_2_idx)
+            std::vector<StitchGridVal> nearby_ends;
+            nearby_ends = grid.getNearby(polyline_1[0], max_dist);
+            for (const auto &nearby_end : nearby_ends)
+            {
+                Point diff = nearby_end.polyline_end - polyline_1[0];
+                int64_t dist2 = vSize2(diff);
+                if (dist2 < max_dist2)
                 {
-                    Point diff = polyline_1.back() - polyline_2.back();
-                    int64_t dist2 = vSize2(diff);
-                    if (dist2 < best_dist2)
+                    PossibleStitch poss_stitch;
+                    poss_stitch.dist2 = dist2;
+                    poss_stitch.terminus_0_idx = nearby_end.polyline_idx*2 + 1;
+                    poss_stitch.terminus_1_idx = polyline_1_idx*2;
+                    stitch_queue.push(poss_stitch);
+                }
+            }
+
+            if (allow_reverse)
+            {
+                nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
+                for (const auto &nearby_end : nearby_ends)
+                {
+                    if (nearby_end.polyline_idx == polyline_1_idx)
                     {
-                        best_dist2 = dist2;
-                        best_polyline_1_idx = polyline_1_idx;
-                        best_polyline_2_idx = polyline_2_idx;
-                        reversed = true;
+                        continue;
+                    }
+
+                    Point diff = nearby_end.polyline_end - polyline_1.back();
+                    int64_t dist2 = vSize2(diff);
+                    if (dist2 < max_dist2)
+                    {
+                        PossibleStitch poss_stitch;
+                        poss_stitch.dist2 = dist2;
+                        poss_stitch.terminus_0_idx = nearby_end.polyline_idx*2 + 1;
+                        poss_stitch.terminus_1_idx = polyline_1_idx*2 + 1;
+                        stitch_queue.push(poss_stitch);
                     }
                 }
             }
         }
-        
-        if (best_dist2 >= max_stitch1 * max_stitch1)
-            break; // this code is reached if there was nothing to stitch within the distance limits
-        
-        PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
-        PolygonRef polyline_2 = open_polylines[best_polyline_2_idx];
-        
-        if (best_polyline_1_idx == best_polyline_2_idx)
-        { // connect last piece of 'circle'
-            polygons.add(polyline_1);
-            polyline_1.clear();
+    }
+
+    static const unsigned int INVALID_TERMINUS = ~0U;
+    size_t terminus_update_map_size = open_polylines.size()*2;
+    // map from old terminus index to current terminus index
+    std::vector<unsigned int> terminus_old_to_cur_map(terminus_update_map_size);
+    // map from current terminus index to old terminus index
+    std::vector<unsigned int> terminus_cur_to_old_map(terminus_update_map_size);
+    for (size_t idx=0U; idx!=terminus_update_map_size; ++idx)
+    {
+        terminus_old_to_cur_map[idx] = idx;
+    }
+    terminus_cur_to_old_map = terminus_old_to_cur_map;
+    while(!stitch_queue.empty())
+    {
+        PossibleStitch next_stitch;
+        next_stitch = stitch_queue.top();
+        stitch_queue.pop();
+        unsigned int old_terminus_0_idx = next_stitch.terminus_0_idx;
+        unsigned int terminus_0_idx = terminus_old_to_cur_map[old_terminus_0_idx];
+        if (terminus_0_idx == INVALID_TERMINUS)
+        {
+            // if we already used this terminus, then this stitch is no longer usable
+            continue;
         }
-        else
-        { // connect two polylines
-            if (reversed)
+        unsigned int old_terminus_1_idx = next_stitch.terminus_1_idx;
+        unsigned int terminus_1_idx = terminus_old_to_cur_map[old_terminus_1_idx];
+        if (terminus_1_idx == ~0U)
+        {
+            // if we already used this terminus, then this stitch is no longer usable
+            continue;
+        }
+
+        unsigned int best_polyline_0_idx = terminus_0_idx/2;
+        unsigned int best_polyline_1_idx = terminus_1_idx/2;
+
+        bool completed_poly = best_polyline_0_idx == best_polyline_1_idx;
+        if (completed_poly)
+        {
+            // finished polygon
+            PolygonRef polyline_0 = open_polylines[best_polyline_0_idx];
+            polygons.add(polyline_0);
+            polyline_0.clear();
+            unsigned int cur_terms[2] = {best_polyline_0_idx*2 + 0,
+                                         best_polyline_0_idx*2 + 1};
+            unsigned int old_terms[2];
+            for (size_t idx=0U; idx!=2U; ++idx)
             {
-                if (polyline_1.size() > polyline_2.size()) // decide which polygon to copy into the other
+                old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx]];
+            }
+            for (size_t idx=0U; idx!=2U; ++idx)
+            {
+                terminus_old_to_cur_map[old_terms[idx]] = INVALID_TERMINUS;
+                terminus_cur_to_old_map[cur_terms[idx]] = INVALID_TERMINUS;
+            }
+            continue;
+        }
+
+        // plan how to append polygons
+        bool back_0 = (terminus_0_idx & 1) == 1;
+        bool back_1 = (terminus_1_idx & 1) == 1;
+        bool reverse[2] = {false, false};
+        if (back_0)
+        {
+            if (back_1)
+            {
+                if (open_polylines[best_polyline_0_idx].size() <
+                    open_polylines[best_polyline_1_idx].size())
                 {
-                    for(int poly_idx = polyline_2.size()-1; poly_idx >= 0; poly_idx--)
-                        polyline_1.add(polyline_2[poly_idx]);
-                    polyline_2.clear();
-                } 
-                else
-                {
-                    for(int poly_idx = polyline_1.size()-1; poly_idx >= 0; poly_idx--)
-                        polyline_2.add(polyline_1[poly_idx]);
-                    polyline_1.clear();
+                   std::swap(terminus_0_idx,terminus_1_idx);
                 }
-                // note that either way we end up with the end of former polyline_1 next to the start of former polyline_2
+                reverse[1] = true;
+            } else {
+                // nothing to do
+            }
+        } else {
+            if (back_1)
+            {
+                std::swap(terminus_0_idx,terminus_1_idx);
             }
             else
             {
-                for(Point& p : polyline_2)
-                    polyline_1.add(p);
-                polyline_2.clear();
+                reverse[0] = true;
             }
         }
+
+        best_polyline_0_idx = terminus_0_idx/2;
+        best_polyline_1_idx = terminus_1_idx/2;
+        PolygonRef polyline_0 = open_polylines[best_polyline_0_idx];
+        PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
+
+        // append polygons according to plan
+        if (reverse[0])
+        {
+            // reverse polyline_0
+            size_t size_0 = polyline_0.size();
+            for (size_t idx=0U; idx!=size_0/2; ++idx)
+            {
+                std::swap(polyline_0[idx], polyline_0[size_0-1-idx]);
+            }
+        }
+        if (reverse[1])
+        {
+            for(int poly_idx = polyline_1.size()-1; poly_idx >= 0; poly_idx--)
+                polyline_0.add(polyline_1[poly_idx]);
+            polyline_1.clear();
+        }
+        else
+        {
+            for(Point& p : polyline_1)
+                polyline_0.add(p);
+            polyline_1.clear();
+        }
+
+        // update terminus_update_map
+        unsigned int cur_terms[4] = {best_polyline_0_idx*2 + 0,
+                                     best_polyline_0_idx*2 + 1,
+                                     best_polyline_1_idx*2 + 0,
+                                     best_polyline_1_idx*2 + 1};
+        unsigned int next_terms[4] = {best_polyline_0_idx*2 + 0,
+                                      INVALID_TERMINUS,
+                                      INVALID_TERMINUS,
+                                      best_polyline_0_idx*2 + 1};
+        if (reverse[0])
+        {
+            std::swap(next_terms[0],next_terms[1]);
+        }
+        if (reverse[1])
+        {
+            std::swap(next_terms[2],next_terms[3]);
+        }
+        unsigned int old_terms[4];
+        for (size_t idx=0U; idx!=4U; ++idx)
+        {
+            old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx]];
+        }
+        for (size_t idx=0U; idx!=4U; ++idx)
+        {
+            terminus_old_to_cur_map[old_terms[idx]] = next_terms[idx];
+            unsigned int next_term_idx = next_terms[idx];
+            if (next_term_idx!=INVALID_TERMINUS)
+            {
+                terminus_cur_to_old_map[next_term_idx] = old_terms[idx];
+            }
+        }
+        terminus_cur_to_old_map[cur_terms[2]] = INVALID_TERMINUS;
+        terminus_cur_to_old_map[cur_terms[3]] = INVALID_TERMINUS;
     }
 }
 
@@ -452,10 +673,12 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 }
 
 
-Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 {
     assert(layer_count > 0);
+
+    TimeKeeper slice_timer;
 
     layers.resize(layer_count);
     
@@ -466,10 +689,13 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
     
     for(unsigned int mesh_idx = 0; mesh_idx < mesh->faces.size(); mesh_idx++)
     {
-        MeshFace& face = mesh->faces[mesh_idx];
-        Point3 p0 = mesh->vertices[face.vertex_index[0]].p;
-        Point3 p1 = mesh->vertices[face.vertex_index[1]].p;
-        Point3 p2 = mesh->vertices[face.vertex_index[2]].p;
+        const MeshFace& face = mesh->faces[mesh_idx];
+        const MeshVertex& v0 = mesh->vertices[face.vertex_index[0]];
+        const MeshVertex& v1 = mesh->vertices[face.vertex_index[1]];
+        const MeshVertex& v2 = mesh->vertices[face.vertex_index[2]];
+        Point3 p0 = v0.p;
+        Point3 p1 = v1.p;
+        Point3 p2 = v2.p;
         int32_t minZ = p0.z;
         int32_t maxZ = p0.z;
         if (p1.z < minZ) minZ = p1.z;
@@ -484,20 +710,53 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             if (layer_nr < 0) continue;
             
             SlicerSegment s;
+            int end_edge_start_pt = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
+            {
                 s = project2D(p0, p2, p1, z);
+                end_edge_start_pt = 0;
+                if (p1.z == z)
+                {
+                    s.endOtherFaces = v1.connected_faces;
+                }
+            }
             else if (p0.z > z && p1.z < z && p2.z < z)
+            {
                 s = project2D(p0, p1, p2, z);
+                end_edge_start_pt = 2;
+
+            }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
+            {
                 s = project2D(p1, p0, p2, z);
+                end_edge_start_pt = 1;
+                if (p2.z == z)
+                {
+                    s.endOtherFaces = v2.connected_faces;
+                }
+            }
             else if (p1.z > z && p0.z < z && p2.z < z)
+            {
                 s = project2D(p1, p2, p0, z);
+                end_edge_start_pt = 0;
+
+            }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
+            {
                 s = project2D(p2, p1, p0, z);
+                end_edge_start_pt = 2;
+                if (p0.z == z)
+                {
+                    s.endOtherFaces = v0.connected_faces;
+                }
+            }
             else if (p2.z > z && p1.z < z && p0.z < z)
+            {
                 s = project2D(p2, p0, p1, z);
+                end_edge_start_pt = 1;
+            }
             else
             {
                 //Not all cases create a segment, because a point of a face could create just a dot, and two touching faces
@@ -506,14 +765,17 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
+            s.endOtherFaceIdx = face.connected_face_index[end_edge_start_pt];
             s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
         }
     }
+    log("slice of mesh took %.3f seconds\n",slice_timer.restart());
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }
+    log("slice make polygons took %.3f seconds\n",slice_timer.restart());
 }
 
 }//namespace cura

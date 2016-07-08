@@ -15,6 +15,12 @@ class SlicerSegment
 public:
     Point start, end;
     int faceIndex;
+    // The index of the other face connected via the edge that created end
+    int endOtherFaceIdx;
+    // If end corresponds to a vertex of the mesh, then this is populated
+    // with the candidate edges that might have the next segment.  If end
+    // doesn't correspond to a vertex of the mesh than this will be empty.
+    std::vector<uint32_t> endOtherFaces;
     bool addedToPolygon;
 };
 
@@ -115,6 +121,29 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
     void stitch_extensive(Polygons& open_polylines);
+
+private:
+    /*!
+     * Try to find a segment from face \p face_idx to continue \p segment.
+     *
+     * \param[in] mesh The mesh being sliced.
+     * \param[in] segment The previous segment that we want to find a continuation for.
+     * \param[in] face_idx The index of the face that might have generated a continuation segment.
+     * \param[in] start_segment_idx The index of the segment that started this polyline.
+     */
+    int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
+
+    /*!
+     * Connecting polylines that are not closed yet.
+     *
+     * Any polylines that are closed by this function are added to this->polygons.
+     *
+     * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
+     * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
+     * \param[in] cell_size The cell size to use internally in the grid.  This affects speed but not results.
+     * \param[in] allow_reverse If true, then this function is allowed to reverse edge directions to merge polylines.
+     */
+    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer
@@ -124,15 +153,26 @@ public:
 
     const Mesh* mesh; //!< The sliced mesh
     
-    Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
+
+    int64_t interp(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
+    {
+        int64_t dx_01 = x1 - x0;
+        int64_t num = (y1 - y0) * (x - x0);
+        num += num > 0 ? dx_01/2 : -dx_01/2; // add in offset to round result
+        int64_t y = y0 + num / dx_01;
+        return y;
+    }
     
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {
         SlicerSegment seg;
-        seg.start.X = p0.x + int64_t(p1.x - p0.x) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.end.X = p0.x + int64_t(p2.x - p0.x) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
-        seg.end.Y = p0.y + int64_t(p2.y - p0.y) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
+
+        seg.start.X = interp(z, p0.z, p1.z, p0.x, p1.x);
+        seg.start.Y = interp(z, p0.z, p1.z, p0.y, p1.y);
+        seg.end  .X = interp(z, p0.z, p2.z, p0.x, p2.x);
+        seg.end  .Y = interp(z, p0.z, p2.z, p0.y, p2.y);
+
         return seg;
     }
     

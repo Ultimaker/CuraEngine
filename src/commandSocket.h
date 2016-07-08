@@ -59,12 +59,12 @@ public:
     /*! 
      * Send a polygon to the engine. This is used for the layerview in the GUI
      */
-    void sendPolygons(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
+    void sendPolygons(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
 
     /*! 
      * Send a polygon to the engine if the command socket is instantiated. This is used for the layerview in the GUI
      */
-    static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, cura::Polygons& polygons, int line_width);
+    static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
 
     /*! 
      * Send progress to GUI

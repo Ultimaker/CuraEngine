@@ -55,6 +55,11 @@ public:
         return path->data();
     }
 
+    const void* data() const
+    {
+        return path->data();
+    }
+
     void add(const Point p)
     {
         path->push_back(p);
@@ -378,6 +383,10 @@ public:
     {
         paths.push_back(*poly.path);
     }
+    void add(Polygon&& other_poly)
+    {
+        paths.emplace_back(std::move(*other_poly));
+    }
     void add(const Polygons& other)
     {
         for(unsigned int n=0; n<other.paths.size(); n++)
@@ -503,13 +512,20 @@ public:
      * \return the convex hull (approximately)
      * 
      */
-    Polygons convexHull(int extra_outset = 0)
+    Polygons approxConvexHull(int extra_outset = 0)
     {
         int overshoot = 100000; // 10 cm (hardcoded value)
         
         return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
     }
     
+    /*!
+     * Convex hull of all the points in the polygons.
+     * \return the convex hull
+     *
+     */
+    Polygon convexHull() const;
+
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
