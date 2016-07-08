@@ -15,6 +15,12 @@ class SlicerSegment
 public:
     Point start, end;
     int faceIndex;
+    // The index of the other face connected via the edge that created end
+    int endOtherFaceIdx;
+    // If end corresponds to a vertex of the mesh, then this is populated
+    // with the candidate edges that might have the next segment.  If end
+    // doesn't correspond to a vertex of the mesh than this will be empty.
+    std::vector<uint32_t> endOtherFaces;
     bool addedToPolygon;
 };
 
@@ -117,6 +123,16 @@ protected:
     void stitch_extensive(Polygons& open_polylines);
 
 private:
+    /*!
+     * Try to find a segment from face \p face_idx to continue \p segment.
+     *
+     * \param[in] mesh The mesh being sliced.
+     * \param[in] segment The previous segment that we want to find a continuation for.
+     * \param[in] face_idx The index of the face that might have generated a continuation segment.
+     * \param[in] start_segment_idx The index of the segment that started this polyline.
+     */
+    int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
+
     /*!
      * Connecting polylines that are not closed yet.
      *
