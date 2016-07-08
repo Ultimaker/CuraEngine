@@ -53,31 +53,50 @@ public:
      */
     std::vector<Elem> getNearby(const Point &query_pt, coord_t radius) const;
 
+    static const std::function<bool(const Elem&)> no_precondition;
+
+    /*!
+     * Find the nearest element to a given \p query_pt within \p radius.
+     *
+     * \param[in] query_pt The point for which to find the nearest object.
+     * \param[in] radius The search radius.
+     * \param[out] elem_nearest the nearest element. Only valid if function returns true.
+     * \param[in] precondition A precondition which must return true for an element
+     *    to be considered for output
+     * \return True if and only if an object has been found within the radius.
+     */
+    bool getNearest(const Point &query_pt, coord_t radius, Elem &elem_nearest,
+                    std::function<bool(const Elem& elem)> precondition = no_precondition) const;
+
 private:
     using GridPoint = Point;
     using GridMap = std::unordered_multimap<GridPoint, Elem>;
 
-    /*! \brief Add elements from the cell indicated by \p grid_pt.
+    /*! \brief Process elements from the cell indicated by \p grid_pt.
      *
      * \param[in] grid_pt The grid coordinates of the cell.
-     * \param[out] ret The elements in the cell are appended to ret.
+     * \param[in] process_func Processes each element.  process_func(elem) is
+     *    called for each element in the cell.
      */
-    void addFromCell(const GridPoint &grid_pt,
-                     std::vector<Elem> &ret) const;
+    template<class ProcessFunc>
+    void processFromCell(const GridPoint &grid_pt,
+                         ProcessFunc &process_func) const;
 
-    /*! \brief Add elements from cells that might contain sought after points.
+    /*! \brief Process elements from cells that might contain sought after points.
      *
-     * Appends elements from cell that might have elements within \p
-     * radius of \p query_pt.  Appends all elements that are within
-     * radius of query_pt.  May append elements that are up to radius +
+     * Processes elements from cell that might have elements within \p
+     * radius of \p query_pt.  Processes all elements that are within
+     * radius of query_pt.  May process elements that are up to radius +
      * cell_size from query_pt.
      *
      * \param[in] query_pt The point to search around.
-     * \param[in] radisu The search radius.
-     * \param[out] ret The elements in the cell are appended to ret.
+     * \param[in] radius The search radius.
+     * \param[in] process_func Processes each element.  process_func(elem) is
+     *    called for each element in the cell.
      */
-    void addNearby(const Point &query_pt, coord_t radius,
-                   std::vector<Elem> &ret) const;
+    template<class ProcessFunc>
+    void processNearby(const Point &query_pt, coord_t radius,
+                       ProcessFunc &process_func) const;
 
     /*! \brief Compute the grid coordinates of a point.
      *
@@ -184,20 +203,23 @@ void SGI_THIS::insert(const Elem &elem)
 }
 
 SGI_TEMPLATE
-void SGI_THIS::addFromCell(const GridPoint &grid_pt,
-                          std::vector<Elem> &ret) const
+template<class ProcessFunc>
+void SGI_THIS::processFromCell(
+    const GridPoint &grid_pt,
+    ProcessFunc &process_func) const
 {
     auto grid_range = m_grid.equal_range(grid_pt);
     for (auto iter=grid_range.first; iter!=grid_range.second; ++iter)
     {
-        ret.push_back(iter->second);
+        process_func(iter->second);
     }
 
 }
 
 SGI_TEMPLATE
-void SGI_THIS::addNearby(const Point &query_pt, coord_t radius,
-                        std::vector<Elem> &ret) const
+template<class ProcessFunc>
+void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
+                             ProcessFunc &process_func) const
 {
     Point min_loc(query_pt.X-radius, query_pt.Y-radius);
     Point max_loc(query_pt.X+radius, query_pt.Y+radius);
@@ -210,7 +232,7 @@ void SGI_THIS::addNearby(const Point &query_pt, coord_t radius,
         for (coord_t grid_x=min_grid.X; grid_x<=max_grid.X; ++grid_x)
         {
             GridPoint grid_pt(grid_x,grid_y);
-            addFromCell(grid_pt, ret);
+            processFromCell(grid_pt, process_func);
         }
     }
 }
@@ -220,8 +242,46 @@ std::vector<typename SGI_THIS::Elem>
 SGI_THIS::getNearby(const Point &query_pt, coord_t radius) const
 {
     std::vector<Elem> ret;
-    addNearby(query_pt, radius, ret);
+    auto process_func = [&ret](const Elem &elem)
+        {
+            ret.push_back(elem);
+        };
+    processNearby(query_pt, radius, process_func);
     return ret;
+}
+
+SGI_TEMPLATE
+const std::function<bool(const typename SGI_THIS::Elem &)>
+    SGI_THIS::no_precondition =
+    [](const typename SGI_THIS::Elem &)
+    {
+        return true;
+    };
+
+SGI_TEMPLATE
+bool SGI_THIS::getNearest(
+    const Point &query_pt, coord_t radius, Elem &elem_nearest,
+    std::function<bool(const Elem& elem)> precondition) const
+{
+    bool found = false;
+    int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
+    auto process_func =
+        [&query_pt,&elem_nearest,&found,&best_dist2,&precondition](const Elem &elem)
+        {
+            if (!precondition(elem))
+            {
+                return;
+            }
+            int64_t dist2 = vSize2(elem.point - query_pt);
+            if (dist2 < best_dist2)
+            {
+                found = true;
+                elem_nearest = elem;
+                best_dist2 = dist2;
+            }
+        };
+    processNearby(query_pt, radius, process_func);
+    return found;
 }
 
 #undef SGI_TEMPLATE
