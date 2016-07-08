@@ -512,13 +512,20 @@ public:
      * \return the convex hull (approximately)
      * 
      */
-    Polygons convexHull(int extra_outset = 0)
+    Polygons approxConvexHull(int extra_outset = 0)
     {
         int overshoot = 100000; // 10 cm (hardcoded value)
         
         return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
     }
     
+    /*!
+     * Convex hull of all the points in the polygons.
+     * \return the convex hull
+     *
+     */
+    Polygon convexHull() const;
+
     Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
     {
         Polygons ret;
