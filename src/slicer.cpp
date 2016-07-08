@@ -98,7 +98,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
     else
     {
         // segment ended at vertex
-        
+
         for (int face_to_try : faces_to_try)
         {
             int result_segment_idx =
