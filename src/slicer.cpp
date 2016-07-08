@@ -457,6 +457,8 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
 {
     assert(layer_count > 0);
 
+    TimeKeeper slice_timer;
+
     layers.resize(layer_count);
     
     for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
@@ -510,10 +512,12 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool kee
             layers[layer_nr].segments.push_back(s);
         }
     }
+    log("slice of mesh took %.3f seconds\n",slice_timer.restart());
     for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }
+    log("slice make polygons took %.3f seconds\n",slice_timer.restart());
 }
 
 }//namespace cura
