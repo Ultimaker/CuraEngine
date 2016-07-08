@@ -400,7 +400,7 @@ void CommandSocket::sendLayerData()
 #ifdef ARCUS
     private_data->sliced_objects++;
     private_data->current_layer_offset = private_data->current_layer_count;
-    log("End sliced object called. Sending ", private_data->current_layer_count, " layers.");
+    log("End sliced object called. Sending %d layers.", private_data->current_layer_count);
 
     if (private_data->sliced_objects >= private_data->object_count)
     {
