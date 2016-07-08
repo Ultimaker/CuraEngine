@@ -156,6 +156,89 @@ Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double 
     return ret;
 }
 
+Polygon Polygons::convexHull() const
+{
+    // Implements Andrew's monotone chain convex hull algorithm
+    // See https://en.wikibooks.org/wiki/Algorithm_Implementation/Geometry/Convex_hull/Monotone_chain
+
+    using IntPoint = ClipperLib::IntPoint;
+
+    std::vector<IntPoint> all_points;
+    for (const ClipperLib::Path &path : paths)
+    {
+        // Reserve big enough for result, but also maintain O(1)
+        // amortized resize cost
+        size_t reserve_size = std::max(all_points.size() + path.size(),
+                                       2*all_points.size());
+        all_points.reserve(reserve_size);
+        for (const IntPoint &point : path)
+        {
+            all_points.push_back(point);
+        }
+    }
+
+    struct HullSort
+    {
+        bool operator()(const IntPoint &a,
+                        const IntPoint &b)
+        {
+            return (a.X < b.X) ||
+                (a.X == b.X && a.Y < b.Y);
+        }
+    };
+
+    std::sort(all_points.begin(), all_points.end(), HullSort());
+
+    // positive for left turn, 0 for straight, negative for right turn
+    auto ccw = [](const IntPoint &p0, const IntPoint &p1, const IntPoint &p2) -> int64_t {
+        IntPoint v01(p1.X - p0.X, p1.Y - p0.Y);
+        IntPoint v12(p2.X - p1.X, p2.Y - p1.Y);
+
+        return
+            static_cast<int64_t>(v01.X) * v12.Y -
+            static_cast<int64_t>(v01.Y) * v12.X;
+    };
+
+    size_t num_points = all_points.size();
+
+    Polygon hull_poly;
+    ClipperLib::Path &hull_points = *hull_poly;
+    hull_points.resize(2*num_points);
+    // index to insert next hull point, also number of valid hull points
+    size_t hull_idx = 0;
+
+    // Build lower hull
+    for (size_t pt_idx=0U; pt_idx!=num_points; ++pt_idx)
+    {
+        while (hull_idx >= 2 &&
+               ccw(hull_points[hull_idx-2], hull_points[hull_idx-1],
+                   all_points[pt_idx]) <= 0)
+        {
+            --hull_idx;
+        }
+        hull_points[hull_idx] = all_points[pt_idx];
+        ++hull_idx;
+    }
+
+    // Build upper hull
+    size_t min_upper_hull_chain_end_idx = hull_idx+1;
+    for (int pt_idx=num_points-2; pt_idx>=0; --pt_idx)
+    {
+        while (hull_idx >= min_upper_hull_chain_end_idx &&
+               ccw(hull_points[hull_idx-2], hull_points[hull_idx-1],
+                   all_points[pt_idx]) <= 0)
+        {
+            --hull_idx;
+        }
+        hull_points[hull_idx] = all_points[pt_idx];
+        ++hull_idx;
+    }
+
+    hull_points.resize(hull_idx - 2);
+
+    return hull_poly;
+}
+
 void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared){
     PolygonRef& thiss = *this;
     
