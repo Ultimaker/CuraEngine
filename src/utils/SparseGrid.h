@@ -124,6 +124,10 @@ struct PointAccessor
 
 } // namespace SparseGridImpl
 
+/*! \brief Sparse grid which can locate spatially nearby values efficiently.
+ *
+ * \tparam Val The value type to store.
+ */
 template<class Val>
 class SparseGrid : public SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
                                              SparseGridImpl::PointAccessor<Val> >
@@ -131,7 +135,7 @@ class SparseGrid : public SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>
 public:
     using Base = SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
                                     SparseGridImpl::PointAccessor<Val> >;
-    
+
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
      * \param[in] cell_size The size to use for a cell (square) in the grid.
