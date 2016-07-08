@@ -115,6 +115,19 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
     void stitch_extensive(Polygons& open_polylines);
+
+private:
+    /*!
+     * Connecting polylines that are not closed yet.
+     *
+     * Any polylines that are closed by this function are added to this->polygons.
+     *
+     * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
+     * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
+     * \param[in] cell_size The cell size to use internally in the grid.  This affects speed but not results.
+     * \param[in] allow_reverse If true, then this function is allowed to reverse edge directions to merge polylines.
+     */
+    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 };
 
 class Slicer
