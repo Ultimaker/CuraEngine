@@ -412,8 +412,6 @@ void CommandSocket::sendLayerData()
         private_data->current_layer_count = 0;
         private_data->current_layer_offset = 0;
         private_data->sliced_layers.clear();
-        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
-        private_data->socket->sendMessage(done_message);
     }
 #endif
 }
