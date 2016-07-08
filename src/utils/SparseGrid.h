@@ -27,8 +27,10 @@ public:
      *
      * \param[in] cell_size The size to use for a cell (square) in the grid.
      *    Typical values would be around 0.5-2x of expected query radius.
+     * \param[in] elem_reserve Number of elements to research space for.
+     * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparseGridInvasive(coord_t cell_size);
+    SparseGridInvasive(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
     /*! \brief Inserts elem into the sparse grid.
      *
@@ -159,8 +161,10 @@ public:
      *
      * \param[in] cell_size The size to use for a cell (square) in the grid.
      *    Typical values would be around 0.5-2x of expected query radius.
+     * \param[in] elem_reserve Number of elements to research space for.
+     * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparseGrid(coord_t cell_size);
+    SparseGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
     /*! \brief Inserts an element with specified point and value into the sparse grid.
      *
@@ -176,9 +180,15 @@ public:
 #define SGI_THIS SparseGridInvasive<ElemT, PointAccess>
 
 SGI_TEMPLATE
-SGI_THIS::SparseGridInvasive(coord_t cell_size)
+SGI_THIS::SparseGridInvasive(coord_t cell_size, size_t elem_reserve, float max_load_factor)
 {
     m_cell_size = cell_size;
+
+    // Must be before the reserve call.
+    m_grid.max_load_factor(max_load_factor);
+    if (elem_reserve!=0U) {
+        m_grid.reserve(elem_reserve);
+    }
 }
 
 SGI_TEMPLATE
@@ -291,7 +301,8 @@ bool SGI_THIS::getNearest(
 #define SG_THIS SparseGrid<Val>
 
 SG_TEMPLATE
-SG_THIS::SparseGrid(coord_t cell_size) : Base(cell_size)
+SG_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor) :
+    Base(cell_size,elem_reserve,max_load_factor)
 {
 }
 
