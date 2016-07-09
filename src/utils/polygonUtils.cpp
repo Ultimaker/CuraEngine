@@ -567,7 +567,7 @@ SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons
 
 /*
  * The current implemetnation can check the same line segment multiple times, 
- * since the same line segment can occur in multiple cells if it it longer than the cell size of the BucketGrid.
+ * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparseGrid.
  * 
  * We could skip the duplication by keeping a vector of vectors of bools.
  *

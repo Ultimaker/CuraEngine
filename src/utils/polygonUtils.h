@@ -227,7 +227,7 @@ public:
     static ClosestPolygonPoint findClosest(Point from, const PolygonRef polygon, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
-     * Create a BucketGrid mapping from locations to line segments occurring in the \p polygons
+     * Create a SparseGrid mapping from locations to line segments occurring in the \p polygons
      * 
      * \warning The caller of this function is responsible for deleting the returned object
      * 
@@ -238,28 +238,28 @@ public:
     static SparseGrid<PolygonsPointIndex>* createLocToLineGrid(const Polygons& polygons, int square_size);
 
     /*!
-     * Find the line segment closest to a given point \p from within a cell-block of a size defined in the BucketGrid \p loc_to_line
+     * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparseGrid \p loc_to_line
      * 
      * \note The penalty term is applied to the *squared* distance score.
      * Note also that almost only nearby points are considered even when the penalty function would favour points farther away.
      * 
      * \param from The location to find a polygon edge close to
      * \param polygons The polygons for which the \p loc_to_line has been built up
-     * \param loc_to_line A BucketGrid mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \param loc_to_line A SparseGrid mapping locations to starting vertices of line segmetns of the \p polygons 
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
-     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
+     * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparseGrid
      */
     static std::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const SparseGrid<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
     
     /*!
-     * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the BucketGrid \p destination_loc_to_line
+     * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparseGrid \p destination_loc_to_line
      * 
      * \note The penalty term is applied to the *squared* distance score.
      * Note also that almost only nearby points are considered even when the penalty function would favour points farther away.
      * 
      * \param from The polygon for which to find a polygon edge close to
      * \param destination The polygons for which the \p destination_loc_to_line has been built up
-     * \param destination_loc_to_line A BucketGrid mapping locations to starting vertices of line segments of the \p destination 
+     * \param destination_loc_to_line A SparseGrid mapping locations to starting vertices of line segments of the \p destination 
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
      */
