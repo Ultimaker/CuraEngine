@@ -101,6 +101,10 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
             return;
         }
     }
+    logWarning("Warning: Couldn't find previous extruder plan so as to set the standby temperature. Inserting temp command in earliest available layer.\n");
+    ExtruderPlan& earliest_extruder_plan = *extruder_plans[0];
+    constexpr bool wait = false;
+    earliest_extruder_plan.insertCommand(0, extruder, standby_temp, wait);
 }
 
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
