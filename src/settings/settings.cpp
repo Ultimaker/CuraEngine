@@ -219,7 +219,7 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
         }
         catch (const std::invalid_argument& e)
         {
-            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring, second_substring, key);
+            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
         }
     }
     return ret;
