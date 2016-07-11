@@ -31,7 +31,7 @@ class Infill
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
-    static constexpr double one_over_sqrt_2 = 1.0 / sqrt(2.0);
+    static const double one_over_sqrt_2 = 1.0 / sqrt(2.0);
 public:
     Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, bool connected_zigzags = false, bool use_endpieces = false)
     : pattern(pattern)
