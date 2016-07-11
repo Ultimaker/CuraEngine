@@ -145,6 +145,13 @@ public:
     }
 
     /*!
+     * Get the size (height, width) of the cells.
+     */
+    int getCellSize() const
+    {
+        return squareSize;
+    }
+    /*!
      * Find all objects with a point in a grid cell at a distance of one cell from the cell of \p p.
      * 
      * \warning Objects may occur multiple times in the output!

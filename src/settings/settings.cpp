@@ -1,11 +1,14 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #include <cctype>
 #include <fstream>
 #include <stdio.h>
 #include <sstream> // ostringstream
-#include "utils/logoutput.h"
+#include <regex> // regex parsing for temp flow graph
+#include <string> // stod (string to double)
+#include "../utils/logoutput.h"
 
 #include "settings.h"
-#include "settingRegistry.h"
+#include "SettingRegistry.h"
 
 namespace cura
 {
@@ -61,16 +64,22 @@ SettingsMessenger::SettingsMessenger(SettingsBaseVirtual* parent)
 {
 }
 
+void SettingsBase::_setSetting(std::string key, std::string value)
+{
+    setting_values[key] = value;
+}
+
+
 void SettingsBase::setSetting(std::string key, std::string value)
 {
     if (SettingRegistry::getInstance()->settingExists(key))
     {
-        setting_values[key] = value;
+        _setSetting(key, value);
     }
     else
     {
-        cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
-        setting_values[key] = value; // Handy when programmers are in the process of introducing a new setting
+        cura::logError("Warning: setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
+        _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
     }
 }
 
@@ -85,17 +94,9 @@ std::string SettingsBase::getSettingString(std::string key) const
         return parent->getSettingString(key);
     }
 
-    SettingsBase& nonConstThis = const_cast<SettingsBase&>(*this);
-    if (SettingRegistry::getInstance()->settingExists(key))
-    {
-        nonConstThis.setting_values[key] = SettingRegistry::getInstance()->getSettingConfig(key)->getDefaultValue();
-    }
-    else
-    {
-        nonConstThis.setting_values[key] = "";
-        cura::logError("Unregistered setting %s\n", key.c_str());
-    }
-    return setting_values.at(key);
+    const_cast<SettingsBase&>(*this).setting_values[key] = "";
+    cura::logError("Unregistered setting %s\n", key.c_str());
+    return "";
 }
 
 void SettingsMessenger::setSetting(std::string key, std::string value)
@@ -106,34 +107,6 @@ void SettingsMessenger::setSetting(std::string key, std::string value)
 std::string SettingsMessenger::getSettingString(std::string key) const
 {
     return parent->getSettingString(key);
-}
-
-
-void SettingsBase::setExtruderTrainDefaults(unsigned int extruder_nr)
-{
-    const SettingContainer* machine_extruder_trains = SettingRegistry::getInstance()->getCategory(std::string("machine_extruder_trains"));
-
-    if (!machine_extruder_trains) 
-    {
-        // no machine_extruder_trains setting present; just use defaults for each train..
-        return;
-    }
-
-    const SettingConfig* train = machine_extruder_trains->getChild(extruder_nr);
-
-    if (!train)
-    {
-        // not enough machine_extruder_trains settings present; just use defaults for this train..
-        return;
-    }
-    
-    for (const SettingConfig& setting : train->getChildren())
-    {
-        if (setting_values.find(setting.getKey()) == setting_values.end())
-        {
-            setSetting(setting.getKey(), setting.getDefaultValue());
-        }
-    }
 }
 
 int SettingsBaseVirtual::getSettingAsIndex(std::string key) const
@@ -211,56 +184,28 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) const
 {
     FlowTempGraph ret;
-    const char* c_str = getSettingString(key).c_str();
-    char const* char_p = c_str;
-    while (*char_p != '[')
+    std::string value_string = getSettingString(key);
+    if (value_string.empty())
     {
-        if (*char_p == '\0') //We've reached the end of string without encountering the first opening bracket.
-        {
-            return ret; //Empty at this point.
-        }
-        char_p++;
+        return ret; //Empty at this point.
     }
-    char_p++; // skip the '['
-    for (; *char_p != '\0'; char_p++)
+    std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
+
+    // default constructor = end-of-sequence:
+    std::regex_token_iterator<std::string::iterator> rend;
+
+    int submatches[] = { 1, 2, 3 }; // match whole pair, first number and second number of a pair
+    std::regex_token_iterator<std::string::iterator> a(value_string.begin(), value_string.end(), regex, submatches);
+    while (a != rend)
     {
-        while (*char_p != '[')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the next opening bracket.
-            {
-                return ret; //Don't continue parsing this item then. Just stop and return.
-            }
-            char_p++;
-        }
-        char_p++; // skip the '['
-        char* end;
-        double first = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        char_p = end;
-        while (*char_p != ',')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the comma.
-            {
-                return ret; //This entry is incomplete.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ','
-        double second = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        ret.data.emplace_back(first, second);
-        char_p = end;
-        while (*char_p != ']')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the closing bracket.
-            {
-                return ret; //This entry is probably complete and has been added, but stop searching.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ']'
-        if (*char_p == ']' || *char_p == '\0')
+        a++; // match the whole pair
+        if (a == rend)
         {
             break;
         }
+        double first = std::stod(*a++);
+        double second = std::stod(*a++);
+        ret.data.emplace_back(first, second);
     }
     return ret;
 }

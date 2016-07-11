@@ -18,7 +18,10 @@
 #include <windows.h>
 #endif
 
+#include "settings/SettingRegistry.h" // loadExtruderJSONsettings
+
 #define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x) 
+
 // std::cerr << x;
 
 namespace cura {
@@ -126,7 +129,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::Layer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::Progress::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::ObjectPrintTime::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
@@ -149,26 +152,39 @@ void CommandSocket::connect(const std::string& ip, int port)
     {
         // Actually start handling messages.
         Arcus::MessagePtr message = private_data->socket->takeNextMessage();
+
+        /*
+         * handle a message which consists purely of a SettingList
         cura::proto::SettingList* setting_list = dynamic_cast<cura::proto::SettingList*>(message.get());
         if (setting_list)
         {
             handleSettingList(setting_list);
         }
+        */
 
-        /*cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
+        /*
+         * handle a message which consists purely of an ObjectList
+        cura::proto::ObjectList* object_list = dynamic_cast<cura::proto::ObjectList*>(message.get());
         if (object_list)
         {
             handleObjectList(object_list);
-        }*/
-        
-        cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get());
+        }
+        */
+
+        // Handle the main Slice message
+        cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice; returns nullptr otherwise
         if (slice)
         {
+            const cura::proto::SettingList& global_settings = slice->global_settings();
+            for (auto setting : global_settings.settings())
+            {
+                FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
+            }
             // Reset object counts
             private_data->object_count = 0;
             for (auto object : slice->object_lists())
             {
-                handleObjectList(&object);
+                handleObjectList(&object, slice->extruders());
             }
         }
 
@@ -186,7 +202,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             private_data->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
             flushGcode();
-            sendPrintTime();
+            sendPrintTimeMaterialEstimates();
             sendFinishedSlicing();
             slice_another_time = false; // TODO: remove this when multiple slicing with CuraEngine is safe
             //TODO: Support all-at-once/one-at-a-time printing
@@ -194,7 +210,7 @@ void CommandSocket::connect(const std::string& ip, int port)
             //private_data->object_to_slice.reset();
             //private_data->processor->resetFileNumber();
 
-            //sendPrintTime();
+            //sendPrintTimeMaterialEstimates();
         }
 
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -205,7 +221,7 @@ void CommandSocket::connect(const std::string& ip, int port)
 }
 
 #ifdef ARCUS
-void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
+void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google::protobuf::RepeatedPtrField<cura::proto::Extruder> settings_per_extruder_train)
 {
     if (list->objects_size() <= 0)
     {
@@ -217,17 +233,31 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
     //private_data->object_ids.clear();
     private_data->objects_to_slice.push_back(std::make_shared<MeshGroup>(FffProcessor::getInstance()));
     MeshGroup* meshgroup = private_data->objects_to_slice.back().get();
-    
+
+    // load meshgroup settings
     for (auto setting : list->settings())
     {
         meshgroup->setSetting(setting.name(), setting.value());
     }
-    
-    for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
-    { // initialize remaining extruder trains and load the defaults
-        meshgroup->createExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
+
+    { // load extruder settings
+        for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
+        { // initialize remaining extruder trains and load the defaults
+            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
+        }
+
+        for (auto extruder : settings_per_extruder_train)
+        {
+            int extruder_nr = extruder.id();
+            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            for (auto setting : extruder.settings().settings())
+            {
+                train->setSetting(setting.name(), setting.value());
+            }
+        }
     }
-    
+
     for (auto object : list->objects())
     {
         int bytes_per_face = BYTES_PER_FLOAT * FLOATS_PER_VECTOR * VECTORS_PER_FACE;
@@ -239,7 +269,9 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             continue;
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("solid Cura_out\n");
-        int extruder_train_nr = 0; // TODO: make primary extruder configurable!
+
+        // Check to which extruder train this object belongs
+        int extruder_train_nr = 0; // assume extruder 0 if setting wasn't supplied
         for (auto setting : object.settings())
         {
             if (setting.name() == "extruder_nr")
@@ -274,6 +306,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
             DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("  endfacet\n");
         }
         DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR("endsolid Cura_out\n");
+
         for (auto setting : object.settings())
         {
             mesh.setSetting(setting.name(), setting.value());
@@ -284,14 +317,6 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list)
 
     private_data->object_count++;
     meshgroup->finalize();
-}
-
-void CommandSocket::handleSettingList(cura::proto::SettingList* list)
-{
-    for (auto setting : list->settings())
-    {
-        FffProcessor::getInstance()->setSetting(setting.name(), setting.value());
-    }
 }
 #endif
 
@@ -340,12 +365,21 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
     // TODO
 }
 
-void CommandSocket::sendPrintTime()
+void CommandSocket::sendPrintTimeMaterialEstimates()
 {
 #ifdef ARCUS
-    auto message = std::make_shared<cura::proto::ObjectPrintTime>();
+    auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
+
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
-    message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(0));
+    int num_extruders = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
+    for (int extruder_nr (0); extruder_nr < num_extruders; ++extruder_nr)
+    {
+        cura::proto::MaterialEstimates* material_message = message->add_materialestimates();
+
+        material_message->set_id(extruder_nr);
+        material_message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr));
+    }
+
     private_data->socket->sendMessage(message);
 #endif
 }

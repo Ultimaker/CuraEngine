@@ -16,9 +16,9 @@
 #include "utils/string.h"
 
 #include "FffProcessor.h"
-#include "settingRegistry.h"
+#include "settings/SettingRegistry.h"
 
-#include "SettingsToGV.h"
+#include "settings/SettingsToGV.h"
 
 namespace cura
 {
@@ -30,23 +30,25 @@ void print_usage()
     cura::logError("CuraEngine help\n");
     cura::logError("\tShow this help message\n");
     cura::logError("\n");
-    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.json>]\n");
+    cura::logError("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     cura::logError("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
-    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults\n");
+    cura::logError("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
     cura::logError("\n");
-    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    cura::logError("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     cura::logError("  -v\n\tIncrease the verbose level (show log messages).\n");
     cura::logError("  -p\n\tLog progress information.\n");
-    cura::logError("  -j\n\tLoad settings.json file to register all settings and their defaults.\n");
+    cura::logError("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
     cura::logError("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
     cura::logError("  -l <model_file>\n\tLoad an STL model. \n");
     cura::logError("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
-    cura::logError("  -e\n\tAdd a new extruder train.\n");
+    cura::logError("  -e<extruder_nr>\n\tSwitch setting focus to the extruder train with the given number.\n");
     cura::logError("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
     cura::logError("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     cura::logError("\n");
     cura::logError("The settings are appended to the last supplied object:\n");
-    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e [extruder train settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    cura::logError("\n");
+    cura::logError("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a (semi-)colon.\n");
     cura::logError("\n");
 }
 
@@ -68,10 +70,10 @@ void print_call(int argc, char **argv)
 
 void connect(int argc, char **argv)
 {
-    CommandSocket::instantiate();
     std::string ip;
     int port = 49674;
-    
+
+    // parse ip port
     std::string ip_port(argv[2]);
     if (ip_port.find(':') != std::string::npos)
     {
@@ -79,7 +81,6 @@ void connect(int argc, char **argv)
         port = std::stoi(ip_port.substr(ip_port.find(':') + 1).data());
     }
 
-    
     for(int argn = 3; argn < argc; argn++)
     {
         char* str = argv[argn];
@@ -94,7 +95,7 @@ void connect(int argc, char **argv)
                     break;
                 case 'j':
                     argn++;
-                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn]))
+                    if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], FffProcessor::getInstance()))
                     {
                         cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                     }
@@ -108,7 +109,8 @@ void connect(int argc, char **argv)
             }
         }
     }
-    
+
+    CommandSocket::instantiate();
     CommandSocket::getInstance()->connect(ip, port);
 }
 
@@ -122,7 +124,8 @@ void slice(int argc, char **argv)
     
     int extruder_train_nr = 0;
 
-    SettingsBase* last_extruder_train = meshgroup->createExtruderTrain(0); 
+    SettingsBase* last_extruder_train = meshgroup->createExtruderTrain(0);
+    // extruder defaults cannot be loaded yet cause no json has been parsed
     SettingsBase* last_settings_object = FffProcessor::getInstance();
     for(int argn = 2; argn < argc; argn++)
     {
@@ -141,7 +144,8 @@ void slice(int argc, char **argv)
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
-                            meshgroup->createExtruderTrain(extruder_nr)->setExtruderTrainDefaults(extruder_nr); // create new extruder train objects or use already existing ones
+                            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+                            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
                         }
                         //start slicing
                         FffProcessor::getInstance()->processMeshGroup(meshgroup);
@@ -152,6 +156,7 @@ void slice(int argc, char **argv)
                         meshgroup = new MeshGroup(FffProcessor::getInstance());
                         last_extruder_train = meshgroup->createExtruderTrain(0); 
                         last_settings_object = meshgroup;
+                        SettingRegistry::getInstance()->loadExtruderJSONsettings(0, last_extruder_train);
                         
                     }catch(...){
                         cura::logError("Unknown exception\n");
@@ -173,7 +178,7 @@ void slice(int argc, char **argv)
                         break;
                     case 'j':
                         argn++;
-                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn]))
+                        if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], last_settings_object))
                         {
                             cura::logError("ERROR: Failed to load json file: %s\n", argv[argn]);
                         }
@@ -183,6 +188,7 @@ void slice(int argc, char **argv)
                         extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
                         last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
                         last_extruder_train = last_settings_object;
+                        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, last_extruder_train);
                         break;
                     case 'l':
                         argn++;
@@ -245,7 +251,8 @@ void slice(int argc, char **argv)
     int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (extruder_train_nr = 0; extruder_train_nr < extruder_count; extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        meshgroup->createExtruderTrain(extruder_train_nr)->setExtruderTrainDefaults(extruder_train_nr); // create new extruder train objects or use already existing ones
+        ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
+        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, train);
     }
     
     
@@ -370,6 +377,23 @@ int main(int argc, char **argv)
                     }
                 }
             }
+        }
+        else
+        {
+            cura::logError("\n");
+            cura::logError("usage:\n");
+            cura::logError("CuraEngine analyse <fdmPrinter.def.json> <output.gv> <engine_settings_list> -[p|i|e|w]\n");
+            cura::logError("\tGenerate a grpah to visualize the setting inheritance structure.\n");
+            cura::logError("\t<fdmPrinter.def.json>\n\tThe base seting definitions file.\n");
+            cura::logError("\t<output.gv>\n\tThe output file.\n");
+            cura::logError("\t<engine_settings_list>\n\tA text file with all setting keys used in the engine, separated by newlines.\n");
+            cura::logError("\t-[p|i|e|w]\n\tOptions for what to include in the visualization\n");
+            cura::logError("\t\tp\tVisualize the parent-child relationship.\n");
+            cura::logError("\t\ti\tVisualize inheritance function relationships.\n");
+            cura::logError("\t\te\tVisualize (max/min) error function relationships.\n");
+            cura::logError("\t\tw\tVisualize (max/min) warning function relationships.\n");
+            cura::logError("\n");
+    
         }
         
         SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz);

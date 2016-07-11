@@ -39,7 +39,7 @@ void Wireframe2gcode::writeGCode()
             
     unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
-    gcode.writeTypeComment("SKIRT");
+    gcode.writeTypeComment(PrintFeatureType::Skirt);
 
     gcode.setZ(initial_layer_thickness);
     
@@ -98,7 +98,7 @@ void Wireframe2gcode::writeGCode()
        
             if (part.connection.segments.size() == 0) continue;
             
-            gcode.writeTypeComment("SUPPORT"); // connection
+            gcode.writeTypeComment(PrintFeatureType::Support); // connection
             {
                 if (vSize2(gcode.getPositionXY() - part.connection.from) > connectionHeight)
                 {
@@ -114,7 +114,7 @@ void Wireframe2gcode::writeGCode()
             
             
             
-            gcode.writeTypeComment("WALL-OUTER"); // top
+            gcode.writeTypeComment(PrintFeatureType::OuterWall); // top
             {
                 for (unsigned int segment_idx = 0; segment_idx < part.connection.segments.size(); segment_idx++)
                 {
@@ -406,7 +406,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
 {
         
     // bottom:
-    gcode.writeTypeComment("FILL");
+    gcode.writeTypeComment(PrintFeatureType::Infill);
     for (unsigned int inset_idx = 0; inset_idx < infill_insets.size(); inset_idx++)
     {
         WeaveRoofPart& inset = infill_insets[inset_idx];
@@ -417,7 +417,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
             WeaveConnectionPart& inset_part = inset.connections[inset_part_nr];
             std::vector<WeaveConnectionSegment>& segments = inset_part.connection.segments;
             
-            gcode.writeTypeComment("SUPPORT"); // connection
+            gcode.writeTypeComment(PrintFeatureType::Support); // connection
             if (segments.size() == 0) continue;
             Point3 first_extrusion_from = inset_part.connection.from;
             unsigned int first_segment_idx;
@@ -433,7 +433,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
                 connectionHandler(*this, inset, inset_part, segment_idx);
             }
             
-            gcode.writeTypeComment("WALL-INNER"); // top
+            gcode.writeTypeComment(PrintFeatureType::InnerWall); // top
             for (unsigned int segment_idx = 0; segment_idx < segments.size(); segment_idx++)
             {
                 WeaveConnectionSegment& segment = segments[segment_idx];
@@ -447,7 +447,7 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
         
     }
     
-    gcode.writeTypeComment("WALL-OUTER"); // outer perimeter of the flat parts
+    gcode.writeTypeComment(PrintFeatureType::OuterWall); // outer perimeter of the flat parts
     for (PolygonRef poly : roof_outlines)
     {
         writeMoveWithRetract(poly[poly.size() - 1]);
@@ -615,7 +615,7 @@ void Wireframe2gcode::processSkirt()
 
 void Wireframe2gcode::finalize()
 {
-    gcode.finalize(getSettingInMillimetersPerSecond("speed_travel"), getSettingString("machine_end_gcode").c_str());
+    gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for(int e=0; e<getSettingAsCount("machine_extruder_count"); e++)
         gcode.writeTemperatureCommand(e, 0, false);
 }

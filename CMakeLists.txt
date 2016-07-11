@@ -46,12 +46,13 @@ add_library(clipper STATIC libs/clipper/clipper.cpp)
 
 set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
-    src/comb.cpp
     src/commandSocket.cpp
+    src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
     src/gcodeExport.cpp
+    src/GCodePathConfig.cpp
     src/gcodePlanner.cpp
     src/infill.cpp
     src/WallsComputation.cpp
@@ -64,8 +65,6 @@ set(engine_SRCS # Except main.cpp.
     src/pathOrderOptimizer.cpp
     src/PrimeTower.cpp
     src/raft.cpp
-    src/settingRegistry.cpp
-    src/settings.cpp
     src/skin.cpp
     src/skirt.cpp
     src/sliceDataStorage.cpp
@@ -83,8 +82,16 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
 
+    src/pathPlanning/Comb.cpp
+    src/pathPlanning/LinePolygonsCrossings.cpp
+
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp
+
+    src/settings/SettingConfig.cpp
+    src/settings/SettingContainer.cpp
+    src/settings/SettingRegistry.cpp
+    src/settings/settings.cpp
 
     src/utils/AABB.cpp
     src/utils/AABB3D.cpp

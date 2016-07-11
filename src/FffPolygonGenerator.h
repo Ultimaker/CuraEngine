@@ -6,7 +6,7 @@
 #include "utils/polygonUtils.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "sliceDataStorage.h"
 #include "commandSocket.h"
 #include "PrintFeature.h"
@@ -91,10 +91,10 @@ private:
      * Process features which are derived from the basic walls, skin, and infill:
      * fuzzy skin, infill combine
      * 
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param total_layers The total number of layers over all objects
      */
-    void processDerivedWallsSkinInfill(SliceMeshStorage& storage, size_t total_layers);
+    void processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers);
     
     /*!
      * Remove all bottom layers which are empty.
@@ -109,10 +109,10 @@ private:
     
     /*!
      * Generate the inset polygons which form the walls.
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processInsets(SliceMeshStorage& storage, unsigned int layer_nr);
+    void processInsets(SliceMeshStorage& mesh, unsigned int layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
@@ -123,10 +123,10 @@ private:
     
     /*!
      * Generate the skin areas.
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
      */
-    void processSkinsAndInfill(SliceMeshStorage& storage, unsigned int layer_nr); 
+    void processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr); 
 
     /*!
      * Generate the polygons where the draft screen should be.

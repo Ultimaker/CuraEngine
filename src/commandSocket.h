@@ -3,7 +3,7 @@
 
 #include "utils/socket.h"
 #include "utils/polygon.h"
-#include "settings.h"
+#include "settings/settings.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 
@@ -42,14 +42,13 @@ public:
     /*! 
      * Handler for ObjectList message. 
      * Loads all objects from the message and starts the slicing process
+     * 
+     * Also handles meshgroup settings and extruder settings.
+     * 
+     * \param[in] list The list of objects to slice
+     * \param[in] settings_per_extruder_train The extruder train settings to load into the meshgroup
      */
-    void handleObjectList(cura::proto::ObjectList* list);
-    
-    /*! 
-     * Handler for SettingList message. 
-     * This simply sets all the settings by using key value pair
-     */
-    void handleSettingList(cura::proto::SettingList* list);
+    void handleObjectList(cura::proto::ObjectList* list, const google::protobuf::RepeatedPtrField<cura::proto::Extruder> settings_per_extruder_train);
 #endif
     
     /*!
@@ -80,7 +79,7 @@ public:
     /*!
      * Send time estimate of how long print would take.
      */
-    void sendPrintTime();
+    void sendPrintTimeMaterialEstimates();
     
     /*!
      * Does nothing at the moment

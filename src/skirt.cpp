@@ -12,10 +12,10 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     if (count == 0) return;
     
     bool externalOnly = (distance > 0); // whether to include holes or not
-    
-    int primary_extruder = 0; // TODO allow for other extruder to be primary
+
+    int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
     int primary_extrusion_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
-    
+
     Polygons& skirt_primary_extruder = storage.skirt[primary_extruder];
     
     bool get_convex_hull = count == 1 && distance > 0;

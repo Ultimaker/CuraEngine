@@ -1,7 +1,7 @@
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
-#include "gcodeExport.h" // GCodePathConfig
+#include "GCodePathConfig.h"
 #include "MeshGroup.h"
 #include "utils/polygon.h" // Polygons
 

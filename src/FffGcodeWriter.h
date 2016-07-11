@@ -78,7 +78,7 @@ public:
     : SettingsMessenger(settings_)
     , layer_plan_buffer(this, gcode)
     , last_position_planned(no_point)
-    , current_extruder_planned(0) // TODO: make configurable
+    , current_extruder_planned(0) // changed somewhere early in FffGcodeWriter::writeGCode
     , is_inside_mesh_layer_part(false)
     {
         max_object_height = 0;
@@ -326,11 +326,11 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
-     * \param infill_overlap The distance by which the infill overlaps with the wall insets.
+     * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int infill_overlap, int infill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle, int extrusion_width);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.

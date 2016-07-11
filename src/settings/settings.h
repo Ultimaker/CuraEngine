@@ -1,14 +1,15 @@
-#ifndef SETTINGS_H
-#define SETTINGS_H
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
+#ifndef SETTINGS_SETTINGS_H
+#define SETTINGS_SETTINGS_H
 
 #include <vector>
 #include <map>
 #include <unordered_map>
 #include <sstream>
 
-#include "utils/floatpoint.h"
+#include "../utils/floatpoint.h"
 
-#include "FlowTempGraph.h"
+#include "../FlowTempGraph.h"
 
 namespace cura
 {
@@ -208,6 +209,7 @@ public:
     SupportDistPriority getSettingAsSupportDistPriority(std::string key);
 };
 
+class SettingRegistry;
 /*!
  * Base class for every object that can hold settings.
  * The SettingBase object can hold multiple key-value pairs that define settings.
@@ -217,22 +219,18 @@ public:
  */
 class SettingsBase : public SettingsBaseVirtual
 {
+    friend class SettingRegistry;
 private:
     std::unordered_map<std::string, std::string> setting_values;
 public:
     SettingsBase(); //!< SettingsBase without a parent settings object
     SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
-    
+
     /*!
-     * Retrieve the defaults for each extruder train from the machine_extruder_trains settings 
-     * and set the general settings to those defaults if they haven't been set yet.
-     * 
-     * Only sets those settings which haven't already been set on that level - not looking at its parent (FffProcessor, meshgroup) or children (meshes).
-     * 
-     * \param extruder_nr The index of which extruder train in machine_extruder_trains to get the settings from
+     * Set a setting to a value.
+     * \param key the setting
+     * \param value the value
      */
-    void setExtruderTrainDefaults(unsigned int extruder_nr);
-    
     void setSetting(std::string key, std::string value);
     std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
@@ -254,6 +252,13 @@ public:
         for (auto pair : setting_values)
             std::cerr << pair.first << " : " << pair.second << std::endl;
     }
+protected:
+    /*!
+     * Set a setting without checking if it's registered.
+     * 
+     * Used in SettingsRegistry
+     */
+    void _setSetting(std::string key, std::string value);
 };
 
 /*!
@@ -272,5 +277,5 @@ public:
 
 
 }//namespace cura
-#endif//SETTINGS_H
+#endif//SETTINGS_SETTINGS_H
 

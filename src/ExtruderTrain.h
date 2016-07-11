@@ -1,7 +1,8 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
-#include "settings.h"
+#include "settings/settings.h"
 
 namespace cura 
 {
@@ -10,13 +11,10 @@ class ExtruderTrain : public SettingsBase
 {
     int extruder_nr;
 public:
-    int getExtruderNr() { return extruder_nr; }
-    
-    ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr)
-    : SettingsBase(settings)
-    , extruder_nr(extruder_nr)
-    { }
-    
+    int getExtruderNr();
+
+    ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr);
+
 };
 
 }//namespace cura

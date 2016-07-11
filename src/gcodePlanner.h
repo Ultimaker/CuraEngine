@@ -4,14 +4,16 @@
 #include <vector>
 
 #include "gcodeExport.h"
-#include "comb.h"
+#include "pathPlanning/Comb.h"
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
 #include "commandSocket.h"
 #include "FanSpeedLayerTime.h"
 #include "SpaceFillType.h"
+#include "GCodePathConfig.h"
 
+#include "utils/optional.h"
 
 namespace cura 
 {
@@ -220,6 +222,7 @@ public:
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
+    bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     std::vector<Point> points; //!< The points constituting this path.
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
@@ -272,6 +275,7 @@ public:
 
     int extruder; //!< The extruder used for this paths in the current plan.
     double required_temp; //!< The required temperature at the start of this extruder plan.
+    std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
 
@@ -352,6 +356,7 @@ class LayerPlanBuffer; // forward declaration to prevent circular dependency
 class GCodePlanner : public NoCopy
 {
     friend class LayerPlanBuffer;
+    friend class GCodePlannerTest;
 private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
@@ -365,14 +370,14 @@ private:
     Point lastPosition;
     
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
-    
+
+    int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
+    SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
 
-    RetractionConfig* last_retraction_config;
-    
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
 
     double extrudeSpeedFactor;
@@ -418,6 +423,11 @@ public:
     GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    /*!
+     * Get the settings base of the last extruder planned.
+     * \return the settings base of the last extruder planned.
+     */
+    SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.
@@ -581,7 +591,7 @@ public:
      * 
      * \param gcode The gcode to write the planned paths to
      */
-    void writeGCode(GCodeExport& gcode, bool liftHeadIfNeeded, int layerThickness);
+    void writeGCode(GCodeExport& gcode);
     
     /*!
      * Complete all GcodePathConfig s by 
@@ -622,22 +632,6 @@ public:
      */
     bool writePathWithCoasting(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx, int64_t layerThickness, double coasting_volume, double coasting_speed, double coasting_min_volume);
 
-    /*!
-     * Write a retraction: either an extruder switch retraction or a normal retraction based on the last extrusion paths retraction config.
-     * \param gcode The gcode to write the planned paths to
-     * \param extruder_plan_idx The index of the current extruder plan
-     * \param path_idx_travel_after Index in GCodePlanner::paths to the travel move before which to do the retraction
-     */
-    void writeRetraction(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx_travel_after);
-    
-    /*!
-     * Write a retraction: either an extruder switch retraction or a normal retraction based on the given retraction config.
-     * \param gcode The gcode to write the planned paths to
-     * \param extruder_switch_retract Whether to write an extruder switch retract
-     * \param retraction_config The config used.
-     */
-    void writeRetraction(GCodeExport& gcode, bool extruder_switch_retract, RetractionConfig* retraction_config);
-    
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed. 
      */

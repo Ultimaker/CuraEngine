@@ -1,7 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "settings.h"
+#include "settings/settings.h"
 #include "utils/AABB3D.h"
 
 namespace cura

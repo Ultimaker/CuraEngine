@@ -403,9 +403,9 @@ void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons&
         bool found = true;
         int idx = 0;
         
-        for (Point upper_point = upperPart[closestInPoly.pos]; found; upper_point = next_upper.location)
+        for (Point upper_point = upperPart[closestInPoly.point_idx]; found; upper_point = next_upper.location)
         {
-            found = PolygonUtils::getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, idx, closestInPoly.pos, next_upper);
+            found = PolygonUtils::getNextPointWithDistance(upper_point, nozzle_top_diameter, upperPart, idx, closestInPoly.point_idx, next_upper);
 
             
             if (!found) 
