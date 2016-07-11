@@ -1,4 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+#include <cmath> // std::ceil
 #include "skin.h"
 #include "utils/polygonUtils.h"
 
@@ -166,13 +167,16 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
 void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps)
 {
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
-    unsigned int layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
+    float layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
     if (!mesh.getSettingBoolean("skin_no_small_gaps_heuristic"))
     {
         layer_skip_count = 1;
     }
     unsigned int gradual_infill_step_layer_count = gradual_infill_step_height / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
-    layer_skip_count = gradual_infill_step_layer_count / ((gradual_infill_step_layer_count - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
+
+    // make gradual_infill_step_height divisable by layer_skip_count
+    float n_skip_steps_per_gradual_step = std::max(1.0f, std::ceil(gradual_infill_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_infill_step_layer_count
+    layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
 
 
     size_t min_layer = mesh.getSettingAsCount("bottom_layers");
@@ -193,21 +197,20 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                 // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
-
             Polygons less_dense_infill = part.infill_area; // one step less dense with each infill_step
             for (unsigned int infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
                 size_t min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + layer_skip_count;
                 size_t max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_layer_count;
 
-                for (size_t upper_layer_idx = min_layer; upper_layer_idx < max_layer; upper_layer_idx += layer_skip_count)
+                for (float upper_layer_idx = min_layer; static_cast<unsigned int>(upper_layer_idx) <= max_layer; upper_layer_idx += layer_skip_count)
                 {
-                    if (upper_layer_idx >= mesh.layers.size())
+                    if (static_cast<unsigned int>(upper_layer_idx) >= mesh.layers.size())
                     {
                         less_dense_infill.clear();
                         break;
                     }
-                    SliceLayer& upper_layer = mesh.layers[upper_layer_idx];
+                    SliceLayer& upper_layer = mesh.layers[static_cast<unsigned int>(upper_layer_idx)];
                     Polygons relevent_upper_polygons;
                     for (SliceLayerPart& upper_layer_part : upper_layer.parts)
                     {
