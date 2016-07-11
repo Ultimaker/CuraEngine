@@ -1,6 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef INSET_H
-#define INSET_H
+#ifndef WALLS_COMPUTATION_H
+#define WALLS_COMPUTATION_H
 
 #include "sliceDataStorage.h"
 
@@ -66,4 +66,4 @@ private:
 };
 }//namespace cura
 
-#endif//INSET_H
+#endif//WALLS_COMPUTATION_H
