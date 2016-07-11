@@ -35,7 +35,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_
 
         if (int(part.insets.size()) < wall_line_count)
         {
-            continue; // the last wall is not present, the part should only get inter preimeter gaps, but no skin.
+            continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin.
         }
 
         Polygons upskin = part.insets.back().offset(-innermost_wall_extrusion_width/2);
@@ -124,7 +124,7 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
                 skin_part.insets[i] = skin_part.insets[i - 1].offset(-extrusionWidth);
             }
             
-            // optimize polygons: remove unnnecesary verts
+            // optimize polygons: remove unnecessary verts
             skin_part.insets[i].simplify();
             if (skin_part.insets[i].size() < 1)
             {
@@ -172,7 +172,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
         layer_skip_count = 1;
     }
     unsigned int gradual_infill_step_layer_count = gradual_infill_step_height / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
-    layer_skip_count = gradual_infill_step_layer_count / ((gradual_infill_step_layer_count - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisable by layer_skip_count
+    layer_skip_count = gradual_infill_step_layer_count / ((gradual_infill_step_layer_count - 1) / layer_skip_count + 1); // make gradual_infill_step_height divisible by layer_skip_count
 
 
     size_t min_layer = mesh.getSettingAsCount("bottom_layers");
@@ -189,7 +189,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
             if (part.infill_area.size() == 0 || layer_idx < min_layer || layer_idx > max_layer)
             { // initialize infill_area_per_combine_per_density empty
                 part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
-                part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly contructed infill_area_per_combine
+                part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly constructed infill_area_per_combine
                 // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
@@ -279,7 +279,7 @@ void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount)
             for (SliceLayerPart& part : layer->parts)
             {
                 for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
-                { // go over eacht density of gradual infill (these density areas overlap!)
+                { // go over each density of gradual infill (these density areas overlap!)
                     std::vector<Polygons>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
                     Polygons result;
                     for (SliceLayerPart& lower_layer_part : lower_layer->parts)
