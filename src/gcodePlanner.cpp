@@ -301,6 +301,10 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
     {
         path = getLatestPathWithConfig(&storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
+#ifdef ASSERT_INSANE_OUTPUT
+    assert(p != no_point && p != Point(0, 0) && "Uninitialised travel location!");
+#endif //ASSERT_INSANE_OUTPUT
+
     path->points.push_back(p);
     lastPosition = p;
 }
