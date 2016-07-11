@@ -730,8 +730,31 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
         unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
         int infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_shift = infill_line_distance_here / 2;
+        // infill shift explanation: [>]=shift ["]=line_dist
+// :       |       :       |       :       |       :       |         > furthest from top
+// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+// >>"""""
+// :       |       :       |       :       |       :       |         > furthest from top
+// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+// >>>>"""""""""
+// :       |       :       |       :       |       :       |         > furthest from top
+// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |     > further from top
+// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | |   > near top
+// >>>>>>>>"""""""""""""""""
         if (density_idx == part.infill_area_per_combine_per_density.size() - 1)
-        {
+        { // the least dense infill should fill up all remaining gaps
+// :       |       :       |       :       |       :       |       :  > furthest from top
+// :   |   |   |   :   |   |   |   :   |   |   |   :   |   |   |   :  > further from top
+// : | | | | | | | : | | | | | | | : | | | | | | | : | | | | | | | :  > near top
+//   .   .     .       .           .               .       .       .
+//   :   :     :       :           :               :       :       :
+//   `"""'     `"""""""'           `"""""""""""""""'       `"""""""'
+//                                                             ^   new line distance for lowest density infill
+//                                       ^ infill_line_distance_here for lowest density infill up till here
+//                 ^ middle density line dist
+//     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
         Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, extrusion_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
