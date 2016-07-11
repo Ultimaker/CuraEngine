@@ -114,18 +114,17 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
     
-    RetractionConfig retraction_config;
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
     
     SliceMeshStorage(SettingsBaseVirtual* settings)
-    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(&retraction_config, PrintFeatureType::OuterWall), insetX_config(&retraction_config, PrintFeatureType::InnerWall), skin_config(&retraction_config, PrintFeatureType::Skin)
+    : SettingsMessenger(settings), layer_nr_max_filled_layer(0), inset0_config(PrintFeatureType::OuterWall), insetX_config(PrintFeatureType::InnerWall), skin_config(PrintFeatureType::Skin)
     {
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
-            infill_config.emplace_back(&retraction_config, PrintFeatureType::Infill);
+            infill_config.emplace_back(PrintFeatureType::Infill);
     }
 };
 
@@ -138,6 +137,7 @@ public:
     std::vector<SliceMeshStorage> meshes;
     
     std::vector<RetractionConfig> retraction_config_per_extruder; //!< Retraction config per extruder.
+    std::vector<RetractionConfig> extruder_switch_retraction_config_per_extruder; //!< Retraction config per extruder for when performing an extruder switch
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
 
@@ -210,15 +210,7 @@ public:
      * \param include_helper_parts whether to include support and prime tower
      */
     Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
-    
-    /*!
-     * Get the extruder numbers of all extruders used in a given layer.
-     * 
-     * \param layer_nr the index of the layer for which to get the extruders used (negative layer numbers indicate the raft)
-     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
-     */
-    std::vector<bool> getExtrudersUsed(int layer_nr);
-    
+
     /*!
      * Get the extruders used.
      * 

@@ -102,6 +102,7 @@ enum class EFillMethod
 {
     LINES,
     GRID,
+    CUBIC,
     TRIANGLES,
     CONCENTRIC,
     ZIG_ZAG,

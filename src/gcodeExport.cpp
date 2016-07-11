@@ -15,6 +15,8 @@ GCodeExport::GCodeExport()
 , currentPosition(0,0,MM2INT(20))
 , layer_nr(0)
 {
+    *output_stream << std::fixed;
+
     current_e_value = 0;
     current_extruder = 0;
     currentFanSpeed = -1;
@@ -36,34 +38,42 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(MeshGroup* settings)
+void GCodeExport::preSetup(const MeshGroup* settings)
 {
     setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
     extruder_count = settings->getSettingAsCount("machine_extruder_count");
 
-    for (unsigned int n = 0; n < extruder_count; n++)
+    for (const Mesh& mesh : settings->meshes)
     {
-        ExtruderTrain* train = settings->getExtruderTrain(n);
-        setFilamentDiameter(n, train->getSettingInMicrons("material_diameter")); 
+        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+    }
 
-        extruder_attr[n].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
-        extruder_attr[n].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+    for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
 
-        extruder_attr[n].start_code = train->getSettingString("machine_extruder_start_code");
-        extruder_attr[n].end_code = train->getSettingString("machine_extruder_end_code");
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
+            )
+        {
+            extruder_attr[extruder_nr].is_used = true;
+        }
+        setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
-        extruder_attr[n].extruder_switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
-        extruder_attr[n].extruder_switch_retraction_config.prime_volume = 0.0;
-        extruder_attr[n].extruder_switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
-        extruder_attr[n].extruder_switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
-        extruder_attr[n].extruder_switch_retraction_config.zHop = train->getSettingInMicrons("switch_extruder_retraction_hop");
-        extruder_attr[n].extruder_switch_retraction_config.retraction_count_max = 9999999; // extruder switch retraction is never limited
-        extruder_attr[n].extruder_switch_retraction_config.retraction_extrusion_window = 99999.9; // so that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions)
-        extruder_attr[n].extruder_switch_retraction_config.retraction_min_travel_distance = 0; // no limitation on travel distance for an extruder switch retract
+        extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
+        extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
 
-        extruder_attr[n].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+        extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
+        extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+
+        extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
+        extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
+
+        extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
     machine_dimensions.x = settings->getSettingInMicrons("machine_width");
     machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
@@ -120,6 +130,10 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
 
         for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
         {
+            if (!extruder_attr[extr_nr].is_used)
+            {
+                continue;
+            }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".INITIAL_TEMPERATURE:" << extruder_attr[extr_nr].initial_temp << new_line;
             if (filament_used.size() == extruder_count)
             {
@@ -172,9 +186,14 @@ void GCodeExport::setOutputStream(std::ostream* stream)
     *output_stream << std::fixed;
 }
 
-int GCodeExport::getNozzleSize(int extruder_idx)
+bool GCodeExport::getExtruderIsUsed(int extruder_nr)
 {
-    return extruder_attr[extruder_idx].nozzle_size;
+    return extruder_attr[extruder_nr].is_used;
+}
+
+int GCodeExport::getNozzleSize(int extruder_nr)
+{
+    return extruder_attr[extruder_nr].nozzle_size;
 }
 
 Point GCodeExport::getExtruderOffset(int id)
@@ -336,6 +355,7 @@ void GCodeExport::updateTotalPrintTime()
 {
     totalPrintTime += estimateCalculator.calculate();
     estimateCalculator.reset();
+    writeTimeComment(totalPrintTime);
 }
 
 void GCodeExport::writeComment(std::string comment)
@@ -353,9 +373,9 @@ void GCodeExport::writeComment(std::string comment)
     *output_stream << new_line;
 }
 
-void GCodeExport::writeTypeComment(const char* type)
+void GCodeExport::writeTimeComment(const double time)
 {
-    *output_stream << ";TYPE:" << type << new_line;
+    *output_stream << ";TIME_ELAPSED:" << time << new_line;
 }
 
 void GCodeExport::writeTypeComment(PrintFeatureType type)
@@ -672,44 +692,35 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool ext
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config->prime_volume;
 
-    if (config->zHop > 0)
+}
+
+void GCodeExport::writeZhopStart(int hop_height)
+{
+    if (hop_height > 0)
     {
-        isZHopped = config->zHop;
+        isZHopped = hop_height;
         *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << new_line;
     }
 }
 
-void GCodeExport::writeRetraction_extruderSwitch()
+void GCodeExport::startExtruder(int new_extruder)
 {
-    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
-    RetractionConfig* config = &extr_attr.extruder_switch_retraction_config;
+    if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
+    {
+        if (flavor == EGCodeFlavor::MAKERBOT)
+        {
+            *output_stream << "M135 T" << new_extruder << new_line;
+        }
+        else
+        {
+            *output_stream << "T" << new_extruder << new_line;
+        }
+    }
 
-    writeRetraction(config, true, true);
-}
-
-void GCodeExport::switchExtruder(int new_extruder)
-{
-    if (current_extruder == new_extruder)
-        return;
-
-    writeRetraction_extruderSwitch();
-
-    resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
-
-    int old_extruder = current_extruder;
     current_extruder = new_extruder;
 
-    writeCode(extruder_attr[old_extruder].end_code.c_str());
-    if (flavor == EGCodeFlavor::MAKERBOT)
-    {
-        *output_stream << "M135 T" << current_extruder << new_line;
-    }
-    else
-    {
-        *output_stream << "T" << current_extruder << new_line;
-    }
-
-    resetExtrusionValue(); // zero the E value on the new extruder, because a firmware bug in Griffin adjusted the E-value when performing a toolswitch (should be fixed as of 9 may 2016)
+    assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
+    resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
     writeCode(extruder_attr[new_extruder].start_code.c_str());
 
@@ -717,14 +728,52 @@ void GCodeExport::switchExtruder(int new_extruder)
     currentPosition.z += 1;
 }
 
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
+{
+    if (current_extruder == new_extruder)
+        return;
+
+    bool force = true;
+    bool extruder_switch = true;
+    writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+
+    resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
+
+    int old_extruder = current_extruder;
+
+    writeCode(extruder_attr[old_extruder].end_code.c_str());
+
+    startExtruder(new_extruder);
+}
+
 void GCodeExport::writeCode(const char* str)
 {
     *output_stream << str << new_line;
 }
 
-void GCodeExport::writePrimeTrain()
+void GCodeExport::writePrimeTrain(double travel_speed)
 {
-    *output_stream << "G280" << new_line;
+    if (extruder_attr[current_extruder].is_primed)
+    { // extruder is already primed once!
+        return;
+    }
+    Point3 prime_pos = extruder_attr[current_extruder].prime_pos;
+    if (!extruder_attr[current_extruder].prime_pos_is_abs)
+    {
+        prime_pos += currentPosition;
+    }
+    writeMove(prime_pos, travel_speed, 0.0);
+
+    if (flavor == EGCodeFlavor::GRIFFIN)
+    {
+        *output_stream << "G280" << new_line;
+    }
+    else
+    {
+        // there is no prime gcode for other firmware versions...
+    }
+
+    extruder_attr[current_extruder].is_primed = true;
 }
 
 

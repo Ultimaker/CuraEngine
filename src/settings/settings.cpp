@@ -3,6 +3,8 @@
 #include <fstream>
 #include <stdio.h>
 #include <sstream> // ostringstream
+#include <regex> // regex parsing for temp flow graph
+#include <string> // stod (string to double)
 #include "../utils/logoutput.h"
 
 #include "settings.h"
@@ -76,7 +78,7 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
     else
     {
-        cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
+        cura::logError("Warning: setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
         _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
     }
 }
@@ -182,56 +184,28 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) const
 {
     FlowTempGraph ret;
-    const char* c_str = getSettingString(key).c_str();
-    char const* char_p = c_str;
-    while (*char_p != '[')
+    std::string value_string = getSettingString(key);
+    if (value_string.empty())
     {
-        if (*char_p == '\0') //We've reached the end of string without encountering the first opening bracket.
-        {
-            return ret; //Empty at this point.
-        }
-        char_p++;
+        return ret; //Empty at this point.
     }
-    char_p++; // skip the '['
-    for (; *char_p != '\0'; char_p++)
+    std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
+
+    // default constructor = end-of-sequence:
+    std::regex_token_iterator<std::string::iterator> rend;
+
+    int submatches[] = { 1, 2, 3 }; // match whole pair, first number and second number of a pair
+    std::regex_token_iterator<std::string::iterator> a(value_string.begin(), value_string.end(), regex, submatches);
+    while (a != rend)
     {
-        while (*char_p != '[')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the next opening bracket.
-            {
-                return ret; //Don't continue parsing this item then. Just stop and return.
-            }
-            char_p++;
-        }
-        char_p++; // skip the '['
-        char* end;
-        double first = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        char_p = end;
-        while (*char_p != ',')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the comma.
-            {
-                return ret; //This entry is incomplete.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ','
-        double second = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        ret.data.emplace_back(first, second);
-        char_p = end;
-        while (*char_p != ']')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the closing bracket.
-            {
-                return ret; //This entry is probably complete and has been added, but stop searching.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ']'
-        if (*char_p == ']' || *char_p == '\0')
+        a++; // match the whole pair
+        if (a == rend)
         {
             break;
         }
+        double first = std::stod(*a++);
+        double second = std::stod(*a++);
+        ret.data.emplace_back(first, second);
     }
     return ret;
 }
@@ -262,6 +236,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::LINES;
     if (value == "grid")
         return EFillMethod::GRID;
+    if (value == "cubic")
+        return EFillMethod::CUBIC;
     if (value == "triangles")
         return EFillMethod::TRIANGLES;
     if (value == "concentric")

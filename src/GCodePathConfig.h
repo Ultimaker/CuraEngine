@@ -13,6 +13,7 @@ namespace cura
  */
 class GCodePathConfig
 {
+    friend class GCodePlannerTest;
 public:
     /*!
      * The path config settings which may change from layer to layer
@@ -35,12 +36,11 @@ private:
     double extrusion_mm3_per_mm;//!< current mm^3 filament moved per mm line traversed
 public:
     const PrintFeatureType type; //!< name of the feature type
-    RetractionConfig *const retraction_config; //!< The retraction configuration to use when retracting after a part of this feature has been printed.
 
     /*!
      * Basic constructor.
      */
-    GCodePathConfig(RetractionConfig* retraction_config, PrintFeatureType type);
+    GCodePathConfig(PrintFeatureType type);
     
     /*!
      * Initialize some of the member variables.

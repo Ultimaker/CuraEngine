@@ -33,6 +33,8 @@ class Preheat
 
         double standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
 
+        double min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
+
         double material_print_temperature; //!< default print temp (backward compatilibily)
         
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
@@ -43,6 +45,16 @@ class Preheat
     std::vector<Config> config_per_extruder;//!< the nozzle and material temperature settings for each extruder train.
 public:
     /*!
+     * The type of result when computing when to start heating up a nozzle before it's going to be used again.
+     */
+    struct WarmUpResult
+    {
+        double total_time_window; //!< The total time in which cooling and heating takes place.
+        double heating_time; //!< The total time needed to heat to the required temperature.
+        double lowest_temperature; //!< The lower temperature from which heating starts.
+    };
+
+    /*!
      * Get the standby temperature of an extruder train
      * \param extruder the extruder train for which to get the standby tmep
      * \return the standby temp
@@ -51,7 +63,18 @@ public:
     {
         return config_per_extruder[extruder].standby_temp;
     }
-    
+
+    /*!
+     * Get the time it takes to heat up one degree celsius
+     * 
+     * \param extruder the extruder train for which to get time it takes to heat up one degree celsius
+     * \return the time it takes to heat up one degree celsius
+     */
+    double getTimeToHeatup1Degree(int extruder)
+    {
+        return config_per_extruder[extruder].time_to_heatup_1_degree;
+    }
+
     /*!
      * Set the nozzle and material temperature settings for each extruder train.
      */
@@ -67,7 +90,9 @@ public:
             config.time_to_heatup_1_degree = 1.0 / extruder_train.getSettingInSeconds("machine_nozzle_heat_up_speed"); // 0.5
             config.heatup_cooldown_time_mod_while_printing = 1.0 / extruder_train.getSettingInSeconds("material_extrusion_cool_down_speed"); // 0.1
             config.standby_temp = extruder_train.getSettingInSeconds("material_standby_temperature"); // 150
-            
+
+            config.min_time_window = extruder_train.getSettingInSeconds("machine_min_cool_heat_time_window");
+
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
             
             config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
@@ -105,7 +130,17 @@ public:
     {
         return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
     }
-    
+
+    /*!
+     * Return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
+     * \param extruder The extruder for which to get the minimal time window
+     * \return the minimal time window of a specific extruder for letting an unused extruder cool down and warm up again
+     */
+    double getMinimalTimeWindow(unsigned int extruder)
+    {
+        return config_per_extruder[extruder].min_time_window;
+    }
+
     /*!
      * Decide when to start warming up again after starting to cool down towards the standby temperature.
      * Two cases are considered: 
@@ -119,21 +154,27 @@ public:
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
      * \param temp The temperature to which to heat
-     * \return The time before the end of the @p time_window to insert the preheat command
+     * \return The time before the end of the @p time_window to insert the preheat command and the temperature from which the heating starts
      */
-    double timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
+    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
     {
-        double time_ratio_cooldown_heatup = config_per_extruder[extruder].time_to_cooldown_1_degree / config_per_extruder[extruder].time_to_heatup_1_degree;
+        WarmUpResult result;
+        const Config& config = config_per_extruder[extruder];
+        result.total_time_window = time_window;
+        double time_ratio_cooldown_heatup = config.time_to_cooldown_1_degree / config.time_to_heatup_1_degree;
         double time_to_heat_from_standby_to_print_temp = timeToHeatFromStandbyToPrintTemp(extruder, temp);
         double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
         if (time_needed_to_reach_standby_temp < time_window)
         {
-            return time_to_heat_from_standby_to_print_temp;
+            result.heating_time = time_to_heat_from_standby_to_print_temp;
+            result.lowest_temperature = config.standby_temp;
         }
         else 
         {
-            return time_window * config_per_extruder[extruder].time_to_heatup_1_degree / (config_per_extruder[extruder].time_to_cooldown_1_degree + config_per_extruder[extruder].time_to_heatup_1_degree);
+            result.heating_time = time_window * config.time_to_heatup_1_degree / (config.time_to_cooldown_1_degree + config.time_to_heatup_1_degree);
+            result.lowest_temperature = std::max(config.standby_temp, temp - result.heating_time / config.time_to_heatup_1_degree);
         }
+        return result;
     }
     /*!
      * Calculate time needed to warm up the nozzle from a given temp to a given temp.

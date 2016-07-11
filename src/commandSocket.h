@@ -94,7 +94,7 @@ public:
     /*!
      * Send time estimate of how long print would take.
      */
-    void sendPrintTime();
+    void sendPrintTimeMaterialEstimates();
     
     /*!
      * Does nothing at the moment

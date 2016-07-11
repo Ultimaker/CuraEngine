@@ -38,14 +38,17 @@ class GCodeExport : public NoCopy
 private:
     struct ExtruderTrainAttributes
     {
+        Point3 prime_pos; //!< The location this nozzle is primed before printing
+        bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
+        bool is_primed; //!< Whether this extruder has currently already been primed in this print
+
+        bool is_used; //!< Whether this extruder train is actually used during the printing of the current meshgroup
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
         std::string start_code;
         std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
-
-        RetractionConfig extruder_switch_retraction_config; //!< Retraction configuration used when performing extruder switches
 
         double totalFilament; //!< total filament used per extruder in mm^3
         int currentTemperature;
@@ -60,7 +63,11 @@ private:
         std::deque<double> extruded_volume_at_previous_n_retractions; // in mm^3
 
         ExtruderTrainAttributes()
-        : nozzle_offset(0,0)
+        : prime_pos(0, 0, 0)
+        , prime_pos_is_abs(false)
+        , is_primed(false)
+        , is_used(false)
+        , nozzle_offset(0,0)
         , extruderCharacter(0)
         , start_code("")
         , end_code("")
@@ -158,7 +165,9 @@ public:
     
     void setOutputStream(std::ostream* stream);
 
-    int getNozzleSize(int extruder_idx);
+    bool getExtruderIsUsed(int extruder_nr); //!< Returns whether the extruder with the given index is used up until the current meshgroup
+
+    int getNozzleSize(int extruder_nr);
 
     Point getExtruderOffset(int id);
     
@@ -206,8 +215,14 @@ public:
     void resetTotalPrintTimeAndFilament();
     
     void writeComment(std::string comment);
-    void writeTypeComment(const char* type);
     void writeTypeComment(PrintFeatureType type);
+
+    /*!
+     * Write a comment saying what (estimated) time has passed up to this point
+     * 
+     * \param time The time passed up till this point
+     */
+    void writeTimeComment(const double time);
     void writeLayerComment(int layer_nr);
     void writeLayerCountComment(int layer_count);
     
@@ -233,17 +248,45 @@ private:
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_per_mm);
 public:
     void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
-    
-    void writeRetraction_extruderSwitch();
-    
-    void switchExtruder(int newExtruder);
-    
+
+    /*!
+     * Start a z hop with the given \p hop_height
+     * 
+     * \param hop_height The height to move above the current layer
+     */
+    void writeZhopStart(int hop_height);
+
+    /*!
+     * Start the new_extruder: 
+     * - set new extruder
+     * - zero E value
+     * - write extruder start gcode
+     * 
+     * \param new_extruder The extruder to start with
+     */
+    void startExtruder(int new_extruder);
+
+    /*!
+     * Switch to the new_extruder: 
+     * - perform neccesary retractions
+     * - fiddle with E-values
+     * - write extruder end gcode
+     * - set new extruder
+     * - write extruder start gcode
+     * 
+     * \param new_extruder The extruder to switch to
+     * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     */
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
+
     void writeCode(const char* str);
     
     /*!
      * Write the gcode for priming the current extruder train so that it can be used.
+     * 
+     * \param travel_speed The travel speed when priming involves a movement
      */
-    void writePrimeTrain();
+    void writePrimeTrain(double travel_speed);
     
     void writeFanCommand(double speed);
     
@@ -265,7 +308,7 @@ public:
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
      */
-    void preSetup(MeshGroup* settings);
+    void preSetup(const MeshGroup* settings);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
