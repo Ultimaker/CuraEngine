@@ -290,7 +290,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         Polygons raftLines;
         double fill_angle = 0;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
 
@@ -317,7 +317,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_interface_config.getLineWidth(), train->getSettingInMicrons("raft_interface_line_spacing"), fill_overlap, fill_angle, z);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_interface_config, SpaceFillType::Lines);
         
@@ -346,7 +346,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         Polygons raft_lines;
         int offset_from_poly_outline = 0;
         double fill_angle = 90 * raftSurfaceLayer;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle);
+        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_surface_config.getLineWidth(), train->getSettingInMicrons("raft_surface_line_spacing"), fill_overlap, fill_angle, z);
         infill_comp.generate(raft_polygons, raft_lines);
         gcode_layer.addLinesByOptimizer(raft_lines, &storage.raft_surface_config, SpaceFillType::Lines);
 
@@ -680,13 +680,14 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
 void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
 {
+    int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int n=1; n<part.infill_area_per_combine.size(); n++)
         {
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-            Infill infill_comp(infill_pattern, part.infill_area_per_combine[n], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
+            Infill infill_comp(infill_pattern, part.infill_area_per_combine[n], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
             Polygons infill_polygons;
             Polygons infill_lines;
             infill_comp.generate(infill_polygons, infill_lines);
@@ -707,9 +708,11 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
     Polygons infill_lines;
-    
+
+    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+
     EFillMethod pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    Infill infill_comp(pattern, part.infill_area_per_combine[0], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, false, false);
+    Infill infill_comp(pattern, part.infill_area_per_combine[0], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
     infill_comp.generate(infill_polygons, infill_lines);
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
@@ -775,6 +778,8 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 
 void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle, int extrusion_width)
 {
+    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
         Polygons skin_polygons;
@@ -809,7 +814,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             inner_skin_outline = &skin_part.outline;
         }
         
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, skin_overlap, skin_angle, false, false);
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, skin_overlap, skin_angle, z, false, false);
         infill_comp.generate(skin_polygons, skin_lines);
         
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
@@ -876,6 +881,8 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         return;
     }
 
+    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+
     int support_line_distance = getSettingInMicrons("support_line_distance");
     int extrusion_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
@@ -912,7 +919,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             offset_from_outline = -extrusion_width;
             support_infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
-        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, support_infill_overlap, 0, getSettingBoolean("support_connect_zigzags"), true);
+        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, support_infill_overlap, 0, z, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
@@ -933,7 +940,9 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         return;
     }
-    
+
+    int64_t z = layer_nr * getSettingInMicrons("layer_height");
+
     EFillMethod pattern = getSettingAsFillMethod("support_roof_pattern");
     int support_line_distance = getSettingInMicrons("support_roof_line_distance");
     
@@ -965,7 +974,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     int support_skin_overlap = 0; // the roofs should never be expanded outwards
     int outline_offset =  0; 
     
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, false, true);
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, false, true);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
