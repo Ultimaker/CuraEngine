@@ -705,7 +705,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     }
 }
 
-void GCodeExport::startExtruder(int new_extruder, double travel_speed)
+void GCodeExport::startExtruder(int new_extruder)
 {
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
@@ -726,13 +726,11 @@ void GCodeExport::startExtruder(int new_extruder, double travel_speed)
 
     writeCode(extruder_attr[new_extruder].start_code.c_str());
 
-    writePrimeTrain(travel_speed);
-
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, double travel_speed_new_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
         return;
@@ -747,7 +745,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
 
     writeCode(extruder_attr[old_extruder].end_code.c_str());
 
-    startExtruder(new_extruder, travel_speed_new_extruder);
+    startExtruder(new_extruder);
 }
 
 void GCodeExport::writeCode(const char* str)

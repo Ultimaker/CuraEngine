@@ -225,7 +225,11 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
-        gcode.startExtruder(start_extruder_nr, storage.meshgroup->getExtruderTrain(start_extruder_nr)->getSettingInMillimetersPerSecond("speed_travel"));
+        gcode.startExtruder(start_extruder_nr);
+        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
+        constexpr bool wait = true;
+        gcode.writeTemperatureCommand(start_extruder_nr, train.getSettingInDegreeCelsius("material_print_temperature"), wait);
+        gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
     }
 }
 
