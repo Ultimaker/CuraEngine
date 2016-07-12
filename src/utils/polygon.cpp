@@ -163,14 +163,16 @@ Polygon Polygons::convexHull() const
 
     using IntPoint = ClipperLib::IntPoint;
 
-    std::vector<IntPoint> all_points;
+    size_t num_points = 0U;
     for (const ClipperLib::Path &path : paths)
     {
-        // Reserve big enough for result, but also maintain O(1)
-        // amortized resize cost
-        size_t reserve_size = std::max(all_points.size() + path.size(),
-                                       2*all_points.size());
-        all_points.reserve(reserve_size);
+        num_points += path.size();
+    }
+
+    std::vector<IntPoint> all_points;
+    all_points.reserve(num_points);
+    for (const ClipperLib::Path &path : paths)
+    {
         for (const IntPoint &point : path)
         {
             all_points.push_back(point);
@@ -199,11 +201,9 @@ Polygon Polygons::convexHull() const
             static_cast<int64_t>(v01.Y) * v12.X;
     };
 
-    size_t num_points = all_points.size();
-
     Polygon hull_poly;
     ClipperLib::Path &hull_points = *hull_poly;
-    hull_points.resize(2*num_points);
+    hull_points.resize(num_points+1);
     // index to insert next hull point, also number of valid hull points
     size_t hull_idx = 0;
 
@@ -234,6 +234,9 @@ Polygon Polygons::convexHull() const
         ++hull_idx;
     }
 
+    assert(hull_idx <= hull_points.size());
+
+    // Last point is duplicted with first.  It is removed in the resize.
     hull_points.resize(hull_idx - 2);
 
     return hull_poly;
