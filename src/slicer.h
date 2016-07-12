@@ -126,7 +126,12 @@ public:
     
     Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
 
-    int64_t interp(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
+    /*!
+     * Linear interpolation
+     * 
+     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
+     */
+    int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
     {
         int64_t dx_01 = x1 - x0;
         int64_t num = (y1 - y0) * (x - x0);
@@ -139,10 +144,10 @@ public:
     {
         SlicerSegment seg;
 
-        seg.start.X = interp(z, p0.z, p1.z, p0.x, p1.x);
-        seg.start.Y = interp(z, p0.z, p1.z, p0.y, p1.y);
-        seg.end  .X = interp(z, p0.z, p2.z, p0.x, p2.x);
-        seg.end  .Y = interp(z, p0.z, p2.z, p0.y, p2.y);
+        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
+        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
+        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
+        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
 
         return seg;
     }
