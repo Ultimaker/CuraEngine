@@ -210,15 +210,7 @@ public:
      * \param include_helper_parts whether to include support and prime tower
      */
     Polygons getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const;
-    
-    /*!
-     * Get the extruder numbers of all extruders used in a given layer.
-     * 
-     * \param layer_nr the index of the layer for which to get the extruders used (negative layer numbers indicate the raft)
-     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
-     */
-    std::vector<bool> getExtrudersUsed(int layer_nr);
-    
+
     /*!
      * Get the extruders used.
      * 

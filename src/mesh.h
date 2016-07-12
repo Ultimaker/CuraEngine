@@ -87,11 +87,19 @@ public:
 
 private:
     int findIndexOfVertex(const Point3& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
+
     /*!
-    Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
-    In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
+     * Get the index of the face connected to the face with index \p notFaceIdx, via vertices \p idx0 and \p idx1.
+     * 
+     * In case multiple faces connect with the same edge, return the next counter-clockwise face when viewing from \p idx1 to \p idx0.
+     * 
+     * \param idx0 the first vertex index
+     * \param idx1 the second vertex index
+     * \param notFaceIdx the index of a face which shouldn't be returned
+     * \param notFaceVertexIdx should be the third vertex of face \p notFaceIdx.
+     * \return the face index of a face sharing the edge from \p idx0 to \p idx1
     */
-    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx) const;
+    int getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const;
 };
 
 }//namespace cura

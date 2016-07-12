@@ -70,22 +70,22 @@ private:
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param mesh_idx The index of the mesh to process in the vector of meshes in \p storage
+     * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed (used for infill meshes)
      * \param total_layers The total number of layers over all objects
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
-    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
+    void processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate);
     
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param mesh_idx The index of the mesh to process in the vector of meshes in \p storage
+     * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed
      * \param total_layers The total number of layers over all objects
      */
-    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers);
+    void processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers);
     
     /*!
      * Process features which are derived from the basic walls, skin, and infill:
@@ -125,8 +125,9 @@ private:
      * Generate the skin areas.
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param layer_nr The layer for which to generate the skin areas.
+     * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr); 
+    void processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill); 
 
     /*!
      * Generate the polygons where the draft screen should be.

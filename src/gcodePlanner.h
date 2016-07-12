@@ -50,14 +50,15 @@ struct NozzleTempInsert
     }
 };
 
-class GCodePlanner; // forward declaration so that TimeMaterialEstimates can be a friend
+class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
+
 
 /*!
  * Time and material estimates for a portion of paths, e.g. layer, extruder plan, path.
  */
 class TimeMaterialEstimates
 {
-    friend class GCodePlanner;
+    friend class ExtruderPlan; // cause there the naive estimates are calculated
 private:
     double extrude_time; //!< Time in seconds occupied by extrusion
     double unretracted_travel_time; //!< Time in seconds occupied by non-retracted travel (non-extrusion)
@@ -262,6 +263,9 @@ public:
     }
 };
 
+class GCodePlanner; // forward declaration so that ExtruderPlan can be a friend
+class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
+
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  * 
@@ -269,7 +273,9 @@ public:
  */
 class ExtruderPlan
 {
-public:
+    friend class GCodePlanner; // TODO: GCodePlanner still does a lot which should actually be handled in this class.
+    friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
+protected:
     std::vector<GCodePath> paths; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
@@ -278,19 +284,16 @@ public:
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
-
+public:
     /*!
      * Simple contructor.
      * 
      * \warning Doesn't set the required temperature yet.
      * 
      * \param extruder The extruder number for which this object is a plan.
+     * \param start_position The position the head is when this extruder plan starts
      */
-    ExtruderPlan(int extruder)
-    : extruder(extruder)
-    , required_temp(-1)
-    {
-    }
+    ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -339,6 +342,54 @@ public:
             inserts.pop_front();
         }
     }
+
+    /*!
+     * Applying speed corrections for minimal layer times and determine the fanSpeed. 
+     * 
+     * \param force_minimal_layer_time Whether we should apply speed changes and perhaps a head lift in order to meet the minimal layer time
+     */
+    void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time);
+
+    void setExtrudeSpeedFactor(double speedFactor);
+    double getExtrudeSpeedFactor();
+    void setTravelSpeedFactor(double speedFactor);
+    double getTravelSpeedFactor(); //!< Get the travel speed factor limited to at most 1.0
+
+    double getFanSpeed();
+protected:
+
+    Point start_position;
+
+    int layer_nr;
+    int layer_thickness;
+
+    FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
+
+    const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
+
+    double extrudeSpeedFactor;
+    double travelSpeedFactor;
+
+    double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
+    double totalPrintTime; //!< The total naive time estimate for this extruder plan
+
+    double fan_speed;
+
+    void setFanSpeed(double _fan_speed);
+
+    /*!
+     * Force the minimal layer time to hold by slowing down and lifting the head if required.
+     * 
+     */
+    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
+
+    /*!
+     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * and store them in each ExtruderPlan and each GCodePath.
+     * 
+     * \return the total estimates of this layer
+     */
+    TimeMaterialEstimates computeNaiveTimeEstimates();
 };
 
 class LayerPlanBuffer; // forward declaration to prevent circular dependency
@@ -378,15 +429,8 @@ private:
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
 
-    FanSpeedLayerTimeSettings& fan_speed_layer_time_settings;
 
-    double extrudeSpeedFactor;
-    double travelSpeedFactor;
-    
-    double fan_speed;
-    
-    double extraTime;
-    double totalPrintTime;
+    std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder;
     
 private:
     /*!
@@ -415,14 +459,16 @@ private:
 public:
     /*!
      * 
+     * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
+    void overrideFanSpeeds(double speed);
     /*!
      * Get the settings base of the last extruder planned.
      * \return the settings base of the last extruder planned.
@@ -488,28 +534,7 @@ public:
         return extruder_plans.back().extruder;
     }
 
-    void setExtrudeSpeedFactor(double speedFactor)
-    {
-        this->extrudeSpeedFactor = speedFactor;
-    }
-    double getExtrudeSpeedFactor()
-    {
-        return this->extrudeSpeedFactor;
-    }
-    void setTravelSpeedFactor(double speedFactor)
-    {
-        if (speedFactor < 1) speedFactor = 1.0;
-        this->travelSpeedFactor = speedFactor;
-    }
-    double getTravelSpeedFactor()
-    {
-        return this->travelSpeedFactor;
-    }
-    
-    void setFanSpeed(double _fan_speed)
-    {
-        fan_speed = _fan_speed;
-    }
+
     
     /*!
      * Add a travel path to a certain point, retract if needed and when avoiding boundary crossings:
@@ -577,14 +602,14 @@ public:
     void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
-     * Compute naive time estimates (without accountign for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
+     * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
      * and store them in each ExtruderPlan and each GCodePath.
+     * 
+     * \warning This function recomputes values which are already computed if you've called processFanSpeedAndMinimalLayerTime
      * 
      * \return the total estimates of this layer
      */
     TimeMaterialEstimates computeNaiveTimeEstimates();
-    
-    void forceMinimalLayerTime(double minTime, double minimalSpeed, double travelTime, double extrusionTime);
     
     /*!
      * Write the planned paths to gcode

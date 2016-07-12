@@ -153,15 +153,31 @@ public:
 
     const Mesh* mesh; //!< The sliced mesh
     
-    Slicer(Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
+
+    /*!
+     * Linear interpolation
+     * 
+     * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
+     */
+    int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
+    {
+        int64_t dx_01 = x1 - x0;
+        int64_t num = (y1 - y0) * (x - x0);
+        num += num > 0 ? dx_01/2 : -dx_01/2; // add in offset to round result
+        int64_t y = y0 + num / dx_01;
+        return y;
+    }
     
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {
         SlicerSegment seg;
-        seg.start.X = p0.x + int64_t(p1.x - p0.x) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.start.Y = p0.y + int64_t(p1.y - p0.y) * int64_t(z - p0.z) / int64_t(p1.z - p0.z);
-        seg.end.X = p0.x + int64_t(p2.x - p0.x) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
-        seg.end.Y = p0.y + int64_t(p2.y - p0.y) * int64_t(z - p0.z) / int64_t(p2.z - p0.z);
+
+        seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
+        seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
+        seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
+        seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
+
         return seg;
     }
     
