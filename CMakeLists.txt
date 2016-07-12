@@ -48,6 +48,7 @@ add_library(clipper STATIC libs/clipper/clipper.cpp)
 set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
     src/commandSocket.cpp
+    src/ConicalOverhang.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp

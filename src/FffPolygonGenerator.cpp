@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
+#include "ConicalOverhang.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
@@ -88,6 +89,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
+
+    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    {
+        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        if (mesh.getSettingBoolean("conical_overhang_enabled"))
+        {
+            ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
+        }
+    }
+
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList);
@@ -98,8 +109,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        
-        
+
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
