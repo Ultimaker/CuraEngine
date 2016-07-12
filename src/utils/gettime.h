@@ -2,15 +2,13 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
-// Use cpu usage time if available, otherwise wall clock time
-//#define USE_CPU_TIME
-
 #ifdef __WIN32
-#include <windows.h>
+    #include <windows.h>
 #else
-#ifdef USE_CPU_TIME
-#include <sys/resource.h>
+    #ifdef USE_CPU_TIME
+    #include <sys/resource.h>
 #endif
+
 #include <sys/time.h>
 #include <stddef.h>
 #include <cassert>
@@ -22,8 +20,8 @@ static inline double getTime()
 {
 #ifdef __WIN32
     return double(GetTickCount()) / 1000.0;
-#else
-#if USE_CPU_TIME
+#else // not __WIN32
+ #if USE_CPU_TIME // Use cpu usage time if available, otherwise wall clock time
     int ret;
     struct rusage usage;
     ret = getrusage(RUSAGE_SELF,&usage);
@@ -31,12 +29,12 @@ static inline double getTime()
     double user_time =  double(usage.ru_utime.tv_sec) + double(usage.ru_utime.tv_usec) / 1000000.0;
     double sys_time  =  double(usage.ru_stime.tv_sec) + double(usage.ru_stime.tv_usec) / 1000000.0;
     return user_time + sys_time;
-#else
+ #else // not USE_CPU_TIME
     struct timeval tv;
     gettimeofday(&tv, nullptr);
     return double(tv.tv_sec) + double(tv.tv_usec) / 1000000.0;
-#endif
-#endif
+ #endif // USE_CPU_TIME
+#endif // __WIN32
 }
 
 class TimeKeeper
