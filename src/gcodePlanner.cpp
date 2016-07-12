@@ -622,12 +622,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         {
             int prev_extruder = extruder;
             extruder = extruder_plan.extruder;
-            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
+            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder, extruder_plan.required_temp, wait);
             }
+
+            // prime extruder if it hadn't been used yet
+            gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
+
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
                 constexpr bool wait = false;

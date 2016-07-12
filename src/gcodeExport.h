@@ -263,9 +263,8 @@ public:
      * - write extruder start gcode
      * 
      * \param new_extruder The extruder to start with
-     * \param travel_speed The travel speed when we need to move to a prime location
      */
-    void startExtruder(int new_extruder, double travel_speed);
+    void startExtruder(int new_extruder);
 
     /*!
      * Switch to the new_extruder: 
@@ -277,9 +276,8 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
-     * \param travel_speed_new_extruder The travel speed of the new extruder in case we need to prime the new extruder at a specific location
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, double travel_speed_new_extruder);
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
 
     void writeCode(const char* str);
     

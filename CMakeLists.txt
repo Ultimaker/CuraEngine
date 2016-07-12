@@ -31,6 +31,7 @@ option(BUILD_TESTS OFF)
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Building debug release of CuraEngine.")
     add_definitions(-DASSERT_INSANE_OUTPUT)
+    add_definitions(-DUSE_CPU_TIME)
 endif()
 
 # Add warnings

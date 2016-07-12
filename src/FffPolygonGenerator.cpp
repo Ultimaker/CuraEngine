@@ -91,8 +91,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList);
-    // TODO!!! dont generate multi volume overlap with infill meshes!
-    
+
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
