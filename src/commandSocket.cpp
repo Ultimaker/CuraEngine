@@ -437,7 +437,7 @@ void CommandSocket::sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t heig
 #endif
 }
 
-void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, Polygons& polygons, int line_width)
+void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Polygons& polygons, int line_width)
 {
 #ifdef ARCUS
     if (polygons.size() == 0)
@@ -522,7 +522,7 @@ void CommandSocket::sendLayerData()
 
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
-//    log("End sliced object called. Sending ", data.current_layer_count, " layers.");
+//    log("End sliced object called. Sending %d layers.", data.current_layer_count);
 
     // Only send the data to the front end when all mesh groups have been processed.
     if (data.sliced_objects >= private_data->object_count)
@@ -535,8 +535,6 @@ void CommandSocket::sendLayerData()
         data.current_layer_count = 0;
         data.current_layer_offset = 0;
         data.slice_data.clear();
-//        auto done_message = std::make_shared<cura::proto::SlicingFinishedFinished>();
-//        private_data->socket->sendMessage(done_message);
     }
 #endif
 }
@@ -550,7 +548,7 @@ void CommandSocket::sendOptimizedLayerData()
 
     data.sliced_objects++;
     data.current_layer_offset = data.current_layer_count;
-    log("End sliced object called. Sending ", data.current_layer_count, " layers.");
+    log("End sliced object called. Sending %d layers.", data.current_layer_count);
 
     if (data.sliced_objects >= private_data->object_count)
     {
@@ -562,8 +560,6 @@ void CommandSocket::sendOptimizedLayerData()
         data.current_layer_count = 0;
         data.current_layer_offset = 0;
         data.slice_data.clear();
-        auto done_message = std::make_shared<cura::proto::SlicingFinished>();
-        private_data->socket->sendMessage(done_message);
     }
 #endif
 }

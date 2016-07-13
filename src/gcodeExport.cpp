@@ -89,6 +89,8 @@ void GCodeExport::preSetup(const MeshGroup* settings)
     {
         new_line = "\n";
     }
+
+    estimateCalculator.setFirmwareDefaults(settings);
 }
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)

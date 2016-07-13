@@ -49,6 +49,13 @@ struct AABB3D
      * \param offset The offset with which to offset the AABB3D.
      */
     void offset(Point offset);
+
+    /*!
+     * Offset the bounding box in the horizontal direction; outward or inward.
+     * 
+     * \param outset the distance (positive or negative) to expand the bounding box outward
+     */
+    void expandXY(int outset);
 };
 
 }//namespace cura

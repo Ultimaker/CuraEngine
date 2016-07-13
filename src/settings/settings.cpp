@@ -190,22 +190,37 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
         return ret; //Empty at this point.
     }
     std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
+    // match with:
+    // - the last opening bracket '['
+    // - then a bunch of characters until the first comma
+    // - a comma
+    // - a bunch of cahracters until the first closing bracket ']'
+    // matches with any substring which looks like "[  124.512 , 124.1 ]"
 
     // default constructor = end-of-sequence:
     std::regex_token_iterator<std::string::iterator> rend;
 
     int submatches[] = { 1, 2, 3 }; // match whole pair, first number and second number of a pair
-    std::regex_token_iterator<std::string::iterator> a(value_string.begin(), value_string.end(), regex, submatches);
-    while (a != rend)
+    std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
+    while (match_iter != rend)
     {
-        a++; // match the whole pair
-        if (a == rend)
+        match_iter++; // match the whole pair
+        if (match_iter == rend)
         {
             break;
         }
-        double first = std::stod(*a++);
-        double second = std::stod(*a++);
-        ret.data.emplace_back(first, second);
+        std::string first_substring = *match_iter++;
+        std::string second_substring = *match_iter++;
+        try
+        {
+            double first = std::stod(first_substring);
+            double second = std::stod(second_substring);
+            ret.data.emplace_back(first, second);
+        }
+        catch (const std::invalid_argument& e)
+        {
+            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
+        }
     }
     return ret;
 }

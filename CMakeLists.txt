@@ -31,6 +31,7 @@ option(BUILD_TESTS OFF)
 if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Building debug release of CuraEngine.")
     add_definitions(-DASSERT_INSANE_OUTPUT)
+    add_definitions(-DUSE_CPU_TIME)
 endif()
 
 # Add warnings
@@ -47,6 +48,7 @@ add_library(clipper STATIC libs/clipper/clipper.cpp)
 set(engine_SRCS # Except main.cpp.
     src/bridge.cpp
     src/commandSocket.cpp
+    src/ConicalOverhang.cpp
     src/ExtruderTrain.cpp
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
