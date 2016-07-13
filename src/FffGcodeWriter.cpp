@@ -170,7 +170,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         mesh.insetX_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x"), mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingInPercentage("material_flow"));
         mesh.skin_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("skin_line_width"), mesh.getSettingInPercentage("material_flow"));
     
-        for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
+        for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
         {
             mesh.infill_config[idx].init(mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill"), mesh.getSettingInMicrons("infill_line_width") * (idx + 1), mesh.getSettingInPercentage("material_flow"));
         }
@@ -692,7 +692,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-        for(unsigned int n=1; n<part.infill_area_per_combine.size(); n++)
+        for (unsigned int n = 1; n < part.infill_area_per_combine.size(); n++)
         {
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
             Infill infill_comp(infill_pattern, part.infill_area_per_combine[n], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
