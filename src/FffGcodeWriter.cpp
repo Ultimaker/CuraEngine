@@ -692,7 +692,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-        for(unsigned int n=1; n<part.infill_area_per_combine.size(); n++)
+        for (unsigned int n = 1; n < part.infill_area_per_combine.size(); n++)
         {
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
             Infill infill_comp(infill_pattern, part.infill_area_per_combine[n], 0, extrusion_width, infill_line_distance, infill_overlap, infill_angle, z, false, false);
