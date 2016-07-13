@@ -675,10 +675,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
-        if (mesh->getSettingBoolean("infill_mesh"))
-        {
-            gcode_layer.setIsInside(true);
-        }
         addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
     }
 }
