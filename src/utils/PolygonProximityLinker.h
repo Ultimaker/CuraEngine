@@ -18,29 +18,21 @@ namespace cura
 {
 
 /*!
- * TODO: update description
- * Class for computing and compensating for overlapping (outer) wall lines.
- * The overlapping area is approximated with connected trapzoids.
- * All places where the wall is closer than the nozzle width to another piece of wall are recorded.
- * The area of a trapezoid is then the length between two such locations multiplied by the average overlap at the two locations.
- * 
- * The amount of overlap between two locations is recorded in a link, so that we can look up the overlap at a given point in the polygon.
+ * Class for computing which parts of polygons are close to which other parts of polygons
  * A link always occurs between a point already on a polygon and either another point of a polygon or a point on a line segment of a polygon.
+ * 
  * In the latter case we insert the point into the polygon so that we can later look up by how much to reduce the extrusion at the corresponding line segment.
- * This is the reason that the polygons are converted to linked lists before the wall overlap compensation computation takes place, after which they are converted back.
+ * This is the reason that the polygons are converted to (linked) lists before the proximity linking computation takes place, after which they are converted back.
  * 
- * At the end of a sequence of trapezoids the overlap area generally ends with a residual triangle.
- * Therefore points are introduced on the line segments involved and a link is created with overlap zero.
+ * At the end of a sequence of proximity links the polygon segments diverge away from each other.
+ * Therefore points are introduced on the line segments involved and a link is created with a link distance of exactly the PolygonProximityLinker::proximity_distance.
  * 
- * We end up with a mapping from each link to a boolean value representing whether the trapezoid is already compensated for.
- * Each point on the polygons then maps to a link (and its corresponding boolean), so that we can easily look up which links corresponds 
- * to the current line segment being produced when producing gcode.
+ * We end up with links which include a boolean field to represent whether the link is already processed from outside.
+ * This is used by functions which use the PolygonProximityLinker class when there is being looped over points in a polygon, which by definition loops over all links twice.
  * 
- * When producing gcode, the first line crossing the overlap area is laid down normally and the second line is reduced by the overlap amount.
- * For this reason the function PolygonProximityLinker::getFlow changes the internal state of this PolygonProximityLinker.
+ * Each point on the polygons maps to a link, so that we can easily look up which links corresponds to the current line segment being handled when compensating for wall overlaps for example.
  * 
  * The main functionality of this class is performed by the constructor.
- * The adjustment during gcode generation is made with the help of PolygonProximityLinker::getFlow
  */
 class PolygonProximityLinker
 {
