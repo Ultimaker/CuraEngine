@@ -333,28 +333,6 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
     }
-
-    /*
-    { // output flow
-        for (ListPolygon poly : copy.list_polygons)
-        {
-            Point p0 = poly.back();
-            svg.writePoint(p0, false, 5, SVG::Color::BLUE); // make start points of each poly blue
-            for (Point& p1 : poly)
-            {
-                Point middle = (p0 + p1) / 2;
-                
-                float flow = copy.getFlow(p0, p1);
-                
-                std::ostringstream oss;
-                oss << "flow: " << flow;
-                svg.writeText(middle, oss.str());
-                
-                p0 = p1;
-            }
-        }
-    }
-    */
 }
     
 }//namespace cura 
