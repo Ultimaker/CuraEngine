@@ -28,19 +28,19 @@ namespace cura
  * The amount of overlap between two locations is recorded in a link, so that we can look up the overlap at a given point in the polygon.
  * A link always occurs between a point already on a polygon and either another point of a polygon or a point on a line segment of a polygon.
  * In the latter case we insert the point into the polygon so that we can later look up by how much to reduce the extrusion at the corresponding line segment.
- * This is the reason that the polygons are converted to linked lists before the wall overlap compensation computation takes place, after which they are converted back.
  * 
  * At the end of a sequence of trapezoids the overlap area generally ends with a residual triangle.
  * Therefore points are introduced on the line segments involved and a link is created with overlap zero.
  * 
- * We end up with a mapping from each link to a boolean value representing whether the trapezoid is already compensated for.
- * Each point on the polygons then maps to a link (and its corresponding boolean), so that we can easily look up which links corresponds 
+ * \see PolygonProximityLinker
+ * 
+ * Each point on the polygons then maps to a link, so that we can easily look up which links corresponds 
  * to the current line segment being produced when producing gcode.
  * 
  * When producing gcode, the first line crossing the overlap area is laid down normally and the second line is reduced by the overlap amount.
- * For this reason the function WallOverlapComputation::getFlow changes the internal state of this WallOverlapComputation.
+ * For this reason the function WallOverlapComputation::getFlow changes the internal state of the PolygonProximityLinker.
  * 
- * The main functionality of this class is performed by the constructor.
+ * The main functionality of this class is performed by the constructor, by calling the constructor of PolygonProximityLinker.
  * The adjustment during gcode generation is made with the help of WallOverlapComputation::getFlow
  */
 class WallOverlapComputation
