@@ -57,12 +57,15 @@ public:
     }
 };
 
+/*!
+ * A template structure used to store data to be sent to the front end.
+ */
 template <typename T>
 class SliceDataStruct
 {
-public:
     SliceDataStruct( const SliceDataStruct& ) = delete;
     SliceDataStruct& operator=( const SliceDataStruct& ) = delete;
+public:
 
     SliceDataStruct()
         : sliced_objects(0)
@@ -70,13 +73,11 @@ public:
         , current_layer_offset(0)
     { }
 
-    // Number of sliced objects for this sliced object list
+    //! The number of sliced objects for this sliced object list
     int sliced_objects;
 
-    // Number of layers sent to the front end so far
-    // Used for incrementing the current layer in one at a time mode
-    int current_layer_count;
-    int current_layer_offset;
+    int current_layer_count;//!< Number of layers for which data has been buffered in slice_data so far.
+    int current_layer_offset;//!< Offset to add to layer number for the current slice object when slicing one at a time.
 
     std::unordered_map<int, std::shared_ptr<T>> slice_data;
 };
@@ -108,14 +109,21 @@ public:
     SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
 };
 
+/*!
+ * PathCompiler buffers and prepares the sliced data to be sent to the front end and saves them in
+ * appropriate buffers
+ */
 class CommandSocket::PathCompiler
 {
     static_assert(sizeof(PrintFeatureType) == 1, "To be compatible with the Cura frontend code PrintFeatureType needs to be of size 1");
+    //! Reference to the private data of the CommandSocket used to send the data to the front end.
     CommandSocket::Private& _cs_private_data;
+    //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
     int _layer_nr;
-    std::vector<PrintFeatureType> line_types;
-    std::vector<int> line_widths;
-    std::vector<Point> points;
+
+    std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
+    std::vector<int> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
+    std::vector<Point> points; //!< The points used to define the line segments, the size of this vector is N+1 as each line segment is defined from one point to the next.
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -516,6 +524,7 @@ void CommandSocket::sendLayerData()
     data.current_layer_offset = data.current_layer_count;
 //    log("End sliced object called. Sending ", data.current_layer_count, " layers.");
 
+    // Only send the data to the front end when all mesh groups have been processed.
     if (data.sliced_objects >= private_data->object_count)
     {
         for (std::pair<const int, std::shared_ptr<cura::proto::Layer>> entry : data.slice_data) //Note: This is in no particular order!
