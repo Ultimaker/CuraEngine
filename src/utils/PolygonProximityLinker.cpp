@@ -142,13 +142,7 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
     ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
         proximity_point_links.emplace(link);
-        
-//     if (! result.second)
-//     { // we already have the link
-//         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
-//         result.first->second = attr;
-//     }
-    
+
     ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->a.it, it);
     addToPoint2LinkMap(*it->b.it, it);
