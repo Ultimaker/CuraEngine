@@ -236,6 +236,8 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         constexpr bool wait = true;
         gcode.writeTemperatureCommand(start_extruder_nr, train.getSettingInDegreeCelsius("material_print_temperature"), wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
+        gcode.writeRetraction(&retraction_config);
     }
 }
 
