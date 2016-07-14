@@ -318,14 +318,14 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
         std::vector<PolygonsPart> new_parts;
 
         for (unsigned int other_mesh_idx : mesh_order)
-        {
+        { // limit the infill mesh's outline to within the infill of all meshes with lower order
             if (other_mesh_idx == mesh_idx)
             {
                 break; // all previous meshes have been processed
             }
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (layer_idx >= other_mesh.layers.size())
-            {
+            { // there can be no interaction between the infill mesh and this other non-infill mesh
                 continue;
             }
 
@@ -334,28 +334,30 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
             for (SliceLayerPart& part : layer.parts)
             {
                 for (SliceLayerPart& other_part : other_layer.parts)
-                {
+                { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
                     if (!part.boundaryBox.hit(other_part.boundaryBox))
-                    {
+                    { // early out
                         continue;
                     }
                     Polygons& infill = other_part.infill_area;
                     Polygons new_outline = part.outline.intersection(infill);
                     if (new_outline.size() == 1)
-                    {
+                    { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                         PolygonsPart outline_part_here;
                         outline_part_here.add(new_outline[0]);
                         new_parts.push_back(outline_part_here);
                     }
                     else if (new_outline.size() > 1)
-                    {
+                    { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
                         std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
                         for (PolygonsPart& new_part_here : new_parts_here)
                         {
                             new_parts.push_back(new_part_here);
                         }
                     }
+                    // change the infill of the non-infill mesh
                     infill = infill.difference(part.outline);
+                    // also change the infill_area_per_combine which is supposed to be initialized to the infill area at this stage (before infill combine is calculated)
                     other_part.infill_area_per_combine.back() = infill;
                 }
             }
