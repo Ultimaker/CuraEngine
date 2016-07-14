@@ -115,15 +115,20 @@ public:
  */
 class CommandSocket::PathCompiler
 {
+    typedef cura::proto::PathSegment::PointType PointType;
     static_assert(sizeof(PrintFeatureType) == 1, "To be compatible with the Cura frontend code PrintFeatureType needs to be of size 1");
     //! Reference to the private data of the CommandSocket used to send the data to the front end.
     CommandSocket::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
     int _layer_nr;
+    int extruder;
+    PointType data_point_type;
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
-    std::vector<int> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
-    std::vector<Point> points; //!< The points used to define the line segments, the size of this vector is N+1 as each line segment is defined from one point to the next.
+    std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
+    std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is the dimensionality of the point.
+
+    Point last_point;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -131,8 +136,11 @@ public:
     PathCompiler(CommandSocket::Private& cs_private_data):
         _cs_private_data(cs_private_data),
         _layer_nr( 0 ),
+        extruder(0),
+        data_point_type(cura::proto::PathSegment::Point2D),
         line_widths(),
-        points()
+        points(),
+        last_point{0,0}
     {}
     ~PathCompiler()
     {
@@ -159,9 +167,9 @@ public:
     void handleInitialPoint( Point from )
     {
         if( points.size() == 0 ){
-            points.push_back( from );
+            addPoint2D( from );
         }
-        else if( from != points.back() )
+        else if( from != last_point )
         {
             addLineSegment( PrintFeatureType::NoneType, from, 1.0);
         }
@@ -181,11 +189,20 @@ public:
      */
     void sendPolygon( PrintFeatureType print_feature_type, Polygon poly, int width);
 private:
+    /*!
+     * Convert and add a point to the points buffer, each point being represented as two consecutive floats.
+     */
+    void addPoint2D( Point point )
+    {
+        points.push_back( INT2MM(point.X) );
+        points.push_back( INT2MM(point.Y) );
+        last_point = point;
+    }
     void addLineSegment( PrintFeatureType print_feature_type, Point point, int line_width)
     {
-        points.push_back( point );
+        addPoint2D( point );
         line_types.push_back( print_feature_type );
-        line_widths.push_back( line_width );
+        line_widths.push_back( INT2MM(line_width) );
     }
 };
 #endif
@@ -655,14 +672,16 @@ void CommandSocket::PathCompiler::flushPathSegments()
         std::shared_ptr<cura::proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
 
         cura::proto::PathSegment* p = proto_layer->add_path_segment();
+        p->set_extruder( extruder );
+        p->set_point_type( data_point_type );
         std::string line_type_data;
         line_type_data.append(reinterpret_cast<const char*>( line_types.data()), line_types.size()*sizeof(PrintFeatureType) );
         p->set_line_type(line_type_data);
         std::string polydata;
-        polydata.append(reinterpret_cast<const char*>( points.data()), points.size() * sizeof(Point));
+        polydata.append(reinterpret_cast<const char*>( points.data()), points.size() * sizeof(float));
         p->set_points(polydata);
         std::string line_width_data;
-        line_width_data.append(reinterpret_cast<const char*>( line_widths.data()), line_widths.size()*sizeof(int) );
+        line_width_data.append(reinterpret_cast<const char*>( line_widths.data()), line_widths.size()*sizeof(float) );
         p->set_line_width(line_width_data);
     }
     points.clear();
@@ -693,7 +712,7 @@ void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_typ
     while ( ++it != it_end )
     {
         // Ignore zero-length segments.
-        if ( *it != points.back() )
+        if ( *it != last_point )
         {
             addLineSegment( print_feature_type, *it, width );
         }
