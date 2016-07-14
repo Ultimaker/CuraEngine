@@ -23,7 +23,7 @@ void PrimeTower::initConfigs(MeshGroup* meshgroup, std::vector<RetractionConfig>
     
     for (int extr = 0; extr < extruder_count; extr++)
     {
-        config_per_extruder.emplace_back(&retraction_config_per_extruder[extr], PrintFeatureType::Support);// so that visualization in the old Cura still works (TODO)
+        config_per_extruder.emplace_back(PrintFeatureType::Support);// so that visualization in the old Cura still works (TODO)
     }
     for (int extr = 0; extr < extruder_count; extr++)
     {

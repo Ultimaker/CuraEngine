@@ -67,8 +67,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        RetractionConfig* retraction_config = nullptr;
-        travel_config_per_extruder.emplace_back(retraction_config, PrintFeatureType::MoveCombing);
+        travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
     }
     return ret;
 }
@@ -77,8 +76,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        RetractionConfig* extruder_retraction_config = &retraction_config_per_extruder[extruder];
-        skirt_config.emplace_back(extruder_retraction_config, PrintFeatureType::Skirt);
+        skirt_config.emplace_back(PrintFeatureType::Skirt);
     }
     return ret;
 }
@@ -88,11 +86,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
     skirt_config(initializeSkirtConfigs()),
-    raft_base_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_interface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    raft_surface_config(&retraction_config_per_extruder[getSettingAsIndex("adhesion_extruder_nr")], PrintFeatureType::Support),
-    support_config(&retraction_config_per_extruder[getSettingAsIndex("support_infill_extruder_nr")], PrintFeatureType::Support),
-    support_roof_config(&retraction_config_per_extruder[getSettingAsIndex("support_roof_extruder_nr")], PrintFeatureType::Skin),
+    raft_base_config(PrintFeatureType::Support),
+    raft_interface_config(PrintFeatureType::Support),
+    raft_surface_config(PrintFeatureType::Support),
+    support_config(PrintFeatureType::Support),
+    support_roof_config(PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }
@@ -128,6 +126,10 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         Polygons total;
         for (const SliceMeshStorage& mesh : meshes)
         {
+            if (mesh.getSettingBoolean("infill_mesh"))
+            {
+                continue;
+            }
             const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getOutlines(total, external_polys_only);
             if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
@@ -185,61 +187,6 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
         return total;
     }
 
-}
-
-
-std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
-{
-    std::vector<bool> ret;
-    ret.resize(meshgroup->getExtruderCount(), false);
-    if (layer_nr < 0)
-    {
-        ret[getSettingAsIndex("adhesion_extruder_nr")] = true; // raft
-    }
-    else 
-    {
-        if (layer_nr == 0)
-        { // process brim/skirt
-            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
-            {
-                if (skirt[extr_nr].size() > 0)
-                {
-                    ret[extr_nr] = true;
-                    continue;
-                }
-            }
-        }
-
-        // TODO: ooze shield, draft shield
-
-        // support
-        if (support.supportLayers[layer_nr].supportAreas.size() > 0)
-        {
-            if (layer_nr == 0)
-            {
-                ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
-            }
-            else 
-            {
-                ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-            }
-        }
-        if (support.supportLayers[layer_nr].roofs.size() > 0)
-        {
-            ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
-        }
-
-        for (SliceMeshStorage& mesh : meshes)
-        {
-            SliceLayer& layer = mesh.layers[layer_nr];
-            int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            if (layer.parts.size() > 0)
-            {
-                ret[extr_nr] = true;
-            }
-        }
-    }
-    return ret;
 }
 
 std::vector< bool > SliceDataStorage::getExtrudersUsed()

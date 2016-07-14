@@ -6,6 +6,7 @@
 
 #include "polygon.h"
 #include "BucketGrid2D.h"
+#include "optional.h"
 
 namespace cura 
 {
@@ -248,7 +249,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the BucketGrid
      */
-    static ClosestPolygonPoint* findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static std::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
     
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the BucketGrid \p destination_loc_to_line

@@ -70,10 +70,10 @@ void print_call(int argc, char **argv)
 
 void connect(int argc, char **argv)
 {
-    CommandSocket::instantiate();
     std::string ip;
     int port = 49674;
-    
+
+    // parse ip port
     std::string ip_port(argv[2]);
     if (ip_port.find(':') != std::string::npos)
     {
@@ -109,7 +109,8 @@ void connect(int argc, char **argv)
             }
         }
     }
-    
+
+    CommandSocket::instantiate();
     CommandSocket::getInstance()->connect(ip, port);
 }
 

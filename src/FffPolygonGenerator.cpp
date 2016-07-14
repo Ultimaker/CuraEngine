@@ -18,6 +18,7 @@
 #include "debug.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
+#include "ConicalOverhang.h"
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
@@ -88,19 +89,27 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
+
+    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    {
+        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        if (mesh.getSettingBoolean("conical_overhang_enabled"))
+        {
+            ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
+        }
+    }
+
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
     //carveMultipleVolumes(storage.meshes);
     generateMultipleVolumesOverlap(slicerList);
-    // TODO!!! dont generate multi volume overlap with infill meshes!
-    
+
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        
-        
+
         createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
@@ -178,10 +187,10 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             mesh_order.push_back(order_and_mesh_idx.second);
         }
     }
-    for (unsigned int mesh_idx : mesh_order)
+    for (unsigned int mesh_order_idx(0); mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
-        processBasicWallsSkinInfill(storage, mesh_idx, mesh_order, total_layers, inset_skin_progress_estimate);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_idx + 1, storage.meshes.size());
+        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, total_layers, inset_skin_progress_estimate);
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
     //layerparts2HTML(storage, "output/output.html");
 
@@ -230,13 +239,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
 {
-    
+    unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     if (mesh.getSettingBoolean("infill_mesh"))
     {
-        processInfillMesh(storage, mesh_idx, mesh_order, total_layers);
+        processInfillMesh(storage, mesh_order_idx, mesh_order, total_layers);
     }
     
     // TODO: make progress more accurate!!
@@ -260,7 +269,27 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(total_layers);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
-    
+
+    bool process_infill = mesh.getSettingInMicrons("infill_line_distance") > 0;
+    if (!process_infill)
+    { // do process infill anyway if it's modified by modifier meshes
+        for (unsigned int other_mesh_order_idx(mesh_order_idx + 1); other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
+        {
+            unsigned int other_mesh_idx = mesh_order[other_mesh_order_idx];
+            SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
+            if (other_mesh.getSettingBoolean("infill_mesh"))
+            {
+                AABB3D aabb = storage.meshgroup->meshes[mesh_idx].getAABB();
+                AABB3D other_aabb = storage.meshgroup->meshes[other_mesh_idx].getAABB();
+                aabb.expandXY(mesh.getSettingInMicrons("xy_offset"));
+                other_aabb.expandXY(other_mesh.getSettingInMicrons("xy_offset"));
+                if (aabb.hit(other_aabb))
+                {
+                    process_infill = true;
+                }
+            }
+        }
+    }
     // skin & infill
 //     Progress::messageProgressStage(Progress::Stage::SKIN, &time_keeper);
     int mesh_max_bottom_layer_count = 0;
@@ -272,15 +301,16 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
         if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
-            processSkinsAndInfill(mesh, layer_number);
+            processSkinsAndInfill(mesh, layer_number, process_infill);
         }
         double progress = inset_skin_progress_estimate.progress(layer_number);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 }
 
-void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
 {
+    unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
@@ -288,14 +318,14 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
         std::vector<PolygonsPart> new_parts;
 
         for (unsigned int other_mesh_idx : mesh_order)
-        {
+        { // limit the infill mesh's outline to within the infill of all meshes with lower order
             if (other_mesh_idx == mesh_idx)
             {
                 break; // all previous meshes have been processed
             }
             SliceMeshStorage& other_mesh = storage.meshes[other_mesh_idx];
             if (layer_idx >= other_mesh.layers.size())
-            {
+            { // there can be no interaction between the infill mesh and this other non-infill mesh
                 continue;
             }
 
@@ -304,28 +334,31 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
             for (SliceLayerPart& part : layer.parts)
             {
                 for (SliceLayerPart& other_part : other_layer.parts)
-                {
+                { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
                     if (!part.boundaryBox.hit(other_part.boundaryBox))
-                    {
+                    { // early out
                         continue;
                     }
-                    Polygons& infill = other_part.infill_area;
+                    const Polygons& infill = other_part.infill_area;
                     Polygons new_outline = part.outline.intersection(infill);
                     if (new_outline.size() == 1)
-                    {
+                    { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                         PolygonsPart outline_part_here;
                         outline_part_here.add(new_outline[0]);
                         new_parts.push_back(outline_part_here);
                     }
                     else if (new_outline.size() > 1)
-                    {
+                    { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
                         std::vector<PolygonsPart> new_parts_here = new_outline.splitIntoParts();
                         for (PolygonsPart& new_part_here : new_parts_here)
                         {
                             new_parts.push_back(new_part_here);
                         }
                     }
-                    infill = infill.difference(part.outline);
+                    // change the infill of the non-infill mesh
+                    // change the infill_area_per_combine which is supposed to be initialized to the infill area at this stage (before infill combine is calculated)
+                    other_part.infill_area_per_combine.back() = infill.difference(part.outline);
+                    // note: don't change the part.infill_area, because we change the structure ofthat area, while the basic area in which infill is printed remains the same
                 }
             }
         }
@@ -429,7 +462,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
     }
 }
   
-void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr) 
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill) 
 {
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) 
     { 
@@ -440,8 +473,10 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
     int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
     generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
-    if (mesh.getSettingInMicrons("infill_line_distance") > 0)
-    {
+
+    if (process_infill)
+    { // process infill when infill density > 0
+        // or when other infill meshes want to modify this infill
         int infill_skin_overlap = 0;
         bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
         if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)

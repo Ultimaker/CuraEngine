@@ -3,6 +3,8 @@
 #include <fstream>
 #include <stdio.h>
 #include <sstream> // ostringstream
+#include <regex> // regex parsing for temp flow graph
+#include <string> // stod (string to double)
 #include "../utils/logoutput.h"
 
 #include "settings.h"
@@ -76,7 +78,7 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
     else
     {
-        cura::logError("Warning: setting an unregistered setting %s\n", key.c_str() );
+        cura::logError("Warning: setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
         _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
     }
 }
@@ -182,55 +184,42 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) const
 {
     FlowTempGraph ret;
-    const char* c_str = getSettingString(key).c_str();
-    char const* char_p = c_str;
-    while (*char_p != '[')
+    std::string value_string = getSettingString(key);
+    if (value_string.empty())
     {
-        if (*char_p == '\0') //We've reached the end of string without encountering the first opening bracket.
-        {
-            return ret; //Empty at this point.
-        }
-        char_p++;
+        return ret; //Empty at this point.
     }
-    char_p++; // skip the '['
-    for (; *char_p != '\0'; char_p++)
+    std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
+    // match with:
+    // - the last opening bracket '['
+    // - then a bunch of characters until the first comma
+    // - a comma
+    // - a bunch of cahracters until the first closing bracket ']'
+    // matches with any substring which looks like "[  124.512 , 124.1 ]"
+
+    // default constructor = end-of-sequence:
+    std::regex_token_iterator<std::string::iterator> rend;
+
+    int submatches[] = { 1, 2, 3 }; // match whole pair, first number and second number of a pair
+    std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
+    while (match_iter != rend)
     {
-        while (*char_p != '[')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the next opening bracket.
-            {
-                return ret; //Don't continue parsing this item then. Just stop and return.
-            }
-            char_p++;
-        }
-        char_p++; // skip the '['
-        char* end;
-        double first = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        char_p = end;
-        while (*char_p != ',')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the comma.
-            {
-                return ret; //This entry is incomplete.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ','
-        double second = strtod(char_p, &end); //If not a valid number, this becomes zero.
-        ret.data.emplace_back(first, second);
-        char_p = end;
-        while (*char_p != ']')
-        {
-            if (*char_p == '\0') //We've reached the end of string without finding the closing bracket.
-            {
-                return ret; //This entry is probably complete and has been added, but stop searching.
-            }
-            char_p++;
-        }
-        char_p++; // skip the ']'
-        if (*char_p == ']' || *char_p == '\0')
+        match_iter++; // match the whole pair
+        if (match_iter == rend)
         {
             break;
+        }
+        std::string first_substring = *match_iter++;
+        std::string second_substring = *match_iter++;
+        try
+        {
+            double first = std::stod(first_substring);
+            double second = std::stod(second_substring);
+            ret.data.emplace_back(first, second);
+        }
+        catch (const std::invalid_argument& e)
+        {
+            logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
         }
     }
     return ret;

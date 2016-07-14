@@ -68,7 +68,7 @@ private:
 
     bool skirt_is_processed[MAX_EXTRUDERS]; //!< Whether the skirt polygons have been processed into planned paths for each extruder train
 
-    FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //!< The settings used relating to minimal layer time and fan speeds.
+    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
     Point last_position_planned; //!< The position of the head before planning the next layer
     int current_extruder_planned; //!< The extruder train in use before planning the next layer
@@ -78,7 +78,7 @@ public:
     : SettingsMessenger(settings_)
     , layer_plan_buffer(this, gcode)
     , last_position_planned(no_point)
-    , current_extruder_planned(0) // TODO: make configurable
+    , current_extruder_planned(0) // changed somewhere early in FffGcodeWriter::writeGCode
     , is_inside_mesh_layer_part(false)
     {
         max_object_height = 0;
@@ -153,8 +153,10 @@ public:
 private:
     /*!
      * Set the FffGcodeWriter::fan_speed_layer_time_settings by retrieving all settings from the global/per-meshgroup settings.
+     * 
+     * \param[out] storage The data storage to which to save the configuration
      */
-    void setConfigFanSpeedLayerTime();
+    void setConfigFanSpeedLayerTime(SliceDataStorage& storage);
 
     /*!
      * Create and set the SliceDataStorage::coasting_config for each extruder.

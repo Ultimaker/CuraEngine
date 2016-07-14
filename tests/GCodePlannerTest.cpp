@@ -25,7 +25,7 @@ void GCodePlannerTest::setUp()
     storage->retraction_config_per_extruder[0].distance = 10;
 
     // make a new GCodePathConfig and put it at a dummy place (note that the config is not an actual travel config!)
-    storage->travel_config_per_extruder.emplace_back(&storage->retraction_config_per_extruder[0], PrintFeatureType::MoveCombing);
+    storage->travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
     storage->travel_config_per_extruder.back().init(60, MM2INT(0.4), 3000, 20, 1.0);
 
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings; //A dummy fan speed and layer time settings.
@@ -34,10 +34,11 @@ void GCodePlannerTest::setUp()
     fan_speed_layer_time_settings.cool_fan_speed_min = 0;
     fan_speed_layer_time_settings.cool_fan_speed_max = 1;
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
-
-    //                              Slice     layer  z  layer   last        current   is inside  fan speed and layer            combing           comb    travel  travel avoid
-    //                              storage   nr        height  position    extruder  mesh       time settings                  mode              offset  avoid   distance
-    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        false,     fan_speed_layer_time_settings, CombingMode::OFF, 100,    false,  50          );
+    std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
+    fan_speed_layer_time_settings_per_extruder.push_back(fan_speed_layer_time_settings);
+    //                              Slice     layer  z  layer   last        current   is inside  fan speed and layer                        combing           comb    travel  travel avoid
+    //                              storage   nr        height  position    extruder  mesh       time settings                              mode              offset  avoid   distance
+    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        false,     fan_speed_layer_time_settings_per_extruder, CombingMode::OFF, 100,    false,  50          );
 }
 
 void GCodePlannerTest::tearDown()
@@ -57,6 +58,7 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     
     GCodeExport gcode;
     GCodePathConfig configuration = storage->travel_config_per_extruder.back();
+    RetractionConfig retraction_config = storage->retraction_config_per_extruder.back();
     gCodePlanner->addExtrusionMove(Point(0, 0), &configuration, SpaceFillType::Lines, 1.0f); //Need to have at least one path to have a configuration.
     GCodePath* travel_path = gCodePlanner->getLatestPathWithConfig(&configuration, SpaceFillType::None);
     gCodePlanner->addTravel_simple(Point(10, 0), travel_path);
@@ -64,7 +66,7 @@ void GCodePlannerTest::computeNaiveTimeEstimatesRetractionTest()
     travel_path->retract = true;
     TimeMaterialEstimates after_retract = gCodePlanner->computeNaiveTimeEstimates();
     TimeMaterialEstimates estimate_one_retraction = after_retract - before_retract;
-    double retract_unretract_time = configuration.retraction_config->distance / configuration.retraction_config->primeSpeed;
+    double retract_unretract_time = retraction_config.distance / retraction_config.primeSpeed;
     TimeMaterialEstimates estimate_one_retraction_expected(0,retract_unretract_time * 0.5,retract_unretract_time * 0.5,0);
     verifyEstimates(estimate_one_retraction,estimate_one_retraction_expected,"One retraction");
 }

@@ -162,6 +162,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
         bool found = getDefinitionFile(json_document["inherits"].GetString(), child_filename);
         if (!found)
         {
+            cura::logError("Inherited JSON file \"%s\" not found\n", json_document["inherits"].GetString());
             return -1;
         }
         err = loadJSONsettings(child_filename, settings_base, warn_base_file_duplicates); // load child first
@@ -300,6 +301,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
     std::string name = json_setting_it->name.GetString();
     if (json_setting.HasMember("type") && json_setting["type"].IsString() && json_setting["type"].GetString() == std::string("category"))
     { // skip category objects
+        setting_key_to_config[name] = nullptr; // add the category name to the mapping, but don't instantiate a setting config for it.
         return;
     }
     if (settingIsUsedByEngine(json_setting))
@@ -321,6 +323,10 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
             setting = &addSetting(name, label);
         }
         _loadSettingValues(setting, json_setting_it, settings_base);
+    }
+    else
+    {
+        setting_key_to_config[name] = nullptr; // add the setting name to the mapping, but don't instantiate a setting config for it.
     }
 }
 
