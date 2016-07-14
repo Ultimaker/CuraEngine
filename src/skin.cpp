@@ -190,14 +190,16 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
         {
             assert(part.infill_area_per_combine_per_density.size() == 0 && "infill_area_per_combine_per_density is supposed to be uninitialized");
 
-            if (part.infill_area.size() == 0 || layer_idx < min_layer || layer_idx > max_layer)
+            const Polygons& infill_area = (part.infill_area_own)? *part.infill_area_own : part.infill_area;
+
+            if (infill_area.size() == 0 || layer_idx < min_layer || layer_idx > max_layer)
             { // initialize infill_area_per_combine_per_density empty
                 part.infill_area_per_combine_per_density.emplace_back(); // create a new infill_area_per_combine
                 part.infill_area_per_combine_per_density.back().emplace_back(); // put empty infill area in the newly constructed infill_area_per_combine
                 // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
-            Polygons less_dense_infill = part.infill_area; // one step less dense with each infill_step
+            Polygons less_dense_infill = infill_area; // one step less dense with each infill_step
             for (unsigned int infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
                 size_t min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + layer_skip_count;
@@ -218,7 +220,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                         {
                             continue;
                         }
-                        relevent_upper_polygons.add(upper_layer_part.infill_area);
+                        relevent_upper_polygons.add((upper_layer_part.infill_area_own)? *upper_layer_part.infill_area_own : upper_layer_part.infill_area);
                     }
                     less_dense_infill = less_dense_infill.intersection(relevent_upper_polygons);
                 }
@@ -229,7 +231,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
                 // add new infill_area_per_combine for the current density
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-                const Polygons more_dense_infill = part.infill_area.difference(less_dense_infill);
+                const Polygons more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(more_dense_infill);
 
                 if (less_dense_infill.size() == 0)
@@ -239,7 +241,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Polygons>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(part.infill_area);
+            infill_area_per_combine_current_density.push_back(infill_area);
+            part.infill_area_own = nullptr; // clear infill_area_own, it's not needed any more.
             assert(part.infill_area_per_combine_per_density.size() != 0 && "infill_area_per_combine_per_density is now initialized");
         }
     }
