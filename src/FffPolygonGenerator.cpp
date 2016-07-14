@@ -339,7 +339,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     { // early out
                         continue;
                     }
-                    Polygons& infill = other_part.infill_area;
+                    const Polygons& infill = other_part.infill_area;
                     Polygons new_outline = part.outline.intersection(infill);
                     if (new_outline.size() == 1)
                     { // we don't have to call splitIntoParts, because a single polygon can only be a single part
@@ -356,9 +356,9 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                         }
                     }
                     // change the infill of the non-infill mesh
-                    infill = infill.difference(part.outline);
-                    // also change the infill_area_per_combine which is supposed to be initialized to the infill area at this stage (before infill combine is calculated)
-                    other_part.infill_area_per_combine.back() = infill;
+                    // change the infill_area_per_combine which is supposed to be initialized to the infill area at this stage (before infill combine is calculated)
+                    other_part.infill_area_per_combine.back() = infill.difference(part.outline);
+                    // note: don't change the part.infill_area, because we change the structure ofthat area, while the basic area in which infill is printed remains the same
                 }
             }
         }

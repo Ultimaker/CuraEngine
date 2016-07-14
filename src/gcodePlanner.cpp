@@ -145,7 +145,7 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
     else 
     {
-        Polygons layer_walls;
+        Polygons comb_boundary;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
@@ -153,15 +153,15 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
             {
                 for (SliceLayerPart& part : layer.parts)
                 {
-                    layer_walls.add(part.infill_area);
+                    comb_boundary.add(part.infill_area);
                 }
             }
             else
             {
-                layer.getSecondOrInnermostWalls(layer_walls);
+                layer.getSecondOrInnermostWalls(comb_boundary);
             }
         }
-        return layer_walls;
+        return comb_boundary;
     }
 }
 
