@@ -158,6 +158,16 @@ public:
             _layer_nr = new_layer_nr;
         }
     }
+    /*!
+     * Used to set which extruder will be used for printing the following layer data is intended for.
+     */
+    void setExtruder(int new_extruder)
+    {
+        if(extruder != new_extruder ){
+            flushPathSegments();
+            extruder = new_extruder;
+        }
+    }
 
     /*!
      * Special handling of the first point in an added line sequence.
@@ -482,6 +492,13 @@ void CommandSocket::sendLine(cura::PrintFeatureType type, int layer_nr, Point fr
 #ifdef ARCUS
     path_comp->setLayer( layer_nr );
     path_comp->sendLine( type, from, to, line_width );
+#endif
+}
+
+void CommandSocket::setExtruderForSend( int extruder )
+{
+#ifdef ARCUS
+    path_comp->setExtruder( extruder );
 #endif
 }
 

@@ -77,6 +77,11 @@ public:
     void sendLine(cura::PrintFeatureType type, int layer_nr, Point from, Point to, int line_width);
 
     /*!
+     * Set which extruder is being used for the following calls to SendPolygons, SendPolygon and SendLine.
+     */
+    void setExtruderForSend( int extruder );
+
+    /*!
      * Send a polygon to the front-end if the command socket is instantiated. This is used for the layerview in the GUI
      */
     static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);

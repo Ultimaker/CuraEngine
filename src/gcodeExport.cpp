@@ -725,6 +725,10 @@ void GCodeExport::startExtruder(int new_extruder)
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
     writeCode(extruder_attr[new_extruder].start_code.c_str());
+    if(CommandSocket::isInstantiated())
+    {
+        CommandSocket::getInstance()->setExtruderForSend(new_extruder);
+    }
 
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;
