@@ -61,6 +61,10 @@ public:
      */
     optional& operator=(std::nullptr_t null_ptr)
     {
+        if (instance)
+        {
+            delete instance;
+        }
         instance = nullptr;
         return *this;
     }
