@@ -46,6 +46,8 @@ private:
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;
+        std::string material_guid; //!< The GUID for the material used by this extruder
+
         std::string start_code;
         std::string end_code;
         double filament_area; //!< in mm^2 for non-volumetric, cylindrical filament
@@ -156,10 +158,10 @@ public:
      * 
      * \param print_time The total print time in seconds of the whole gcode (if known)
      * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
-     * \param mat_ids The material ids for each material.
+     * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<int16_t>& mat_ids = std::vector<int16_t>());
+    std::string getFileHeader(const double* print_time = nullptr, const std::vector<double>& filament_used = std::vector<double>(), const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setLayerNr(unsigned int layer_nr);
     
@@ -170,7 +172,9 @@ public:
     int getNozzleSize(int extruder_nr);
 
     Point getExtruderOffset(int id);
-    
+
+    std::string getMaterialGUID(int extruder_nr); //!< returns the GUID of the material used for the nozzle with id \p extruder_nr
+
     Point getGcodePos(int64_t x, int64_t y, int extruder_train);
     
     void setFlavor(EGCodeFlavor flavor);
