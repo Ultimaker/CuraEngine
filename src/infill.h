@@ -87,6 +87,12 @@ private:
     void generateCubicInfill(Polygons& result);
 
     /*!
+     * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
+     * \param result (output) The resulting lines
+     */
+    void generateTetrahedralInfill(Polygons& result);
+
+    /*!
      * Generate a triangular grid of infill lines
      * \param result (output) The resulting lines
      */
