@@ -339,8 +339,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     { // early out
                         continue;
                     }
-                    const Polygons& infill = other_part.infill_area;
-                    Polygons new_outline = part.outline.intersection(infill);
+                    Polygons new_outline = part.outline.intersection(other_part.getOwnInfillArea());
                     if (new_outline.size() == 1)
                     { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                         PolygonsPart outline_part_here;
