@@ -84,8 +84,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         */
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
-    
-    log("Layer count: %i\n", slice_layer_count);
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
@@ -136,19 +134,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     layer.printZ += train->getSettingInMicrons("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
-    
- 
+
             if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
             {
                 meshStorage.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             } 
-                
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer.printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
-            }
         }
-        
+
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }
     return true;
@@ -193,6 +185,32 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, slice_layer_count, inset_skin_progress_estimate);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
+
+    unsigned int print_layer_count = 0;
+    if (CommandSocket::isInstantiated())
+    { // send layer info
+        for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+        {
+            SliceLayer* layer = nullptr;
+            for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+            { // find first mesh which has this layer
+                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
+                {
+                    layer = &mesh.layers[layer_nr];
+                    print_layer_count = layer_nr + 1;
+                    break;
+                }
+            }
+            if (layer != nullptr)
+            {
+                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+            }
+        }
+    }
+
+    log("Layer count: %i\n", print_layer_count);
+
     //layerparts2HTML(storage, "output/output.html");
 
     // we need to remove empty layers after we have procesed the insets
