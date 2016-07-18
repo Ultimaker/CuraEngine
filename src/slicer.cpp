@@ -452,14 +452,14 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 }
 
 
-Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 {
-    assert(layer_count > 0);
+    assert(slice_layer_count > 0);
 
-    layers.resize(layer_count);
+    layers.resize(slice_layer_count);
     
-    for(int32_t layer_nr = 0; layer_nr < layer_count; layer_nr++)
+    for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
         layers[layer_nr].z = initial + thickness * layer_nr;
     }

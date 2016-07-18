@@ -62,8 +62,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return false;
     }
     int initial_slice_z = initial_layer_thickness - layer_thickness / 2;
-    int layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
-    if(layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
+    int slice_layer_count = (storage.model_max.z - initial_slice_z) / layer_thickness + 1;
+    if (slice_layer_count <= 0) //Model is shallower than layer_height_0, so not even the first layer is sliced. Return an empty model then.
     {
         return true; //This is NOT an error state!
     }
@@ -72,7 +72,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
         slicerList.push_back(slicer);
         /*
         for(SlicerLayer& layer : slicer->layers)
@@ -85,7 +85,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
     
-    log("Layer count: %i\n", layer_count);
+    log("Layer count: %i\n", slice_layer_count);
 
     meshgroup->clear();///Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
 
@@ -157,12 +157,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 {
     // compute layer count and remove first empty layers
     // there is no separate progress stage for removeEmptyFisrtLayer (TODO)
-    unsigned int total_layers = 0;
+    unsigned int slice_layer_count = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
         if (!mesh.getSettingBoolean("infill_mesh"))
         {
-            total_layers = std::max<unsigned int>(total_layers, mesh.layers.size());
+            slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }
     }
 
@@ -189,7 +189,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     for (unsigned int mesh_order_idx(0); mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
-        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, total_layers, inset_skin_progress_estimate);
+        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, slice_layer_count, inset_skin_progress_estimate);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
     //layerparts2HTML(storage, "output/output.html");
@@ -197,8 +197,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), total_layers); // changes total_layers!
-    if (total_layers == 0)
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), slice_layer_count); // changes total_layers!
+    if (slice_layer_count == 0)
     {
         log("Stopping process because there are no non-empty layers.\n");
         return;
@@ -206,7 +206,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
 
-    AreaSupport::generateSupportAreas(storage, total_layers);
+    AreaSupport::generateSupportAreas(storage, slice_layer_count);
     
     /*
     if (storage.support.generated)
@@ -224,18 +224,18 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
-    storage.primeTower.generatePaths(storage, total_layers);
+    storage.primeTower.generatePaths(storage, slice_layer_count);
 
-    processOozeShield(storage, total_layers);
+    processOozeShield(storage, slice_layer_count);
 
-    processDraftShield(storage, total_layers);
+    processDraftShield(storage, slice_layer_count);
 
     processPlatformAdhesion(storage);
     
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        processDerivedWallsSkinInfill(mesh, total_layers);
+        processDerivedWallsSkinInfill(mesh, slice_layer_count);
     }
 }
 
