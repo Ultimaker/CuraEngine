@@ -104,13 +104,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     generateMultipleVolumesOverlap(slicerList);
 
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
-    for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
+    for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx]); // new mesh in storage had settings from the Mesh
+        Slicer* slicer = slicerList[meshIdx];
+        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
 
-        createLayerParts(meshStorage, slicerList[meshIdx], mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
+        createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
 
         bool has_raft = getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT;
