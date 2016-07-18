@@ -216,8 +216,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), slice_layer_count); // changes total_layers!
-    if (slice_layer_count == 0)
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), print_layer_count); // changes total_layers!
+    if (print_layer_count == 0)
     {
         log("Stopping process because there are no non-empty layers.\n");
         return;
@@ -225,7 +225,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
 
-    AreaSupport::generateSupportAreas(storage, slice_layer_count);
+    AreaSupport::generateSupportAreas(storage, print_layer_count);
     
     /*
     if (storage.support.generated)
@@ -243,18 +243,18 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
-    storage.primeTower.generatePaths(storage, slice_layer_count);
+    storage.primeTower.generatePaths(storage, print_layer_count);
 
-    processOozeShield(storage, slice_layer_count);
+    processOozeShield(storage, print_layer_count);
 
-    processDraftShield(storage, slice_layer_count);
+    processDraftShield(storage, print_layer_count);
 
     processPlatformAdhesion(storage);
     
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        processDerivedWallsSkinInfill(mesh, slice_layer_count);
+        processDerivedWallsSkinInfill(mesh, print_layer_count);
     }
 }
 
