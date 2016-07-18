@@ -356,8 +356,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                         }
                     }
                     // change the infill area of the non-infill mesh which is to be filled with e.g. lines
-                    Polygons& infill_area_own_before = (other_part.infill_area_own)? *other_part.infill_area_own : other_part.infill_area;
-                    other_part.infill_area_own = infill_area_own_before.difference(part.outline);
+                    other_part.infill_area_own = other_part.getOwnInfillArea().difference(part.outline);
                     // note: don't change the part.infill_area, because we change the structure of that area, while the basic area in which infill is printed remains the same
                     //       the infill area remains the same for combing
                 }

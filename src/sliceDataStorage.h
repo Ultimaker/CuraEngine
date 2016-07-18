@@ -67,6 +67,13 @@ public:
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
      */
     std::vector<std::vector<Polygons>> infill_area_per_combine_per_density;
+
+    /*!
+     * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
+     * \see SliceLayerPart::infill_area_own
+     * \return the own infill area
+     */
+    Polygons& getOwnInfillArea();
 };
 
 /*!

@@ -5,6 +5,18 @@
 namespace cura
 {
 
+Polygons& SliceLayerPart::getOwnInfillArea()
+{
+    if (infill_area_own)
+    {
+        return *infill_area_own;
+    }
+    else
+    {
+        return infill_area;
+    }
+}
+
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
