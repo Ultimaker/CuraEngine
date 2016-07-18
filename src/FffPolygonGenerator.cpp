@@ -313,6 +313,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
 {
     unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    mesh.layer_nr_max_filled_layer = -1;
     for (unsigned int layer_idx = 0; layer_idx < mesh.layers.size(); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
@@ -370,6 +371,11 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
             layer.parts.back().outline = part;
             layer.parts.back().boundaryBox.calculate(part);
         }
+
+        if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
+        {
+            mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
+        } 
     }
     
 }
