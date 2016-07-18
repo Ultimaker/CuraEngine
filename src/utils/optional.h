@@ -86,7 +86,7 @@ public:
         {
             if (other.instance)
             {
-                instance = new T(other.instance);
+                instance = new T(*other.instance);
             }
             else
             {
