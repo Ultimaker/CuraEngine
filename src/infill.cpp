@@ -34,6 +34,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     case EFillMethod::CUBIC:
         generateCubicInfill(result_lines);
         break;
+    case EFillMethod::TETRAHEDRAL:
+        generateTetrahedralInfill(result_lines);
+        break;
     case EFillMethod::TRIANGLES:
         generateTriangleInfill(result_lines);
         break;
@@ -73,6 +76,18 @@ void Infill::generateCubicInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle, shift);
     generateLineInfill(result, line_distance, fill_angle + 120, shift);
     generateLineInfill(result, line_distance, fill_angle + 240, shift);
+}
+
+void Infill::generateTetrahedralInfill(Polygons& result)
+{
+    int shift = int64_t(one_over_sqrt_2 * z) % line_distance;
+    shift = std::min(shift, line_distance - shift); // symmetry due to the fact that we are applying the shift in both directions
+    shift = std::min(shift, line_distance / 2 - infill_line_width / 2); // don't put lines too close to each other
+    shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+    generateLineInfill(result, line_distance, fill_angle, shift);
+    generateLineInfill(result, line_distance, fill_angle, -shift);
+    generateLineInfill(result, line_distance, fill_angle + 90, shift);
+    generateLineInfill(result, line_distance, fill_angle + 90, -shift);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)

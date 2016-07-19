@@ -103,6 +103,7 @@ enum class EFillMethod
     LINES,
     GRID,
     CUBIC,
+    TETRAHEDRAL,
     TRIANGLES,
     CONCENTRIC,
     ZIG_ZAG,
