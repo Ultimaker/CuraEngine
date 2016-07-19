@@ -563,7 +563,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }
     
-    storage.draft_protection_shield = draft_shield.convexHull(draft_shield_dist);
+    storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
 }
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
