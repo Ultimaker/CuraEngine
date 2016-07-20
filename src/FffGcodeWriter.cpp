@@ -857,12 +857,12 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
-                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
+                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->insetX_config); // add polygons to gcode in inward order
             }
             if (skin_part.insets.size() > 0)
             {
                 inner_skin_outline = &skin_part.insets.back();
-                offset_from_inner_skin_outline = -skin_line_width / 2;
+                offset_from_inner_skin_outline = -mesh->insetX_config.getLineWidth() / 2;
             }
         }
 
