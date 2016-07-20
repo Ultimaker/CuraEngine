@@ -842,26 +842,26 @@ void GCodePlanner::processInitialLayersSpeedup()
     {
         GCodePathConfig::BasicConfig initial_layer_speed_config;
         int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("acceleration_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("jerk_layer_0");
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_print_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
 
         //Support (global).
         storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
         //Support roof (global).
         int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("acceleration_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("jerk_layer_0");
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_print_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
         storage.support_roof_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             const ExtruderTrain* extruder_train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            initial_layer_speed_config.speed = extruder_train->getSettingInMillimetersPerSecond("speed_layer_0");
-            initial_layer_speed_config.acceleration = extruder_train->getSettingInMillimetersPerSecond("acceleration_layer_0");
-            initial_layer_speed_config.jerk = extruder_train->getSettingInMillimetersPerSecond("jerk_layer_0");
+            initial_layer_speed_config.speed = extruder_train->getSettingInMillimetersPerSecond("speed_travel_layer_0");
+            initial_layer_speed_config.acceleration = extruder_train->getSettingInMillimetersPerSecond("acceleration_travel_layer_0");
+            initial_layer_speed_config.jerk = extruder_train->getSettingInMillimetersPerSecond("jerk_travel_layer_0");
 
             //Travel speed (per extruder).
             storage.travel_config_per_extruder[extruder_nr].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
@@ -869,9 +869,9 @@ void GCodePlanner::processInitialLayersSpeedup()
 
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            initial_layer_speed_config.speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
-            initial_layer_speed_config.acceleration = mesh.getSettingInMillimetersPerSecond("acceleration_layer_0");
-            initial_layer_speed_config.jerk = mesh.getSettingInMillimetersPerSecond("jerk_layer_0");
+            initial_layer_speed_config.speed = mesh.getSettingInMillimetersPerSecond("speed_print_layer_0");
+            initial_layer_speed_config.acceleration = mesh.getSettingInMillimetersPerSecond("acceleration_print_layer_0");
+            initial_layer_speed_config.jerk = mesh.getSettingInMillimetersPerSecond("jerk_print_layer_0");
 
             //Outer wall speed (per mesh).
             mesh.inset0_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
