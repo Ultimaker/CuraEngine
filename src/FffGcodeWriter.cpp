@@ -667,16 +667,16 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         }
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             skin_angle -= 45;
-        
+
         int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle, mesh->skin_config.getLineWidth());    
-        
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
+
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
         {
             gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
         }
-        
+
         gcode_layer.setIsInside(false);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
@@ -832,9 +832,10 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle, int extrusion_width)
+void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle)
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
@@ -849,7 +850,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             pattern = EFillMethod::LINES;
             skin_angle = bridge;
-        } 
+        }
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
         if (pattern != EFillMethod::CONCENTRIC)
@@ -861,28 +862,28 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             if (skin_part.insets.size() > 0)
             {
                 inner_skin_outline = &skin_part.insets.back();
-                offset_from_inner_skin_outline = -extrusion_width/2;
+                offset_from_inner_skin_outline = -skin_line_width / 2;
             }
         }
-        
+
         if (inner_skin_outline == nullptr)
         {
             inner_skin_outline = &skin_part.outline;
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
         infill_comp.generate(skin_polygons, skin_lines);
-        
+
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
-        
+
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
         }
-        else 
+        else
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines); 
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
     }
 }

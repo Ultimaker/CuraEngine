@@ -328,9 +328,8 @@ private:
      * \param layer_nr The current layer number.
      * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.
