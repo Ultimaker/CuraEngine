@@ -2,8 +2,6 @@
 #include "skirt.h"
 #include "support.h"
 
-#include <queue> 
-
 namespace cura 
 {
 
@@ -50,24 +48,6 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
         int length = skirt_primary_extruder.polygonLength();
         if (skirtNr + 1 >= count && length > 0 && length < minLength) // make brim have more lines when total length is too small
             count++;
-    }
-
-
-    if (false) // the code below is for the old prime tower
-    { //Add a skirt UNDER the prime tower to make it stick better.
-        Polygons prime_tower = storage.primeTower.ground_poly.offset(-primary_skirt_line_width / 2);
-        std::queue<Polygons> prime_tower_insets;
-        while(prime_tower.size() > 0)
-        {
-            prime_tower_insets.emplace(prime_tower);
-            prime_tower = prime_tower.offset(-primary_skirt_line_width);
-        }
-        while (!prime_tower_insets.empty())
-        {
-            Polygons& inset = prime_tower_insets.back();
-            skirt_primary_extruder.add(inset);
-            prime_tower_insets.pop();
-        }
     }
     
     { // process other extruders' brim/skirt (as one brim line around the old brim)
