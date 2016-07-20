@@ -9,19 +9,19 @@ namespace cura
 {
 
         
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic)
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic)
 {
-    generateSkinAreas(layerNr, mesh, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
+    generateSkinAreas(layerNr, mesh, innermost_wall_line_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
     SliceLayer* layer = &mesh.layers[layerNr];
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-        generateSkinInsets(part, innermost_wall_extrusion_width, insetCount);
+        generateSkinInsets(part, innermost_wall_line_width, insetCount);
     }
 }
 
-void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_extrusion_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
+void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = mesh.layers[layer_nr];
     
@@ -39,8 +39,8 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_
             continue; // the last wall is not present, the part should only get inter perimeter gaps, but no skin.
         }
 
-        Polygons upskin = part.insets.back().offset(-innermost_wall_extrusion_width/2);
-        Polygons downskin = (downSkinCount == 0)? Polygons() : upskin;
+        Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
+        Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
         auto getInsidePolygons = [&part, wall_line_count](SliceLayer& layer2)
@@ -105,7 +105,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, int innermost_wall_
 }
 
 
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount)
+void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount)
 {
     if (insetCount == 0)
     {
@@ -119,10 +119,11 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
             skin_part.insets.push_back(Polygons());
             if (i == 0)
             {
-                skin_part.insets[0] = skin_part.outline.offset(- extrusionWidth/2);
-            } else
+                skin_part.insets[0] = skin_part.outline.offset(-wall_line_width / 2);
+            }
+            else
             {
-                skin_part.insets[i] = skin_part.insets[i - 1].offset(-extrusionWidth);
+                skin_part.insets[i] = skin_part.insets[i - 1].offset(-wall_line_width);
             }
             
             // optimize polygons: remove unnecessary verts
@@ -136,7 +137,7 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
     }
 }
 
-void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count)
+void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count)
 {
     SliceLayer& layer = mesh.layers[layerNr];
 
@@ -146,7 +147,7 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extr
         {
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
-        Polygons infill = part.insets.back().offset(-innermost_wall_extrusion_width / 2 - infill_skin_overlap);
+        Polygons infill = part.insets.back().offset(-innermost_wall_line_width / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
