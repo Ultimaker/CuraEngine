@@ -327,7 +327,7 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
             WeaveConnectionSegment& segment = segments[idx];
             assert(segment.segmentType == WeaveSegmentType::UP);
             Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
-            bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+            bool skipped = (segment.to - from).vSize2() < line_width * line_width;
             if (skipped)
             {
                 unsigned int begin = idx;
@@ -336,9 +336,11 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
                     WeaveConnectionSegment& segment = segments[idx];
                     assert(segments[idx].segmentType == WeaveSegmentType::UP);
                     Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
-                    bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+                    bool skipped = (segment.to - from).vSize2() < line_width * line_width;
                     if (!skipped) 
+                    {
                         break;
+                    }
                 }
                 int end = idx - ((include_half_of_last_down)? 2 : 1);
                 if (idx >= segments.size())
@@ -388,8 +390,6 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveCo
 
 void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons& result, bool include_last)
 {
-    
-        
     for (unsigned int prt = 0 ; prt < parts1.size(); prt++)
     {
         const PolygonRef upperPart = parts1[prt];
@@ -476,16 +476,4 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 }//namespace cura
-    
