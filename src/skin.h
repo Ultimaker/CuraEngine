@@ -11,7 +11,6 @@ namespace cura
  * 
  * \param layerNr The index of the layer for which to generate the skins.
  * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
- * \param extrusionWidth extrusionWidth
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
  * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
@@ -19,7 +18,7 @@ namespace cura
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic);
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)

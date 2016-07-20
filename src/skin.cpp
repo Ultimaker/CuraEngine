@@ -9,7 +9,7 @@ namespace cura
 {
 
         
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic)
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic)
 {
     generateSkinAreas(layerNr, mesh, innermost_wall_extrusion_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
 
@@ -17,7 +17,7 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int 
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         SliceLayerPart* part = &layer->parts[partNr];
-        generateSkinInsets(part, extrusionWidth, insetCount);
+        generateSkinInsets(part, innermost_wall_extrusion_width, insetCount);
     }
 }
 
