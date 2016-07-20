@@ -942,7 +942,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     int support_line_distance = getSettingInMicrons("support_line_distance");
-    int extrusion_width = storage.support_config.getLineWidth();
+    const int support_line_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
@@ -968,18 +968,18 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         int offset_from_outline = 0;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
-            Polygons boundary = island.offset(-extrusion_width / 2);
+            Polygons boundary = island.offset(-support_line_width / 2);
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
                 gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             }
-            offset_from_outline = -extrusion_width;
+            offset_from_outline = -support_line_width;
             support_infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, getSettingBoolean("support_connect_zigzags"), true);
+        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
