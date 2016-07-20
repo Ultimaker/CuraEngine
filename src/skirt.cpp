@@ -13,8 +13,8 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     
     bool externalOnly = (distance > 0); // whether to include holes or not
 
-    int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
-    int primary_extrusion_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
+    const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
+    const int primary_skirt_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
 
     Polygons& skirt_primary_extruder = storage.skirt[primary_extruder];
     
@@ -25,7 +25,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     std::vector<Polygons> skirts;
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
-        int offsetDistance = distance + primary_extrusion_width * skirtNr + primary_extrusion_width / 2;
+        const int offsetDistance = distance + primary_skirt_line_width * skirtNr + primary_skirt_line_width / 2;
 
         skirts.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
         Polygons& skirt_polygons = skirts.back();
@@ -34,8 +34,10 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
         for(unsigned int n=0; n<skirt_polygons.size(); n++)
         {
             double area = skirt_polygons[n].area();
-            if (area < 0 && area > -primary_extrusion_width * primary_extrusion_width * 100)
+            if (area < 0 && area > -primary_skirt_line_width * primary_skirt_line_width * 100)
+            {
                 skirt_polygons.remove(n--);
+            }
         }
     
         if (get_convex_hull)
@@ -53,12 +55,12 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
 
     if (false) // the code below is for the old prime tower
     { //Add a skirt UNDER the prime tower to make it stick better.
-        Polygons prime_tower = storage.primeTower.ground_poly.offset(-primary_extrusion_width / 2);
+        Polygons prime_tower = storage.primeTower.ground_poly.offset(-primary_skirt_line_width / 2);
         std::queue<Polygons> prime_tower_insets;
         while(prime_tower.size() > 0)
         {
             prime_tower_insets.emplace(prime_tower);
-            prime_tower = prime_tower.offset(-primary_extrusion_width);
+            prime_tower = prime_tower.offset(-primary_skirt_line_width);
         }
         while (!prime_tower_insets.empty())
         {
@@ -70,7 +72,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int offset_distance = 0;
-        int last_width = primary_extrusion_width;
+        int last_width = primary_skirt_line_width;
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == primary_extruder) { continue; }
