@@ -34,6 +34,9 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     case EFillMethod::CUBIC:
         generateCubicInfill(result_lines);
         break;
+    case EFillMethod::TETRAHEDRAL:
+        generateTetrahedralInfill(result_lines);
+        break;
     case EFillMethod::TRIANGLES:
         generateTriangleInfill(result_lines);
         break;
@@ -73,6 +76,18 @@ void Infill::generateCubicInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle, shift);
     generateLineInfill(result, line_distance, fill_angle + 120, shift);
     generateLineInfill(result, line_distance, fill_angle + 240, shift);
+}
+
+void Infill::generateTetrahedralInfill(Polygons& result)
+{
+    int shift = int64_t(one_over_sqrt_2 * z) % line_distance;
+    shift = std::min(shift, line_distance - shift); // symmetry due to the fact that we are applying the shift in both directions
+    shift = std::min(shift, line_distance / 2 - infill_line_width / 2); // don't put lines too close to each other
+    shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+    generateLineInfill(result, line_distance, fill_angle, shift);
+    generateLineInfill(result, line_distance, fill_angle, -shift);
+    generateLineInfill(result, line_distance, fill_angle + 90, shift);
+    generateLineInfill(result, line_distance, fill_angle + 90, -shift);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)
@@ -178,7 +193,7 @@ void Infill::generateZigZagInfill(Polygons& result, const int line_distance, con
  * Edit: the term scansegment is wrong, since I call a boundary segment leaving from an even scanline to the left as belonging to an even scansegment, 
  *  while I also call a boundary segment leaving from an even scanline toward the right as belonging to an even scansegment.
  */
-void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t shift)
+void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift)
 {
     if (line_distance == 0)
     {
@@ -188,7 +203,9 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     {
         return;
     }
-    
+
+    int shift = extra_shift + this->shift;
+
     Polygons outline;
     if (outline_offset != 0)
     {

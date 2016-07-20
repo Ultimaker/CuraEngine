@@ -52,13 +52,15 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
         {
             continue;
         }
+        AABB3D aabb(volume->mesh->getAABB());
+        aabb.expandXY(overlap); // expand to account for the case where two models and their bounding boxes are adjacent along the X or Y-direction
         for (unsigned int layer_nr = 0; layer_nr < volume->layers.size(); layer_nr++)
         {
             Polygons all_other_volumes;
             for (Slicer* other_volume : volumes)
             {
                 if (other_volume->mesh->getSettingBoolean("infill_mesh")
-                    || !other_volume->mesh->getAABB().hit(volume->mesh->getAABB())
+                    || !other_volume->mesh->getAABB().hit(aabb)
                 )
                 {
                     continue;

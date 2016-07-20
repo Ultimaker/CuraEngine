@@ -350,32 +350,73 @@ public:
      */
     void processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time);
 
+    /*!
+     * Set the extrude speed factor. This is used for printing slower than normal.
+     * 
+     * Leaves the extrusion speed as is for values of 1.0
+     * 
+     * \param speedFactor The factor by which to alter the extrusion move speed
+     */
     void setExtrudeSpeedFactor(double speedFactor);
-    double getExtrudeSpeedFactor();
-    void setTravelSpeedFactor(double speedFactor);
-    double getTravelSpeedFactor(); //!< Get the travel speed factor limited to at most 1.0
 
+    /*!
+     * Get the extrude speed factor. This is used for printing slower than normal.
+     * 
+     * \return The factor by which to alter the extrusion move speed
+     */
+    double getExtrudeSpeedFactor();
+
+    /*!
+     * Set the travel speed factor. This is used for performing non-extrusion travel moves slower than normal.
+     * 
+     * Leaves the extrusion speed as is for values of 1.0
+     * 
+     * \param speedFactor The factor by which to alter the non-extrusion move speed
+     */
+    void setTravelSpeedFactor(double speedFactor);
+
+    /*!
+     * Get the travel speed factor. This is used for travelling slower than normal.
+     * 
+     * Limited to at most 1.0
+     * 
+     * \return The factor by which to alter the non-extrusion move speed
+     */
+    double getTravelSpeedFactor();
+
+    /*!
+     * Get the fan speed computed for this extruder plan
+     * 
+     * \warning assumes ExtruderPlan::processFanSpeedAndMinimalLayerTime has already been called
+     * 
+     * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
+     */
     double getFanSpeed();
 protected:
 
-    Point start_position;
+    Point start_position; //!< The position the print head was at at the start of this extruder plan
 
-    int layer_nr;
-    int layer_thickness;
+    int layer_nr; //!< The layer number at which we are currently printing.
+    int layer_thickness; //!< The thickness of this layer in Z-direction
 
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
 
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
-    double extrudeSpeedFactor;
-    double travelSpeedFactor;
+    double extrudeSpeedFactor; //!< The factor by which to alter the extrusion move speed
+    double travelSpeedFactor; //!< The factor by which to alter the non-extrusion move speed
 
     double extraTime; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
     double totalPrintTime; //!< The total naive time estimate for this extruder plan
 
-    double fan_speed;
+    double fan_speed; //!< The fan speed to be used during this extruder plan
 
-    void setFanSpeed(double _fan_speed);
+    /*!
+     * Set the fan speed to be used while printing this extruder plan
+     * 
+     * \param fan_speed The speed for the fan
+     */
+    void setFanSpeed(double fan_speed);
 
     /*!
      * Force the minimal layer time to hold by slowing down and lifting the head if required.

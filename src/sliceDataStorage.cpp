@@ -5,6 +5,18 @@
 namespace cura
 {
 
+Polygons& SliceLayerPart::getOwnInfillArea()
+{
+    if (infill_area_own)
+    {
+        return *infill_area_own;
+    }
+    else
+    {
+        return infill_area;
+    }
+}
+
 Polygons SliceLayer::getOutlines(bool external_polys_only) const
 {
     Polygons ret;
@@ -126,6 +138,10 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         Polygons total;
         for (const SliceMeshStorage& mesh : meshes)
         {
+            if (mesh.getSettingBoolean("infill_mesh"))
+            {
+                continue;
+            }
             const SliceLayer& layer = mesh.layers[layer_nr];
             layer.getOutlines(total, external_polys_only);
             if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
