@@ -105,7 +105,10 @@ class Setting:
     #   \param locals The local variables for eventual function evaluation.
     def __init__(self, key, data, locals):
         self._key = key
-        self._default = self._evaluateFunction(data.get("value", str(data.get("default_value", 0))), locals) #Evaluate "value" if we can, otherwise evaluate a stringified "default_value".
+        if "value" in data: #Evaluate "value" if we can, otherwise just take default_value.
+            self._default = self._evaluateFunction(data.get("value", "0"), locals)
+        else:
+            self._default = data.get("default_value", 0)
         self._type = data["type"]
         self._min_value = self._evaluateFunction(data.get("minimum_value", None), locals)
         self._max_value = self._evaluateFunction(data.get("maximum_value", None), locals)
