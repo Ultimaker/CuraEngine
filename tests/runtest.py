@@ -32,19 +32,17 @@ class TestSuite:
     
     ## Add a successful test result to the test suite.
     def success(self, class_name, test_name):
-        #print('Success:', class_name, test_name)
         self._successes.append((class_name, test_name))
 
     ## Add a failed test result to the test suite.
     def failure(self, class_name, test_name, error_message):
-        #print('Failure:', class_name, test_name, error_message)
         self._failures.append((class_name, test_name, error_message))
 
     ## Return the number of tests in this test suite
     def getTestCount(self):
         return self.getSuccessCount() + self.getFailureCount()
 
-    ## Return the number of successfull tests in this test suite
+    ## Return the number of successful tests in this test suite
     def getSuccessCount(self):
         return len(self._successes)
 
