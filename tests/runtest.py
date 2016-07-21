@@ -10,6 +10,7 @@
 # * All settings random
 
 import ast #For safe function evaluation.
+import math #For evaluating setting inheritance functions.
 import sys
 import subprocess
 import os
@@ -104,12 +105,12 @@ class Setting:
     #   \param locals The local variables for eventual function evaluation.
     def __init__(self, key, data, locals):
         self._key = key
-        self._default = data["default_value"]
+        self._default = self._evaluateFunction(data.get("value", str(data.get("default_value", 0))), locals) #Evaluate "value" if we can, otherwise evaluate a stringified "default_value".
         self._type = data["type"]
-        self._min_value = self._evaluateFunction(data.get("min_value", None), locals)
-        self._max_value = self._evaluateFunction(data.get("max_value", None), locals)
-        self._min_value_warning = self._evaluateFunction(data.get("min_value_warning", None), locals)
-        self._max_value_warning = self._evaluateFunction(data.get("max_value_warning", None), locals)
+        self._min_value = self._evaluateFunction(data.get("minimum_value", None), locals)
+        self._max_value = self._evaluateFunction(data.get("maximum_value", None), locals)
+        self._min_value_warning = self._evaluateFunction(data.get("minimum_value_warning", None), locals)
+        self._max_value_warning = self._evaluateFunction(data.get("maximum_value_warning", None), locals)
         self._options = data.get("options", None)
         if self._options is not None:
             self._options = list(self._options.keys())
