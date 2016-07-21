@@ -187,27 +187,27 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     unsigned int print_layer_count = 0;
-        for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-        {
-            SliceLayer* layer = nullptr;
-            for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-            { // find first mesh which has this layer
-                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-                {
-                    layer = &mesh.layers[layer_nr];
-                    print_layer_count = layer_nr + 1;
-                    break;
-                }
-            }
-            if (layer != nullptr)
+    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    {
+        SliceLayer* layer = nullptr;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        { // find first mesh which has this layer
+            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
             {
-                if (CommandSocket::isInstantiated())
-                { // send layer info
-                    CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
-                }
+                layer = &mesh.layers[layer_nr];
+                print_layer_count = layer_nr + 1;
+                break;
             }
         }
+        if (layer != nullptr)
+        {
+            if (CommandSocket::isInstantiated())
+            { // send layer info
+                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+            }
+        }
+    }
 
     log("Layer count: %i\n", print_layer_count);
 
