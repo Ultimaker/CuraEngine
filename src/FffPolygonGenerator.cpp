@@ -187,8 +187,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     unsigned int print_layer_count = 0;
-    if (CommandSocket::isInstantiated())
-    { // send layer info
         for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
         {
             SliceLayer* layer = nullptr;
@@ -204,10 +202,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             }
             if (layer != nullptr)
             {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+                if (CommandSocket::isInstantiated())
+                { // send layer info
+                    CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+                }
             }
         }
-    }
 
     log("Layer count: %i\n", print_layer_count);
 
