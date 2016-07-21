@@ -691,13 +691,13 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
 
 void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-    const unsigned int infill_line_width = mesh->infill_config[0].getLineWidth();
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
     {
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
+            const unsigned int infill_line_width = mesh->infill_config[combine_idx].getLineWidth();
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
             Polygons infill_polygons;
             Polygons infill_lines;
