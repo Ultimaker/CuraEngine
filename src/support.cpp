@@ -117,7 +117,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
 
     const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
-    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle > 0;
+    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
     const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
     
     // derived settings:
