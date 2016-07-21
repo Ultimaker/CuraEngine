@@ -24,13 +24,13 @@ from xml.etree import ElementTree
 
 ## The TestSuite class stores the test results of a single set of tests.
 #  TestSuite objects are created by the TestResults class.
-class TestSuite():
+class TestSuite:
     def __init__(self, name):
         self._name = name
         self._successes = []
         self._failures = []
     
-    ## Add a successfull test result to the test suite.
+    ## Add a successful test result to the test suite.
     def success(self, class_name, test_name):
         #print('Success:', class_name, test_name)
         self._successes.append((class_name, test_name))
@@ -55,7 +55,7 @@ class TestSuite():
 
 ## The TestResults class stores a group of TestSuite objects, each TestSuite object contains failed and successful test.
 #  This class can output the result of the tests in a JUnit xml format for parsing in Jenkins.
-class TestResults():
+class TestResults:
     def __init__(self):
         self._testsuites = []
     
@@ -93,7 +93,7 @@ class TestResults():
         return ElementTree.ElementTree(xml).write(filename, "utf-8", True)
 
 
-class Setting():
+class Setting:
     ##  Creates a new setting from a JSON node.
     #
     #   Some parts of the setting may have to be evaluated as functions. For
@@ -212,7 +212,7 @@ class Setting():
 
         return eval(compiled, globals(), locals)
 
-class EngineTest():
+class EngineTest:
     def __init__(self, json_filename, engine_filename, models):
         self._json_filename = json_filename
         self._json = json.load(open(json_filename, "r"))
