@@ -93,40 +93,33 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     if (support_type == ESupportType::NONE)
         return;
     
-    double supportAngle = mesh.getSettingInAngleRadians("support_angle");
-    bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
-    int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
-    int join_distance = mesh.getSettingInMicrons("support_join_distance");
-    int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
-    int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
-    
-    int extension_offset = mesh.getSettingInMicrons("support_offset");
-    
-    int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
-    int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
-    double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
-    
-    //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
-    
-    int min_smoothing_area = 100*100; // minimal area for which to perform smoothing
-    int z_layer_distance_tower = 1; // start tower directly below overhang point
-        
-    int layerThickness = storage.getSettingInMicrons("layer_height");
-    int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
-    int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
-    int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
+    const double supportAngle = mesh.getSettingInAngleRadians("support_angle");
+    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
+    const int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
+    const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
+    const int join_distance = mesh.getSettingInMicrons("support_join_distance");
+    const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
+    const int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
 
-    bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+    const int extension_offset = mesh.getSettingInMicrons("support_offset");
 
-    bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
-    double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
-    int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
-    
-    if (conical_support_angle == 0)
-    {
-        conical_support = false;
-    }
+    const int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
+    const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
+    const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
+
+    const int min_smoothing_area = 100 * 100; // minimal area for which to perform smoothing
+    const int z_layer_distance_tower = 1; // start tower directly below overhang point
+
+    const int layerThickness = storage.getSettingInMicrons("layer_height");
+    const int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
+    const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
+    const int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
+
+    const bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+
+    const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
+    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle > 0;
+    const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
     
     // derived settings:
     
