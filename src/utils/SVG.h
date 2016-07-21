@@ -80,6 +80,11 @@ public:
         return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + border;
     }
 
+    void writeComment(std::string comment)
+    {
+        fprintf(out, "<!-- %s -->\n", comment.c_str());
+    }
+
     void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
     {
         for(PolygonsPart& parts : polygons.splitIntoParts())
