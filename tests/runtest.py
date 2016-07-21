@@ -161,13 +161,13 @@ class Setting:
         if self._type == "enum":
             return self._options
         if self._type == "str":
-            return self._default
+            return [self._default]
         if self._type == "extruder":
-            return self._default # TODO: also allow for other values below machine_extruder_count
+            return [self._default] # TODO: also allow for other values below machine_extruder_count
         if self._type == "polygon":
-            return self._default
+            return [self._default]
         if self._type == "polygons":
-            return self._default
+            return [self._default]
         print("Unknown setting type:", self._type)
 
     ## Return a random value for this setting. The returned value will be a valid value according to the settings json file.
