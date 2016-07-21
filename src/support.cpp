@@ -45,6 +45,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (mesh.getSettingBoolean("infill_mesh"))
+        {
+            continue;
+        }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
         generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
