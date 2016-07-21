@@ -64,15 +64,13 @@ private:
      * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
      * \param layer_count total number of layers
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
-     * \param extrusionWidth extrusionWidth
      */
     static void detectOverhangPoints(
         SliceDataStorage& storage,
         SliceMeshStorage& mesh,
         std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
         int layer_count,
-        int supportMinAreaSqrt,
-        int extrusionWidth
+        int supportMinAreaSqrt
     );
     
     /*!
