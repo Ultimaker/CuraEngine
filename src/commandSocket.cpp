@@ -482,7 +482,7 @@ void CommandSocket::sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t heig
 #endif
 }
 
-void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Polygons& polygons, int line_width)
+void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons, int line_width)
 {
 #ifdef ARCUS
     if (polygons.size() == 0)
@@ -491,7 +491,6 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Poly
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        assert(layer_nr == path_comp->getLayer());
 
         for (unsigned int i = 0; i < polygons.size(); ++i)
         {
@@ -501,26 +500,24 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Poly
 #endif
 }
 
-void CommandSocket::sendPolygon(PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width)
+void CommandSocket::sendPolygon(PrintFeatureType type, Polygon& polygon, int line_width)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        assert(layer_nr == path_comp->getLayer());
 
         path_comp->sendPolygon( type, polygon, line_width );
     }
 #endif
 }
 
-void CommandSocket::sendLineTo(cura::PrintFeatureType type, int layer_nr, Point to, int line_width)
+void CommandSocket::sendLineTo(cura::PrintFeatureType type, Point to, int line_width)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        assert(layer_nr == path_comp->getLayer());
 
         path_comp->sendLineTo( type, to, line_width );
     }
@@ -764,10 +761,9 @@ void CommandSocket::PathCompiler::flushPathSegments()
     line_types.clear();
 }
 
-//TODO: Reason about these functions when points is empty or the polygon entered is empty
 void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type, Point to, int width)
 {
-    assert( points.size() > 0 );
+    assert( points.size() > 0 && "A point must already be in the buffer for sendLineTo(.) to function properly");
 
     if ( to != last_point )
     {

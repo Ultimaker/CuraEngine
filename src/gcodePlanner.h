@@ -546,7 +546,7 @@ public:
      */
     void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width)
     {
-        CommandSocket::sendLineTo(print_feature_type, layer_nr, to, line_width);
+        CommandSocket::sendLineTo(print_feature_type, to, line_width);
     }
 
     /*!

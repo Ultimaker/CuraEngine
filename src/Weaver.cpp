@@ -53,8 +53,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
         
-        if (CommandSocket::isInstantiated())
-            CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
+        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -85,10 +84,8 @@ void Weaver::weave(MeshGroup* meshgroup)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
             
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, layer_idx - starting_layer_idx, chainified, 1);
-            }
+            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1);
+
             if (chainified.size() > 0)
             {
                 if (starting_z == -1) starting_z = slicerList[0]->layers[layer_idx-1].z;
