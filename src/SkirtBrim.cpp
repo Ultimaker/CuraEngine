@@ -12,7 +12,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int cou
     bool externalOnly = (distance > 0); // whether to include holes or not
 
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
+    const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_brim_line_width");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[primary_extruder];
     
@@ -58,7 +58,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int cou
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == primary_extruder) { continue; }
-            int width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("skirt_line_width");
+            int width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("skirt_brim_line_width");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
             while (storage.skirt_brim[extruder].polygonLength() < minLength)
