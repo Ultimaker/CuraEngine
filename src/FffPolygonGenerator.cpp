@@ -584,10 +584,10 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         break;
     }
     
-    Polygons skirt_sent = storage.skirt_brim[0];
+    Polygons skirt_brim_sent = storage.skirt_brim[0];
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     {
-        skirt_sent.add(storage.skirt_brim[extruder]);
+        skirt_brim_sent.add(storage.skirt_brim[extruder]);
     }
 }
 
