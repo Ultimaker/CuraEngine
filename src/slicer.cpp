@@ -711,11 +711,11 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             if (layer_nr < 0) continue;
             
             SlicerSegment s;
-            int end_edge_start_pt = -1;
+            int end_edge_idx = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
                 s = project2D(p0, p2, p1, z);
-                end_edge_start_pt = 0;
+                end_edge_idx = 0;
                 if (p1.z == z)
                 {
                     s.endOtherFaces = v1.connected_faces;
@@ -724,14 +724,14 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
                 s = project2D(p0, p1, p2, z);
-                end_edge_start_pt = 2;
+                end_edge_idx = 2;
 
             }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
                 s = project2D(p1, p0, p2, z);
-                end_edge_start_pt = 1;
+                end_edge_idx = 1;
                 if (p2.z == z)
                 {
                     s.endOtherFaces = v2.connected_faces;
@@ -740,14 +740,14 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
                 s = project2D(p1, p2, p0, z);
-                end_edge_start_pt = 0;
+                end_edge_idx = 0;
 
             }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
                 s = project2D(p2, p1, p0, z);
-                end_edge_start_pt = 2;
+                end_edge_idx = 2;
                 if (p0.z == z)
                 {
                     s.endOtherFaces = v0.connected_faces;
@@ -756,7 +756,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
                 s = project2D(p2, p0, p1, z);
-                end_edge_start_pt = 1;
+                end_edge_idx = 1;
             }
             else
             {
@@ -766,7 +766,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(mesh_idx, layers[layer_nr].segments.size()));
             s.faceIndex = mesh_idx;
-            s.endOtherFaceIdx = face.connected_face_index[end_edge_start_pt];
+            s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
             s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
         }
