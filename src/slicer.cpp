@@ -136,6 +136,7 @@ const SlicerLayer::Terminus SlicerLayer::Terminus::INVALID_TERMINUS{~static_cast
 
 bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
 {
+    // better if lower distance
     if (dist2 > other.dist2)
     {
         return true;
@@ -145,12 +146,14 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
         return false;
     }
 
-    // use in order connections before reverse connections
+    // better if in order instead of reversed
     if (!in_order() && other.in_order())
     {
         return true;
     }
 
+    // better if lower Terminus::Index for terminus_0
+    // This just defines a more total order and isn't strictly necessary.
     if (terminus_0.asIndex() > other.terminus_0.asIndex())
     {
         return true;
@@ -160,6 +163,8 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
         return false;
     }
 
+    // better if lower Terminus::Index for terminus_1
+    // This just defines a more total order and isn't strictly necessary.
     if (terminus_1.asIndex() > other.terminus_1.asIndex())
     {
         return true;
@@ -169,17 +174,23 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
         return false;
     }
 
+    // The stitches have equal goodness
     return false;
 }
 
 std::priority_queue<SlicerLayer::PossibleStitch>
 SlicerLayer::findPossibleStitches(
-    const Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
+    const Polygons& open_polylines,
+    coord_t max_dist, coord_t cell_size,
+    bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
+    // maximum distance squared
     int64_t max_dist2 = max_dist * max_dist;
 
+    // Represents an end point of a polyline in open_polylines.
+    // polyline_end == open_polylines[polyline_idx].back()
     struct StitchGridVal
     {
         unsigned int polyline_idx;
@@ -194,9 +205,12 @@ SlicerLayer::findPossibleStitches(
         }
     };
 
+    // Used to find nearby end points within a fixed maximum radius
     SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
 
     // populate grid
+    // Inserts the ends of all polylines into the grid (does not
+    // insert the starts of the polylines).
     for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
         const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
@@ -217,6 +231,10 @@ SlicerLayer::findPossibleStitches(
         if (polyline_1.size() < 1) continue;
 
         std::vector<StitchGridVal> nearby_ends;
+
+        // Check for stitches that append polyline_1 onto polyline_0
+        // in natural order.  These are stitches that use the end of
+        // polyline_0 and the start of polyline_1.
         nearby_ends = grid.getNearby(polyline_1[0], max_dist);
         for (const auto &nearby_end : nearby_ends)
         {
@@ -232,6 +250,9 @@ SlicerLayer::findPossibleStitches(
             }
         }
 
+        // Check for stitches that append polyline_1 onto polyline_0
+        // by reversing order of polyline_1.  This are stitches that
+        // use the end of polyline_0 and the end of polyline_1.
         if (allow_reverse)
         {
             nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
@@ -273,6 +294,9 @@ void SlicerLayer::planPolylineStitch(
     {
         if (back_1)
         {
+            // back of both polylines
+            // we can reverse either one and then append onto the other
+            // reverse the smaller polyline
             if (open_polylines[polyline_0_idx].size() <
                 open_polylines[polyline_1_idx].size())
             {
@@ -280,23 +304,29 @@ void SlicerLayer::planPolylineStitch(
             }
             reverse[1] = true;
         } else {
-            // nothing to do
+            // back of 0, front of 1
+            // already in order, nothing to do
         }
     }
     else
     {
         if (back_1)
         {
+            // front of 0, back of 1
+            // in order if we swap 0 and 1
             std::swap(terminus_0,terminus_1);
         }
         else
         {
+            // front of both polylines
+            // reverse 0
             reverse[0] = true;
         }
     }
 }
 
-void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const
+void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1,
+                                const bool reverse[2]) const
 {
     if (reverse[0])
     {
@@ -309,12 +339,14 @@ void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, 
     }
     if (reverse[1])
     {
+        // reverse polyline_1 by adding in reverse order
         for(int poly_idx = polyline_1.size() - 1; poly_idx >= 0; poly_idx--)
             polyline_0.add(polyline_1[poly_idx]);
         polyline_1.clear();
     }
     else
     {
+        // append polyline_1 onto polyline_0
         for(Point& p : polyline_1)
             polyline_0.add(p);
         polyline_1.clear();
@@ -324,6 +356,7 @@ void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, 
 SlicerLayer::TerminusTrackingMap::TerminusTrackingMap(Terminus::Index end_idx) :
     m_terminus_old_to_cur_map(end_idx)
 {
+    // Initialize map to everything points to itself since nothing has moved yet.
     for (size_t idx = 0U; idx != end_idx; ++idx)
     {
         m_terminus_old_to_cur_map[idx] = Terminus{idx};
@@ -337,11 +370,13 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     size_t num_removed_terms,
     const Terminus *removed_cur_terms)
 {
+    // save old locations
     std::vector<Terminus> old_terms(num_terms);
     for (size_t idx = 0U; idx != num_terms; ++idx)
     {
         old_terms[idx] = getOldFromCur(cur_terms[idx]);
     }
+    // update using maps old <-> cur and cur <-> next
     for (size_t idx = 0U; idx != num_terms; ++idx)
     {
         m_terminus_old_to_cur_map[old_terms[idx].asIndex()] = next_terms[idx];
@@ -351,6 +386,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
             m_terminus_cur_to_old_map[next_term.asIndex()] = old_terms[idx];
         }
     }
+    // remove next locations that no longer exist
     for (size_t rem_idx = 0U; rem_idx != num_removed_terms; ++rem_idx)
     {
         m_terminus_cur_to_old_map[removed_cur_terms[rem_idx].asIndex()] =
@@ -362,16 +398,17 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
 {
     // below code closes smallest gaps first
 
-    std::priority_queue<PossibleStitch> stitch_queue;
-
-    stitch_queue = findPossibleStitches(open_polylines, max_dist, cell_size, allow_reverse);
+    std::priority_queue<PossibleStitch> stitch_queue =
+        findPossibleStitches(open_polylines, max_dist, cell_size, allow_reverse);
 
     static const Terminus INVALID_TERMINUS = Terminus::INVALID_TERMINUS;
     Terminus::Index terminus_end_idx = Terminus::endIndexFromPolylineEndIndex(open_polylines.size());
-    // Keeps track of how terminus locations move around
+    // Keeps track of how polyline end point locations move around
     TerminusTrackingMap terminus_tracking_map(terminus_end_idx);
+
     while (!stitch_queue.empty())
     {
+        // Get the next best stitch
         PossibleStitch next_stitch;
         next_stitch = stitch_queue.top();
         stitch_queue.pop();
@@ -393,6 +430,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         size_t best_polyline_0_idx = terminus_0.getPolylineIdx();
         size_t best_polyline_1_idx = terminus_1.getPolylineIdx();
 
+        // check to see if this completes a polygon
         bool completed_poly = best_polyline_0_idx == best_polyline_1_idx;
         if (completed_poly)
         {
@@ -409,19 +447,22 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             continue;
         }
 
-        // plan how to append polygons
+        // we need to join these polylines
+
+        // plan how to join polylines
         bool reverse[2];
         planPolylineStitch(open_polylines, terminus_0, terminus_1, reverse);
 
+        // need to reread since planPolylineStitch can swap terminus_0/1
         best_polyline_0_idx = terminus_0.getPolylineIdx();
         best_polyline_1_idx = terminus_1.getPolylineIdx();
         PolygonRef polyline_0 = open_polylines[best_polyline_0_idx];
         PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
 
-        // append polygons according to plan
+        // join polylines according to plan
         joinPolylines(polyline_0, polyline_1, reverse);
 
-        // update terminus_update_map
+        // update terminus_tracking_map
         Terminus cur_terms[4] = {{best_polyline_0_idx, false},
                                  {best_polyline_0_idx, true},
                                  {best_polyline_1_idx, false},
@@ -438,6 +479,8 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         {
             std::swap(next_terms[2],next_terms[3]);
         }
+        // cur_terms -> next_terms has movement map
+        // best_polyline_1 is always removed
         terminus_tracking_map.updateMap(4U, cur_terms, next_terms,
                                         2U, &cur_terms[2]);
     }

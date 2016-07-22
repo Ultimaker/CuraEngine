@@ -125,11 +125,12 @@ protected:
 
 private:
     /*!
-     * \brief This class represents an end point of a polyline in a polyline vector.
+     * \brief This class represents the location of an end point of a
+     * polyline in a polyline vector.
      *
-     * The end point records which polyline in the vector is involved
-     * and whether this is the vertex at the start of the polyline or
-     * the vertex at the end.
+     * The location records the index in the polyline vector and
+     * whether this is the vertex at the start of the polyline or the
+     * vertex at the end.
      */
     class Terminus
     {
@@ -147,13 +148,19 @@ private:
         Terminus()
         {}
 
-        /*! Constructor from Index representation. */
+        /*! Constructor from Index representation.
+         *
+         * Terminus{t.asIndex()} == t for all Terminus t.
+         */
         Terminus(Index idx)
         {
             m_idx = idx;
         }
 
-        /*! Constuctor from the polyline index and which end of the polyline. */
+        /*! Constuctor from the polyline index and which end of the polyline.
+         *
+         * Terminus{t.getPolylineIdx(), t.isEnd()} == t for all Terminus t.
+         */
         Terminus(size_t polyline_idx, bool is_end)
         {
             m_idx = polyline_idx * 2  + (is_end ? 1 : 0);
@@ -172,8 +179,6 @@ private:
         }
 
         /*! Gets the Index representation of this Terminus.
-         *
-         * Terminus{t.asIndex()} == t for all Terminus t.
          */
         Index asIndex() const
         {
@@ -222,9 +227,9 @@ private:
      * terminus_0 is B and terminus_1 is C, then this stitch
      * represents A -> B -> C -> D.  If terminus_0 is C and terminus_1
      * is A, then this stitch represents D -> C -> A -> B.  In
-     * general, this stitch represents the polyline that has the other
-     * terminus of polyline 0 -> terminus_0 -> terminus_1 -> the other
-     * terminus of polyline 1.
+     * general, this stitch represents the polyline:
+     *   the other terminus of polyline 0 -> terminus_0 -> terminus_1
+     *     -> the other terminus of polyline 1.
      *
      * This class also stores the squared distance involved in making
      * the stitch.
@@ -262,11 +267,11 @@ private:
     };
 
     /*!
-     * \brief Tracks movements of polyline end points (Terminus).
+     * \brief Tracks movements of polyline end point locations (Terminus).
      *
-     * Tracks the movement of polyline end points within the polyline
-     * vector as polylines are joined, reversed, and used to form
-     * polygons.
+     * Tracks the movement of polyline end point locations within the
+     * polyline vector as polylines are joined, reversed, and used to
+     * form polygons.
      */
     class TerminusTrackingMap
     {
@@ -291,7 +296,7 @@ private:
          * \param old The old Terminus location.  Must not be
          *     INVALID_TERMINUS.
          * \return The current Terminus location or INVALID_TERMINUS
-         *     if the endpoint is no longer an endpoint.
+         *     if the old endpoint is no longer an endpoint.
          */
         Terminus getCurFromOld(const Terminus &old) const
         {
@@ -302,7 +307,9 @@ private:
          *
          * \param cur The current Terminus location.  Must not be
          *     INVALID_TERMINUS.
-         * \return The old Terminus location.
+         * \return The old Terminus location.  Returns
+         *     INVALID_TERMINUS if the old Terminus location was
+         *     removed (used to form a Polygon).
          */
         Terminus getOldFromCur(const Terminus &cur) const
         {
@@ -340,7 +347,7 @@ private:
          *
          * \param num_terms The number of Terminus that changed.
          * \param cur_terms The current Terminus locations.  Must be
-         *     of size num_terms.
+         *     of size num_terms.  Must not contain INVALID_TERMINUS.
          * \param next_terms The Terminus locations after the update.
          *     Must be of size num_terms.  A value of INVALID_TERMINUS
          *     indicates that the Terminus was removed.
@@ -410,7 +417,8 @@ private:
      * \param[out] reverse Whether the polylines need to be reversed.
      */
     void planPolylineStitch(const Polygons& open_polylines,
-                            Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
+                            Terminus& terminus_0, Terminus& terminus_1,
+                            bool reverse[2]) const;
 
     /*! Joins polyline_1 onto polyline_0.
      *
@@ -428,7 +436,8 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    void joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const;
+    void joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1,
+                       const bool reverse[2]) const;
 
     /*!
      * Connecting polylines that are not closed yet.
@@ -439,12 +448,18 @@ private:
      * function will not introduce any copies of the same polyline
      * segment.
      *
-     * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
-     * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
-     * \param[in] cell_size The cell size to use internally in the grid.  This affects speed but not results.
-     * \param[in] allow_reverse If true, then this function is allowed to reverse edge directions to merge polylines.
+     * \param[in,out] open_polylines The polylines which couldn't be
+     *    closed into a loop
+     * \param[in] max_dist The maximum distance that polyline ends can
+     *     be separated and still be joined.
+     * \param[in] cell_size The cell size to use internally in the
+     *     grid.  This affects speed but not results.
+     * \param[in] allow_reverse If true, then this function is allowed
+     *     to reverse edge directions to merge polylines.
      */
-    void connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
+    void connectOpenPolylinesImpl(Polygons& open_polylines,
+                                  coord_t max_dist, coord_t cell_size,
+                                  bool allow_reverse);
 };
 
 class Slicer
