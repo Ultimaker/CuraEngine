@@ -299,7 +299,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         }
         unsigned int old_terminus_1_idx = next_stitch.terminus_1_idx;
         unsigned int terminus_1_idx = terminus_old_to_cur_map[old_terminus_1_idx];
-        if (terminus_1_idx == ~0U)
+        if (terminus_1_idx == INVALID_TERMINUS)
         {
             // if we already used this terminus, then this stitch is no longer usable
             continue;
