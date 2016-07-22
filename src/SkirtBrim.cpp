@@ -26,15 +26,15 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
         const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirtNr + primary_extruder_skirt_brim_line_width / 2;
 
         skirts.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
-        Polygons& skirt_polygons = skirts.back();
+        Polygons& skirt_brim_polygons = skirts.back();
         
-        //Remove small inner skirt holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
-        for(unsigned int n=0; n<skirt_polygons.size(); n++)
+        //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
+        for(unsigned int n=0; n<skirt_brim_polygons.size(); n++)
         {
-            double area = skirt_polygons[n].area();
+            double area = skirt_brim_polygons[n].area();
             if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
             {
-                skirt_polygons.remove(n--);
+                skirt_brim_polygons.remove(n--);
             }
         }
     
