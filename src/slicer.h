@@ -2,6 +2,8 @@
 #ifndef SLICER_H
 #define SLICER_H
 
+#include <queue>
+
 #include "mesh.h"
 #include "utils/polygon.h"
 /*
@@ -203,6 +205,9 @@ private:
      * \param[in] start_segment_idx The index of the segment that started this polyline.
      */
     int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
+
+    std::priority_queue<PossibleStitch> findPossibleStitches(
+        Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
 
     /*!
      * Connecting polylines that are not closed yet.

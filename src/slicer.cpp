@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 #include <algorithm> // remove_if
-#include <queue>
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -173,91 +172,100 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
     return false;
 }
 
-void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+std::priority_queue<SlicerLayer::PossibleStitch>
+SlicerLayer::findPossibleStitches(
+    Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
-    // below code closes smallest gaps first
-
     std::priority_queue<PossibleStitch> stitch_queue;
 
+    int64_t max_dist2 = max_dist * max_dist;
+
+    struct StitchGridVal
     {
-        int64_t max_dist2 = max_dist * max_dist;
+        unsigned int polyline_idx;
+        Point polyline_end;
+    };
 
-        struct StitchGridVal
+    struct StitchGridValPointAccess
+    {
+        Point operator()(const StitchGridVal &val) const
         {
-            unsigned int polyline_idx;
-            Point polyline_end;
-        };
+            return val.polyline_end;
+        }
+    };
 
-        struct StitchGridValPointAccess
+    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
+
+    // populate grid
+    for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
+    {
+        PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+
+        if (polyline_0.size() < 1) continue;
+
+        StitchGridVal grid_val;
+        grid_val.polyline_idx = polyline_0_idx;
+        grid_val.polyline_end = polyline_0.back();
+        grid.insert(grid_val);
+    }
+
+    // search for nearby end points
+    for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
+    {
+        PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+
+        if (polyline_1.size() < 1) continue;
+
+        std::vector<StitchGridVal> nearby_ends;
+        nearby_ends = grid.getNearby(polyline_1[0], max_dist);
+        for (const auto &nearby_end : nearby_ends)
         {
-            Point operator()(const StitchGridVal &val) const
+            Point diff = nearby_end.polyline_end - polyline_1[0];
+            int64_t dist2 = vSize2(diff);
+            if (dist2 < max_dist2)
             {
-                return val.polyline_end;
+                PossibleStitch poss_stitch;
+                poss_stitch.dist2 = dist2;
+                poss_stitch.terminus_0 = Terminus{nearby_end.polyline_idx, true};
+                poss_stitch.terminus_1 = Terminus{polyline_1_idx, false};
+                stitch_queue.push(poss_stitch);
             }
-        };
-
-        SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
-
-        // populate grid
-        for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
-        {
-            PolygonRef polyline_0 = open_polylines[polyline_0_idx];
-
-            if (polyline_0.size() < 1) continue;
-
-            StitchGridVal grid_val;
-            grid_val.polyline_idx = polyline_0_idx;
-            grid_val.polyline_end = polyline_0.back();
-            grid.insert(grid_val);
         }
 
-        // search for nearby end points
-        for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
+        if (allow_reverse)
         {
-            PolygonRef polyline_1 = open_polylines[polyline_1_idx];
-
-            if (polyline_1.size() < 1) continue;
-
-            std::vector<StitchGridVal> nearby_ends;
-            nearby_ends = grid.getNearby(polyline_1[0], max_dist);
+            nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
             for (const auto &nearby_end : nearby_ends)
             {
-                Point diff = nearby_end.polyline_end - polyline_1[0];
+                if (nearby_end.polyline_idx == polyline_1_idx)
+                {
+                    continue;
+                }
+
+                Point diff = nearby_end.polyline_end - polyline_1.back();
                 int64_t dist2 = vSize2(diff);
                 if (dist2 < max_dist2)
                 {
                     PossibleStitch poss_stitch;
                     poss_stitch.dist2 = dist2;
                     poss_stitch.terminus_0 = Terminus{nearby_end.polyline_idx, true};
-                    poss_stitch.terminus_1 = Terminus{polyline_1_idx, false};
+                    poss_stitch.terminus_1 = Terminus{polyline_1_idx, true};
                     stitch_queue.push(poss_stitch);
-                }
-            }
-
-            if (allow_reverse)
-            {
-                nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
-                for (const auto &nearby_end : nearby_ends)
-                {
-                    if (nearby_end.polyline_idx == polyline_1_idx)
-                    {
-                        continue;
-                    }
-
-                    Point diff = nearby_end.polyline_end - polyline_1.back();
-                    int64_t dist2 = vSize2(diff);
-                    if (dist2 < max_dist2)
-                    {
-                        PossibleStitch poss_stitch;
-                        poss_stitch.dist2 = dist2;
-                        poss_stitch.terminus_0 = Terminus{nearby_end.polyline_idx, true};
-                        poss_stitch.terminus_1 = Terminus{polyline_1_idx, true};
-                        stitch_queue.push(poss_stitch);
-                    }
                 }
             }
         }
     }
+
+    return stitch_queue;
+}
+
+void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+{
+    // below code closes smallest gaps first
+
+    std::priority_queue<PossibleStitch> stitch_queue;
+
+    stitch_queue = findPossibleStitches(open_polylines, max_dist, cell_size, allow_reverse);
 
     static const Terminus INVALID_TERMINUS = Terminus::INVALID_TERMINUS;
     size_t terminus_update_map_size = Terminus::endIndexFromPolylineEndIndex(open_polylines.size());
