@@ -475,7 +475,7 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
 
         if (layer_idx + roof_layer_count < supportLayers.size())
         {
-            Polygons roofs = support_areas[layer_idx].difference(support_areas[layer_idx + roof_layer_count]);
+            Polygons roofs = support_areas[layer_idx].intersection(mesh.layers[layer_idx + roof_layer_count].getOutlines(true));
             roofs.removeSmallAreas(1.0);
             layer.roofs.add(roofs);
             layer.supportAreas.add(support_areas[layer_idx].difference(layer.roofs));
