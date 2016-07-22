@@ -46,14 +46,14 @@ class SlicerLayer
 public:
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
-    
+
     int z;
     Polygons polygons;
     Polygons openPolylines;
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh
-     * 
+     *
      * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param keepNoneClosed Whether to throw away the data for segments which we couldn't stitch into a polygon
      * \param extensiveStitching Whether to perform extra work to try and close polylines into polygons when there are large gaps
@@ -63,7 +63,7 @@ public:
 protected:
     /*!
      * Connect the segments into loops which correctly form polygons (don't perform stitching here)
-     * 
+     *
      * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
@@ -71,7 +71,7 @@ protected:
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
-     * 
+     *
      * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param[out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
@@ -82,7 +82,7 @@ protected:
      * Get the next segment connected to the end of \p segment.
      * Used to make closed polygon loops.
      * Return ASAP if segment is (also) connected to SlicerLayer::segments[\p start_segment_idx]
-     * 
+     *
      * \param[in] mesh The mesh data for which we are connecting sliced segments (The face data is used)
      * \param[in] segment The segment from which to start looking for the next
      * \param[in] start_segment_idx The index to the segment which when conected to \p segment will immediately stop looking for further candidates.
@@ -92,18 +92,18 @@ protected:
     /*!
      * Connecting polygons that are not closed yet, as models are not always perfect manifold we need to join some stuff up to get proper polygons.
      * First link up polygon ends that are within 2 microns.
-     * 
+     *
      * Clears all open polylines which are used up in the process
-     * 
+     *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
     void connectOpenPolylines(Polygons& open_polylines);
 
     /*!
      * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
-     * 
+     *
      * Clears all open polylines which are used up in the process
-     * 
+     *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
     void stitch(Polygons& open_polylines);
@@ -114,9 +114,9 @@ protected:
 
     /*!
      * Try to close up polylines into polygons while they have large gaps in them.
-     * 
+     *
      * Clears all open polylines which are used up in the process
-     * 
+     *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
     void stitch_extensive(Polygons& open_polylines);
@@ -155,12 +155,12 @@ public:
     std::vector<SlicerLayer> layers;
 
     const Mesh* mesh; //!< The sliced mesh
-    
+
     Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
     /*!
      * Linear interpolation
-     * 
+     *
      * Get the Y of a point with X \p x in the line through (\p x0, \p y0) and (\p x1, \p y1)
      */
     int64_t interpolate(int64_t x, int64_t x0, int64_t x1, int64_t y0, int64_t y1) const
@@ -171,7 +171,7 @@ public:
         int64_t y = y0 + num / dx_01;
         return y;
     }
-    
+
     SlicerSegment project2D(Point3& p0, Point3& p1, Point3& p2, int32_t z) const
     {
         SlicerSegment seg;
@@ -183,7 +183,7 @@ public:
 
         return seg;
     }
-    
+
     void dumpSegmentsToHTML(const char* filename);
 };
 
