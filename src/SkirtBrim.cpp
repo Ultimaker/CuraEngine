@@ -40,10 +40,10 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     
         if (get_convex_hull)
         {
-            skirt_polygons = skirt_polygons.approxConvexHull();
+            skirt_brim_polygons = skirt_brim_polygons.approxConvexHull();
         }
 
-        skirt_primary_extruder.add(skirt_polygons);
+        skirt_primary_extruder.add(skirt_brim_polygons);
 
         int length = skirt_primary_extruder.polygonLength();
         if (skirtNr + 1 >= count && length > 0 && length < minLength) // make brim have more lines when total length is too small
