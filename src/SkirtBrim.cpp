@@ -5,7 +5,7 @@
 namespace cura 
 {
 
-void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int minLength)
+void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int count, int minLength)
 {
     if (count == 0) return;
     

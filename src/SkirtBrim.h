@@ -19,7 +19,7 @@ namespace cura
  * \param minLength The minimum length the skirt should have (enforced by taking
  * more outsets).
  */
-void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int minLength);
+void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int count, int minLength);
 
 }//namespace cura
 
