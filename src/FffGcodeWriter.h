@@ -177,11 +177,13 @@ private:
     void setConfigRetraction(SliceDataStorage& storage);
     
     /*!
-     * Initialize the GcodePathConfig config parameters which don't change over all layers, for each feature.
+     * Initialize the GcodePathConfig config parameters which don't change over
+     * all layers, for each feature.
      * 
-     * The features are: skirt, support and for each mesh: outer wall, inner walls, skin, infill (and combined infill)
+     * The features are: skirt or brim, support and for each mesh: outer wall,
+     * inner walls, skin, infill (and combined infill).
      * 
-     * \param[out] storage The data storage to which to save the configurations
+     * \param[out] storage The data storage to which to save the configurations.
      */
     void initConfigs(SliceDataStorage& storage);
     
