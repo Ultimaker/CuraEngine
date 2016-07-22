@@ -136,7 +136,11 @@ private:
     /*!
      * Connecting polylines that are not closed yet.
      *
-     * Any polylines that are closed by this function are added to this->polygons.
+     * Any polylines that are closed by this function are added to
+     * this->polygons.  All possible polyline joins that meet the
+     * distance and reversal criteria will be performed.  This
+     * function will not introduce any copies of the same polyline
+     * segment.
      *
      * \param[in,out] open_polylines The polylines which couldn't be closed into a loop
      * \param[in] max_dist The maximum distance that polyline ends can be separated and still be joined.
