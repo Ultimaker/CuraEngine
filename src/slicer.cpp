@@ -84,8 +84,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
 {
     int next_segment_idx = -1;
 
-    const std::vector<uint32_t> &faces_to_try = segment.endOtherFaces;
-    bool segment_ended_at_edge = faces_to_try.empty();
+    bool segment_ended_at_edge = segment.endVertex == nullptr;
     if (segment_ended_at_edge)
     {
         int face_to_try = segment.endOtherFaceIdx;
@@ -99,6 +98,7 @@ int SlicerLayer::getNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segmen
     {
         // segment ended at vertex
 
+        const std::vector<uint32_t> &faces_to_try = segment.endVertex->connected_faces;
         for (int face_to_try : faces_to_try)
         {
             int result_segment_idx =
@@ -711,6 +711,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
             if (layer_nr < 0) continue;
             
             SlicerSegment s;
+            s.endVertex = nullptr;
             int end_edge_idx = -1;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
@@ -718,7 +719,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
                 end_edge_idx = 0;
                 if (p1.z == z)
                 {
-                    s.endOtherFaces = v1.connected_faces;
+                    s.endVertex = &v1;
                 }
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
@@ -734,7 +735,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
                 end_edge_idx = 1;
                 if (p2.z == z)
                 {
-                    s.endOtherFaces = v2.connected_faces;
+                    s.endVertex = &v2;
                 }
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
@@ -750,7 +751,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
                 end_edge_idx = 2;
                 if (p0.z == z)
                 {
-                    s.endOtherFaces = v0.connected_faces;
+                    s.endVertex = &v0;
                 }
             }
             else if (p2.z > z && p1.z < z && p0.z < z)

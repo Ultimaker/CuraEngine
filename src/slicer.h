@@ -18,9 +18,8 @@ public:
     // The index of the other face connected via the edge that created end
     int endOtherFaceIdx;
     // If end corresponds to a vertex of the mesh, then this is populated
-    // with the candidate edges that might have the next segment.  If end
-    // doesn't correspond to a vertex of the mesh than this will be empty.
-    std::vector<uint32_t> endOtherFaces;
+    // with the vertex that it ended on.
+    const MeshVertex *endVertex;
     bool addedToPolygon;
 };
 
