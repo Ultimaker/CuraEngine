@@ -6,7 +6,7 @@
 #include "weaveDataStorage.h"
 #include "progress/Progress.h"
 
-#include "pathOrderOptimizer.h" // for skirt
+#include "pathOrderOptimizer.h" //For skirt/brim.
 
 namespace cura 
 {
