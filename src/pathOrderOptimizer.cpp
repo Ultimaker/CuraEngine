@@ -189,15 +189,15 @@ void LineOrderOptimizer::optimize()
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
         /// check if single-line-polygon is close to last point
-        for(typename SparseGrid<unsigned int>::Elem close_line_elem :
-                line_bucket_grid.getNearby(prev_point, gridSize))
+        for(unsigned int close_line_idx :
+                line_bucket_grid.getNearbyVals(prev_point, gridSize))
         {
-            if (picked[close_line_elem.val] || polygons[close_line_elem.val].size() < 1)
+            if (picked[close_line_idx] || polygons[close_line_idx].size() < 1)
             {
                 continue;
             }
 
-            updateBestLine(close_line_elem.val, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+            updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
         }
 
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet
