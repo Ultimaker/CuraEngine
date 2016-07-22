@@ -89,7 +89,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtBrimConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        skirt_brim_config.emplace_back(PrintFeatureType::Skirt);
+        skirt_brim_config.emplace_back(PrintFeatureType::SkirtBrim);
     }
     return ret;
 }

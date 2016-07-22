@@ -11,7 +11,7 @@ enum class PrintFeatureType
     InnerWall,
     Skin,
     Support,
-    Skirt,
+    SkirtBrim,
     Infill,
     SupportInfill,
     MoveCombing,

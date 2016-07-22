@@ -39,7 +39,7 @@ void Wireframe2gcode::writeGCode()
             
     unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
-    gcode.writeTypeComment(PrintFeatureType::Skirt);
+    gcode.writeTypeComment(PrintFeatureType::SkirtBrim);
 
     gcode.setZ(initial_layer_thickness);
     
