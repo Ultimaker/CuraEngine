@@ -436,7 +436,7 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    void joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1,
+    void joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
                        const bool reverse[2]) const;
 
     /*!

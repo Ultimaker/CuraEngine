@@ -134,7 +134,7 @@ void SlicerLayer::stitch(Polygons& open_polylines)
 
 const SlicerLayer::Terminus SlicerLayer::Terminus::INVALID_TERMINUS{~static_cast<Index>(0U)};
 
-bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
+bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch& other) const
 {
     // better if lower distance
     if (dist2 > other.dist2)
@@ -200,7 +200,7 @@ SlicerLayer::findPossibleStitches(
 
     struct StitchGridValLocator
     {
-        Point operator()(const StitchGridVal &val) const
+        Point operator()(const StitchGridVal& val) const
         {
             return val.polyline_term_pt;
         }
@@ -256,7 +256,7 @@ SlicerLayer::findPossibleStitches(
         // in natural order.  These are stitches that use the end of
         // polyline_0 and the start of polyline_1.
         nearby_ends = grid_ends.getNearby(polyline_1[0], max_dist);
-        for (const auto &nearby_end : nearby_ends)
+        for (const auto& nearby_end : nearby_ends)
         {
             Point diff = nearby_end.polyline_term_pt - polyline_1[0];
             int64_t dist2 = vSize2(diff);
@@ -276,7 +276,7 @@ SlicerLayer::findPossibleStitches(
             // by reversing order of polyline_1.  These are stitches that
             // use the end of polyline_0 and the end of polyline_1.
             nearby_ends = grid_ends.getNearby(polyline_1.back(), max_dist);
-            for (const auto &nearby_end : nearby_ends)
+            for (const auto& nearby_end : nearby_ends)
             {
                 // Disallow stitching with self with same end point
                 if (nearby_end.polyline_idx == polyline_1_idx)
@@ -301,7 +301,7 @@ SlicerLayer::findPossibleStitches(
             // use the start of polyline_0 and the start of polyline_1.
             std::vector<StitchGridVal> nearby_starts =
                 grid_starts.getNearby(polyline_1[0], max_dist);
-            for (const auto &nearby_start : nearby_starts)
+            for (const auto& nearby_start : nearby_starts)
             {
                 // Disallow stitching with self with same end point
                 if (nearby_start.polyline_idx == polyline_1_idx)
@@ -377,7 +377,7 @@ void SlicerLayer::planPolylineStitch(
     }
 }
 
-void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1,
+void SlicerLayer::joinPolylines(PolygonRef& polyline_0, PolygonRef& polyline_1,
                                 const bool reverse[2]) const
 {
     if (reverse[0])
