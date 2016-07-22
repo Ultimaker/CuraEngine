@@ -21,9 +21,9 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     Polygons first_layer_outline = storage.getLayerOutlines(0, true, externalOnly);
     
     std::vector<Polygons> skirts_or_brims;
-    for(int skirtNr=0; skirtNr<count;skirtNr++)
+    for (unsigned int skirt_brim_number = 0; skirt_brim_number < count; skirt_brim_number++)
     {
-        const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirtNr + primary_extruder_skirt_brim_line_width / 2;
+        const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirt_brim_number + primary_extruder_skirt_brim_line_width / 2;
 
         skirts_or_brims.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
         Polygons& skirt_brim_polygons = skirts_or_brims.back();
@@ -46,8 +46,10 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
         skirt_primary_extruder.add(skirt_brim_polygons);
 
         int length = skirt_primary_extruder.polygonLength();
-        if (skirtNr + 1 >= count && length > 0 && length < minLength) // make brim have more lines when total length is too small
+        if (skirt_brim_number + 1 >= count && length > 0 && length < minLength) //Make brim or skirt have more lines when total length is too small.
+        {
             count++;
+        }
     }
     
     { // process other extruders' brim/skirt (as one brim line around the old brim)
