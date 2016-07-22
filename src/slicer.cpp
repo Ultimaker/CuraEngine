@@ -133,119 +133,49 @@ void SlicerLayer::stitch(Polygons& open_polylines)
     connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
 }
 
-class Terminus
+const SlicerLayer::Terminus SlicerLayer::Terminus::INVALID_TERMINUS{~static_cast<Index>(0U)};
+
+bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
 {
-public:
-    using Index = size_t;
-
-    static const Terminus INVALID_TERMINUS;
-
-    Terminus()
-    {}
-
-    Terminus(Index idx)
+    if (dist2 > other.dist2)
     {
-        m_idx = idx;
+        return true;
+    }
+    else if (dist2 < other.dist2)
+    {
+        return false;
     }
 
-    Terminus(size_t polyline_idx, bool is_end)
+    // use in order connections before reverse connections
+    if (!in_order() && other.in_order())
     {
-        m_idx = polyline_idx * 2  + (is_end ? 1 : 0);
+        return true;
     }
 
-    size_t getPolylineIdx() const
+    if (terminus_0.asIndex() > other.terminus_0.asIndex())
     {
-        return m_idx / 2;
+        return true;
+    }
+    else if (terminus_0.asIndex() < other.terminus_0.asIndex())
+    {
+        return false;
     }
 
-    bool isEnd() const
+    if (terminus_1.asIndex() > other.terminus_1.asIndex())
     {
-        return (m_idx & 1) == 1;
+        return true;
+    }
+    else if (terminus_1.asIndex() < other.terminus_1.asIndex())
+    {
+        return false;
     }
 
-    Index asIndex() const
-    {
-        return m_idx;
-    }
-
-    static Index endIndexFromPolylineEndIndex(unsigned int polyline_end_idx)
-    {
-        return polyline_end_idx*2;
-    }
-
-    bool operator==(const Terminus &other)
-    {
-        return m_idx == other.m_idx;
-    }
-
-    bool operator!=(const Terminus &other)
-    {
-        return m_idx != other.m_idx;
-    }
-
-private:
-    Index m_idx;
-};
-
-const Terminus Terminus::INVALID_TERMINUS = Terminus{~static_cast<Index>(0U)};
+    return false;
+}
 
 void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
-
-    struct PossibleStitch
-    {
-        int64_t dist2;
-        Terminus terminus_0;
-        Terminus terminus_1;
-
-        bool in_order() const
-        {
-            // in order if using back of line 0 and front of line 1
-            return terminus_0.isEnd() &&
-                !terminus_1.isEnd();
-        }
-
-        // priority_queue will give greatest first so greatest
-        // must be most desirable stitch
-        bool operator<(const PossibleStitch &other) const
-        {
-            if (dist2 > other.dist2)
-            {
-                return true;
-            }
-            else if (dist2 < other.dist2)
-            {
-                return false;
-            }
-
-            // use in order connections before reverse connections
-            if (!in_order() && other.in_order())
-            {
-                return true;
-            }
-
-            if (terminus_0.asIndex() > other.terminus_0.asIndex())
-            {
-                return true;
-            }
-            else if (terminus_0.asIndex() < other.terminus_0.asIndex())
-            {
-                return false;
-            }
-
-            if (terminus_1.asIndex() > other.terminus_1.asIndex())
-            {
-                return true;
-            }
-            else if (terminus_1.asIndex() < other.terminus_1.asIndex())
-            {
-                return false;
-            }
-
-            return false;
-        }
-    };
 
     std::priority_queue<PossibleStitch> stitch_queue;
 

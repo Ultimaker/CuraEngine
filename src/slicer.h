@@ -122,6 +122,78 @@ protected:
     void stitch_extensive(Polygons& open_polylines);
 
 private:
+    class Terminus
+    {
+    public:
+        using Index = size_t;
+
+        static const Terminus INVALID_TERMINUS;
+
+        Terminus()
+        {}
+
+        Terminus(Index idx)
+        {
+            m_idx = idx;
+        }
+
+        Terminus(size_t polyline_idx, bool is_end)
+        {
+            m_idx = polyline_idx * 2  + (is_end ? 1 : 0);
+        }
+
+        size_t getPolylineIdx() const
+        {
+            return m_idx / 2;
+        }
+
+        bool isEnd() const
+        {
+            return (m_idx & 1) == 1;
+        }
+
+        Index asIndex() const
+        {
+            return m_idx;
+        }
+
+        static Index endIndexFromPolylineEndIndex(unsigned int polyline_end_idx)
+        {
+            return polyline_end_idx*2;
+        }
+
+        bool operator==(const Terminus &other)
+        {
+            return m_idx == other.m_idx;
+        }
+
+        bool operator!=(const Terminus &other)
+        {
+            return m_idx != other.m_idx;
+        }
+
+    private:
+        Index m_idx;
+    };
+
+    struct PossibleStitch
+    {
+        int64_t dist2;
+        Terminus terminus_0;
+        Terminus terminus_1;
+
+        bool in_order() const
+        {
+            // in order if using back of line 0 and front of line 1
+            return terminus_0.isEnd() &&
+                !terminus_1.isEnd();
+        }
+
+        // priority_queue will give greatest first so greatest
+        // must be most desirable stitch
+        bool operator<(const PossibleStitch &other) const;
+    };
+
     /*!
      * Try to find a segment from face \p face_idx to continue \p segment.
      *
