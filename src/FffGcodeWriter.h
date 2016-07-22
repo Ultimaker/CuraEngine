@@ -66,7 +66,11 @@ private:
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
 
-    bool skirt_is_processed[MAX_EXTRUDERS]; //!< Whether the skirt polygons have been processed into planned paths for each extruder train
+    /*!
+     * Whether the skirt or brim polygons have been processed into planned paths
+     * for each extruder train.
+     */
+    bool skirt_brim_is_processed[MAX_EXTRUDERS];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
@@ -84,7 +88,7 @@ public:
         max_object_height = 0;
         for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
         {
-            skirt_is_processed[extruder_nr] = false;
+            skirt_brim_is_processed[extruder_nr] = false;
         }
     }
 

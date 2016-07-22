@@ -446,7 +446,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     { // add skirt for all extruders which haven't primed the skirt yet
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
         {
-            if (gcode.getExtruderIsUsed(extruder_nr) && !skirt_is_processed[extruder_nr])
+            if (gcode.getExtruderIsUsed(extruder_nr) && !skirt_brim_is_processed[extruder_nr])
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
             }
@@ -467,12 +467,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
 
 void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
-    if (skirt_is_processed[extruder_nr])
+    if (skirt_brim_is_processed[extruder_nr])
     {
         return;
     }
     Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
-    skirt_is_processed[extruder_nr] = true;
+    skirt_brim_is_processed[extruder_nr] = true;
     if (skirt_brim.size() == 0)
     {
         return;
@@ -1054,7 +1054,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     
     if (extruder_changed)
     {
-        if (layer_nr == 0 && !skirt_is_processed[extruder_nr])
+        if (layer_nr == 0 && !skirt_brim_is_processed[extruder_nr])
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
