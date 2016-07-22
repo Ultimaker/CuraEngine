@@ -12,7 +12,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     bool externalOnly = (distance > 0); // whether to include holes or not
 
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
-    const int primary_extruder_skirt_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
+    const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
 
     Polygons& skirt_primary_extruder = storage.skirt_brim[primary_extruder];
     
@@ -23,7 +23,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     std::vector<Polygons> skirts;
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
-        const int offsetDistance = distance + primary_extruder_skirt_line_width * skirtNr + primary_extruder_skirt_line_width / 2;
+        const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirtNr + primary_extruder_skirt_brim_line_width / 2;
 
         skirts.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
         Polygons& skirt_polygons = skirts.back();
@@ -32,7 +32,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
         for(unsigned int n=0; n<skirt_polygons.size(); n++)
         {
             double area = skirt_polygons[n].area();
-            if (area < 0 && area > -primary_extruder_skirt_line_width * primary_extruder_skirt_line_width * 100)
+            if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
             {
                 skirt_polygons.remove(n--);
             }
@@ -52,7 +52,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     
     { // process other extruders' brim/skirt (as one brim line around the old brim)
         int offset_distance = 0;
-        int last_width = primary_extruder_skirt_line_width;
+        int last_width = primary_extruder_skirt_brim_line_width;
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
             if (extruder == primary_extruder) { continue; }
