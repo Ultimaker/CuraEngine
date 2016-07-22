@@ -198,7 +198,7 @@ SlicerLayer::findPossibleStitches(
         Point polyline_term_pt;
     };
 
-    struct StitchGridValPointAccess
+    struct StitchGridValLocator
     {
         Point operator()(const StitchGridVal &val) const
         {
@@ -207,9 +207,9 @@ SlicerLayer::findPossibleStitches(
     };
 
     // Used to find nearby end points within a fixed maximum radius
-    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid_ends(cell_size);
+    SparseGridInvasive<StitchGridVal,StitchGridValLocator> grid_ends(cell_size);
     // Used to find nearby start points within a fixed maximum radius
-    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid_starts(cell_size);
+    SparseGridInvasive<StitchGridVal,StitchGridValLocator> grid_starts(cell_size);
 
     // populate grids
 
