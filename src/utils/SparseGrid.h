@@ -14,11 +14,11 @@ namespace cura {
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
  *
  * \tparam ElemT The element type to store.
- * \tparam PointAccess The functor to get the location from ElemT.  PointAccess
+ * \tparam Locator The functor to get the location from ElemT.  Locator
  *    must have: Point operator()(const ElemT &elem) const
  *    which returns the location associated with val.
  */
-template<class ElemT, class PointAccess>
+template<class ElemT, class Locator>
 class SparseGridInvasive
 {
 public:
@@ -113,7 +113,7 @@ private:
     /*! \brief Map from grid locations (GridPoint) to elements (Elem). */
     GridMap m_grid;
     /*! \brief Accessor for getting locations from elements. */
-    PointAccess m_point_access;
+    Locator m_locator;
     /*! \brief The cell (square) size. */
     coord_t m_cell_size;
 };
@@ -138,7 +138,7 @@ struct SparseGridElem
 };
 
 template<class T>
-struct PointAccessor
+struct Locatoror
 {
     Point operator()(const SparseGridElem<T> &elem)
     {
@@ -154,11 +154,11 @@ struct PointAccessor
  */
 template<class Val>
 class SparseGrid : public SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
-                                             SparseGridImpl::PointAccessor<Val> >
+                                             SparseGridImpl::Locatoror<Val> >
 {
 public:
     using Base = SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
-                                    SparseGridImpl::PointAccessor<Val> >;
+                                    SparseGridImpl::Locatoror<Val> >;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -193,8 +193,8 @@ public:
 
 };
 
-#define SGI_TEMPLATE template<class ElemT, class PointAccess>
-#define SGI_THIS SparseGridInvasive<ElemT, PointAccess>
+#define SGI_TEMPLATE template<class ElemT, class Locator>
+#define SGI_THIS SparseGridInvasive<ElemT, Locator>
 
 SGI_TEMPLATE
 SGI_THIS::SparseGridInvasive(coord_t cell_size, size_t elem_reserve, float max_load_factor)
@@ -225,7 +225,7 @@ typename SGI_THIS::GridPoint SGI_THIS::toGridPoint(const Point &point)  const
 SGI_TEMPLATE
 void SGI_THIS::insert(const Elem &elem)
 {
-    Point loc = m_point_access(elem);
+    Point loc = m_locator(elem);
     GridPoint grid_loc = toGridPoint(loc);
 
     m_grid.emplace(grid_loc,elem);
