@@ -189,28 +189,32 @@ SlicerLayer::findPossibleStitches(
     // maximum distance squared
     int64_t max_dist2 = max_dist * max_dist;
 
-    // Represents an end point of a polyline in open_polylines.
-    // polyline_end == open_polylines[polyline_idx].back()
+    // Represents a terminal point of a polyline in open_polylines.
     struct StitchGridVal
     {
         unsigned int polyline_idx;
-        Point polyline_end;
+        // Depending on the SparseGrid, either the start point or the
+        // end point of the polyline
+        Point polyline_term_pt;
     };
 
     struct StitchGridValPointAccess
     {
         Point operator()(const StitchGridVal &val) const
         {
-            return val.polyline_end;
+            return val.polyline_term_pt;
         }
     };
 
     // Used to find nearby end points within a fixed maximum radius
-    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid(cell_size);
+    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid_ends(cell_size);
+    // Used to find nearby start points within a fixed maximum radius
+    SparseGridInvasive<StitchGridVal,StitchGridValPointAccess> grid_starts(cell_size);
 
-    // populate grid
+    // populate grids
+
     // Inserts the ends of all polylines into the grid (does not
-    // insert the starts of the polylines).
+    //   insert the starts of the polylines).
     for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
         const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
@@ -219,8 +223,24 @@ SlicerLayer::findPossibleStitches(
 
         StitchGridVal grid_val;
         grid_val.polyline_idx = polyline_0_idx;
-        grid_val.polyline_end = polyline_0.back();
-        grid.insert(grid_val);
+        grid_val.polyline_term_pt = polyline_0.back();
+        grid_ends.insert(grid_val);
+    }
+
+    // Inserts the start of all polylines into the grid.
+    if (allow_reverse)
+    {
+        for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
+        {
+            const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+
+            if (polyline_0.size() < 1) continue;
+
+            StitchGridVal grid_val;
+            grid_val.polyline_idx = polyline_0_idx;
+            grid_val.polyline_term_pt = polyline_0[0];
+            grid_starts.insert(grid_val);
+        }
     }
 
     // search for nearby end points
@@ -235,10 +255,10 @@ SlicerLayer::findPossibleStitches(
         // Check for stitches that append polyline_1 onto polyline_0
         // in natural order.  These are stitches that use the end of
         // polyline_0 and the start of polyline_1.
-        nearby_ends = grid.getNearby(polyline_1[0], max_dist);
+        nearby_ends = grid_ends.getNearby(polyline_1[0], max_dist);
         for (const auto &nearby_end : nearby_ends)
         {
-            Point diff = nearby_end.polyline_end - polyline_1[0];
+            Point diff = nearby_end.polyline_term_pt - polyline_1[0];
             int64_t dist2 = vSize2(diff);
             if (dist2 < max_dist2)
             {
@@ -250,20 +270,21 @@ SlicerLayer::findPossibleStitches(
             }
         }
 
-        // Check for stitches that append polyline_1 onto polyline_0
-        // by reversing order of polyline_1.  This are stitches that
-        // use the end of polyline_0 and the end of polyline_1.
         if (allow_reverse)
         {
-            nearby_ends = grid.getNearby(polyline_1.back(), max_dist);
+            // Check for stitches that append polyline_1 onto polyline_0
+            // by reversing order of polyline_1.  These are stitches that
+            // use the end of polyline_0 and the end of polyline_1.
+            nearby_ends = grid_ends.getNearby(polyline_1.back(), max_dist);
             for (const auto &nearby_end : nearby_ends)
             {
+                // Disallow stitching with self with same end point
                 if (nearby_end.polyline_idx == polyline_1_idx)
                 {
                     continue;
                 }
 
-                Point diff = nearby_end.polyline_end - polyline_1.back();
+                Point diff = nearby_end.polyline_term_pt - polyline_1.back();
                 int64_t dist2 = vSize2(diff);
                 if (dist2 < max_dist2)
                 {
@@ -271,6 +292,31 @@ SlicerLayer::findPossibleStitches(
                     poss_stitch.dist2 = dist2;
                     poss_stitch.terminus_0 = Terminus{nearby_end.polyline_idx, true};
                     poss_stitch.terminus_1 = Terminus{polyline_1_idx, true};
+                    stitch_queue.push(poss_stitch);
+                }
+            }
+
+            // Check for stitches that append polyline_1 onto polyline_0
+            // by reversing order of polyline_0.  These are stitches that
+            // use the start of polyline_0 and the start of polyline_1.
+            std::vector<StitchGridVal> nearby_starts =
+                grid_starts.getNearby(polyline_1[0], max_dist);
+            for (const auto &nearby_start : nearby_starts)
+            {
+                // Disallow stitching with self with same end point
+                if (nearby_start.polyline_idx == polyline_1_idx)
+                {
+                    continue;
+                }
+
+                Point diff = nearby_start.polyline_term_pt - polyline_1[0];
+                int64_t dist2 = vSize2(diff);
+                if (dist2 < max_dist2)
+                {
+                    PossibleStitch poss_stitch;
+                    poss_stitch.dist2 = dist2;
+                    poss_stitch.terminus_0 = Terminus{nearby_start.polyline_idx, false};
+                    poss_stitch.terminus_1 = Terminus{polyline_1_idx, false};
                     stitch_queue.push(poss_stitch);
                 }
             }
