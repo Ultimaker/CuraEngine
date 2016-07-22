@@ -153,7 +153,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.skirt_brim_config[extruder].init(train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt"), train->getSettingInMicrons("skirt_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.skirt_brim_config[extruder].init(train->getSettingInMillimetersPerSecond("skirt_brim_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt_brim"), train->getSettingInMillimetersPerSecond("jerk_skirt_brim"), train->getSettingInMicrons("skirt_line_width"), train->getSettingInPercentage("material_flow"));
         storage.travel_config_per_extruder[extruder].init(train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMillimetersPerSecond("acceleration_travel"), train->getSettingInMillimetersPerSecond("jerk_travel"), 0, 0);
     }
 
