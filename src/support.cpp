@@ -464,9 +464,9 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, unsigned int layer_count, int layer_thickness, int support_roof_height)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, const unsigned int layer_count, const unsigned int layer_thickness, const unsigned int support_roof_height)
 {
-    int roof_layer_count = support_roof_height / layer_thickness;
+    const unsigned int roof_layer_count = support_roof_height / layer_thickness;
     
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)

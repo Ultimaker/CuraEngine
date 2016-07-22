@@ -40,7 +40,7 @@ private:
      * \param layer_thickness The layer height
      * \param support_roof_height The thickness of the hammock in z directiontt
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas,  unsigned int layer_count, int layer_thickness, int support_roof_height);
+    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, const unsigned int layer_count, const unsigned int layer_thickness, const unsigned int support_roof_height);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
