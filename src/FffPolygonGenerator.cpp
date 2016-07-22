@@ -187,23 +187,23 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     unsigned int print_layer_count = 0;
-    if (CommandSocket::isInstantiated())
-    { // send layer info
-        for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-        {
-            SliceLayer* layer = nullptr;
-            for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-            { // find first mesh which has this layer
-                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-                {
-                    layer = &mesh.layers[layer_nr];
-                    print_layer_count = layer_nr + 1;
-                    break;
-                }
-            }
-            if (layer != nullptr)
+    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    {
+        SliceLayer* layer = nullptr;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        { // find first mesh which has this layer
+            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
             {
+                layer = &mesh.layers[layer_nr];
+                print_layer_count = layer_nr + 1;
+                break;
+            }
+        }
+        if (layer != nullptr)
+        {
+            if (CommandSocket::isInstantiated())
+            { // send layer info
                 CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
@@ -490,10 +490,9 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         return;
     }
     
-    int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
-    int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-    generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+    const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
+    const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (process_infill)
     { // process infill when infill density > 0
@@ -502,9 +501,9 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
         if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
         {
-            infill_skin_overlap = skin_extrusion_width / 2;
+            infill_skin_overlap = innermost_wall_line_width / 2;
         }
-        generateInfill(layer_nr, mesh, innermost_wall_extrusion_width, infill_skin_overlap, wall_line_count);
+        generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
     }
 }
 

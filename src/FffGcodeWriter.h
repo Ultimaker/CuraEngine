@@ -294,9 +294,8 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle, int extrusionWidth); 
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle); 
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -307,9 +306,8 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle, int extrusionWidth);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -330,9 +328,8 @@ private:
      * \param layer_nr The current layer number.
      * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.

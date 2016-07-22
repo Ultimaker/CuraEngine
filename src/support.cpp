@@ -45,6 +45,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (mesh.getSettingBoolean("infill_mesh"))
+        {
+            continue;
+        }
         std::vector<Polygons> supportAreas;
         supportAreas.resize(layer_count, Polygons());
         generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
@@ -93,40 +97,32 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     if (support_type == ESupportType::NONE)
         return;
     
-    double supportAngle = mesh.getSettingInAngleRadians("support_angle");
-    bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
-    int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
-    int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
-    int join_distance = mesh.getSettingInMicrons("support_join_distance");
-    int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
-    int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
-    
-    int extension_offset = mesh.getSettingInMicrons("support_offset");
-    
-    int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
-    int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
-    double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
-    
-    //std::cerr <<" towerDiameter=" << towerDiameter <<", supportMinAreaSqrt=" << supportMinAreaSqrt << std::endl;
-    
-    int min_smoothing_area = 100*100; // minimal area for which to perform smoothing
-    int z_layer_distance_tower = 1; // start tower directly below overhang point
-        
-    int layerThickness = storage.getSettingInMicrons("layer_height");
-    int extrusionWidth = storage.getSettingInMicrons("support_line_width"); 
-    int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
-    int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
+    const double supportAngle = mesh.getSettingInAngleRadians("support_angle");
+    const bool supportOnBuildplateOnly = support_type == ESupportType::PLATFORM_ONLY;
+    const int supportZDistanceBottom = mesh.getSettingInMicrons("support_bottom_distance");
+    const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
+    const int join_distance = mesh.getSettingInMicrons("support_join_distance");
+    const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
+    const int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
 
-    bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+    const int extension_offset = mesh.getSettingInMicrons("support_offset");
 
-    bool conical_support = mesh.getSettingBoolean("support_conical_enabled");
-    double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
-    int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
-    
-    if (conical_support_angle == 0)
-    {
-        conical_support = false;
-    }
+    const int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
+    const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
+    const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
+
+    const int min_smoothing_area = 100 * 100; // minimal area for which to perform smoothing
+    const int z_layer_distance_tower = 1; // start tower directly below overhang point
+
+    const int layerThickness = storage.getSettingInMicrons("layer_height");
+    const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
+    const int support_xy_distance_overhang = mesh.getSettingInMicrons("support_xy_distance_overhang");
+
+    const bool use_support_xy_distance_overhang = mesh.getSettingAsSupportDistPriority("support_xy_overrides_z") == SupportDistPriority::Z_OVERRIDES_XY; // whether to use a different xy distance at overhangs
+
+    const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
+    const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
+    const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
     
     // derived settings:
     
@@ -168,7 +164,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         
     
     std::vector<std::pair<int, std::vector<Polygons>>> overhang_points; // stores overhang_points along with the layer index at which the overhang point occurs
-    AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt, extrusionWidth);
+    AreaSupport::detectOverhangPoints(storage, mesh, overhang_points, layer_count, supportMinAreaSqrt);
 
     std::deque<std::pair<Polygons, Polygons>> basic_and_full_overhang_above;
     for (unsigned int layer_idx = support_layer_count - 1; layer_idx != support_layer_count - 1 - layerZdistanceTop ; layer_idx--)
@@ -331,11 +327,11 @@ void AreaSupport::detectOverhangPoints(
     SliceMeshStorage& mesh, 
     std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, // stores overhang_points along with the layer index at which the overhang point occurs)
     int layer_count,
-    int supportMinAreaSqrt,
-    int extrusionWidth
-                  )
+    int supportMinAreaSqrt
+)
 {
-    for (int layer_idx = 0 ; layer_idx < layer_count ; layer_idx++)
+    const unsigned int support_line_width = storage.getSettingInMicrons("support_line_width");
+    for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         for (SliceLayerPart& part : layer.parts)
@@ -343,8 +339,11 @@ void AreaSupport::detectOverhangPoints(
             if (part.outline.outerPolygon().area() < supportMinAreaSqrt * supportMinAreaSqrt) 
             {
                 Polygons part_poly_computed;
-                Polygons& part_poly = (part.insets.size() > 0)? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
-                if (part.insets.size() == 0) { part_poly_computed = part.outline.offset(-extrusionWidth/2); }
+                Polygons& part_poly = (part.insets.size() > 0) ? part.insets[0] : part_poly_computed; // don't copy inset if its already computed
+                if (part.insets.size() == 0)
+                {
+                    part_poly_computed = part.outline.offset(-support_line_width / 2);
+                }
                 
                 if (part_poly.size() > 0)
                 {

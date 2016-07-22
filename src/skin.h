@@ -11,38 +11,43 @@ namespace cura
  * 
  * \param layerNr The index of the layer for which to generate the skins.
  * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
- * \param extrusionWidth extrusionWidth
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
  * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
- * \param innermost_wall_extrusion_width The line width of the inner most wall
+ * \param innermost_wall_line_width The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
  */
-void generateSkins(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic);
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)
  * 
  * \param layerNr The index of the layer for which to generate the skins.
- * \param mesh The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
- * \param extrusionWidth extrusionWidth
- * \param downSkinCount The number of layers of bottom skin
- * \param upSkinCount The number of layers of top skin
- * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
- * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+ * \param mesh The storage where the layer outline information (input) is stored
+ * and where the skin outline (output) is stored.
+ * \param innermost_wall_line_width The line width of the walls around the skin, by which
+ * we must inset for each wall.
+ * \param downSkinCount The number of layers of bottom skin.
+ * \param upSkinCount The number of layers of top skin.
+ * \param wall_line_count The number of walls, i.e. the number of the wall from
+ * which to offset.
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
  */
-void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, int extrusionWidth, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
+void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin insets.
  * 
  * \param layerNr The index of the layer for which to generate the skins.
- * \param part The part where the skin outline information (input) is stored and where the skin insets (output) are stored.
- * \param extrusionWidth extrusionWidth
- * \param insetCount The number of perimeters to surround the skin
+ * \param part The part where the skin outline information (input) is stored and
+ * where the skin insets (output) are stored.
+ * \param wall_line_width The width of the perimeters around the skin.
+ * \param insetCount The number of perimeters to surround the skin.
  */
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount);
+void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount);
 
 /*!
  * Generate Infill by offsetting from the last wall.
@@ -54,11 +59,11 @@ void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount
  * \param layerNr The index of the layer for which to generate the infill
  * \param mesh The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
- * \param innermost_wall_extrusion_width width of the innermost wall lines
+ * \param innermost_wall_line_width width of the innermost wall lines
  * \param infill_skin_overlap overlap distance between infill and skin
  * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  */
-void generateInfill(int layerNr, SliceMeshStorage& mesh, int innermost_wall_extrusion_width, int infill_skin_overlap, int wall_line_count);
+void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count);
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.

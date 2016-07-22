@@ -639,7 +639,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
                 infill_angle += 90;
             }
         }
-        int infill_line_width =  mesh->infill_config[0].getLineWidth();
         
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
@@ -648,16 +647,16 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
         }
         
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle, infill_line_width);
+            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
         }
 
         EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
@@ -668,16 +667,16 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         }
         if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
             skin_angle -= 45;
-        
+
         int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle, mesh->skin_config.getLineWidth());    
-        
+        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
+
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
         {
             gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
         }
-        
+
         gcode_layer.setIsInside(false);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
@@ -690,7 +689,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
@@ -698,6 +697,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
         //Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
         for(unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
         {
+            const unsigned int infill_line_width = mesh->infill_config[combine_idx].getLineWidth();
             EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
             Polygons infill_polygons;
             Polygons infill_lines;
@@ -710,7 +710,8 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
                 {
                     infill_line_distance_here /= 2;
                 }
-                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, extrusion_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+                
+                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
                 infill_comp.generate(infill_polygons, infill_lines);
             }
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
@@ -719,13 +720,13 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle, int extrusion_width)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
 {
-    
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
         return;
     }
+    const unsigned int infill_line_width = mesh->infill_config[0].getLineWidth();
         
     //Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
     Polygons infill_polygons;
@@ -766,7 +767,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
 //     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, extrusion_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
         infill_comp.generate(infill_polygons, infill_lines);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
@@ -831,9 +832,10 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle, int extrusion_width)
+void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle)
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
+    const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
     for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
     {
@@ -848,40 +850,40 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             pattern = EFillMethod::LINES;
             skin_angle = bridge;
-        } 
+        }
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
         if (pattern != EFillMethod::CONCENTRIC)
         {
             for (Polygons& skin_perimeter : skin_part.insets)
             {
-                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->skin_config); // add polygons to gcode in inward order
+                gcode_layer.addPolygonsByOptimizer(skin_perimeter, &mesh->insetX_config); // add polygons to gcode in inward order
             }
             if (skin_part.insets.size() > 0)
             {
                 inner_skin_outline = &skin_part.insets.back();
-                offset_from_inner_skin_outline = -extrusion_width/2;
+                offset_from_inner_skin_outline = -mesh->insetX_config.getLineWidth() / 2;
             }
         }
-        
+
         if (inner_skin_outline == nullptr)
         {
             inner_skin_outline = &skin_part.outline;
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, extrusion_width, extrusion_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
         infill_comp.generate(skin_polygons, skin_lines);
-        
+
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
-        
+
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist")); 
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines, mesh->getSettingInMicrons("infill_wipe_dist"));
         }
-        else 
+        else
         {
-            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines); 
+            gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
     }
 }
@@ -940,7 +942,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     int support_line_distance = getSettingInMicrons("support_line_distance");
-    int extrusion_width = storage.support_config.getLineWidth();
+    const int support_line_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
     if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
@@ -966,18 +968,18 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         int offset_from_outline = 0;
         if (support_pattern == EFillMethod::GRID || support_pattern == EFillMethod::TRIANGLES)
         {
-            Polygons boundary = island.offset(-extrusion_width / 2);
+            Polygons boundary = island.offset(-support_line_width / 2);
             if (boundary.size() > 0)
             {
                 setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
                 gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             }
-            offset_from_outline = -extrusion_width;
+            offset_from_outline = -support_line_width;
             support_infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, extrusion_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, getSettingBoolean("support_connect_zigzags"), true);
+        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
