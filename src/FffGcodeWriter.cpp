@@ -411,7 +411,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     if (layer_nr == 0)
     { // process the skirt of the starting extruder
         int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
-        if (storage.skirt[extruder_nr].size() > 0)
+        if (storage.skirt_brim[extruder_nr].size() > 0)
         {
             gcode_layer.setExtruder(extruder_nr);
             processSkirt(storage, gcode_layer, extruder_nr);
@@ -471,7 +471,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     {
         return;
     }
-    Polygons& skirt = storage.skirt[extruder_nr];
+    Polygons& skirt = storage.skirt_brim[extruder_nr];
     skirt_is_processed[extruder_nr] = true;
     if (skirt.size() == 0)
     {

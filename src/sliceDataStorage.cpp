@@ -213,7 +213,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     { // process brim/skirt
         for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
         {
-            if (skirt[extr_nr].size() > 0)
+            if (skirt_brim[extr_nr].size() > 0)
             {
                 ret[extr_nr] = true;
                 continue;

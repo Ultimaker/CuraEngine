@@ -14,7 +14,7 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
     const int primary_extruder_skirt_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
 
-    Polygons& skirt_primary_extruder = storage.skirt[primary_extruder];
+    Polygons& skirt_primary_extruder = storage.skirt_brim[primary_extruder];
     
     bool get_convex_hull = count == 1 && distance > 0;
     
@@ -59,9 +59,9 @@ void generateSkirt(SliceDataStorage& storage, int distance, int count, int minLe
             int width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("skirt_line_width");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
-            while (storage.skirt[extruder].polygonLength() < minLength)
+            while (storage.skirt_brim[extruder].polygonLength() < minLength)
             {
-                storage.skirt[extruder].add(skirts.back().offset(offset_distance, ClipperLib::jtRound));
+                storage.skirt_brim[extruder].add(skirts.back().offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
         }
