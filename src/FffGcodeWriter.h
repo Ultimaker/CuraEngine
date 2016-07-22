@@ -216,13 +216,14 @@ private:
     void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
-     * Add the skirt to the layer plan \p gcodeLayer.
+     * Add the skirt or the brim to the layer plan \p gcodeLayer.
      * 
-     * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param extruder_nr The extrudewr train for which to process the skirt
+     * \param Storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param extruder_nr The extruder train for which to process the skirt or
+     * brim.
      */
-    void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
+    void processSkirtBrim(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
     
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.

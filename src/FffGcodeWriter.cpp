@@ -409,12 +409,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (layer_nr == 0)
-    { // process the skirt of the starting extruder
+    { // process the skirt or the brim of the starting extruder.
         int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
             gcode_layer.setExtruder(extruder_nr);
-            processSkirt(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
 
@@ -465,7 +465,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_
     gcode_layer.processFanSpeedAndMinimalLayerTime();
 }
 
-void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
+void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
 {
     if (skirt_is_processed[extruder_nr])
     {
@@ -479,7 +479,6 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     }
     gcode_layer.addTravel(skirt_brim.back().closestPointTo(gcode_layer.getLastPosition()));
     gcode_layer.addPolygonsByOptimizer(skirt_brim, &storage.skirt_brim_config[extruder_nr]);
-    
 }
 
 void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
@@ -1057,7 +1056,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     {
         if (layer_nr == 0 && !skirt_is_processed[extruder_nr])
         {
-            processSkirt(storage, gcode_layer, extruder_nr);
+            processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
         else
         {
