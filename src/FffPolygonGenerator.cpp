@@ -11,7 +11,7 @@
 #include "multiVolumes.h"
 #include "layerPart.h"
 #include "WallsComputation.h"
-#include "skirt.h"
+#include "SkirtBrim.h"
 #include "skin.h"
 #include "infill.h"
 #include "raft.h"

@@ -68,7 +68,7 @@ set(engine_SRCS # Except main.cpp.
     src/PrimeTower.cpp
     src/raft.cpp
     src/skin.cpp
-    src/skirt.cpp
+    src/SkirtBrim.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp

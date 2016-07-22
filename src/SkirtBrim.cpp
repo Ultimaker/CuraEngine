@@ -1,5 +1,5 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#include "skirt.h"
+#include "SkirtBrim.h"
 #include "support.h"
 
 namespace cura 

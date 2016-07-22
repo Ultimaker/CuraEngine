@@ -1,6 +1,6 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#ifndef SKIRT_H
-#define SKIRT_H
+#ifndef SKIRT_BRIM_H
+#define SKIRT_BRIM_H
 
 #include "sliceDataStorage.h"
 
@@ -23,4 +23,4 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
 
 }//namespace cura
 
-#endif//SKIRT_H
+#endif //SKIRT_BRIM_H
