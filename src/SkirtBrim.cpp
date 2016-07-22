@@ -20,13 +20,13 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     
     Polygons first_layer_outline = storage.getLayerOutlines(0, true, externalOnly);
     
-    std::vector<Polygons> skirts;
+    std::vector<Polygons> skirts_or_brims;
     for(int skirtNr=0; skirtNr<count;skirtNr++)
     {
         const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirtNr + primary_extruder_skirt_brim_line_width / 2;
 
-        skirts.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
-        Polygons& skirt_brim_polygons = skirts.back();
+        skirts_or_brims.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
+        Polygons& skirt_brim_polygons = skirts_or_brims.back();
         
         //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
         for(unsigned int n=0; n<skirt_brim_polygons.size(); n++)
@@ -61,7 +61,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
             last_width = width;
             while (storage.skirt_brim[extruder].polygonLength() < minLength)
             {
-                storage.skirt_brim[extruder].add(skirts.back().offset(offset_distance, ClipperLib::jtRound));
+                storage.skirt_brim[extruder].add(skirts_or_brims.back().offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
         }
