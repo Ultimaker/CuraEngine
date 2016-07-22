@@ -205,7 +205,7 @@ SGI_THIS::SparseGridInvasive(coord_t cell_size, size_t elem_reserve, float max_l
 
     // Must be before the reserve call.
     m_grid.max_load_factor(max_load_factor);
-    if (elem_reserve!=0U) {
+    if (elem_reserve != 0U) {
         m_grid.reserve(elem_reserve);
     }
 }
@@ -238,7 +238,7 @@ void SGI_THIS::processFromCell(
     ProcessFunc &process_func) const
 {
     auto grid_range = m_grid.equal_range(grid_pt);
-    for (auto iter=grid_range.first; iter!=grid_range.second; ++iter)
+    for (auto iter = grid_range.first; iter != grid_range.second; ++iter)
     {
         process_func(iter->second);
     }
@@ -250,15 +250,15 @@ template<class ProcessFunc>
 void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
                              ProcessFunc &process_func) const
 {
-    Point min_loc(query_pt.X-radius, query_pt.Y-radius);
-    Point max_loc(query_pt.X+radius, query_pt.Y+radius);
+    Point min_loc(query_pt.X - radius, query_pt.Y - radius);
+    Point max_loc(query_pt.X + radius, query_pt.Y + radius);
 
     GridPoint min_grid = toGridPoint(min_loc);
     GridPoint max_grid = toGridPoint(max_loc);
 
-    for (coord_t grid_y=min_grid.Y; grid_y<=max_grid.Y; ++grid_y)
+    for (coord_t grid_y = min_grid.Y; grid_y <= max_grid.Y; ++grid_y)
     {
-        for (coord_t grid_x=min_grid.X; grid_x<=max_grid.X; ++grid_x)
+        for (coord_t grid_x = min_grid.X; grid_x <= max_grid.X; ++grid_x)
         {
             GridPoint grid_pt(grid_x,grid_y);
             processFromCell(grid_pt, process_func);
@@ -295,7 +295,7 @@ bool SGI_THIS::getNearest(
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
     auto process_func =
-        [&query_pt,&elem_nearest,&found,&best_dist2,&precondition](const Elem &elem)
+        [&query_pt, &elem_nearest, &found, &best_dist2, &precondition](const Elem &elem)
         {
             if (!precondition(elem))
             {
