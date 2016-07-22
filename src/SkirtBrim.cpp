@@ -14,7 +14,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
     const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_line_width");
 
-    Polygons& skirt_primary_extruder = storage.skirt_brim[primary_extruder];
+    Polygons& skirt_brim_primary_extruder = storage.skirt_brim[primary_extruder];
     
     bool get_convex_hull = count == 1 && distance > 0;
     
@@ -43,9 +43,9 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, int count, int m
             skirt_brim_polygons = skirt_brim_polygons.approxConvexHull();
         }
 
-        skirt_primary_extruder.add(skirt_brim_polygons);
+        skirt_brim_primary_extruder.add(skirt_brim_polygons);
 
-        int length = skirt_primary_extruder.polygonLength();
+        int length = skirt_brim_primary_extruder.polygonLength();
         if (skirt_brim_number + 1 >= count && length > 0 && length < minLength) //Make brim or skirt have more lines when total length is too small.
         {
             count++;
