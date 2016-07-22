@@ -342,15 +342,14 @@ void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1,
         // reverse polyline_1 by adding in reverse order
         for(int poly_idx = polyline_1.size() - 1; poly_idx >= 0; poly_idx--)
             polyline_0.add(polyline_1[poly_idx]);
-        polyline_1.clear();
     }
     else
     {
         // append polyline_1 onto polyline_0
         for(Point& p : polyline_1)
             polyline_0.add(p);
-        polyline_1.clear();
     }
+    polyline_1.clear();
 }
 
 SlicerLayer::TerminusTrackingMap::TerminusTrackingMap(Terminus::Index end_idx) :
