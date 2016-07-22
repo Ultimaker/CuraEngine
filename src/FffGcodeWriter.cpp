@@ -471,14 +471,14 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
     {
         return;
     }
-    Polygons& skirt = storage.skirt_brim[extruder_nr];
+    Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
     skirt_is_processed[extruder_nr] = true;
-    if (skirt.size() == 0)
+    if (skirt_brim.size() == 0)
     {
         return;
     }
-    gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
-    gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_brim_config[extruder_nr]);
+    gcode_layer.addTravel(skirt_brim.back().closestPointTo(gcode_layer.getLastPosition()));
+    gcode_layer.addPolygonsByOptimizer(skirt_brim, &storage.skirt_brim_config[extruder_nr]);
     
 }
 
