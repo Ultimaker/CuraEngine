@@ -174,7 +174,7 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
 
 std::priority_queue<SlicerLayer::PossibleStitch>
 SlicerLayer::findPossibleStitches(
-    Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
+    Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
@@ -259,6 +259,68 @@ SlicerLayer::findPossibleStitches(
     return stitch_queue;
 }
 
+void SlicerLayer::planPolylineStitch(
+    Polygons& open_polylines,
+    Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
+{
+    size_t polyline_0_idx = terminus_0.getPolylineIdx();
+    size_t polyline_1_idx = terminus_1.getPolylineIdx();
+    bool back_0 = terminus_0.isEnd();
+    bool back_1 = terminus_1.isEnd();
+    reverse[0] = false;
+    reverse[1] = false;
+    if (back_0)
+    {
+        if (back_1)
+        {
+            if (open_polylines[polyline_0_idx].size() <
+                open_polylines[polyline_1_idx].size())
+            {
+                std::swap(terminus_0,terminus_1);
+            }
+            reverse[1] = true;
+        } else {
+            // nothing to do
+        }
+    }
+    else
+    {
+        if (back_1)
+        {
+            std::swap(terminus_0,terminus_1);
+        }
+        else
+        {
+            reverse[0] = true;
+        }
+    }
+}
+
+void SlicerLayer::appendPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const
+{
+    if (reverse[0])
+    {
+        // reverse polyline_0
+        size_t size_0 = polyline_0.size();
+        for (size_t idx = 0U; idx != size_0/2; ++idx)
+        {
+            std::swap(polyline_0[idx], polyline_0[size_0-1-idx]);
+        }
+    }
+    if (reverse[1])
+    {
+        for(int poly_idx = polyline_1.size() - 1; poly_idx >= 0; poly_idx--)
+            polyline_0.add(polyline_1[poly_idx]);
+        polyline_1.clear();
+    }
+    else
+    {
+        for(Point& p : polyline_1)
+            polyline_0.add(p);
+        polyline_1.clear();
+    }
+}
+
 void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
@@ -324,34 +386,8 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         }
 
         // plan how to append polygons
-        bool back_0 = terminus_0.isEnd();
-        bool back_1 = terminus_1.isEnd();
-        bool reverse[2] = {false, false};
-        if (back_0)
-        {
-            if (back_1)
-            {
-                if (open_polylines[best_polyline_0_idx].size() <
-                    open_polylines[best_polyline_1_idx].size())
-                {
-                   std::swap(terminus_0,terminus_1);
-                }
-                reverse[1] = true;
-            } else {
-                // nothing to do
-            }
-        }
-        else
-        {
-            if (back_1)
-            {
-                std::swap(terminus_0,terminus_1);
-            }
-            else
-            {
-                reverse[0] = true;
-            }
-        }
+        bool reverse[2];
+        planPolylineStitch(open_polylines, terminus_0, terminus_1, reverse);
 
         best_polyline_0_idx = terminus_0.getPolylineIdx();
         best_polyline_1_idx = terminus_1.getPolylineIdx();
@@ -359,27 +395,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
 
         // append polygons according to plan
-        if (reverse[0])
-        {
-            // reverse polyline_0
-            size_t size_0 = polyline_0.size();
-            for (size_t idx = 0U; idx != size_0/2; ++idx)
-            {
-                std::swap(polyline_0[idx], polyline_0[size_0-1-idx]);
-            }
-        }
-        if (reverse[1])
-        {
-            for(int poly_idx = polyline_1.size() - 1; poly_idx >= 0; poly_idx--)
-                polyline_0.add(polyline_1[poly_idx]);
-            polyline_1.clear();
-        }
-        else
-        {
-            for(Point& p : polyline_1)
-                polyline_0.add(p);
-            polyline_1.clear();
-        }
+        appendPolylines(polyline_0, polyline_1, reverse);
 
         // update terminus_update_map
         Terminus cur_terms[4] = {{best_polyline_0_idx, false},

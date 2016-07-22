@@ -207,7 +207,12 @@ private:
     int tryFaceNextSegmentIdx(const Mesh* mesh, const SlicerSegment& segment, int face_idx, unsigned int start_segment_idx) const;
 
     std::priority_queue<PossibleStitch> findPossibleStitches(
-        Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse);
+        Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const;
+
+    void planPolylineStitch(Polygons& open_polylines,
+                            Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
+
+    void appendPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const;
 
     /*!
      * Connecting polylines that are not closed yet.
