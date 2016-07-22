@@ -206,14 +206,16 @@ public:
      * Construct the initial retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
     /*!
      * Construct the initial travel_config_per_extruder
      */
     std::vector<GCodePathConfig> initializeTravelConfigs();
+
     /*!
-     * Construct the initial skirt_config s for each extruder
+     * Construct the initial skirt & brim configurations for each extruder.
      */
-    std::vector<GCodePathConfig> initializeSkirtConfigs();
+    std::vector<GCodePathConfig> initializeSkirtBrimConfigs();
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
