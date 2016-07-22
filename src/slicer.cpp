@@ -321,6 +321,43 @@ void SlicerLayer::appendPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1
     }
 }
 
+SlicerLayer::TerminusTrackingMap::TerminusTrackingMap(Terminus::Index end_idx) :
+    m_terminus_old_to_cur_map(end_idx)
+{
+    for (size_t idx = 0U; idx != end_idx; ++idx)
+    {
+        m_terminus_old_to_cur_map[idx] = Terminus{idx};
+    }
+    m_terminus_cur_to_old_map = m_terminus_old_to_cur_map;
+}
+
+void SlicerLayer::TerminusTrackingMap::updateMap(
+    size_t num_terms,
+    const Terminus *cur_terms, const Terminus *next_terms,
+    size_t num_removed_terms,
+    const Terminus *removed_cur_terms)
+{
+    std::vector<Terminus> old_terms(num_terms);
+    for (size_t idx = 0U; idx != num_terms; ++idx)
+    {
+        old_terms[idx] = getOldFromCur(cur_terms[idx]);
+    }
+    for (size_t idx = 0U; idx != num_terms; ++idx)
+    {
+        m_terminus_old_to_cur_map[old_terms[idx].asIndex()] = next_terms[idx];
+        Terminus next_term = next_terms[idx];
+        if (next_term != Terminus::INVALID_TERMINUS)
+        {
+            m_terminus_cur_to_old_map[next_term.asIndex()] = old_terms[idx];
+        }
+    }
+    for (size_t rem_idx = 0U; rem_idx != num_removed_terms; ++rem_idx)
+    {
+        m_terminus_cur_to_old_map[removed_cur_terms[rem_idx].asIndex()] =
+            Terminus::INVALID_TERMINUS;
+    }
+}
+
 void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
@@ -330,30 +367,23 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
     stitch_queue = findPossibleStitches(open_polylines, max_dist, cell_size, allow_reverse);
 
     static const Terminus INVALID_TERMINUS = Terminus::INVALID_TERMINUS;
-    size_t terminus_update_map_size = Terminus::endIndexFromPolylineEndIndex(open_polylines.size());
-    // map from old terminus index to current terminus index
-    std::vector<Terminus> terminus_old_to_cur_map(terminus_update_map_size);
-    // map from current terminus index to old terminus index
-    std::vector<Terminus> terminus_cur_to_old_map(terminus_update_map_size);
-    for (size_t idx = 0U; idx != terminus_update_map_size; ++idx)
-    {
-        terminus_old_to_cur_map[idx] = Terminus{idx};
-    }
-    terminus_cur_to_old_map = terminus_old_to_cur_map;
+    Terminus::Index terminus_end_idx = Terminus::endIndexFromPolylineEndIndex(open_polylines.size());
+    // Keeps track of how terminus locations move around
+    TerminusTrackingMap terminus_tracking_map(terminus_end_idx);
     while (!stitch_queue.empty())
     {
         PossibleStitch next_stitch;
         next_stitch = stitch_queue.top();
         stitch_queue.pop();
         Terminus old_terminus_0 = next_stitch.terminus_0;
-        Terminus terminus_0 = terminus_old_to_cur_map[old_terminus_0.asIndex()];
+        Terminus terminus_0 = terminus_tracking_map.getCurFromOld(old_terminus_0);
         if (terminus_0 == INVALID_TERMINUS)
         {
             // if we already used this terminus, then this stitch is no longer usable
             continue;
         }
         Terminus old_terminus_1 = next_stitch.terminus_1;
-        Terminus terminus_1 = terminus_old_to_cur_map[old_terminus_1.asIndex()];
+        Terminus terminus_1 = terminus_tracking_map.getCurFromOld(old_terminus_1);
         if (terminus_1 == INVALID_TERMINUS)
         {
             // if we already used this terminus, then this stitch is no longer usable
@@ -372,15 +402,9 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             polyline_0.clear();
             Terminus cur_terms[2] = {{best_polyline_0_idx, false},
                                      {best_polyline_0_idx, true}};
-            Terminus old_terms[2];
             for (size_t idx = 0U; idx != 2U; ++idx)
             {
-                old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx].asIndex()];
-            }
-            for (size_t idx = 0U; idx != 2U; ++idx)
-            {
-                terminus_old_to_cur_map[old_terms[idx].asIndex()] = INVALID_TERMINUS;
-                terminus_cur_to_old_map[cur_terms[idx].asIndex()] = INVALID_TERMINUS;
+                terminus_tracking_map.markUsed(cur_terms[idx]);
             }
             continue;
         }
@@ -414,22 +438,8 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         {
             std::swap(next_terms[2],next_terms[3]);
         }
-        Terminus old_terms[4];
-        for (size_t idx = 0U; idx != 4U; ++idx)
-        {
-            old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx].asIndex()];
-        }
-        for (size_t idx = 0U; idx != 4U; ++idx)
-        {
-            terminus_old_to_cur_map[old_terms[idx].asIndex()] = next_terms[idx];
-            Terminus next_term = next_terms[idx];
-            if (next_term != INVALID_TERMINUS)
-            {
-                terminus_cur_to_old_map[next_term.asIndex()] = old_terms[idx];
-            }
-        }
-        terminus_cur_to_old_map[cur_terms[2].asIndex()] = INVALID_TERMINUS;
-        terminus_cur_to_old_map[cur_terms[3].asIndex()] = INVALID_TERMINUS;
+        terminus_tracking_map.updateMap(4U, cur_terms, next_terms,
+                                        2U, &cur_terms[2]);
     }
 }
 

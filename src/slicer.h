@@ -196,6 +196,40 @@ private:
         bool operator<(const PossibleStitch &other) const;
     };
 
+    class TerminusTrackingMap
+    {
+    public:
+        TerminusTrackingMap(Terminus::Index end_idx);
+
+        Terminus getCurFromOld(const Terminus &old) const
+        {
+            return m_terminus_old_to_cur_map[old.asIndex()];
+        }
+
+        Terminus getOldFromCur(const Terminus &cur) const
+        {
+            return m_terminus_cur_to_old_map[cur.asIndex()];
+        }
+
+        void markUsed(const Terminus &cur)
+        {
+            Terminus old = getOldFromCur(cur);
+            m_terminus_old_to_cur_map[old.asIndex()] = Terminus::INVALID_TERMINUS;
+            m_terminus_cur_to_old_map[cur.asIndex()] = Terminus::INVALID_TERMINUS;
+        }
+
+        void updateMap(size_t num_terms,
+                       const Terminus *cur_terms, const Terminus *next_terms,
+                       size_t num_removed_terms,
+                       const Terminus *removed_cur_terms);
+
+    private:
+        // map from old terminus index to current terminus index
+        std::vector<Terminus> m_terminus_old_to_cur_map;
+        // map from current terminus index to old terminus index
+        std::vector<Terminus> m_terminus_cur_to_old_map;
+    };
+
     /*!
      * Try to find a segment from face \p face_idx to continue \p segment.
      *
