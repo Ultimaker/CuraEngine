@@ -180,7 +180,7 @@ public:
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
 
-    std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
+    std::vector<GCodePathConfig> skirt_brim_config; //!< Configuration for skirt and brim per extruder.
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
 
     GCodePathConfig raft_base_config;

@@ -44,8 +44,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     initConfigs(storage);
     
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
-    { // skirt
-        storage.skirt_config[extruder].setLayerHeight(getSettingInMicrons("layer_height_0"));
+    { //Skirt and brim.
+        storage.skirt_brim_config[extruder].setLayerHeight(getSettingInMicrons("layer_height_0"));
     }
     
     
@@ -151,9 +151,9 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
 {
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
-    { // skirt
+    { //Skirt and brim.
         SettingsBase* train = storage.meshgroup->getExtruderTrain(extruder);
-        storage.skirt_config[extruder].init(train->getSettingInMillimetersPerSecond("skirt_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt"), train->getSettingInMillimetersPerSecond("jerk_skirt"), train->getSettingInMicrons("skirt_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.skirt_brim_config[extruder].init(train->getSettingInMillimetersPerSecond("skirt_speed"), train->getSettingInMillimetersPerSecond("acceleration_skirt"), train->getSettingInMillimetersPerSecond("jerk_skirt"), train->getSettingInMicrons("skirt_line_width"), train->getSettingInPercentage("material_flow"));
         storage.travel_config_per_extruder[extruder].init(train->getSettingInMillimetersPerSecond("speed_travel"), train->getSettingInMillimetersPerSecond("acceleration_travel"), train->getSettingInMillimetersPerSecond("jerk_travel"), 0, 0);
     }
 
@@ -478,7 +478,7 @@ void FffGcodeWriter::processSkirt(SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
     gcode_layer.addTravel(skirt[skirt.size()-1].closestPointTo(gcode_layer.getLastPosition()));
-    gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_config[extruder_nr]);
+    gcode_layer.addPolygonsByOptimizer(skirt, &storage.skirt_brim_config[extruder_nr]);
     
 }
 
@@ -486,7 +486,7 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
 {
     if (storage.oozeShield.size() > 0)
     {
-        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_config[0]); // TODO: skirt config idx should correspond to ooze shield extruder nr
+        gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
     }
 }
 
@@ -508,7 +508,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
         return;
     }
 
-    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_config[0]); // TODO: skirt config idx should correspond to draft shield extruder nr
+    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
 }
 
 std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)

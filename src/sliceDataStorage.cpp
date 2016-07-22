@@ -88,7 +88,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        skirt_config.emplace_back(PrintFeatureType::Skirt);
+        skirt_brim_config.emplace_back(PrintFeatureType::Skirt);
     }
     return ret;
 }
@@ -97,7 +97,7 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
-    skirt_config(initializeSkirtConfigs()),
+    skirt_brim_config(initializeSkirtConfigs()),
     raft_base_config(PrintFeatureType::Support),
     raft_interface_config(PrintFeatureType::Support),
     raft_surface_config(PrintFeatureType::Support),
