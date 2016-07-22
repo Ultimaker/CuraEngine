@@ -66,7 +66,11 @@ private:
      */
     int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
 
-    bool skirt_is_processed[MAX_EXTRUDERS]; //!< Whether the skirt polygons have been processed into planned paths for each extruder train
+    /*!
+     * Whether the skirt or brim polygons have been processed into planned paths
+     * for each extruder train.
+     */
+    bool skirt_brim_is_processed[MAX_EXTRUDERS];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
@@ -84,7 +88,7 @@ public:
         max_object_height = 0;
         for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
         {
-            skirt_is_processed[extruder_nr] = false;
+            skirt_brim_is_processed[extruder_nr] = false;
         }
     }
 
@@ -173,11 +177,13 @@ private:
     void setConfigRetraction(SliceDataStorage& storage);
     
     /*!
-     * Initialize the GcodePathConfig config parameters which don't change over all layers, for each feature.
+     * Initialize the GcodePathConfig config parameters which don't change over
+     * all layers, for each feature.
      * 
-     * The features are: skirt, support and for each mesh: outer wall, inner walls, skin, infill (and combined infill)
+     * The features are: skirt or brim, support and for each mesh: outer wall,
+     * inner walls, skin, infill (and combined infill).
      * 
-     * \param[out] storage The data storage to which to save the configurations
+     * \param[out] storage The data storage to which to save the configurations.
      */
     void initConfigs(SliceDataStorage& storage);
     
@@ -216,13 +222,14 @@ private:
     void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
     
     /*!
-     * Add the skirt to the layer plan \p gcodeLayer.
+     * Add the skirt or the brim to the layer plan \p gcodeLayer.
      * 
-     * \param[in] storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param extruder_nr The extrudewr train for which to process the skirt
+     * \param Storage where the slice data is stored.
+     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param extruder_nr The extruder train for which to process the skirt or
+     * brim.
      */
-    void processSkirt(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
+    void processSkirtBrim(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int extruder_nr);
     
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
@@ -294,9 +301,8 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle, int extrusionWidth); 
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle); 
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -307,9 +313,8 @@ private:
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle, int extrusionWidth);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -330,9 +335,8 @@ private:
      * \param layer_nr The current layer number.
      * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
-     * \param extrusionWidth extrusionWidth
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle, int extrusion_width);
+    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.

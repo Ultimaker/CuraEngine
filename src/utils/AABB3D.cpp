@@ -15,12 +15,15 @@ AABB3D::AABB3D()
 
 bool AABB3D::hit(const AABB3D& other) const
 {
-    if (max.x < other.min.y) return false;
-    if (min.x > other.max.y) return false;
-    if (max.y < other.min.y) return false;
-    if (min.y > other.max.y) return false;
-    if (max.z < other.min.z) return false;
-    if (min.z > other.max.z) return false;
+    if (   max.x < other.min.y
+        || min.x > other.max.y
+        || max.y < other.min.y
+        || min.y > other.max.y
+        || max.z < other.min.z
+        || min.z > other.max.z)
+    {
+        return false;
+    }
     return true;
 }
 

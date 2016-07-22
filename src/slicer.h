@@ -153,7 +153,7 @@ public:
 
     const Mesh* mesh; //!< The sliced mesh
     
-    Slicer(const Mesh* mesh, int initial, int thickness, int layer_count, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
     /*!
      * Linear interpolation

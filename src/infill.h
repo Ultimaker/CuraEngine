@@ -28,12 +28,13 @@ class Infill
     int infill_overlap; //!< the distance by which to overlap with the actual area within which to generate infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     int64_t z; //!< height of the layer for which we generate infill
+    int64_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, bool connected_zigzags = false, bool use_endpieces = false)
+    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, int64_t shift, bool connected_zigzags = false, bool use_endpieces = false)
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
@@ -42,6 +43,7 @@ public:
     , infill_overlap(infill_overlap)
     , fill_angle(fill_angle)
     , z(z)
+    , shift(shift)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     {
@@ -87,6 +89,12 @@ private:
     void generateCubicInfill(Polygons& result);
 
     /*!
+     * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
+     * \param result (output) The resulting lines
+     */
+    void generateTetrahedralInfill(Polygons& result);
+
+    /*!
      * Generate a triangular grid of infill lines
      * \param result (output) The resulting lines
      */
@@ -100,9 +108,9 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param boundary The axis aligned boundary box within which the polygon is
      * \param cut_list A mapping of each scanline to all y-coordinates (in the space transformed by rotation_matrix) where the polygons are crossing the scanline
-     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
+     * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
-    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t shift);
+    void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t total_shift);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance
@@ -113,9 +121,9 @@ private:
      * \param result (output) The resulting lines
      * \param line_distance The distance between two lines which are in the same direction
      * \param fill_angle The angle of the generated lines
-     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
+     * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t shift);
+    void generateLineInfill(Polygons& result, int line_distance, const double& fill_angle, int64_t extra_shift);
     
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -131,9 +139,9 @@ private:
      * \param rotation_matrix The rotation matrix (un)applied to enforce the angle of the infill 
      * \param zigzag_connector_processor The processor used to generate zigzag connectors
      * \param connected_zigzags Whether to connect the endpiece zigzag segments on both sides to the same infill line
-     * \param shift shift of the scanlines in the direction perpendicular to the fill_angle
+     * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
-    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t shift);
+    void generateLinearBasedInfill(const int outline_offset, Polygons& result, const int line_distance, const PointMatrix& rotation_matrix, ZigzagConnectorProcessor& zigzag_connector_processor, const bool connected_zigzags, int64_t extra_shift);
 
     /*!
      * 

@@ -36,11 +36,11 @@ private:
      * Generate support roof areas and non-roof areas for a given mesh.
      * 
      * \param storage Output storage: support area + support roof area output
-     * \param supportAreas The basic support areas for the current mesh
-     * \param layerThickness The layer height
-     * \param support_roof_height The thickness of the hammock in z directiontt
+     * \param mesh The mesh to generate support roofs for.
+     * \param support_areas The basic support areas for the current mesh
+     * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height);
+    static void generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
@@ -64,15 +64,13 @@ private:
      * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
      * \param layer_count total number of layers
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
-     * \param extrusionWidth extrusionWidth
      */
     static void detectOverhangPoints(
         SliceDataStorage& storage,
         SliceMeshStorage& mesh,
         std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
         int layer_count,
-        int supportMinAreaSqrt,
-        int extrusionWidth
+        int supportMinAreaSqrt
     );
     
     /*!

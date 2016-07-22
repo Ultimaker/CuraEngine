@@ -169,6 +169,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
         
     int n_patterns = 2; // alternating patterns between layers
     int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
+    int extra_infill_shift = 0;
     
     generateGroundpoly(storage);
     
@@ -186,7 +187,7 @@ void PrimeTower::generatePaths3(SliceDataStorage& storage)
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
             Polygons& result_lines = patterns[pattern_idx];
-            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z);
+            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
             infill_comp.generate(result_polygons, result_lines);
         }
     }

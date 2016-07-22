@@ -6,7 +6,7 @@
 #include "weaveDataStorage.h"
 #include "progress/Progress.h"
 
-#include "pathOrderOptimizer.h" // for skirt
+#include "pathOrderOptimizer.h" //For skirt/brim.
 
 namespace cura 
 {
@@ -39,7 +39,7 @@ void Wireframe2gcode::writeGCode()
             
     unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
-    gcode.writeTypeComment(PrintFeatureType::Skirt);
+    gcode.writeTypeComment(PrintFeatureType::SkirtBrim);
 
     gcode.setZ(initial_layer_thickness);
     
@@ -487,13 +487,13 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
     
     filament_diameter = getSettingInMicrons("material_diameter");
-    extrusionWidth = getSettingInMicrons("wall_line_width_x");
+    line_width = getSettingInMicrons("wall_line_width_x");
     
     flowConnection = getSettingInPercentage("wireframe_flow_connection");
     flowFlat = getSettingInPercentage("wireframe_flow_flat");
     
-    double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-    double lineArea = /* M_PI * */ (INT2MM(extrusionWidth) / 2.0) * (INT2MM(extrusionWidth) / 2.0);
+    const double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
+    const double lineArea = /* M_PI * */ (INT2MM(line_width) / 2.0) * (INT2MM(line_width) / 2.0);
     extrusion_per_mm_connection = lineArea / filament_area * flowConnection / 100.0;
     extrusion_per_mm_flat = lineArea / filament_area * flowFlat / 100.0;
     
@@ -607,7 +607,7 @@ void Wireframe2gcode::processSkirt()
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
-            gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_speed"), getSettingInMillimetersPerSecond("skirt_line_width"));
+            gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_brim_speed"), getSettingInMillimetersPerSecond("skirt_brim_line_width"));
         }
     }
 }

@@ -145,7 +145,7 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
     else 
     {
-        Polygons layer_walls;
+        Polygons comb_boundary;
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
@@ -153,15 +153,19 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
             {
                 for (SliceLayerPart& part : layer.parts)
                 {
-                    layer_walls.add(part.infill_area);
+                    comb_boundary.add(part.infill_area);
                 }
             }
             else
             {
-                layer.getSecondOrInnermostWalls(layer_walls);
+                if (mesh.getSettingBoolean("infill_mesh"))
+                {
+                    continue;
+                }
+                layer.getSecondOrInnermostWalls(comb_boundary);
             }
         }
-        return layer_walls;
+        return comb_boundary;
     }
 }
 
@@ -617,6 +621,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plans[extruder_plan_idx].extruder];
+
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         if (extruder != extruder_plan.extruder)
         {
@@ -631,6 +637,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             // prime extruder if it hadn't been used yet
             gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
+            gcode.writeRetraction(&retraction_config);
 
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
@@ -640,8 +647,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
-
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
 
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 

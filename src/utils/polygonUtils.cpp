@@ -2,6 +2,7 @@
 #include "polygonUtils.h"
 
 #include <list>
+#include <sstream>
 
 #include "linearAlg2D.h"
 #include "SparseGrid.h"
@@ -321,14 +322,19 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                  */
 #ifdef DEBUG
                 {
+                    int offset_performed = offset / 2;
                     AABB aabb(insetted);
                     aabb.expand(std::abs(preferred_dist_inside) * 2);
                     SVG svg("debug.html", aabb);
+                    svg.writeComment("Original polygon in black");
                     svg.writePolygon(closest_poly, SVG::Color::BLACK);
                     for (auto point : closest_poly)
                     {
                         svg.writePoint(point, true, 2);
                     }
+                    std::stringstream ss;
+                    ss << "Offsetted polygon in blue with offset " << offset_performed;
+                    svg.writeComment(ss.str());
                     svg.writePolygons(insetted, SVG::Color::BLUE);
                     for (auto poly : insetted)
                     {
@@ -337,7 +343,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                             svg.writePoint(point, true, 2);
                         }
                     }
+                    svg.writeComment("From location");
                     svg.writePoint(from, false, 5, SVG::Color::GREEN);
+                    svg.writeComment("Location computed to be inside the black polygon");
                     svg.writePoint(inside.location, false, 5, SVG::Color::RED);
                 }
                 logError("ERROR! ERROR!\n\tClipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");

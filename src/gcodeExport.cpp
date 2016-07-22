@@ -69,6 +69,7 @@ void GCodeExport::preSetup(const MeshGroup* settings)
 
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
+        extruder_attr[extruder_nr].material_guid = train->getSettingString("material_guid");
 
         extruder_attr[extruder_nr].start_code = train->getSettingString("machine_extruder_start_code");
         extruder_attr[extruder_nr].end_code = train->getSettingString("machine_extruder_end_code");
@@ -116,7 +117,7 @@ void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 }
 
 
-std::string GCodeExport::getFileHeader(const double* print_time, const std::vector<double>& filament_used, const std::vector<int16_t>& mat_ids)
+std::string GCodeExport::getFileHeader(const double* print_time, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
     switch (flavor)
@@ -141,9 +142,9 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             {
                 prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.VOLUME_USED:" << static_cast<int>(filament_used[extr_nr]) << new_line;
             }
-            if (mat_ids.size() == extruder_count)
+            if (mat_ids.size() == extruder_count && mat_ids[extr_nr] != "")
             {
-                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line; // TODO: convert to hexadecimal format
+                prefix << ";EXTRUDER_TRAIN." << extr_nr << ".MATERIAL.GUID:" << mat_ids[extr_nr] << new_line;
             }
             prefix << ";EXTRUDER_TRAIN." << extr_nr << ".NOZZLE.DIAMETER:" << float(INT2MM(getNozzleSize(extr_nr))) << new_line;
         }
@@ -201,6 +202,11 @@ int GCodeExport::getNozzleSize(int extruder_nr)
 Point GCodeExport::getExtruderOffset(int id)
 {
     return extruder_attr[id].nozzle_offset;
+}
+
+std::string GCodeExport::getMaterialGUID(int extruder_nr)
+{
+    return extruder_attr[extruder_nr].material_guid;
 }
 
 Point GCodeExport::getGcodePos(int64_t x, int64_t y, int extruder_train)
@@ -396,8 +402,8 @@ void GCodeExport::writeTypeComment(PrintFeatureType type)
         case PrintFeatureType::Support:
             *output_stream << ";TYPE:SUPPORT" << new_line;
             break;
-        case PrintFeatureType::Skirt:
-            *output_stream << ";TYPE:SKIRT" << new_line;
+        case PrintFeatureType::SkirtBrim:
+            *output_stream << ";TYPE:SKIRTBRIM" << new_line;
             break;
         case PrintFeatureType::Infill:
             *output_stream << ";TYPE:FILL" << new_line;

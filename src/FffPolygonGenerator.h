@@ -146,6 +146,12 @@ private:
     
     /*!
      * Make the outer wall 'fuzzy'
+     * 
+     * Introduce new vertices and move existing vertices in or out by a random distance, based on the fuzzy skin settings.
+     * 
+     * This only changes the outer wall.
+     * 
+     * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
     void processFuzzyWalls(SliceMeshStorage& mesh);
     

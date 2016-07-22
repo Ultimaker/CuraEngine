@@ -63,10 +63,6 @@ public:
         }
         fprintf(out, "<!DOCTYPE html><html><body>\n");
         fprintf(out, "<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\" style=\"width:%llipx;height:%llipx\">\n", canvas_size.X, canvas_size.Y);
-        
-//         fprintf(out, "<marker id='MidMarker' viewBox='0 0 10 10' refX='5' refY='5' markerUnits='strokeWidth' markerWidth='10' markerHeight='10' stroke='lightblue' stroke-width='2' fill='none' orient='auto'>");
-//         fprintf(out, "<path d='M 0 0 L 10 5 M 0 10 L 10 5'/>");
-//         fprintf(out, "</marker>");
     }
 
     ~SVG()
@@ -75,7 +71,7 @@ public:
         fprintf(out, "</body></html>");
         fclose(out);
     }
-    
+
     /*!
      * transform a point in real space to canvas space
      */
@@ -84,46 +80,13 @@ public:
         return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + border;
     }
 
-private:
-    
-//     void _writeLines(PolygonRef polygon, Color color = Color::GRAY)
-//     {
-//         for(unsigned int n=0; n<polygon.size(); n++)
-//         {
-//             if (n == 0)
-//                 fprintf(out, "M");
-//             else
-//                 fprintf(out, "L");
-//             Point pf = transform(polygon[n]);
-//             fprintf(out, "%lli,%lli ", pf.X, pf.Y);
-//         }
-//         fprintf(out, "Z\n");
-//     }
+    void writeComment(std::string comment)
+    {
+        fprintf(out, "<!-- %s -->\n", comment.c_str());
+    }
 
-public:
-//     void writeLines(Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK)
-//     {
-//         fprintf(out, "<g fill-rule='evenodd' style=\"fill: %s; stroke:%s;stroke-width:1\">\n", toString(color).c_str(), toString(outline_color).c_str());
-//         fprintf(out, "<path marker-mid='url(#MidMarker)' d=\"");
-//         for(PolygonRef poly : polygons)
-//         {
-//             _writeLines(poly, outline_color);
-//         }
-//         fprintf(out, "\"/>");
-//         fprintf(out, "</g>\n");
-//     }
-//     void writeLines(PolygonRef poly, Color color = Color::GRAY, Color outline_color = Color::BLACK)
-//     {
-//         fprintf(out, "<g fill-rule='evenodd' style=\"fill: %s; stroke:%s;stroke-width:1\">\n", toString(color).c_str(), toString(outline_color).c_str());
-//         fprintf(out, "<path marker-mid='url(#MidMarker)' d=\"");
-//         writeLines(poly, outline_color);
-//         fprintf(out, "\"/>");
-//         fprintf(out, "</g>\n");
-//     }
-    
     void writeAreas(const Polygons& polygons, Color color = Color::GRAY, Color outline_color = Color::BLACK) 
     {
-            
         for(PolygonsPart& parts : polygons.splitIntoParts())
         {
             for(unsigned int j=0;j<parts.size();j++)
@@ -142,7 +105,7 @@ public:
             }
         }
     }
-    
+
     void writeAreas(std::vector<Point> polygon,Color color = Color::GRAY,Color outline_color = Color::BLACK)
     {
         fprintf(out,"<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"1\" points=\"",toString(color).c_str(),toString(outline_color).c_str()); //The beginning of the polygon tag.
@@ -153,7 +116,7 @@ public:
         }
         fprintf(out,"\" />\n"); //The end of the polygon tag.
     }
-    
+
     void writePoint(const Point& p, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         Point pf = transform(p);
@@ -164,6 +127,7 @@ public:
             fprintf(out, "<text x=\"%lli\" y=\"%lli\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n",pf.X, pf.Y, p.X, p.Y);
         }
     }
+
     void writePoints(PolygonRef poly, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         for (Point& p : poly)
@@ -171,7 +135,7 @@ public:
             writePoint(p, write_coords, size, color);
         }
     }
-    
+
     void writePoints(Polygons& polygons, bool write_coords=false, int size = 5, Color color = Color::BLACK)
     {
         for (PolygonRef poly : polygons)
@@ -179,7 +143,7 @@ public:
             writePoints(poly, write_coords, size, color);
         }
     }
-    
+
     /*!
      * \brief Draws a polyline on the canvas.
      * 
@@ -191,7 +155,7 @@ public:
      * \param color The colour of the line segments. If this is not specified,
      * black will be used.
      */
-    void writeLines(std::vector<Point> polyline,Color color = Color::BLACK)
+    void writeLines(std::vector<Point> polyline, Color color = Color::BLACK)
     {
         if(polyline.size() <= 1) //Need at least 2 points.
         {
@@ -207,7 +171,7 @@ public:
         }
         fprintf(out,"\" />\n"); //Write the end of the tag.
     }
-    
+
     void writeLine(const Point& a, const Point& b, Color color = Color::BLACK)
     {
         Point fa = transform(a);

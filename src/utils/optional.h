@@ -59,8 +59,12 @@ public:
      * \param null_ptr exactly [nullptr]
      * \return this
      */
-    optional& operator=(void* null_ptr)
+    optional& operator=(std::nullptr_t null_ptr)
     {
+        if (instance)
+        {
+            delete instance;
+        }
         instance = nullptr;
         return *this;
     }
@@ -82,7 +86,7 @@ public:
         {
             if (other.instance)
             {
-                instance = new T(other.instance);
+                instance = new T(*other.instance);
             }
             else
             {
