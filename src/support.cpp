@@ -55,7 +55,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         
         if (mesh.getSettingBoolean("support_roof_enable"))
         {
-            generateSupportRoofs(storage, supportAreas, layer_count, storage.getSettingInMicrons("layer_height"), mesh.getSettingInMicrons("support_roof_height"));
+            generateSupportRoofs(storage, mesh, supportAreas, layer_count);
         }
         else 
         {
@@ -464,15 +464,15 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, const unsigned int layer_count, const unsigned int layer_thickness, const unsigned int support_roof_height)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
 {
-    const unsigned int roof_layer_count = support_roof_height / layer_thickness;
-    
+    const unsigned int roof_layer_count = mesh.getSettingInMicrons("support_roof_height") / storage.getSettingInMicrons("layer_height");
+
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
-        
+
         if (layer_idx + roof_layer_count < supportLayers.size())
         {
             Polygons roofs = support_areas[layer_idx].difference(support_areas[layer_idx + roof_layer_count]);

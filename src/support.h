@@ -36,11 +36,11 @@ private:
      * Generate support roof areas and non-roof areas for a given mesh.
      * 
      * \param storage Output storage: support area + support roof area output
+     * \param mesh The mesh to generate support roofs for.
      * \param support_areas The basic support areas for the current mesh
-     * \param layer_thickness The layer height
-     * \param support_roof_height The thickness of the hammock in z directiontt
+     * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, const unsigned int layer_count, const unsigned int layer_thickness, const unsigned int support_roof_height);
+    static void generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
