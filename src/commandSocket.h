@@ -64,22 +64,32 @@ public:
     /*! 
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
-    void sendPolygons(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
+    static void sendPolygons(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
 
     /*! 
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
-    void sendPolygon(cura::PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width);
+    static void sendPolygon(cura::PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width);
 
     /*!
      * Send a line to the front-end. This is used for the layerview in the GUI
      */
-    void sendLine(cura::PrintFeatureType type, int layer_nr, Point from, Point to, int line_width);
+    static void sendLineTo(cura::PrintFeatureType type, int layer_nr, Point to, int line_width);
 
     /*!
-     * Set which extruder is being used for the following calls to SendPolygons, SendPolygon and SendLine.
+     * Set the current position of the path compiler to \p position. This is used for the layerview in the GUI
      */
-    void setExtruderForSend( int extruder );
+    static void setSendCurrentPosition(Point position);
+
+    /*!
+    * Set which layer is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
+    */
+    static void setLayerForSend( int layer_nr );
+
+     /*!
+     * Set which extruder is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
+     */
+    static void setExtruderForSend( int extruder );
 
     /*!
      * Send a polygon to the front-end if the command socket is instantiated. This is used for the layerview in the GUI

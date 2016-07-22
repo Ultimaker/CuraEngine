@@ -594,13 +594,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     {
         *output_stream << "G0";
 
-        if (CommandSocket::isInstantiated()) 
-        {
-            // we should send this travel as a non-retraction move
-            auto from = Point(currentPosition.x, currentPosition.y);
-            auto to = Point(x, y);
-            CommandSocket::getInstance()->sendLine(extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing, layer_nr, from, to, extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
-        }
+        CommandSocket::sendLineTo(extruder_attr[current_extruder].retraction_e_amount_current ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing, layer_nr, Point(x, y), extruder_attr[current_extruder].retraction_e_amount_current ? MM2INT(0.2) : MM2INT(0.1));
     }
 
     if (currentSpeed != speed)
@@ -731,10 +725,8 @@ void GCodeExport::startExtruder(int new_extruder)
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
     writeCode(extruder_attr[new_extruder].start_code.c_str());
-    if(CommandSocket::isInstantiated())
-    {
-        CommandSocket::getInstance()->setExtruderForSend(new_extruder);
-    }
+    CommandSocket::setExtruderForSend(new_extruder);
+    CommandSocket::setSendCurrentPosition( getPositionXY() );
 
     //Change the Z position so it gets re-writting again. We do not know if the switch code modified the Z position.
     currentPosition.z += 1;

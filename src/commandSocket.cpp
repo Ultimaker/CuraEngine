@@ -138,13 +138,14 @@ public:
         _layer_nr( 0 ),
         extruder(0),
         data_point_type(cura::proto::PathSegment::Point2D),
+        line_types(),
         line_widths(),
         points(),
         last_point{0,0}
     {}
     ~PathCompiler()
     {
-        if( points.size() )
+        if( line_types.size() )
             flushPathSegments();
     }
 
@@ -157,6 +158,13 @@ public:
             flushPathSegments();
             _layer_nr = new_layer_nr;
         }
+    }
+    /*!
+     * Returns the current layer which data is written to.
+     */
+    int getLayer() const
+    {
+        return _layer_nr;
     }
     /*!
      * Used to set which extruder will be used for printing the following layer data is intended for.
@@ -191,16 +199,23 @@ public:
      */
     void flushPathSegments();
     /*!
-     * Adds a single line segment to the current path
+     * Move the current point of this path to \position.
      */
-    void sendLine( PrintFeatureType print_feature_type, Point from, Point to, int width);
+    void setCurrentPosition( Point position )
+    {
+        handleInitialPoint( position );
+    }
+    /*!
+     * Adds a single line segment to the current path. The line segment added is from the current last point to point \p to
+     */
+    void sendLineTo( PrintFeatureType print_feature_type, Point to, int width);
     /*!
      * Adds closed polygon to the current path
      */
     void sendPolygon( PrintFeatureType print_feature_type, Polygon poly, int width);
 private:
     /*!
-     * Convert and add a point to the points buffer, each point being represented as two consecutive floats.
+     * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
      */
     void addPoint2D( Point point )
     {
@@ -208,6 +223,9 @@ private:
         points.push_back( INT2MM(point.Y) );
         last_point = point;
     }
+    /*!
+     * Implements the functionality of adding a single 2D line segment to the path data. All member functions adding a 2D line segment should use this functions.
+     */
     void addLineSegment( PrintFeatureType print_feature_type, Point point, int line_width)
     {
         addPoint2D( point );
@@ -470,11 +488,15 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Poly
     if (polygons.size() == 0)
         return;
 
-    path_comp->setLayer( layer_nr );
-
-    for (unsigned int i = 0; i < polygons.size(); ++i)
+    if (CommandSocket::isInstantiated())
     {
-   		path_comp->sendPolygon( type, polygons[i], line_width );
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        assert(layer_nr == path_comp->getLayer());
+
+        for (unsigned int i = 0; i < polygons.size(); ++i)
+        {
+            path_comp->sendPolygon( type, polygons[i], line_width );
+        }
     }
 #endif
 }
@@ -482,23 +504,59 @@ void CommandSocket::sendPolygons(PrintFeatureType type, int layer_nr, const Poly
 void CommandSocket::sendPolygon(PrintFeatureType type, int layer_nr, Polygon& polygon, int line_width)
 {
 #ifdef ARCUS
-    path_comp->setLayer( layer_nr );
-    path_comp->sendPolygon( type, polygon, line_width );
+    if (CommandSocket::isInstantiated())
+    {
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        assert(layer_nr == path_comp->getLayer());
+
+        path_comp->sendPolygon( type, polygon, line_width );
+    }
 #endif
 }
 
-void CommandSocket::sendLine(cura::PrintFeatureType type, int layer_nr, Point from, Point to, int line_width)
+void CommandSocket::sendLineTo(cura::PrintFeatureType type, int layer_nr, Point to, int line_width)
 {
 #ifdef ARCUS
-    path_comp->setLayer( layer_nr );
-    path_comp->sendLine( type, from, to, line_width );
+    if (CommandSocket::isInstantiated())
+    {
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        assert(layer_nr == path_comp->getLayer());
+
+        path_comp->sendLineTo( type, to, line_width );
+    }
+#endif
+}
+
+void CommandSocket::setSendCurrentPosition(Point position)
+{
+#ifdef ARCUS
+    if (CommandSocket::isInstantiated())
+    {
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        path_comp->setCurrentPosition( position );
+    }
+#endif
+}
+
+void CommandSocket::setLayerForSend( int layer_nr )
+{
+#ifdef ARCUS
+    if (CommandSocket::isInstantiated())
+    {
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        path_comp->setLayer( layer_nr );
+    }
 #endif
 }
 
 void CommandSocket::setExtruderForSend( int extruder )
 {
 #ifdef ARCUS
-    path_comp->setExtruder( extruder );
+    if (CommandSocket::isInstantiated())
+    {
+        auto& path_comp = CommandSocket::getInstance()->path_comp;
+        path_comp->setExtruder( extruder );
+    }
 #endif
 }
 
@@ -684,7 +742,7 @@ std::shared_ptr<cura::proto::LayerOptimized> CommandSocket::Private::getOptimize
 #ifdef ARCUS
 void CommandSocket::PathCompiler::flushPathSegments()
 {
-    if( points.size() > 0 && CommandSocket::isInstantiated() )
+    if( line_types.size() > 0 && CommandSocket::isInstantiated() )
     {
         std::shared_ptr<cura::proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
 
@@ -707,12 +765,11 @@ void CommandSocket::PathCompiler::flushPathSegments()
 }
 
 //TODO: Reason about these functions when points is empty or the polygon entered is empty
-void CommandSocket::PathCompiler::sendLine(PrintFeatureType print_feature_type, Point from, Point to, int width)
+void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type, Point to, int width)
 {
-    handleInitialPoint( from );
+    assert( points.size() > 0 );
 
-    // Ignore zero-length segments.
-    if( from != to )
+    if ( to != last_point )
     {
         addLineSegment(print_feature_type, to, width );
     }
@@ -720,7 +777,7 @@ void CommandSocket::PathCompiler::sendLine(PrintFeatureType print_feature_type, 
 
 void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, Polygon polygon, int width)
 {
-    if( polygon.size() < 2 )
+    if ( polygon.size() < 2 )
         return;
     auto it = polygon.begin();
     handleInitialPoint( *it );

@@ -80,15 +80,11 @@ public:
     bool mergeInfillLines(double speed, unsigned int& path_idx);
     
     /*!
-     * send a polygon through the command socket from the previous point to the given point
+     * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width)
     {
-        if (CommandSocket::isInstantiated()) 
-        {
-            // we should send this travel as a non-retraction move
-            CommandSocket::getInstance()->sendLine(print_feature_type, layer_nr, from, to, line_width);
-        }
+        CommandSocket::sendLineTo(print_feature_type, layer_nr, to, line_width);
     }
 };
 
