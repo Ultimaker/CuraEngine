@@ -621,7 +621,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plans[extruder_plan_idx].extruder];
 
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         if (extruder != extruder_plan.extruder)
