@@ -319,7 +319,13 @@ void SlicerLayer::planPolylineStitch(
         else
         {
             // front of both polylines
-            // reverse 0
+            // we can reverse either one and then prepend to the other
+            // reverse the smaller polyline
+            if (open_polylines[polyline_0_idx].size() >
+                open_polylines[polyline_1_idx].size())
+            {
+                std::swap(terminus_0,terminus_1);
+            }
             reverse[0] = true;
         }
     }
