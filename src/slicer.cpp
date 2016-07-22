@@ -174,7 +174,7 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch &other) const
 
 std::priority_queue<SlicerLayer::PossibleStitch>
 SlicerLayer::findPossibleStitches(
-    Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
+    const Polygons& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
@@ -199,7 +199,7 @@ SlicerLayer::findPossibleStitches(
     // populate grid
     for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
-        PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+        const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
 
         if (polyline_0.size() < 1) continue;
 
@@ -212,7 +212,7 @@ SlicerLayer::findPossibleStitches(
     // search for nearby end points
     for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
     {
-        PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+        const PolygonRef polyline_1 = open_polylines[polyline_1_idx];
 
         if (polyline_1.size() < 1) continue;
 
@@ -260,7 +260,7 @@ SlicerLayer::findPossibleStitches(
 }
 
 void SlicerLayer::planPolylineStitch(
-    Polygons& open_polylines,
+    const Polygons& open_polylines,
     Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
 {
     size_t polyline_0_idx = terminus_0.getPolylineIdx();
@@ -296,7 +296,7 @@ void SlicerLayer::planPolylineStitch(
     }
 }
 
-void SlicerLayer::appendPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const
+void SlicerLayer::joinPolylines(PolygonRef &polyline_0, PolygonRef &polyline_1, const bool reverse[2]) const
 {
     if (reverse[0])
     {
@@ -404,7 +404,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
                                      {best_polyline_0_idx, true}};
             for (size_t idx = 0U; idx != 2U; ++idx)
             {
-                terminus_tracking_map.markUsed(cur_terms[idx]);
+                terminus_tracking_map.markRemoved(cur_terms[idx]);
             }
             continue;
         }
@@ -419,7 +419,7 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         PolygonRef polyline_1 = open_polylines[best_polyline_1_idx];
 
         // append polygons according to plan
-        appendPolylines(polyline_0, polyline_1, reverse);
+        joinPolylines(polyline_0, polyline_1, reverse);
 
         // update terminus_update_map
         Terminus cur_terms[4] = {{best_polyline_0_idx, false},
