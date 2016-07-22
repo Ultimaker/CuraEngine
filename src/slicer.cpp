@@ -273,12 +273,12 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
     std::vector<Terminus> terminus_old_to_cur_map(terminus_update_map_size);
     // map from current terminus index to old terminus index
     std::vector<Terminus> terminus_cur_to_old_map(terminus_update_map_size);
-    for (size_t idx=0U; idx!=terminus_update_map_size; ++idx)
+    for (size_t idx = 0U; idx != terminus_update_map_size; ++idx)
     {
         terminus_old_to_cur_map[idx] = Terminus{idx};
     }
     terminus_cur_to_old_map = terminus_old_to_cur_map;
-    while(!stitch_queue.empty())
+    while (!stitch_queue.empty())
     {
         PossibleStitch next_stitch;
         next_stitch = stitch_queue.top();
@@ -311,11 +311,11 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             Terminus cur_terms[2] = {{best_polyline_0_idx, false},
                                      {best_polyline_0_idx, true}};
             Terminus old_terms[2];
-            for (size_t idx=0U; idx!=2U; ++idx)
+            for (size_t idx = 0U; idx != 2U; ++idx)
             {
                 old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx].asIndex()];
             }
-            for (size_t idx=0U; idx!=2U; ++idx)
+            for (size_t idx = 0U; idx != 2U; ++idx)
             {
                 terminus_old_to_cur_map[old_terms[idx].asIndex()] = INVALID_TERMINUS;
                 terminus_cur_to_old_map[cur_terms[idx].asIndex()] = INVALID_TERMINUS;
@@ -340,7 +340,9 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             } else {
                 // nothing to do
             }
-        } else {
+        }
+        else
+        {
             if (back_1)
             {
                 std::swap(terminus_0,terminus_1);
@@ -361,14 +363,14 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
         {
             // reverse polyline_0
             size_t size_0 = polyline_0.size();
-            for (size_t idx=0U; idx!=size_0/2; ++idx)
+            for (size_t idx = 0U; idx != size_0/2; ++idx)
             {
                 std::swap(polyline_0[idx], polyline_0[size_0-1-idx]);
             }
         }
         if (reverse[1])
         {
-            for(int poly_idx = polyline_1.size()-1; poly_idx >= 0; poly_idx--)
+            for(int poly_idx = polyline_1.size() - 1; poly_idx >= 0; poly_idx--)
                 polyline_0.add(polyline_1[poly_idx]);
             polyline_1.clear();
         }
@@ -397,15 +399,15 @@ void SlicerLayer::connectOpenPolylinesImpl(Polygons& open_polylines, coord_t max
             std::swap(next_terms[2],next_terms[3]);
         }
         Terminus old_terms[4];
-        for (size_t idx=0U; idx!=4U; ++idx)
+        for (size_t idx = 0U; idx != 4U; ++idx)
         {
             old_terms[idx] = terminus_cur_to_old_map[cur_terms[idx].asIndex()];
         }
-        for (size_t idx=0U; idx!=4U; ++idx)
+        for (size_t idx = 0U; idx != 4U; ++idx)
         {
             terminus_old_to_cur_map[old_terms[idx].asIndex()] = next_terms[idx];
             Terminus next_term = next_terms[idx];
-            if (next_term!=INVALID_TERMINUS)
+            if (next_term != INVALID_TERMINUS)
             {
                 terminus_cur_to_old_map[next_term.asIndex()] = old_terms[idx];
             }
