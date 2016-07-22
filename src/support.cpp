@@ -464,9 +464,9 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height)
+void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& support_areas, unsigned int layer_count, int layer_thickness, int support_roof_height)
 {
-    int roof_layer_count = support_roof_height / layerThickness;
+    int roof_layer_count = support_roof_height / layer_thickness;
     
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
@@ -475,10 +475,10 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, std::vector<Po
         
         if (layer_idx + roof_layer_count < supportLayers.size())
         {
-            Polygons roofs = supportAreas[layer_idx].difference(supportAreas[layer_idx + roof_layer_count]);
+            Polygons roofs = support_areas[layer_idx].difference(support_areas[layer_idx + roof_layer_count]);
             roofs.removeSmallAreas(1.0);
             layer.roofs.add(roofs);
-            layer.supportAreas.add(supportAreas[layer_idx].difference(layer.roofs));
+            layer.supportAreas.add(support_areas[layer_idx].difference(layer.roofs));
         }
         else 
         {
