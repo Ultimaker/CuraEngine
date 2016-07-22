@@ -403,7 +403,7 @@ void GCodeExport::writeTypeComment(PrintFeatureType type)
             *output_stream << ";TYPE:SUPPORT" << new_line;
             break;
         case PrintFeatureType::SkirtBrim:
-            *output_stream << ";TYPE:SKIRT" << new_line;
+            *output_stream << ";TYPE:SKIRTBRIM" << new_line;
             break;
         case PrintFeatureType::Infill:
             *output_stream << ";TYPE:FILL" << new_line;
