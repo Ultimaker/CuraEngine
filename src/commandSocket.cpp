@@ -63,8 +63,8 @@ public:
 template <typename T>
 class SliceDataStruct
 {
-    SliceDataStruct( const SliceDataStruct& ) = delete;
-    SliceDataStruct& operator=( const SliceDataStruct& ) = delete;
+    SliceDataStruct(const SliceDataStruct&) = delete;
+    SliceDataStruct& operator=(const SliceDataStruct&) = delete;
 public:
 
     SliceDataStruct()
@@ -135,7 +135,7 @@ class CommandSocket::PathCompiler
 public:
     PathCompiler(CommandSocket::Private& cs_private_data):
         _cs_private_data(cs_private_data),
-        _layer_nr( 0 ),
+        _layer_nr(0),
         extruder(0),
         data_point_type(cura::proto::PathSegment::Point2D),
         line_types(),
@@ -145,8 +145,10 @@ public:
     {}
     ~PathCompiler()
     {
-        if( line_types.size() )
+        if (line_types.size())
+        {
             flushPathSegments();
+        }
     }
 
     /*!
@@ -154,7 +156,8 @@ public:
      */
     void setLayer(int new_layer_nr)
     {
-        if(_layer_nr != new_layer_nr ){
+        if (_layer_nr != new_layer_nr)
+        {
             flushPathSegments();
             _layer_nr = new_layer_nr;
         }
@@ -171,7 +174,8 @@ public:
      */
     void setExtruder(int new_extruder)
     {
-        if(extruder != new_extruder ){
+        if (extruder != new_extruder)
+        {
             flushPathSegments();
             extruder = new_extruder;
         }
@@ -182,14 +186,15 @@ public:
      * If the new sequence of lines does not start at the current end point
      * of the path this jump is marked as PrintFeatureType::NoneType
      */
-    void handleInitialPoint( Point from )
+    void handleInitialPoint(Point from)
     {
-        if( points.size() == 0 ){
-            addPoint2D( from );
-        }
-        else if( from != last_point )
+        if (points.size() == 0)
         {
-            addLineSegment( PrintFeatureType::NoneType, from, 1.0);
+            addPoint2D(from);
+        }
+        else if (from != last_point)
+        {
+            addLineSegment(PrintFeatureType::NoneType, from, 1.0);
         }
     }
 
@@ -201,36 +206,36 @@ public:
     /*!
      * Move the current point of this path to \position.
      */
-    void setCurrentPosition( Point position )
+    void setCurrentPosition(Point position)
     {
-        handleInitialPoint( position );
+        handleInitialPoint(position);
     }
     /*!
      * Adds a single line segment to the current path. The line segment added is from the current last point to point \p to
      */
-    void sendLineTo( PrintFeatureType print_feature_type, Point to, int width);
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int width);
     /*!
      * Adds closed polygon to the current path
      */
-    void sendPolygon( PrintFeatureType print_feature_type, Polygon poly, int width);
+    void sendPolygon(PrintFeatureType print_feature_type, Polygon poly, int width);
 private:
     /*!
      * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
      */
-    void addPoint2D( Point point )
+    void addPoint2D(Point point)
     {
-        points.push_back( INT2MM(point.X) );
-        points.push_back( INT2MM(point.Y) );
+        points.push_back(INT2MM(point.X));
+        points.push_back(INT2MM(point.Y));
         last_point = point;
     }
     /*!
      * Implements the functionality of adding a single 2D line segment to the path data. All member functions adding a 2D line segment should use this functions.
      */
-    void addLineSegment( PrintFeatureType print_feature_type, Point point, int line_width)
+    void addLineSegment(PrintFeatureType print_feature_type, Point point, int line_width)
     {
-        addPoint2D( point );
-        line_types.push_back( print_feature_type );
-        line_widths.push_back( INT2MM(line_width) );
+        addPoint2D(point);
+        line_types.push_back(print_feature_type);
+        line_widths.push_back(INT2MM(line_width));
     }
 };
 #endif
@@ -486,7 +491,9 @@ void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons
 {
 #ifdef ARCUS
     if (polygons.size() == 0)
+    {
         return;
+    }
 
     if (CommandSocket::isInstantiated())
     {
@@ -494,7 +501,7 @@ void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons
 
         for (unsigned int i = 0; i < polygons.size(); ++i)
         {
-            path_comp->sendPolygon( type, polygons[i], line_width );
+            path_comp->sendPolygon(type, polygons[i], line_width);
         }
     }
 #endif
@@ -507,7 +514,7 @@ void CommandSocket::sendPolygon(PrintFeatureType type, Polygon& polygon, int lin
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
 
-        path_comp->sendPolygon( type, polygon, line_width );
+        path_comp->sendPolygon(type, polygon, line_width);
     }
 #endif
 }
@@ -519,7 +526,7 @@ void CommandSocket::sendLineTo(cura::PrintFeatureType type, Point to, int line_w
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
 
-        path_comp->sendLineTo( type, to, line_width );
+        path_comp->sendLineTo(type, to, line_width);
     }
 #endif
 }
@@ -530,29 +537,29 @@ void CommandSocket::setSendCurrentPosition(Point position)
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        path_comp->setCurrentPosition( position );
+        path_comp->setCurrentPosition(position);
     }
 #endif
 }
 
-void CommandSocket::setLayerForSend( int layer_nr )
+void CommandSocket::setLayerForSend(int layer_nr)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        path_comp->setLayer( layer_nr );
+        path_comp->setLayer(layer_nr);
     }
 #endif
 }
 
-void CommandSocket::setExtruderForSend( int extruder )
+void CommandSocket::setExtruderForSend(int extruder)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
     {
         auto& path_comp = CommandSocket::getInstance()->path_comp;
-        path_comp->setExtruder( extruder );
+        path_comp->setExtruder(extruder);
     }
 #endif
 }
@@ -739,21 +746,21 @@ std::shared_ptr<cura::proto::LayerOptimized> CommandSocket::Private::getOptimize
 #ifdef ARCUS
 void CommandSocket::PathCompiler::flushPathSegments()
 {
-    if( line_types.size() > 0 && CommandSocket::isInstantiated() )
+    if (line_types.size() > 0 && CommandSocket::isInstantiated())
     {
         std::shared_ptr<cura::proto::LayerOptimized> proto_layer = _cs_private_data.getOptimizedLayerById(_layer_nr);
 
         cura::proto::PathSegment* p = proto_layer->add_path_segment();
-        p->set_extruder( extruder );
-        p->set_point_type( data_point_type );
+        p->set_extruder(extruder);
+        p->set_point_type(data_point_type);
         std::string line_type_data;
-        line_type_data.append(reinterpret_cast<const char*>( line_types.data()), line_types.size()*sizeof(PrintFeatureType) );
+        line_type_data.append(reinterpret_cast<const char*>(line_types.data()), line_types.size()*sizeof(PrintFeatureType));
         p->set_line_type(line_type_data);
         std::string polydata;
-        polydata.append(reinterpret_cast<const char*>( points.data()), points.size() * sizeof(float));
+        polydata.append(reinterpret_cast<const char*>(points.data()), points.size() * sizeof(float));
         p->set_points(polydata);
         std::string line_width_data;
-        line_width_data.append(reinterpret_cast<const char*>( line_widths.data()), line_widths.size()*sizeof(float) );
+        line_width_data.append(reinterpret_cast<const char*>(line_widths.data()), line_widths.size()*sizeof(float));
         p->set_line_width(line_width_data);
     }
     points.clear();
@@ -763,34 +770,37 @@ void CommandSocket::PathCompiler::flushPathSegments()
 
 void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type, Point to, int width)
 {
-    assert( points.size() > 0 && "A point must already be in the buffer for sendLineTo(.) to function properly");
+    assert(points.size() > 0 && "A point must already be in the buffer for sendLineTo(.) to function properly");
 
-    if ( to != last_point )
+    if (to != last_point)
     {
-        addLineSegment(print_feature_type, to, width );
+        addLineSegment(print_feature_type, to, width);
     }
 }
 
 void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, Polygon polygon, int width)
 {
-    if ( polygon.size() < 2 )
+    if (polygon.size() < 2)
+    {
         return;
+    }
+
     auto it = polygon.begin();
-    handleInitialPoint( *it );
+    handleInitialPoint(*it);
 
     const auto it_end = polygon.end();
-    while ( ++it != it_end )
+    while (++it != it_end)
     {
         // Ignore zero-length segments.
-        if ( *it != last_point )
+        if (*it != last_point)
         {
-            addLineSegment( print_feature_type, *it, width );
+            addLineSegment(print_feature_type, *it, width);
         }
     }
     // Make sure the polygon is closed
-    if ( *polygon.begin() != polygon.back() )
+    if (*polygon.begin() != polygon.back())
     {
-        addLineSegment( print_feature_type, *polygon.begin(), width );
+        addLineSegment(print_feature_type, *polygon.begin(), width);
     }
 }
 #endif

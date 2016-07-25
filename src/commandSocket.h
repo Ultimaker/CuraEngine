@@ -84,12 +84,12 @@ public:
     /*!
     * Set which layer is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
     */
-    static void setLayerForSend( int layer_nr );
+    static void setLayerForSend(int layer_nr);
 
      /*!
      * Set which extruder is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
      */
-    static void setExtruderForSend( int extruder );
+    static void setExtruderForSend(int extruder);
 
     /*!
      * Send a polygon to the front-end if the command socket is instantiated. This is used for the layerview in the GUI
