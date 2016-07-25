@@ -115,6 +115,7 @@ set(engine_TEST_UTILS
     BucketGrid2DTest
     LinearAlg2DTest
     PolygonUtilsTest
+    PolygonTest
 )
 
 # Generating ProtoBuf protocol
