@@ -19,6 +19,7 @@ class PolygonTest : public CppUnit::TestFixture
 {
     CPPUNIT_TEST_SUITE(PolygonTest);
     CPPUNIT_TEST(polygonOffsetTest);
+    CPPUNIT_TEST(isOutsideTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -40,6 +41,7 @@ public:
     
     //These are the actual test cases. The name of the function sort of describes what it tests but I refuse to document all of these, sorry.
     void polygonOffsetTest();
+    void isOutsideTest();
 
 
 private:
@@ -50,7 +52,7 @@ private:
     
     Polygon test_square;
     Polygon pointy_square;
-
+    Polygon triangle;
 };
 
 }

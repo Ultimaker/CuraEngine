@@ -26,6 +26,10 @@ void PolygonTest::setUp()
     pointy_square.emplace_back(50, 180);
     pointy_square.emplace_back(45, 100);
     pointy_square.emplace_back(0, 100);
+
+    triangle.emplace_back(100, 0);
+    triangle.emplace_back(300, 0);
+    triangle.emplace_back(200, 100);
 }
 
 void PolygonTest::tearDown()
@@ -52,6 +56,15 @@ void PolygonTest::polygonOffsetTest()
 
     CPPUNIT_ASSERT_MESSAGE("Offset on outside poly is different from offset on inverted poly!", std::abs(expanded_length - contracted_length) < 5);
 }
+
+void PolygonTest::isOutsideTest()
+{
+    Polygons test_triangle;
+    test_triangle.add(triangle);
+    
+    CPPUNIT_ASSERT_MESSAGE("Point is calculated as inside while it's outside!", !test_triangle.inside(Point(0, 100)));
+}
+
 
 
 
