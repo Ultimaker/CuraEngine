@@ -231,6 +231,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
     { // initialize extruder trains
         gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+        CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
         constexpr bool wait = true;
@@ -245,6 +246,7 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
     gcode.resetExtrusionValue();
+    CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
     last_position_planned = Point(storage.model_min.x, storage.model_min.y);
