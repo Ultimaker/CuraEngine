@@ -204,7 +204,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         {
             if (CommandSocket::isInstantiated())
             { // send layer info
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
     }
@@ -233,10 +233,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            if (CommandSocket::isInstantiated()) 
-            {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Infill, layer_idx, support, 100); //getSettingInMicrons("support_line_width"));
-            }
+            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); //getSettingInMicrons("support_line_width"));
         }
     }
     */

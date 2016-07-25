@@ -55,14 +55,44 @@ public:
      * Send info on a layer to be displayed by the forntend: set the z and the thickness of the layer.
      */
     void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
-    
-    /*! 
-     * Send a polygon to the engine. This is used for the layerview in the GUI
+
+    /*!
+     * Send info on an optimized layer to be displayed by the forntend: set the z and the thickness of the layer.
      */
-    void sendPolygons(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
+    void sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t height);
 
     /*! 
-     * Send a polygon to the engine if the command socket is instantiated. This is used for the layerview in the GUI
+     * Send a polygon to the front-end. This is used for the layerview in the GUI
+     */
+    static void sendPolygons(cura::PrintFeatureType type, const cura::Polygons& polygons, int line_width);
+
+    /*! 
+     * Send a polygon to the front-end. This is used for the layerview in the GUI
+     */
+    static void sendPolygon(cura::PrintFeatureType type, Polygon& polygon, int line_width);
+
+    /*!
+     * Send a line to the front-end. This is used for the layerview in the GUI
+     */
+    static void sendLineTo(cura::PrintFeatureType type, Point to, int line_width);
+
+    /*!
+     * Set the current position of the path compiler to \p position. This is used for the layerview in the GUI
+     */
+    static void setSendCurrentPosition(Point position);
+
+    /*!
+    * Set which layer is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
+    */
+    static void setLayerForSend( int layer_nr );
+
+     /*!
+     * Set which extruder is being used for the following calls to SendPolygons, SendPolygon and SendLineTo.
+     */
+    static void setExtruderForSend( int extruder );
+
+    /*!
+     * Send a polygon to the front-end if the command socket is instantiated. This is used for the layerview in the GUI
      */
     static void sendPolygonsToCommandSocket(cura::PrintFeatureType type, int layer_nr, const cura::Polygons& polygons, int line_width);
 
@@ -87,12 +117,21 @@ public:
     void sendPrintMaterialForObject(int index, int extruder_nr, float material_amount);
     
     /*!
-     * Send the sliced layer data to the GUI.
+     * Send the slices of the model as polygons to the GUI.
      *
-     * The GUI may use this to visualise the g-code, so that the user can
-     * inspect the result of slicing.
+     * The GUI may use this to visualize the early result of the slicing
+     * process.
      */
     void sendLayerData();
+
+    /*!
+     * Send the sliced layer data to the GUI after the optimization is done and
+     * the actual order in which to print has been set.
+     *
+     * The GUI may use this to visualize the g-code, so that the user can
+     * inspect the result of slicing.
+     */
+    void sendOptimizedLayerData();
 
     /*!
      * \brief Sends a message to indicate that all the slicing is done.
@@ -114,6 +153,8 @@ public:
 private:
     class Private;
     const std::unique_ptr<Private> private_data;
+    class PathCompiler;
+    const std::unique_ptr<PathCompiler> path_comp;
 #endif
 };
 
