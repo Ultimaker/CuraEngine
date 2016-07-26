@@ -427,19 +427,6 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);
     }
-    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-    {
-        for (PolygonRef polyline : layer->openPolyLines)
-        {
-            Polygons segments;
-            for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
-            {
-                PolygonRef segment = segments.newPoly();
-                segment.add(polyline[point_idx-1]);
-                segment.add(polyline[point_idx]);
-            }
-        }
-    }
 }
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
