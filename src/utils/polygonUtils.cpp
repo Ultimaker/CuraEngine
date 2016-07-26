@@ -321,6 +321,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                  * Clipper seems to fuck up sometimes.
                  */
 #ifdef DEBUG
+                try
                 {
                     int offset_performed = offset / 2;
                     AABB aabb(insetted);
@@ -347,6 +348,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                     svg.writePoint(from, false, 5, SVG::Color::GREEN);
                     svg.writeComment("Location computed to be inside the black polygon");
                     svg.writePoint(inside.location, false, 5, SVG::Color::RED);
+                }
+                catch(...)
+                {
                 }
                 logError("ERROR! ERROR!\n\tClipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
 #endif
