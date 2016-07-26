@@ -12,8 +12,6 @@
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
 
-#include "debug.h"
-
 namespace cura
 {
 

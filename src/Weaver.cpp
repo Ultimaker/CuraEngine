@@ -19,7 +19,7 @@ void Weaver::weave(MeshGroup* meshgroup)
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
 
-    DEBUG_SHOW(layer_count);
+    std::cerr << "Layer count: " << layer_count << "\n";
 
     std::vector<cura::Slicer*> slicerList;
 
@@ -427,7 +427,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
  
     if (supporting.size() < 1)
     {
-        DEBUG_PRINTLN("lower layer has zero parts!");
+        std::cerr << "lower layer has zero parts!\n";
         return;
     }
     

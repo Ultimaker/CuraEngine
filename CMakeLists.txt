@@ -32,6 +32,7 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Building debug release of CuraEngine.")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
+    add_definitions(-DDEBUG)
 endif()
 
 # Add warnings

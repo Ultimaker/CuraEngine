@@ -9,12 +9,18 @@
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
 
-#include "debug.h"
 
 namespace cura {
 
     
-ENUM( WeaveSegmentType, UP, DOWN, FLAT, MOVE, DOWN_AND_FLAT); // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
+enum class WeaveSegmentType
+{
+    UP, 
+    DOWN, 
+    FLAT, 
+    MOVE, 
+    DOWN_AND_FLAT // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
+};
 
 
 struct WeaveConnectionSegment

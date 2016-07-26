@@ -6,7 +6,6 @@
 
 #include "linearAlg2D.h"
 #include "SparseGrid.h"
-#include "../debug.h"
 
 #ifdef DEBUG
 #include "AABB.h"

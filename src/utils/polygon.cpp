@@ -3,8 +3,6 @@
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
-#include "../debug.h"
-
 namespace cura 
 {
 

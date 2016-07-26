@@ -3,6 +3,7 @@
 #include <cmath> // sqrt
 #include <fstream> // debug IO
 
+#include "utils/logoutput.h"
 #include "weaveDataStorage.h"
 #include "progress/Progress.h"
 
@@ -319,7 +320,7 @@ void Wireframe2gcode::handle_segment(WeaveLayer& layer, WeaveConnectionPart& par
             go_down(layer, part, segment_idx);
             break;
         case WeaveSegmentType::FLAT:
-            DEBUG_SHOW("flat piece in connection?!!?!");
+            logWarning("Warning: flat piece in wire print connection.\n");
             break;
         case WeaveSegmentType::UP:
             if (strategy == STRATEGY_KNOT)

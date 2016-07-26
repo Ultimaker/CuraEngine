@@ -2,7 +2,6 @@
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
-#include "debug.h" // debugging
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
 

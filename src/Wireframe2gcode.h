@@ -16,8 +16,6 @@
 #include "utils/polygon.h"
 #include "Weaver.h"
 
-#include "debug.h"
-
 namespace cura
 {
 

@@ -1,8 +1,8 @@
 #include "wallOverlap.h"
 
 #include <cmath> // isfinite
+#include <sstream>
 
-#include "debug.h"
 #include "utils/AABB.h" // for debug output svg html
 #include "utils/SVG.h"
 
@@ -350,7 +350,7 @@ void WallOverlapComputation::debugCheck()
     for (std::pair<WallOverlapPointLink, WallOverlapPointLinkAttributes> pair : overlap_point_links)
     {
         if (std::abs(vSize( pair.first.a.p() - pair.first.b.p()) - pair.second.dist) > 10)
-            DEBUG_PRINTLN(vSize( pair.first.a.p() - pair.first.b.p())<<" != " << pair.second.dist);
+            std::cerr << vSize( pair.first.a.p() - pair.first.b.p())<<" != " << pair.second.dist << "\n";
         
     }
 }
@@ -424,7 +424,7 @@ void WallOverlapComputation::wallOverlaps2HTML(const char* filename) const
                 
                 float flow = copy.getFlow(p0, p1);
                 
-                std::ostringstream oss;
+                std::stringstream oss;
                 oss << "flow: " << flow;
                 svg.writeText(middle, oss.str());
                 
