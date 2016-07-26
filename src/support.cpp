@@ -490,14 +490,14 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
             {
                 bottoms = support_areas[layer_idx].intersection(mesh.layers[layer_idx_below].getOutlines(true));
             }
-            roofs = roofs.unionPolygons(bottoms);
-            roofs.removeSmallAreas(1.0);
-            layer.roofs.add(roofs);
-            layer.supportAreas.add(support_areas[layer_idx].difference(layer.roofs));
+            Polygons interface = roofs.unionPolygons(bottoms);
+            interface.removeSmallAreas(1.0);
+            layer.interface.add(interface);
+            layer.supportAreas.add(support_areas[layer_idx].difference(layer.interface));
         }
         else 
         {
-            layer.roofs.add(layer.supportAreas);
+            layer.interface.add(layer.supportAreas);
         }
     }
 }

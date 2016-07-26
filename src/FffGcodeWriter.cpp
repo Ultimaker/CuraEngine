@@ -905,14 +905,14 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         return;
     
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-    if (support_layer.roofs.size() == 0 && support_layer.supportAreas.size() == 0)
+    if (support_layer.interface.size() == 0 && support_layer.supportAreas.size() == 0)
     {
         return;
     }
     
     int current_extruder_nr = gcode_layer.getExtruder();
     
-    if (support_layer.roofs.size() > 0)
+    if (support_layer.interface.size() > 0)
     {
         if (support_roof_extruder_nr != support_infill_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
         {
@@ -997,7 +997,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 {
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
-        || storage.support.supportLayers[layer_nr].roofs.size() == 0)
+        || storage.support.supportLayers[layer_nr].interface.size() == 0)
     {
         return;
     }
@@ -1032,11 +1032,11 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
-    int support_skin_overlap = 0; // the roofs should never be expanded outwards
+    int support_skin_overlap = 0; // the interface (roofs/bottoms) should never be expanded outwards
     int outline_offset =  0;
     int extra_infill_shift = 0;
     
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].roofs, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].interface, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);

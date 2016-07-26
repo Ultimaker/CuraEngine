@@ -156,7 +156,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             if (support.generated) 
             {
                 total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].roofs);
+                total.add(support.supportLayers[layer_nr].interface);
             }
             total.add(primeTower.ground_poly);
         }
@@ -194,7 +194,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             if (support.generated) 
             {
                 total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].roofs);
+                total.add(support.supportLayers[layer_nr].interface);
             }
             total.add(primeTower.ground_poly);
         }

@@ -124,7 +124,7 @@ class SupportLayer
 {
 public:
     Polygons supportAreas; //!< normal support areas
-    Polygons roofs; //!< the support areas which are to be printed as denser roofs. Note that the roof areas and support areas are mutually exclusive.
+    Polygons interface; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
 };
 
 class SupportStorage
