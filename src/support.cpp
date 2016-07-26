@@ -467,15 +467,30 @@ void AreaSupport::handleWallStruts(
 void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
 {
     const unsigned int roof_layer_count = mesh.getSettingInMicrons("support_roof_height") / storage.getSettingInMicrons("layer_height");
+    const unsigned int bottom_layer_count = mesh.getSettingInMicrons("support_bottom_height") / storage.getSettingInMicrons("layer_height");
+    const int z_distance_bottom = mesh.getSettingInMicrons("support_bottom_distance");
+    const int z_distance_top = mesh.getSettingInMicrons("support_top_distance");
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
 
-        if (layer_idx + roof_layer_count < supportLayers.size())
+        const int layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
+        const int layer_idx_below = std::max(0, layer_idx - bottom_layer_count - z_distance_bottom);
+        if (layer_idx_above < supportLayers.size())
         {
-            Polygons roofs = support_areas[layer_idx].intersection(mesh.layers[layer_idx + roof_layer_count].getOutlines(true));
+            Polygons roofs;
+            if (roof_layer_count > 0)
+            {
+                roofs = support_areas[layer_idx].intersection(mesh.layers[layer_idx_above].getOutlines(true));
+            }
+            Polygons bottoms;
+            if (bottom_layer_count > 0)
+            {
+                bottoms = support_areas[layer_idx].intersection(mesh.layers[layer_idx_below].getOutlines(true));
+            }
+            roofs = roofs.unionPolygons(bottoms);
             roofs.removeSmallAreas(1.0);
             layer.roofs.add(roofs);
             layer.supportAreas.add(support_areas[layer_idx].difference(layer.roofs));
