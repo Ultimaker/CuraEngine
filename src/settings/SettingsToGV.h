@@ -147,7 +147,10 @@ private:
                     inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" 
                     && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" 
                     && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
+                    && inherited_setting_string != "log" // exclude functions
                     && inherited_setting_string != "grid" && inherited_setting_string != "triangles" // exclude enum values
+                    && inherited_setting_string != "cubic" && inherited_setting_string != "tetrahedral" // exclude enum values
+                    && inherited_setting_string != "raft" // exclude enum values
                     && function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
                 {
                     if (inherited_setting_string == parent)
@@ -195,11 +198,11 @@ private:
                     {
                         if (!data.HasMember("settable_per_meshgroup") || data["settable_per_meshgroup"].GetBool() == true)
                         {
-                            color = "yellow";
+                            color = "orange";
                         }
                         else if (data.HasMember("settable_per_meshgroup") && data["settable_per_meshgroup"].GetBool() == false)
                         {
-                            color = "orange";
+                            color = "red";
                         }
                     }
                 }
