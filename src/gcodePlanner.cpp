@@ -816,7 +816,7 @@ void GCodePlanner::overrideFanSpeeds(double speed)
 void GCodePlanner::completeConfigs()
 {
     storage.support_config.setLayerHeight(layer_thickness);
-    storage.support_roof_config.setLayerHeight(layer_thickness);
+    storage.support_skin_config.setLayerHeight(layer_thickness);
     
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -849,11 +849,11 @@ void GCodePlanner::processInitialLayersSpeedup()
 
         storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
-        int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("acceleration_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("jerk_layer_0");
-        storage.support_roof_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+        int extruder_nr_support_skin = storage.getSettingAsIndex("support_skin_extruder_nr");
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("speed_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("acceleration_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("jerk_layer_0");
+        storage.support_skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             initial_layer_speed_config.speed = mesh.getSettingInMillimetersPerSecond("speed_layer_0");
@@ -871,7 +871,7 @@ void GCodePlanner::processInitialLayersSpeedup()
     else if (static_cast<int>(layer_nr) == initial_speedup_layers)
     {
         storage.support_config.setSpeedIconic();
-        storage.support_roof_config.setSpeedIconic();
+        storage.support_skin_config.setSpeedIconic();
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             mesh.inset0_config.setSpeedIconic();

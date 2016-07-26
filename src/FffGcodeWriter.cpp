@@ -161,7 +161,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
         storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_infill"), getSettingInMillimetersPerSecond("acceleration_support_infill"), getSettingInMillimetersPerSecond("jerk_support_infill"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
         
-        storage.support_roof_config.init(getSettingInMillimetersPerSecond("speed_support_roof"), getSettingInMillimetersPerSecond("acceleration_support_roof"), getSettingInMillimetersPerSecond("jerk_support_roof"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_skin"), getSettingInMillimetersPerSecond("acceleration_support_skin"), getSettingInMillimetersPerSecond("jerk_support_skin"), getSettingInMicrons("support_skin_line_width"), train->getSettingInPercentage("material_flow"));
     }
     
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -894,27 +894,27 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
         return; 
     
-    int support_roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    int support_skin_extruder_nr = getSettingAsIndex("support_skin_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     
     bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
-                                    || support_roof_extruder_nr == extruder_nr_before;
+                                    || support_skin_extruder_nr == extruder_nr_before;
     // TODO: always print support after rest when only one nozzle is used for the whole meshgroup
     
     if (print_support_before_rest != before_rest)
         return;
     
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-    if (support_layer.interface.size() == 0 && support_layer.supportAreas.size() == 0)
+    if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
     {
         return;
     }
     
     int current_extruder_nr = gcode_layer.getExtruder();
     
-    if (support_layer.interface.size() > 0)
+    if (support_layer.skin.size() > 0)
     {
-        if (support_roof_extruder_nr != support_infill_extruder_nr && support_roof_extruder_nr == current_extruder_nr)
+        if (support_skin_extruder_nr != support_infill_extruder_nr && support_skin_extruder_nr == current_extruder_nr)
         {
             addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
             addSupportInfillToGCode(storage, gcode_layer, layer_nr);
@@ -997,18 +997,18 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 {
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
-        || storage.support.supportLayers[layer_nr].interface.size() == 0)
+        || storage.support.supportLayers[layer_nr].skin.size() == 0)
     {
         return;
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    EFillMethod pattern = getSettingAsFillMethod("support_roof_pattern");
-    int support_line_distance = getSettingInMicrons("support_roof_line_distance");
+    EFillMethod pattern = getSettingAsFillMethod("support_skin_pattern");
+    int support_line_distance = getSettingInMicrons("support_skin_line_distance");
     
-    int roof_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, roof_extruder_nr);
+    int skin_extruder_nr = getSettingAsIndex("support_skin_extruder_nr");
+    setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
     
     bool all_roofs_are_low = true;
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -1016,6 +1016,7 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
         if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
         {
             all_roofs_are_low = false;
+            break;
         }
     }
     
@@ -1032,17 +1033,17 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     {
         fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
     }
-    int support_skin_overlap = 0; // the interface (roofs/bottoms) should never be expanded outwards
+    int support_skin_overlap = 0; // the skin (roofs/bottoms) should never be expanded outwards
     int outline_offset =  0;
     int extra_infill_shift = 0;
     
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].interface, outline_offset, storage.support_roof_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
 
-    gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_roof_config);
-    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_roof_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_skin_config);
+    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)

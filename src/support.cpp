@@ -53,7 +53,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         supportAreas.resize(layer_count, Polygons());
         generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
         
-        if (mesh.getSettingBoolean("support_roof_enable"))
+        if (mesh.getSettingBoolean("support_skin_enable"))
         {
             generateSupportRoofs(storage, mesh, supportAreas, layer_count);
         }
@@ -490,14 +490,14 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
             {
                 bottoms = support_areas[layer_idx].intersection(mesh.layers[layer_idx_below].getOutlines(true));
             }
-            Polygons interface = roofs.unionPolygons(bottoms);
-            interface.removeSmallAreas(1.0);
-            layer.interface.add(interface);
-            layer.supportAreas.add(support_areas[layer_idx].difference(layer.interface));
+            Polygons skin = roofs.unionPolygons(bottoms);
+            skin.removeSmallAreas(1.0);
+            layer.skin.add(skin);
+            layer.supportAreas.add(support_areas[layer_idx].difference(layer.skin));
         }
         else 
         {
-            layer.interface.add(layer.supportAreas);
+            layer.skin.add(layer.supportAreas);
         }
     }
 }

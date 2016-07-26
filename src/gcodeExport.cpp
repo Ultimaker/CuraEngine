@@ -57,7 +57,7 @@ void GCodeExport::preSetup(const MeshGroup* settings)
         if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
             || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
             || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
+            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_skin_enable") && settings->getSettingAsIndex("support_skin_extruder_nr") == int(extruder_nr))
             )
         {
             extruder_attr[extruder_nr].is_used = true;
