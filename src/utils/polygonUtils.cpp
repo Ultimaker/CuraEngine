@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "linearAlg2D.h"
-#include "BucketGrid2D.h"
+#include "SparseGrid.h"
 #include "../debug.h"
 
 #ifdef DEBUG
@@ -539,7 +539,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -547,7 +547,7 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
         n_points += poly.size();
     }
 
-    BucketGrid2D<PolygonsPointIndex>* ret = new BucketGrid2D<PolygonsPointIndex>(square_size, n_points);
+    SparseGrid<PolygonsPointIndex>* ret = new SparseGrid<PolygonsPointIndex>(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -579,15 +579,18 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
 
 /*
  * The current implemetnation can check the same line segment multiple times, 
- * since the same line segment can occur in multiple cells if it it longer than the cell size of the BucketGrid.
+ * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparseGrid.
  * 
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
-std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function)
+std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
+    Point from, const Polygons& polygons,
+    const SparseGrid<PolygonsPointIndex>& loc_to_line,
+    const std::function<int(Point)>& penalty_function)
 {
-    std::vector<PolygonsPointIndex> near_lines;
-    loc_to_line.findNearbyObjects(from, near_lines);
+    std::vector<PolygonsPointIndex> near_lines =
+        loc_to_line.getNearbyVals(from, loc_to_line.getCellSize());
 
     Point best(0, 0);
 
@@ -620,7 +623,10 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Pol
 }
 
 
-std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
+std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
+    const PolygonRef from, const Polygons& destination,
+    const SparseGrid< PolygonsPointIndex >& destination_loc_to_line,
+    const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
     int p0_idx = from.size() - 1;
