@@ -468,8 +468,8 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
 {
     const unsigned int roof_layer_count = mesh.getSettingInMicrons("support_roof_height") / storage.getSettingInMicrons("layer_height");
     const unsigned int bottom_layer_count = mesh.getSettingInMicrons("support_bottom_height") / storage.getSettingInMicrons("layer_height");
-    const int z_distance_bottom = mesh.getSettingInMicrons("support_bottom_distance");
-    const int z_distance_top = mesh.getSettingInMicrons("support_top_distance");
+    const int z_distance_bottom = mesh.getSettingInMicrons("support_bottom_distance") / storage.getSettingInMicrons("layer_height");
+    const int z_distance_top = mesh.getSettingInMicrons("support_top_distance") / storage.getSettingInMicrons("layer_height");
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
