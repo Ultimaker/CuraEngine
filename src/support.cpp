@@ -130,8 +130,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     int supportLayerThickness = layerThickness;
     
-    const int layerZdistanceTop = std::max(0, (supportZDistanceTop + supportLayerThickness - 1) / supportLayerThickness) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0, (supportZDistanceBottom + supportLayerThickness - 1) / supportLayerThickness); 
+    const int layerZdistanceTop = std::max(0, round_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
+    const unsigned int layerZdistanceBottom = std::max(0, round_divide(supportZDistanceBottom, supportLayerThickness));
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
