@@ -162,7 +162,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
         storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_infill"), getSettingInMillimetersPerSecond("acceleration_support_infill"), getSettingInMillimetersPerSecond("jerk_support_infill"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
         
-        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_skin"), getSettingInMillimetersPerSecond("acceleration_support_skin"), getSettingInMillimetersPerSecond("jerk_support_skin"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_roof"), getSettingInMillimetersPerSecond("acceleration_support_roof"), getSettingInMillimetersPerSecond("jerk_support_roof"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
     }
     
     for (SliceMeshStorage& mesh : storage.meshes)
