@@ -61,7 +61,7 @@ void PolygonTest::isOutsideTest()
 {
     Polygons test_triangle;
     test_triangle.add(triangle);
-    
+
     CPPUNIT_ASSERT_MESSAGE("Point is calculated as inside while it's outside!", !test_triangle.inside(Point(0, 100)));
 }
 
