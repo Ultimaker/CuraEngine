@@ -130,8 +130,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     int supportLayerThickness = layerThickness;
     
-    const int layerZdistanceTop = std::max(0, round_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0, round_divide(supportZDistanceBottom, supportLayerThickness));
+    const int layerZdistanceTop = std::max(0, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
+    const unsigned int layerZdistanceBottom = std::max(0, round_up_divide(supportZDistanceBottom, supportLayerThickness));
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -470,8 +470,8 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
 {
     const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
     const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
-    const int z_distance_bottom = round_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
-    const int z_distance_top = round_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
+    const int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
+    const int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
