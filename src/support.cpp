@@ -53,7 +53,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         supportAreas.resize(layer_count, Polygons());
         generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
         
-        if (mesh.getSettingBoolean("support_skin_enable"))
+        if (mesh.getSettingBoolean("support_roof_enable"))
         {
             generateSupportRoofs(storage, mesh, supportAreas, layer_count);
         }

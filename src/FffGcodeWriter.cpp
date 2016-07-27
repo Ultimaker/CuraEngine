@@ -161,7 +161,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
         storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_infill"), getSettingInMillimetersPerSecond("acceleration_support_infill"), getSettingInMillimetersPerSecond("jerk_support_infill"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
         
-        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_skin"), getSettingInMillimetersPerSecond("acceleration_support_skin"), getSettingInMillimetersPerSecond("jerk_support_skin"), getSettingInMicrons("support_skin_line_width"), train->getSettingInPercentage("material_flow"));
+        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_skin"), getSettingInMillimetersPerSecond("acceleration_support_skin"), getSettingInMillimetersPerSecond("jerk_support_skin"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
     }
     
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -894,7 +894,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
         return; 
     
-    int support_skin_extruder_nr = getSettingAsIndex("support_skin_extruder_nr");
+    int support_skin_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     
     bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
@@ -1004,10 +1004,10 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    EFillMethod pattern = getSettingAsFillMethod("support_skin_pattern");
-    int support_line_distance = getSettingInMicrons("support_skin_line_distance");
+    EFillMethod pattern = getSettingAsFillMethod("support_roof_pattern");
+    int support_line_distance = getSettingInMicrons("support_roof_line_distance");
     
-    int skin_extruder_nr = getSettingAsIndex("support_skin_extruder_nr");
+    int skin_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
     setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
     
     bool all_roofs_are_low = true;
