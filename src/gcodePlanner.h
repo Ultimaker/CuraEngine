@@ -661,7 +661,8 @@ public:
     
     /*!
      * Complete all GcodePathConfigs by
-     * - altering speed to conform to speed_print_layer_0
+     * - altering speeds to conform to speed_print_layer_0 and
+     *   speed_travel_layer_0
      * - setting the layer_height (and thereby computing the extrusionMM3perMM)
      */
     void completeConfigs();
