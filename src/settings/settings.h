@@ -177,7 +177,16 @@ public:
     virtual std::string getSettingString(std::string key) const = 0;
     
     virtual void setSetting(std::string key, std::string value) = 0;
-    
+
+    /*!
+     * Set the parent settings base for inheriting a setting to a specific setting base.
+     * This overrides the use of \ref SettingsBaseVirtual::parent.
+     * 
+     * \param key The setting for which to override the inheritance
+     * \param parent The setting base from which to obtain the setting instead.
+     */
+    virtual void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent) = 0;
+
     virtual ~SettingsBaseVirtual() {}
     
     SettingsBaseVirtual(); //!< SettingsBaseVirtual without a parent settings object
@@ -224,6 +233,11 @@ class SettingsBase : public SettingsBaseVirtual
     friend class SettingRegistry;
 private:
     std::unordered_map<std::string, std::string> setting_values;
+
+    /*!
+     * Mapping for each setting which must inherit from a different setting base than \ref SettingsBaseVirtual::parent
+     */
+    std::unordered_map<std::string, const SettingsBaseVirtual*> setting_inherit_base;
 public:
     SettingsBase(); //!< SettingsBase without a parent settings object
     SettingsBase(SettingsBaseVirtual* parent); //!< construct a SettingsBase with a parent settings object
@@ -234,6 +248,7 @@ public:
      * \param value the value
      */
     void setSetting(std::string key, std::string value);
+    void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from this SettingsBase (or any ancestral SettingsBase)
     
     std::string getAllLocalSettingsString() const
@@ -274,6 +289,7 @@ public:
     SettingsMessenger(SettingsBaseVirtual* parent); //!< construct a SettingsMessenger with a parent settings object
     
     void setSetting(std::string key, std::string value); //!< Set a setting of the parent SettingsBase to a given value
+    void setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent); //!< See \ref SettingsBaseVirtual::setSettingInheritBase
     std::string getSettingString(std::string key) const; //!< Get a setting from the parent SettingsBase (or any further ancestral SettingsBase)
 };
 
