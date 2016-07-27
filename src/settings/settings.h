@@ -152,9 +152,9 @@ enum class CombingMode
 };
 
 /*!
- * How the draft shield is limited.
+ * How the draft shield height is limited.
  */
-enum class DraftShieldLimitation
+enum class DraftShieldHeightLimitation
 {
     FULL, //Draft shield takes full height of the print.
     LIMITED //Draft shield is limited by draft_shield_height setting.
@@ -210,7 +210,7 @@ public:
 
     FlowTempGraph getSettingAsFlowTempGraph(std::string key) const;
 
-    DraftShieldLimitation getSettingAsDraftShieldLimitation(const std::string key) const;
+    DraftShieldHeightLimitation getSettingAsDraftShieldHeightLimitation(const std::string key) const;
     EGCodeFlavor getSettingAsGCodeFlavor(std::string key) const;
     EFillMethod getSettingAsFillMethod(std::string key) const;
     EPlatformAdhesion getSettingAsPlatformAdhesion(std::string key) const;

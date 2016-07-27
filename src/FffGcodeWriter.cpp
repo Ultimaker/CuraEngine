@@ -499,16 +499,21 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     {
         return;
     }
-
-    const int draft_shield_height = getSettingBoolean("draft_shield_enabled") ? getSettingInMicrons("draft_shield_height") : 0;
-    const int layer_height_0 = getSettingInMicrons("layer_height_0");
-    const int layer_height = getSettingInMicrons("layer_height");
-
-    int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
-
-    if (int(layer_nr) > max_screen_layer)
+    if (!getSettingBoolean("draft_shield_enabled"))
     {
         return;
+    }
+
+    if (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED)
+    {
+        const int draft_shield_height = getSettingInMicrons("draft_shield_height");
+        const int layer_height_0 = getSettingInMicrons("layer_height_0");
+        const int layer_height = getSettingInMicrons("layer_height");
+        const unsigned int max_screen_layer = (unsigned int)((draft_shield_height - layer_height_0) / layer_height + 1);
+        if (layer_nr > max_screen_layer)
+        {
+            return;
+        }
     }
 
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.

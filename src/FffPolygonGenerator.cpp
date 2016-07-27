@@ -45,12 +45,12 @@ unsigned int FffPolygonGenerator::getDraftShieldHeight(const unsigned int total_
     {
         return 0;
     }
-    switch (getSettingAsDraftShieldLimitation("draft_shield_limitation"))
+    switch (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation"))
     {
         default:
-        case DraftShieldLimitation::FULL:
+        case DraftShieldHeightLimitation::FULL:
             return total_layers;
-        case DraftShieldLimitation::LIMITED:
+        case DraftShieldHeightLimitation::LIMITED:
             return getSettingInMicrons("draft_shield_height");
     }
 }
@@ -577,7 +577,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     {
     case EPlatformAdhesion::SKIRT:
         if (!getSettingBoolean("draft_shield_enabled")
-            || (getSettingAsDraftShieldLimitation("draft_shield_limitation") == DraftShieldLimitation::LIMITED && getSettingInMicrons("draft_shield_height") == 0)) //Draft shield replaces skirt.
+            || (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED && getSettingInMicrons("draft_shield_height") == 0)) //Draft shield replaces skirt.
         {
             generateSkirtBrim(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"));
         }
