@@ -377,6 +377,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
 {
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers);
+    logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
     
     int layer_thickness = getSettingInMicrons("layer_height");
     if (layer_nr == 0)

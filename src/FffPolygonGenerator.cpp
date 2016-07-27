@@ -241,11 +241,14 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
     storage.primeTower.generatePaths(storage, print_layer_count);
-
+    
+    logDebug("Processing ooze shield\n");
     processOozeShield(storage, print_layer_count);
 
+    logDebug("Processing draft shield\n");
     processDraftShield(storage, print_layer_count);
 
+    logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
     
     // meshes post processing
@@ -278,6 +281,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // walls
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
+        logDebug("Processing insets for layer %i of %i\n", layer_number, total_layers);
         processInsets(mesh, layer_number);
         double progress = inset_skin_progress_estimate.progress(layer_number);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
@@ -315,6 +319,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
+        logDebug("Processing skins and infill layer %i of %i\n", layer_number, total_layers);
         if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkinsAndInfill(mesh, layer_number, process_infill);
@@ -476,7 +481,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     { 
         return;
     }
-    
+
     const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
     const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
     generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));

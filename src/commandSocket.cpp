@@ -324,6 +324,7 @@ void CommandSocket::connect(const std::string& ip, int port)
         cura::proto::Slice* slice = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice; returns nullptr otherwise
         if (slice)
         {
+            logDebug("Received a Slice message\n");
             const cura::proto::SettingList& global_settings = slice->global_settings();
             for (auto setting : global_settings.settings())
             {
@@ -335,19 +336,27 @@ void CommandSocket::connect(const std::string& ip, int port)
             {
                 handleObjectList(&object, slice->extruders());
             }
+            logDebug("Done reading Slice message\n");
         }
 
         //If there is an object to slice, do so.
         if (private_data->objects_to_slice.size())
         {
+            int object_count = private_data->objects_to_slice.size();
+            logDebug("Slicing %i objects\n", object_count);
             FffProcessor::getInstance()->resetMeshGroupNumber();
+            int i = 1;
             for (auto object : private_data->objects_to_slice)
             {
+                logDebug("Slicing object %i of %i\n", i, object_count);
                 if (!FffProcessor::getInstance()->processMeshGroup(object.get()))
                 {
                     logError("Slicing mesh group failed!");
                 }
+                i++;
             }
+            logDebug("Done slicing objects\n");
+
             private_data->objects_to_slice.clear();
             FffProcessor::getInstance()->finalize();
             flushGcode();
@@ -584,6 +593,7 @@ void CommandSocket::sendProgressStage(Progress::Stage stage)
 void CommandSocket::sendPrintTimeMaterialEstimates()
 {
 #ifdef ARCUS
+    logDebug("Sending print time and material estimates.\n");
     auto message = std::make_shared<cura::proto::PrintTimeMaterialEstimates>();
 
     message->set_time(FffProcessor::getInstance()->getTotalPrintTime());
@@ -597,6 +607,7 @@ void CommandSocket::sendPrintTimeMaterialEstimates()
     }
 
     private_data->socket->sendMessage(message);
+    logDebug("Done sending print time and material estimates.\n");
 #endif
 }
 
@@ -663,8 +674,10 @@ void CommandSocket::sendOptimizedLayerData()
 void CommandSocket::sendFinishedSlicing()
 {
 #ifdef ARCUS
+    logDebug("Sending Slicing Finished message.\n");
     std::shared_ptr<cura::proto::SlicingFinished> done_message = std::make_shared<cura::proto::SlicingFinished>();
     private_data->socket->sendMessage(done_message);
+    logDebug("Done sending Slicing Finished message.\n");
 #endif
 }
 
