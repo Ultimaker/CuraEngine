@@ -159,10 +159,11 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
     }
 
     { // support 
-        SettingsBase* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
-        storage.support_config.init(getSettingInMillimetersPerSecond("speed_support_infill"), getSettingInMillimetersPerSecond("acceleration_support_infill"), getSettingInMillimetersPerSecond("jerk_support_infill"), getSettingInMicrons("support_line_width"), train->getSettingInPercentage("material_flow"));
-        
-        storage.support_skin_config.init(getSettingInMillimetersPerSecond("speed_support_roof"), getSettingInMillimetersPerSecond("acceleration_support_roof"), getSettingInMillimetersPerSecond("jerk_support_roof"), getSettingInMicrons("support_roof_line_width"), train->getSettingInPercentage("material_flow"));
+        SettingsBase* infill_train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
+        storage.support_config.init(infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), infill_train->getSettingInMillimetersPerSecond("jerk_support_infill"), infill_train->getSettingInMicrons("support_line_width"), infill_train->getSettingInPercentage("material_flow"));
+    
+        SettingsBase* interface_train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_roof_extruder_nr"));
+        storage.support_skin_config.init(interface_train->getSettingInMillimetersPerSecond("speed_support_roof"), interface_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), interface_train->getSettingInMillimetersPerSecond("jerk_support_roof"), interface_train->getSettingInMicrons("support_roof_line_width"), interface_train->getSettingInPercentage("material_flow"));
     }
     
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -944,12 +945,14 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    int support_line_distance = getSettingInMicrons("support_line_distance");
+    const ExtruderTrain& infill_extr = *storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
+    int support_line_distance = infill_extr.getSettingInMicrons("support_line_distance"); // first layer line distance must be the same as the second layer line distance
     const int support_line_width = storage.support_config.getLineWidth();
-    EFillMethod support_pattern = getSettingAsFillMethod("support_pattern");
+    EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern"); // first layer pattern must be same as other layers
     if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
-    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    int infill_extruder_nr_here = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    const ExtruderTrain& infill_extr_here = *storage.meshgroup->getExtruderTrain(infill_extruder_nr_here);
 
     Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
 
@@ -974,21 +977,21 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             Polygons boundary = island.offset(-support_line_width / 2);
             if (boundary.size() > 0)
             {
-                setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
+                setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
                 gcode_layer.addPolygonsByOptimizer(boundary, &storage.support_config);
             }
             offset_from_outline = -support_line_width;
-            support_infill_overlap = storage.meshgroup->getExtruderTrain(support_infill_extruder_nr)->getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
+            support_infill_overlap = infill_extr_here.getSettingInMicrons("infill_overlap_mm"); // support lines area should be expanded outward to overlap with the boundary polygon
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, getSettingBoolean("support_connect_zigzags"), true);
+        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, infill_extr.getSettingBoolean("support_connect_zigzags"), true);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
         if (support_lines.size() > 0 || support_polygons.size() > 0)
         {
-            setExtruder_addPrime(storage, gcode_layer, layer_nr, support_infill_extruder_nr); // only switch extruder if we're sure we're going to switch
+            setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
             gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
             gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
@@ -1006,11 +1009,13 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    EFillMethod pattern = getSettingAsFillMethod("support_roof_pattern");
-    int support_line_distance = getSettingInMicrons("support_roof_line_distance");
-    
     int skin_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    const ExtruderTrain& interface_extr = *storage.meshgroup->getExtruderTrain(skin_extruder_nr);
     setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
+
+    EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_roof_pattern");
+    int support_line_distance = interface_extr.getSettingInMicrons("support_roof_line_distance");
+    
     
     bool all_roofs_are_low = true;
     for (SliceMeshStorage& mesh : storage.meshes)

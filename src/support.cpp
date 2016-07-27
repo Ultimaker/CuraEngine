@@ -331,7 +331,8 @@ void AreaSupport::detectOverhangPoints(
     int supportMinAreaSqrt
 )
 {
-    const unsigned int support_line_width = storage.getSettingInMicrons("support_line_width");
+    ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+    const unsigned int support_line_width = infill_extr->getSettingInMicrons("support_line_width");
     for (int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];

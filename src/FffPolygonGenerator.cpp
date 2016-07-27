@@ -233,7 +233,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); //getSettingInMicrons("support_line_width"));
+            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
         }
     }
     */
