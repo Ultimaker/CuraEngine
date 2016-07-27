@@ -23,6 +23,7 @@ void logError(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
+    fprintf(stderr, "[ERROR] ");
     vfprintf(stderr, fmt, args);
     va_end(args);
     fflush(stderr);
@@ -32,6 +33,7 @@ void logWarning(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
+    fprintf(stderr, "[WARNING] ");
     vfprintf(stderr, fmt, args);
     va_end(args);
     fflush(stderr);
@@ -57,6 +59,19 @@ void log(const char* fmt, ...)
     va_end(args);
     fflush(stderr);
 }
+
+void logDebug(const char* fmt, ...)
+{
+  if (verbose_level < 2)
+      return;
+  va_list args;
+  va_start(args, fmt);
+  fprintf(stderr, "[DEBUG] ");
+  vfprintf(stderr, fmt, args);
+  va_end(args);
+  fflush(stderr);
+}
+
 void logProgress(const char* type, int value, int maxValue, float percent)
 {
     if (!progressLogging)
