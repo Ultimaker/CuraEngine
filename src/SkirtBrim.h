@@ -8,9 +8,10 @@ namespace cura
 {
 
 /*!
- * Generate skirt or brim (depending on parameters); when \p distance > 0 and
- * \p count == 1 the skirt is generated, which has slightly different
- * configuration.
+ * Generate skirt or brim (depending on parameters).
+ * 
+ * When \p distance > 0 and \p count == 1 a skirt is generated, which has
+ * slightly different configuration. Otherwise, a brim is generated.
  * 
  * \param storage Storage containing the parts at the first layer.
  * \param distance The distance of the first outset from the parts at the first
