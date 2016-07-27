@@ -130,8 +130,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     int supportLayerThickness = layerThickness;
     
-    const int layerZdistanceTop = std::max(0, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0, round_up_divide(supportZDistanceBottom, supportLayerThickness));
+    const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
+    const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -154,7 +154,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     // early out
     
-    if ( layerZdistanceTop + 1 > (int) support_layer_count )
+    if ( layerZdistanceTop + 1 > support_layer_count )
     {
         storage.support.generated = false; // no (first layer) support can be generated 
         return;
@@ -470,8 +470,8 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
 {
     const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
     const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
-    const int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
-    const int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
@@ -479,7 +479,7 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
         SupportLayer& layer = supportLayers[layer_idx];
 
         const unsigned int layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
-        const unsigned int layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - z_distance_bottom);
+        const unsigned int layer_idx_below = std::max(0U, int(layer_idx) - int(bottom_layer_count) - z_distance_bottom);
         if (layer_idx_above < supportLayers.size())
         {
             Polygons roofs;

@@ -8,11 +8,11 @@ namespace cura
 
 template<typename T> inline T square(const T& a) { return a * a; }
 
-inline int round_divide(int dividend, int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline unsigned int round_divide(unsigned int dividend, unsigned int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor / 2) / divisor;
 }
-inline int round_up_divide(int dividend, int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
+inline unsigned int round_up_divide(unsigned int dividend, unsigned int divisor) //!< Return dividend divided by divisor rounded to the nearest integer
 {
     return (dividend + divisor - 1) / divisor;
 }
