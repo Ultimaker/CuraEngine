@@ -26,7 +26,7 @@
 namespace cura
 {
 
-    
+
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
@@ -37,6 +37,22 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     slices2polygons(storage, timeKeeper);
     
     return true;
+}
+
+unsigned int FffPolygonGenerator::getDraftShieldHeight(const unsigned int total_layers) const
+{
+    if (!getSettingBoolean("draft_shield_enabled"))
+    {
+        return 0;
+    }
+    switch (getSettingAsDraftShieldLimitation("draft_shield_limitation"))
+    {
+        default:
+        case DraftShieldLimitation::FULL:
+            return total_layers;
+        case DraftShieldLimitation::LIMITED:
+            return getSettingInMicrons("draft_shield_height");
+    }
 }
 
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
@@ -531,7 +547,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
-    const int draft_shield_height = getSettingBoolean("draft_shield_enabled") ? getSettingInMicrons("draft_shield_height") : 0;
+    const int draft_shield_height = getDraftShieldHeight(total_layers);
     const int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
     const int layer_height_0 = getSettingInMicrons("layer_height_0");
     const int layer_height = getSettingInMicrons("layer_height");
