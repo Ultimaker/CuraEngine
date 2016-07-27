@@ -1,9 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#include "support.h"
-
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
+#include "support.h"
+
+#include "utils/math.h"
 #include "progress/Progress.h"
 
 namespace cura 
@@ -466,10 +467,10 @@ void AreaSupport::handleWallStruts(
 
 void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
 {
-    const unsigned int roof_layer_count = mesh.getSettingInMicrons("support_roof_height") / storage.getSettingInMicrons("layer_height");
-    const unsigned int bottom_layer_count = mesh.getSettingInMicrons("support_bottom_height") / storage.getSettingInMicrons("layer_height");
-    const int z_distance_bottom = mesh.getSettingInMicrons("support_bottom_distance") / storage.getSettingInMicrons("layer_height");
-    const int z_distance_top = mesh.getSettingInMicrons("support_top_distance") / storage.getSettingInMicrons("layer_height");
+    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
+    const int z_distance_bottom = round_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
+    const int z_distance_top = round_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
