@@ -531,11 +531,11 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
-    int draft_shield_height = getSettingInMicrons("draft_shield_height");
-    int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
-    int layer_height_0 = getSettingInMicrons("layer_height_0");
-    int layer_height = getSettingInMicrons("layer_height");
-    
+    const int draft_shield_height = getSettingBoolean("draft_shield_enabled") ? getSettingInMicrons("draft_shield_height") : 0;
+    const int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
+    const int layer_height_0 = getSettingInMicrons("layer_height_0");
+    const int layer_height = getSettingInMicrons("layer_height");
+
     if (draft_shield_height < layer_height_0)
     {
         return;
