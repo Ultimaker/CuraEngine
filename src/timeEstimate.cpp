@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
+
+#include "utils/math.h"
 #include "timeEstimate.h"
-#include "settings/settings.h" 
+#include "settings/settings.h"
 
 namespace cura
 {
@@ -27,7 +29,6 @@ void TimeEstimateCalculator::setFirmwareDefaults(const SettingsBaseVirtual* sett
     acceleration = settings_base->getSettingInMillimetersPerSecond("machine_acceleration");
 }
 
-template<typename T> const T square(const T& a) { return a * a; }
 
 void TimeEstimateCalculator::setPosition(Position newPos)
 {
