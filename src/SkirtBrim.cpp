@@ -5,25 +5,26 @@
 namespace cura 
 {
 
-void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int count, int minLength)
+void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned int count, int minLength)
 {
     if (count == 0) return;
     
-    bool externalOnly = (distance > 0); // whether to include holes or not
+    bool externalOnly = (start_distance > 0); // whether to include holes or not
 
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
     const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_brim_line_width");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[primary_extruder];
     
-    bool is_skirt = count == 1 && distance > 0;
+    bool is_skirt = count == 1 && start_distance > 0;
     
     Polygons first_layer_outline;
     const int layer_nr = 0;
-    if (is_skirt || !storage.support.generated)
+    if (is_skirt)
     {
         const bool include_helper_parts = true;
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, externalOnly);
+        first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // don't add brim _around_ support, but underneath it by removing support where there's brim
@@ -31,31 +32,25 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int cou
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, externalOnly);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
     }
-    
-    std::vector<Polygons> skirts_or_brims;
+
+    Polygons outer_skirt_brim_line_primary_extruder;
     for (unsigned int skirt_brim_number = 0; skirt_brim_number < count; skirt_brim_number++)
     {
-        const int offsetDistance = distance + primary_extruder_skirt_brim_line_width * skirt_brim_number + primary_extruder_skirt_brim_line_width / 2;
+        const int offsetDistance = start_distance + primary_extruder_skirt_brim_line_width * skirt_brim_number + primary_extruder_skirt_brim_line_width / 2;
 
-        skirts_or_brims.emplace_back(first_layer_outline.offset(offsetDistance, ClipperLib::jtRound));
-        Polygons& skirt_brim_polygons = skirts_or_brims.back();
-        
+        outer_skirt_brim_line_primary_extruder = first_layer_outline.offset(offsetDistance, ClipperLib::jtRound);
+
         //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
-        for(unsigned int n=0; n<skirt_brim_polygons.size(); n++)
+        for (unsigned int n = 0; n < outer_skirt_brim_line_primary_extruder.size(); n++)
         {
-            double area = skirt_brim_polygons[n].area();
+            double area = outer_skirt_brim_line_primary_extruder[n].area();
             if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
             {
-                skirt_brim_polygons.remove(n--);
+                outer_skirt_brim_line_primary_extruder.remove(n--);
             }
         }
-    
-        if (is_skirt)
-        {
-            skirt_brim_polygons = skirt_brim_polygons.approxConvexHull();
-        }
 
-        skirt_brim_primary_extruder.add(skirt_brim_polygons);
+        skirt_brim_primary_extruder.add(outer_skirt_brim_line_primary_extruder);
 
         int length = skirt_brim_primary_extruder.polygonLength();
         if (skirt_brim_number + 1 >= count && length > 0 && length < minLength) //Make brim or skirt have more lines when total length is too small.
@@ -69,13 +64,16 @@ void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int cou
         int last_width = primary_extruder_skirt_brim_line_width;
         for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
         {
-            if (extruder == primary_extruder) { continue; }
+            if (extruder == primary_extruder || !storage.meshgroup->getExtruderTrain(extruder)->getIsUsed())
+            {
+                continue;
+            }
             int width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("skirt_brim_line_width");
             offset_distance += last_width / 2 + width/2;
             last_width = width;
             while (storage.skirt_brim[extruder].polygonLength() < minLength)
             {
-                storage.skirt_brim[extruder].add(skirts_or_brims.back().offset(offset_distance, ClipperLib::jtRound));
+                storage.skirt_brim[extruder].add(outer_skirt_brim_line_primary_extruder.offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
             }
         }
