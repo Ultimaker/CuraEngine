@@ -62,14 +62,16 @@ void log(const char* fmt, ...)
 
 void logDebug(const char* fmt, ...)
 {
-  if (verbose_level < 2)
-      return;
-  va_list args;
-  va_start(args, fmt);
-  fprintf(stderr, "[DEBUG] ");
-  vfprintf(stderr, fmt, args);
-  va_end(args);
-  fflush(stderr);
+    if (verbose_level < 2)
+    {
+        return;
+    }
+    va_list args;
+    va_start(args, fmt);
+    fprintf(stderr, "[DEBUG] ");
+    vfprintf(stderr, fmt, args);
+    va_end(args);
+    fflush(stderr);
 }
 
 void logProgress(const char* type, int value, int maxValue, float percent)
