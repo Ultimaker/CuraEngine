@@ -32,6 +32,7 @@ if(CMAKE_BUILD_TYPE MATCHES DEBUG)
     message(STATUS "Building debug release of CuraEngine.")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)
+    add_definitions(-DDEBUG)
 endif()
 
 # Add warnings
@@ -68,7 +69,7 @@ set(engine_SRCS # Except main.cpp.
     src/PrimeTower.cpp
     src/raft.cpp
     src/skin.cpp
-    src/skirt.cpp
+    src/SkirtBrim.cpp
     src/sliceDataStorage.cpp
     src/slicer.cpp
     src/support.cpp
@@ -112,9 +113,10 @@ set(engine_TEST
 set(engine_TEST_INFILL
 )
 set(engine_TEST_UTILS
-    BucketGrid2DTest
+    SparseGridTest
     LinearAlg2DTest
     PolygonUtilsTest
+    PolygonTest
 )
 
 # Generating ProtoBuf protocol

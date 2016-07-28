@@ -67,13 +67,13 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
     }
 }
 
-
 std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
 {
     std::vector<RetractionConfig> ret;
     ret.resize(meshgroup->getExtruderCount()); // initializes with constructor RetractionConfig()
     return ret;
 }
+
 std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
 {
     std::vector<GCodePathConfig> ret;
@@ -83,21 +83,23 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
     }
     return ret;
 }
-std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtConfigs()
+
+std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtBrimConfigs()
 {
     std::vector<GCodePathConfig> ret;
     for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
     {
-        skirt_config.emplace_back(PrintFeatureType::Skirt);
+        skirt_brim_config.emplace_back(PrintFeatureType::SkirtBrim);
     }
     return ret;
 }
+
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
-    skirt_config(initializeSkirtConfigs()),
+    skirt_brim_config(initializeSkirtBrimConfigs()),
     raft_base_config(PrintFeatureType::Support),
     raft_interface_config(PrintFeatureType::Support),
     raft_surface_config(PrintFeatureType::Support),
@@ -211,7 +213,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     { // process brim/skirt
         for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
         {
-            if (skirt[extr_nr].size() > 0)
+            if (skirt_brim[extr_nr].size() > 0)
             {
                 ret[extr_nr] = true;
                 continue;

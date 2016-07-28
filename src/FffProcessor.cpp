@@ -126,7 +126,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     if (CommandSocket::isInstantiated())
     {
         CommandSocket::getInstance()->flushGcode();
-        CommandSocket::getInstance()->sendLayerData();
+        CommandSocket::getInstance()->sendOptimizedLayerData();
     }
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 

@@ -13,6 +13,7 @@
 #include <cassert>
 #include <fstream>
 #include <set>
+#include <unordered_map>
 
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
@@ -36,13 +37,16 @@ class SettingsToGv
     
     FILE* out;
     std::set<std::string> engine_settings;
-    bool parent_child_viz, inherit_viz, error_viz, warning_viz;
+    
+    std::unordered_map<std::string, std::string> setting_to_color;
+    bool parent_child_viz, inherit_viz, error_viz, warning_viz, global_only_viz;
 public: 
-    SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz, bool error_viz, bool warning_viz)
+    SettingsToGv(std::string output_filename, std::string engine_settings_filename, bool parent_child_viz, bool inherit_viz, bool error_viz, bool warning_viz, bool global_only_viz)
     : parent_child_viz(parent_child_viz)
     , inherit_viz(inherit_viz)
     , error_viz(error_viz)
     , warning_viz(warning_viz)
+    , global_only_viz(global_only_viz)
     {
         out = fopen(output_filename.c_str(), "w");
         fprintf(out, "digraph G {\n");
@@ -60,14 +64,31 @@ public:
 private:
     void generateEdge(const std::string& parent, const std::string& child, RelationType relation_type)
     {
-        if (engine_settings.find(parent) != engine_settings.end())
+        if (global_only_viz)
         {
-            fprintf(out, "%s [color=green];\n", parent.c_str());
+            auto parent_it = setting_to_color.find(parent);
+            if (parent_it != setting_to_color.end())
+            {
+                fprintf(out, "%s [color=%s];\n", parent_it->first.c_str(), parent_it->second.c_str());
+            }
+            auto child_it = setting_to_color.find(child);
+            if (child_it != setting_to_color.end())
+            {
+                fprintf(out, "%s [color=%s];\n", child_it->first.c_str(), child_it->second.c_str());
+            }
         }
-        if (engine_settings.find(child) != engine_settings.end())
+        else
         {
-            fprintf(out, "%s [color=green];\n", child.c_str());
+            if (engine_settings.find(parent) != engine_settings.end())
+            {
+                fprintf(out, "%s [color=green];\n", parent.c_str());
+            }
+            if (engine_settings.find(child) != engine_settings.end())
+            {
+                fprintf(out, "%s [color=green];\n", child.c_str());
+            }
         }
+
         std::string color;
         switch (relation_type)
         {
@@ -126,7 +147,10 @@ private:
                     inherited_setting_string != "if" && inherited_setting_string != "else" && inherited_setting_string != "and" 
                     && inherited_setting_string != "or" && inherited_setting_string != "math" && inherited_setting_string != "ceil" 
                     && inherited_setting_string != "int" && inherited_setting_string != "round" && inherited_setting_string != "max" // exclude operators and functions
+                    && inherited_setting_string != "log" // exclude functions
                     && inherited_setting_string != "grid" && inherited_setting_string != "triangles" // exclude enum values
+                    && inherited_setting_string != "cubic" && inherited_setting_string != "tetrahedral" // exclude enum values
+                    && inherited_setting_string != "raft" // exclude enum values
                     && function.c_str()[regex_match.position() + regex_match.length()] != '\'') // exclude enum terms
                 {
                     if (inherited_setting_string == parent)
@@ -157,12 +181,41 @@ private:
         
         if (data.HasMember("type") && data["type"].IsString() && data["type"].GetString() != std::string("category"))
         {
+            if (global_only_viz)
+            {
+                std::string color;
+                if (!data.HasMember("settable_per_mesh") || data["settable_per_mesh"].GetBool() == true)
+                {
+                    color = "green";
+                }
+                else if (data.HasMember("settable_per_mesh") && data["settable_per_mesh"].GetBool() == false)
+                {
+                    if (!data.HasMember("settable_per_extruder") || data["settable_per_extruder"].GetBool() == true)
+                    {
+                        color = "yellow";
+                    }
+                    else if (data.HasMember("settable_per_extruder") && data["settable_per_extruder"].GetBool() == false)
+                    {
+                        if (!data.HasMember("settable_per_meshgroup") || data["settable_per_meshgroup"].GetBool() == true)
+                        {
+                            color = "orange";
+                        }
+                        else if (data.HasMember("settable_per_meshgroup") && data["settable_per_meshgroup"].GetBool() == false)
+                        {
+                            color = "red";
+                        }
+                    }
+                }
+                setting_to_color.emplace(name, color);
+//                 fprintf(out, "%s [color=%s];\n", name.c_str(), color.c_str());
+            }
             
-            bool generated_edge_inherit = createFunctionEdges(data, "inherit_function", parent, name, RelationType::INHERIT_FUNCTION);
-            bool generated_edge_max = createFunctionEdges(data, "max_value", parent, name, RelationType::ERROR_FUNCTION);
-            bool generated_edge_min = createFunctionEdges(data, "min_value", parent, name, RelationType::ERROR_FUNCTION);
-            bool generated_edge_max_warn = createFunctionEdges(data, "max_value_warning", parent, name, RelationType::WARNING_FUNCTION);
-            bool generated_edge_min_warn = createFunctionEdges(data, "min_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+            
+            bool generated_edge_inherit = createFunctionEdges(data, "value", parent, name, RelationType::INHERIT_FUNCTION);
+            bool generated_edge_max = createFunctionEdges(data, "maximum_value", parent, name, RelationType::ERROR_FUNCTION);
+            bool generated_edge_min = createFunctionEdges(data, "minimum_value", parent, name, RelationType::ERROR_FUNCTION);
+            bool generated_edge_max_warn = createFunctionEdges(data, "maximum_value_warning", parent, name, RelationType::WARNING_FUNCTION);
+            bool generated_edge_min_warn = createFunctionEdges(data, "minimum_value_warning", parent, name, RelationType::WARNING_FUNCTION);
             if (generated_edge_inherit || generated_edge_max_warn || generated_edge_min_warn || generated_edge_max || generated_edge_min)
             {
                 generated_edge = true;

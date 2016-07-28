@@ -2,10 +2,10 @@
 #include "polygonUtils.h"
 
 #include <list>
+#include <sstream>
 
 #include "linearAlg2D.h"
-#include "BucketGrid2D.h"
-#include "../debug.h"
+#include "SparseGrid.h"
 
 #ifdef DEBUG
 #include "AABB.h"
@@ -320,15 +320,21 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                  * Clipper seems to fuck up sometimes.
                  */
 #ifdef DEBUG
+                try
                 {
+                    int offset_performed = offset / 2;
                     AABB aabb(insetted);
                     aabb.expand(std::abs(preferred_dist_inside) * 2);
                     SVG svg("debug.html", aabb);
+                    svg.writeComment("Original polygon in black");
                     svg.writePolygon(closest_poly, SVG::Color::BLACK);
                     for (auto point : closest_poly)
                     {
                         svg.writePoint(point, true, 2);
                     }
+                    std::stringstream ss;
+                    ss << "Offsetted polygon in blue with offset " << offset_performed;
+                    svg.writeComment(ss.str());
                     svg.writePolygons(insetted, SVG::Color::BLUE);
                     for (auto poly : insetted)
                     {
@@ -337,8 +343,13 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                             svg.writePoint(point, true, 2);
                         }
                     }
+                    svg.writeComment("From location");
                     svg.writePoint(from, false, 5, SVG::Color::GREEN);
+                    svg.writeComment("Location computed to be inside the black polygon");
                     svg.writePoint(inside.location, false, 5, SVG::Color::RED);
+                }
+                catch(...)
+                {
                 }
                 logError("ERROR! ERROR!\n\tClipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
 #endif
@@ -527,7 +538,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -535,7 +546,7 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
         n_points += poly.size();
     }
 
-    BucketGrid2D<PolygonsPointIndex>* ret = new BucketGrid2D<PolygonsPointIndex>(square_size, n_points);
+    SparseGrid<PolygonsPointIndex>* ret = new SparseGrid<PolygonsPointIndex>(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -567,15 +578,18 @@ BucketGrid2D<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygo
 
 /*
  * The current implemetnation can check the same line segment multiple times, 
- * since the same line segment can occur in multiple cells if it it longer than the cell size of the BucketGrid.
+ * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparseGrid.
  * 
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
-std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Polygons& polygons, const BucketGrid2D<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function)
+std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
+    Point from, const Polygons& polygons,
+    const SparseGrid<PolygonsPointIndex>& loc_to_line,
+    const std::function<int(Point)>& penalty_function)
 {
-    std::vector<PolygonsPointIndex> near_lines;
-    loc_to_line.findNearbyObjects(from, near_lines);
+    std::vector<PolygonsPointIndex> near_lines =
+        loc_to_line.getNearbyVals(from, loc_to_line.getCellSize());
 
     Point best(0, 0);
 
@@ -608,7 +622,10 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(Point from, const Pol
 }
 
 
-std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(const PolygonRef from, const Polygons& destination, const BucketGrid2D< PolygonsPointIndex >& destination_loc_to_line, const std::function<int(Point)>& penalty_function)
+std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
+    const PolygonRef from, const Polygons& destination,
+    const SparseGrid< PolygonsPointIndex >& destination_loc_to_line,
+    const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
     int p0_idx = from.size() - 1;

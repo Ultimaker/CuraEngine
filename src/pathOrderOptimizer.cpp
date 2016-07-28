@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "pathOrderOptimizer.h"
 #include "utils/logoutput.h"
-#include "utils/BucketGrid2D.h"
+#include "utils/SparseGrid.h"
 #include "utils/linearAlg2D.h"
 
 #define INLINE static inline
@@ -153,7 +153,7 @@ int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
 void LineOrderOptimizer::optimize()
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
-    BucketGrid2D<unsigned int> line_bucket_grid(gridSize);
+    SparseGrid<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
@@ -188,14 +188,16 @@ void LineOrderOptimizer::optimize()
         int best_line_idx = -1;
         float best_score = std::numeric_limits<float>::infinity(); // distance score for the best next line
 
-        for(unsigned int close_line_poly_idx :  line_bucket_grid.findNearbyObjects(prev_point)) /// check if single-line-polygon is close to last point
+        /// check if single-line-polygon is close to last point
+        for(unsigned int close_line_idx :
+                line_bucket_grid.getNearbyVals(prev_point, gridSize))
         {
-            if (picked[close_line_poly_idx] || polygons[close_line_poly_idx].size() < 1)
+            if (picked[close_line_idx] || polygons[close_line_idx].size() < 1)
             {
                 continue;
             }
 
-            updateBestLine(close_line_poly_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
+            updateBestLine(close_line_idx, best_line_idx, best_score, prev_point, incoming_perpundicular_normal);
         }
 
         if (best_line_idx == -1) /// if single-line-polygon hasn't been found yet

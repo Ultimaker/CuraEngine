@@ -180,7 +180,7 @@ public:
 
     std::vector<GCodePathConfig> travel_config_per_extruder; //!< The config used for travel moves (only speed is set!)
 
-    std::vector<GCodePathConfig> skirt_config; //!< config for skirt per extruder
+    std::vector<GCodePathConfig> skirt_brim_config; //!< Configuration for skirt and brim per extruder.
     std::vector<CoastingConfig> coasting_config; //!< coasting config per extruder
 
     GCodePathConfig raft_base_config;
@@ -192,7 +192,7 @@ public:
 
     SupportStorage support;
 
-    Polygons skirt[MAX_EXTRUDERS]; //!< Skirt polygons per extruder, ordered from inner to outer polygons
+    Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
 
     int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
@@ -206,14 +206,16 @@ public:
      * Construct the initial retraction_config_per_extruder
      */
     std::vector<RetractionConfig> initializeRetractionConfigs();
+
     /*!
      * Construct the initial travel_config_per_extruder
      */
     std::vector<GCodePathConfig> initializeTravelConfigs();
+
     /*!
-     * Construct the initial skirt_config s for each extruder
+     * Construct the initial skirt & brim configurations for each extruder.
      */
-    std::vector<GCodePathConfig> initializeSkirtConfigs();
+    std::vector<GCodePathConfig> initializeSkirtBrimConfigs();
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the

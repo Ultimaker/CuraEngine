@@ -198,25 +198,6 @@ void PolygonUtilsTest::farMoveTest2()
     moveInside2Assert(test_square, Point(110, 50), 100000, Point(-99900, 50));
 }
 
-void PolygonUtilsTest::polygonOffsetTest()
-{
-    Polygons test_squares;
-    test_squares.add(test_square);
-    Polygons expanded = test_squares.offset(25);
-    int64_t expanded_length = expanded.polygonLength();
-
-    Polygons square_hole;
-    PolygonRef square_inverted = square_hole.newPoly();
-    for (int i = test_square.size() - 1; i >= 0; i--)
-    {
-        square_inverted.add(test_square[i]);
-    }
-    Polygons contracted = square_hole.offset(25);
-    int64_t contracted_length = contracted.polygonLength();
-
-    CPPUNIT_ASSERT_MESSAGE("Offset on outside poly is different from offset on inverted poly!", std::abs(expanded_length - contracted_length) < 5);
-}
-
 
 void PolygonUtilsTest::moveInsideAssert(const PolygonRef poly, Point close_to, const int distance, Point supposed)
 {
@@ -265,7 +246,7 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
 {
     Polygons polys;
     polys.add(poly);
-    BucketGrid2D<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
+    SparseGrid<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
     
     std::optional<ClosestPolygonPoint> cpp;
     if (penalty_function)

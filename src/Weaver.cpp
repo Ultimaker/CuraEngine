@@ -19,7 +19,7 @@ void Weaver::weave(MeshGroup* meshgroup)
 
     int layer_count = (maxz - initial_layer_thickness) / connectionHeight + 1;
 
-    DEBUG_SHOW(layer_count);
+    std::cerr << "Layer count: " << layer_count << "\n";
 
     std::vector<cura::Slicer*> slicerList;
 
@@ -53,8 +53,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         for (cura::Slicer* slicer : slicerList)
             wireFrame.bottom_outline.add(slicer->layers[starting_layer_idx].polygons);
         
-        if (CommandSocket::isInstantiated())
-            CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, 0, wireFrame.bottom_outline, 1);
+        CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*0,*/ wireFrame.bottom_outline, 1);
         
         if (slicerList.empty()) //Wait, there is nothing to slice.
         {
@@ -85,10 +84,8 @@ void Weaver::weave(MeshGroup* meshgroup)
 
             chainify_polygons(parts1, starting_point_in_layer, chainified, false);
             
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::OuterWall, layer_idx - starting_layer_idx, chainified, 1);
-            }
+            CommandSocket::sendPolygons(PrintFeatureType::OuterWall, /*layer_idx - starting_layer_idx,*/ chainified, 1);
+
             if (chainified.size() > 0)
             {
                 if (starting_z == -1) starting_z = slicerList[0]->layers[layer_idx-1].z;
@@ -327,7 +324,7 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
             WeaveConnectionSegment& segment = segments[idx];
             assert(segment.segmentType == WeaveSegmentType::UP);
             Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
-            bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+            bool skipped = (segment.to - from).vSize2() < line_width * line_width;
             if (skipped)
             {
                 unsigned int begin = idx;
@@ -336,9 +333,11 @@ void Weaver::connections2moves(WeaveRoofPart& inset)
                     WeaveConnectionSegment& segment = segments[idx];
                     assert(segments[idx].segmentType == WeaveSegmentType::UP);
                     Point3 from = (idx == 0)? part.connection.from : segments[idx-1].to;
-                    bool skipped = (segment.to - from).vSize2() < extrusionWidth * extrusionWidth;
+                    bool skipped = (segment.to - from).vSize2() < line_width * line_width;
                     if (!skipped) 
+                    {
                         break;
+                    }
                 }
                 int end = idx - ((include_half_of_last_down)? 2 : 1);
                 if (idx >= segments.size())
@@ -388,8 +387,6 @@ void Weaver::connect(Polygons& parts0, int z0, Polygons& parts1, int z1, WeaveCo
 
 void Weaver::chainify_polygons(Polygons& parts1, Point start_close_to, Polygons& result, bool include_last)
 {
-    
-        
     for (unsigned int prt = 0 ; prt < parts1.size(); prt++)
     {
         const PolygonRef upperPart = parts1[prt];
@@ -430,7 +427,7 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
  
     if (supporting.size() < 1)
     {
-        DEBUG_PRINTLN("lower layer has zero parts!");
+        std::cerr << "lower layer has zero parts!\n";
         return;
     }
     
@@ -476,16 +473,4 @@ void Weaver::connect_polygons(Polygons& supporting, int z0, Polygons& supported,
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
 }//namespace cura
-    

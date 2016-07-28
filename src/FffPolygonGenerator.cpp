@@ -11,11 +11,10 @@
 #include "multiVolumes.h"
 #include "layerPart.h"
 #include "WallsComputation.h"
-#include "skirt.h"
+#include "SkirtBrim.h"
 #include "skin.h"
 #include "infill.h"
 #include "raft.h"
-#include "debug.h"
 #include "progress/Progress.h"
 #include "PrintFeature.h"
 #include "ConicalOverhang.h"
@@ -27,7 +26,7 @@
 namespace cura
 {
 
-    
+
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
@@ -38,6 +37,22 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     slices2polygons(storage, timeKeeper);
     
     return true;
+}
+
+unsigned int FffPolygonGenerator::getDraftShieldHeight(const unsigned int total_layers) const
+{
+    if (!getSettingBoolean("draft_shield_enabled"))
+    {
+        return 0;
+    }
+    switch (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation"))
+    {
+        default:
+        case DraftShieldHeightLimitation::FULL:
+            return total_layers;
+        case DraftShieldHeightLimitation::LIMITED:
+            return getSettingInMicrons("draft_shield_height");
+    }
 }
 
 bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
@@ -187,24 +202,24 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
 
     unsigned int print_layer_count = 0;
-    if (CommandSocket::isInstantiated())
-    { // send layer info
-        for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-        {
-            SliceLayer* layer = nullptr;
-            for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-            { // find first mesh which has this layer
-                SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
-                {
-                    layer = &mesh.layers[layer_nr];
-                    print_layer_count = layer_nr + 1;
-                    break;
-                }
-            }
-            if (layer != nullptr)
+    for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    {
+        SliceLayer* layer = nullptr;
+        for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+        { // find first mesh which has this layer
+            SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+            if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
             {
-                CommandSocket::getInstance()->sendLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
+                layer = &mesh.layers[layer_nr];
+                print_layer_count = layer_nr + 1;
+                break;
+            }
+        }
+        if (layer != nullptr)
+        {
+            if (CommandSocket::isInstantiated())
+            { // send layer info
+                CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, layer->printZ, layer_nr == 0? getSettingInMicrons("layer_height_0") : getSettingInMicrons("layer_height"));
             }
         }
     }
@@ -233,10 +248,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
-            if (CommandSocket::isInstantiated()) 
-            {
-                CommandSocket::getInstance()->sendPolygons(PrintFeatureType::Infill, layer_idx, support, 100); //getSettingInMicrons("support_line_width"));
-            }
+            ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
+            CommandSocket::sendPolygons(PrintFeatureType::Infill, support, 100); // infill_extr->getSettingInMicrons("support_line_width"));
         }
     }
     */
@@ -244,11 +257,14 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
     storage.primeTower.generatePaths(storage, print_layer_count);
-
+    
+    logDebug("Processing ooze shield\n");
     processOozeShield(storage, print_layer_count);
 
+    logDebug("Processing draft shield\n");
     processDraftShield(storage, print_layer_count);
 
+    logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
     
     // meshes post processing
@@ -281,6 +297,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     // walls
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
+        logDebug("Processing insets for layer %i of %i\n", layer_number, total_layers);
         processInsets(mesh, layer_number);
         double progress = inset_skin_progress_estimate.progress(layer_number);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
@@ -318,6 +335,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
     for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
     {
+        logDebug("Processing skins and infill layer %i of %i\n", layer_number, total_layers);
         if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkinsAndInfill(mesh, layer_number, process_infill);
@@ -430,19 +448,6 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);
     }
-    if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-    {
-        for (PolygonRef polyline : layer->openPolyLines)
-        {
-            Polygons segments;
-            for (unsigned int point_idx = 1; point_idx < polyline.size(); point_idx++)
-            {
-                PolygonRef segment = segments.newPoly();
-                segment.add(polyline[point_idx-1]);
-                segment.add(polyline[point_idx]);
-            }
-        }
-    }
 }
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
@@ -492,11 +497,10 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     { 
         return;
     }
-    
-    int wall_line_count = mesh.getSettingAsCount("wall_line_count");
-    int skin_extrusion_width = mesh.getSettingInMicrons("skin_line_width");
-    int innermost_wall_extrusion_width = (wall_line_count == 1)? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
-    generateSkins(layer_nr, mesh, skin_extrusion_width, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_extrusion_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
+
+    const int wall_line_count = mesh.getSettingAsCount("wall_line_count");
+    const int innermost_wall_line_width = (wall_line_count == 1) ? mesh.getSettingInMicrons("wall_line_width_0") : mesh.getSettingInMicrons("wall_line_width_x");
+    generateSkins(layer_nr, mesh, mesh.getSettingAsCount("bottom_layers"), mesh.getSettingAsCount("top_layers"), wall_line_count, innermost_wall_line_width, mesh.getSettingAsCount("skin_outline_count"), mesh.getSettingBoolean("skin_no_small_gaps_heuristic"));
 
     if (process_infill)
     { // process infill when infill density > 0
@@ -505,9 +509,9 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         bool infill_is_dense = mesh.getSettingInMicrons("infill_line_distance") < mesh.getSettingInMicrons("infill_line_width") + 10;
         if (!infill_is_dense && mesh.getSettingAsFillMethod("infill_pattern") != EFillMethod::CONCENTRIC)
         {
-            infill_skin_overlap = skin_extrusion_width / 2;
+            infill_skin_overlap = innermost_wall_line_width / 2;
         }
-        generateInfill(layer_nr, mesh, innermost_wall_extrusion_width, infill_skin_overlap, wall_line_count);
+        generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
     }
 }
 
@@ -543,26 +547,24 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
-    int draft_shield_height = getSettingInMicrons("draft_shield_height");
-    int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
-    int layer_height_0 = getSettingInMicrons("layer_height_0");
-    int layer_height = getSettingInMicrons("layer_height");
-    
-    if (draft_shield_height < layer_height_0)
+    const int draft_shield_height = getDraftShieldHeight(total_layers);
+    if (draft_shield_height <= 0)
     {
         return;
     }
-    
-    unsigned int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
-    
-    int layer_skip = 500 / layer_height + 1;
-    
+    const int layer_height_0 = getSettingInMicrons("layer_height_0");
+    const int layer_height = getSettingInMicrons("layer_height");
+
+    const unsigned int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
+    const unsigned int layer_skip = 500 / layer_height + 1;
+
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }
-    
+
+    const int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
 }
 
@@ -572,22 +574,25 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     switch(getSettingAsPlatformAdhesion("adhesion_type"))
     {
     case EPlatformAdhesion::SKIRT:
-        if (train->getSettingInMicrons("draft_shield_height") == 0)
-        { // draft screen replaces skirt
-            generateSkirt(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_minimal_length"));
+        if (!getSettingBoolean("draft_shield_enabled")
+            || (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED && getSettingInMicrons("draft_shield_height") == 0)) //Draft shield replaces skirt.
+        {
+            generateSkirtBrim(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"));
         }
         break;
     case EPlatformAdhesion::BRIM:
-        generateSkirt(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingInMicrons("skirt_minimal_length"));
+        generateSkirtBrim(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"));
         break;
     case EPlatformAdhesion::RAFT:
         generateRaft(storage, train->getSettingInMicrons("raft_margin"));
         break;
     }
     
-    Polygons skirt_sent = storage.skirt[0];
+    Polygons skirt_brim_sent = storage.skirt_brim[0];
     for (int extruder = 1; extruder < storage.meshgroup->getExtruderCount(); extruder++)
-        skirt_sent.add(storage.skirt[extruder]);
+    {
+        skirt_brim_sent.add(storage.skirt_brim[extruder]);
+    }
 }
 
 

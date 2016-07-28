@@ -2,7 +2,6 @@
 #include "gcodePlanner.h"
 #include "pathOrderOptimizer.h"
 #include "sliceDataStorage.h"
-#include "debug.h" // debugging
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
 
@@ -608,6 +607,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 {
     completeConfigs();
     
+    CommandSocket::setLayerForSend(layer_nr);
+    CommandSocket::setSendCurrentPosition( gcode.getPositionXY() );
     gcode.setLayerNr(layer_nr);
     
     gcode.writeLayerComment(layer_nr);
@@ -621,9 +622,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
-
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
+        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
+
         if (extruder != extruder_plan.extruder)
         {
             int prev_extruder = extruder;
@@ -731,7 +732,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                         && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
                     )
                     {
-                        sendPolygon(paths[path_idx+2].config->type, gcode.getPositionXY(), paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
+                        sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
                         gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
                         path_idx += 2;
                     }
@@ -739,7 +740,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                     {
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
-                            sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
+                            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
                             gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                         }
                     }
@@ -772,7 +773,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
-                        sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
+                        sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
                         gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
                     }
                 }
@@ -1033,10 +1034,10 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            sendPolygon(path.config->type, gcode.getPositionXY(), path.points[point_idx], path.getLineWidth());
+            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
             gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
         }
-        sendPolygon(path.config->type, gcode.getPositionXY(), start, path.getLineWidth());
+        sendLineTo(path.config->type, start, path.getLineWidth());
         gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
     }
 

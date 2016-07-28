@@ -10,6 +10,7 @@
 # * All settings random
 
 import ast #For safe function evaluation.
+import math #For evaluating setting inheritance functions.
 import sys
 import subprocess
 import os
@@ -24,27 +25,25 @@ from xml.etree import ElementTree
 
 ## The TestSuite class stores the test results of a single set of tests.
 #  TestSuite objects are created by the TestResults class.
-class TestSuite():
+class TestSuite:
     def __init__(self, name):
         self._name = name
         self._successes = []
         self._failures = []
     
-    ## Add a successfull test result to the test suite.
+    ## Add a successful test result to the test suite.
     def success(self, class_name, test_name):
-        #print('Success:', class_name, test_name)
         self._successes.append((class_name, test_name))
 
     ## Add a failed test result to the test suite.
     def failure(self, class_name, test_name, error_message):
-        #print('Failure:', class_name, test_name, error_message)
         self._failures.append((class_name, test_name, error_message))
 
     ## Return the number of tests in this test suite
     def getTestCount(self):
         return self.getSuccessCount() + self.getFailureCount()
 
-    ## Return the number of successfull tests in this test suite
+    ## Return the number of successful tests in this test suite
     def getSuccessCount(self):
         return len(self._successes)
 
@@ -55,7 +54,7 @@ class TestSuite():
 
 ## The TestResults class stores a group of TestSuite objects, each TestSuite object contains failed and successful test.
 #  This class can output the result of the tests in a JUnit xml format for parsing in Jenkins.
-class TestResults():
+class TestResults:
     def __init__(self):
         self._testsuites = []
     
@@ -93,7 +92,7 @@ class TestResults():
         return ElementTree.ElementTree(xml).write(filename, "utf-8", True)
 
 
-class Setting():
+class Setting:
     ##  Creates a new setting from a JSON node.
     #
     #   Some parts of the setting may have to be evaluated as functions. For
@@ -106,12 +105,15 @@ class Setting():
     #   \param locals The local variables for eventual function evaluation.
     def __init__(self, key, data, locals):
         self._key = key
-        self._default = data["default_value"]
+        if "value" in data: #Evaluate "value" if we can, otherwise just take default_value.
+            self._default = self._evaluateFunction(data.get("value", "0"), locals)
+        else:
+            self._default = data.get("default_value", 0)
         self._type = data["type"]
-        self._min_value = self._evaluateFunction(data.get("min_value", None), locals)
-        self._max_value = self._evaluateFunction(data.get("max_value", None), locals)
-        self._min_value_warning = self._evaluateFunction(data.get("min_value_warning", None), locals)
-        self._max_value_warning = self._evaluateFunction(data.get("max_value_warning", None), locals)
+        self._min_value = self._evaluateFunction(data.get("minimum_value", None), locals)
+        self._max_value = self._evaluateFunction(data.get("maximum_value", None), locals)
+        self._min_value_warning = self._evaluateFunction(data.get("minimum_value_warning", None), locals)
+        self._max_value_warning = self._evaluateFunction(data.get("maximum_value_warning", None), locals)
         self._options = data.get("options", None)
         if self._options is not None:
             self._options = list(self._options.keys())
@@ -159,9 +161,13 @@ class Setting():
         if self._type == "enum":
             return self._options
         if self._type == "str":
-            return self._default
+            return [self._default]
         if self._type == "extruder":
-            return self._default # TODO: also allow for other values below machine_extruder_count
+            return [self._default] # TODO: also allow for other values below machine_extruder_count
+        if self._type == "polygon":
+            return [self._default]
+        if self._type == "polygons":
+            return [self._default]
         print("Unknown setting type:", self._type)
 
     ## Return a random value for this setting. The returned value will be a valid value according to the settings json file.
@@ -212,7 +218,7 @@ class Setting():
 
         return eval(compiled, globals(), locals)
 
-class EngineTest():
+class EngineTest:
     def __init__(self, json_filename, engine_filename, models):
         self._json_filename = json_filename
         self._json = json.load(open(json_filename, "r"))

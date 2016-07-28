@@ -4,14 +4,14 @@
 namespace cura
 {
 
-enum class PrintFeatureType
+enum class PrintFeatureType: unsigned char
 {
-    NoneType, // unused, but libArcus depends on it
+    NoneType, // used to mark unspecified jumps in polygons. libArcus depends on it
     OuterWall,
     InnerWall,
     Skin,
     Support,
-    Skirt,
+    SkirtBrim,
     Infill,
     SupportInfill,
     MoveCombing,

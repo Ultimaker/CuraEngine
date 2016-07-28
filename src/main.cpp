@@ -348,6 +348,7 @@ int main(int argc, char **argv)
         bool inherit_viz = false;
         bool warning_viz = false;
         bool error_viz = false;
+        bool global_only_viz = false;
         if (argc >= 6)
         {
             char* str = argv[5];
@@ -368,6 +369,9 @@ int main(int argc, char **argv)
                         break;
                     case 'w':
                         warning_viz = true;
+                        break;
+                    case 'g':
+                        global_only_viz = true;
                         break;
                     default:
                         cura::logError("Unknown option: %c\n", *str);
@@ -396,7 +400,7 @@ int main(int argc, char **argv)
     
         }
         
-        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz);
+        SettingsToGv gv_out(argv[3], argv[4], parent_child_viz, inherit_viz, error_viz, warning_viz, global_only_viz);
         if (gv_out.generate(std::string(argv[2])))
         {
             cura::logError("ERROR: Failed to analyse json file: %s\n", argv[2]);

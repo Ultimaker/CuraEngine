@@ -49,7 +49,6 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(middleTest2);
     CPPUNIT_TEST(noMoveTest2);
     CPPUNIT_TEST(farMoveTest2);
-    CPPUNIT_TEST(polygonOffsetTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -132,5 +131,5 @@ private:
 
 }
 
-#endif //LINEARALG2DTEST_H
+#endif // POLYGON_UTILS_TEST_H
 

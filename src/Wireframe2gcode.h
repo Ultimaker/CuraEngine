@@ -16,8 +16,6 @@
 #include "utils/polygon.h"
 #include "Weaver.h"
 
-#include "debug.h"
-
 namespace cura
 {
 
@@ -33,7 +31,7 @@ private:
     
     int initial_layer_thickness;
     int filament_diameter;
-    int extrusionWidth;
+    int line_width;
     double flowConnection;
     double flowFlat; 
     double extrusion_per_mm_connection; 

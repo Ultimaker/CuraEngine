@@ -542,19 +542,11 @@ public:
         return was_inside;
     }
     /*!
-     * send a polygon through the command socket from the previous point to the given point
+     * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendPolygon(PrintFeatureType print_feature_type, Point from, Point to, int line_width)
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width)
     {
-        if (CommandSocket::isInstantiated()) 
-        {
-            // we should send this travel as a non-retraction move
-            cura::Polygons pathPoly;
-            PolygonRef path = pathPoly.newPoly();
-            path.add(from);
-            path.add(to);
-            CommandSocket::getInstance()->sendPolygons(print_feature_type, layer_nr, pathPoly, line_width);
-        }
+        CommandSocket::sendLineTo(print_feature_type, to, line_width);
     }
 
     /*!
