@@ -16,13 +16,13 @@ class SlicerSegment
 {
 public:
     Point start, end;
-    int faceIndex;
+    int faceIndex = -1;
     // The index of the other face connected via the edge that created end
-    int endOtherFaceIdx;
+    int endOtherFaceIdx = -1;
     // If end corresponds to a vertex of the mesh, then this is populated
     // with the vertex that it ended on.
-    const MeshVertex *endVertex;
-    bool addedToPolygon;
+    const MeshVertex *endVertex = nullptr;
+    bool addedToPolygon = false;
 };
 
 class ClosePolygonResult
@@ -30,17 +30,17 @@ class ClosePolygonResult
     //The line on which the point lays is between pointIdx-1 and pointIdx
 public:
     Point intersectionPoint;
-    int polygonIdx;
-    unsigned int pointIdx;
+    int polygonIdx = -1;
+    unsigned int pointIdx = -1;
 };
 class GapCloserResult
 {
 public:
-    int64_t len;
-    int polygonIdx;
-    unsigned int pointIdxA;
-    unsigned int pointIdxB;
-    bool AtoB;
+    int64_t len = -1;
+    int polygonIdx = -1;
+    unsigned int pointIdxA = -1;
+    unsigned int pointIdxB = -1;
+    bool AtoB = false;
 };
 
 class SlicerLayer
@@ -49,7 +49,7 @@ public:
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
 
-    int z;
+    int z = -1;
     Polygons polygons;
     Polygons openPolylines;
 
@@ -235,7 +235,7 @@ private:
          *
          * The polyline_idx and end flags are calculated from this on demand.
          */
-        Index m_idx;
+        Index m_idx = -1;
     };
 
     /*!
@@ -258,7 +258,7 @@ private:
     struct PossibleStitch
     {
         /*! Squared distance from terminus_0 to terminus_1. */
-        int64_t dist2;
+        int64_t dist2 = -1;
         /*! The Terminus representing the end of polyline_0 where the
          * join would happen. */
         Terminus terminus_0;
@@ -488,7 +488,7 @@ class Slicer
 public:
     std::vector<SlicerLayer> layers;
 
-    const Mesh* mesh; //!< The sliced mesh
+    const Mesh* mesh = nullptr; //!< The sliced mesh
 
     Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
