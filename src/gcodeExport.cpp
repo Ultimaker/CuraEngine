@@ -45,23 +45,11 @@ void GCodeExport::preSetup(const MeshGroup* settings)
 
     extruder_count = settings->getSettingAsCount("machine_extruder_count");
 
-    for (const Mesh& mesh : settings->meshes)
-    {
-        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
-    }
-
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
+        extruder_attr[extruder_nr].is_used = extruder_attr[extruder_nr].is_used || settings->getExtruderTrain(extruder_nr)->getIsUsed();
 
-        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_roof_enable") && settings->getSettingAsIndex("support_roof_extruder_nr") == int(extruder_nr))
-            )
-        {
-            extruder_attr[extruder_nr].is_used = true;
-        }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
