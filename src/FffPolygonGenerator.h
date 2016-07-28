@@ -46,7 +46,19 @@ public:
     bool generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper);
   
 private:
-    
+    /*!
+     * \brief Helper function to get the actual height of the draft shield.
+     *
+     * The draft shield is the height of the print if we've set the draft shield
+     * limitation to FULL. Otherwise the height is set to the height limit
+     * setting. If the draft shield is disabled, the height is always 0.
+     *
+     * \param total_layers The total number of layers in the print (the height
+     * of the draft shield if the limit is FULL.
+     * \return The actual height of the draft shield.
+     */
+    unsigned int getDraftShieldHeight(unsigned int total_layers) const;
+
     /*!
      * Slice the \p object and store the outlines in the \p storage.
      * 
@@ -136,14 +148,13 @@ private:
      * \param total_layers The total number of layers 
      */
     void processDraftShield(SliceDataStorage& storage, unsigned int total_layers);
+
     /*!
      * Generate the skirt/brim/raft areas/insets.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
     void processPlatformAdhesion(SliceDataStorage& storage);
-    
-    
-    
+
     /*!
      * Make the outer wall 'fuzzy'
      * 
@@ -154,10 +165,8 @@ private:
      * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
     void processFuzzyWalls(SliceMeshStorage& mesh);
-    
-    
 
-    
+
 };
 }//namespace cura
 #endif // FFF_AREA_GENERATOR_H

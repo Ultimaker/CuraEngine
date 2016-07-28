@@ -181,6 +181,20 @@ double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
     return std::max(0.0, atof(value.c_str()));
 }
 
+DraftShieldHeightLimitation SettingsBaseVirtual::getSettingAsDraftShieldHeightLimitation(const std::string key) const
+{
+    const std::string value = getSettingString(key);
+    if (value == "full")
+    {
+        return DraftShieldHeightLimitation::FULL;
+    }
+    else if (value == "limited")
+    {
+        return DraftShieldHeightLimitation::LIMITED;
+    }
+    return DraftShieldHeightLimitation::FULL; //Default.
+}
+
 FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) const
 {
     FlowTempGraph ret;
