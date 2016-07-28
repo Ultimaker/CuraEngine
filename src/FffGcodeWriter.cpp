@@ -46,9 +46,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
         storage.skirt_brim_config[extruder].setLayerHeight(getSettingInMicrons("layer_height_0"));
+        skirt_brim_is_processed[extruder] = false;
     }
-    
-    
+
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
     
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
