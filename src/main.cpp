@@ -139,7 +139,6 @@ void slice(int argc, char **argv)
                     try {
                         //Catch all exceptions, this prevents the "something went wrong" dialog on windows to pop up on a thrown exception.
                         // Only ClipperLib currently throws exceptions. And only in case that it makes an internal error.
-                        meshgroup->finalize();
                         log("Loaded from disk in %5.3fs\n", FffProcessor::getInstance()->time_keeper.restart());
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
@@ -147,6 +146,9 @@ void slice(int argc, char **argv)
                             ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
                             SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
                         }
+
+                        meshgroup->finalize();
+
                         //start slicing
                         FffProcessor::getInstance()->processMeshGroup(meshgroup);
                         

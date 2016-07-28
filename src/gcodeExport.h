@@ -42,7 +42,7 @@ private:
         bool prime_pos_is_abs; //!< Whether the prime position is absolute, rather than relative to the last given position
         bool is_primed; //!< Whether this extruder has currently already been primed in this print
 
-        bool is_used; //!< Whether this extruder train is actually used during the printing of the current meshgroup
+        bool is_used; //!< Whether this extruder train is actually used during the printing of all meshgroups
         int nozzle_size; //!< The nozzle size label of the nozzle (e.g. 0.4mm; irrespective of tolerances)
         Point nozzle_offset;
         char extruderCharacter;

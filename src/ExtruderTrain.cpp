@@ -13,4 +13,15 @@ ExtruderTrain::ExtruderTrain(SettingsBaseVirtual* settings, int extruder_nr)
 {
 }
 
+bool ExtruderTrain::getIsUsed() const
+{
+    return is_used;
+}
+
+void ExtruderTrain::setIsUsed(bool used)
+{
+    is_used = used;
+}
+
+
 }//namespace cura

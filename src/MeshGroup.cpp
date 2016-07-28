@@ -119,6 +119,27 @@ void MeshGroup::clear()
 
 void MeshGroup::finalize()
 {
+    extruder_count = getSettingAsCount("machine_extruder_count");
+
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        createExtruderTrain(extruder_nr); // create it if it didn't exist yet
+
+        if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr
+            || (getSettingBoolean("support_enable") && getSettingAsIndex("support_infill_extruder_nr") == extruder_nr)
+            || (getSettingBoolean("support_enable") && getSettingAsIndex("support_extruder_nr_layer_0") == extruder_nr)
+            || (getSettingBoolean("support_enable") && getSettingBoolean("support_interface_enable") && getSettingAsIndex("support_interface_extruder_nr") == extruder_nr)
+            )
+        {
+            getExtruderTrain(extruder_nr)->setIsUsed(true);
+        }
+    }
+
+    for (const Mesh& mesh : meshes)
+    {
+        getExtruderTrain(mesh.getSettingAsIndex("extruder_nr"))->setIsUsed(true);
+    }
+
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.
     Point3 meshgroup_offset(0, 0, 0);
     if (!getSettingBoolean("machine_center_is_zero"))
