@@ -548,25 +548,23 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
     const int draft_shield_height = getDraftShieldHeight(total_layers);
-    const int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
-    const int layer_height_0 = getSettingInMicrons("layer_height_0");
-    const int layer_height = getSettingInMicrons("layer_height");
-
-    if (draft_shield_height < layer_height_0)
+    if (draft_shield_height <= 0)
     {
         return;
     }
-    
-    unsigned int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
-    
-    int layer_skip = 500 / layer_height + 1;
-    
+    const int layer_height_0 = getSettingInMicrons("layer_height_0");
+    const int layer_height = getSettingInMicrons("layer_height");
+
+    const unsigned int max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
+    const unsigned int layer_skip = 500 / layer_height + 1;
+
     Polygons& draft_shield = storage.draft_protection_shield;
     for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < max_screen_layer; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }
-    
+
+    const int draft_shield_dist = getSettingInMicrons("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
 }
 
