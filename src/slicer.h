@@ -31,15 +31,15 @@ class ClosePolygonResult
 public:
     Point intersectionPoint;
     int polygonIdx = -1;
-    unsigned int pointIdx = 0;
+    unsigned int pointIdx = -1;
 };
 class GapCloserResult
 {
 public:
     int64_t len = -1;
     int polygonIdx = -1;
-    unsigned int pointIdxA = 0;
-    unsigned int pointIdxB = 0;
+    unsigned int pointIdxA = -1;
+    unsigned int pointIdxB = -1;
     bool AtoB = false;
 };
 
@@ -235,7 +235,7 @@ private:
          *
          * The polyline_idx and end flags are calculated from this on demand.
          */
-        Index m_idx = 0;
+        Index m_idx = -1;
     };
 
     /*!
