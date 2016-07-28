@@ -227,7 +227,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // support is presupposed to be present...
     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-    ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+    ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content
     for (SliceMeshStorage& mesh : meshes)

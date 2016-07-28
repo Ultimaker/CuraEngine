@@ -849,7 +849,7 @@ void GCodePlanner::processInitialLayersSpeedup()
 
         storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
-        int extruder_nr_support_skin = storage.getSettingAsIndex("support_roof_extruder_nr");
+        int extruder_nr_support_skin = storage.getSettingAsIndex("support_interface_extruder_nr");
         initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("speed_layer_0");
         initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("acceleration_layer_0");
         initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("jerk_layer_0");

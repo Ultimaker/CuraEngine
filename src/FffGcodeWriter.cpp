@@ -162,8 +162,8 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         SettingsBase* infill_train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_infill_extruder_nr"));
         storage.support_config.init(infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), infill_train->getSettingInMillimetersPerSecond("jerk_support_infill"), infill_train->getSettingInMicrons("support_line_width"), infill_train->getSettingInPercentage("material_flow"));
     
-        SettingsBase* interface_train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_roof_extruder_nr"));
-        storage.support_skin_config.init(interface_train->getSettingInMillimetersPerSecond("speed_support_roof"), interface_train->getSettingInMillimetersPerSecond("acceleration_support_roof"), interface_train->getSettingInMillimetersPerSecond("jerk_support_roof"), interface_train->getSettingInMicrons("support_roof_line_width"), interface_train->getSettingInPercentage("material_flow"));
+        SettingsBase* interface_train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("support_interface_extruder_nr"));
+        storage.support_skin_config.init(interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), interface_train->getSettingInMillimetersPerSecond("jerk_support_interface"), interface_train->getSettingInMicrons("support_interface_line_width"), interface_train->getSettingInPercentage("material_flow"));
     }
     
     for (SliceMeshStorage& mesh : storage.meshes)
@@ -902,7 +902,7 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
         return; 
     
-    int support_skin_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     
     bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
@@ -1014,12 +1014,12 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
-    int skin_extruder_nr = getSettingAsIndex("support_roof_extruder_nr");
+    int skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     const ExtruderTrain& interface_extr = *storage.meshgroup->getExtruderTrain(skin_extruder_nr);
     setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
 
-    EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_roof_pattern");
-    int support_line_distance = interface_extr.getSettingInMicrons("support_roof_line_distance");
+    EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_interface_pattern");
+    int support_line_distance = interface_extr.getSettingInMicrons("support_interface_line_distance");
     
     
     bool all_roofs_are_low = true;
