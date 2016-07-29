@@ -337,6 +337,15 @@ void CommandSocket::connect(const std::string& ip, int port)
             {
                 handleObjectList(&object, slice->extruders());
             }
+            //For every object, set the extruder fallbacks from the global_inherits_stack.
+            for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
+            {
+                for (const cura::proto::SettingExtruder setting_extruder : slice->global_inherits_stack())
+                {
+                    const ExtruderTrain* settings_base = meshgroup.get()->getExtruderTrain(setting_extruder.extruder());
+                    meshgroup.get()->setSettingInheritBase(setting_extruder.name(), *settings_base);
+                }
+            }
             logDebug("Done reading Slice message\n");
         }
 
