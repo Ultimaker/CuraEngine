@@ -282,6 +282,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
 
     private_data->socket->connect(ip, port);
 
