@@ -42,6 +42,16 @@ if(NOT APPLE AND NOT WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
 endif()
 
+option (ENABLE_OPENMP
+    "Use OpenMP for parallel code" ON)
+
+if (ENABLE_OPENMP)
+    FIND_PACKAGE( OpenMP )
+    if( OPENMP_FOUND )
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}" )
+    endif()
+endif()
+
 include_directories(${CMAKE_CURRENT_BINARY_DIR} libs)
 
 add_library(clipper STATIC libs/clipper/clipper.cpp)
