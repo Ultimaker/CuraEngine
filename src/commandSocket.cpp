@@ -342,7 +342,12 @@ void CommandSocket::connect(const std::string& ip, int port)
             {
                 for (const cura::proto::SettingExtruder setting_extruder : slice->global_inherits_stack())
                 {
-                    const ExtruderTrain* settings_base = meshgroup.get()->getExtruderTrain(setting_extruder.extruder());
+                    const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast to normal int32.
+                    if (extruder_nr < 0 || extruder_nr >= meshgroup.get()->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
+                    {
+                        continue;
+                    }
+                    const ExtruderTrain* settings_base = meshgroup.get()->getExtruderTrain(extruder_nr);
                     meshgroup.get()->setSettingInheritBase(setting_extruder.name(), *settings_base);
                 }
             }
