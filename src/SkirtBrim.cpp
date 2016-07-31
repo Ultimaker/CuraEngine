@@ -33,7 +33,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
         if (outside_only)
         {
-            first_layer_outline = first_layer_outline.getOutsidePolygons();
+            first_layer_outline = first_layer_outline.removeEmptyHoles();
         }
     }
 
