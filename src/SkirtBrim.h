@@ -19,8 +19,9 @@ namespace cura
  * \param count Number of outsets / brim lines.
  * \param minLength The minimum length the skirt should have (enforced by taking
  * more outsets).
+ * \param outside_only Whether to only generate a brim on the outside, rather than also in holes
  */
-void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int count, int minLength);
+void generateSkirtBrim(SliceDataStorage& storage, int distance, unsigned int count, int minLength, bool outside_only);
 
 }//namespace cura
 

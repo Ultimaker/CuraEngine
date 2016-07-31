@@ -578,11 +578,12 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         if (!getSettingBoolean("draft_shield_enabled")
             || (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED && getSettingInMicrons("draft_shield_height") == 0)) //Draft shield replaces skirt.
         {
-            generateSkirtBrim(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"));
+            constexpr bool outside_polygons_only = true;
+            generateSkirtBrim(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"), outside_polygons_only);
         }
         break;
     case EPlatformAdhesion::BRIM:
-        generateSkirtBrim(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"));
+        generateSkirtBrim(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingInMicrons("skirt_brim_minimal_length"), train->getSettingBoolean("brim_outside_only"));
         break;
     case EPlatformAdhesion::RAFT:
         generateRaft(storage, train->getSettingInMicrons("raft_margin"));

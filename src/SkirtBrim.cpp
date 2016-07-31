@@ -5,7 +5,7 @@
 namespace cura 
 {
 
-void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned int count, int minLength)
+void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned int count, int minLength, bool outside_only)
 {
     if (count == 0) return;
     
@@ -31,6 +31,10 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
         const bool include_helper_parts = false;
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, externalOnly);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+        if (outside_only)
+        {
+            first_layer_outline = first_layer_outline.getOutsidePolygons();
+        }
     }
 
     Polygons outer_skirt_brim_line_primary_extruder;
