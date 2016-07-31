@@ -64,7 +64,7 @@ public:
     {
         path->push_back(p);
     }
-    
+
     PolygonRef& operator=(const PolygonRef& other) { path = other.path; return *this; }
 
     bool operator==(const PolygonRef& other) const =delete;
@@ -392,6 +392,13 @@ public:
         for(unsigned int n=0; n<other.paths.size(); n++)
             paths.push_back(other.paths[n]);
     }
+
+    template<typename... Args>
+    void emplace_back(Args... args)
+    {
+        paths.emplace_back(args...);
+    }
+
     PolygonRef newPoly()
     {
         paths.emplace_back();
@@ -571,7 +578,13 @@ public:
             }
         }
     }
-    
+
+    /*!
+     * Remove all but the polygons on the very outside.
+     * Exclude holes and parts within holes.
+     * \return the resulting polygons.
+     */
+    Polygons getOutsidePolygons() const;
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.

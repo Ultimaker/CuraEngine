@@ -336,6 +336,24 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     }
 }
 
+Polygons Polygons::getOutsidePolygons() const
+{
+    Polygons ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    ClipperLib::PolyTree poly_tree;
+    constexpr bool paths_are_closed_polys = true;
+    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
+    clipper.Execute(ClipperLib::ctUnion, poly_tree);
+
+
+    for (int outer_poly_idx = 0; outer_poly_idx < poly_tree.ChildCount(); outer_poly_idx++)
+    {
+        ClipperLib::PolyNode* child = poly_tree.Childs[outer_poly_idx];
+        ret.emplace_back(child->Contour);
+    }
+    return ret;
+}
+
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 {
     std::vector<PolygonsPart> ret;
