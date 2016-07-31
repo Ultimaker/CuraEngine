@@ -345,13 +345,43 @@ Polygons Polygons::getOutsidePolygons() const
     clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
-
     for (int outer_poly_idx = 0; outer_poly_idx < poly_tree.ChildCount(); outer_poly_idx++)
     {
         ClipperLib::PolyNode* child = poly_tree.Childs[outer_poly_idx];
         ret.emplace_back(child->Contour);
     }
     return ret;
+}
+
+Polygons Polygons::removeEmptyHoles() const
+{
+    Polygons ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    ClipperLib::PolyTree poly_tree;
+    constexpr bool paths_are_closed_polys = true;
+    clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
+    clipper.Execute(ClipperLib::ctUnion, poly_tree);
+
+    removeEmptyHoles_processPolyTreeNode(poly_tree, ret);
+    return ret;
+}
+
+void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, Polygons& ret) const
+{
+    for (int outer_poly_idx = 0; outer_poly_idx < node.ChildCount(); outer_poly_idx++)
+    {
+        ClipperLib::PolyNode* child = node.Childs[outer_poly_idx];
+        ret.emplace_back(child->Contour);
+        for (int hole_node_idx = 0; hole_node_idx < child->ChildCount(); hole_node_idx++)
+        {
+            ClipperLib::PolyNode& hole_node = *child->Childs[hole_node_idx];
+            if (hole_node.ChildCount() > 0)
+            {
+                ret.emplace_back(hole_node.Contour);
+                removeEmptyHoles_processPolyTreeNode(hole_node, ret);
+            }
+        }
+    }
 }
 
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const

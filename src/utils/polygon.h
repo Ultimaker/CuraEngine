@@ -585,12 +585,25 @@ public:
      * \return the resulting polygons.
      */
     Polygons getOutsidePolygons() const;
+
+    /*!
+     * Exclude holes which have no parts inside of them.
+     * \return the resulting polygons.
+     */
+    Polygons removeEmptyHoles() const;
+
     /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
      */
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 private:
+    /*!
+     * recursive part of \ref Polygons::removeEmptyHoles
+     * \param node The node of the polygons part to process
+     * \param ret Where to store polygons which are not empty holes
+     */
+    void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 public:
     /*!
