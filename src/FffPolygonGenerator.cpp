@@ -359,13 +359,17 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     
     // walls
-    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
+    time_keeper_parallel_test.restart();
+#pragma omp parallel for default(none) shared(total_layers, mesh)
+    for(unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
-        double progress = inset_skin_progress_estimate.progress(layer_number);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+        //TODO: Fix progress update
+        //double progress = inset_skin_progress_estimate.progress(layer_number);
+        //Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
+    log("processInsets time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
@@ -413,7 +417,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             //        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
         }
     }
-    log("Parallel test time elapsed %5.2fs.\n", time_keeper_parallel_test.restart());
+    log("processSkinsAndInfill time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)
@@ -509,6 +513,14 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateInsets only reads and writes data for the current layer
+ *
+ * processInsets only reads and writes data for the current layer
+ */
 void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr) 
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
