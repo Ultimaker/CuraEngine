@@ -295,8 +295,10 @@ class EngineTest:
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.error = ""
         t = threading.Thread(target=self._abortProcess, args=(p,))
+        p.aborting = False
         t.start()
         stdout, stderr = p.communicate()
+        p.aborting = True
         if p.error == "Timeout":
             return "Timeout: %s" % (' '.join(cmd))
         if p.wait() != 0:
@@ -304,7 +306,10 @@ class EngineTest:
         return None
     
     def _abortProcess(self, p):
-        time.sleep(60)
+        for i in range(0, 60):
+            time.sleep(1) #Check every 1000ms if we need to abort the thread.
+            if p.aborting:
+                break
         if p.poll() is None:
             p.terminate()
             p.error = "Timeout"
