@@ -49,6 +49,9 @@ const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLin
 
 void PolygonProximityLinker::findProximatePoints()
 {
+    // link each vertex of each polygon to each proximate line segment of any polygon
+    // in order to avoid checking polygons twice, only compare each polygon to each previous polygon
+    // and when comparing one polygon with itseld compare each vertex to each previously processed line segment
     for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
     {
         ListPolygon& poly = list_polygons[poly_idx];
@@ -84,13 +87,12 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
     Point& from = from_it.p();
-    ListPolygon::iterator last_it = to_list_poly.end();
-    last_it--;
+    ListPolygon::iterator last_it = --to_list_poly.end();
     for (ListPolygon::iterator it = start; it != to_list_poly.end(); ++it)
     {
         Point& last_point = *last_it;
         Point& point = *it;
-        
+
         if (&from_it.poly == &to_list_poly 
             && (
                 (from_it.it == last_it || from_it.it == it) // we currently consider a linesegment directly connected to [from]
@@ -102,9 +104,9 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
             continue;
         }
         Point closest = LinearAlg2D::getClosestOnLineSegment(from, last_point, point);
-        
+
         int64_t dist2 = vSize2(closest - from);
-        
+
         if (dist2 > proximity_distance * proximity_distance
             || (&from_it.poly == &to_list_poly 
                 && dot(from_it.next().p() - from, point - last_point) > 0 
@@ -114,9 +116,9 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
             last_it = it;
             continue;
         }
-        
+
         int64_t dist = sqrt(dist2);
-        
+
         if (shorterThen(closest - last_point, 10))
         {
             addProximityLink(from_it, ListPolyIt(to_list_poly, last_it), dist);
@@ -130,10 +132,9 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
             ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
             addProximityLink(from_it, ListPolyIt(to_list_poly, new_it), dist);
         }
-        
+
         last_it = it;
     }
-    
 }
 
 
@@ -146,8 +147,7 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
     ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->a.it, it);
     addToPoint2LinkMap(*it->b.it, it);
-    
-    
+
     return result.second;
 }
 
@@ -156,18 +156,17 @@ bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyI
     ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
         proximity_point_links_endings.emplace(link);
-        
+
 //     if (! result.second)
 //     {
 //         DEBUG_PRINTLN("couldn't emplace in overlap_point_links! : ");
 //         result.first->second = attr;
 //     }
-    
+
     ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->a.it, it);
     addToPoint2LinkMap(*it->b.it, it);
-    
-    
+
     return result.second;
 }
 
@@ -266,19 +265,18 @@ int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Po
     {
         return std::min(vSize(b), vSize(a));
     }
-    else 
+    else
     {
         int64_t dist = overlap * double ( 1.0 / (2.0 * sqrt(2.0 / (cos_angle+1.0) - 1.0)) );
         return dist;
     }
-    
 }
 
 void PolygonProximityLinker::addSharpCorners()
 {
     
 }
-    
+
 void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it)
 {
     point_to_link.emplace(p, *it); // copy element from proximity_point_links set to Point2Link map
@@ -287,19 +285,18 @@ void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::it
 
 
 void PolygonProximityLinker::proximity2HTML(const char* filename) const
-{   
-    
+{
     PolygonProximityLinker copy = *this; // copy, cause getFlow might change the state of the overlap computation!
-    
+
     AABB aabb(copy.polygons);
-    
+
     aabb.expand(200);
-    
+
     SVG svg(filename, aabb, Point(1024 * 2, 1024 * 2));
-    
-    
+
+
     svg.writeAreas(copy.polygons);
-    
+
     { // output points and coords
         for (ListPolygon poly : copy.list_polygons)
         {
@@ -318,7 +315,7 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
             Point b = svg.transform(link.b.p());
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
-        
+
         // output ending links
         for (const ProximityPointLink& link: copy.proximity_point_links_endings)
         {
@@ -328,5 +325,5 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
         }
     }
 }
-    
+
 }//namespace cura 
