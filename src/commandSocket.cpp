@@ -350,7 +350,6 @@ void CommandSocket::connect(const std::string& ip, int port)
                     const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
                     for (Mesh& mesh : meshgroup->meshes)
                     {
-                        std::cerr << "Setting " << setting_extruder.name() << " to fall back to extruder " << extruder_nr << "." << std::endl;
                         mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
                     }
                 }
