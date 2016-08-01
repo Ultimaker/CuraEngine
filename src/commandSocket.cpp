@@ -282,6 +282,7 @@ void CommandSocket::connect(const std::string& ip, int port)
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
     private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
+    private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
 
     private_data->socket->connect(ip, port);
 
@@ -335,6 +336,23 @@ void CommandSocket::connect(const std::string& ip, int port)
             for (auto object : slice->object_lists())
             {
                 handleObjectList(&object, slice->extruders());
+            }
+            //For every object, set the extruder fallbacks from the global_inherits_stack.
+            for (const cura::proto::SettingExtruder setting_extruder : slice->global_inherits_stack())
+            {
+                const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal int32.
+                for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
+                {
+                    if (extruder_nr < 0 || extruder_nr >= meshgroup->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
+                    {
+                        continue;
+                    }
+                    const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
+                    for (Mesh& mesh : meshgroup->meshes)
+                    {
+                        mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
+                    }
+                }
             }
             logDebug("Done reading Slice message\n");
         }

@@ -83,11 +83,21 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
 }
 
+void SettingsBase::setSettingInheritBase(std::string key, const SettingsBaseVirtual& parent)
+{
+    setting_inherit_base.emplace(key, &parent);
+}
+
+
 std::string SettingsBase::getSettingString(std::string key) const
 {
     if (setting_values.find(key) != setting_values.end())
     {
         return setting_values.at(key);
+    }
+    if (setting_inherit_base.find(key) != setting_inherit_base.end())
+    {
+        return setting_inherit_base.at(key)->getSettingString(key);
     }
     if (parent)
     {
@@ -103,6 +113,12 @@ void SettingsMessenger::setSetting(std::string key, std::string value)
 {
     parent->setSetting(key, value);
 }
+
+void SettingsMessenger::setSettingInheritBase(std::string key, const SettingsBaseVirtual& new_parent)
+{
+    parent->setSettingInheritBase(key, new_parent);
+}
+
 
 std::string SettingsMessenger::getSettingString(std::string key) const
 {
