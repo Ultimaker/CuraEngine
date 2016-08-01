@@ -338,17 +338,21 @@ void CommandSocket::connect(const std::string& ip, int port)
                 handleObjectList(&object, slice->extruders());
             }
             //For every object, set the extruder fallbacks from the global_inherits_stack.
-            for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
+            for (const cura::proto::SettingExtruder setting_extruder : slice->global_inherits_stack())
             {
-                for (const cura::proto::SettingExtruder setting_extruder : slice->global_inherits_stack())
+                const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast from Protobuf's int32 to normal int32.
+                for (std::shared_ptr<MeshGroup> meshgroup : private_data->objects_to_slice)
                 {
-                    const int32_t extruder_nr = setting_extruder.extruder(); //Implicit cast to normal int32.
-                    if (extruder_nr < 0 || extruder_nr >= meshgroup.get()->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
+                    if (extruder_nr < 0 || extruder_nr >= meshgroup->getExtruderCount()) //We obtained an invalid value from the front-end. Ignore.
                     {
                         continue;
                     }
-                    const ExtruderTrain* settings_base = meshgroup.get()->getExtruderTrain(extruder_nr);
-                    meshgroup.get()->setSettingInheritBase(setting_extruder.name(), *settings_base);
+                    const ExtruderTrain* settings_base = meshgroup->getExtruderTrain(extruder_nr); //The extruder train that the setting should fall back to.
+                    for (Mesh& mesh : meshgroup->meshes)
+                    {
+                        std::cerr << "Setting " << setting_extruder.name() << " to fall back to extruder " << extruder_nr << "." << std::endl;
+                        mesh.setSettingInheritBase(setting_extruder.name(), *settings_base);
+                    }
                 }
             }
             logDebug("Done reading Slice message\n");
