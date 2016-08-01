@@ -839,7 +839,7 @@ void GCodePlanner::completeConfigs()
 void GCodePlanner::processInitialLayersSpeedup()
 {
     int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
-    if (layer_nr < initial_speedup_layers)
+    if (layer_nr >= 0 && layer_nr < initial_speedup_layers)
     {
         GCodePathConfig::BasicConfig initial_layer_speed_config;
         int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
