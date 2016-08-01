@@ -839,7 +839,7 @@ void GCodePlanner::completeConfigs()
 void GCodePlanner::processInitialLayersSpeedup()
 {
     int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
-    if (static_cast<int>(layer_nr) < initial_speedup_layers)
+    if (layer_nr < initial_speedup_layers)
     {
         GCodePathConfig::BasicConfig initial_layer_speed_config;
         int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
@@ -890,7 +890,7 @@ void GCodePlanner::processInitialLayersSpeedup()
             }
         }
     }
-    else if (static_cast<int>(layer_nr) == initial_speedup_layers) //At the topmost layer of the gradient, reset all speeds to the typical speeds.
+    else if (layer_nr == initial_speedup_layers) //At the topmost layer of the gradient, reset all speeds to the typical speeds.
     {
         storage.support_config.setSpeedIconic();
         storage.support_roof_config.setSpeedIconic();
