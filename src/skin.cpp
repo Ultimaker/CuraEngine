@@ -10,7 +10,16 @@
 namespace cura 
 {
 
-        
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateSkinAreas reads data from mesh.layers.parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
+ * generateSkinInsets only read/writes the skin_parts from the current layer.
+ *
+ * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
+ */
 void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic)
 {
     generateSkinAreas(layerNr, mesh, innermost_wall_line_width, downSkinCount, upSkinCount, wall_line_count, no_small_gaps_heuristic);
@@ -23,6 +32,12 @@ void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int u
     }
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateSkinAreas reads data from mesh.layers[*].parts[*].insets and writes to mesh.layers[n].parts[*].skin_parts
+ */
 void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic)
 {
     SliceLayer& layer = mesh.layers[layer_nr];
@@ -106,7 +121,12 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
     }
 }
 
-
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateSkinInsets only read/writes the skin_parts from the current layer.
+ */
 void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount)
 {
     if (insetCount == 0)
@@ -139,6 +159,12 @@ void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int ins
     }
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
+ */
 void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count)
 {
     SliceLayer& layer = mesh.layers[layerNr];
