@@ -623,6 +623,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
     bool speed_for_pressure_enabled = storage.getSettingBoolean("speed_for_pressure_enabled");
     double speed_pressure_maximum = storage.getSettingInMillimetersPerSecond("speed_pressure_maximum");
+    int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -656,8 +657,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
-
-        int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
