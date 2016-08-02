@@ -1,3 +1,4 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef UTILS_POLYGON_PROXIMITY_LINKER_H
 #define UTILS_POLYGON_PROXIMITY_LINKER_H
 

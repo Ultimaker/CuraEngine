@@ -1,3 +1,4 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef UTILS_LIST_POLY_IT_H
 #define UTILS_LIST_POLY_IT_H
 

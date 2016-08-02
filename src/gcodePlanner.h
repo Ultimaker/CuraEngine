@@ -1,3 +1,4 @@
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef GCODE_PLANNER_H
 #define GCODE_PLANNER_H
 
