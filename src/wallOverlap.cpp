@@ -91,6 +91,10 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     {
         return 1.0;
     }
+    if (ratio < 0.0)
+    {
+        return 0;
+    }
     return ratio;
 }
 
