@@ -479,7 +479,7 @@ void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMes
         SupportLayer& layer = supportLayers[layer_idx];
 
         const unsigned int layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
-        const unsigned int layer_idx_below = std::max(0U, int(layer_idx) - int(bottom_layer_count) - z_distance_bottom);
+        const unsigned int layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
         if (layer_idx_above < supportLayers.size())
         {
             Polygons roofs;
