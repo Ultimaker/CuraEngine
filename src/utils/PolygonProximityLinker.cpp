@@ -141,9 +141,8 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
 
 bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links.emplace(link);
+        proximity_point_links.emplace(from, to, dist);
 
     ProximityPointLinks::iterator it = result.first;
     addToPoint2LinkMap(*it->a.it, it);
@@ -154,9 +153,8 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
 
 bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist)
 {
-    ProximityPointLink link(from, to, dist);
     std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links_endings.emplace(link);
+        proximity_point_links_endings.emplace(from, to, dist);
 
 //     if (! result.second)
 //     {
