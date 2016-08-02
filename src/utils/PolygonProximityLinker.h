@@ -48,21 +48,10 @@ public:
         const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
         const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
         const int dist; //!< The distance between the two points
-        /*!
-         * Whether this point has been processed already. 
-         * 
-         * Controlled by outside this class. This is free to be used as you will from outside.
-         * 
-         * mutable, because it doesn't change the hash of the object. 
-         * 
-         * Initialized false.
-         */
-        mutable bool passed;
         ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
         : a(a)
         , b(b)
         , dist(dist)
-        , passed(false)
         {
         }
         bool operator==(const ProximityPointLink& other) const
@@ -225,6 +214,15 @@ public:
 
 }//namespace cura
 
+namespace std {
+template <>
+struct hash<cura::PolygonProximityLinker::ProximityPointLink> {
+    size_t operator()(const cura::PolygonProximityLinker::ProximityPointLink & pp) const
+    {
+        return std::hash<cura::Point>()(*pp.a.it) + std::hash<cura::Point>()(*pp.b.it);
+    }
+};
+}
 
 
 #endif//UTILS_POLYGON_PROXIMITY_LINKER_H

@@ -100,15 +100,15 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLin
     {
         return 0;
     }
-    if (!link_a.passed || !link_b->passed)
+    if (!getIsPassed(link_a)|| !getIsPassed(*link_b))
     { // check whether the segment is already passed
-        link_a.passed = true;
-        link_b->passed = true;
+        setIsPassed(link_a);
+        setIsPassed(*link_b);
         return 0;
     }
     // mark the segment as passed
-    link_a.passed = true;
-    link_b->passed = true;
+    setIsPassed(link_a);
+    setIsPassed(*link_b);
     return getApproxOverlapArea(link_a, *link_b);
 }
 
@@ -130,6 +130,16 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from_a, const P
 
     const int64_t area = dist_2 * average_dists_2 / 4; // divide by 2 two times: once for the middles and once for the average_dists
     return area;
+}
+
+bool WallOverlapComputation::getIsPassed(const PolygonProximityLinker::ProximityPointLink& link)
+{
+    return passed_links.count(link) > 0;
+}
+
+void WallOverlapComputation::setIsPassed(const PolygonProximityLinker::ProximityPointLink& link)
+{
+    passed_links.emplace(link);
 }
 
 

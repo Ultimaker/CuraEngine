@@ -48,6 +48,7 @@ class WallOverlapComputation
     PolygonProximityLinker overlap_linker;
     int64_t line_width;
 
+    std::unordered_set<PolygonProximityLinker::ProximityPointLink> passed_links;
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
@@ -87,6 +88,18 @@ private:
      * Compute the approximate overlap area between two line segments
      */
     int64_t getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist);
+
+    /*!
+     * \param link the link to check for
+     * \return whether the link has already been passed once
+     */
+    bool getIsPassed(const PolygonProximityLinker::ProximityPointLink& link);
+
+    /*!
+     * Mark the link as being passed once already
+     * \param link the link to mark as passed
+     */
+    void setIsPassed(const PolygonProximityLinker::ProximityPointLink& link);
 };
 
 
