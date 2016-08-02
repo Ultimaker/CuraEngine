@@ -183,6 +183,13 @@ public:
     PolygonProximityLinker(Polygons& polygons, int proximity_distance);
 
     /*!
+     * Check whether a point has any links
+     * \param from the point for which to check whether it has any links
+     * \return Whether a link has been created between the point and another point
+     */
+    bool isLinked(Point from);
+
+    /*!
      * Get all links connected to a given point.
      * 
      * The returned pair is an iterator range;

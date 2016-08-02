@@ -35,6 +35,12 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
 //     wallOverlaps2HTML("output/output.html");
 }
 
+bool PolygonProximityLinker::isLinked(Point from)
+{
+    return point_to_link.count(from) > 0;
+}
+
+
 std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::Point2Link::iterator> PolygonProximityLinker::getLinks(Point from)
 {
     std::pair<Point2Link::iterator, Point2Link::iterator> from_link_pair = point_to_link.equal_range(from);

@@ -21,18 +21,18 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 {
     using Point2LinkIt = PolygonProximityLinker::Point2Link::iterator;
 
-    const std::pair<Point2LinkIt, Point2LinkIt> from_links = overlap_linker.getLinks(from);
-    if (from_links.first == from_links.second)
-    {
+    if (!overlap_linker.isLinked(from))
+    { // [from] is not linked
         return 1;
     }
     const std::pair<Point2LinkIt, Point2LinkIt> to_links = overlap_linker.getLinks(to);
     if (to_links.first == to_links.second)
-    {
+    { // [to] is not linked
         return 1;
     }
 
     int64_t overlap_area = 0;
+    // note that we don't need to loop over all from_links, because they are handled in the previous getFlow(.) call (or in the very last)
     for (Point2LinkIt it = to_links.first; it != to_links.second; ++it)
     {
         const PolygonProximityLinker::ProximityPointLink& to_link = it->second;
