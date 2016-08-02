@@ -11,14 +11,18 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
 {
     double old_line_width = INT2MM(last_path.config->getLineWidth());
     double new_line_width_mm = INT2MM(new_line_width);
-    double speed_mod = old_line_width / new_line_width_mm;
     double extrusion_mod = new_line_width_mm / old_line_width;
-    double new_speed = std::min(speed * speed_mod, 150.0); // TODO: hardcoded value: max extrusion speed is 150 mm/s = 9000 mm/min
+    double new_speed = speed;
+    if (adjust_speed_for_pressure)
+    {
+        double speed_mod = old_line_width / new_line_width_mm;
+        new_speed = std::min(speed * speed_mod, speed_pressure_maximum);
+    }
     sendLineTo(last_path.config->type, to, last_path.getLineWidth());
     gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
 }
     
-bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
+bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
 { //Check for lots of small moves and combine them into one large line
     Point prev_middle;
     Point last_middle;
@@ -31,12 +35,12 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
             GCodePath& move_path = paths[path_idx];
             for(unsigned int point_idx = 0; point_idx < move_path.points.size() - 1; point_idx++)
             {
-                gcode.writeMove(move_path.points[point_idx], speed, move_path.getExtrusionMM3perMM());
+                gcode.writeMove(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor(), move_path.getExtrusionMM3perMM());
             }
             gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
             GCodePath& last_path = paths[path_idx + 3];
             
-            writeCompensatedMove(last_middle, speed, last_path, line_width);
+            writeCompensatedMove(last_middle, last_path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(), last_path, line_width);
         }
         
         path_idx += 2;
@@ -45,7 +49,7 @@ bool MergeInfillLines::mergeInfillLines(double speed, unsigned int& path_idx)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             GCodePath& last_path = paths[path_idx + 3];
-            writeCompensatedMove(last_middle, speed, last_path, line_width);
+            writeCompensatedMove(last_middle, last_path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(), last_path, line_width);
         }
         path_idx = path_idx + 1; // means that the next path considered is the travel path after the converted extrusion path corresponding to the updated path_idx
         extruder_plan.handleInserts(path_idx, gcode);
