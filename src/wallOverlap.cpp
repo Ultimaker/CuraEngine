@@ -36,7 +36,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     // note that we don't need to loop over all from_links, because they are handled in the previous getFlow(.) call (or in the very last)
     for (Point2LinkIt it = to_links.first; it != to_links.second; ++it)
     {
-        const PolygonProximityLinker::ProximityPointLink& to_link = it->second;
+        const ProximityPointLink& to_link = it->second;
         ListPolyIt to_it = to_link.a;
         ListPolyIt to_other_it = to_link.b;
         if (to_link.a.p() != to)
@@ -94,9 +94,9 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     return ratio;
 }
 
-int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
+int64_t WallOverlapComputation::handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
 {
-    const PolygonProximityLinker::ProximityPointLink* link_b = overlap_linker.getLink(from_it, to_it);
+    const ProximityPointLink* link_b = overlap_linker.getLink(from_it, to_it);
     if (!link_b)
     {
         return 0;
@@ -114,7 +114,7 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLin
 }
 
 
-int64_t WallOverlapComputation::getApproxOverlapArea(const PolygonProximityLinker::ProximityPointLink& from, const PolygonProximityLinker::ProximityPointLink& to)
+int64_t WallOverlapComputation::getApproxOverlapArea(const ProximityPointLink& from, const ProximityPointLink& to)
 {
     return getApproxOverlapArea(from.a.p(), from.b.p(), from.dist, to.a.p(), to.b.p(), to.dist);
 }
@@ -133,12 +133,12 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from_a, const P
     return area;
 }
 
-bool WallOverlapComputation::getIsPassed(const PolygonProximityLinker::ProximityPointLink& link)
+bool WallOverlapComputation::getIsPassed(const ProximityPointLink& link)
 {
     return passed_links.count(link) > 0;
 }
 
-void WallOverlapComputation::setIsPassed(const PolygonProximityLinker::ProximityPointLink& link)
+void WallOverlapComputation::setIsPassed(const ProximityPointLink& link)
 {
     passed_links.emplace(link);
 }

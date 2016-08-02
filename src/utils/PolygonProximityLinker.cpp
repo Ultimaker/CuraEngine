@@ -331,7 +331,7 @@ bool PolygonProximityLinker::isLinked(ListPolyIt a, ListPolyIt b)
     return proximity_point_links.count(test_link) > 0 || proximity_point_links_endings.count(test_link) > 0;
 }
 
-const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
+const ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
 {
     ProximityPointLink test_link(a, b, 0);
     ProximityPointLinks::const_iterator found = proximity_point_links.find(test_link);

@@ -13,6 +13,7 @@
 #include "utils/polygon.h"
 #include "utils/linearAlg2D.h"
 
+#include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
 
 #include "debug.h" // TODO remove
@@ -49,7 +50,7 @@ class WallOverlapComputation
     PolygonProximityLinker overlap_linker;
     int64_t line_width;
 
-    std::unordered_set<PolygonProximityLinker::ProximityPointLink> passed_links;
+    std::unordered_set<ProximityPointLink> passed_links;
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
@@ -80,11 +81,11 @@ private:
      * \param to_it The second point possibly invovled in the second link
      * \return The overlap area between the two links, or zero if there was no such link
      */
-    int64_t handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it);
+    int64_t handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it);
     /*!
      * Compute the approximate overlap area between two line segments
      */
-    int64_t getApproxOverlapArea(const PolygonProximityLinker::ProximityPointLink& from, const PolygonProximityLinker::ProximityPointLink& to);
+    int64_t getApproxOverlapArea(const ProximityPointLink& from, const ProximityPointLink& to);
     /*!
      * Compute the approximate overlap area between two line segments
      */
@@ -94,13 +95,13 @@ private:
      * \param link the link to check for
      * \return whether the link has already been passed once
      */
-    bool getIsPassed(const PolygonProximityLinker::ProximityPointLink& link);
+    bool getIsPassed(const ProximityPointLink& link);
 
     /*!
      * Mark the link as being passed once already
      * \param link the link to mark as passed
      */
-    void setIsPassed(const PolygonProximityLinker::ProximityPointLink& link);
+    void setIsPassed(const ProximityPointLink& link);
 };
 
 

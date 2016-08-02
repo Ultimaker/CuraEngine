@@ -16,6 +16,7 @@
 #include "optional.h"
 
 #include "ListPolyIt.h"
+#include "ProximityPointLink.h"
 
 namespace cura 
 {
@@ -40,39 +41,7 @@ namespace cura
 class PolygonProximityLinker
 {
 public:
-    /*!
-     * A class recording the amount of overlap implicitly by recording the distance between two points on two different polygons or one and the same polygon.
-     * The order of the two points doesn't matter.
-     */
-    struct ProximityPointLink
-    {
-        const ListPolyIt a; //!< the one point (invalidated after list_polygons have been cleared!)
-        const ListPolyIt b; //!< the other point (invalidated after list_polygons have been cleared!)
-        const int dist; //!< The distance between the two points
-        ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
-        : a(a)
-        , b(b)
-        , dist(dist)
-        {
-        }
-        bool operator==(const ProximityPointLink& other) const
-        {
-            return (a == other.a && b == other.b) || (a == other.b && b == other.a);
-        }
-    };
-
-    /*!
-     * The hash function object for WallOverlapPointLink
-     */
-    struct ProximityPointLink_Hasher
-    {
-        std::size_t operator()(const ProximityPointLink& pp) const
-        {
-            return std::hash<Point>()(*pp.a.it) + std::hash<Point>()(*pp.b.it);
-        }
-    };
-
-    typedef std::unordered_set<ProximityPointLink, ProximityPointLink_Hasher> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
+    typedef std::unordered_set<ProximityPointLink> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
     typedef std::unordered_multimap<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link
 
 private:
@@ -214,16 +183,6 @@ public:
 
 
 }//namespace cura
-
-namespace std {
-template <>
-struct hash<cura::PolygonProximityLinker::ProximityPointLink> {
-    size_t operator()(const cura::PolygonProximityLinker::ProximityPointLink & pp) const
-    {
-        return std::hash<cura::Point>()(*pp.a.it) + std::hash<cura::Point>()(*pp.b.it);
-    }
-};
-}
 
 
 #endif//UTILS_POLYGON_PROXIMITY_LINKER_H
