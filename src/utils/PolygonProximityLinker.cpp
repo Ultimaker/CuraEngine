@@ -330,20 +330,21 @@ bool PolygonProximityLinker::isLinked(ListPolyIt a, ListPolyIt b)
     return proximity_point_links.count(test_link) > 0 || proximity_point_links_endings.count(test_link) > 0;
 }
 
-std::optional<PolygonProximityLinker::ProximityPointLink> PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
+const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
 {
     ProximityPointLink test_link(a, b, 0);
-    ProximityPointLinks::iterator found = proximity_point_links.find(test_link);
+    ProximityPointLinks::const_iterator found = proximity_point_links.find(test_link);
+    
     if (found != proximity_point_links.end())
     {
-        return std::optional<PolygonProximityLinker::ProximityPointLink>(true, *found);
+        return &*found;
     }
     found = proximity_point_links_endings.find(test_link);
     if (found != proximity_point_links_endings.end())
     {
-        return std::optional<PolygonProximityLinker::ProximityPointLink>(true, *found);
+        return &*found;
     }
-    return std::optional<PolygonProximityLinker::ProximityPointLink>();
+    return nullptr;
 }
 
 }//namespace cura 

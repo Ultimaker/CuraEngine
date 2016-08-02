@@ -217,9 +217,9 @@ public:
      * Get the link between two points if they are linked already
      * \param a an iterator to the first point (in \ref PolygonProximityLinker::list_polygons)
      * \param b an iterator to the second point (in \ref PolygonProximityLinker::list_polygons)
-     * \return The link between the two points, or nothing
+     * \return The link between the two points, or nullptr
      */
-    std::optional<ProximityPointLink> getLink(ListPolyIt a, ListPolyIt b);
+    const ProximityPointLink* getLink(ListPolyIt a, ListPolyIt b);
 };
 
 

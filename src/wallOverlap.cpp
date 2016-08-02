@@ -95,7 +95,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 
 int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
 {
-    std::optional<PolygonProximityLinker::ProximityPointLink> link_b = overlap_linker.getLink(from_it, to_it);
+    const PolygonProximityLinker::ProximityPointLink* link_b = overlap_linker.getLink(from_it, to_it);
     if (!link_b)
     {
         return 0;
