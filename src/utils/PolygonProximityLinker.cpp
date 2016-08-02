@@ -1,7 +1,7 @@
-#include "PolygonProximityLinker.h"
-
 #include <cmath> // isfinite
 #include <sstream> // ostream
+
+#include "PolygonProximityLinker.h"
 
 #include "AABB.h" // for debug output svg html
 #include "SVG.h"
@@ -35,14 +35,10 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
 //     wallOverlaps2HTML("output/output.html");
 }
 
-const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLink(Point from)
+std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::Point2Link::iterator> PolygonProximityLinker::getLinks(Point from)
 {
-    Point2Link::iterator from_link_pair = point_to_link.find(from);
-    if (from_link_pair == point_to_link.end())
-    {
-        return nullptr;
-    }
-    return &from_link_pair->second;
+    std::pair<Point2Link::iterator, Point2Link::iterator> from_link_pair = point_to_link.equal_range(from);
+    return from_link_pair;
 }
 
 
@@ -203,8 +199,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     Point a = a2-a1;
     Point b = b2-b1;
 
-    if (point_to_link.find(a2_it.p()) == point_to_link.end() 
-        || point_to_link.find(b2_it.p()) == point_to_link.end())
+    if (point_to_link.count(a2_it.p()) == 0 || point_to_link.count(b2_it.p()) == 0)
     {
         int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link.dist);
         if (dist < 0) { return; }
@@ -323,6 +318,28 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
     }
+}
+
+bool PolygonProximityLinker::isLinked(ListPolyIt a, ListPolyIt b)
+{
+    ProximityPointLink test_link(a, b, 0);
+    return proximity_point_links.count(test_link) > 0 || proximity_point_links_endings.count(test_link) > 0;
+}
+
+std::optional<PolygonProximityLinker::ProximityPointLink> PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
+{
+    ProximityPointLink test_link(a, b, 0);
+    ProximityPointLinks::iterator found = proximity_point_links.find(test_link);
+    if (found != proximity_point_links.end())
+    {
+        return std::optional<PolygonProximityLinker::ProximityPointLink>(true, *found);
+    }
+    found = proximity_point_links_endings.find(test_link);
+    if (found != proximity_point_links_endings.end())
+    {
+        return std::optional<PolygonProximityLinker::ProximityPointLink>(true, *found);
+    }
+    return std::optional<PolygonProximityLinker::ProximityPointLink>();
 }
 
 }//namespace cura 

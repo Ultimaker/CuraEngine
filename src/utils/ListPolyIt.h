@@ -54,12 +54,14 @@ public:
         --it; 
         return *this; 
     }
+    //! move the iterator forward (and wrap around at the end)
     ListPolyIt next() const 
     {
         ListPolyIt ret(*this);
         ++ret;
         return ret;
     }
+    //! move the iterator backward (and wrap around at the beginning)
     ListPolyIt prev() const 
     {
         ListPolyIt ret(*this);

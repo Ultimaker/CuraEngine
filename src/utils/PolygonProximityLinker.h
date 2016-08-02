@@ -5,12 +5,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <list>
+#include <utility> // pair
 
 #include <functional> // hash function object
 
 #include "intpoint.h"
 #include "polygon.h"
 #include "linearAlg2D.h"
+#include "optional.h"
 
 #include "ListPolyIt.h"
 
@@ -68,7 +70,7 @@ public:
             return (a == other.a && b == other.b) || (a == other.b && b == other.a);
         }
     };
-private:
+
     /*!
      * The hash function object for WallOverlapPointLink
      */
@@ -81,8 +83,9 @@ private:
     };
 
     typedef std::unordered_set<ProximityPointLink, ProximityPointLink_Hasher> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
-    typedef std::unordered_map<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link 
+    typedef std::unordered_multimap<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link
 
+private:
     /////////////////////////////////////////////////////////////////////////////////////////////
 
     Polygons& polygons; //!< The polygons for which to compensate overlapping walls for
@@ -179,7 +182,37 @@ public:
      */
     PolygonProximityLinker(Polygons& polygons, int proximity_distance);
 
-    const ProximityPointLink* getLink(Point from);
+    /*!
+     * Get all links connected to a given point.
+     * 
+     * The returned pair is an iterator range;
+     * The first is the starting iterator (inclusive)
+     * and the second is the end iterator (exclusive).
+     * 
+     * Note that the returned iterators point to a pair,
+     * for which the second is the actual link.
+     * The first is \p from
+     * 
+     * \param from The point to get all connected links for
+     * \return a pair containing two iterators
+     */
+    std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::Point2Link::iterator> getLinks(Point from);
+
+    /*!
+     * Check whether two points are linked
+     * \param a an iterator to the first point (in \ref PolygonProximityLinker::list_polygons)
+     * \param b an iterator to the second point (in \ref PolygonProximityLinker::list_polygons)
+     * \return Whether a link has been created between the two points
+     */
+    bool isLinked(ListPolyIt a, ListPolyIt b);
+
+    /*!
+     * Get the link between two points if they are linked already
+     * \param a an iterator to the first point (in \ref PolygonProximityLinker::list_polygons)
+     * \param b an iterator to the second point (in \ref PolygonProximityLinker::list_polygons)
+     * \return The link between the two points, or nothing
+     */
+    std::optional<ProximityPointLink> getLink(ListPolyIt a, ListPolyIt b);
 };
 
 

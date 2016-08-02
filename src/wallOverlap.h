@@ -47,7 +47,7 @@ class WallOverlapComputation
 {
     PolygonProximityLinker overlap_linker;
     int64_t line_width;
-    
+
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
@@ -59,13 +59,22 @@ public:
      * \return a value between zero and one representing the reduced flow of the line segment
      */
     float getFlow(Point& from, Point& to);
-    
+
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
     WallOverlapComputation(Polygons& polygons, int lineWidth);
-    
+
+private:
+    /*!
+     * Compute the approximate overlap area between two line segments
+     */
+    int64_t getApproxOverlapArea(const PolygonProximityLinker::ProximityPointLink& from, const PolygonProximityLinker::ProximityPointLink& to);
+    /*!
+     * Compute the approximate overlap area between two line segments
+     */
+    int64_t getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist);
 };
 
 
