@@ -33,7 +33,6 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     // convert list polygons back
     ListPolyIt::convertListPolygonsToPolygons(list_polygons, polygons);
 //     wallOverlaps2HTML("output/output.html");
-//     list_polygons.clear(); // clear up some space! (unneccesary? it's just for the time the gcode is being generated...)
 }
 
 const PolygonProximityLinker::ProximityPointLink* PolygonProximityLinker::getLink(Point from)
