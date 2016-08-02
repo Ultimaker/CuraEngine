@@ -96,20 +96,20 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
 {
     std::optional<PolygonProximityLinker::ProximityPointLink> link_b = overlap_linker.getLink(from_it, to_it);
-    if (link_b)
-    { // segment overlaps with to vertex
-        if (!link_a.passed || !link_b->passed)
-        { // check whether the segment is already passed
-            link_a.passed = true;
-            link_b->passed = true;
-            return 0;
-        }
-        // mark the segment as passed
+    if (!link_b)
+    {
+        return 0;
+    }
+    if (!link_a.passed || !link_b->passed)
+    { // check whether the segment is already passed
         link_a.passed = true;
         link_b->passed = true;
-        return getApproxOverlapArea(link_a, *link_b);
+        return 0;
     }
-    return 0;
+    // mark the segment as passed
+    link_a.passed = true;
+    link_b->passed = true;
+    return getApproxOverlapArea(link_a, *link_b);
 }
 
 
