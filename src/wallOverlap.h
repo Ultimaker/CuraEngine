@@ -68,6 +68,18 @@ public:
 
 private:
     /*!
+     * Check whether \p from_it and \p to_it are connected and if so,
+     * return the overlap area between those and the link \p link_a
+     * 
+     * This presupposes that \p link_a and the link from \p from_it to \p to_it forms a single overlap quadrilateral
+     * 
+     * \param link_a The first link involved in the overlap
+     * \param from_it The first point possibly invovled in the second link
+     * \param to_it The second point possibly invovled in the second link
+     * \return The overlap area between the two links, or zero if there was no such link
+     */
+    int64_t handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it);
+    /*!
      * Compute the approximate overlap area between two line segments
      */
     int64_t getApproxOverlapArea(const PolygonProximityLinker::ProximityPointLink& from, const PolygonProximityLinker::ProximityPointLink& to);

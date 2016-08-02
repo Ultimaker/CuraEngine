@@ -46,54 +46,42 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         ListPolyIt from_it = to_it.prev();
         assert(from_it.p() == from && "From location doesn't seem to be connected to destination location!");
 
+        ListPolyIt to_other_next_it = to_other_it.next(); // move towards [from]; the lines on the other side move in the other direction
+        //           to  from
+        //   o<--o<--T<--F
+        //   |       :   :
+        //   v       :   :
+        //   o-->o-->o-->o
+        //           ,   ,
+        //           ;   to_other_next
+        //           to other
+
         // handle multiple points  linked to [to]
-        ListPolyIt to_other_next_it = to_other_it.next(); // move towards [from]
-        std::optional<PolygonProximityLinker::ProximityPointLink> other_next_2_same_to_link = overlap_linker.getLink(to_other_next_it, to_it);
-        if (other_next_2_same_to_link)
-        { // segment overlaps with to vertex
-            if (!to_link.passed || !other_next_2_same_to_link->passed)
-            { // check whether the segment is already passed
-                to_link.passed = true;
-                other_next_2_same_to_link->passed = true;
-                continue;
-            }
-            // mark the segment as passed
-            to_link.passed = true;
-            other_next_2_same_to_link->passed = true;
-            overlap_area += getApproxOverlapArea(to_link, *other_next_2_same_to_link);
-        }
+        //   o<<<T<<<F
+        //     / |
+        //    /  |
+        //   o>>>o>>>o
+        //   ,   ,
+        //   ;   to other next
+        //   to other
+        overlap_area += handlePotentialOverlap(to_link, to_other_next_it, to_it);
 
         // handle multiple points  linked to [to_other]
-        std::optional<PolygonProximityLinker::ProximityPointLink> other_2_same_from_link = overlap_linker.getLink(to_other_it, from_it);
-        if (other_2_same_from_link)
-        {
-            if (!to_link.passed || !other_2_same_from_link->passed)
-            { // check whether the segment is already passed
-                to_link.passed = true;
-                other_2_same_from_link->passed = true;
-                continue;
-            }
-            // mark the segment as passed
-            to_link.passed = true;
-            other_2_same_from_link->passed = true;
-            overlap_area += getApproxOverlapArea(to_link, *other_2_same_from_link);
-        }
+        //   o<<<T<<<F
+        //       |  /
+        //       | /
+        //   o>>>o>>>o
+        overlap_area += handlePotentialOverlap(to_link, to_other_it, from_it);
 
         // handle normal case where the segment from-to overlaps with another segment
-        std::optional<PolygonProximityLinker::ProximityPointLink> prev_proper_link = overlap_linker.getLink(to_other_next_it, from_it);
-        if (prev_proper_link)
-        {
-            if (!to_link.passed || !prev_proper_link->passed)
-            { // check whether the segment is already passed
-                to_link.passed = true;
-                prev_proper_link->passed = true;
-                continue;
-            }
-            // mark the segment as passed
-            to_link.passed = true;
-            prev_proper_link->passed = true;
-            overlap_area += getApproxOverlapArea(to_link, *other_next_2_same_to_link);
-        }
+        //   o<<<T<<<F
+        //       |   |
+        //       |   |
+        //   o>>>o>>>o
+        //       ,   ,
+        //       ;   to other next
+        //       to other
+        overlap_area += handlePotentialOverlap(to_link, to_other_next_it, from_it);
     }
 
     int64_t normal_area = vSize(from - to) * line_width;
@@ -104,6 +92,26 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     }
     return ratio;
 }
+
+int64_t WallOverlapComputation::handlePotentialOverlap(const PolygonProximityLinker::ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
+{
+    std::optional<PolygonProximityLinker::ProximityPointLink> link_b = overlap_linker.getLink(from_it, to_it);
+    if (link_b)
+    { // segment overlaps with to vertex
+        if (!link_a.passed || !link_b->passed)
+        { // check whether the segment is already passed
+            link_a.passed = true;
+            link_b->passed = true;
+            return 0;
+        }
+        // mark the segment as passed
+        link_a.passed = true;
+        link_b->passed = true;
+        return getApproxOverlapArea(link_a, *link_b);
+    }
+    return 0;
+}
+
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const PolygonProximityLinker::ProximityPointLink& from, const PolygonProximityLinker::ProximityPointLink& to)
 {
