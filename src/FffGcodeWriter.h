@@ -86,10 +86,6 @@ public:
     , is_inside_mesh_layer_part(false)
     {
         max_object_height = 0;
-        for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
-        {
-            skirt_brim_is_processed[extruder_nr] = false;
-        }
     }
 
     /*!

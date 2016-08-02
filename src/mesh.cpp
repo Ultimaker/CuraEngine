@@ -171,7 +171,6 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         if (angle == 0)
         {
             cura::log("Warning! Overlapping faces: face %i and face %i.\n", notFaceIdx, candidateFace);
-            std::cerr<< n.vSize() <<"; "<<n1.vSize()<<";"<<n0.vSize() <<std::endl;
         }
         if (angle < smallestAngle)
         {

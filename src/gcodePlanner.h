@@ -652,8 +652,9 @@ public:
     void writeGCode(GCodeExport& gcode);
     
     /*!
-     * Complete all GcodePathConfig s by 
-     * - altering speed to conform to speed_layer_0
+     * Complete all GcodePathConfigs by
+     * - altering speeds to conform to speed_print_layer_0 and
+     *   speed_travel_layer_0
      * - setting the layer_height (and thereby computing the extrusionMM3perMM)
      */
     void completeConfigs();

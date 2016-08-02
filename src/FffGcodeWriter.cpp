@@ -47,9 +47,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
     { //Skirt and brim.
         storage.skirt_brim_config[extruder].setLayerHeight(getSettingInMicrons("layer_height_0"));
+        skirt_brim_is_processed[extruder] = false;
     }
-    
-    
+
     layer_plan_buffer.setPreheatConfig(*storage.meshgroup);
     
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
@@ -89,6 +89,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     max_object_height = std::max(max_object_height, storage.model_max.z);
 
     layer_plan_buffer.flush();
+
+    constexpr bool force = true;
+    gcode.writeRetraction(&storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
