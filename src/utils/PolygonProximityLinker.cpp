@@ -89,7 +89,8 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
     Point& from = from_it.p();
-    ListPolygon::iterator last_it = --to_list_poly.end();
+    ListPolygon::iterator last_it = (start == to_list_poly.begin())? to_list_poly.end() : start;
+    --last_it;
     for (ListPolygon::iterator it = start; it != to_list_poly.end(); ++it)
     {
         Point& last_point = *last_it;
