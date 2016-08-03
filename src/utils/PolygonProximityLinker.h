@@ -57,20 +57,20 @@ private:
 
     Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
 
-    void findProximatePoints(); //!< find the basic overlap links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
+    void findProximatePoints(); //!< find the basic proximity links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
     /*!
-     * find the basic overlap links (for trapezoids) between a given point and a polygon and record them into PolygonProximityLinker::overlap_point_links
+     * find the basic proximity links (for trapezoids) between a given point and a polygon and record them into PolygonProximityLinker::overlap_point_links
      * 
-     * \param from The point from which to check for overlap
+     * \param from The point from which to check for proximity
      * \param to_list_poly_idx The index into PolygonProximityLinker::list_polygons for the polygon to check
      */
     void findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx);
     /*!
-     * Find the basic overlap links (for trapezoids) between a given point and a polygon up from a particular index and record them into PolygonProximityLinker::overlap_point_links
+     * Find the basic proximity links (for trapezoids) between a given point and a polygon up from a particular index and record them into PolygonProximityLinker::overlap_point_links
      * 
      * This function is used for finding overlaps within a single polygon. It then uses a \p start different from the first point in the polygon.
      * 
-     * \param from The point from which to check for overlap
+     * \param from The point from which to check for proximity
      * \param to_list_poly_idx The index into PolygonProximityLinker::list_polygons for the polygon to check
      * \param start Where to start looking into the polygon with index \p to_list_poly_idx
      */
@@ -97,12 +97,12 @@ private:
     bool addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist);
 
     /*!
-     * Add links for the ending points of overlap regions, supporting the residual triangles.
+     * Add links for the ending points of proximity regions, supporting the residual triangles.
      */
     void addProximityEndings();
 
     /*!
-     * Add a link for the ending point of a given overlap region, if it is an ending.
+     * Add a link for the ending point of a given proximity region, if it is an ending.
      * 
      * \param link_pair The link which might be an ending
      * \param a_next The next point from ListPolyIt::a of \p link 
@@ -113,12 +113,12 @@ private:
     void addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
 
     /*!
-     * Compute the distance between the points of the last link and the points introduced to account for the overlap endings.
+     * Compute the distance between the points of the last link and the points introduced to account for the proximity endings.
      */
     int64_t proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist);
 
     /*!
-     * Add overlap links for sharp corners, so that the overlap of two consecutive line segments is compensated for.
+     * Add proximity links for sharp corners, so that the proximity of two consecutive line segments is compensated for.
      * 
      * Currently UNIMPLEMENTED.
      */
