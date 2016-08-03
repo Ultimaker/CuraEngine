@@ -410,7 +410,7 @@ private:
      * \param open_polylines The polylines to try to stitch together.
      * \param max_dist The maximum distance between end points for an
      *     allowed stitch.
-     * \param cell_size The cell size to use for the SparseGrid.  This
+     * \param cell_size The cell size to use for the SparsePointGridInclusive.  This
      *     affects speed, but does not otherwise affect the results.
      *     This value should generally be close to max_dist.
      * \param allow_reverse Whether stitches are allowed that reverse

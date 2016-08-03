@@ -5,7 +5,7 @@
 #include <memory> // shared_ptr
 
 #include "../utils/polygon.h"
-#include "../utils/SparseGrid.h"
+#include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
 
 #include "LinePolygonsCrossings.h"
@@ -113,7 +113,7 @@ private:
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
     Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    SparseGrid<PolygonsPointIndex>* outside_loc_to_line; //!< The SparseGrid mapping locations to line segments of the outside boundary.
+    SparsePointGridInclusive<PolygonsPointIndex>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
 
     /*!
@@ -122,9 +122,9 @@ private:
     Polygons& getBoundaryOutside();
     
     /*!
-     * Get the SparseGrid mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
+     * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
-    SparseGrid<PolygonsPointIndex>& getOutsideLocToLine();
+    SparsePointGridInclusive<PolygonsPointIndex>& getOutsideLocToLine();
 
     /*!
      * Move the startPoint or endPoint inside when it should be inside

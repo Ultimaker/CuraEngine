@@ -1,7 +1,7 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include "pathOrderOptimizer.h"
 #include "utils/logoutput.h"
-#include "utils/SparseGrid.h"
+#include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
 
 #define INLINE static inline
@@ -153,7 +153,7 @@ int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
 void LineOrderOptimizer::optimize()
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
-    SparseGrid<unsigned int> line_bucket_grid(gridSize);
+    SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     

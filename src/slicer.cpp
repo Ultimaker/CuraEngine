@@ -5,7 +5,7 @@
 
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
-#include "utils/SparseGrid.h"
+#include "utils/SparsePointGridInclusive.h"
 
 #include "slicer.h"
 
@@ -192,7 +192,7 @@ SlicerLayer::findPossibleStitches(
     struct StitchGridVal
     {
         unsigned int polyline_idx;
-        // Depending on the SparseGrid, either the start point or the
+        // Depending on the SparsePointGridInclusive, either the start point or the
         // end point of the polyline
         Point polyline_term_pt;
     };

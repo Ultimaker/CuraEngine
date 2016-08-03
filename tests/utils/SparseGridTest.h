@@ -7,7 +7,7 @@
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
 
-#include "../src/utils/SparseGrid.h"
+#include "../src/utils/SparsePointGridInclusive.h"
 
 #include <unordered_set>
 
@@ -72,7 +72,7 @@ private:
      * \param registered_points The points already in the grid, from which a
      * subset must be found that is near the target point.
      * \param target The target point, near which we must find points.
-     * \param grid_size The grid size of the SparseGrid to use.
+     * \param grid_size The grid size of the SparsePointGridInclusive to use.
      * \param expected_near The expected set of points which is near.
      * \param expected_far The expected set of points which is far.
      */
@@ -92,7 +92,7 @@ private:
      * nearest point must be selected.
      * \param target The target point, to which the nearest point must be
      * selected.
-     * \param grid_size The grid size of the SparseGrid to use.
+     * \param grid_size The grid size of the SparsePointGridInclusive to use.
      * \param expected The expected closest point, or <em>nullptr</em> if the
      * call is expected to return <em>false</em>.
      * \param precondition A boolean function on Points to filter by. Leave this
@@ -102,8 +102,8 @@ private:
         const std::vector<Point>& registered_points,
         Point target, const coord_t grid_size,
         Point* expected,
-        const std::function<bool(const typename SparseGrid<Point>::Elem& elem)> &precondition =
-            SparseGrid<Point>::no_precondition);
+        const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem& elem)> &precondition =
+            SparsePointGridInclusive<Point>::no_precondition);
 };
 
 }

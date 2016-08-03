@@ -13,16 +13,16 @@
 namespace cura {
 
 
-namespace SparseGridImpl {
+namespace SparsePointGridInclusiveImpl {
 
 template<class Val>
-struct SparseGridElem
+struct SparsePointGridInclusiveElem
 {
-    SparseGridElem()
+    SparsePointGridInclusiveElem()
     {
     }
 
-    SparseGridElem(const Point &point_, const Val &val_) :
+    SparsePointGridInclusiveElem(const Point &point_, const Val &val_) :
         point(point_),
         val(val_)
     {
@@ -35,7 +35,7 @@ struct SparseGridElem
 template<class T>
 struct Locatoror
 {
-    Point operator()(const SparseGridElem<T> &elem)
+    Point operator()(const SparsePointGridInclusiveElem<T> &elem)
     {
         return elem.point;
     }
@@ -48,12 +48,12 @@ struct Locatoror
  * \tparam Val The value type to store.
  */
 template<class Val>
-class SparseGrid : public SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
-                                             SparseGridImpl::Locatoror<Val> >
+class SparsePointGridInclusive : public SparseGridInvasive<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
+                                             SparsePointGridInclusiveImpl::Locatoror<Val> >
 {
 public:
-    using Base = SparseGridInvasive<SparseGridImpl::SparseGridElem<Val>,
-                                    SparseGridImpl::Locatoror<Val> >;
+    using Base = SparseGridInvasive<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
+                                    SparsePointGridInclusiveImpl::Locatoror<Val> >;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -62,7 +62,7 @@ public:
      * \param[in] elem_reserve Number of elements to research space for.
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparseGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
     /*! \brief Inserts an element with specified point and value into the sparse grid.
      *
@@ -89,10 +89,10 @@ public:
 };
 
 #define SG_TEMPLATE template<class Val>
-#define SG_THIS SparseGrid<Val>
+#define SG_THIS SparsePointGridInclusive<Val>
 
 SG_TEMPLATE
-SG_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor) :
+SG_THIS::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, float max_load_factor) :
     Base(cell_size,elem_reserve,max_load_factor)
 {
 }

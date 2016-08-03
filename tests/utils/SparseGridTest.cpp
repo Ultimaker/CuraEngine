@@ -125,16 +125,16 @@ void SparseGridTest::getNearestEqualTest()
     const Point expected1 = Point(95, 100);
     const Point expected2 = Point(105, 100);
 
-    SparseGrid<Point> grid(grid_size);
+    SparsePointGridInclusive<Point> grid(grid_size);
     for (Point point : registered_points)
     {
         grid.insert(point, point);
     }
 
-    typename SparseGrid<Point>::Elem result;
+    typename SparsePointGridInclusive<Point>::Elem result;
     //The actual call to test.
     const bool success = grid.getNearest(target, grid_size,
-                                         result, SparseGrid<Point>::no_precondition);
+                                         result, SparsePointGridInclusive<Point>::no_precondition);
 
     {
         std::stringstream ss;
@@ -159,8 +159,8 @@ void SparseGridTest::getNearestFilterTest()
     input.emplace_back(95, 100);
     input.emplace_back(98, 100);
     input.emplace_back(106, 100);
-    std::function<bool(const typename SparseGrid<Point>::Elem &)> filter =
-        [&] (const typename SparseGrid<Point>::Elem& elem) -> bool
+    std::function<bool(const typename SparsePointGridInclusive<Point>::Elem &)> filter =
+        [&] (const typename SparsePointGridInclusive<Point>::Elem& elem) -> bool
         {
             return elem.point.X > 100;
         };
@@ -186,14 +186,14 @@ void SparseGridTest::getNearbyAssert(
     const std::unordered_set<Point>& expected_near,
     const std::unordered_set<Point>& expected_far)
 {
-    SparseGrid<Point> grid(grid_size);
+    SparsePointGridInclusive<Point> grid(grid_size);
     for(Point point : registered_points)
     {
         grid.insert(point, point);
     }
 
     //The actual call to test.
-    const std::vector<typename SparseGrid<Point>::Elem> result =
+    const std::vector<typename SparsePointGridInclusive<Point>::Elem> result =
         grid.getNearby(target, grid_size);
 
     //Are all near points reported as near?
@@ -208,7 +208,7 @@ void SparseGridTest::getNearbyAssert(
         CPPUNIT_ASSERT_MESSAGE(
             ss.str(),
             std::find_if(result.begin(), result.end(),
-                         [&point](const typename SparseGrid<Point>::Elem &elem)
+                         [&point](const typename SparsePointGridInclusive<Point>::Elem &elem)
                          {
                              return elem.val == point;
                          }) !=
@@ -225,7 +225,7 @@ void SparseGridTest::getNearbyAssert(
         CPPUNIT_ASSERT_MESSAGE(
             ss.str(),
             std::find_if(result.begin(), result.end(),
-                         [&point](const typename SparseGrid<Point>::Elem &elem)
+                         [&point](const typename SparsePointGridInclusive<Point>::Elem &elem)
                          {
                              return elem.val == point;
                          }) ==
@@ -237,15 +237,15 @@ void SparseGridTest::getNearestAssert(
     const std::vector<Point>& registered_points,
     Point target, const coord_t grid_size,
     Point* expected,
-    const std::function<bool(const typename SparseGrid<Point>::Elem& elem)> &precondition)
+    const std::function<bool(const typename SparsePointGridInclusive<Point>::Elem& elem)> &precondition)
 {
-    SparseGrid<Point> grid(grid_size);
+    SparsePointGridInclusive<Point> grid(grid_size);
     for (Point point : registered_points)
     {
         grid.insert(point, point);
     }
 
-    typename SparseGrid<Point>::Elem result;
+    typename SparsePointGridInclusive<Point>::Elem result;
     //The actual call to test.
     const bool success = grid.getNearest(target, grid_size,
                                          result, precondition);

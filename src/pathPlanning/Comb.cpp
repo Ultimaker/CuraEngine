@@ -21,7 +21,7 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
 
-SparseGrid<PolygonsPointIndex>& Comb::getOutsideLocToLine()
+SparsePointGridInclusive<PolygonsPointIndex>& Comb::getOutsideLocToLine()
 {
     Polygons& outside = getBoundaryOutside();
     if (!outside_loc_to_line)

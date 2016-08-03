@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "linearAlg2D.h"
-#include "SparseGrid.h"
+#include "SparsePointGridInclusive.h"
 
 #ifdef DEBUG
 #include "AABB.h"
@@ -538,7 +538,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+SparsePointGridInclusive<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -546,7 +546,7 @@ SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons
         n_points += poly.size();
     }
 
-    SparseGrid<PolygonsPointIndex>* ret = new SparseGrid<PolygonsPointIndex>(square_size, n_points);
+    SparsePointGridInclusive<PolygonsPointIndex>* ret = new SparsePointGridInclusive<PolygonsPointIndex>(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -578,14 +578,14 @@ SparseGrid<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons
 
 /*
  * The current implemetnation can check the same line segment multiple times, 
- * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparseGrid.
+ * since the same line segment can occur in multiple cells if it it longer than the cell size of the SparsePointGridInclusive.
  * 
  * We could skip the duplication by keeping a vector of vectors of bools.
  *
  */
 std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
-    const SparseGrid<PolygonsPointIndex>& loc_to_line,
+    const SparsePointGridInclusive<PolygonsPointIndex>& loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines =
@@ -624,7 +624,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
 
 std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
     const PolygonRef from, const Polygons& destination,
-    const SparseGrid< PolygonsPointIndex >& destination_loc_to_line,
+    const SparsePointGridInclusive< PolygonsPointIndex >& destination_loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;

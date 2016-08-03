@@ -246,7 +246,7 @@ void PolygonUtilsTest::findCloseAssert(const PolygonRef poly, Point close_to, Po
 {
     Polygons polys;
     polys.add(poly);
-    SparseGrid<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
+    SparsePointGridInclusive<PolygonsPointIndex>* loc_to_line = PolygonUtils::createLocToLineGrid(polys, cell_size);
     
     std::optional<ClosestPolygonPoint> cpp;
     if (penalty_function)
