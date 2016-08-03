@@ -64,21 +64,21 @@ void PolygonProximityLinker::findProximatePoints()
         {
             for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
             {
-                ListPolyIt lpi(poly, it);
-                findProximatePoints(lpi, poly2_idx);
+                ListPolyIt a_point_it(poly, it);
+                findProximatePoints(a_point_it, poly2_idx);
             }
         }
     }
 }
 
-void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned int to_list_poly_idx)
+void PolygonProximityLinker::findProximatePoints(ListPolyIt a_point_it, unsigned int to_list_poly_idx)
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
     ListPolyIt from_lpi(to_list_poly, --to_list_poly.end());
     for (ListPolygon::iterator it = to_list_poly.begin(); it != to_list_poly.end(); ++it)
     {
         ListPolyIt to_lpi(to_list_poly, it);
-        findProximatePoints(from_it, to_list_poly, from_lpi, to_lpi);
+        findProximatePoints(a_point_it, to_list_poly, from_lpi, to_lpi);
 
         from_lpi = to_lpi;
     }
