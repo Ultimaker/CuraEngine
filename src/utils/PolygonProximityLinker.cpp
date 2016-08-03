@@ -50,6 +50,26 @@ bool PolygonProximityLinker::isLinked(Point from)
 std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::Point2Link::iterator> PolygonProximityLinker::getLinks(Point from)
 {
     std::pair<Point2Link::iterator, Point2Link::iterator> from_link_pair = point_to_link.equal_range(from);
+#ifdef DEBUG
+    for (Point2Link::iterator it = from_link_pair.first; it != from_link_pair.second; ++it)
+        if (!(it->second.a.p() == from || it->second.b.p() == from))
+        {
+            std::cerr << " ERROR!\n" << it->first << " == " << from << "\n";
+            std::cerr << "should be either " << it->second.a.p() << " or " << it->second.b.p() << "\n";
+            std::cerr << (from_link_pair.first == from_link_pair.second) << " ; " << (from_link_pair.first == point_to_link.end()) << " ; " << (from_link_pair.second == point_to_link.end()) << "\n";
+            std::cerr << std::hash<Point>()(from) << " hashes " << std::hash<Point>()(it->second.a.p()) << " or " << std::hash<Point>()(it->second.b.p()) << "\n";
+//             std::cerr << "ERROR! some point got mapped to a link which doesn't have the point as one of the end points!\n";
+            
+            std::cerr << "\n all links:\n";
+            for (std::pair<const Point, const ProximityPointLink> pair : point_to_link)
+                std::cerr << pair.first << " : " << pair.second.a.p() << "-" <<pair.second.b.p() << "\n";
+            
+            std::cerr << "\n link set \n";
+            for (const ProximityPointLink link : proximity_point_links)
+                std::cerr << link.a.p() << "-" << link.b.p() << " hashes as " << std::hash<ProximityPointLink>()(link) << "\n";
+            assert(false && "some point got mapped to a link which doesn't have the point as one of the end points!");
+        }
+#endif
     return from_link_pair;
 }
 
@@ -355,8 +375,9 @@ void PolygonProximityLinker::addSharpCorners()
 
 void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it)
 {
-    point_to_link.emplace(p, *it); // copy element from proximity_point_links set to Point2Link map
-    // TODO: what to do if the map already contained a link? > three-way proximity
+    const ProximityPointLink& link = *it;
+    point_to_link.emplace(p, link); // copy element from proximity_point_links set to Point2Link map
+    assert(p == link.a.p() || p == link.b.p());
 }
 
 
