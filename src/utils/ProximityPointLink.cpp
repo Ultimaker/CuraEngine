@@ -4,10 +4,11 @@
 namespace cura 
 {
 
-ProximityPointLink::ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist)
+ProximityPointLink::ProximityPointLink(const ListPolyIt a, const ListPolyIt b, int dist, const ProximityPointLinkType type)
 : a(a)
 , b(b)
 , dist(dist)
+, type(type)
 {
 }
 

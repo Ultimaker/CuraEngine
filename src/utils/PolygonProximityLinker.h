@@ -53,7 +53,6 @@ private:
     int proximity_distance; //!< The line width of the walls
 
     ProximityPointLinks proximity_point_links; //!< mapping from each link to its attributes
-    ProximityPointLinks proximity_point_links_endings; //!< mapping from each ending link to its attributes (which has a distance field equal to PolygonProximityLinker::line_width). Note that this is a separate map from PolygonProximityLinker::overlap_point_links, because that magically solved a bug .
 
     Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
 
@@ -76,25 +75,17 @@ private:
      * \param b_to_it iterator to the other end point of the line segment
      */
     void findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it);
+
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
      * 
      * \param from The one point of the link
      * \param to The other point of the link
      * \param dist The distance between the two points
+     * \param type The type of the link being introduced
      * \return Whether the point has been added
      */
-    bool addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist);
-
-    /*!
-     * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links_endings and add the appropriate mappings to PolygonProximityLinker::point_to_link
-     * 
-     * \param from The one point of the link
-     * \param to The other point of the link
-     * \param dist The distance between the two points
-     * \return Whether the point has been added
-     */
-    bool addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist);
+    bool addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist, const ProximityPointLinkType type);
 
     /*!
      * Add links for the ending points of proximity regions, supporting the residual triangles.

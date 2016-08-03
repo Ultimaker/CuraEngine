@@ -22,7 +22,6 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
 
     // reserve enough elements so that iterators don't get invalidated
     proximity_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
-    proximity_point_links_endings.reserve(n_points * 2); // any point can at most introduce two endings
 
     // convert to list polygons for insertion of points
     ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
@@ -108,41 +107,25 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
 
     if (shorterThen(closest - b_from, 10))
     {
-        addProximityLink(a_from_it, b_from_it, dist);
+        addProximityLink(a_from_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
     }
     else if (shorterThen(closest - b_to, 10))
     {
-        addProximityLink(a_from_it, b_to_it, dist);
+        addProximityLink(a_from_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
     }
     else 
     {
         ListPolygon::iterator new_it = to_list_poly.insert(b_to_it.it, closest);
-        addProximityLink(a_from_it, ListPolyIt(to_list_poly, new_it), dist);
+        addProximityLink(a_from_it, ListPolyIt(to_list_poly, new_it), dist, ProximityPointLinkType::NORMAL);
     }
 }
 
 
 
-bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist)
+bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist, const ProximityPointLinkType type)
 {
     std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links.emplace(from, to, dist);
-
-    if (!result.second)
-    { // links was already made!
-        return false;
-    }
-    ProximityPointLinks::iterator it = result.first;
-    addToPoint2LinkMap(*it->a.it, it);
-    addToPoint2LinkMap(*it->b.it, it);
-
-    return result.second;
-}
-
-bool PolygonProximityLinker::addProximityLink_endings(ListPolyIt from, ListPolyIt to, int64_t dist)
-{
-    std::pair<ProximityPointLinks::iterator, bool> result =
-        proximity_point_links_endings.emplace(from, to, dist);
+        proximity_point_links.emplace(from, to, dist, type);
 
     if (!result.second)
     { // links was already made!
@@ -213,7 +196,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         //  :   :   :,/
         //  o<--o<--o
         int64_t dist = 0;
-        addProximityLink(a2_it, a2_it, dist);
+        addProximityLink(a2_it, a2_it, dist, ProximityPointLinkType::ENDING_CORNER);
         return;
     }
 
@@ -229,17 +212,17 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         {
             Point b_p = b1 + normal(b, dist);
             ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-            addProximityLink_endings(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance);
+            addProximityLink(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance, ProximityPointLinkType::ENDING);
         }
         else if (b_length2 < a_length2)
         {
             Point a_p = a1 + normal(a, dist);
             ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-            addProximityLink_endings(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance);
+            addProximityLink(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance, ProximityPointLinkType::ENDING);
         }
         else // equal
         {
-            addProximityLink_endings(a2_it, b2_it, proximity_distance);
+            addProximityLink(a2_it, b2_it, proximity_distance, ProximityPointLinkType::ENDING);
         }
     }
     if (dist > 0)
@@ -248,11 +231,12 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
         Point b_p = b1 + normal(b, dist);
         ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-        addProximityLink_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance);
+        addProximityLink(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance, ProximityPointLinkType::ENDING);
     }
     else if (dist == 0)
     {
-        addProximityLink_endings(link.a, link.b, proximity_distance);
+//         addProximityLink(link.a, link.b, proximity_distance);
+        // won't be inserted any way, because there already is such a link!
     }
 }
 
@@ -326,36 +310,21 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
             Point b = svg.transform(link.b.p());
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
         }
-
-        // output ending links
-        for (const ProximityPointLink& link: copy.proximity_point_links_endings)
-        {
-            svg.writePoint(link.a.p(), false, 3, SVG::Color::GRAY);
-            svg.writePoint(link.b.p(), false, 3, SVG::Color::GRAY);
-            Point a = svg.transform(link.a.p());
-            Point b = svg.transform(link.b.p());
-            svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
-        }
     }
 }
 
 bool PolygonProximityLinker::isLinked(ListPolyIt a, ListPolyIt b)
 {
-    ProximityPointLink test_link(a, b, 0);
-    return proximity_point_links.count(test_link) > 0 || proximity_point_links_endings.count(test_link) > 0;
+    ProximityPointLink test_link(a, b, 0, ProximityPointLinkType::NORMAL);
+    return proximity_point_links.count(test_link) > 0;
 }
 
 const ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
 {
-    ProximityPointLink test_link(a, b, 0);
+    ProximityPointLink test_link(a, b, 0, ProximityPointLinkType::NORMAL);
     ProximityPointLinks::const_iterator found = proximity_point_links.find(test_link);
-    
+
     if (found != proximity_point_links.end())
-    {
-        return &*found;
-    }
-    found = proximity_point_links_endings.find(test_link);
-    if (found != proximity_point_links_endings.end())
     {
         return &*found;
     }
