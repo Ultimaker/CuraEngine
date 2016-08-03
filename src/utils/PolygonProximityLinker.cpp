@@ -189,8 +189,22 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     Point a = a2-a1;
     Point b = b2-b1;
 
-    if (point_to_link.count(a2_it.p()) == 0 || point_to_link.count(b2_it.p()) == 0)
+    if (isLinked(a2_it.p()) && isLinked(b2_it.p())) // overlap area stops at one side
     {
+        return;
+    }
+        if (isLinked(a2_it, link.b) || isLinked(b2_it, link.a))
+        { // other side of ending continues to overlap with the same ending
+            //     link considered
+            //     *
+            // o<--o<--o<--
+            // :   : .`  one more link from the upper side
+            // o-->o  last overlap point on this side
+            //     |
+            //     v
+            //     0
+            return;
+        }
         if (a2_it == b2_it)
         { // overlap ends in pointy end
             //  o-->o-->o
@@ -240,7 +254,6 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         {
             addProximityLink_endings(link.a, link.b, proximity_distance);
         }
-    }
 }
 
 int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
