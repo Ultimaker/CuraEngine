@@ -1,7 +1,7 @@
 /** Copyright (C) 2016 Scott Lenser - Released under terms of the AGPLv3 License */
 
-#ifndef SPARSE_GRID_INVASIVE_H
-#define SPARSE_GRID_INVASIVE_H
+#ifndef UTILS_SPARSE_POINT_GRID_H
+#define UTILS_SPARSE_POINT_GRID_H
 
 #include "intpoint.h"
 
@@ -19,7 +19,7 @@ namespace cura {
  *    which returns the location associated with val.
  */
 template<class ElemT, class Locator>
-class SparseGridInvasive
+class SparsePointGrid
 {
 public:
     using Elem = ElemT;
@@ -31,7 +31,7 @@ public:
      * \param[in] elem_reserve Number of elements to research space for.
      * \param[in] max_load_factor Maximum average load factor before rehashing.
      */
-    SparseGridInvasive(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
+    SparsePointGrid(coord_t cell_size, size_t elem_reserve=0U, float max_load_factor=1.0f);
 
     /*! \brief Inserts elem into the sparse grid.
      *
@@ -121,10 +121,10 @@ private:
 
 
 #define SGI_TEMPLATE template<class ElemT, class Locator>
-#define SGI_THIS SparseGridInvasive<ElemT, Locator>
+#define SGI_THIS SparsePointGrid<ElemT, Locator>
 
 SGI_TEMPLATE
-SGI_THIS::SparseGridInvasive(coord_t cell_size, size_t elem_reserve, float max_load_factor)
+SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, float max_load_factor)
 {
     assert(cell_size > 0U);
 
@@ -251,4 +251,4 @@ coord_t SGI_THIS::getCellSize() const
 
 } // namespace cura
 
-#endif // SPARSE_GRID_INVASIVE_H
+#endif // UTILS_SPARSE_POINT_GRID_H

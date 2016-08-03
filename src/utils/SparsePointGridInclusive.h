@@ -1,14 +1,14 @@
 /** Copyright (C) 2016 Scott Lenser - Released under terms of the AGPLv3 License */
 
-#ifndef SPARSE_GRID_H
-#define SPARSE_GRID_H
+#ifndef UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
+#define UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
 
 #include <cassert>
 #include <unordered_map>
 #include <vector>
 
 #include "intpoint.h"
-#include "SparseGridInvasive.h"
+#include "SparsePointGrid.h"
 
 namespace cura {
 
@@ -48,11 +48,11 @@ struct Locatoror
  * \tparam Val The value type to store.
  */
 template<class Val>
-class SparsePointGridInclusive : public SparseGridInvasive<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
+class SparsePointGridInclusive : public SparsePointGrid<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
                                              SparsePointGridInclusiveImpl::Locatoror<Val> >
 {
 public:
-    using Base = SparseGridInvasive<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
+    using Base = SparsePointGrid<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>,
                                     SparsePointGridInclusiveImpl::Locatoror<Val> >;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
@@ -66,7 +66,7 @@ public:
 
     /*! \brief Inserts an element with specified point and value into the sparse grid.
      *
-     * This is a convenience wrapper over \ref SparseGridInvasive::insert()
+     * This is a convenience wrapper over \ref SparsePointGrid::insert()
      *
      * \param[in] point The location for the element.
      * \param[in] val The value for the element.
@@ -123,4 +123,4 @@ SG_THIS::getNearbyVals(const Point &query_pt, coord_t radius) const
 
 } // namespace cura
 
-#endif // SPARSE_GRID_H
+#endif // UTILS_SPARSE_POINT_GRID_INCLUSIVE_H

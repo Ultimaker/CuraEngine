@@ -206,9 +206,9 @@ SlicerLayer::findPossibleStitches(
     };
 
     // Used to find nearby end points within a fixed maximum radius
-    SparseGridInvasive<StitchGridVal,StitchGridValLocator> grid_ends(cell_size);
+    SparsePointGrid<StitchGridVal,StitchGridValLocator> grid_ends(cell_size);
     // Used to find nearby start points within a fixed maximum radius
-    SparseGridInvasive<StitchGridVal,StitchGridValLocator> grid_starts(cell_size);
+    SparsePointGrid<StitchGridVal,StitchGridValLocator> grid_starts(cell_size);
 
     // populate grids
 
