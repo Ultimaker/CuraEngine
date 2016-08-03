@@ -3,6 +3,7 @@
 #include "layerPart.h"
 #include "settings/settings.h"
 #include "progress/Progress.h"
+#include "multithreadOpenMP.h"
 
 #include "utils/SVG.h" // debug output
 
@@ -44,13 +45,16 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 }
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
-    for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
-    {
-        mesh.layers.push_back(SliceLayer());
+    const auto total_layers = slicer->layers.size();
+    mesh.layers.resize(total_layers);
+#pragma omp parallel for default(none) shared(mesh,slicer) firstprivate(union_layers,union_all_remove_holes) schedule(dynamic)
+    for(unsigned int layer_nr = 0; layer_nr < total_layers; layer_nr++)
+    { MULTITHREAD_FOR_CATCH_EXCEPTION(
         mesh.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
         mesh.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
         createLayerWithParts(mesh.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
-    }
+    )}
+    handleMultithreadAbort();
 }
 
 void layerparts2HTML(SliceDataStorage& storage, const char* filename, bool all_layers, int layer_nr)
