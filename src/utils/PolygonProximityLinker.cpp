@@ -14,7 +14,8 @@ namespace cura
 PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity_distance)
  : polygons(polygons)
  , proximity_distance(proximity_distance) 
-{ 
+ , proximity_distance_2(proximity_distance * proximity_distance) 
+{
     unsigned int n_points = 0;
     for (PolygonRef poly : polygons)
     {
@@ -99,8 +100,8 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
 
     int64_t dist2 = vSize2(closest - a_from);
 
-    if (dist2 > proximity_distance * proximity_distance
-        || (&a_from_it.poly == &to_list_poly 
+    if (dist2 > proximity_distance_2
+        || (a_from_it.poly == &to_list_poly
             && dot(a_from_it.next().p() - a_from, b_to - b_from) > 0 
             && dot(a_from - a_from_it.prev().p(), b_to - b_from) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
     )

@@ -49,6 +49,7 @@ private:
     ListPolygons list_polygons; //!< The PolygonProximityLinker::polygons converted
 
     int proximity_distance; //!< The line width of the walls
+    int proximity_distance_2; //!< The squared line width of the walls
 
     ProximityPointLinks proximity_point_links; //!< mapping from each link to its attributes
 

@@ -53,8 +53,8 @@ template <>
 struct hash<cura::ProximityPointLink>
 {
     size_t operator()(const cura::ProximityPointLink & pp) const
-    {
-        return std::hash<cura::Point>()(*pp.a.it) + std::hash<cura::Point>()(*pp.b.it);
+    { // has to be symmetric wrt a and b!
+        return std::hash<cura::Point>()(pp.a.p()) + std::hash<cura::Point>()(pp.b.p());
     }
 };
 }//namespace std

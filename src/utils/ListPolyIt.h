@@ -23,13 +23,22 @@ typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a ve
 class ListPolyIt
 {
 public:
-    ListPolygon& poly; //!< The polygon
+    ListPolygon* poly; //!< The polygon
     ListPolygon::iterator it; //!< The iterator into ListPolyIt::poly
     ListPolyIt(const ListPolyIt& other)
-    : poly(other.poly), it(other.it) { }
+    : poly(other.poly)
+    , it(other.it)
+    {
+    }
     ListPolyIt(ListPolygon& poly, ListPolygon::iterator it)
-    : poly(poly), it(it) { }
-    Point& p() const { return *it; }
+    : poly(&poly)
+    , it(it)
+    {
+    }
+    Point& p() const
+    {
+        return *it;
+    }
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
      * 
@@ -38,20 +47,24 @@ public:
      */
     bool operator==(const ListPolyIt& other) const
     {
-        return &poly == &other.poly && it == other.it;
+        return poly == other.poly && it == other.it;
     }
-    void operator=(const ListPolyIt& other) { poly = other.poly; it = other.it; }
+    void operator=(const ListPolyIt& other)
+    {
+        poly = other.poly;
+        it = other.it;
+    }
     //! move the iterator forward (and wrap around at the end)
     ListPolyIt& operator++() 
     { 
         ++it; 
-        if (it == poly.end()) { it = poly.begin(); }
+        if (it == poly->end()) { it = poly->begin(); }
         return *this; 
     }
     //! move the iterator backward (and wrap around at the beginning)
     ListPolyIt& operator--() 
     { 
-        if (it == poly.begin()) { it = poly.end(); }
+        if (it == poly->begin()) { it = poly->end(); }
         --it; 
         return *this; 
     }
