@@ -47,6 +47,7 @@ private:
     const AABB aabb; // the boundary box to display
     const Point aabb_size;
     const Point border;
+    const Point canvas_size;
     const double scale;
 
 public:
@@ -54,6 +55,7 @@ public:
     : aabb(aabb)
     , aabb_size(aabb.max - aabb.min)
     , border(200,100)
+    , canvas_size(canvas_size)
     , scale(std::min(double(canvas_size.X - border.X * 2) / aabb_size.X, double(canvas_size.Y - border.Y * 2) / aabb_size.Y))
     {
         out = fopen(filename, "w");
@@ -77,7 +79,7 @@ public:
      */
     Point transform(const Point& p) 
     {
-        return Point((p.X-aabb.min.X)*scale, (p.Y-aabb.min.Y)*scale) + border;
+        return Point((p.X-aabb.min.X)*scale, canvas_size.X - border.X - (p.Y-aabb.min.Y)*scale) + border;
     }
 
     void writeComment(std::string comment)
