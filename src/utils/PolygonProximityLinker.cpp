@@ -91,11 +91,35 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
     const Point& b_from = b_from_it.p();
     const Point& b_to = b_to_it.p();
 
-    if (a_from_it == b_from_it || a_from_it == b_to_it // we currently consider a linesegment directly connected to [from]
-        || a_from_it.prev() == b_to_it || a_from_it.next() == b_from_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
+    if (a_from_it == b_from_it || a_from_it == b_to_it) // we currently consider a linesegment directly connected to [from]
     {
         return;
     }
+    if (a_from_it.prev() == b_to_it) // a is connected to a line segment directly connected to a the line segment [b]
+    {
+        // only check whether we need to link points; don't project
+        int64_t dist2 = vSize2(b_from - a_from);
+        if (dist2 < proximity_distance_2)
+        {
+            int64_t dist = sqrt(dist2);
+            addProximityLink(a_from_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
+        }
+        return;
+    }
+    if (a_from_it.next() == b_from_it) // a is connected to a line segment directly connected to a the line segment [b]
+    {
+        // only check whether we need to link points; don't project
+        int64_t dist2 = vSize2(b_to - a_from);
+        if (dist2 < proximity_distance_2)
+        {
+            int64_t dist = sqrt(dist2);
+            addProximityLink(a_from_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
+        }
+        return;
+    }
+
+
+
     Point closest = LinearAlg2D::getClosestOnLineSegment(a_from, b_from, b_to);
 
     int64_t dist2 = vSize2(closest - a_from);
