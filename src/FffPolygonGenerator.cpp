@@ -24,7 +24,7 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
-
+#include "multithreadOpenMP.h"
 
 namespace cura
 {
@@ -360,15 +360,16 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     // walls
     time_keeper_parallel_test.restart();
-#pragma omp parallel for default(none) shared(total_layers, mesh)
+#pragma omp parallel for default(none) shared(total_layers, mesh) schedule(dynamic)
     for(unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
-    {
+    { MULTITHREAD_FOR_CATCH_EXCEPTION(
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
         //TODO: Fix progress update
         //double progress = inset_skin_progress_estimate.progress(layer_number);
         //Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-    }
+    )}
+    handleMultithreadAbort();
     log("processInsets time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
@@ -406,7 +407,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
 
 #pragma omp for schedule(dynamic)
         for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
-        {
+        { MULTITHREAD_FOR_CATCH_EXCEPTION(
             logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
             if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
@@ -415,8 +416,9 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             //TODO: Fix progress update
             //        double progress = inset_skin_progress_estimate.progress(layer_number);
             //        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
-        }
+        )}
     }
+    handleMultithreadAbort();
     log("processSkinsAndInfill time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 }
 
