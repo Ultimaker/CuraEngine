@@ -262,14 +262,14 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         if (a_length2 < b_length2)
         {
             Point b_p = b1 + normal(b, dist);
-            ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-            addProximityLink(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance, ProximityPointLinkType::ENDING);
+            ListPolyIt new_b = addNewPolyPoint(b_p, link.b, b2_it, b_after_middle);
+            addProximityLink(a2_it, new_b, proximity_distance, ProximityPointLinkType::ENDING);
         }
         else if (b_length2 < a_length2)
         {
             Point a_p = a1 + normal(a, dist);
-            ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-            addProximityLink(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance, ProximityPointLinkType::ENDING);
+            ListPolyIt new_a = addNewPolyPoint(a_p, link.a, a2_it, a_after_middle);
+            addProximityLink(new_a, b2_it, proximity_distance, ProximityPointLinkType::ENDING);
         }
         else // equal
         {
@@ -279,16 +279,32 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     if (dist > 0)
     {
         Point a_p = a1 + normal(a, dist);
-        ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
+        ListPolyIt new_a = addNewPolyPoint(a_p, link.a, a2_it, a_after_middle);
         Point b_p = b1 + normal(b, dist);
-        ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-        addProximityLink(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance, ProximityPointLinkType::ENDING);
+        ListPolyIt new_b = addNewPolyPoint(b_p, link.b, b2_it, b_after_middle);
+        addProximityLink(new_a, new_b, proximity_distance, ProximityPointLinkType::ENDING);
     }
     else if (dist == 0)
     {
 //         addProximityLink(link.a, link.b, proximity_distance);
         // won't be inserted any way, because there already is such a link!
     }
+}
+
+ListPolyIt PolygonProximityLinker::addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before)
+{
+    if (point == line_start.p())
+    {
+        return line_start;
+    }
+    if (point == line_end.p())
+    {
+        return line_end;
+    }
+    if (point == Point(108364,118537))
+        std::cerr << "dfbhcv\n";
+    ListPolygon::iterator new_p = before.poly->insert(before.it, point);
+    return ListPolyIt(*before.poly, new_p);
 }
 
 int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
