@@ -74,9 +74,8 @@ private:
      * \param to_list_poly The polygon in which the line segment occurs
      * \param b_from_it iterator to the one end point of the line segment
      * \param b_to_it iterator to the other end point of the line segment
-     * 
      */
-    void findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolygon::iterator b_from_it, const ListPolygon::iterator b_to_it);
+    void findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it);
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
      * 

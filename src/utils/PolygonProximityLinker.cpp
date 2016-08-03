@@ -69,28 +69,25 @@ void PolygonProximityLinker::findProximatePoints()
 void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned int to_list_poly_idx)
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
-    ListPolygon::iterator last_it = --to_list_poly.end();
+    ListPolyIt from_lpi(to_list_poly, --to_list_poly.end());
     for (ListPolygon::iterator it = to_list_poly.begin(); it != to_list_poly.end(); ++it)
     {
-        findProximatePoints(from_it, to_list_poly, last_it, it);
+        ListPolyIt to_lpi(to_list_poly, it);
+        findProximatePoints(from_it, to_list_poly, from_lpi, to_lpi);
 
-        last_it = it;
+        from_lpi = to_lpi;
     }
 }
 
-void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolygon::iterator b_from_it, const ListPolygon::iterator b_to_it)
+void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it)
 {
-    Point& a_from = a_from_it.p();
+    const Point& a_from = a_from_it.p();
 
-    Point& b_from = *b_from_it;
-    Point& b_to = *b_to_it;
+    const Point& b_from = b_from_it.p();
+    const Point& b_to = b_to_it.p();
 
-    if (&a_from_it.poly == &to_list_poly
-        && (
-            (a_from_it.it == b_from_it || a_from_it.it == b_to_it) // we currently consider a linesegment directly connected to [from]
-            || (a_from_it.prev().it == b_to_it || a_from_it.next().it == b_from_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
-            )
-        )
+    if (a_from_it == b_from_it || a_from_it == b_to_it // we currently consider a linesegment directly connected to [from]
+        || a_from_it.prev() == b_to_it || a_from_it.next() == b_from_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
     {
         return;
     }
@@ -111,15 +108,15 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
 
     if (shorterThen(closest - b_from, 10))
     {
-        addProximityLink(a_from_it, ListPolyIt(to_list_poly, b_from_it), dist);
+        addProximityLink(a_from_it, b_from_it, dist);
     }
     else if (shorterThen(closest - b_to, 10))
     {
-        addProximityLink(a_from_it, ListPolyIt(to_list_poly, b_to_it), dist);
+        addProximityLink(a_from_it, b_to_it, dist);
     }
     else 
     {
-        ListPolygon::iterator new_it = to_list_poly.insert(b_to_it, closest);
+        ListPolygon::iterator new_it = to_list_poly.insert(b_to_it.it, closest);
         addProximityLink(a_from_it, ListPolyIt(to_list_poly, new_it), dist);
     }
 }
