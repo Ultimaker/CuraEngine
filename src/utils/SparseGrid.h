@@ -15,6 +15,23 @@ namespace cura {
 
 namespace SparseGridImpl {
 
+template<class Val>
+struct SparseGridElem
+{
+    SparseGridElem()
+    {
+    }
+
+    SparseGridElem(const Point &point_, const Val &val_) :
+        point(point_),
+        val(val_)
+    {
+    }
+
+    Point point;
+    Val val;
+};
+
 template<class T>
 struct Locatoror
 {

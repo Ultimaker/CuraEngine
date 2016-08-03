@@ -118,26 +118,7 @@ private:
     coord_t m_cell_size;
 };
 
-namespace SparseGridImpl {
 
-template<class Val>
-struct SparseGridElem
-{
-    SparseGridElem()
-    {
-    }
-
-    SparseGridElem(const Point &point_, const Val &val_) :
-        point(point_),
-        val(val_)
-    {
-    }
-
-    Point point;
-    Val val;
-};
-
-} // namespace SparseGridImpl
 
 #define SGI_TEMPLATE template<class ElemT, class Locator>
 #define SGI_THIS SparseGridInvasive<ElemT, Locator>
