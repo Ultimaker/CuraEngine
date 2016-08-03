@@ -8,6 +8,7 @@
 #include "utils/SparsePointGridInclusive.h"
 
 #include "slicer.h"
+#include "multithreadOpenMP.h"
 
 
 namespace cura {
@@ -887,10 +888,15 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
         }
     }
     log("slice of mesh took %.3f seconds\n",slice_timer.restart());
-    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
-    {
-        layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
-    }
+
+    auto& layers_ref = layers;
+#pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
+    for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
+    { MULTITHREAD_FOR_CATCH_EXCEPTION(
+        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+    )}
+    handleMultithreadAbort();
+
     mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
     log("slice make polygons took %.3f seconds\n",slice_timer.restart());
 }
