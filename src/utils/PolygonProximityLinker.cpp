@@ -162,8 +162,30 @@ bool PolygonProximityLinker::addProximityLink(ListPolyIt from, ListPolyIt to, in
         return false;
     }
     ProximityPointLinks::iterator it = result.first;
-    addToPoint2LinkMap(*it->a.it, it);
-    addToPoint2LinkMap(*it->b.it, it);
+    assert(it->a == from);
+    assert(it->b == to);
+    assert(it->a.p() == from.p());
+    assert(it->b.p() == to.p());
+    addToPoint2LinkMap(from.p(), it);
+    addToPoint2LinkMap(to.p(), it);
+
+    return result.second;
+}
+
+bool PolygonProximityLinker::addCornerLink(ListPolyIt corner_point, const ProximityPointLinkType type)
+{
+    constexpr int dist = 0;
+    std::pair<ProximityPointLinks::iterator, bool> result =
+        proximity_point_links.emplace(corner_point, corner_point, dist, type);
+
+    if (!result.second)
+    { // links was already made!
+        return false;
+    }
+    ProximityPointLinks::iterator it = result.first;
+    assert(it->a == corner_point);
+    assert(it->b == corner_point);
+    addToPoint2LinkMap(corner_point.p(), it);
 
     return result.second;
 }
@@ -225,8 +247,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         //  :   :   :  o  wasn't linked yet because it's connected to the upper and lower part
         //  :   :   :,/
         //  o<--o<--o
-        int64_t dist = 0;
-        addProximityLink(a2_it, a2_it, dist, ProximityPointLinkType::ENDING_CORNER);
+        addCornerLink(a2_it, ProximityPointLinkType::ENDING_CORNER);
         return;
     }
 
@@ -307,7 +328,7 @@ void PolygonProximityLinker::addSharpCorners()
 
             if (LinearAlg2D::isAcuteCorner(prev.p(), here.p(), next.p()) > 0)
             {
-                addProximityLink(here, here, 0, ProximityPointLinkType::SHARP_CORNER);
+                addCornerLink(here, ProximityPointLinkType::SHARP_CORNER);
             }
 
             prev = here;

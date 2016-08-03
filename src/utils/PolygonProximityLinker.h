@@ -86,6 +86,18 @@ private:
      */
     bool addProximityLink(ListPolyIt from, ListPolyIt to, int64_t dist, const ProximityPointLinkType type);
 
+
+    /*!
+     * Add a link for the corner at \p corner_point to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
+     * 
+     * This is done by adding a link between the point and itself.
+     * 
+     * \param corner_point The one point of the link
+     * \param type The type of the link being introduced
+     * \return Whether the point has been added
+     */
+    bool addCornerLink(ListPolyIt corner_point, const ProximityPointLinkType type);
+
     /*!
      * Add links for the ending points of proximity regions, supporting the residual triangles.
      */
