@@ -88,6 +88,7 @@ set(engine_SRCS # Except main.cpp.
     src/wallOverlap.cpp
     src/Weaver.cpp
     src/Wireframe2gcode.cpp
+    src/multithreadOpenMP.cpp
 
     src/infill/NoZigZagConnectorProcessor.cpp
     src/infill/ZigzagConnectorProcessorConnectedEndPieces.cpp
