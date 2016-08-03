@@ -28,11 +28,11 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     // convert to list polygons for insertion of points
     ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
 
-    // map each vertex onto nearby line segments
-    findProximatePoints();
-
     // link each corner to itself
     addSharpCorners();
+
+    // map each vertex onto nearby line segments
+    findProximatePoints();
 
     // add links where line segments diverge from below the proximity distance to over the proximity distance
     addProximityEndings();
