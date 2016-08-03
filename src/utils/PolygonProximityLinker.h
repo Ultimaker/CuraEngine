@@ -65,18 +65,18 @@ private:
      * \param to_list_poly_idx The index into PolygonProximityLinker::list_polygons for the polygon to check
      */
     void findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx);
-    /*!
-     * Find the basic proximity links (for trapezoids) between a given point and a polygon up from a particular index and record them into PolygonProximityLinker::overlap_point_links
-     * 
-     * This function is used for finding overlaps within a single polygon. It then uses a \p start different from the first point in the polygon.
-     * 
-     * \param from The point from which to check for proximity
-     * \param to_list_poly_idx The index into PolygonProximityLinker::list_polygons for the polygon to check
-     * \param start Where to start looking into the polygon with index \p to_list_poly_idx
-     */
-    void findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx, const ListPolygon::iterator start);
 
-    void findProximatePoints(const ListPolyIt from_it, ListPolygon& to_list_poly, const ListPolygon::iterator last_it, const ListPolygon::iterator it);
+    /*!
+     * Find the basic proximity link (for a trapezoid) between a given point and a line segment
+     * and record them into PolygonProximityLinker::overlap_point_links
+     * 
+     * \param a_from_it Iterator to the point from which to check for proximity
+     * \param to_list_poly The polygon in which the line segment occurs
+     * \param b_from_it iterator to the one end point of the line segment
+     * \param b_to_it iterator to the other end point of the line segment
+     * 
+     */
+    void findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolygon::iterator b_from_it, const ListPolygon::iterator b_to_it);
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
      * 

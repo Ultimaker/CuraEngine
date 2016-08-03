@@ -52,45 +52,25 @@ std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::
 void PolygonProximityLinker::findProximatePoints()
 {
     // link each vertex of each polygon to each proximate line segment of any polygon
-    // in order to avoid checking polygons twice, only compare each polygon to each previous polygon
-    // and when comparing one polygon with itseld compare each vertex to each previously processed line segment
     for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
     {
         ListPolygon& poly = list_polygons[poly_idx];
-        for (unsigned int poly2_idx = 0; poly2_idx <= poly_idx; poly2_idx++)
+        for (unsigned int poly2_idx = 0; poly2_idx < list_polygons.size(); poly2_idx++)
         {
             for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
             {
                 ListPolyIt lpi(poly, it);
-                if (poly_idx == poly2_idx)
-                {
-//                     ListPolygon::iterator it2(it);
-//                     ++it2;
-//                     if (it2 != poly.end())
-                    {
-                        findProximatePoints(lpi, poly2_idx, it);
-                    }
-                }
-                else 
-                {
-                    findProximatePoints(lpi, poly2_idx);
-                }
+                findProximatePoints(lpi, poly2_idx);
             }
         }
     }
 }
 
-void PolygonProximityLinker::findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx)
-{
-    findProximatePoints(from, to_list_poly_idx, list_polygons[to_list_poly_idx].begin());
-}
-
-void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned int to_list_poly_idx, const ListPolygon::iterator start)
+void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned int to_list_poly_idx)
 {
     ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
-    ListPolygon::iterator last_it = (start == to_list_poly.begin())? to_list_poly.end() : start;
-    --last_it;
-    for (ListPolygon::iterator it = start; it != to_list_poly.end(); ++it)
+    ListPolygon::iterator last_it = --to_list_poly.end();
+    for (ListPolygon::iterator it = to_list_poly.begin(); it != to_list_poly.end(); ++it)
     {
         findProximatePoints(from_it, to_list_poly, last_it, it);
 
