@@ -191,6 +191,18 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
 
     if (point_to_link.count(a2_it.p()) == 0 || point_to_link.count(b2_it.p()) == 0)
     {
+        if (a2_it == b2_it)
+        { // overlap ends in pointy end
+            //  o-->o-->o
+            //  :   :   : \,
+            //  :   :   :  o  wasn't linked yet because it's connected to the upper and lower part
+            //  :   :   :,/
+            //  o<--o<--o
+            int64_t dist = 0;
+            addProximityLink(a2_it, a2_it, dist);
+            return;
+        }
+
         int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link.dist);
         if (dist < 0) { return; }
         int64_t a_length2 = vSize2(a);
@@ -295,6 +307,8 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
         // output normal links
         for (const ProximityPointLink& link : copy.proximity_point_links)
         {
+            svg.writePoint(link.a.p(), false, 3, SVG::Color::GRAY);
+            svg.writePoint(link.b.p(), false, 3, SVG::Color::GRAY);
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
@@ -303,6 +317,8 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
         // output ending links
         for (const ProximityPointLink& link: copy.proximity_point_links_endings)
         {
+            svg.writePoint(link.a.p(), false, 3, SVG::Color::GRAY);
+            svg.writePoint(link.b.p(), false, 3, SVG::Color::GRAY);
             Point a = svg.transform(link.a.p());
             Point b = svg.transform(link.b.p());
             svg.printf("<line x1=\"%lli\" y1=\"%lli\" x2=\"%lli\" y2=\"%lli\" style=\"stroke:rgb(%d,%d,0);stroke-width:1\" />", a.X, a.Y, b.X, b.Y, link.dist == proximity_distance? 0 : 255, link.dist==proximity_distance? 255 : 0);
