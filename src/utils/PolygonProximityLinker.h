@@ -76,6 +76,7 @@ private:
      */
     void findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx, const ListPolygon::iterator start);
 
+    void findProximatePoints(const ListPolyIt from_it, ListPolygon& to_list_poly, const ListPolygon::iterator last_it, const ListPolygon::iterator it);
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
      * 
