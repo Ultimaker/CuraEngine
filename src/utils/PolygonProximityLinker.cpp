@@ -98,30 +98,30 @@ void PolygonProximityLinker::findProximatePoints(ListPolyIt from_it, unsigned in
     }
 }
 
-void PolygonProximityLinker::findProximatePoints(const ListPolyIt from_it, ListPolygon& to_list_poly, const ListPolygon::iterator last_it, const ListPolygon::iterator it)
+void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolygon::iterator b_from_it, const ListPolygon::iterator b_to_it)
 {
-    Point& from = from_it.p();
+    Point& a_from = a_from_it.p();
 
-    Point& last_point = *last_it;
-    Point& point = *it;
+    Point& b_from = *b_from_it;
+    Point& b_to = *b_to_it;
 
-    if (&from_it.poly == &to_list_poly 
+    if (&a_from_it.poly == &to_list_poly
         && (
-            (from_it.it == last_it || from_it.it == it) // we currently consider a linesegment directly connected to [from]
-            || (from_it.prev().it == it || from_it.next().it == last_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
-            ) 
+            (a_from_it.it == b_from_it || a_from_it.it == b_to_it) // we currently consider a linesegment directly connected to [from]
+            || (a_from_it.prev().it == b_to_it || a_from_it.next().it == b_from_it) // line segment from [last_point] to [point] is connected to line segment of which [from] is the other end
+            )
         )
-    { 
+    {
         return;
     }
-    Point closest = LinearAlg2D::getClosestOnLineSegment(from, last_point, point);
+    Point closest = LinearAlg2D::getClosestOnLineSegment(a_from, b_from, b_to);
 
-    int64_t dist2 = vSize2(closest - from);
+    int64_t dist2 = vSize2(closest - a_from);
 
     if (dist2 > proximity_distance * proximity_distance
-        || (&from_it.poly == &to_list_poly 
-            && dot(from_it.next().p() - from, point - last_point) > 0 
-            && dot(from - from_it.prev().p(), point - last_point) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
+        || (&a_from_it.poly == &to_list_poly 
+            && dot(a_from_it.next().p() - a_from, b_to - b_from) > 0 
+            && dot(a_from - a_from_it.prev().p(), b_to - b_from) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
     )
     { // line segment too far away to be proximate
         return;
@@ -129,18 +129,18 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt from_it, ListP
 
     int64_t dist = sqrt(dist2);
 
-    if (shorterThen(closest - last_point, 10))
+    if (shorterThen(closest - b_from, 10))
     {
-        addProximityLink(from_it, ListPolyIt(to_list_poly, last_it), dist);
+        addProximityLink(a_from_it, ListPolyIt(to_list_poly, b_from_it), dist);
     }
-    else if (shorterThen(closest - point, 10))
+    else if (shorterThen(closest - b_to, 10))
     {
-        addProximityLink(from_it, ListPolyIt(to_list_poly, it), dist);
+        addProximityLink(a_from_it, ListPolyIt(to_list_poly, b_to_it), dist);
     }
     else 
     {
-        ListPolygon::iterator new_it = to_list_poly.insert(it, closest);
-        addProximityLink(from_it, ListPolyIt(to_list_poly, new_it), dist);
+        ListPolygon::iterator new_it = to_list_poly.insert(b_to_it, closest);
+        addProximityLink(a_from_it, ListPolyIt(to_list_poly, new_it), dist);
     }
 }
 
