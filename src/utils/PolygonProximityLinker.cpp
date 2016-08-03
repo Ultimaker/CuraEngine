@@ -193,67 +193,67 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     {
         return;
     }
-        if (isLinked(a2_it, link.b) || isLinked(b2_it, link.a))
-        { // other side of ending continues to overlap with the same ending
-            //     link considered
-            //     *
-            // o<--o<--o<--
-            // :   : .`  one more link from the upper side
-            // o-->o  last overlap point on this side
-            //     |
-            //     v
-            //     0
-            return;
-        }
-        if (a2_it == b2_it)
-        { // overlap ends in pointy end
-            //  o-->o-->o
-            //  :   :   : \,
-            //  :   :   :  o  wasn't linked yet because it's connected to the upper and lower part
-            //  :   :   :,/
-            //  o<--o<--o
-            int64_t dist = 0;
-            addProximityLink(a2_it, a2_it, dist);
-            return;
-        }
+    if (isLinked(a2_it, link.b) || isLinked(b2_it, link.a))
+    { // other side of ending continues to overlap with the same ending
+        //     link considered
+        //     *
+        // o<--o<--o<--
+        // :   : .`  one more link from the upper side
+        // o-->o  last overlap point on this side
+        //     |
+        //     v
+        //     0
+        return;
+    }
+    if (a2_it == b2_it)
+    { // overlap ends in pointy end
+        //  o-->o-->o
+        //  :   :   : \,
+        //  :   :   :  o  wasn't linked yet because it's connected to the upper and lower part
+        //  :   :   :,/
+        //  o<--o<--o
+        int64_t dist = 0;
+        addProximityLink(a2_it, a2_it, dist);
+        return;
+    }
 
-        int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link.dist);
-        if (dist < 0) { return; }
-        int64_t a_length2 = vSize2(a);
-        int64_t b_length2 = vSize2(b);
-        if (dist*dist > std::min(a_length2, b_length2) )
-        { // TODO remove this /\ case if error below is never shown
-//             DEBUG_PRINTLN("Next point should have been linked already!!");
-            dist = std::sqrt(std::min(a_length2, b_length2));
-            if (a_length2 < b_length2)
-            {
-                Point b_p = b1 + normal(b, dist);
-                ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-                addProximityLink_endings(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance);
-            }
-            else if (b_length2 < a_length2)
-            {
-                Point a_p = a1 + normal(a, dist);
-                ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-                addProximityLink_endings(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance);
-            }
-            else // equal
-            {
-                addProximityLink_endings(a2_it, b2_it, proximity_distance);
-            }
+    int64_t dist = proximityEndingDistance(a1, a2, b1, b2, link.dist);
+    if (dist < 0) { return; }
+    int64_t a_length2 = vSize2(a);
+    int64_t b_length2 = vSize2(b);
+    if (dist*dist > std::min(a_length2, b_length2) )
+    { // TODO remove this /\ case if error below is never shown
+//         DEBUG_PRINTLN("Next point should have been linked already!!");
+        dist = std::sqrt(std::min(a_length2, b_length2));
+        if (a_length2 < b_length2)
+        {
+            Point b_p = b1 + normal(b, dist);
+            ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
+            addProximityLink_endings(a2_it, ListPolyIt(link.b.poly, new_b), proximity_distance);
         }
-        if (dist > 0)
+        else if (b_length2 < a_length2)
         {
             Point a_p = a1 + normal(a, dist);
             ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
-            Point b_p = b1 + normal(b, dist);
-            ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
-            addProximityLink_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance);
+            addProximityLink_endings(ListPolyIt(link.a.poly, new_a), b2_it, proximity_distance);
         }
-        else if (dist == 0)
+        else // equal
         {
-            addProximityLink_endings(link.a, link.b, proximity_distance);
+            addProximityLink_endings(a2_it, b2_it, proximity_distance);
         }
+    }
+    if (dist > 0)
+    {
+        Point a_p = a1 + normal(a, dist);
+        ListPolygon::iterator new_a = link.a.poly.insert(a_after_middle.it, a_p);
+        Point b_p = b1 + normal(b, dist);
+        ListPolygon::iterator new_b = link.b.poly.insert(b_after_middle.it, b_p);
+        addProximityLink_endings(ListPolyIt(link.a.poly, new_a), ListPolyIt(link.b.poly, new_b), proximity_distance);
+    }
+    else if (dist == 0)
+    {
+        addProximityLink_endings(link.a, link.b, proximity_distance);
+    }
 }
 
 int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
