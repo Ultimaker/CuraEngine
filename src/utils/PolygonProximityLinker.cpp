@@ -3,6 +3,7 @@
 #include <sstream> // ostream
 
 #include "PolygonProximityLinker.h"
+#include "linearAlg2D.h"
 
 #include "AABB.h" // for debug output svg html
 #include "SVG.h"
@@ -20,19 +21,23 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
         n_points += poly.size();
     }
 
-    // reserve enough elements so that iterators don't get invalidated
-    proximity_point_links.reserve(n_points * 2); // generally enough, unless there are a lot of 3-way intersections in the model
+    // heuristic reserve a good amount of elements
+    proximity_point_links.reserve(n_points); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
 
     // convert to list polygons for insertion of points
     ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
 
+    // map each vertex onto nearby line segments
     findProximatePoints();
+
+    // link each corner to itself
+    addSharpCorners();
+
+    // add links where line segments diverge from below the proximity distance to over the proximity distance
     addProximityEndings();
-    // TODO: add sharp corners
 
     // convert list polygons back
     ListPolyIt::convertListPolygonsToPolygons(list_polygons, polygons);
-//     wallOverlaps2HTML("output/output.html");
 }
 
 bool PolygonProximityLinker::isLinked(Point from)
@@ -267,7 +272,23 @@ int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Po
 
 void PolygonProximityLinker::addSharpCorners()
 {
-    
+    for (ListPolygon& poly : list_polygons)
+    {
+        ListPolyIt here(poly, --poly.end());
+        ListPolyIt prev = here.prev();
+        for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
+        {
+            ListPolyIt next(poly, it);
+
+            if (LinearAlg2D::isAcuteCorner(prev.p(), here.p(), next.p()) > 0)
+            {
+                addProximityLink(here, here, 0, ProximityPointLinkType::SHARP_CORNER);
+            }
+
+            prev = here;
+            here = next;
+        }
+    }
 }
 
 void PolygonProximityLinker::addToPoint2LinkMap(Point p, ProximityPointLinks::iterator it)

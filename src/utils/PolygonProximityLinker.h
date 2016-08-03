@@ -12,8 +12,6 @@
 
 #include "intpoint.h"
 #include "polygon.h"
-#include "linearAlg2D.h"
-#include "optional.h"
 
 #include "ListPolyIt.h"
 #include "ProximityPointLink.h"

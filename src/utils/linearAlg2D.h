@@ -209,6 +209,27 @@ public:
      * \return the angle in radians between 0 and 2 * pi of the corner in \p b
      */
     static float getAngleLeft(const Point& a, const Point& b, const Point& c);
+
+    /*!
+     * Check whether a corner is acute or obtuse.
+     * 
+     * This function is irrespective of the order between \p a and \p c;
+     * the lowest angle among bot hsides of the corner is always chosen.
+     * 
+     * isAcuteCorner(a, b, c) === isAcuteCorner(c, b, a)
+     * 
+     * \param a start of first line segment
+     * \param b end of first segment and start of second line segment
+     * \param c end of second line segment
+     * \return positive if acute, negative if obtuse, zero if 90 degree corner
+     */
+    static inline int isAcuteCorner(const Point a, const Point b, const Point c)
+    {
+        Point ba = a - b;
+        Point bc = c - b;
+        return dot(ba, bc);
+    }
+
 };
 
 
