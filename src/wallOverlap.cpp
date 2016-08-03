@@ -34,9 +34,9 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 
     int64_t overlap_area = 0;
     // note that we don't need to loop over all from_links, because they are handled in the previous getFlow(.) call (or in the very last)
-    for (Point2LinkIt it = to_links.first; it != to_links.second; ++it)
+    for (Point2LinkIt to_link_it = to_links.first; to_link_it != to_links.second; ++to_link_it)
     {
-        const ProximityPointLink& to_link = it->second;
+        const ProximityPointLink& to_link = to_link_it->second;
         ListPolyIt to_it = to_link.a;
         ListPolyIt to_other_it = to_link.b;
         if (to_link.a.p() != to)
