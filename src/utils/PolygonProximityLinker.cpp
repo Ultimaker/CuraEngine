@@ -276,7 +276,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
             addProximityLink(a2_it, b2_it, proximity_distance, ProximityPointLinkType::ENDING);
         }
     }
-    if (dist > 0)
+    else if (dist > 0)
     {
         Point a_p = a1 + normal(a, dist);
         ListPolyIt new_a = addNewPolyPoint(a_p, link.a, a2_it, a_after_middle);
