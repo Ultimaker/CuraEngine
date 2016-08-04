@@ -15,9 +15,16 @@ void ListPolyIt::convertPolygonsToLists(Polygons& polys, ListPolygons& result)
     for (PolygonRef poly : polys)
     {
         result.emplace_back();
+#ifdef DEBUG
+        Point last = poly.back();
+#endif
         for (Point& p : poly) 
         {
             result.back().push_back(p);
+#ifdef DEBUG
+            assert(p != last);
+            last = p;
+#endif
         }
     }
 }
