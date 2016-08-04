@@ -19,8 +19,8 @@ class MergeInfillLines
     
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
-    bool adjust_speed_for_pressure; //!< Should the speed be varied with extrusion width
-    double speed_pressure_maximum; //!< Maximum speed when adjusting speed for pressure
+    bool speed_equalize_flow_enabled; //!< Should the speed be varied with extrusion width
+    double speed_equalize_flow_max; //!< Maximum speed when adjusting speed for flow
 
     /*!
      * Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
@@ -64,8 +64,8 @@ public:
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
-    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size, bool adjust_speed_for_pressure, double speed_pressure_maximum) 
-    : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size), adjust_speed_for_pressure(adjust_speed_for_pressure), speed_pressure_maximum(speed_pressure_maximum) { }
+    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size, bool speed_equalize_flow_enabled, double speed_equalize_flow_max) 
+    : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size), speed_equalize_flow_enabled(speed_equalize_flow_enabled), speed_equalize_flow_max(speed_equalize_flow_max) { }
     
     /*!
      * Check for lots of small moves and combine them into one large line.

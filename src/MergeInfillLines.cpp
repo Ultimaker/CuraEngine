@@ -13,10 +13,10 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
     double new_line_width_mm = INT2MM(new_line_width);
     double extrusion_mod = new_line_width_mm / old_line_width;
     double new_speed = speed;
-    if (adjust_speed_for_pressure)
+    if (speed_equalize_flow_enabled)
     {
         double speed_mod = old_line_width / new_line_width_mm;
-        new_speed = std::min(speed * speed_mod, speed_pressure_maximum);
+        new_speed = std::min(speed * speed_mod, speed_equalize_flow_max);
     }
     sendLineTo(last_path.config->type, to, last_path.getLineWidth());
     gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
