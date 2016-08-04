@@ -52,7 +52,6 @@ class WallOverlapComputation
     int64_t line_width;
 
     std::unordered_set<SymmetricPair<ProximityPointLink>> passed_links;
-    Polygons& polys;
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
