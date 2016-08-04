@@ -621,9 +621,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     int extruder = gcode.getExtruderNr();
     bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
     bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
-    bool speed_for_pressure_enabled = storage.getSettingBoolean("speed_for_pressure_enabled");
-    double speed_pressure_maximum = storage.getSettingInMillimetersPerSecond("speed_pressure_maximum");
-    int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -657,6 +654,11 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
+
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
+        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
+        int64_t nozzle_size = gcode.getNozzleSize(extruder);
 
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
@@ -695,7 +697,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
 
-            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size, speed_for_pressure_enabled, speed_pressure_maximum).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
@@ -786,7 +788,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
