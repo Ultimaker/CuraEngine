@@ -36,17 +36,39 @@ struct GivenDistPoint
 
 struct PolygonsPointIndex
 {
-    unsigned int poly_idx;
-    unsigned int point_idx;
+    const Polygons* polygons; //!< The polygons into which this index is indexing
+    unsigned int poly_idx; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
+    unsigned int point_idx; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
     PolygonsPointIndex()
-    : poly_idx(0)
+    : polygons(nullptr)
+    , poly_idx(0)
     , point_idx(0)
     {
     }
-    PolygonsPointIndex(unsigned int poly_idx, unsigned int point_idx)
-    : poly_idx(poly_idx)
+    PolygonsPointIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
+    : polygons(polygons)
+    , poly_idx(poly_idx)
     , point_idx(point_idx)
     {
+    }
+};
+
+/*!
+ * Locator to extract a line segment out of a \ref PolygonsPointIndex
+ */
+struct PolygonsPointIndexSegmentLocator
+{
+    std::pair<Point, Point> operator()(const PolygonsPointIndex& val) const
+    {
+        PolygonRef poly = (*val.polygons)[val.poly_idx];
+        Point start = poly[val.point_idx];
+        unsigned int next_point_idx = val.point_idx + 1;
+        if (next_point_idx >= poly.size())
+        {
+            next_point_idx = 0;
+        }
+        Point end = poly[next_point_idx];
+        return std::pair<Point, Point>(start, end);
     }
 };
 
@@ -235,7 +257,7 @@ public:
      * \param square_size The cell size used to bundle line segments (also used to chop up lines so that multiple cells contain the same long line)
      * \return A bucket grid mapping spatial locations to poly-point indices into \p polygons
      */
-    static SparsePointGridInclusive<PolygonsPointIndex>* createLocToLineGrid(const Polygons& polygons, int square_size);
+    static SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* createLocToLineGrid(const Polygons& polygons, int square_size);
 
     /*!
      * Find the line segment closest to a given point \p from within a cell-block of a size defined in the SparsePointGridInclusive \p loc_to_line
@@ -249,8 +271,8 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
-    static std::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const SparsePointGridInclusive<PolygonsPointIndex>& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
-    
+    static std::optional<ClosestPolygonPoint> findClose(Point from, const Polygons& polygons, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
+
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
      * 
@@ -263,7 +285,7 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return A collection of near crossing from the \p from polygon to the \p destination polygon. Each element in the sollection is a pair with as first a cpp in the \p from polygon and as second a cpp in the \p destination polygon.
      */
-    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const SparsePointGridInclusive<PolygonsPointIndex>& destination_loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& destination_loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.

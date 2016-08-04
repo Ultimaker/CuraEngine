@@ -21,11 +21,11 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
 
-SparsePointGridInclusive<PolygonsPointIndex>& Comb::getOutsideLocToLine()
+SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine()
 {
-    Polygons& outside = getBoundaryOutside();
     if (!outside_loc_to_line)
     {
+        Polygons& outside = getBoundaryOutside();
         outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_inside_to_outside * 3 / 2);
     }
     return *outside_loc_to_line;

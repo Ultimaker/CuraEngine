@@ -538,7 +538,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
-SparsePointGridInclusive<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -546,33 +546,17 @@ SparsePointGridInclusive<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(
         n_points += poly.size();
     }
 
-    SparsePointGridInclusive<PolygonsPointIndex>* ret = new SparsePointGridInclusive<PolygonsPointIndex>(square_size, n_points);
+    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* ret = new SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         const PolygonRef poly = polygons[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            Point& p1 = poly[point_idx];
-            Point& p2 = poly[(point_idx + 1) % poly.size()];
-            
-            ret->insert(p1, PolygonsPointIndex(poly_idx, point_idx));
-            Point vec = p2 - p1;
-            int64_t vec_length = vSize(vec);
-            for (int64_t dist_along_line = square_size; dist_along_line < vec_length; dist_along_line += square_size)
-            {
-                Point point_along_line = p1 + vec * dist_along_line / vec_length;
-                
-                ret->insert(point_along_line, PolygonsPointIndex(poly_idx, point_idx));
-            }
+            ret->insert(PolygonsPointIndex(&polygons, poly_idx, point_idx));
         }
-        
+
     }
-    
-    
-    
-    
-    
     return ret;
 }
 
@@ -585,16 +569,16 @@ SparsePointGridInclusive<PolygonsPointIndex>* PolygonUtils::createLocToLineGrid(
  */
 std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
-    const SparsePointGridInclusive<PolygonsPointIndex>& loc_to_line,
+    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines =
-        loc_to_line.getNearbyVals(from, loc_to_line.getCellSize());
+        loc_to_line.getNearby(from, loc_to_line.getCellSize());
 
     Point best(0, 0);
 
     int64_t closest_dist2_score = std::numeric_limits<int64_t>::max();
-    PolygonsPointIndex best_point_poly_idx(NO_INDEX, NO_INDEX);
+    PolygonsPointIndex best_point_poly_idx(nullptr, NO_INDEX, NO_INDEX);
     for (PolygonsPointIndex& point_poly_index : near_lines)
     {
         const PolygonRef poly = polygons[point_poly_index.poly_idx];
@@ -624,7 +608,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
 
 std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
     const PolygonRef from, const Polygons& destination,
-    const SparsePointGridInclusive< PolygonsPointIndex >& destination_loc_to_line,
+    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& destination_loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
