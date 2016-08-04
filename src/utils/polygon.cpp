@@ -51,6 +51,16 @@ bool PolygonRef::_inside(Point p, bool border_result)
     return (crossings % 2) == 1;
 }
 
+unsigned int Polygons::pointCount() const
+{
+    unsigned int count = 0;
+    for (const ClipperLib::Path& path : paths)
+    {
+        count += path.size();
+    }
+    return count;
+}
+
 bool Polygons::inside(Point p, bool border_result) const
 {
     const Polygons& thiss = *this;

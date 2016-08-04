@@ -341,6 +341,8 @@ public:
         return paths.size();
     }
 
+    unsigned int pointCount() const; //!< Return the amount of points in all polygons
+
     PolygonRef operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size());

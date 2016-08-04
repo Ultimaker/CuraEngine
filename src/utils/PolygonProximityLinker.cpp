@@ -16,14 +16,8 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
  , proximity_distance(proximity_distance) 
  , proximity_distance_2(proximity_distance * proximity_distance) 
 {
-    unsigned int n_points = 0;
-    for (PolygonRef poly : polygons)
-    {
-        n_points += poly.size();
-    }
-
     // heuristic reserve a good amount of elements
-    proximity_point_links.reserve(n_points); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
+    proximity_point_links.reserve(polygons.pointCount()); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
 
     // convert to list polygons for insertion of points
     ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
