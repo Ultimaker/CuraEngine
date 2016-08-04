@@ -623,7 +623,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
-void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool extruder_switch)
+void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
 
@@ -746,7 +746,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
 
     bool force = true;
     bool extruder_switch = true;
-    writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+    writeRetraction(&retraction_config_old_extruder, force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 

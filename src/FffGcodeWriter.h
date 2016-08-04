@@ -258,7 +258,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
+    void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -269,7 +269,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
+    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer.
@@ -280,7 +280,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
+    void addMeshLayerToGCode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
@@ -293,7 +293,7 @@ private:
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle); 
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Add normal sparse infill for a given part in a layer.
@@ -305,7 +305,7 @@ private:
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -315,7 +315,7 @@ private:
      * \param layer_nr The current layer number.
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
      */
-    void processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type);
+    void processInsets(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type);
     
     
     /*!
@@ -327,7 +327,7 @@ private:
      * \param skin_overlap The distance by which the skin overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
+    void processSkin(cura::GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
     
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.

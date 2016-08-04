@@ -5,7 +5,7 @@
 
 namespace cura {
 
-int bridgeAngle(Polygons outline, SliceLayer* prevLayer)
+int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
 {
     AABB boundaryBox(outline);
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.

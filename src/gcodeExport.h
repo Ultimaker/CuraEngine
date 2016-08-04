@@ -259,7 +259,7 @@ private:
      */
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
-    void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
+    void writeRetraction(const RetractionConfig* config, bool force = false, bool extruder_switch = false);
 
     /*!
      * Start a z hop with the given \p hop_height

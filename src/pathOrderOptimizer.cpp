@@ -16,7 +16,7 @@ void PathOrderOptimizer::optimize()
     bool picked[polygons.size()];
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
-    for (PolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
+    for (ConstPolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
     {
         int best = -1;
         float bestDist = std::numeric_limits<float>::infinity();
@@ -102,15 +102,15 @@ int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
 
 int PathOrderOptimizer::getClosestPointInPolygon(Point prev_point, int poly_idx)
 {
-    PolygonRef poly = polygons[poly_idx];
+    ConstPolygonRef poly = polygons[poly_idx];
 
     int best_point_idx = -1;
     float best_point_score = std::numeric_limits<float>::infinity();
     Point p0 = poly.back();
     for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
     {
-        Point& p1 = poly[point_idx];
-        Point& p2 = poly[(point_idx + 1) % poly.size()];
+        const Point& p1 = poly[point_idx];
+        const Point& p2 = poly[(point_idx + 1) % poly.size()];
         int64_t dist = vSize2(p1 - prev_point);
         float is_on_inside_corner_score = -LinearAlg2D::getAngleLeft(p0, p1, p2) / M_PI * 5000 * 5000; // prefer inside corners
         // this score is in the order of 5 mm
@@ -132,7 +132,7 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
 
 int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
 {
-    PolygonRef poly = polygons[poly_idx];
+    ConstPolygonRef poly = polygons[poly_idx];
     int best_point_idx = -1;
     float best_y = std::numeric_limits<float>::min();
     for(unsigned int point_idx=0 ; point_idx<poly.size() ; point_idx++)
@@ -161,7 +161,7 @@ void LineOrderOptimizer::optimize()
     {
         int best_point_idx = -1;
         float best_point_dist = std::numeric_limits<float>::infinity();
-        PolygonRef poly = polygons[poly_idx];
+        ConstPolygonRef poly = polygons[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++) /// get closest point from polygon
         {
             float dist = vSize2f(poly[point_idx] - startPoint);
@@ -217,13 +217,13 @@ void LineOrderOptimizer::optimize()
 
         if (best_line_idx > -1) /// should always be true; we should have been able to identify the best next polygon
         {
-            PolygonRef best_line = polygons[best_line_idx];
+            ConstPolygonRef best_line = polygons[best_line_idx];
             assert(best_line.size() == 2);
 
             int line_start_point_idx = polyStart[best_line_idx];
             int line_end_point_idx = line_start_point_idx * -1 + 1; /// 1 -> 0 , 0 -> 1
-            Point& line_start = best_line[line_start_point_idx];
-            Point& line_end = best_line[line_end_point_idx];
+            const Point& line_start = best_line[line_start_point_idx];
+            const Point& line_end = best_line[line_end_point_idx];
             prev_point = line_end;
             incoming_perpundicular_normal = turn90CCW(normal(line_end - line_start, 1000));
 
@@ -239,8 +239,8 @@ void LineOrderOptimizer::optimize()
 
 inline void LineOrderOptimizer::updateBestLine(unsigned int poly_idx, int& best, float& best_score, Point prev_point, Point incoming_perpundicular_normal)
 {
-    Point& p0 = polygons[poly_idx][0];
-    Point& p1 = polygons[poly_idx][1];
+    const Point& p0 = polygons[poly_idx][0];
+    const Point& p1 = polygons[poly_idx][1];
     float dot_score = getAngleScore(incoming_perpundicular_normal, p0, p1);
     { /// check distance to first point on line (0)
         float score = vSize2f(p0 - prev_point) + dot_score; // prefer 90 degree corners

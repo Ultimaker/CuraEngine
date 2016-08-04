@@ -46,7 +46,7 @@ private:
         Point in_or_mid; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
         Point out; //!< The point on the outside boundary
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
-        PolygonRef dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        ConstPolygonRef dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
 
         /*!
          * Simple constructor
@@ -93,7 +93,7 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, const PolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, ConstPolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
     };
 
 

@@ -220,7 +220,7 @@ public:
 class GCodePath
 {
 public:
-    GCodePathConfig* config; //!< The configuration settings of the path.
+    const GCodePathConfig* config; //!< The configuration settings of the path.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
@@ -485,7 +485,7 @@ private:
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
-    GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+    GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
     
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
@@ -597,7 +597,7 @@ public:
      * \param flow A modifier of the extrusion width which would follow from the \p config
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      */
-    void addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+    void addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -607,7 +607,7 @@ public:
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      */
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, bool spiralize = false);
+    void addPolygon(ConstPolygonRef polygon, int startIdx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, bool spiralize = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -624,7 +624,7 @@ public:
      * \param z_seam_type The seam type / poly start optimizer
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      */
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -633,7 +633,7 @@ public:
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      */
-    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
+    void addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
