@@ -27,8 +27,7 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     addSharpCorners();
 
     // map each vertex onto nearby line segments
-    findProximatePoints_fast();
-//     findProximatePoints();
+    findProximatePoints();
 
     // add links where line segments diverge from below the proximity distance to over the proximity distance
     addProximityEndings();
@@ -83,7 +82,7 @@ void PolygonProximityLinker::createLineGrid()
     }
 }
 
-void PolygonProximityLinker::findProximatePoints_fast()
+void PolygonProximityLinker::findProximatePoints()
 {
     createLineGrid();
 
@@ -155,36 +154,6 @@ void PolygonProximityLinker::findProximatePoints_fast()
                 addProximityLink(new_point_it, nearby_vert_it, sqrt(dist2), ProximityPointLinkType::NORMAL);
             }
         }
-    }
-}
-
-void PolygonProximityLinker::findProximatePoints()
-{
-    // link each vertex of each polygon to each proximate line segment of any polygon
-    for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
-    {
-        ListPolygon& poly = list_polygons[poly_idx];
-        for (unsigned int poly2_idx = 0; poly2_idx < list_polygons.size(); poly2_idx++)
-        {
-            for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
-            {
-                ListPolyIt a_point_it(poly, it);
-                findProximatePoints(a_point_it, poly2_idx);
-            }
-        }
-    }
-}
-
-void PolygonProximityLinker::findProximatePoints(ListPolyIt a_point_it, unsigned int to_list_poly_idx)
-{
-    ListPolygon& to_list_poly = list_polygons[to_list_poly_idx];
-    ListPolyIt from_lpi(to_list_poly, --to_list_poly.end());
-    for (ListPolygon::iterator it = to_list_poly.begin(); it != to_list_poly.end(); ++it)
-    {
-        ListPolyIt to_lpi(to_list_poly, it);
-        findProximatePoints(a_point_it, to_list_poly, from_lpi, to_lpi);
-
-        from_lpi = to_lpi;
     }
 }
 

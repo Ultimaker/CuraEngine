@@ -81,15 +81,7 @@ private:
      */
     void createLineGrid();
 
-    void findProximatePoints_fast(); //!< find the basic proximity links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
     void findProximatePoints(); //!< find the basic proximity links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
-    /*!
-     * find the basic proximity links (for trapezoids) between a given point and a polygon and record them into PolygonProximityLinker::overlap_point_links
-     * 
-     * \param from The point from which to check for proximity
-     * \param to_list_poly_idx The index into PolygonProximityLinker::list_polygons for the polygon to check
-     */
-    void findProximatePoints(ListPolyIt from, unsigned int to_list_poly_idx);
 
     /*!
      * Find the basic proximity link (for a trapezoid) between a given point and a line segment
