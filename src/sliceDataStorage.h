@@ -124,7 +124,7 @@ class SupportLayer
 {
 public:
     Polygons supportAreas; //!< normal support areas
-    Polygons roofs; //!< the support areas which are to be printed as denser roofs. Note that the roof areas and support areas are mutually exclusive.
+    Polygons skin; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
 };
 
 class SupportStorage
@@ -188,7 +188,7 @@ public:
     GCodePathConfig raft_surface_config;
 
     GCodePathConfig support_config;
-    GCodePathConfig support_roof_config;
+    GCodePathConfig support_skin_config; //!< The config to use to print the dense roofs and bottoms of support
 
     SupportStorage support;
 

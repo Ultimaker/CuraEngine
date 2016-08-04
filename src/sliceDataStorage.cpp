@@ -104,7 +104,7 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     raft_interface_config(PrintFeatureType::Support),
     raft_surface_config(PrintFeatureType::Support),
     support_config(PrintFeatureType::Support),
-    support_roof_config(PrintFeatureType::Skin),
+    support_skin_config(PrintFeatureType::Skin),
     max_object_height_second_to_last_extruder(-1)
 {
 }
@@ -156,7 +156,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
             if (support.generated) 
             {
                 total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].roofs);
+                total.add(support.supportLayers[layer_nr].skin);
             }
             total.add(primeTower.ground_poly);
         }
@@ -194,7 +194,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
             if (support.generated) 
             {
                 total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].roofs);
+                total.add(support.supportLayers[layer_nr].skin);
             }
             total.add(primeTower.ground_poly);
         }
@@ -227,7 +227,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // support is presupposed to be present...
     ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
     ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
-    ret[getSettingAsIndex("support_roof_extruder_nr")] = true;
+    ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content
     for (SliceMeshStorage& mesh : meshes)

@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <cmath> // std::ceil
+
 #include "skin.h"
+#include "utils/math.h"
 #include "utils/polygonUtils.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4) 
@@ -173,7 +175,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh, un
     {
         layer_skip_count = 1;
     }
-    unsigned int gradual_infill_step_layer_count = gradual_infill_step_height / mesh.getSettingInMicrons("layer_height"); // The difference in layer count between consecutive density infill areas
+    unsigned int gradual_infill_step_layer_count = round_divide(gradual_infill_step_height, mesh.getSettingInMicrons("layer_height")); // The difference in layer count between consecutive density infill areas
 
     // make gradual_infill_step_height divisable by layer_skip_count
     float n_skip_steps_per_gradual_step = std::max(1.0f, std::ceil(gradual_infill_step_layer_count / layer_skip_count)); // only decrease layer_skip_count to make it a divisor of gradual_infill_step_layer_count

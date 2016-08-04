@@ -65,9 +65,9 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
         max_object_height_per_extruder[support_infill_extruder_nr] = 
         std::max(   max_object_height_per_extruder[support_infill_extruder_nr]
                 ,   storage.support.layer_nr_max_filled_layer  ); 
-        int support_roof_extruder_nr = storage.getSettingAsIndex("support_roof_extruder_nr"); // TODO: support roof extruder should be configurable per object
-        max_object_height_per_extruder[support_roof_extruder_nr] = 
-        std::max(   max_object_height_per_extruder[support_roof_extruder_nr]
+        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
+        max_object_height_per_extruder[support_skin_extruder_nr] = 
+        std::max(   max_object_height_per_extruder[support_skin_extruder_nr]
                 ,   storage.support.layer_nr_max_filled_layer  ); 
     }
     { // // compute max_object_height_second_to_last_extruder

@@ -12,7 +12,7 @@ class AreaSupport {
 public:
 
     /*!
-     * Generate the support areas and support roof areas for all models.
+     * Generate the support areas and support skin areas for all models.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      * \param layer_count total number of layers
      */
@@ -33,10 +33,10 @@ private:
 
 
     /*!
-     * Generate support roof areas and non-roof areas for a given mesh.
+     * Generate support skin areas and non-skin areas for a given mesh.
      * 
-     * \param storage Output storage: support area + support roof area output
-     * \param mesh The mesh to generate support roofs for.
+     * \param storage Output storage: support area + support skin area output
+     * \param mesh The mesh to generate support skins for.
      * \param support_areas The basic support areas for the current mesh
      * \param layer_count The number of layers in this mesh group.
      */

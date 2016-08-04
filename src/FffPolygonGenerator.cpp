@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
 
+#include "utils/math.h"
 #include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -422,7 +423,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, 
     SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
     // combine infill
-    unsigned int combined_infill_layers = mesh.getSettingInMicrons("infill_sparse_thickness") / std::max(getSettingInMicrons("layer_height"), 1); //How many infill layers to combine to obtain the requested sparse thickness.
+    unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), 1))); //How many infill layers to combine to obtain the requested sparse thickness.
     combineInfillLayers(mesh,combined_infill_layers);
 
     // fuzzy skin
