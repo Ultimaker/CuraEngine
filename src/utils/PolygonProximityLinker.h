@@ -15,6 +15,7 @@
 
 #include "ListPolyIt.h"
 #include "ProximityPointLink.h"
+#include "SparseLineGrid.h"
 
 namespace cura 
 {
@@ -38,12 +39,23 @@ namespace cura
  */
 class PolygonProximityLinker
 {
+    friend class WallOverlapComputation; // debug
 public:
     typedef std::unordered_set<ProximityPointLink> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
     typedef std::unordered_multimap<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link
 
 private:
     /////////////////////////////////////////////////////////////////////////////////////////////
+    /*!
+     * Locator to retrieve line segment data from a \ref ListPolyIt
+     */
+    struct ListPolyItSegmentLocator
+    {
+        std::pair<Point, Point> operator()(const ListPolyIt& val) const
+        {
+            return std::pair<Point, Point>(val.p(), val.next().p());
+        }
+    };
 
     Polygons& polygons; //!< The polygons for which to compensate overlapping walls for
     ListPolygons list_polygons; //!< The PolygonProximityLinker::polygons converted
@@ -51,10 +63,25 @@ private:
     int proximity_distance; //!< The line width of the walls
     int proximity_distance_2; //!< The squared line width of the walls
 
+    SparseLineGrid<ListPolyIt, ListPolyItSegmentLocator> line_grid; //!< Mapping from locations to lines
+
+    std::unordered_set<ListPolyIt> new_points; //!< The newly inserted points to create new links.
+
     ProximityPointLinks proximity_point_links; //!< mapping from each link to its attributes
 
     Point2Link point_to_link; //!< mapping from each point to the/a corresponding link (collisions are ignored as of yet)
 
+    /*!
+     * Create the initial \ref PolygonProximityLinker::line_grid
+     * 
+     * Map locations where line segments of the input polygons occur to iterators pointing to the start of those line segments.
+     * 
+     * Note that when points are introduced which split line segments in two,
+     * the line_grid maps locations to segments which are not close any more.
+     */
+    void createLineGrid();
+
+    void findProximatePoints_fast(); //!< find the basic proximity links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
     void findProximatePoints(); //!< find the basic proximity links (for trapezoids) and record them into PolygonProximityLinker::overlap_point_links
     /*!
      * find the basic proximity links (for trapezoids) between a given point and a polygon and record them into PolygonProximityLinker::overlap_point_links

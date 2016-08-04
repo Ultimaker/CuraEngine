@@ -13,8 +13,9 @@ namespace cura
 
 PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity_distance)
  : polygons(polygons)
- , proximity_distance(proximity_distance) 
- , proximity_distance_2(proximity_distance * proximity_distance) 
+ , proximity_distance(proximity_distance)
+ , proximity_distance_2(proximity_distance * proximity_distance)
+ , line_grid(proximity_distance, polygons.pointCount(), 3.0f)
 {
     // heuristic reserve a good amount of elements
     proximity_point_links.reserve(polygons.pointCount()); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
@@ -26,13 +27,15 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     addSharpCorners();
 
     // map each vertex onto nearby line segments
-    findProximatePoints();
+    findProximatePoints_fast();
+//     findProximatePoints();
 
     // add links where line segments diverge from below the proximity distance to over the proximity distance
     addProximityEndings();
 
     // convert list polygons back
     ListPolyIt::convertListPolygonsToPolygons(list_polygons, polygons);
+//     proximity2HTML("linker.html");
 }
 
 bool PolygonProximityLinker::isLinked(Point from)
@@ -67,6 +70,93 @@ std::pair<PolygonProximityLinker::Point2Link::iterator, PolygonProximityLinker::
     return from_link_pair;
 }
 
+void PolygonProximityLinker::createLineGrid()
+{
+    for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
+    {
+        ListPolygon& poly = list_polygons[poly_idx];
+        for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
+        {
+            ListPolyIt point_it(poly, it);
+            line_grid.insert(point_it);
+        }
+    }
+}
+
+void PolygonProximityLinker::findProximatePoints_fast()
+{
+    createLineGrid();
+
+    for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); poly_idx++)
+    {
+        ListPolygon& poly = list_polygons[poly_idx];
+        for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
+        {
+            ListPolyIt point_it(poly, it);
+            if (new_points.count(point_it) == 0)
+            {
+                // handle new_points separately
+                // to prevent this:
+                //  1    3   5   7
+                //  o<-.
+                //  :   'o<-.
+                //  :   /:   o<.
+                //  :  / :  /:  'o<.
+                //  : /  : / : / :
+                //  :/   :/  :/  :   etc.
+                //  o--->o-->o-->o->
+                //  2    4   6   8
+                std::unordered_set<ListPolyIt> nearby_lines;
+                auto process_func = [&nearby_lines](const ListPolyIt& elem)
+                {
+                    nearby_lines.emplace(elem);
+                };
+                line_grid.processNearby(point_it.p(), proximity_distance, process_func);
+                for (const ListPolyIt& nearby_line : nearby_lines)
+                {
+                    findProximatePoints(point_it, *nearby_line.poly, nearby_line, nearby_line.next());
+                }
+            }
+        }
+    }
+
+    for (const ListPolyIt& new_point_it : new_points)
+    {
+        // link with existing points, but don't introduce new points for line segments
+        // to prevent this:
+        //  1    3   5   7
+        //  o<-.
+        //  :   'o<-.
+        //  :   /:   o<.
+        //  :  / :  /:  'o<.
+        //  : /  : / : / :
+        //  :/   :/  :/  :   etc.
+        //  o--->o-->o-->o->
+        //  2    4   6   8
+        std::unordered_set<ListPolyIt> nearby_vert_its;
+        auto process_func = [&nearby_vert_its](const ListPolyIt& elem)
+        {
+            nearby_vert_its.emplace(elem);
+        };
+        line_grid.processNearby(new_point_it.p(), proximity_distance, process_func);
+        // because we use the same line_grid as before the resulting nearby_points
+        // will also have points which are not nearby, (But when the line segment *is* nearby.)
+        // but at least we don't have to create a whole new SparsePointGrid
+        for (const ListPolyIt& nearby_vert_it : nearby_vert_its)
+        {
+            Point new_point = new_point_it.p();
+            Point nearby_vert = nearby_vert_it.p();
+            int64_t dist2 = vSize2(new_point - nearby_vert);
+            if (dist2 < proximity_distance_2
+                && new_point != nearby_vert // not the same point
+                && new_point_it.next() != nearby_vert_it && new_point_it.prev() != nearby_vert_it // not directly connected
+            )
+            {
+                addProximityLink(new_point_it, nearby_vert_it, sqrt(dist2), ProximityPointLinkType::NORMAL);
+            }
+        }
+    }
+}
 
 void PolygonProximityLinker::findProximatePoints()
 {
@@ -159,8 +249,22 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
     }
     else 
     {
-        ListPolygon::iterator new_it = to_list_poly.insert(b_to_it.it, closest);
-        addProximityLink(a_from_it, ListPolyIt(to_list_poly, new_it), dist, ProximityPointLinkType::NORMAL);
+        if (new_points.count(a_from_it) == 0)
+        {
+            // don't introduce new points for newly introduced points
+            // to prevent this:
+            //  1    3   5   7
+            //  o<-.
+            //  :   'o<-.
+            //  :   /:   o<.
+            //  :  / :  /:  'o<.
+            //  : /  : / : / :
+            //  :/   :/  :/  :   etc.
+            //  o--->o-->o-->o->
+            //  2    4   6   8
+            ListPolyIt new_it = addNewPolyPoint(closest, b_from_it, b_to_it, b_to_it);
+            addProximityLink(a_from_it, new_it, dist, ProximityPointLinkType::NORMAL);
+        }
     }
 }
 
@@ -315,10 +419,12 @@ ListPolyIt PolygonProximityLinker::addNewPolyPoint(const Point point, const List
     {
         return line_end;
     }
-    if (point == Point(108364,118537))
-        std::cerr << "dfbhcv\n";
     ListPolygon::iterator new_p = before.poly->insert(before.it, point);
-    return ListPolyIt(*before.poly, new_p);
+    ListPolyIt lpi(*before.poly, new_p);
+    line_grid.insert(lpi);
+    // TODO: remove new part of old segment from the line_grid (?)
+    new_points.emplace(lpi);
+    return lpi;
 }
 
 int64_t PolygonProximityLinker::proximityEndingDistance(Point& a1, Point& a2, Point& b1, Point& b2, int a1b1_dist)
