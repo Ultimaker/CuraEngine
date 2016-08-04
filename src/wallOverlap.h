@@ -12,6 +12,7 @@
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "utils/linearAlg2D.h"
+#include "utils/SymmetricPair.h"
 
 #include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
@@ -50,7 +51,8 @@ class WallOverlapComputation
     PolygonProximityLinker overlap_linker;
     int64_t line_width;
 
-    std::unordered_set<ProximityPointLink> passed_links;
+    std::unordered_set<SymmetricPair<ProximityPointLink>> passed_links;
+    Polygons& polys;
 public:
     /*!
      * Compute the flow for a given line segment in the wall.
@@ -92,16 +94,25 @@ private:
     int64_t getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist);
 
     /*!
-     * \param link the link to check for
+     * Check whether an overlap segment between two consecutive links is already passed
+     * 
+     * \note \p link_a and \p link_b are assumed to be consecutive
+     * 
+     * \param link_a the one link of the overlap area
+     * \param link_b the other link of the overlap area
      * \return whether the link has already been passed once
      */
-    bool getIsPassed(const ProximityPointLink& link);
+    bool getIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b);
 
     /*!
-     * Mark the link as being passed once already
-     * \param link the link to mark as passed
+     * Mark an overlap area between two consecutive links as being passed once already.
+     * 
+     * \note \p link_a and \p link_b are assumed to be consecutive
+     * 
+     * \param link_a the one link of the overlap area
+     * \param link_b the other link of the overlap area
      */
-    void setIsPassed(const ProximityPointLink& link);
+    void setIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b);
 };
 
 
