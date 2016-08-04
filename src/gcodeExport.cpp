@@ -813,6 +813,9 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
         *output_stream << "M104";
     if (extruder != current_extruder)
         *output_stream << " T" << extruder;
+#ifdef ASSERT_INSANE_OUTPUT
+    assert(temperature >= 0);
+#endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << temperature << new_line;
     extruder_attr[extruder].currentTemperature = temperature;
 }
