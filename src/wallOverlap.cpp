@@ -57,6 +57,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //           ;   to_other_next
         //           to other
 
+        bool are_in_same_general_direction = dot(from - to, to_other_it.p() - to_other_next_it.p()) > 0;
         // handle multiple points  linked to [to]
         //   o<<<T<<<F
         //     / |
@@ -65,14 +66,21 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //   ,   ,
         //   ;   to other next
         //   to other
-        overlap_area += handlePotentialOverlap(to_link, to_other_next_it, to_it);
+        if (!are_in_same_general_direction)
+        {
+            overlap_area += handlePotentialOverlap(to_link, to_other_next_it, to_it);
+        }
 
         // handle multiple points  linked to [to_other]
         //   o<<<T<<<F
         //       |  /
         //       | /
         //   o>>>o>>>o
-        overlap_area += handlePotentialOverlap(to_link, to_other_it, from_it);
+        bool all_are_in_same_general_direction = are_in_same_general_direction && dot(from - to, to_other_it.prev().p() - to_other_it.p()) > 0;
+        if (!all_are_in_same_general_direction)
+        {
+            overlap_area += handlePotentialOverlap(to_link, to_other_it, from_it);
+        }
 
         // handle normal case where the segment from-to overlaps with another segment
         //   o<<<T<<<F
@@ -82,7 +90,10 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //       ,   ,
         //       ;   to other next
         //       to other
-        overlap_area += handlePotentialOverlap(to_link, to_other_next_it, from_it);
+        if (!are_in_same_general_direction)
+        {
+            overlap_area += handlePotentialOverlap(to_link, to_other_next_it, from_it);
+        }
     }
 
     int64_t normal_area = vSize(from - to) * line_width;
