@@ -76,9 +76,9 @@ void SGI_THIS::insert(const Elem &elem)
 
     const GridPoint start_cell = SparseGrid<ElemT>::toGridPoint(start);
     const GridPoint end_cell = SparseGrid<ElemT>::toGridPoint(end);
-    coord_t y_diff = (end.Y - start.Y);
+    coord_t y_diff = end.Y - start.Y;
 
-    grid_coord_t y_dir = (end_cell.Y > start_cell.Y)? 1 : -1;
+    grid_coord_t y_dir = (y_diff >= 0)? 1 : -1;
     grid_coord_t x_cell_start = start_cell.X;
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
     { // for all Y from start to end
@@ -92,6 +92,10 @@ void SGI_THIS::insert(const Elem &elem)
         {
             coord_t corresponding_x = start.X + (end.X - start.X) * (nearest_next_y - start.Y) / y_diff;
             x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x);
+            if (x_cell_end < start_cell.X)
+            { // process at least one cell!
+                x_cell_end = x_cell_start;
+            }
         }
 
         for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
@@ -105,6 +109,7 @@ void SGI_THIS::insert(const Elem &elem)
         }
         x_cell_start = x_cell_end; // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
     }
+    assert(false && "We should have returned already before here!");
 }
 
 SGI_TEMPLATE
@@ -123,7 +128,7 @@ void SGI_THIS::debugHTML(std::string filename)
         Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, 1));
         Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(1, 1));
         Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(1, 0));
-        svg.writePoint(lb, true);
+//         svg.writePoint(lb, true, 1);
         svg.writeLine(lb, lt, SVG::Color::GRAY);
         svg.writeLine(lt, rt, SVG::Color::GRAY);
         svg.writeLine(rt, rb, SVG::Color::GRAY);
