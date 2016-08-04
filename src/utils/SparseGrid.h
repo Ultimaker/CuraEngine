@@ -12,6 +12,9 @@
 namespace cura {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
+ * 
+ * \note This is an abstract template class which doesn't have any functions to insert elements.
+ * \see SparsePointGrid
  *
  * \tparam ElemT The element type to store.
  */
@@ -82,6 +85,7 @@ public:
 
 protected:
     using GridPoint = Point;
+    using grid_coord_t = coord_t;
     using GridMap = std::unordered_multimap<GridPoint, Elem>;
 
     /*! \brief Process elements from the cell indicated by \p grid_pt.
@@ -97,9 +101,32 @@ protected:
     /*! \brief Compute the grid coordinates of a point.
      *
      * \param[in] point The actual location.
-     * \return The grid coordinates that correspond to point.
+     * \return The grid coordinates that correspond to \p point.
      */
-    GridPoint toGridPoint(const Point &point) const;
+    GridPoint toGridPoint(const Point& point) const;
+
+    /*! \brief Compute the grid coordinate of a print space coordinate.
+     *
+     * \param[in] coord The actual location.
+     * \return The grid coordinate that corresponds to \p coord.
+     */
+    grid_coord_t toGridCoord(const coord_t& coord) const;
+
+    /*! \brief Compute the lowest point in a grid cell.
+     * The lowest point is the point in the grid cell closest to the origin.
+     *
+     * \param[in] location The grid location.
+     * \return The print space coordinates that correspond to \p location.
+     */
+    Point toLowerCorner(const GridPoint& location) const; 
+
+    /*! \brief Compute the lowest coord in a grid cell.
+     * The lowest point is the point in the grid cell closest to the origin.
+     *
+     * \param[in] grid_coord The grid coordinate.
+     * \return The print space coordinate that corresponds to \p grid_coord.
+     */
+    coord_t toLowerCoord(const grid_coord_t& grid_coord) const; 
 
     /*! \brief Map from grid locations (GridPoint) to elements (Elem). */
     GridMap m_grid;
@@ -129,13 +156,37 @@ SGI_THIS::SparseGrid(coord_t cell_size, size_t elem_reserve, float max_load_fact
 SGI_TEMPLATE
 typename SGI_THIS::GridPoint SGI_THIS::toGridPoint(const Point &point)  const
 {
+    return Point(toGridCoord(point.X), toGridCoord(point.Y));
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::grid_coord_t SGI_THIS::toGridCoord(const coord_t& coord)  const
+{
     // This mapping via truncation results in the cells with
     // GridPoint.x==0 being twice as large and similarly for
     // GridPoint.y==0.  This doesn't cause any incorrect behavior,
     // just changes the running time slightly.  The change in running
     // time from this is probably not worth doing a proper floor
     // operation.
-    return point / m_cell_size;
+    return coord / m_cell_size;
+}
+
+SGI_TEMPLATE
+typename cura::Point SGI_THIS::toLowerCorner(const GridPoint& location)  const
+{
+    return cura::Point(toLowerCoord(location.X), toLowerCoord(location.Y));
+}
+
+SGI_TEMPLATE
+typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  const
+{
+    // This mapping via truncation results in the cells with
+    // GridPoint.x==0 being twice as large and similarly for
+    // GridPoint.y==0.  This doesn't cause any incorrect behavior,
+    // just changes the running time slightly.  The change in running
+    // time from this is probably not worth doing a proper floor
+    // operation.
+    return grid_coord * m_cell_size;
 }
 
 SGI_TEMPLATE
