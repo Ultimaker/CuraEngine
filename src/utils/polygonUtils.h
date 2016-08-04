@@ -6,6 +6,7 @@
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
+#include "SparseLineGrid.h"
 #include "optional.h"
 
 namespace cura 
