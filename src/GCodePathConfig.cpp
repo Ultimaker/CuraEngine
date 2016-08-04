@@ -67,37 +67,37 @@ void GCodePathConfig::setSpeedIconic()
     current_config.jerk = iconic_config.jerk;
 }
 
-double GCodePathConfig::getExtrusionMM3perMM()
+double GCodePathConfig::getExtrusionMM3perMM() const
 {
     return extrusion_mm3_per_mm;
 }
 
-double GCodePathConfig::getSpeed()
+double GCodePathConfig::getSpeed() const
 {
     return current_config.speed;
 }
 
-double GCodePathConfig::getAcceleration()
+double GCodePathConfig::getAcceleration() const
 {
     return current_config.acceleration;
 }
 
-double GCodePathConfig::getJerk()
+double GCodePathConfig::getJerk() const
 {
     return current_config.jerk;
 }
 
-int GCodePathConfig::getLineWidth()
+int GCodePathConfig::getLineWidth() const
 {
     return current_config.line_width;
 }
 
-bool GCodePathConfig::isTravelPath()
+bool GCodePathConfig::isTravelPath() const
 {
     return current_config.line_width == 0;
 }
 
-double GCodePathConfig::getFlowPercentage()
+double GCodePathConfig::getFlowPercentage() const
 {
     return current_config.flow;
 }

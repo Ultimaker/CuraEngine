@@ -56,7 +56,7 @@ double ExtruderPlan::getFanSpeed()
 }
 
 
-GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::vector<GCodePath>& paths = extruder_plans.back().paths;
     if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
@@ -349,13 +349,13 @@ void GCodePlanner::planPrime()
     forceNewPathStart();
 }
 
-void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+void GCodePlanner::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     getLatestPathWithConfig(config, space_fill_type, flow, spiralize)->points.push_back(p);
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
+void GCodePlanner::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
 {
     Point p0 = polygon[start_idx];
     addTravel(p0);
@@ -368,7 +368,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
     }
     if (polygon.size() > 2)
     {
-        Point& p1 = polygon[start_idx];
+        const Point& p1 = polygon[start_idx];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
@@ -403,7 +403,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
+void GCodePlanner::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -420,7 +420,7 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
         addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
     }
 }
-void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
+void GCodePlanner::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
 {
     LineOrderOptimizer orderOptimizer(lastPosition);
     for (unsigned int line_idx = 0; line_idx < polygons.size(); line_idx++)
@@ -430,12 +430,12 @@ void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* conf
     orderOptimizer.optimize();
     for (int poly_idx : orderOptimizer.polyOrder)
     {
-        PolygonRef polygon = polygons[poly_idx];
+        ConstPolygonRef polygon = polygons[poly_idx];
         int start = orderOptimizer.polyStart[poly_idx];
         int end = 1 - start;
-        Point& p0 = polygon[start];
+        const Point& p0 = polygon[start];
         addTravel(p0);
-        Point& p1 = polygon[end];
+        const Point& p1 = polygon[end];
         addExtrusionMove(p1, config, space_fill_type);
         if (wipe_dist != 0)
         {
@@ -653,7 +653,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.setZ(z);
     
     
-    GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
+    const GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     int extruder = gcode.getExtruderNr();
     bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");

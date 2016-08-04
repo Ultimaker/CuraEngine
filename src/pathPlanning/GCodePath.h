@@ -23,7 +23,7 @@ namespace cura
 class GCodePath
 {
 public:
-    GCodePathConfig* config; //!< The configuration settings of the path.
+    const GCodePathConfig* config; //!< The configuration settings of the path.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 

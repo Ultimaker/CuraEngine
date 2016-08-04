@@ -79,28 +79,28 @@ public:
     /*!
      * Can only be called after the layer height has been set (which is done while writing the gcode!)
      */
-    double getExtrusionMM3perMM();
+    double getExtrusionMM3perMM() const;
 
     /*!
      * Get the movement speed in mm/s
      */
-    double getSpeed();
+    double getSpeed() const;
 
     /*!
      * Get the current acceleration of this config
      */
-    double getAcceleration();
+    double getAcceleration() const;
 
     /*!
      * Get the current jerk of this config
      */
-    double getJerk();
+    double getJerk() const;
 
-    int getLineWidth();
+    int getLineWidth() const;
 
-    bool isTravelPath();
+    bool isTravelPath() const;
 
-    double getFlowPercentage();
+    double getFlowPercentage() const;
 
 private:
     void calculateExtrusion();
