@@ -49,6 +49,10 @@ public:
     {
         return poly == other.poly && it == other.it;
     }
+    bool operator!=(const ListPolyIt& other) const
+    {
+        return poly != other.poly || it != other.it;
+    }
     void operator=(const ListPolyIt& other)
     {
         poly = other.poly;
@@ -100,6 +104,21 @@ public:
 
 
 }//namespace cura
+
+namespace std
+{
+/*!
+ * Hash function for \ref ListPolyIt
+ */
+template <>
+struct hash<cura::ListPolyIt>
+{
+    size_t operator()(const cura::ListPolyIt& lpi) const
+    { // has to be symmetric wrt a and b!
+        return std::hash<cura::Point>()(lpi.p());
+    }
+};
+}//namespace std
 
 
 
