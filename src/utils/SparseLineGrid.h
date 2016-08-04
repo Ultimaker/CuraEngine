@@ -40,9 +40,10 @@ public:
      * \param[in] elem The element to be inserted.
      */
     void insert(const Elem &elem);
-    
+
     void debugHTML(std::string filename);
 
+    static void debugTest();
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
     using grid_coord_t = typename SparseGrid<ElemT>::grid_coord_t;
@@ -133,6 +134,45 @@ void SGI_THIS::debugHTML(std::string filename)
         svg.writePoint(line.second, true);
         svg.writeLine(line.first, line.second, SVG::Color::BLACK);
     }
+}
+
+SGI_TEMPLATE
+void SGI_THIS::debugTest()
+{
+    struct PairLocator
+    {
+        std::pair<Point, Point> operator()(const std::pair<Point, Point>& val) const
+        {
+            return val;
+        }
+    };
+    SparseLineGrid<std::pair<Point, Point>, PairLocator> line_grid(10);
+    // straight lines
+    line_grid.insert(std::make_pair<Point, Point>(Point(50, 0), Point(50, 70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(0, 90), Point(50, 90)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(253, 103), Point(253, 173)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(203, 193), Point(253, 193)));
+
+    // diagonal lines
+    line_grid.insert(std::make_pair<Point, Point>(Point(113, 133), Point(166, 125)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(13, 73), Point(26, 25)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(166, 33), Point(113, 25)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(26, 173), Point(13, 125)));
+
+    // diagonal lines exactly crossing cell corners
+    line_grid.insert(std::make_pair<Point, Point>(Point(160, 190), Point(220, 170)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(60, 130), Point(80, 70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(220, 90), Point(160, 70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(80, 220), Point(60, 160)));
+
+    // single cell
+    line_grid.insert(std::make_pair<Point, Point>(Point(203, 213), Point(203, 213)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(223, 213), Point(223, 215)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(243, 213), Point(245, 213)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(263, 213), Point(265, 215)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(283, 215), Point(285, 213)));
+
+    line_grid.debugHTML("line_grid.html");
 }
 
 
