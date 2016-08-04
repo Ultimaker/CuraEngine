@@ -69,33 +69,40 @@ void SGI_THIS::insert(const Elem &elem)
     Point start = line.first;
     Point end = line.second;
     if (end.X < start.X)
-    {
+    { // make sure X increases between start and end
         std::swap(start, end);
     }
+
     const GridPoint start_cell = SparseGrid<ElemT>::toGridPoint(start);
     const GridPoint end_cell = SparseGrid<ElemT>::toGridPoint(end);
+    coord_t y_diff = (end.Y - start.Y);
+
     grid_coord_t y_dir = (end_cell.Y > start_cell.Y)? 1 : -1;
     grid_coord_t x_cell_start = start_cell.X;
-    std::cerr << "x_start: " << x_cell_start << "\n";
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
-    {
-        coord_t lowest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + std::max(coord_t(0), y_dir));
-        std::cerr << "lowest_next_y: " << lowest_next_y << "\n";
-        coord_t corresponding_x = start.X + (end.X - start.X) * (lowest_next_y - start.Y) / (end.Y - start.Y);
-        std::cerr << "corresponding_x: " << corresponding_x << "\n";
-        grid_coord_t x_end = SparseGrid<ElemT>::toGridCoord(corresponding_x); // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
-        std::cerr << "x_end: " << x_end << "\n";
-        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_end; ++cell_x)
+    { // for all Y from start to end
+        coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + std::max(coord_t(0), y_dir)); // nearest y coordinate of the cells in the next row
+        grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
+        if (y_diff == 0)
+        {
+            x_cell_end = end_cell.X;
+        }
+        else
+        {
+            coord_t corresponding_x = start.X + (end.X - start.X) * (nearest_next_y - start.Y) / y_diff;
+            x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x);
+        }
+
+        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
         {
             GridPoint grid_loc(cell_x, cell_y);
-            std::cerr << "making cell with lower corner " << SparseGrid<ElemT>::toLowerCorner(grid_loc) << "\n";
             SparseGrid<ElemT>::m_grid.emplace(grid_loc,elem);
             if (grid_loc == end_cell)
             {
                 return;
             }
         }
-        x_cell_start = x_end; // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
+        x_cell_start = x_cell_end; // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
     }
 }
 
