@@ -155,7 +155,7 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
     GCodePathConfig& config = config_per_extruder[new_extruder];
     int start_idx = 0; // TODO: figure out which idx is closest to the far right corner
 
-    Polygon outer_wall = ground_poly.offset(-config.getLineWidth() / 2).back();
+    Polygon outer_wall = PolygonRef{ground_poly.offset(-config.getLineWidth() / 2).back()};
     gcodeLayer.addPolygon(outer_wall, start_idx, &config);
     gcodeLayer.addLinesByOptimizer(pattern, &config, SpaceFillType::Lines);
 

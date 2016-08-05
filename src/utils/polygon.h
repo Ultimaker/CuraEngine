@@ -41,6 +41,12 @@ class PolygonRef
     : path(nullptr)
     {}
 public:
+    PolygonRef(PolygonRef& polygon)
+    :path{polygon.path}
+    {}
+    PolygonRef(PolygonRef&& polygon)
+    :path{polygon.path}
+    {}
     PolygonRef(ClipperLib::Path& polygon)
     : path(&polygon)
     {}
@@ -190,7 +196,7 @@ public:
         return Point(x, y);
     }
 
-    Point closestPointTo(Point p)
+    Point closestPointTo(Point p) const
     {
         Point ret = p;
         float bestDist = FLT_MAX;
@@ -595,7 +601,7 @@ public:
 
     unsigned int pointCount() const; //!< Return the amount of points in all polygons
 
-    PolygonRef operator[] (unsigned int index)
+    ClipperLib::Path& operator[] (unsigned int index)
     {
         POLY_ASSERT(index < size());
         return paths[index];
@@ -657,14 +663,14 @@ public:
         paths.emplace_back(args...);
     }
 
-    PolygonRef newPoly()
+    ClipperLib::Path& newPoly()
     {
         paths.emplace_back();
-        return PolygonRef(paths.back());
+        return paths.back();
     }
-    PolygonRef back()
+    ClipperLib::Path& back()
     {
-        return PolygonRef(paths.back());
+        return paths.back();
     }
 
     Polygons() {}
@@ -816,7 +822,7 @@ public:
         Polygons& thiss = *this;
         for (unsigned int p = 0; p < size(); p++)
         {
-            thiss[p].simplify(smallest_line_segment_squared, allowed_error_distance_squared);
+            PolygonRef{thiss[p]}.simplify(smallest_line_segment_squared, allowed_error_distance_squared);
             if (thiss[p].size() < 3)
             {
                 remove(p);
@@ -877,7 +883,7 @@ public:
         Polygons& thiss = *this;
         for(unsigned int i=0; i<size(); i++)
         {
-            double area = INT2MM(INT2MM(fabs(thiss[i].area())));
+            double area = INT2MM(INT2MM(fabs(PolygonRef{thiss[i]}.area())));
             if (area < minAreaSize) // Only create an up/down skin if the area is large enough. So you do not create tiny blobs of "trying to fill"
             {
                 remove(i);
@@ -1079,11 +1085,11 @@ public:
     {
         if (size() < 1)
             return false;
-        if (!(*this)[0].inside(p))
+        if (!PolygonRef{(*this)[0]}.inside(p))
             return false;
         for(unsigned int n=1; n<paths.size(); n++)
         {
-            if ((*this)[n].inside(p))
+            if (PolygonRef{(*this)[n]}.inside(p))
                 return false;
         }
         return true;

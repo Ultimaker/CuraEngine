@@ -529,7 +529,7 @@ void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& g
     {
         return;
     }
-    gcode_layer.addTravel(skirt_brim.back().closestPointTo(gcode_layer.getLastPosition()));
+    gcode_layer.addTravel(PolygonRef{skirt_brim.back()}.closestPointTo(gcode_layer.getLastPosition()));
     gcode_layer.addPolygonsByOptimizer(skirt_brim, &storage.skirt_brim_config[extruder_nr]);
 }
 
@@ -1027,7 +1027,7 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     PathOrderOptimizer island_order_optimizer(gcode_layer.getLastPosition());
     for(unsigned int n=0; n<support_islands.size(); n++)
     {
-        island_order_optimizer.addPolygon(support_islands[n][0]);
+        island_order_optimizer.addPolygon(PolygonRef{support_islands[n][0]});
     }
     island_order_optimizer.optimize();
 

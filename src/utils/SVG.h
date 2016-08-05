@@ -93,7 +93,7 @@ public:
         {
             for(unsigned int j=0;j<parts.size();j++)
             {
-                Polygon poly = parts[j];
+                Polygon poly = PolygonRef{parts[j]};
                 fprintf(out, "<polygon points=\"");
                 for(Point& p : poly)
                 {

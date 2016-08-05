@@ -415,7 +415,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     if (new_outline.size() == 1)
                     { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                         PolygonsPart outline_part_here;
-                        outline_part_here.add(new_outline[0]);
+                        outline_part_here.add(PolygonRef{new_outline[0]});
                         new_parts.push_back(outline_part_here);
                     }
                     else if (new_outline.size() > 1)

@@ -590,7 +590,7 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
             {
                 if (best_result.pointIdxA == best_result.pointIdxB)
                 {
-                    polygons.add(open_polylines[best_polyline_1_idx]);
+                    polygons.add(PolygonRef{open_polylines[best_polyline_1_idx]});
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result.AtoB)
@@ -605,9 +605,9 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                 else
                 {
                     unsigned int n = polygons.size();
-                    polygons.add(open_polylines[best_polyline_1_idx]);
+                    polygons.add(PolygonRef{open_polylines[best_polyline_1_idx]});
                     for(unsigned int j = best_result.pointIdxB; j != best_result.pointIdxA; j = (j + 1) % polygons[best_result.polygonIdx].size())
-                        polygons[n].add(polygons[best_result.polygonIdx][j]);
+                        PolygonRef{polygons[n]}.add(polygons[best_result.polygonIdx][j]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
             }
@@ -616,7 +616,7 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                 if (best_result.pointIdxA == best_result.pointIdxB)
                 {
                     for(unsigned int n=0; n<open_polylines[best_polyline_1_idx].size(); n++)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result.AtoB)
@@ -625,17 +625,17 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                     for(unsigned int n = best_result.pointIdxA; n != best_result.pointIdxB; n = (n + 1) % polygons[best_result.polygonIdx].size())
                         poly.add(polygons[best_result.polygonIdx][n]);
                     for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
-                        open_polylines[best_polyline_2_idx].add(poly[n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(poly[n]);
                     for(unsigned int n=0; n<open_polylines[best_polyline_1_idx].size(); n++)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else
                 {
                     for(unsigned int n = best_result.pointIdxB; n != best_result.pointIdxA; n = (n + 1) % polygons[best_result.polygonIdx].size())
-                        open_polylines[best_polyline_2_idx].add(polygons[best_result.polygonIdx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(polygons[best_result.polygonIdx][n]);
                     for(unsigned int n = open_polylines[best_polyline_1_idx].size() - 1; int(n) >= 0; n--)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
             }

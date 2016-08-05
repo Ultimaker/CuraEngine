@@ -24,7 +24,7 @@ AABB::AABB(const Polygons& polys)
     calculate(polys);
 }
 
-AABB::AABB(const PolygonRef poly)
+AABB::AABB(const PolygonRef& poly)
 : min(POINT_MAX, POINT_MAX), max(POINT_MIN, POINT_MIN)
 {
     calculate(poly);
@@ -43,7 +43,7 @@ void AABB::calculate(const Polygons& polys)
     }
 }
 
-void AABB::calculate(const PolygonRef poly)
+void AABB::calculate(const PolygonRef& poly)
 {
     min = Point(POINT_MAX, POINT_MAX);
     max = Point(POINT_MIN, POINT_MIN);

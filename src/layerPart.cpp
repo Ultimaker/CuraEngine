@@ -29,8 +29,8 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
     {
         for(unsigned int i=0; i<layer->polygons.size(); i++)
         {
-            if (layer->polygons[i].orientation())
-                layer->polygons[i].reverse();
+            if (PolygonRef{layer->polygons[i]}.orientation())
+                PolygonRef{layer->polygons[i]}.reverse();
         }
     }
     

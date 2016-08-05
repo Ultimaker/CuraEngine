@@ -450,7 +450,7 @@ void AreaSupport::handleTowers(
         supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
         
         Polygons& tower_roof = towerRoofs[r];
-        if (tower_roof.size() > 0 && tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+        if (tower_roof.size() > 0 && PolygonRef{tower_roof[0]}.area() < supportTowerDiameter * supportTowerDiameter)
         {
             towerRoofs[r] = tower_roof.offset(towerRoofExpansionDistance);
         }

@@ -100,7 +100,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonToList(PolygonRef poly, ListPolygon& result);
+    static void convertPolygonToList(const PolygonRef& poly, ListPolygon& result);
     /*!
      * Convert ListPolygons to Polygons
      * 
