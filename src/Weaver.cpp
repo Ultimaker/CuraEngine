@@ -209,11 +209,11 @@ void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int dire
         std::vector<PolygonsPart> roof_parts = roofs.splitIntoParts();
         for (PolygonsPart& roof_part : roof_parts)
         {
-            roof_outlines.add(roof_part[0]);
+            roof_outlines.add(PolygonRef{roof_part[0]});
             for (unsigned int hole_idx = 1; hole_idx < roof_part.size(); hole_idx++)
             {
-                roof_holes.add(roof_part[hole_idx]);
-                roof_holes.back().reverse();
+                roof_holes.add(PolygonRef{roof_part[hole_idx]});
+                PolygonRef{roof_holes.back()}.reverse();
             }
         }
     }
@@ -223,7 +223,7 @@ void Weaver::fillRoofs(Polygons& supporting, Polygons& to_be_supported, int dire
     
     std::vector<PolygonsPart> supporting_parts = supporting.splitIntoParts();
     for (PolygonsPart& supporting_part : supporting_parts) 
-        supporting_outlines.add(supporting_part[0]); // only add outlines, not the holes
+        supporting_outlines.add(PolygonRef{supporting_part[0]}); // only add outlines, not the holes
     
     
     
@@ -274,10 +274,10 @@ void Weaver::fillFloors(Polygons& supporting, Polygons& to_be_supported, int dir
     Polygons floor_holes;
     for (PolygonsPart& floor_part : floor_parts)
     {
-        floor_outlines.add(floor_part[0]);
+        floor_outlines.add(PolygonRef{floor_part[0]});
         for (unsigned int hole_idx = 1; hole_idx < floor_part.size(); hole_idx++)
         {
-            floor_holes.add(floor_part[hole_idx]);
+            floor_holes.add(PolygonRef{floor_part[hole_idx]});
             //floor_holes.back().reverse();
         }
     }

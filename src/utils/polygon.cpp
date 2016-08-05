@@ -44,7 +44,7 @@ bool PolygonRef::shorterThan(int64_t check_length) const
 
 bool PolygonRef::_inside(Point p, bool border_result) const
 {
-    PolygonRef thiss = *this;
+    const PolygonRef& thiss = *this;
     if (size() < 1)
     {
         return false;
@@ -1209,7 +1209,7 @@ PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
     {
         for (unsigned int poly_idx_ff : partsView[part_idx])
         {
-            ret.add(polygons[poly_idx_ff]);
+            ret.add(PolygonRef{polygons[poly_idx_ff]});
         }
     }
     return ret;
