@@ -84,11 +84,33 @@ private:
      */
     int64_t handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it);
     /*!
-     * Compute the approximate overlap area between two line segments
+     * Compute the approximate overlap area between two line segments.
+     * 
+     * Also works for computing the overlap of a line segment with a point, when either \p from or \p to is linking a point with itself.
+     * 
+     * \param from the one link which links two end points of the two line segments
+     * \param to the other link which links another pair of end points of the two line segments
      */
     int64_t getApproxOverlapArea(const ProximityPointLink& from, const ProximityPointLink& to);
     /*!
-     * Compute the approximate overlap area between two line segments
+     * Compute the approximate overlap area between two line segments.
+     * 
+     * For the following explanation assume a quadrilateral ABCD
+     *  A         D
+     *  :         :
+     *  :---------: \
+     *  :         :  } overlap area
+     *  :---------: /
+     *  :         :
+     *  B         C
+     * from      to
+     * 
+     * \param from_a point A
+     * \param from_b point B
+     * \param from_dist length of AB
+     * \param to_a point C
+     * \param to_b point D
+     * \param to_dist length of CD
      */
     int64_t getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist);
 
