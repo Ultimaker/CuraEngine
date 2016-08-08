@@ -148,7 +148,7 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from_a, const P
 
 bool WallOverlapComputation::getIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b)
 {
-    return passed_links.count(SymmetricPair<ProximityPointLink>(link_a, link_b)) > 0;
+    return passed_links.find(SymmetricPair<ProximityPointLink>(link_a, link_b)) != passed_links.end();
 }
 
 void WallOverlapComputation::setIsPassed(const ProximityPointLink& link_a, const ProximityPointLink& link_b)

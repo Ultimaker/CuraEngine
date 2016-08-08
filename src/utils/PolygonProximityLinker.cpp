@@ -39,7 +39,7 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
 
 bool PolygonProximityLinker::isLinked(Point from)
 {
-    return point_to_link.count(from) > 0;
+    return point_to_link.find(from) != point_to_link.end();
 }
 
 
@@ -98,7 +98,7 @@ void PolygonProximityLinker::findProximatePoints()
         for (ListPolygon::iterator it = poly.begin(); it != poly.end(); ++it)
         {
             ListPolyIt point_it(poly, it);
-            if (new_points.count(point_it) == 0)
+            if (new_points.find(point_it) == new_points.end())
             {
                 // handle new_points separately
                 // to prevent this:
@@ -224,7 +224,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
     }
     else 
     {
-        if (new_points.count(a_from_it) == 0)
+        if (new_points.find(a_from_it) == new_points.end())
         {
             // don't introduce new points for newly introduced points
             // to prevent this:
@@ -495,7 +495,7 @@ void PolygonProximityLinker::proximity2HTML(const char* filename) const
 bool PolygonProximityLinker::isLinked(ListPolyIt a, ListPolyIt b)
 {
     ProximityPointLink test_link(a, b, 0, ProximityPointLinkType::NORMAL);
-    return proximity_point_links.count(test_link) > 0;
+    return proximity_point_links.find(test_link) != proximity_point_links.end();
 }
 
 const ProximityPointLink* PolygonProximityLinker::getLink(ListPolyIt a, ListPolyIt b)
