@@ -50,6 +50,11 @@ void TimeEstimateCalculator::setMaxXyJerk(double jerk)
     max_xy_jerk = jerk;
 }
 
+void TimeEstimateCalculator::setMaxZFeedrate(double max_z_feedrate)
+{
+    max_feedrate[Z_AXIS] = max_z_feedrate;
+}
+
 void TimeEstimateCalculator::reset()
 {
     extra_time = 0.0;

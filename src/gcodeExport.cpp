@@ -26,6 +26,7 @@ GCodeExport::GCodeExport()
     currentSpeed = 1;
     current_acceleration = -1;
     current_jerk = -1;
+    current_max_z_feedrate = -1;
 
     isZHopped = 0;
     setFlavor(EGCodeFlavor::REPRAP);
@@ -847,6 +848,21 @@ void GCodeExport::writeJerk(double jerk)
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
+}
+
+void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
+{
+    if (current_max_z_feedrate != max_z_feedrate)
+    {
+        *output_stream << "M203 Z" << int(max_z_feedrate * 60) << new_line;
+        current_max_z_feedrate = max_z_feedrate;
+        estimateCalculator.setMaxZFeedrate(max_z_feedrate);
+    }
+}
+
+double GCodeExport::getCurrentMaxZFeedrate()
+{
+    return current_max_z_feedrate;
 }
 
 void GCodeExport::finalize(const char* endCode)

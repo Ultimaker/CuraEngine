@@ -633,6 +633,12 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder = extruder_plan.extruder;
             gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
+            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+            if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+            {
+                gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+            }
+
             { // require printing temperature to be met
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder, extruder_plan.required_temp, wait);
@@ -656,6 +662,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             } );
 
         const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+        {
+            gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+        }
         bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
         double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
         int64_t nozzle_size = gcode.getNozzleSize(extruder);

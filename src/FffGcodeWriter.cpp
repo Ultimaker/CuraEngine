@@ -1121,6 +1121,10 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeJerk(getSettingInMillimetersPerSecond("machine_max_jerk_xy"));
     }
+    if (gcode.getCurrentMaxZFeedrate() > 0)
+    {
+        gcode.writeMaxZFeedrate(getSettingInMillimetersPerSecond("machine_max_feedrate_z"));
+    }
     gcode.finalize(getSettingString("machine_end_gcode").c_str());
     for (int e = 0; e < getSettingAsCount("machine_extruder_count"); e++)
     {

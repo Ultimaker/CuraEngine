@@ -97,6 +97,7 @@ private:
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
+    double current_max_z_feedrate; //!< The current max z speed
 
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
@@ -313,6 +314,18 @@ public:
      * Write the command for setting the jerk to a specific value
      */
     void writeJerk(double jerk);
+
+    /*!
+     * Write the command for setting the maximum z feedrate to a specific value
+     */
+    void writeMaxZFeedrate(double max_z_feedrate);
+
+    /*!
+     * Get the last set max z feedrate value sent in the gcode.
+     * 
+     * Returns a value <= 0 when no value is set.
+     */
+    double getCurrentMaxZFeedrate();
 
     /*!
      * Set member variables using the settings in \p settings

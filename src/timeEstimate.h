@@ -84,6 +84,8 @@ public:
     void addTime(double time);
     void setAcceleration(double acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(double jerk); //!< Set the max xy jerk to \p jerk
+    void setMaxZFeedrate(double max_z_feedrate); //!< Set the maximal feedrate in the z direction to \p max_z_feedrate
+
     void reset();
     
     double calculate();
