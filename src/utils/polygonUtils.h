@@ -63,11 +63,7 @@ struct PolygonsPointIndexSegmentLocator
     {
         PolygonRef poly = (*val.polygons)[val.poly_idx];
         Point start = poly[val.point_idx];
-        unsigned int next_point_idx = val.point_idx + 1;
-        if (next_point_idx >= poly.size())
-        {
-            next_point_idx = 0;
-        }
+        unsigned int next_point_idx = (val.point_idx + 1) % poly.size();
         Point end = poly[next_point_idx];
         return std::pair<Point, Point>(start, end);
     }

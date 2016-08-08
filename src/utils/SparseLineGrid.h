@@ -1,4 +1,4 @@
-/** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 
 #ifndef UTILS_SPARSE_LINE_GRID_H
 #define UTILS_SPARSE_LINE_GRID_H

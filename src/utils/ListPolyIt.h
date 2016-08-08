@@ -114,7 +114,7 @@ template <>
 struct hash<cura::ListPolyIt>
 {
     size_t operator()(const cura::ListPolyIt& lpi) const
-    { // has to be symmetric wrt a and b!
+    {
         return std::hash<cura::Point>()(lpi.p());
     }
 };
