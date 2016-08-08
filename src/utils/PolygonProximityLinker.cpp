@@ -384,7 +384,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
     }
 }
 
-ListPolyIt PolygonProximityLinker::addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before)
+ListPolyIt PolygonProximityLinker::addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before_this)
 {
     if (point == line_start.p())
     {
@@ -394,8 +394,8 @@ ListPolyIt PolygonProximityLinker::addNewPolyPoint(const Point point, const List
     {
         return line_end;
     }
-    ListPolygon::iterator new_p = before.poly->insert(before.it, point);
-    ListPolyIt lpi(*before.poly, new_p);
+    ListPolygon::iterator new_p = before_this.poly->insert(before_this.it, point);
+    ListPolyIt lpi(*before_this.poly, new_p);
     line_grid.insert(lpi);
     // TODO: remove new part of old segment from the line_grid (?)
     new_points.emplace(lpi);

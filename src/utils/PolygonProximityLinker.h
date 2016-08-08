@@ -94,8 +94,18 @@ private:
      */
     void findProximatePoints(const ListPolyIt a_point_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it);
 
-    // TODO
-    ListPolyIt addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before);
+    /*!
+     * Add a new point to the polygon on a line segment between \p line_start and \p line_end
+     * 
+     * Don't add the point if it's already the same as either of the end points of the line segment.
+     * 
+     * \param point The point to insert
+     * \param line_start The start of the line segment on which to insert
+     * \param line_end The end of the line segment on which to insert
+     * \param before_this Either \p line_start or \p line_end such that inserting the new point before \p before_this results in the point being in between the two
+     * \return An iterator to the newly inserted point, or an existing point if \p coincided with either end point of the line
+     */
+    ListPolyIt addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before_this);
 
     /*!
      * Add a link between \p from and \p to to PolygonProximityLinker::overlap_point_links and add the appropriate mappings to PolygonProximityLinker::point_to_link
