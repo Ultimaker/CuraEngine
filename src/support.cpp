@@ -56,7 +56,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         
         if (mesh.getSettingBoolean("support_interface_enable"))
         {
-            generateSupportRoofs(storage, mesh, supportAreas, layer_count);
+            generateSupportInterface(storage, mesh, supportAreas, layer_count);
         }
         else 
         {
@@ -466,7 +466,7 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
+void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
 {
     const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
     const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));

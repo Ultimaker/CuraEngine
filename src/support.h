@@ -40,7 +40,7 @@ private:
      * \param support_areas The basic support areas for the current mesh
      * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
+    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
