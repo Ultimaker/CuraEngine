@@ -485,12 +485,14 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
             Polygons roofs;
             if (roof_layer_count > 0)
             {
-                roofs = support_areas[layer_idx].intersection(mesh.layers[layer_idx_above].getOutlines(true));
+                const Polygons outlines_above = mesh.layers[layer_idx_above].getOutlines();
+                roofs = support_areas[layer_idx].intersection(outlines_above);
             }
             Polygons bottoms;
             if (bottom_layer_count > 0)
             {
-                bottoms = support_areas[layer_idx].intersection(mesh.layers[layer_idx_below].getOutlines(true));
+                const Polygons outlines_below = mesh.layers[layer_idx_below].getOutlines();
+                bottoms = support_areas[layer_idx].intersection(outlines_below);
             }
             Polygons skin = roofs.unionPolygons(bottoms);
             skin.removeSmallAreas(1.0);
