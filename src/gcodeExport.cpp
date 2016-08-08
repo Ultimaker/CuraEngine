@@ -251,7 +251,7 @@ EGCodeFlavor GCodeExport::getFlavor()
 
 void GCodeExport::setZ(int z)
 {
-    this->zPos = z;
+    this->current_layer_z = z;
 }
 
 Point3 GCodeExport::getPosition()
@@ -459,7 +459,7 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, double speed, double extrusion_mm3_per_mm)
 {
-    writeMove(p.X, p.Y, zPos, speed, extrusion_mm3_per_mm);
+    writeMove(p.X, p.Y, current_layer_z, speed, extrusion_mm3_per_mm);
 }
 
 void GCodeExport::writeMove(Point3 p, double speed, double extrusion_mm3_per_mm)

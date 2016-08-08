@@ -98,7 +98,14 @@ private:
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
 
-    int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
+    /*!
+     * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
+     * 
+     * \see GCodeExport::writeMove(Point, double, double)
+     * 
+     * \note After GCodeExport::writeMove(Point, double, double) has been called currentPosition.z coincides with this value
+     */
+    int current_layer_z;
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     int current_extruder;
