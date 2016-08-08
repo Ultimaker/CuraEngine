@@ -87,12 +87,12 @@ private:
      * Find the basic proximity link (for a trapezoid) between a given point and a line segment
      * and record them into PolygonProximityLinker::overlap_point_links
      * 
-     * \param a_from_it Iterator to the point from which to check for proximity
+     * \param a_point_it Iterator to the point from which to check for proximity
      * \param to_list_poly The polygon in which the line segment occurs
      * \param b_from_it iterator to the one end point of the line segment
      * \param b_to_it iterator to the other end point of the line segment
      */
-    void findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it);
+    void findProximatePoints(const ListPolyIt a_point_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it);
 
     // TODO
     ListPolyIt addNewPolyPoint(const Point point, const ListPolyIt line_start, const ListPolyIt line_end, const ListPolyIt before);

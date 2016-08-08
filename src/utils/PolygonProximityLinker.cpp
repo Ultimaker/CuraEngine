@@ -163,50 +163,50 @@ void PolygonProximityLinker::findProximatePoints()
     }
 }
 
-void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it)
+void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, ListPolygon& to_list_poly, const ListPolyIt b_from_it, const ListPolyIt b_to_it)
 {
-    const Point& a_from = a_from_it.p();
+    const Point& a_point = a_point_it.p();
 
     const Point& b_from = b_from_it.p();
     const Point& b_to = b_to_it.p();
 
-    if (a_from_it == b_from_it || a_from_it == b_to_it) // we currently consider a linesegment directly connected to [from]
+    if (a_point_it == b_from_it || a_point_it == b_to_it) // we currently consider a linesegment directly connected to [from]
     {
         return;
     }
-    if (a_from_it.prev() == b_to_it) // [a] is connected to a line segment directly connected to the line segment [b]
+    if (a_point_it.prev() == b_to_it) // [a] is connected to a line segment directly connected to the line segment [b]
     {
         // only check whether we need to link points; don't project
-        int64_t dist2 = vSize2(b_from - a_from);
+        int64_t dist2 = vSize2(b_from - a_point);
         if (dist2 < proximity_distance_2)
         {
             int64_t dist = sqrt(dist2);
-            addProximityLink(a_from_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
+            addProximityLink(a_point_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
         }
         return;
     }
-    if (a_from_it.next() == b_from_it) // [a] is connected to a line segment directly connected to the line segment [b]
+    if (a_point_it.next() == b_from_it) // [a] is connected to a line segment directly connected to the line segment [b]
     {
         // only check whether we need to link points; don't project
-        int64_t dist2 = vSize2(b_to - a_from);
+        int64_t dist2 = vSize2(b_to - a_point);
         if (dist2 < proximity_distance_2)
         {
             int64_t dist = sqrt(dist2);
-            addProximityLink(a_from_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
+            addProximityLink(a_point_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
         }
         return;
     }
 
 
 
-    Point closest = LinearAlg2D::getClosestOnLineSegment(a_from, b_from, b_to);
+    Point closest = LinearAlg2D::getClosestOnLineSegment(a_point, b_from, b_to);
 
-    int64_t dist2 = vSize2(closest - a_from);
+    int64_t dist2 = vSize2(closest - a_point);
 
     if (dist2 > proximity_distance_2
-        || (a_from_it.poly == &to_list_poly
-            && dot(a_from_it.next().p() - a_from, b_to - b_from) > 0 
-            && dot(a_from - a_from_it.prev().p(), b_to - b_from) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
+        || (a_point_it.poly == &to_list_poly
+            && dot(a_point_it.next().p() - a_point, b_to - b_from) > 0 
+            && dot(a_point - a_point_it.prev().p(), b_to - b_from) > 0  ) // line segments are likely connected, because the winding order is in the same general direction
     )
     { // line segment too far away to be proximate
         return;
@@ -216,15 +216,15 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
 
     if (shorterThen(closest - b_from, 10))
     {
-        addProximityLink(a_from_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
+        addProximityLink(a_point_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
     }
     else if (shorterThen(closest - b_to, 10))
     {
-        addProximityLink(a_from_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
+        addProximityLink(a_point_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
     }
     else 
     {
-        if (new_points.find(a_from_it) == new_points.end())
+        if (new_points.find(a_point_it) == new_points.end())
         {
             // don't introduce new points for newly introduced points
             // to prevent this:
@@ -238,7 +238,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
             //  o--->o-->o-->o->
             //  2    4   6   8
             ListPolyIt new_it = addNewPolyPoint(closest, b_from_it, b_to_it, b_to_it);
-            addProximityLink(a_from_it, new_it, dist, ProximityPointLinkType::NORMAL);
+            addProximityLink(a_point_it, new_it, dist, ProximityPointLinkType::NORMAL);
         }
     }
 }
