@@ -101,7 +101,7 @@ void SGI_THIS::insert(const Elem &elem)
         for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
         {
             GridPoint grid_loc(cell_x, cell_y);
-            SparseGrid<ElemT>::m_grid.emplace(grid_loc,elem);
+            SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
             if (grid_loc == end_cell)
             {
                 return;
