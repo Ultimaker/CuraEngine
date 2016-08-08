@@ -619,6 +619,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     int extruder = gcode.getExtruderNr();
+    bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
+    bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -652,18 +654,23 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
-        
+
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
+        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
+        int64_t nozzle_size = gcode.getNozzleSize(extruder);
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
 
-            if (storage.getSettingBoolean("acceleration_enabled"))
+            if (acceleration_enabled)
             {
                 gcode.writeAcceleration(path.config->getAcceleration());
             }
-            if (storage.getSettingBoolean("jerk_enabled"))
+            if (jerk_enabled)
             {
                 gcode.writeJerk(path.config->getJerk());
             }
@@ -681,21 +688,21 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
             }
+
             double speed = path.config->getSpeed();
 
-            if (path.isTravelPath())// Only apply the extrudeSpeed to extrusion moves
+            // Apply the relevant factor
+            if (path.config->isTravelPath())
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-            
-            int64_t nozzle_size = 400; // TODO
-            
-            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+
+            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
             }
-            
+
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
@@ -781,7 +788,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
