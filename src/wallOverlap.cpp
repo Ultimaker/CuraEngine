@@ -98,7 +98,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 
     int64_t normal_area = vSize(from - to) * line_width;
     float ratio = float(normal_area - overlap_area) / normal_area;
-    return std::min(1.0, std::max(0.0, ratio));
+    return std::min(1.0f, std::max(0.0f, ratio));
 }
 
 int64_t WallOverlapComputation::handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
