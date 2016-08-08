@@ -138,11 +138,11 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from_a, const P
     const Point from_middle = from_a + from_b; // dont divide by two just yet
     const Point to_middle = to_a + to_b; // dont divide by two just yet
 
-    const int64_t dist_2 = vSize(from_middle - to_middle);
+    const int64_t link_dist_2 = vSize(from_middle - to_middle);
 
-    const int64_t average_dists_2 = line_width * 2 - from_dist - to_dist; // dont divide by two just yet
+    const int64_t average_overlap_dist_2 = line_width * 2 - from_dist - to_dist; // dont divide by two just yet
 
-    const int64_t area = dist_2 * average_dists_2 / 4; // divide by 2 two times: once for the middles and once for the average_dists
+    const int64_t area = link_dist_2 * average_overlap_dist_2 / 4; // divide by 2 two times: once for the middles and once for the average_dists
     return area;
 }
 
