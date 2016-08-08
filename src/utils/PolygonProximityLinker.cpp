@@ -174,7 +174,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
     {
         return;
     }
-    if (a_from_it.prev() == b_to_it) // [a] is connected to a line segment directly connected to [b]
+    if (a_from_it.prev() == b_to_it) // [a] is connected to a line segment directly connected to the line segment [b]
     {
         // only check whether we need to link points; don't project
         int64_t dist2 = vSize2(b_from - a_from);
@@ -185,7 +185,7 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_from_it, Lis
         }
         return;
     }
-    if (a_from_it.next() == b_from_it) // [a] is connected to a line segment directly connected to [b]
+    if (a_from_it.next() == b_from_it) // [a] is connected to a line segment directly connected to the line segment [b]
     {
         // only check whether we need to link points; don't project
         int64_t dist2 = vSize2(b_to - a_from);
