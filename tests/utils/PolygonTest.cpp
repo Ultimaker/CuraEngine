@@ -3,8 +3,6 @@
 
 #include "PolygonTest.h"
 
-#include "../src/utils/SVG.h"
-
 namespace cura
 {
     CPPUNIT_TEST_SUITE_REGISTRATION(PolygonTest);
@@ -70,11 +68,6 @@ void PolygonTest::polygonOffsetBugTest()
     polys.add(clipper_bug);
     Polygons offsetted = polys.offset(-20);
 
-    {
-        SVG svg("debug.html", AABB(polys));
-        svg.writePolygons(polys);
-        svg.writePolygons(offsetted, SVG::Color::RED);
-    }
     for (PolygonRef poly : offsetted)
     {
         for (Point& p : poly)
