@@ -23,6 +23,22 @@ import threading
 from xml.etree import ElementTree
 
 
+# Mock function that occurs in fdmprinter.def.json
+# Use wrapper to provide locals
+def extruderValueWrapper(_locals):
+    def extruderValue(extruder_nr, parameter):
+        return eval(parameter, globals(), _locals)
+    return extruderValue
+
+
+# Mock function that occurs in fdmprinter.def.json
+# Use wrapper to provide locals
+def extruderValuesWrapper(_locals):
+    def extruderValues(parameter):
+        return [eval(parameter, globals(), _locals)]
+    return extruderValues
+
+
 ## The TestSuite class stores the test results of a single set of tests.
 #  TestSuite objects are created by the TestResults class.
 class TestSuite:
@@ -206,6 +222,7 @@ class Setting:
     def _evaluateFunction(self, code, locals):
         if not code: #The input was None. This setting value doesn't exist in the JSON.
             return None
+
         try:
             tree = ast.parse(code, "eval")
             compiled = compile(code, self._key, "eval")
@@ -224,6 +241,7 @@ class EngineTest:
         self._json = json.load(open(json_filename, "r"))
         self._locals = {}
         self._addAllLocals() #Fills the _locals dictionary.
+        self._addLocalsFunctions()  # Add mock functions used in fdmprinter
         self._engine = engine_filename
         self._models = models
         self._settings = {}
@@ -323,6 +341,13 @@ class EngineTest:
     def _addAllLocals(self):
         for key, data in self._json["settings"].items(): # top level categories
             self._addLocals(data["children"]) # the actual settings in each category
+
+    def _addLocalsFunctions(self):
+        extruderValue = extruderValueWrapper(self._locals)
+        self._locals['extruderValue'] = extruderValue
+
+        extruderValues = extruderValuesWrapper(self._locals)
+        self._locals['extruderValues'] = extruderValues
 
     ##  Adds the default values in a node of the setting tree to the locals.
     #
