@@ -270,7 +270,10 @@ public:
     }
 
     /*! 
-     * removes consecutive line segments with same orientation and changes this polygon
+     * Removes consecutive line segments with same orientation and changes this polygon.
+     * 
+     * Removes verts which are connected to line segments which are both too small.
+     * Removes verts which detour from a direct line from the previous and next vert by a too small amount.
      * 
      * \param smallest_line_segment_squared maximal squared length of removed line segments
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed

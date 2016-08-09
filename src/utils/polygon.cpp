@@ -299,7 +299,6 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
 
     ListPolygon result_list_poly;
     result_list_poly.emplace_back(path->front());
-    Point prev = this_path.back();
 
     std::vector<ListPolyIt> skipped_verts;
     skipped_verts.emplace_back(result_list_poly, result_list_poly.begin());
@@ -308,6 +307,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     
     char here_is_beyond_line = 0;
     { // stage I: convert to a ListPolygon and remove verts, but don't remove verts just after removed verts (i.e. skip them)
+        Point prev = this_path.back();
         auto skip = [this, &result_list_poly, &this_path, &prev, &skipped_verts](unsigned int& poly_idx)
         {
             poly_idx++;
@@ -324,14 +324,14 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
         {
             const Point& here = this_path[poly_idx];
 
-            if ( vSize2(here - prev) < min_length_2 )
+            const Point& next = this_path[(poly_idx + 1) % size()];
+            if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
             {
                 // don't add [here] to the result
                 // skip the next point for now
                 skip(poly_idx);
                 continue;
             }
-            const Point& next = this_path[(poly_idx + 1) % size()];
             int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
             if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
             {
@@ -367,13 +367,13 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 const Point& here = skipped_vert.p();
                 const Point& prev = skipped_vert.prev().p();
 
-                if ( vSize2(here - prev) < min_length_2 )
+                const Point& next = skipped_vert.next().p();
+                if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
                 {
                     // skip the next point
                     skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
                     continue;
                 }
-                const Point& next = skipped_vert.next().p();
                 int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
                 if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
                 {
