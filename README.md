@@ -39,13 +39,12 @@ Installing Protobuf
 -------------------
 1. Be sure to have libtool installed.
 2. Download protobuf from https://github.com/google/protobuf/releases (download ZIP and unZIP at desired location, or clone the repo). The protocol buffer is used for communication between the CuraEngine and the GUI.
-3. Before installing protobuf, change autogen.sh : comment line 18 to line 38 using '#'s. This removes the dependency on gtest-1.7.0.
-4. Run autogen.sh from the protobuf directory: 
+3. Run autogen.sh from the protobuf directory: 
    $ ./autogen.sh
-5. $ ./configure
-6. $ make
-7. $ make install     # Requires superused priviliges.
-8. (In case the shared library cannot be loaded, you can try "sudo ldconfig" on Linux systems)
+4. $ ./configure
+5. $ make
+6. $ make install     # Requires superused priviliges.
+7. (In case the shared library cannot be loaded, you can try "sudo ldconfig" on Linux systems)
 
 Running
 =======
