@@ -19,7 +19,7 @@ But in general it boils down to: You need to share the source of any CuraEngine 
 How to Install
 ==============
 1. Clone the repository from https://github.com/Ultimaker/CuraEngine.git (the URL at the right hand side of this page).
-2. Install Protobuf (see below)
+2. Install Protobuf >= 3.0.0 (see below)
 3. Install libArcus (see https://github.com/Ultimaker/libArcus)
 
 In order to compile CuraEngine, either use CMake or start a project in your preferred IDE. 
@@ -38,7 +38,7 @@ Project files generation:
 Installing Protobuf
 -------------------
 1. Be sure to have libtool installed.
-2. Download protobuf from https://github.com/google/protobuf/ (download ZIP and unZIP at desired location, or clone the repo) The protocol buffer is used for communication between the CuraEngine and the GUI.
+2. Download protobuf from https://github.com/google/protobuf/ (download ZIP and unZIP at desired location, or clone the repo). The protocol buffer is used for communication between the CuraEngine and the GUI.
 3. Before installing protobuf, change autogen.sh : comment line 18 to line 38 using '#'s. This removes the dependency on gtest-1.7.0.
 4. Run autogen.sh from the protobuf directory: 
    $ ./autogen.sh
