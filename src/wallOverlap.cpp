@@ -122,10 +122,80 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist)
 {
+    const Point& other_from = to_other; // the one opposite to [to] is the starting point of the other line segment
+    const Point& other_to = from_other; // these two lines are only renames to interpret the code below easier
+
+    std::optional<int64_t> link_dist_2_override; // (an approximation of) twice the length of the overlap area
+
+    // check whether the line segment overlaps with the point if one of the line segments is just a point
+    if (from == to)
+    {
+        if (LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to) != 0)
+        {
+            return 0;
+        }
+    }
+    else if (other_from == other_to)
+    {
+        if (LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to) != 0)
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        short from_rel = LinearAlg2D::pointIsProjectedBeyondLine(from, other_from, other_to);
+        short to_rel = LinearAlg2D::pointIsProjectedBeyondLine(to, other_from, other_to);
+        short other_from_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to);
+        short other_to_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_to, from, to);
+        if (from_rel != 0 && from_rel == to_rel && to_rel == other_from_rel && other_from_rel == other_to_rel)
+        { // both segments project fully beyond or before each other
+            return 0;
+        }
+        if ( to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0 )
+        {
+            // only beginnings of line segments overlap
+            //
+            //           from_proj
+            //           ^^^^^
+            //      O<---+---O
+            //           :   :
+            //           O---+---->O
+            //           ,,,,,
+            // other_from_proj
+            const Point other_vec = other_to - other_from;
+            int64_t from_proj = dot(from - other_from, other_vec) / vSize(other_vec);
+
+            const Point vec = to - from;
+            int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
+
+            link_dist_2_override = from_proj + other_from_proj;
+        }
+        if ( from_rel != 0 && from_rel == other_from_rel && to_rel == 0 && other_to_rel == 0 )
+        {
+            // only ends of line segments overlap
+            //
+            //       to_proj
+            //         ^^^^^
+            //         O<--+----O
+            //         :   :
+            //   O-----+-->O
+            //         ,,,,,
+            //         other_to_proj
+            const Point other_vec = other_from - other_to;
+            int64_t to_proj = dot(to - other_to, other_vec) / vSize(other_vec);
+
+            const Point vec = from - to;
+            int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
+
+            link_dist_2_override = to_proj + other_to_proj;
+        }
+    }
+
     const Point from_middle = from_other + from; // dont divide by two just yet
     const Point to_middle = to_other + to; // dont divide by two just yet
 
-    const int64_t link_dist_2 = vSize(from_middle - to_middle);
+    const int64_t link_dist_2 = (link_dist_2_override)? *link_dist_2_override : vSize(from_middle - to_middle); // (an approximation of) twice the length of the overlap area
 
     const int64_t average_overlap_dist_2 = line_width * 2 - from_dist - to_dist; // dont divide by two just yet
 
