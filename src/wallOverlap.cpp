@@ -98,6 +98,8 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 
     int64_t normal_area = vSize(from - to) * line_width;
     float ratio = float(normal_area - overlap_area) / normal_area;
+    // clamp the ratio because overlap compensation might be faulty because
+    // WallOverlapComputation::getApproxOverlapArea only gives roughly accurate results
     return std::min(1.0f, std::max(0.0f, ratio));
 }
 

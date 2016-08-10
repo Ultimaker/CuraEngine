@@ -39,7 +39,6 @@ namespace cura
  */
 class PolygonProximityLinker
 {
-    friend class WallOverlapComputation; // debug
 public:
     typedef std::unordered_set<ProximityPointLink> ProximityPointLinks; //!< The type of PolygonProximityLinker::overlap_point_links
     typedef std::unordered_multimap<Point, ProximityPointLink> Point2Link; //!< The type of PolygonProximityLinker::point_to_link
