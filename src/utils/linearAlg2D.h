@@ -63,8 +63,34 @@ public:
         return -1;
                 
     }
-    
-    
+
+    /*!
+     * Find whether a point projected on a line segment would be projected to
+     * - properly on the line : zero returned
+     * - closer to \p a : -1 returned
+     * - closer to \p b : 1 returned
+     * 
+     * \param from The point to check in relation to the line segment
+     * \param a The start point of the line segment
+     * \param b The end point of the line segment
+     * \return the sign of the projection wrt the line segment
+     */
+    inline static short pointIsProjectedBeyondLine(const Point from, const Point a, const Point b)
+    {
+        const Point vec = b - a;
+        const Point point_vec = from - a;
+        const int64_t dot_prod = dot(point_vec, vec);
+        if (dot_prod < 0)
+        { // point is projected to before ab
+            return -1;
+        }
+        if (dot_prod > vSize2(vec)) // if (dot_prod / vSize(other_vec) > vSize(other_vec))
+        { // point is projected to after ab
+            return 1;
+        }
+        return 0;
+    }
+
     /*!
     * Find the point closest to \p from on the line from \p p0 to \p p1
     */
