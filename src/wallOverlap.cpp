@@ -68,7 +68,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //   to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(to_link, to_other_next_it, to_it);
+            overlap_area += handlePotentialOverlap(to_it, to_it, to_link, to_other_it, to_other_next_it);
         }
 
         // handle multiple points  linked to [to_other]
@@ -79,7 +79,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         bool all_are_in_same_general_direction = are_in_same_general_direction && dot(from - to, to_other_it.prev().p() - to_other_it.p()) > 0;
         if (!all_are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(to_link, to_other_it, from_it);
+            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_it);
         }
 
         // handle normal case where the segment from-to overlaps with another segment
@@ -92,7 +92,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //       to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(to_link, to_other_next_it, from_it);
+            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_next_it);
         }
     }
 
@@ -103,34 +103,27 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     return std::min(1.0f, std::max(0.0f, ratio));
 }
 
-int64_t WallOverlapComputation::handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it)
+int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt to_other_it, const ListPolyIt from_other_it)
 {
-    const ProximityPointLink* link_b = overlap_linker.getLink(from_it, to_it);
-    if (!link_b)
+    const ProximityPointLink* from_link = overlap_linker.getLink(from_it, from_other_it);
+    if (!from_link)
     {
         return 0;
     }
-    if (!getIsPassed(link_a, *link_b))
+    if (!getIsPassed(to_link, *from_link))
     { // check whether the segment is already passed
-        setIsPassed(link_a, *link_b);
+        setIsPassed(to_link, *from_link);
         return 0;
     }
     // mark the segment as passed
-    setIsPassed(link_a, *link_b);
-    return getApproxOverlapArea(link_a, *link_b);
+    setIsPassed(to_link, *from_link);
+    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, from_other_it.p(), to_other_it.p(), from_link->dist);
 }
 
-
-int64_t WallOverlapComputation::getApproxOverlapArea(const ProximityPointLink& from, const ProximityPointLink& to)
+int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist)
 {
-    return getApproxOverlapArea(from.a.p(), from.b.p(), from.dist, to.a.p(), to.b.p(), to.dist);
-}
-
-
-int64_t WallOverlapComputation::getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist)
-{
-    const Point from_middle = from_a + from_b; // dont divide by two just yet
-    const Point to_middle = to_a + to_b; // dont divide by two just yet
+    const Point from_middle = from_other + from; // dont divide by two just yet
+    const Point to_middle = to_other + to; // dont divide by two just yet
 
     const int64_t link_dist_2 = vSize(from_middle - to_middle);
 

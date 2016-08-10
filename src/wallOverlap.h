@@ -72,47 +72,52 @@ public:
 
 private:
     /*!
-     * Check whether \p from_it and \p to_it are connected and if so,
-     * return the overlap area between those and the link \p link_a
+     * Check whether \p from_it and \p from_other_it are connected and if so,
+     * return the overlap area between those and the link \p to_link
      * 
-     * This presupposes that \p link_a and the link from \p from_it to \p to_it forms a single overlap quadrilateral
+     * This presupposes that \p to_link and the link from \p from_it to \p from_other_it forms a single overlap quadrilateral
      * 
-     * \param link_a The first link involved in the overlap
+     * from_other         to_other
+     *          o<--------o
+     *          ?         :
+     *          ?         :
+     *          ?         :
+     *          o-------->o
+     *       from         to
+     * 
      * \param from_it The first point possibly invovled in the second link
-     * \param to_it The second point possibly invovled in the second link
+     * \param to_it The first point of \p to_link connected to \p from_it
+     * \param to_link The first link involved in the overlap: from \p from_it to \p to_it
+     * \param to_other_it The second point of \p to_link connected to \p from_other_it
+     * \param from_other_it The second point possibly invovled in the second link
      * \return The overlap area between the two links, or zero if there was no such link
      */
-    int64_t handlePotentialOverlap(const ProximityPointLink& link_a, const ListPolyIt from_it, const ListPolyIt to_it);
+    int64_t handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt to_other_it, const ListPolyIt from_other_it);
+
     /*!
-     * Compute the approximate overlap area between two line segments.
+     * Compute the approximate overlap area between two line segments
+     * or between a line segment and a point when one of the line segments has the same start as end point.
      * 
-     * Also works for computing the overlap of a line segment with a point, when either \p from or \p to is linking a point with itself.
+     * from_other         to_other
+     *          o<--------o
+     *          :         :
+     *          :,,,,,,,,,:
+     *          ://///////: \
+     *          ://///////:  } overlap area
+     *          ://///////: /
+     *          :''''''''':
+     *          :         :
+     *          o-------->o
+     *       from         to
      * 
-     * \param from the one link which links two end points of the two line segments
-     * \param to the other link which links another pair of end points of the two line segments
+     * \param from The starting point of the one line segment
+     * \param to the end point of the one line segment
+     * \param to_dist The distance betweem \p to and \p to_other
+     * \param to_other The starting point of the other line segment (across the overlap of \p to)
+     * \param from_other The end point of the other line segment (across the overlap of \p from)
+     * \param from_dist The distance betweem \p from and \p from_other
      */
-    int64_t getApproxOverlapArea(const ProximityPointLink& from, const ProximityPointLink& to);
-    /*!
-     * Compute the approximate overlap area between two line segments.
-     * 
-     * For the following explanation assume a quadrilateral ABCD
-     *  A         D
-     *  :         :
-     *  :---------: \
-     *  :         :  } overlap area
-     *  :---------: /
-     *  :         :
-     *  B         C
-     * from      to
-     * 
-     * \param from_a point A
-     * \param from_b point B
-     * \param from_dist length of AB
-     * \param to_a point C
-     * \param to_b point D
-     * \param to_dist length of CD
-     */
-    int64_t getApproxOverlapArea(const Point from_a, const Point from_b, const int64_t from_dist, const Point to_a, const Point to_b, const int64_t to_dist);
+    int64_t getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist);
 
     /*!
      * Check whether an overlap segment between two consecutive links is already passed
