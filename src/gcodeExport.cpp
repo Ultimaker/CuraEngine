@@ -527,7 +527,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         return;
 
 #ifdef ASSERT_INSANE_OUTPUT
-    assert(speed < 200 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(speed < 250 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(currentPosition != no_point3);
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
