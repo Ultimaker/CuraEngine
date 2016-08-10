@@ -323,8 +323,11 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
         for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
             const Point& here = this_path[poly_idx];
-
             const Point& next = this_path[(poly_idx + 1) % size()];
+            if (here == next)
+            { // disregard duplicate points without skipping the next point
+                continue;
+            }
             if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
             {
                 // don't add [here] to the result
