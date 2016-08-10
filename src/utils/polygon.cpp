@@ -301,18 +301,18 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     result_list_poly.emplace_back(path->front());
 
     std::vector<ListPolyIt> skipped_verts;
+    // add the first point as starting point for the algorithm
+    // whether the first point has to be removed is checked separately afterwards
     skipped_verts.emplace_back(result_list_poly, result_list_poly.begin());
 
-    
-    
     char here_is_beyond_line = 0;
     { // stage I: convert to a ListPolygon and remove verts, but don't remove verts just after removed verts (i.e. skip them)
-        Point prev = this_path.back();
+        Point prev = this_path[0];
         auto skip = [this, &result_list_poly, &this_path, &prev, &skipped_verts](unsigned int& poly_idx)
         {
             poly_idx++;
             if (poly_idx >= size())
-            {
+            { // don't wrap around, the first point has already been added
                 return;
             }
             result_list_poly.emplace_back(this_path[poly_idx]);
@@ -328,7 +328,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
             {
                 // don't add [here] to the result
-                // skip the next point for now
+                // skip checking whether the next point has to be removed for now
                 skip(poly_idx);
                 continue;
             }
@@ -336,12 +336,13 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
             if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
             {
                 // don't add [here] to the result
-                // skip the next point for now
+                // skip checking whether the next point has to be removed for now
                 skip(poly_idx);
             }
             else
             {
                 result_list_poly.emplace_back(here);
+                prev = result_list_poly.back();
             }
         }
     }
@@ -370,18 +371,19 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
                 const Point& next = skipped_vert.next().p();
                 if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
                 {
-                    // skip the next point
+                    // skip checking whether the next point has to be removed for now
                     skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
                     continue;
                 }
                 int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
                 if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
                 {
-                    // skip the next point
+                    // skip checking whether the next point has to be removed for now
                     skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
                 }
-                else 
+                else
                 {
+                    // keep the point
                 }
             }
             skipped_verts = new_skipped_verts;
