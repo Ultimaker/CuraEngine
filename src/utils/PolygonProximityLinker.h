@@ -142,8 +142,9 @@ private:
      * \param b_next The next point from ListPolyIt::b of \p link (in the opposite direction of \p a_next)
      * \param a_before_middle Where to insert a new point for a if this is indeed en ending
      * \param b_before_middle Where to insert a new point for b if this is indeed en ending
+     * \param[out] result Where to store a link if a new one has been generated
      */
-    void addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle);
+    void addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a_next, const ListPolyIt& b_next, const ListPolyIt& a_before_middle, const ListPolyIt& b_before_middle, ProximityPointLinks& result);
 
     /*!
      * Compute the distance between the points of the last link and the points introduced to account for the proximity endings.

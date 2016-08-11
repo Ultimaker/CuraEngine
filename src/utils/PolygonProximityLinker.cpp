@@ -285,9 +285,9 @@ bool PolygonProximityLinker::addCornerLink(ListPolyIt corner_point, const Proxim
 
 void PolygonProximityLinker::addProximityEndings()
 {
+    ProximityPointLinks new_links; // Where to store the new links temporarily (Don't add them to the map we are iterating over!)
     for (const ProximityPointLink& link : proximity_point_links)
     {
-
         if (link.dist == proximity_distance)
         { // its ending itself
             continue;
@@ -298,24 +298,28 @@ void PolygonProximityLinker::addProximityEndings()
         { 
             ListPolyIt a_2 = a_1.next();
             ListPolyIt b_2 = b_1.prev();
-            addProximityEnding(link, a_2, b_2, a_2, b_1);
+            addProximityEnding(link, a_2, b_2, a_2, b_1, new_links);
         }
         { 
             ListPolyIt a_2 = a_1.prev();
             ListPolyIt b_2 = b_1.next();
-            addProximityEnding(link, a_2, b_2, a_1, b_2);
+            addProximityEnding(link, a_2, b_2, a_1, b_2, new_links);
         }
+    }
+    for (const ProximityPointLink& link : new_links)
+    {
+        addProximityLink(link.a, link.b, link.dist, link.type);
     }
 }
 
-void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle)
+void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, const ListPolyIt& a2_it, const ListPolyIt& b2_it, const ListPolyIt& a_after_middle, const ListPolyIt& b_after_middle, ProximityPointLinks& result)
 {
     Point& a1 = link.a.p();
     Point& a2 = a2_it.p();
     Point& b1 = link.b.p();
     Point& b2 = b2_it.p();
-    Point a = a2-a1;
-    Point b = b2-b1;
+    Point a = a2 - a1;
+    Point b = b2 - b1;
 
     if (isLinked(a2_it.p()) && isLinked(b2_it.p())) // overlap area stops at one side
     {
@@ -340,7 +344,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         //  :   :   :  o  wasn't linked yet because it's connected to the upper and lower part
         //  :   :   :,/
         //  o<--o<--o
-        addCornerLink(a2_it, ProximityPointLinkType::ENDING_CORNER);
+        result.emplace(ProximityPointLink(a2_it, a2_it, 0, ProximityPointLinkType::ENDING_CORNER));
         return;
     }
 
@@ -356,17 +360,17 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         {
             Point b_p = b1 + normal(b, dist);
             ListPolyIt new_b = addNewPolyPoint(b_p, link.b, b2_it, b_after_middle);
-            addProximityLink(a2_it, new_b, proximity_distance, ProximityPointLinkType::ENDING);
+            result.emplace(ProximityPointLink(a2_it, new_b, proximity_distance, ProximityPointLinkType::ENDING));
         }
         else if (b_length2 < a_length2)
         {
             Point a_p = a1 + normal(a, dist);
             ListPolyIt new_a = addNewPolyPoint(a_p, link.a, a2_it, a_after_middle);
-            addProximityLink(new_a, b2_it, proximity_distance, ProximityPointLinkType::ENDING);
+            result.emplace(ProximityPointLink(new_a, b2_it, proximity_distance, ProximityPointLinkType::ENDING));
         }
         else // equal
         {
-            addProximityLink(a2_it, b2_it, proximity_distance, ProximityPointLinkType::ENDING);
+            result.emplace(ProximityPointLink(a2_it, b2_it, proximity_distance, ProximityPointLinkType::ENDING));
         }
     }
     else if (dist > 0)
@@ -375,7 +379,7 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
         ListPolyIt new_a = addNewPolyPoint(a_p, link.a, a2_it, a_after_middle);
         Point b_p = b1 + normal(b, dist);
         ListPolyIt new_b = addNewPolyPoint(b_p, link.b, b2_it, b_after_middle);
-        addProximityLink(new_a, new_b, proximity_distance, ProximityPointLinkType::ENDING);
+        result.emplace(ProximityPointLink(new_a, new_b, proximity_distance, ProximityPointLinkType::ENDING));
     }
     else if (dist == 0)
     {
