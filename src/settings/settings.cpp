@@ -176,7 +176,7 @@ double SettingsBaseVirtual::getSettingInDegreeCelsius(std::string key) const
 double SettingsBaseVirtual::getSettingInMillimetersPerSecond(std::string key) const
 {
     std::string value = getSettingString(key);
-    return std::max(1.0, atof(value.c_str()));
+    return std::max(0.0, atof(value.c_str()));
 }
 
 double SettingsBaseVirtual::getSettingInCubicMillimeters(std::string key) const
