@@ -174,30 +174,6 @@ void PolygonProximityLinker::findProximatePoints(const ListPolyIt a_point_it, Li
     {
         return;
     }
-    if (a_point_it.prev() == b_to_it) // [a] is connected to a line segment directly connected to the line segment [b]
-    {
-        // only check whether we need to link points; don't project
-        int64_t dist2 = vSize2(b_from - a_point);
-        if (dist2 < proximity_distance_2)
-        {
-            int64_t dist = sqrt(dist2);
-            addProximityLink(a_point_it, b_from_it, dist, ProximityPointLinkType::NORMAL);
-        }
-        return;
-    }
-    if (a_point_it.next() == b_from_it) // [a] is connected to a line segment directly connected to the line segment [b]
-    {
-        // only check whether we need to link points; don't project
-        int64_t dist2 = vSize2(b_to - a_point);
-        if (dist2 < proximity_distance_2)
-        {
-            int64_t dist = sqrt(dist2);
-            addProximityLink(a_point_it, b_to_it, dist, ProximityPointLinkType::NORMAL);
-        }
-        return;
-    }
-
-
 
     Point closest = LinearAlg2D::getClosestOnLineSegment(a_point, b_from, b_to);
 
