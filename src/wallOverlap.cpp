@@ -45,7 +45,11 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
             std::swap(to_it, to_other_it);
         }
         ListPolyIt from_it = to_it.prev();
-        assert(from_it.p() == from && "From location doesn't seem to be connected to destination location!");
+
+        if (from_it.p() != from)
+        {
+            logWarning("Polygon has multiple verts at the same place: (%lli, %lli); PolygonProximityLinker fails in such a case!\n", from.X, from.Y);
+        }
 
         ListPolyIt to_other_next_it = to_other_it.next(); // move towards [from]; the lines on the other side move in the other direction
         //           to  from
@@ -105,6 +109,10 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 
 int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt to_other_it, const ListPolyIt from_other_it)
 {
+    if (from_it == to_other_it && from_it == from_other_it)
+    { // don't conpute overlap with a line and itself
+        return 0;
+    }
     const ProximityPointLink* from_link = overlap_linker.getLink(from_it, from_other_it);
     if (!from_link)
     {
@@ -115,8 +123,6 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
         setIsPassed(to_link, *from_link);
         return 0;
     }
-    // mark the segment as passed
-    setIsPassed(to_link, *from_link);
     return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, to_other_it.p(), from_other_it.p(), from_link->dist);
 }
 
