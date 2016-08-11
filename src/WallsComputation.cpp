@@ -38,6 +38,7 @@ void WallsComputation::generateInsets(SliceLayerPart* part)
         
         //Finally optimize all the polygons. Every point removed saves time in the long run.
         part->insets[i].simplify();
+        part->insets[i].removeDegenerateVerts();
         if (i == 0)
         {
             if (recompute_outline_based_on_outer_wall)
