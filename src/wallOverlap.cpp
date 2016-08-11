@@ -117,7 +117,7 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
     }
     // mark the segment as passed
     setIsPassed(to_link, *from_link);
-    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, from_other_it.p(), to_other_it.p(), from_link->dist);
+    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, to_other_it.p(), from_other_it.p(), from_link->dist);
 }
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist)
@@ -149,7 +149,12 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         short other_from_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to);
         short other_to_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_to, from, to);
         if (from_rel != 0 && from_rel == to_rel && to_rel == other_from_rel && other_from_rel == other_to_rel)
-        { // both segments project fully beyond or before each other
+        {
+            // both segments project fully beyond or before each other
+            // for example:
+            // O<------O   .
+            //         :   :
+            //         '   O------->O
             return 0;
         }
         if ( to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0 )
