@@ -299,6 +299,13 @@ void PolygonProximityLinker::addProximityEnding(const ProximityPointLink& link, 
 
     if (isLinked(a2_it.p()) && isLinked(b2_it.p())) // overlap area stops at one side
     {
+        // TODO: add proximity endings between point and line ?
+        // would be good for:
+        //  ----+
+        //      |
+        //      +-----
+        // would be bad for
+        //  ----+-+-----
         return;
     }
     if (isLinked(a2_it, link.b) || isLinked(b2_it, link.a))
