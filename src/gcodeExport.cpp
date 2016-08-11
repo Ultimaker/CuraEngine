@@ -49,7 +49,7 @@ void GCodeExport::preSetup(const MeshGroup* settings)
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
-        extruder_attr[extruder_nr].is_used = extruder_attr[extruder_nr].is_used || settings->getExtruderTrain(extruder_nr)->getIsUsed();
+        extruder_attr[extruder_nr].is_used |= settings->getExtruderTrain(extruder_nr)->getIsUsed();
 
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
