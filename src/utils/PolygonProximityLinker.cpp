@@ -154,7 +154,6 @@ void PolygonProximityLinker::findProximatePoints()
             int64_t dist2 = vSize2(new_point - nearby_vert);
             if (dist2 < proximity_distance_2
                 && new_point != nearby_vert // not the same point
-                && new_point_it.next() != nearby_vert_it && new_point_it.prev() != nearby_vert_it // not directly connected
             )
             {
                 addProximityLink(new_point_it, nearby_vert_it, sqrt(dist2), ProximityPointLinkType::NORMAL);
