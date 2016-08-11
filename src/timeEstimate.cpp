@@ -2,8 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
+
+#include "utils/math.h"
 #include "timeEstimate.h"
-#include "settings/settings.h" 
+#include "settings/settings.h"
 
 namespace cura
 {
@@ -27,7 +29,6 @@ void TimeEstimateCalculator::setFirmwareDefaults(const SettingsBaseVirtual* sett
     acceleration = settings_base->getSettingInMillimetersPerSecond("machine_acceleration");
 }
 
-template<typename T> const T square(const T& a) { return a * a; }
 
 void TimeEstimateCalculator::setPosition(Position newPos)
 {
@@ -47,6 +48,11 @@ void TimeEstimateCalculator::setAcceleration(double acc)
 void TimeEstimateCalculator::setMaxXyJerk(double jerk)
 {
     max_xy_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setMaxZFeedrate(double max_z_feedrate)
+{
+    max_feedrate[Z_AXIS] = max_z_feedrate;
 }
 
 void TimeEstimateCalculator::reset()

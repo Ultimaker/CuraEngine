@@ -97,8 +97,16 @@ private:
     double currentSpeed; //!< The current speed (F values / 60) in mm/s
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
+    double current_max_z_feedrate; //!< The current max z speed
 
-    int zPos; // TODO: why is this different from currentPosition.z ? zPos is set every layer, while currentPosition.z is set every move. However, the z position is generally not changed within a layer!
+    /*!
+     * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
+     * 
+     * \see GCodeExport::writeMove(Point, double, double)
+     * 
+     * \note After GCodeExport::writeMove(Point, double, double) has been called currentPosition.z coincides with this value
+     */
+    int current_layer_z;
     int isZHopped; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with other layer parts)
 
     int current_extruder;
@@ -306,6 +314,18 @@ public:
      * Write the command for setting the jerk to a specific value
      */
     void writeJerk(double jerk);
+
+    /*!
+     * Write the command for setting the maximum z feedrate to a specific value
+     */
+    void writeMaxZFeedrate(double max_z_feedrate);
+
+    /*!
+     * Get the last set max z feedrate value sent in the gcode.
+     * 
+     * Returns a value <= 0 when no value is set.
+     */
+    double getCurrentMaxZFeedrate();
 
     /*!
      * Set member variables using the settings in \p settings

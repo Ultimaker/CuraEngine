@@ -1,8 +1,39 @@
 =====================================================================
 Clipper Change Log
 =====================================================================
+v6.2.1 (31 October 2014) Rev 482
+* Bugfix in ClipperOffset.Execute where the Polytree.IsHole property 
+  was returning incorrect values with negative offsets
+* Very minor improvement to join rounding in ClipperOffset
+* Fixed CPP OpenGL demo.
 
-v6.1.3 (19 January 2014)
+v6.2.0 (17 October 2014) Rev 477
+* Numerous minor bugfixes, too many to list. 
+  (See revisions 454-475 in Sourceforge Repository)
+* The ZFillFunction (custom callback function) has had its parameters 
+  changed. 
+* Curves demo removed (temporarily).
+* Deprecated functions have been removed. 
+
+v6.1.5 (26 February 2014) Rev 460
+* Improved the joining of output polygons sharing a common edge 
+  when those common edges are horizontal.
+* Fixed a bug in ClipperOffset.AddPath() which would produce
+  incorrect solutions when open paths were added before closed paths.
+* Minor code tidy and performance improvement
+
+v6.1.4 (6 February 2014)
+* Fixed bugs in MinkowskiSum
+* Fixed minor bug when using Clipper.ForceSimplify.
+* Modified use_xyz callback so that all 4 vertices around an
+  intersection point are now passed to the callback function.
+
+v6.1.3a (22 January 2014) Rev 453
+* Fixed buggy PointInPolygon function (C++ and C# only). 
+  Note this bug only affected the newly exported function, the 
+  internal PointInPolygon function used by Clipper was OK.
+ 
+v6.1.3 (19 January 2014) Rev 452
 * Fixed potential endless loop condition when adding open 
   paths to Clipper.
 * Fixed missing implementation of SimplifyPolygon function 
@@ -13,11 +44,11 @@ v6.1.3 (19 January 2014)
 * Overloaded MinkowskiSum function to accommodate multi-contour 
   paths.  
 
-v6.1.2 (15 December 2013)
+v6.1.2 (15 December 2013) Rev 444
 * Fixed broken C++ header file.
 * Minor improvement to joining polygons.
 
-v6.1.1 (13 December 2013)
+v6.1.1 (13 December 2013) Rev 441
 * Fixed a couple of bugs affecting open paths that could 
   raise unhandled exceptions.
   

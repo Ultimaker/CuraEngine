@@ -1,9 +1,10 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
-#include "support.h"
-
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
+#include "support.h"
+
+#include "utils/math.h"
 #include "progress/Progress.h"
 
 namespace cura 
@@ -53,9 +54,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         supportAreas.resize(layer_count, Polygons());
         generateSupportAreas(storage, mesh_idx, layer_count, supportAreas);
         
-        if (mesh.getSettingBoolean("support_roof_enable"))
+        if (mesh.getSettingBoolean("support_interface_enable"))
         {
-            generateSupportRoofs(storage, mesh, supportAreas, layer_count);
+            generateSupportInterface(storage, mesh, supportAreas, layer_count);
         }
         else 
         {
@@ -129,8 +130,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     int supportLayerThickness = layerThickness;
     
-    const int layerZdistanceTop = std::max(0, (supportZDistanceTop + supportLayerThickness - 1) / supportLayerThickness) + 1; // support must always be 1 layer below overhang
-    const unsigned int layerZdistanceBottom = std::max(0, (supportZDistanceBottom + supportLayerThickness - 1) / supportLayerThickness); 
+    const unsigned int layerZdistanceTop = std::max(0U, round_up_divide(supportZDistanceTop, supportLayerThickness)) + 1; // support must always be 1 layer below overhang
+    const unsigned int layerZdistanceBottom = std::max(0U, round_up_divide(supportZDistanceBottom, supportLayerThickness));
 
     double tanAngle = tan(supportAngle) - 0.01;  // the XY-component of the supportAngle
     int max_dist_from_lower_layer = tanAngle * supportLayerThickness; // max dist which can be bridged
@@ -153,7 +154,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     // early out
     
-    if ( layerZdistanceTop + 1 > (int) support_layer_count )
+    if ( layerZdistanceTop + 1 > support_layer_count )
     {
         storage.support.generated = false; // no (first layer) support can be generated 
         return;
@@ -465,25 +466,42 @@ void AreaSupport::handleWallStruts(
 }
 
 
-void AreaSupport::generateSupportRoofs(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
+void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count)
 {
-    const unsigned int roof_layer_count = mesh.getSettingInMicrons("support_roof_height") / storage.getSettingInMicrons("layer_height");
+    const unsigned int roof_layer_count = round_divide(mesh.getSettingInMicrons("support_roof_height"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int bottom_layer_count = round_divide(mesh.getSettingInMicrons("support_bottom_height"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
+    const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
 
-        if (layer_idx + roof_layer_count < supportLayers.size())
+        const unsigned int layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
+        const unsigned int layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
+        if (layer_idx_above < supportLayers.size())
         {
-            Polygons roofs = support_areas[layer_idx].intersection(mesh.layers[layer_idx + roof_layer_count].getOutlines(true));
-            roofs.removeSmallAreas(1.0);
-            layer.roofs.add(roofs);
-            layer.supportAreas.add(support_areas[layer_idx].difference(layer.roofs));
+            Polygons roofs;
+            if (roof_layer_count > 0)
+            {
+                const Polygons outlines_above = mesh.layers[layer_idx_above].getOutlines();
+                roofs = support_areas[layer_idx].intersection(outlines_above);
+            }
+            Polygons bottoms;
+            if (bottom_layer_count > 0)
+            {
+                const Polygons outlines_below = mesh.layers[layer_idx_below].getOutlines();
+                bottoms = support_areas[layer_idx].intersection(outlines_below);
+            }
+            Polygons skin = roofs.unionPolygons(bottoms);
+            skin.removeSmallAreas(1.0);
+            layer.skin.add(skin);
+            layer.supportAreas.add(support_areas[layer_idx].difference(layer.skin));
         }
         else 
         {
-            layer.roofs.add(layer.supportAreas);
+            layer.skin.add(layer.supportAreas);
         }
     }
 }

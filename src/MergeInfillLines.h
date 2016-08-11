@@ -19,6 +19,8 @@ class MergeInfillLines
     
     GCodePathConfig& travelConfig; //!< The travel settings used to see whether a path is a travel path or an extrusion path
     int64_t nozzle_size; //!< The diameter of the hole in the nozzle
+    bool speed_equalize_flow_enabled; //!< Should the speed be varied with extrusion width
+    double speed_equalize_flow_max; //!< Maximum speed when adjusting speed for flow
 
     /*!
      * Whether the next two extrusion paths are convertible to a single line segment, starting from the end point the of the last travel move at \p path_idx_first_move
@@ -62,8 +64,8 @@ public:
     /*!
      * Simple constructor only used by MergeInfillLines::isConvertible to easily convey the environment
      */
-    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size) 
-    : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size) { }
+    MergeInfillLines(GCodeExport& gcode, int layer_nr, std::vector<GCodePath>& paths, ExtruderPlan& extruder_plan, GCodePathConfig& travelConfig, int64_t nozzle_size, bool speed_equalize_flow_enabled, double speed_equalize_flow_max) 
+    : gcode(gcode), layer_nr(layer_nr), paths(paths), extruder_plan(extruder_plan), travelConfig(travelConfig), nozzle_size(nozzle_size), speed_equalize_flow_enabled(speed_equalize_flow_enabled), speed_equalize_flow_max(speed_equalize_flow_max) { }
     
     /*!
      * Check for lots of small moves and combine them into one large line.
@@ -73,11 +75,10 @@ public:
      * \param paths The paths currently under consideration
      * \param travelConfig The travel settings used to see whether a path is a travel path or an extrusion path
      * \param nozzle_size The diameter of the hole in the nozzle
-     * \param speed A factor used to scale the movement speed
      * \param path_idx Input/Output parameter: The current index in \p paths where to start combining and the current index after combining as output parameter.
      * \return Whether lines have been merged and normal path-to-gcode generation can be skipped for the current resulting \p path_idx .
      */
-    bool mergeInfillLines(double speed, unsigned int& path_idx);
+    bool mergeInfillLines(unsigned int& path_idx);
     
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to

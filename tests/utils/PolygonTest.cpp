@@ -3,7 +3,6 @@
 
 #include "PolygonTest.h"
 
-
 namespace cura
 {
     CPPUNIT_TEST_SUITE_REGISTRATION(PolygonTest);
@@ -30,6 +29,12 @@ void PolygonTest::setUp()
     triangle.emplace_back(100, 0);
     triangle.emplace_back(300, 0);
     triangle.emplace_back(200, 100);
+
+    clipper_bug.emplace_back(107347, 120836);
+    clipper_bug.emplace_back(107309, 120910);
+    clipper_bug.emplace_back(107158, 120960);
+    clipper_bug.emplace_back(106760, 120839);
+    clipper_bug.emplace_back(106570, 120831);
 }
 
 void PolygonTest::tearDown()
@@ -56,6 +61,22 @@ void PolygonTest::polygonOffsetTest()
 
     CPPUNIT_ASSERT_MESSAGE("Offset on outside poly is different from offset on inverted poly!", std::abs(expanded_length - contracted_length) < 5);
 }
+
+void PolygonTest::polygonOffsetBugTest()
+{
+    Polygons polys;
+    polys.add(clipper_bug);
+    Polygons offsetted = polys.offset(-20);
+
+    for (PolygonRef poly : offsetted)
+    {
+        for (Point& p : poly)
+        {
+            CPPUNIT_ASSERT_MESSAGE("Polygon offset moved point the wrong way!", polys.inside(p));
+        }
+    }
+}
+
 
 void PolygonTest::isOutsideTest()
 {

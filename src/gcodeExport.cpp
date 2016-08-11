@@ -26,6 +26,7 @@ GCodeExport::GCodeExport()
     currentSpeed = 1;
     current_acceleration = -1;
     current_jerk = -1;
+    current_max_z_feedrate = -1;
 
     isZHopped = 0;
     setFlavor(EGCodeFlavor::REPRAP);
@@ -239,7 +240,7 @@ EGCodeFlavor GCodeExport::getFlavor()
 
 void GCodeExport::setZ(int z)
 {
-    this->zPos = z;
+    this->current_layer_z = z;
 }
 
 Point3 GCodeExport::getPosition()
@@ -447,7 +448,7 @@ void GCodeExport::writeDelay(double timeAmount)
 
 void GCodeExport::writeMove(Point p, double speed, double extrusion_mm3_per_mm)
 {
-    writeMove(p.X, p.Y, zPos, speed, extrusion_mm3_per_mm);
+    writeMove(p.X, p.Y, current_layer_z, speed, extrusion_mm3_per_mm);
 }
 
 void GCodeExport::writeMove(Point3 p, double speed, double extrusion_mm3_per_mm)
@@ -801,6 +802,9 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
         *output_stream << "M104";
     if (extruder != current_extruder)
         *output_stream << " T" << extruder;
+#ifdef ASSERT_INSANE_OUTPUT
+    assert(temperature >= 0);
+#endif // ASSERT_INSANE_OUTPUT
     *output_stream << " S" << temperature << new_line;
     extruder_attr[extruder].currentTemperature = temperature;
 }
@@ -832,6 +836,21 @@ void GCodeExport::writeJerk(double jerk)
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
+}
+
+void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
+{
+    if (current_max_z_feedrate != max_z_feedrate)
+    {
+        *output_stream << "M203 Z" << int(max_z_feedrate * 60) << new_line;
+        current_max_z_feedrate = max_z_feedrate;
+        estimateCalculator.setMaxZFeedrate(max_z_feedrate);
+    }
+}
+
+double GCodeExport::getCurrentMaxZFeedrate()
+{
+    return current_max_z_feedrate;
 }
 
 void GCodeExport::finalize(const char* endCode)

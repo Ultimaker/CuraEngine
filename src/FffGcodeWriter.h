@@ -351,7 +351,7 @@ private:
      */
     void addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     /*!
-     * Add the support roofs to the layer plan \p gcodeLayer of the current layer.
+     * Add the support skins to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.

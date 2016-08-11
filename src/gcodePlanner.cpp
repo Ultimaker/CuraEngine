@@ -619,6 +619,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     GCodePathConfig* last_extrusion_config = nullptr; // used to check whether we need to insert a TYPE comment in the gcode.
 
     int extruder = gcode.getExtruderNr();
+    bool acceleration_enabled = storage.getSettingBoolean("acceleration_enabled");
+    bool jerk_enabled = storage.getSettingBoolean("jerk_enabled");
 
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
@@ -630,6 +632,12 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             int prev_extruder = extruder;
             extruder = extruder_plan.extruder;
             gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+
+            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+            if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+            {
+                gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+            }
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
@@ -652,18 +660,27 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         extruder_plan.inserts.sort([](const NozzleTempInsert& a, const NozzleTempInsert& b) -> bool { 
                 return  a.path_idx < b.path_idx; 
             } );
-        
+
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+        if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
+        {
+            gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
+        }
+        bool speed_equalize_flow_enabled = train->getSettingBoolean("speed_equalize_flow_enabled");
+        double speed_equalize_flow_max = train->getSettingInMillimetersPerSecond("speed_equalize_flow_max");
+        int64_t nozzle_size = gcode.getNozzleSize(extruder);
+
         for(unsigned int path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
 
-            if (storage.getSettingBoolean("acceleration_enabled"))
+            if (acceleration_enabled)
             {
                 gcode.writeAcceleration(path.config->getAcceleration());
             }
-            if (storage.getSettingBoolean("jerk_enabled"))
+            if (jerk_enabled)
             {
                 gcode.writeJerk(path.config->getJerk());
             }
@@ -681,21 +698,21 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 gcode.writeTypeComment(path.config->type);
                 last_extrusion_config = path.config;
             }
+
             double speed = path.config->getSpeed();
 
-            if (path.isTravelPath())// Only apply the extrudeSpeed to extrusion moves
+            // Apply the relevant factor
+            if (path.config->isTravelPath())
                 speed *= extruder_plan.getTravelSpeedFactor();
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
-            
-            int64_t nozzle_size = 400; // TODO
-            
-            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size).mergeInfillLines(speed, path_idx)) // !! has effect on path_idx !!
+
+            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
             }
-            
+
             if (path.config->isTravelPath())
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
@@ -781,7 +798,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
         } // paths for this extruder /\  .
 
-        ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
@@ -816,7 +832,7 @@ void GCodePlanner::overrideFanSpeeds(double speed)
 void GCodePlanner::completeConfigs()
 {
     storage.support_config.setLayerHeight(layer_thickness);
-    storage.support_roof_config.setLayerHeight(layer_thickness);
+    storage.support_skin_config.setLayerHeight(layer_thickness);
     
     for (SliceMeshStorage& mesh : storage.meshes)
     {
@@ -839,7 +855,7 @@ void GCodePlanner::completeConfigs()
 void GCodePlanner::processInitialLayersSpeedup()
 {
     int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
-    if (static_cast<int>(layer_nr) < initial_speedup_layers)
+    if (layer_nr >= 0 && layer_nr < initial_speedup_layers)
     {
         GCodePathConfig::BasicConfig initial_layer_speed_config;
         int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
@@ -851,11 +867,11 @@ void GCodePlanner::processInitialLayersSpeedup()
         storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
         //Support roof (global).
-        int extruder_nr_support_roof = storage.getSettingAsIndex("support_roof_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("speed_print_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_roof)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
-        storage.support_roof_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+        int extruder_nr_support_skin = storage.getSettingAsIndex("support_interface_extruder_nr");
+        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("speed_print_layer_0");
+        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
+        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
+        storage.support_skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
@@ -890,10 +906,10 @@ void GCodePlanner::processInitialLayersSpeedup()
             }
         }
     }
-    else if (static_cast<int>(layer_nr) == initial_speedup_layers) //At the topmost layer of the gradient, reset all speeds to the typical speeds.
+    else if (layer_nr == initial_speedup_layers) //At the topmost layer of the gradient, reset all speeds to the typical speeds.
     {
         storage.support_config.setSpeedIconic();
-        storage.support_roof_config.setSpeedIconic();
+        storage.support_skin_config.setSpeedIconic();
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
         {
             storage.travel_config_per_extruder[extruder_nr].setSpeedIconic();

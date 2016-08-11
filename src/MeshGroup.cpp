@@ -128,7 +128,7 @@ void MeshGroup::finalize()
         if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr
             || (getSettingBoolean("support_enable") && getSettingAsIndex("support_infill_extruder_nr") == extruder_nr)
             || (getSettingBoolean("support_enable") && getSettingAsIndex("support_extruder_nr_layer_0") == extruder_nr)
-            || (getSettingBoolean("support_enable") && getSettingBoolean("support_roof_enable") && getSettingAsIndex("support_roof_extruder_nr") == extruder_nr)
+            || (getSettingBoolean("support_enable") && getSettingBoolean("support_interface_enable") && getSettingAsIndex("support_interface_extruder_nr") == extruder_nr)
             )
         {
             getExtruderTrain(extruder_nr)->setIsUsed(true);
