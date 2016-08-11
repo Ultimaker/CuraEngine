@@ -92,6 +92,22 @@ public:
     }
 
     /*!
+     * Get the distance from \p a to the point \p from projected on the line segment from \p a to \p b
+     * 
+     * \param from The point to check in relation to the line segment
+     * \param a The start point of the line segment
+     * \param b The end point of the line segment
+     * \return the distance from \p a on the line segment from \p a to \p b
+     */
+    inline static int64_t projectPointOnLine(const Point from, const Point a, const Point b)
+    {
+        const Point ab = b - a;
+        const Point point_vec = from - a;
+        const int64_t dot_prod = dot(point_vec, ab);
+        return dot_prod / vSize(ab);
+    }
+
+    /*!
     * Find the point closest to \p from on the line from \p p0 to \p p1
     */
     static Point getClosestOnLineSegment(Point from, Point p0, Point p1)
