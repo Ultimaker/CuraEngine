@@ -89,7 +89,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
                 int brim_line_width = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInMicrons("skirt_brim_line_width");
                 SupportLayer& support_layer = storage.support.supportLayers[0];
                 Polygons area_covered_by_brim = last_brim.offset(brim_line_width / 2);
-                support_layer.roofs = support_layer.roofs.difference(area_covered_by_brim);
+                support_layer.skin = support_layer.skin.difference(area_covered_by_brim);
                 support_layer.supportAreas = support_layer.supportAreas.difference(area_covered_by_brim);
                 break;
             }
