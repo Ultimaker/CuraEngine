@@ -112,10 +112,10 @@ private:
      * 
      * \param from The starting point of the one line segment
      * \param to the end point of the one line segment
-     * \param to_dist The distance betweem \p to and \p to_other
+     * \param to_dist The distance between \p to and \p to_other
      * \param to_other The starting point of the other line segment (across the overlap of \p to)
      * \param from_other The end point of the other line segment (across the overlap of \p from)
-     * \param from_dist The distance betweem \p from and \p from_other
+     * \param from_dist The distance between \p from and \p from_other
      */
     int64_t getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist);
 
