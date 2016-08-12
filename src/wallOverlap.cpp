@@ -110,7 +110,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
 int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt to_other_it, const ListPolyIt from_other_it)
 {
     if (from_it == to_other_it && from_it == from_other_it)
-    { // don't conpute overlap with a line and itself
+    { // don't compute overlap with a line and itself
         return 0;
     }
     const ProximityPointLink* from_link = overlap_linker.getLink(from_it, from_other_it);
