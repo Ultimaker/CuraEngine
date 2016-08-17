@@ -113,11 +113,11 @@ private:
      * \param from The starting point of the one line segment
      * \param to the end point of the one line segment
      * \param to_dist The distance between \p to and \p to_other
-     * \param other_to The end point of the other line segment (across the overlap of \p from)
      * \param other_from The starting point of the other line segment (across the overlap of \p to)
+     * \param other_to The end point of the other line segment (across the overlap of \p from)
      * \param from_dist The distance between \p from and \p from_other
      */
-    int64_t getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_to, const Point other_from, const int64_t from_dist);
+    int64_t getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist);
 
     /*!
      * Check whether an overlap segment between two consecutive links is already passed

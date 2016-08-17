@@ -123,10 +123,10 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
         setIsPassed(to_link, *from_link);
         return 0;
     }
-    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, from_other_it.p(), to_other_it.p(), from_link->dist);
+    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, to_other_it.p(), from_other_it.p(), from_link->dist);
 }
 
-int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_to, const Point other_from, const int64_t from_dist)
+int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist)
 {
     std::optional<int64_t> link_dist_2_override; // (an approximation of) twice the length of the overlap area
 
