@@ -72,7 +72,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //   to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(to_it, to_it, to_link, to_other_it, to_other_next_it);
+            overlap_area += handlePotentialOverlap(to_it, to_it, to_link, to_other_next_it, to_other_it);
         }
 
         // handle multiple points  linked to [to_other]
@@ -96,7 +96,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
         //       to other
         if (!are_in_same_general_direction)
         {
-            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_it, to_other_next_it);
+            overlap_area += handlePotentialOverlap(from_it, to_it, to_link, to_other_next_it, to_other_it);
         }
     }
 
@@ -107,7 +107,7 @@ float WallOverlapComputation::getFlow(Point& from, Point& to)
     return std::min(1.0f, std::max(0.0f, ratio));
 }
 
-int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt to_other_it, const ListPolyIt from_other_it)
+int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it, const ListPolyIt to_it, const ProximityPointLink& to_link, const ListPolyIt from_other_it, const ListPolyIt to_other_it)
 {
     if (from_it == to_other_it && from_it == from_other_it)
     { // don't compute overlap with a line and itself
@@ -123,10 +123,10 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
         setIsPassed(to_link, *from_link);
         return 0;
     }
-    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, to_other_it.p(), from_other_it.p(), from_link->dist);
+    return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, from_other_it.p(), to_other_it.p(), from_link->dist);
 }
 
-int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point to_other, const Point from_other, const int64_t from_dist)
+int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point from_other, const Point to_other, const int64_t from_dist)
 {
     const Point& other_from = to_other; // the one opposite to [to] is the starting point of the other line segment
     const Point& other_to = from_other; // these two lines are only renames to interpret the code below easier
