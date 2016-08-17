@@ -17,8 +17,6 @@
 #include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
 
-#include "debug.h" // TODO remove
-
 namespace cura 
 {
 
