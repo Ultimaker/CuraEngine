@@ -156,7 +156,7 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
             // both segments project fully beyond or before each other
             // for example:             or:
             // O<------O   .            O------>O
-            //         :   :                     \
+            //         :   :                     \_
             //         '   O------->O             O------>O
             return 0;
         }
@@ -172,10 +172,10 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
             //           ,,,,,
             // other_from_proj
             const Point other_vec = other_to - other_from;
-            int64_t from_proj = dot(from - other_from, other_vec) / vSize(other_vec);
+            const int64_t from_proj = dot(from - other_from, other_vec) / vSize(other_vec);
 
             const Point vec = to - from;
-            int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
+            const int64_t other_from_proj = dot(other_from - from, vec) / vSize(vec);
 
             link_dist_2_override = from_proj + other_from_proj;
         }
@@ -191,10 +191,10 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
             //         ,,,,,
             //         other_to_proj
             const Point other_vec = other_from - other_to;
-            int64_t to_proj = dot(to - other_to, other_vec) / vSize(other_vec);
+            const int64_t to_proj = dot(to - other_to, other_vec) / vSize(other_vec);
 
             const Point vec = from - to;
-            int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
+            const int64_t other_to_proj = dot(other_to - to, vec) / vSize(vec);
 
             link_dist_2_override = to_proj + other_to_proj;
         }
