@@ -84,7 +84,7 @@ public:
         { // point is projected to before ab
             return -1;
         }
-        if (dot_prod > vSize2(vec)) // if (dot_prod / vSize(other_vec) > vSize(other_vec))
+        if (dot_prod > vSize2(vec))
         { // point is projected to after ab
             return 1;
         }
