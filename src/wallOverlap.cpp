@@ -128,7 +128,7 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
 
 int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_from, const Point other_to, const int64_t from_dist)
 {
-    std::optional<int64_t> link_dist_2_override; // (an approximation of) twice the length of the overlap area
+    std::optional<int64_t> link_dist_2_override; //(An approximation of) twice the length of the overlap area parallel to the line average.
 
     // check whether the line segment overlaps with the point if one of the line segments is just a point
     if (from == to)
@@ -151,13 +151,13 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         short to_rel = LinearAlg2D::pointIsProjectedBeyondLine(to, other_from, other_to);
         short other_from_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_from, from, to);
         short other_to_rel = LinearAlg2D::pointIsProjectedBeyondLine(other_to, from, to);
-        if (from_rel != 0 && from_rel == to_rel && to_rel == other_from_rel && other_from_rel == other_to_rel)
+        if (from_rel != 0 && to_rel == from_rel && other_from_rel != 0 && other_to_rel == other_from_rel)
         {
             // both segments project fully beyond or before each other
-            // for example:
-            // O<------O   .
-            //         :   :
-            //         '   O------->O
+            // for example:             or:
+            // O<------O   .            O------>O
+            //         :   :                     \
+            //         '   O------->O             O------>O
             return 0;
         }
         if ( to_rel != 0 && to_rel == other_to_rel && from_rel == 0 && other_from_rel == 0 )
