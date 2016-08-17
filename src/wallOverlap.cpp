@@ -126,11 +126,8 @@ int64_t WallOverlapComputation::handlePotentialOverlap(const ListPolyIt from_it,
     return getApproxOverlapArea(from_it.p(), to_it.p(), to_link.dist, from_other_it.p(), to_other_it.p(), from_link->dist);
 }
 
-int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point from_other, const Point to_other, const int64_t from_dist)
+int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Point to, const int64_t to_dist, const Point other_to, const Point other_from, const int64_t from_dist)
 {
-    const Point& other_from = to_other; // the one opposite to [to] is the starting point of the other line segment
-    const Point& other_to = from_other; // these two lines are only renames to interpret the code below easier
-
     std::optional<int64_t> link_dist_2_override; // (an approximation of) twice the length of the overlap area
 
     // check whether the line segment overlaps with the point if one of the line segments is just a point
@@ -203,8 +200,8 @@ int64_t WallOverlapComputation::getApproxOverlapArea(const Point from, const Poi
         }
     }
 
-    const Point from_middle = from_other + from; // dont divide by two just yet
-    const Point to_middle = to_other + to; // dont divide by two just yet
+    const Point from_middle = other_to + from; // don't divide by two just yet
+    const Point to_middle = other_from + to; // don't divide by two just yet
 
     const int64_t link_dist_2 = (link_dist_2_override)? *link_dist_2_override : vSize(from_middle - to_middle); // (an approximation of) twice the length of the overlap area
 
