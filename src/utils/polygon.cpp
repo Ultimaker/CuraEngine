@@ -154,6 +154,16 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
+Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
+{
+    Polygons ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    clipper.AddPaths(paths, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret.paths, distance);
+    return ret;
+}
+
 Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
 {
     Polygons ret;

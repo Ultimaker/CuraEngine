@@ -461,16 +461,9 @@ public:
         clipper.Execute(ClipperLib::ctXor, ret.paths);
         return ret;
     }
-    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const
-    {
-        Polygons ret;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        clipper.AddPaths(paths, joinType, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = miter_limit;
-        clipper.Execute(ret.paths, distance);
-        return ret;
-    }
-    
+
+    Polygons offset(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+
     Polygons offsetPolyLine(int distance, ClipperLib::JoinType joinType = ClipperLib::jtMiter) const
     {
         Polygons ret;
