@@ -514,12 +514,7 @@ public:
      * \return the convex hull (approximately)
      * 
      */
-    Polygons approxConvexHull(int extra_outset = 0)
-    {
-        int overshoot = 100000; // 10 cm (hardcoded value)
-        
-        return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
-    }
+    Polygons approxConvexHull(int extra_outset = 0);
     
     /*!
      * Convex hull of all the points in the polygons.

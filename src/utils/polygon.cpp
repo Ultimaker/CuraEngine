@@ -51,6 +51,13 @@ bool PolygonRef::_inside(Point p, bool border_result)
     return (crossings % 2) == 1;
 }
 
+Polygons Polygons::approxConvexHull(int extra_outset)
+{
+    int overshoot = 100000; // 10 cm (hardcoded value)
+
+    return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
+}
+
 unsigned int Polygons::pointCount() const
 {
     unsigned int count = 0;
