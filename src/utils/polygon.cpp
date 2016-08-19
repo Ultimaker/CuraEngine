@@ -62,7 +62,7 @@ Polygons Polygons::approxConvexHull(int extra_outset)
     for (const ClipperLib::Path path : paths)
     {
         Polygons offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2d, 10.0);
+        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
         offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
         offsetter.Execute(offset_result.paths, overshoot);
         convex_hull.add(offset_result);
