@@ -53,9 +53,21 @@ bool PolygonRef::_inside(Point p, bool border_result)
 
 Polygons Polygons::approxConvexHull(int extra_outset)
 {
-    int overshoot = 100000; // 10 cm (hardcoded value)
+    constexpr int overshoot = 100000; //10cm (hard-coded value).
 
-    return offset(overshoot, ClipperLib::jtRound).offset(-overshoot+extra_outset, ClipperLib::jtRound);
+    Polygons convex_hull;
+    //Perform the offset for each polygon one at a time.
+    //This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
+    //See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
+    for (const ClipperLib::Path path : paths)
+    {
+        Polygons offset_result;
+        ClipperLib::ClipperOffset offsetter(1.2d, 10.0);
+        offsetter.AddPath(path, ClipperLib::jtRound, ClipperLib::etClosedPolygon);
+        offsetter.Execute(offset_result.paths, overshoot);
+        convex_hull.add(offset_result);
+    }
+    return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
 }
 
 unsigned int Polygons::pointCount() const
@@ -164,19 +176,11 @@ unsigned int Polygons::findInside(Point p, bool border_result)
 Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     Polygons ret;
-    //Perform the offset for each polygon one at a time.
-    //This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
-    //See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for(ClipperLib::Path path : paths)
-    {
-        Polygons offset_result;
-        ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
-        clipper.AddPath(path, join_type, ClipperLib::etClosedPolygon);
-        clipper.MiterLimit = miter_limit;
-        clipper.Execute(offset_result.paths, distance); //Perform the offset. Put the result in offset_result.
-        ret.add(offset_result);
-    }
-    return ret.unionPolygons();
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    clipper.AddPaths(unionPolygons().paths, join_type, ClipperLib::etClosedPolygon);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret.paths, distance);
+    return ret;
 }
 
 Polygons PolygonRef::offset(int distance, ClipperLib::JoinType joinType, double miter_limit) const
