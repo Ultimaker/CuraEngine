@@ -161,7 +161,7 @@ bool SettingsBaseVirtual::getSettingBoolean(std::string key) const
         return true;
     if (value == "yes")
         return true;
-    if (value == "true" or value == "True") //Python uses "True"
+    if (value == "true" || value == "True") //Python uses "True"
         return true;
     int num = atoi(value.c_str());
     return num != 0;

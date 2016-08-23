@@ -2,14 +2,14 @@
 #ifndef GETTIME_H
 #define GETTIME_H
 
-#ifdef __WIN32
+#ifdef WIN32
     #include <windows.h>
 #else
+    #include <sys/time.h>
     #ifdef USE_CPU_TIME
     #include <sys/resource.h>
 #endif
 
-#include <sys/time.h>
 #include <stddef.h>
 #include <cassert>
 #endif
@@ -18,9 +18,9 @@ namespace cura
 {
 static inline double getTime()
 {
-#ifdef __WIN32
+#ifdef WIN32
     return double(GetTickCount()) / 1000.0;
-#else // not __WIN32
+#else // not WIN32
  #if USE_CPU_TIME // Use cpu usage time if available, otherwise wall clock time
     int ret;
     struct rusage usage;
@@ -34,7 +34,7 @@ static inline double getTime()
     gettimeofday(&tv, nullptr);
     return double(tv.tv_sec) + double(tv.tv_usec) / 1000000.0;
  #endif // USE_CPU_TIME
-#endif // __WIN32
+#endif // WIN32
 }
 
 class TimeKeeper

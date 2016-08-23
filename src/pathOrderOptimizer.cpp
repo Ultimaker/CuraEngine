@@ -13,7 +13,7 @@ namespace cura {
 */
 void PathOrderOptimizer::optimize()
 {
-    bool picked[polygons.size()];
+    bool *picked = (bool*)alloca(sizeof(bool)*polygons.size());
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
     for (PolygonRef poly : polygons) /// find closest point to initial starting point within each polygon +initialize picked
@@ -154,7 +154,7 @@ void LineOrderOptimizer::optimize()
 {
     int gridSize = 5000; // the size of the cells in the hash grid. TODO
     SparsePointGridInclusive<unsigned int> line_bucket_grid(gridSize);
-    bool picked[polygons.size()];
+    bool *picked = (bool*)alloca(sizeof(bool)*polygons.size());
     memset(picked, false, sizeof(bool) * polygons.size());/// initialized as falses
     
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++) /// find closest point to initial starting point within each polygon +initialize picked

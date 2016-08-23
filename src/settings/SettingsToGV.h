@@ -6,7 +6,11 @@
 #include <stdio.h> // for file output
 #include <sstream>
 #include <iostream> // debug IO
+#ifndef WIN32
 #include <libgen.h> // dirname
+#else
+extern char *dirname(char *path);
+#endif
 #include <string>
 #include <algorithm> // find_if
 #include <regex> // regex_search
