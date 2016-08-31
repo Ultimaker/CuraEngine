@@ -114,11 +114,11 @@ public:
         }
         return *this;
     }
-    constexpr T* operator->()
+    constexpr T* operator->() const
     {
         return instance;
     }
-    constexpr T& operator*() &
+    constexpr T& operator*() const&
     {
         return *instance;
     }
@@ -126,21 +126,14 @@ public:
     {
         return instance;
     }
-    constexpr T& value() &
+    constexpr T& value() const&
     {
         return *instance;
     }
     template<class U> 
     constexpr T value_or(U&& default_value) const&
     {
-        if (instance)
-        {
-            return *instance;
-        }
-        else
-        {
-            return default_value;
-        }
+        return instance ? *instance : default_value;
     }
     void swap(optional& other)
     {
