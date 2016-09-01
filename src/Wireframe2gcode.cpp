@@ -34,16 +34,15 @@ void Wireframe2gcode::writeGCode()
     {
         maxObjectHeight = wireFrame.layers.back().z1;
     }
-    
+
+    gcode.setZ(initial_layer_thickness);
+
     processSkirt();
-    
-            
+
     unsigned int total_layers = wireFrame.layers.size();
     gcode.writeLayerComment(0);
     gcode.writeTypeComment(PrintFeatureType::SkirtBrim);
 
-    gcode.setZ(initial_layer_thickness);
-    
     for (PolygonRef bottom_part : wireFrame.bottom_infill.roof_outlines)
     {
         if (bottom_part.size() == 0) continue;
