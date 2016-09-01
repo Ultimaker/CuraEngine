@@ -71,8 +71,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     {
         storage.support.supportLayers[layer_idx].supportAreas = storage.support.supportLayers[layer_idx].supportAreas.unionPolygons();
     }
-    
-    storage.support.generated = true;
 }
 
 /* 
@@ -156,7 +154,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
     if ( layerZdistanceTop + 1 > support_layer_count )
     {
-        storage.support.generated = false; // no (first layer) support can be generated 
         return;
     }
     
@@ -288,6 +285,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportAreas[layer_idx] = touching_buildplate;
         }
     }
+
+    storage.support.generated = true;
 }
 
 
