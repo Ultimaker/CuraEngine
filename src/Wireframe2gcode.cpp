@@ -3,6 +3,7 @@
 #include <cmath> // sqrt
 #include <fstream> // debug IO
 
+#include "utils/math.h"
 #include "utils/logoutput.h"
 #include "weaveDataStorage.h"
 #include "progress/Progress.h"
@@ -491,13 +492,11 @@ Wireframe2gcode::Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBas
     
     flowConnection = getSettingInPercentage("wireframe_flow_connection");
     flowFlat = getSettingInPercentage("wireframe_flow_flat");
-    
-    const double filament_area = /* M_PI * */ (INT2MM(filament_diameter) / 2.0) * (INT2MM(filament_diameter) / 2.0);
-    const double lineArea = /* M_PI * */ (INT2MM(line_width) / 2.0) * (INT2MM(line_width) / 2.0);
-    extrusion_mm3_per_mm_connection = lineArea / filament_area * flowConnection / 100.0;
-    extrusion_mm3_per_mm_flat = lineArea / filament_area * flowFlat / 100.0;
 
-    
+    const double line_area = M_PI * square(INT2MM(line_width) / 2.0);
+    extrusion_mm3_per_mm_connection = line_area * flowConnection / 100.0;
+    extrusion_mm3_per_mm_flat = line_area * flowFlat / 100.0;
+
     nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter"); // ___       ___   .
     nozzle_head_distance = getSettingInMicrons("machine_nozzle_head_distance");      //    |     |      .
     nozzle_expansion_angle = getSettingInAngleRadians("machine_nozzle_expansion_angle");  //     \_U_/       .
