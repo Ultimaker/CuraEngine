@@ -262,7 +262,7 @@ void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std:
 {
     if (!settings_list.IsObject())
     {
-        logError("ERROR: json settings list is not an object!\n");
+        logError("json settings list is not an object!\n");
         return;
     }
     for (rapidjson::Value::ConstMemberIterator setting_iterator = settings_list.MemberBegin(); setting_iterator != settings_list.MemberEnd(); ++setting_iterator)
@@ -295,7 +295,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
     const rapidjson::Value& json_setting = json_setting_it->value;
     if (!json_setting.IsObject())
     {
-        logError("ERROR: json setting is not an object!\n");
+        logError("json setting is not an object!\n");
         return;
     }
     std::string name = json_setting_it->name.GetString();
@@ -308,7 +308,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
     {
         if (!json_setting.HasMember("label") || !json_setting["label"].IsString())
         {
-            logError("ERROR: json setting \"%s\" has no label!\n", name.c_str());
+            logError("json setting \"%s\" has no label!\n", name.c_str());
             return;
         }
         std::string label = json_setting["label"].GetString();
@@ -316,7 +316,7 @@ void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator&
         SettingConfig* setting = getSettingConfig(name);
         if (warn_duplicates && setting)
         {
-            cura::logError("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
+            cura::logWarning("Duplicate definition of setting: %s a.k.a. \"%s\" was already claimed by \"%s\"\n", name.c_str(), label.c_str(), getSettingConfig(name)->getLabel().c_str());
         }
         if (!setting)
         {

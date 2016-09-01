@@ -133,7 +133,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
 
     }
 
-    if (candidateFaces.size() == 0) { cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx); return -1; }
+    if (candidateFaces.size() == 0) { cura::logWarning("Couldn't find face connected to face %i.\n", notFaceIdx); return -1; }
     if (candidateFaces.size() == 1) { return candidateFaces[0]; }
 
 
@@ -178,7 +178,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
             bestIdx = candidateFace;
         }
     }
-    if (bestIdx < 0) cura::logError("Couldn't find face connected to face %i.\n", notFaceIdx);
+    if (bestIdx < 0) cura::logWarning("Couldn't find face connected to face %i.\n", notFaceIdx);
     return bestIdx;
 }
 

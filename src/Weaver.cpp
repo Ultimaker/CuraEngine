@@ -42,7 +42,7 @@ void Weaver::weave(MeshGroup* meshgroup)
         }
         if (starting_layer_idx > 0)
         {
-            logError("First %i layers are empty!\n", starting_layer_idx);
+            logWarning("First %i layers are empty!\n", starting_layer_idx);
         }
     }
     

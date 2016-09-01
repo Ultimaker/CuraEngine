@@ -78,7 +78,7 @@ void SettingsBase::setSetting(std::string key, std::string value)
     }
     else
     {
-        cura::logError("Warning: setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
+        cura::logWarning("Setting an unregistered setting %s to %s\n", key.c_str(), value.c_str());
         _setSetting(key, value); // Handy when programmers are in the process of introducing a new setting
     }
 }
@@ -105,7 +105,7 @@ std::string SettingsBase::getSettingString(std::string key) const
     }
 
     const_cast<SettingsBase&>(*this).setting_values[key] = "";
-    cura::logError("Unregistered setting %s\n", key.c_str());
+    cura::logWarning("Unregistered setting %s\n", key.c_str());
     return "";
 }
 
