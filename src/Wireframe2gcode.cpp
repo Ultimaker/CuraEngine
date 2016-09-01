@@ -607,7 +607,7 @@ void Wireframe2gcode::processSkirt()
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
             Point& p = poly[(point_idx + order.polyStart[poly_idx] + 1) % poly.size()];
-            gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_brim_speed"), getSettingInMillimetersPerSecond("skirt_brim_line_width"));
+            gcode.writeMove(p, getSettingInMillimetersPerSecond("skirt_brim_speed"), getSettingInMillimeters("skirt_brim_line_width") * INT2MM(initial_layer_thickness));
         }
     }
 }
