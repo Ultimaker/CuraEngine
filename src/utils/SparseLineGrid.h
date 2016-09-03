@@ -10,6 +10,7 @@
 #include "intpoint.h"
 #include "SparseGrid.h"
 #include "SVG.h" // debug
+#include "logoutput.h"
 
 namespace cura {
 
@@ -67,47 +68,74 @@ SGI_TEMPLATE
 void SGI_THIS::insert(const Elem &elem)
 {
     const std::pair<Point, Point> line = m_locator(elem);
-    Point start = line.first;
-    Point end = line.second;
-    if (end.X < start.X)
-    { // make sure X increases between start and end
-        std::swap(start, end);
-    }
+    const Point start = line.first;
+    const Point end = line.second;
 
     const GridPoint start_cell = SparseGrid<ElemT>::toGridPoint(start);
     const GridPoint end_cell = SparseGrid<ElemT>::toGridPoint(end);
-    coord_t y_diff = end.Y - start.Y;
 
-    grid_coord_t y_dir = (y_diff >= 0)? 1 : -1;
-    grid_coord_t x_cell_start = start_cell.X;
-    for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
-    { // for all Y from start to end
-        coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + std::max(coord_t(0), y_dir)); // nearest y coordinate of the cells in the next row
-        grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
-        if (y_diff == 0)
+    const grid_coord_t x_cell_step = start_cell.X < end_cell.X ? 1 : -1;
+    const grid_coord_t y_cell_step = start_cell.Y < end_cell.Y ? 1 : -1;
+    const grid_coord_t x_cell_diff = (end_cell.X - start_cell.X) * x_cell_step;
+    const grid_coord_t y_cell_diff = (end_cell.Y - start_cell.Y) * y_cell_step;
+
+    GridPoint grid_loc(start_cell.X, start_cell.Y);
+    // the algorithm works by successively substracting the small diff from the
+    // large diff until all that is left is a remainder, then it steps in the
+    // other axis and adds a large diff again. The starting large diff should
+    // be scaled by the inverse (size of cell - error) of the amount of
+    // starting error in the small diff.
+    grid_coord_t err;
+    int max_steps = 0;
+    if (x_cell_diff > y_cell_diff)
+    {
+        // cell edge in the direction we're heading (y_cell_step)
+        grid_coord_t y_cell_edge = SparseGrid<ElemT>::toLowerCoord(start_cell.Y + ((y_cell_step * start.Y < 0) ? 0 : y_cell_step));
+        // since toLowerCoord always truncates toward the origin, we're heading
+        // toward the origin if the signs of the step and the coord are opposite
+        grid_coord_t y_remaining_err = std::abs(start.Y - y_cell_edge);
+        // scale of y_remaining_err to cell size determines how soon we'll make
+        // the first step in y (afterward at rate of x_cell_diff / y_cell_diff)
+        err = x_cell_diff * y_remaining_err / SparseGrid<ElemT>::toLowerCoord(1);
+        max_steps = x_cell_diff + 1;
+    }
+    else
+    {
+        // see comment in y computation, x is symmetric
+        grid_coord_t x_cell_edge = SparseGrid<ElemT>::toLowerCoord(start_cell.X + ((x_cell_step * start.X < 0) ? 0 : x_cell_step));
+        grid_coord_t x_remaining_err = std::abs(start.X - x_cell_edge);
+        err = -y_cell_diff * x_remaining_err / SparseGrid<ElemT>::toLowerCoord(1);
+        max_steps = y_cell_diff + 1;
+    }
+    // +err means we're stepping in x watching for steps in y
+    // -err means we're stepping in y watching for steps in x
+
+    while (max_steps--) {
+        SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
+        if (x_cell_step * grid_loc.X >= x_cell_step * end_cell.X || y_cell_step * grid_loc.Y >= y_cell_step * end_cell.Y)
         {
-            x_cell_end = end_cell.X;
-        }
-        else
-        {
-            coord_t corresponding_x = start.X + (end.X - start.X) * (nearest_next_y - start.Y) / y_diff;
-            x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x);
-            if (x_cell_end < start_cell.X)
-            { // process at least one cell!
-                x_cell_end = x_cell_start;
-            }
+            return;
         }
 
-        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
+        grid_coord_t cur_err = err;
+        if (cur_err > -x_cell_diff)
         {
-            GridPoint grid_loc(cell_x, cell_y);
+            err -= y_cell_diff;
+            grid_loc.X += x_cell_step;
+        }
+        if (cur_err > -x_cell_diff && cur_err < y_cell_diff)
+        {
+            // this is the fat line version of Bresenham's in that on each step
+            // we fill in both of the "aliasing" pixels
+            GridPoint grid_other(grid_loc.X - x_cell_step, grid_loc.Y + y_cell_step);
             SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
-            if (grid_loc == end_cell)
-            {
-                return;
-            }
+            SparseGrid<ElemT>::m_grid.emplace(grid_other, elem);
         }
-        x_cell_start = x_cell_end; // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
+        if (cur_err < y_cell_diff)
+        {
+            err += x_cell_diff;
+            grid_loc.Y += y_cell_step;
+        }
     }
     assert(false && "We should have returned already before here!");
 }
