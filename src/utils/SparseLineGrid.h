@@ -50,6 +50,7 @@ protected:
 
     /*! \brief Accessor for getting locations from elements. */
     Locator m_locator;
+    grid_coord_t sign(grid_coord_t z);
 };
 
 
@@ -76,22 +77,29 @@ void SGI_THIS::insert(const Elem &elem)
 
     const GridPoint start_cell = SparseGrid<ElemT>::toGridPoint(start);
     const GridPoint end_cell = SparseGrid<ElemT>::toGridPoint(end);
-    coord_t y_diff = end.Y - start.Y;
+    const coord_t y_diff = end.Y - start.Y;
 
     grid_coord_t y_dir = (y_diff >= 0)? 1 : -1;
     grid_coord_t x_cell_start = start_cell.X;
     for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
     { // for all Y from start to end
-        coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + std::max(coord_t(0), y_dir)); // nearest y coordinate of the cells in the next row
+        // nearest y coordinate of the cells in the next row
+        coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + ((sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
         grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
+        coord_t corresponding_x;
+        bool is_corresponding_x_whole;
         if (y_diff == 0)
         {
+            is_corresponding_x_whole = false;
+            corresponding_x = end.X;
             x_cell_end = end_cell.X;
         }
         else
         {
-            coord_t corresponding_x = start.X + (end.X - start.X) * (nearest_next_y - start.Y) / y_diff;
-            x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x);
+            coord_t area = (end.X - start.X) * (nearest_next_y - start.Y);
+            is_corresponding_x_whole = ((area % y_diff) == 0);
+            corresponding_x = start.X + area / y_diff;
+            x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x + ((corresponding_x > 0) ? -is_corresponding_x_whole : !is_corresponding_x_whole));
             if (x_cell_end < start_cell.X)
             { // process at least one cell!
                 x_cell_end = x_cell_start;
@@ -107,9 +115,15 @@ void SGI_THIS::insert(const Elem &elem)
                 return;
             }
         }
-        x_cell_start = x_cell_end; // TODO: doesn't account for lines crossing cell boundaries exactly diagonally over the 4-way intersection point
+        x_cell_start = x_cell_end + (is_corresponding_x_whole && SparseGrid<ElemT>::toLowerCoord(x_cell_end + 1) == corresponding_x);
     }
     assert(false && "We should have returned already before here!");
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::grid_coord_t SGI_THIS::sign(grid_coord_t z)
+{
+    return (z >= 0) - (z < 0);
 }
 
 SGI_TEMPLATE
@@ -119,15 +133,16 @@ void SGI_THIS::debugHTML(std::string filename)
     for (std::pair<GridPoint, ElemT> cell:  SparseGrid<ElemT>::m_grid)
     {
         aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first));
-        aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(1, 1)));
+        aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(sign(cell.first.X), sign(cell.first.Y))));
     }
     SVG svg(filename.c_str(), aabb);
     for (std::pair<GridPoint, ElemT> cell:  SparseGrid<ElemT>::m_grid)
     {
+        // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
         Point lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
-        Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, 1));
-        Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(1, 1));
-        Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(1, 0));
+        Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, sign(cell.first.Y)));
+        Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(sign(cell.first.X), sign(cell.first.Y)));
+        Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(sign(cell.first.X), 0));
 //         svg.writePoint(lb, true, 1);
         svg.writeLine(lb, lt, SVG::Color::GRAY);
         svg.writeLine(lt, rt, SVG::Color::GRAY);
@@ -152,23 +167,36 @@ void SGI_THIS::debugTest()
         }
     };
     SparseLineGrid<std::pair<Point, Point>, PairLocator> line_grid(10);
+
     // straight lines
     line_grid.insert(std::make_pair<Point, Point>(Point(50, 0), Point(50, 70)));
     line_grid.insert(std::make_pair<Point, Point>(Point(0, 90), Point(50, 90)));
     line_grid.insert(std::make_pair<Point, Point>(Point(253, 103), Point(253, 173)));
     line_grid.insert(std::make_pair<Point, Point>(Point(203, 193), Point(253, 193)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-50, 0), Point(-50, -70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(0, -90), Point(-50, -90)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-253, -103), Point(-253, -173)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-203, -193), Point(-253, -193)));
 
     // diagonal lines
     line_grid.insert(std::make_pair<Point, Point>(Point(113, 133), Point(166, 125)));
     line_grid.insert(std::make_pair<Point, Point>(Point(13, 73), Point(26, 25)));
     line_grid.insert(std::make_pair<Point, Point>(Point(166, 33), Point(113, 25)));
     line_grid.insert(std::make_pair<Point, Point>(Point(26, 173), Point(13, 125)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-24, -18), Point(-19, -64)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-113, -133), Point(-166, -125)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-166, -33), Point(-113, -25)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-26, -173), Point(-13, -125)));
 
     // diagonal lines exactly crossing cell corners
     line_grid.insert(std::make_pair<Point, Point>(Point(160, 190), Point(220, 170)));
     line_grid.insert(std::make_pair<Point, Point>(Point(60, 130), Point(80, 70)));
     line_grid.insert(std::make_pair<Point, Point>(Point(220, 90), Point(160, 70)));
     line_grid.insert(std::make_pair<Point, Point>(Point(80, 220), Point(60, 160)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-160, -190), Point(-220, -170)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-60, -130), Point(-80, -70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-220, -90), Point(-160, -70)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-80, -220), Point(-60, -160)));
 
     // single cell
     line_grid.insert(std::make_pair<Point, Point>(Point(203, 213), Point(203, 213)));
@@ -176,6 +204,7 @@ void SGI_THIS::debugTest()
     line_grid.insert(std::make_pair<Point, Point>(Point(243, 213), Point(245, 213)));
     line_grid.insert(std::make_pair<Point, Point>(Point(263, 213), Point(265, 215)));
     line_grid.insert(std::make_pair<Point, Point>(Point(283, 215), Point(285, 213)));
+    line_grid.insert(std::make_pair<Point, Point>(Point(-203, -213), Point(-203, -213)));
 
     line_grid.debugHTML("line_grid.html");
 }
