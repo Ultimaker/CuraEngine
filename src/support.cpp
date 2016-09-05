@@ -2,6 +2,8 @@
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
+#include <cmath> // round
+
 #include "support.h"
 
 #include "utils/math.h"
@@ -472,26 +474,42 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
     const unsigned int z_distance_bottom = round_up_divide(mesh.getSettingInMicrons("support_bottom_distance"), storage.getSettingInMicrons("layer_height"));
     const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
+    const int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height")));
+
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
     {
         SupportLayer& layer = supportLayers[layer_idx];
 
-        const unsigned int layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
-        const unsigned int layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
-        if (layer_idx_above < supportLayers.size())
+        const unsigned int top_layer_idx_above = layer_idx + roof_layer_count + z_distance_top;
+        const unsigned int bottom_layer_idx_below = std::max(0, int(layer_idx) - int(bottom_layer_count) - int(z_distance_bottom));
+        if (top_layer_idx_above < supportLayers.size())
         {
             Polygons roofs;
             if (roof_layer_count > 0)
             {
-                const Polygons outlines_above = mesh.layers[layer_idx_above].getOutlines();
-                roofs = support_areas[layer_idx].intersection(outlines_above);
+                Polygons model;
+                unsigned int n_scans = std::max(1u, roof_layer_count / skip_layer_count);
+                float z_skip = float(roof_layer_count) / float(n_scans);
+                for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
+                {
+                    const Polygons outlines_above = mesh.layers[(std::round(layer_idx_above))].getOutlines();
+                    model = model.unionPolygons(outlines_above);
+                }
+                roofs = support_areas[layer_idx].intersection(model);
             }
             Polygons bottoms;
             if (bottom_layer_count > 0)
             {
-                const Polygons outlines_below = mesh.layers[layer_idx_below].getOutlines();
-                bottoms = support_areas[layer_idx].intersection(outlines_below);
+                Polygons model;
+                unsigned int n_scans = std::max(1u, bottom_layer_count / skip_layer_count);
+                float z_skip = float(bottom_layer_count) / float(n_scans);
+                for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
+                {
+                    const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
+                    model = model.unionPolygons(outlines_below);
+                }
+                bottoms = support_areas[layer_idx].intersection(model);
             }
             Polygons skin = roofs.unionPolygons(bottoms);
             skin.removeSmallAreas(1.0);
