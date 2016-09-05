@@ -550,9 +550,15 @@ void Wireframe2gcode::processStartingCode()
 {
     if (!CommandSocket::isInstantiated())
     {
-        gcode.writeCode(gcode.getFileHeader().c_str());
+        std::string prefix = gcode.getFileHeader();
+        gcode.writeCode(prefix.c_str());
     }
-    else 
+
+    int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+
+    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
+    if (gcode.getFlavor() != EGCodeFlavor::ULTIGCODE && gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
     {
         if (getSettingBoolean("material_bed_temp_prepend"))
         {
@@ -561,29 +567,43 @@ void Wireframe2gcode::processStartingCode()
                 gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
             }
         }
-        
+
         if (getSettingBoolean("material_print_temp_prepend"))
         {
-            if (getSettingInDegreeCelsius("material_print_temperature") > 0)
+            for (int extruder_nr = 0; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
-                gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"));
-                if (getSettingBoolean("machine_print_temp_wait"))
+                double print_temp = getSettingInDegreeCelsius("material_print_temperature");
+                gcode.writeTemperatureCommand(extruder_nr, print_temp);
+            }
+            if (getSettingBoolean("material_print_temp_wait"))
+            {
+                for (int extruder_nr = 0; extruder_nr < getSettingAsCount("machine_extruder_count"); extruder_nr++)
                 {
-                    gcode.writeTemperatureCommand(getSettingAsIndex("extruder_nr"), getSettingInDegreeCelsius("material_print_temperature"), true);
+                    double print_temp = getSettingInDegreeCelsius("material_print_temperature");
+                    gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
                 }
             }
         }
-        
     }
+
     gcode.writeCode(getSettingString("machine_start_gcode").c_str());
-    
-    gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
+
     if (gcode.getFlavor() == EGCodeFlavor::BFB)
     {
         gcode.writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (getSettingInMicrons("retraction_amount") * 2560 / 1000) << " P" << (getSettingInMicrons("retraction_amount") * 2560 / 1000);
         gcode.writeLine(tmp.str().c_str());
+    }
+    else if (gcode.getFlavor() == EGCodeFlavor::GRIFFIN)
+    { // initialize extruder trains
+        gcode.writeCode("T0"); // Toolhead already assumed to be at T0, but writing it just to be safe...
+        CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+        gcode.startExtruder(start_extruder_nr);
+        constexpr bool wait = true;
+        gcode.writeTemperatureCommand(start_extruder_nr, getSettingInDegreeCelsius("material_print_temperature"), wait);
+        gcode.writePrimeTrain(getSettingInMillimetersPerSecond("speed_travel"));
+        gcode.writeRetraction(&standard_retraction_config);
     }
 }
 
