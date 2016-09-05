@@ -475,6 +475,7 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
     const unsigned int z_distance_top = round_up_divide(mesh.getSettingInMicrons("support_top_distance"), storage.getSettingInMicrons("layer_height"));
 
     const int skip_layer_count = std::max(1u, round_divide(mesh.getSettingInMicrons("support_interface_skip_height"), storage.getSettingInMicrons("layer_height")));
+    const int interface_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"))->getSettingInMicrons("support_interface_line_width");
 
     std::vector<SupportLayer>& supportLayers = storage.support.supportLayers;
     for (unsigned int layer_idx = 0; layer_idx < layer_count; layer_idx++)
@@ -511,7 +512,8 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
                 }
                 bottoms = support_areas[layer_idx].intersection(model);
             }
-            Polygons skin = roofs.unionPolygons(bottoms);
+            // expand skin a bit so that we're sure it's not too thin to be printed.
+            Polygons skin = roofs.unionPolygons(bottoms).offset(interface_line_width).intersection(support_areas[layer_idx]);
             skin.removeSmallAreas(1.0);
             layer.skin.add(skin);
             layer.supportAreas.add(support_areas[layer_idx].difference(layer.skin));
