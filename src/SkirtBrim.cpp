@@ -8,28 +8,28 @@ namespace cura
 void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned int count, int minLength, bool outside_only)
 {
     if (count == 0) return;
-    
-    bool externalOnly = (start_distance > 0); // whether to include holes or not
+
+    bool is_skirt = start_distance > 0;
+    bool external_only = is_skirt; // whether to include holes or not
 
     const int primary_extruder = storage.getSettingAsIndex("adhesion_extruder_nr");
     const int primary_extruder_skirt_brim_line_width = storage.meshgroup->getExtruderTrain(primary_extruder)->getSettingInMicrons("skirt_brim_line_width");
 
     Polygons& skirt_brim_primary_extruder = storage.skirt_brim[primary_extruder];
-    
-    bool is_skirt = count == 1 && start_distance > 0;
-    
+
     Polygons first_layer_outline;
     const int layer_nr = 0;
+
     if (is_skirt)
     {
         const bool include_helper_parts = true;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, externalOnly);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
     { // don't add brim _around_ support, but underneath it by removing support where there's brim
         const bool include_helper_parts = false;
-        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, externalOnly);
+        first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
         if (outside_only)
         {
