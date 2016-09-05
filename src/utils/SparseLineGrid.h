@@ -86,8 +86,8 @@ void SGI_THIS::insert(const Elem &elem)
         // nearest y coordinate of the cells in the next row
         coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + ((sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
         grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
-        coord_t corresponding_x;
-        bool is_corresponding_x_whole;
+        coord_t corresponding_x; // the x coordinate corresponding to nearest_next_y
+        bool is_corresponding_x_whole; // does the real corresponding x not have a fractional portion
         if (y_diff == 0)
         {
             is_corresponding_x_whole = false;
