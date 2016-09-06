@@ -100,11 +100,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
     skirt_brim_config(initializeSkirtBrimConfigs()),
-    raft_base_config(PrintFeatureType::Support),
+    raft_base_config(PrintFeatureType::SupportInterface),
     raft_interface_config(PrintFeatureType::Support),
-    raft_surface_config(PrintFeatureType::Support),
+    raft_surface_config(PrintFeatureType::SupportInterface),
     support_config(PrintFeatureType::Support),
-    support_skin_config(PrintFeatureType::Skin),
+    support_skin_config(PrintFeatureType::SupportInterface),
     max_object_height_second_to_last_extruder(-1)
 {
 }

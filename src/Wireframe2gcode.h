@@ -34,8 +34,8 @@ private:
     int line_width;
     double flowConnection;
     double flowFlat; 
-    double extrusion_per_mm_connection; 
-    double extrusion_per_mm_flat; 
+    double extrusion_mm3_per_mm_connection;
+    double extrusion_mm3_per_mm_flat;
     int nozzle_outer_diameter;
     int nozzle_head_distance;
     double nozzle_expansion_angle;

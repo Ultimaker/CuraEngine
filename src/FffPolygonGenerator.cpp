@@ -229,19 +229,21 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     //layerparts2HTML(storage, "output/output.html");
 
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
+
+    AreaSupport::generateSupportAreas(storage, print_layer_count);
+
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
+    // only remove empty layers if we haven't generate support, because then support was added underneath the model.
+    //   for some materials it's better to print on support than on the buildplate.
     removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), print_layer_count); // changes total_layers!
     if (print_layer_count == 0)
     {
         log("Stopping process because there are no non-empty layers.\n");
         return;
     }
-
-    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);  
-
-    AreaSupport::generateSupportAreas(storage, print_layer_count);
     
     /*
     if (storage.support.generated)
@@ -452,7 +454,13 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
 }
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
-{ 
+{
+    // only remove empty layers if we haven't generate support, because then support was added underneath the model.
+    //   for some materials it's better to print on support than on the buildplate.
+    if (storage.support.generated)
+    {
+        return; // the first layer will have support and therefore not be empty
+    }
     int n_empty_first_layers = 0;
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     { 

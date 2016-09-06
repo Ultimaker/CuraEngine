@@ -15,7 +15,8 @@ enum class PrintFeatureType: unsigned char
     Infill,
     SupportInfill,
     MoveCombing,
-    MoveRetraction
+    MoveRetraction,
+    SupportInterface
 };
 
 
