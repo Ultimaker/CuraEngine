@@ -494,7 +494,7 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
                 float z_skip = float(roof_layer_count - 1) / float(n_scans);
                 for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
                 {
-                    const Polygons outlines_above = mesh.layers[(std::round(layer_idx_above))].getOutlines();
+                    const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
                     model = model.unionPolygons(outlines_above);
                 }
                 roofs = support_areas[layer_idx].intersection(model);
