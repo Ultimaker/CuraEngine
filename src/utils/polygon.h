@@ -235,13 +235,26 @@ public:
     }
     
     /*!
+     * Smooth out small perpendicular segments and store the result in \p result.
+     * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
+     * which has an angle with the next and previous line segment smaller than roughly 150*
+     * 
+     * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
+     * Such would be the case for an N shape.
+     * 
+     * \param remove_length The length of the largest segment removed
+     * \param result (output) The result polygon, assumed to be empty
+     */
+    void smooth(int remove_length, PolygonRef result);
+
+    /*!
      * Smooth out the polygon and store the result in \p result.
      * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
      * 
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
-    void smooth(int remove_length, PolygonRef result);
+    void smooth2(int remove_length, PolygonRef result);
 
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -503,7 +516,20 @@ public:
      */
     Polygon convexHull() const;
 
-    Polygons smooth(int remove_length, int min_area); //!< removes points connected to small lines
+    /*!
+     * Smooth out small perpendicular segments
+     * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
+     * which has an angle with the next and previous line segment smaller than roughly 150*
+     * 
+     * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
+     * Such would be the case for an N shape.
+     * 
+     * \param remove_length The length of the largest segment removed
+     * \return The smoothed polygon
+     */
+    Polygons smooth(int remove_length);
+
+    Polygons smooth2(int remove_length, int min_area); //!< removes points connected to small lines
     
     /*!
      * removes points connected to similarly oriented lines

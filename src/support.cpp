@@ -32,7 +32,7 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
                         .offset(-supportJoinDistance);
     }
     if (smoothing_distance > 0)
-        joined = joined.smooth(smoothing_distance, min_smoothing_area);
+        joined = joined.smooth(smoothing_distance);
     
     return joined;
 }
