@@ -85,12 +85,19 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
         for(Point p1_ : poly)
         {
             Point p1 = transformation_matrix.apply(p1_);
-            if ((p0.Y > transformed_startPoint.Y && p1.Y < transformed_startPoint.Y) || (p1.Y > transformed_startPoint.Y && p0.Y < transformed_startPoint.Y))
+            // when the boundary just touches the line don't disambiguate between the boundary moving on to actually cross the line
+            // and the boundary bouncing back, resulting in not a real collision - to keep the algorithm simple.
+            //
+            // disregard overlapping line segments; probably the next or previous line segment is not overlapping, but will give a collision
+            // when the boundary line segment fully overlaps with the line segment this edge case is not viewed as a collision
+            if (p1.Y != p0.Y && ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y)))
             {
                 int64_t x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
-                
+
                 if (x > transformed_startPoint.X && x < transformed_endPoint.X)
+                {
                     return true;
+                }
             }
             p0 = p1;
         }
