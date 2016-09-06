@@ -142,6 +142,16 @@ void SGI_THIS::debugHTML(std::string filename)
         Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, nonzero_sign(cell.first.Y)));
         Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(nonzero_sign(cell.first.X), nonzero_sign(cell.first.Y)));
         Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(nonzero_sign(cell.first.X), 0));
+        if (lb.X == 0)
+        {
+            lb.X = -SparseGrid<ElemT>::m_cell_size;
+            lt.X = -SparseGrid<ElemT>::m_cell_size;
+        }
+        if (lb.Y == 0)
+        {
+            lb.Y = -SparseGrid<ElemT>::m_cell_size;
+            rb.Y = -SparseGrid<ElemT>::m_cell_size;
+        }
 //         svg.writePoint(lb, true, 1);
         svg.writeLine(lb, lt, SVG::Color::GRAY);
         svg.writeLine(lt, rt, SVG::Color::GRAY);
@@ -204,6 +214,9 @@ void SGI_THIS::debugTest()
     line_grid.insert(std::make_pair<Point, Point>(Point(263, 213), Point(265, 215)));
     line_grid.insert(std::make_pair<Point, Point>(Point(283, 215), Point(285, 213)));
     line_grid.insert(std::make_pair<Point, Point>(Point(-203, -213), Point(-203, -213)));
+
+    // around origin
+    line_grid.insert(std::make_pair<Point, Point>(Point(20, -20), Point(-20, 20)));
 
     line_grid.debugHTML("line_grid.html");
 }
