@@ -241,33 +241,7 @@ public:
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
-    void smooth(int remove_length, PolygonRef result)
-    {
-        PolygonRef& thiss = *this;
-        ClipperLib::Path* poly = result.path;
-        if (size() > 0)
-        {
-            poly->push_back(thiss[0]);
-        }
-        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
-        {
-            Point& last = thiss[poly_idx - 1];
-            Point& now = thiss[poly_idx];
-            Point& next = thiss[(poly_idx + 1) % size()];
-            if (shorterThen(last - now, remove_length) && shorterThen(now - next, remove_length)) 
-            {
-                poly_idx++; // skip the next line piece (dont escalate the removal of edges)
-                if (poly_idx < size())
-                {
-                    poly->push_back(thiss[poly_idx]);
-                }
-            }
-            else
-            {
-                poly->push_back(thiss[poly_idx]);
-            }
-        }
-    }
+    void smooth(int remove_length, PolygonRef result);
 
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -529,35 +503,13 @@ public:
      */
     Polygon convexHull() const;
 
-    Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
-    {
-        Polygons ret;
-        for (unsigned int p = 0; p < size(); p++)
-        {
-            PolygonRef poly(paths[p]);
-            if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
-            {
-                ret.add(poly);
-                continue;
-            }
-            
-            if (poly.size() == 0)
-                continue;
-            if (poly.size() < 4)
-                ret.add(poly);
-            else 
-                poly.smooth(remove_length, ret.newPoly());
-            
-
-        }
-        return ret;
-    }
+    Polygons smooth(int remove_length, int min_area); //!< removes points connected to small lines
     
     /*!
      * removes points connected to similarly oriented lines
      * 
-     * \param smallest_line_segment_squared maximal squared length of removed line segments
-     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     * \param smallest_line_segment maximal length of removed line segments
+     * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
     void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
     {
