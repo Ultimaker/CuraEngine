@@ -25,31 +25,31 @@ namespace cura
     
 void print_usage()
 {
-    cura::log("\n");
-    cura::log("usage:\n");
-    cura::log("CuraEngine help\n");
-    cura::log("\tShow this help message\n");
-    cura::log("\n");
-    cura::log("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
-    cura::log("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
-    cura::log("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
-    cura::log("\n");
-    cura::log("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
-    cura::log("  -v\n\tIncrease the verbose level (show log messages).\n");
-    cura::log("  -p\n\tLog progress information.\n");
-    cura::log("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
-    cura::log("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
-    cura::log("  -l <model_file>\n\tLoad an STL model. \n");
-    cura::log("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
-    cura::log("  -e<extruder_nr>\n\tSwitch setting focus to the extruder train with the given number.\n");
-    cura::log("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
-    cura::log("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
-    cura::log("\n");
-    cura::log("The settings are appended to the last supplied object:\n");
-    cura::log("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
-    cura::log("\n");
-    cura::log("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a (semi-)colon.\n");
-    cura::log("\n");
+    logAlways("\n");
+    logAlways("usage:\n");
+    logAlways("CuraEngine help\n");
+    logAlways("\tShow this help message\n");
+    logAlways("\n");
+    logAlways("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
+    logAlways("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
+    logAlways("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
+    logAlways("\n");
+    logAlways("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
+    logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
+    logAlways("  -p\n\tLog progress information.\n");
+    logAlways("  -j\n\tLoad settings.def.json file to register all settings and their defaults.\n");
+    logAlways("  -s <setting>=<value>\n\tSet a setting to a value for the last supplied object, \n\textruder train, or general settings.\n");
+    logAlways("  -l <model_file>\n\tLoad an STL model. \n");
+    logAlways("  -g\n\tSwitch setting focus to the current mesh group only.\n\tUsed for one-at-a-time printing.\n");
+    logAlways("  -e<extruder_nr>\n\tSwitch setting focus to the extruder train with the given number.\n");
+    logAlways("  --next\n\tGenerate gcode for the previously supplied mesh group and append that to \n\tthe gcode of further models for one-at-a-time printing.\n");
+    logAlways("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
+    logAlways("\n");
+    logAlways("The settings are appended to the last supplied object:\n");
+    logAlways("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object settings] \n\t--next [next group settings]\n\t... etc.\n");
+    logAlways("\n");
+    logAlways("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search paths delimited by a (semi-)colon.\n");
+    logAlways("\n");
 }
 
 //Signal handler for a "floating point exception", which can also be integer division by zero errors.
@@ -300,22 +300,22 @@ int main(int argc, char **argv)
     Progress::init();
     
     
-    logCopyright("\n");
-    logCopyright("Cura_SteamEngine version %s\n", VERSION);
-    logCopyright("Copyright (C) 2014 David Braam\n");
-    logCopyright("\n");
-    logCopyright("This program is free software: you can redistribute it and/or modify\n");
-    logCopyright("it under the terms of the GNU Affero General Public License as published by\n");
-    logCopyright("the Free Software Foundation, either version 3 of the License, or\n");
-    logCopyright("(at your option) any later version.\n");
-    logCopyright("\n");
-    logCopyright("This program is distributed in the hope that it will be useful,\n");
-    logCopyright("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
-    logCopyright("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
-    logCopyright("GNU Affero General Public License for more details.\n");
-    logCopyright("\n");
-    logCopyright("You should have received a copy of the GNU Affero General Public License\n");
-    logCopyright("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
+    logAlways("\n");
+    logAlways("Cura_SteamEngine version %s\n", VERSION);
+    logAlways("Copyright (C) 2014 David Braam\n");
+    logAlways("\n");
+    logAlways("This program is free software: you can redistribute it and/or modify\n");
+    logAlways("it under the terms of the GNU Affero General Public License as published by\n");
+    logAlways("the Free Software Foundation, either version 3 of the License, or\n");
+    logAlways("(at your option) any later version.\n");
+    logAlways("\n");
+    logAlways("This program is distributed in the hope that it will be useful,\n");
+    logAlways("but WITHOUT ANY WARRANTY; without even the implied warranty of\n");
+    logAlways("MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the\n");
+    logAlways("GNU Affero General Public License for more details.\n");
+    logAlways("\n");
+    logAlways("You should have received a copy of the GNU Affero General Public License\n");
+    logAlways("along with this program.  If not, see <http://www.gnu.org/licenses/>.\n");
 
 
     if (argc < 2)

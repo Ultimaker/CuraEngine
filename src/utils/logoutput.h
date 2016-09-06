@@ -14,7 +14,7 @@ void logWarning(const char* fmt, ...);
 //Report a message if the verbose level is 1 or higher. (defined as _log to prevent clash with log() function from <math.h>)
 void log(const char* fmt, ...);
 //Report an copyright message (always reported, independed of verbose level)
-void logCopyright(const char* fmt, ...);
+void logAlways(const char* fmt, ...);
 
 //Report a message if the verbose level is 2 or higher. (defined as _log to prevent clash with log() function from <math.h>)
 void logDebug(const char* fmt, ...);

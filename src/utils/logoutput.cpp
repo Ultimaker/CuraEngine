@@ -39,7 +39,7 @@ void logWarning(const char* fmt, ...)
     fflush(stderr);
 }
 
-void logCopyright(const char* fmt, ...)
+void logAlways(const char* fmt, ...)
 {
     va_list args;
     va_start(args, fmt);
