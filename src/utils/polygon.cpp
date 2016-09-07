@@ -417,7 +417,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
 //         |
 //         0
 
-    float cos_min_angle = cos(min_angle);
+    float cos_min_angle = cos(min_angle / 180 * M_PI);
 
     ListPolygon poly;
     ListPolyIt::convertPolygonToList(*this, poly);
