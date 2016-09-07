@@ -94,12 +94,26 @@ public:
      */
     static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
     /*!
+     * Convert Polygons to ListPolygons
+     * 
+     * \param polys The polygons to convert
+     * \param result The converted polygons
+     */
+    static void convertPolygonToList(PolygonRef poly, ListPolygon& result);
+    /*!
      * Convert ListPolygons to Polygons
      * 
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
     static void convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons);
+    /*!
+     * Convert ListPolygons to Polygons
+     * 
+     * \param list_polygons The polygons to convert
+     * \param polygons The converted polygons
+     */
+    static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon);
 };
 
 
