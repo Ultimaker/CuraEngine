@@ -267,4 +267,22 @@ void LinearAlg2DTest::getAngleAssert(Point a, Point b, Point c, float actual_ang
     CPPUNIT_ASSERT_MESSAGE(ss.str(), std::fabs(actual_angle - supposed_angle) <= maximum_error_angle);
 }
 
+
+
+void LinearAlg2DTest::pointIsLeftOfLineTest()
+{
+    short actual = 1;
+    Point p(0,10);
+    Point a(10,0);
+    Point b(10,20);
+    // . |
+    int64_t supposed = LinearAlg2D::pointIsLeftOfLine(p, a, b); // . |
+    std::stringstream ss;
+    ss << "Point " << p << " was computed as lying " << ((supposed == 0)? "on" : ((supposed < 0)? "left" : "right")) << " the line from " << a << " to " << b << ", instead of " << ((actual == 0)? "on" : ((actual < 0)? "left" : "right"));
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), actual * supposed > 0 || (actual == 0 && supposed == 0));
+
+}
+
+
+
 }

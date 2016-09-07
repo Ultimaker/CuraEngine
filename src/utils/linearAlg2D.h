@@ -209,6 +209,22 @@ public:
      * \return the angle in radians between 0 and 2 * pi of the corner in \p b
      */
     static float getAngleLeft(const Point& a, const Point& b, const Point& c);
+
+    /*!
+     * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.
+     * 
+     * The returned value is zero for \p p lying (approximately) on the line going through \p a and \p b
+     * The value is positive for values lying to the left and negative for values lying to the right when looking from \p a to \p b.
+     * 
+     * \param p the point to check
+     * \param a the from point of the line
+     * \param b the to point of the line
+     * \return a positive value when \p p lies to the left of the line from \p a to \p b
+     */
+    static inline int64_t pointIsLeftOfLine(const Point& p, const Point& a, const Point& b)
+    {
+        return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+    }
 };
 
 
