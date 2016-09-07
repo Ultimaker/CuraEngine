@@ -285,4 +285,69 @@ void LinearAlg2DTest::pointIsLeftOfLineTest()
 
 
 
+void LinearAlg2DTest::getPointOnLineWithDistTest1()
+{
+    getPointOnLineWithDistAssert(Point(110,30), Point(0,0), Point(100,0), 50, Point(70,0), true);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest2()
+{
+    getPointOnLineWithDistAssert(Point(90,30), Point(0,0), Point(100,0), 50, Point(50,0), true);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest3()
+{
+    getPointOnLineWithDistAssert(Point(10,30), Point(0,0), Point(100,0), 50, Point(50,0), true);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest4()
+{
+    getPointOnLineWithDistAssert(Point(-10,30), Point(0,0), Point(100,0), 50, Point(30,0), true);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest5()
+{
+    getPointOnLineWithDistAssert(Point(50,30), Point(0,0), Point(100,0), 50, Point(10,0), true);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest6()
+{
+    getPointOnLineWithDistAssert(Point(210,30), Point(0,0), Point(100,0), 50, Point(70,0), false);
+}
+void LinearAlg2DTest::getPointOnLineWithDistTest7()
+{
+    getPointOnLineWithDistAssert(Point(110,130), Point(0,0), Point(100,0), 50, Point(70,0), false);
+}
+
+
+void LinearAlg2DTest::getPointOnLineWithDistAssert(const Point p, const Point a, const Point b, int64_t dist, Point actual_result, bool actual_returned)
+{
+    Point supposed_result;
+    bool supposed_returned = LinearAlg2D::getPointOnLineWithDist(p, a, b, dist, supposed_result);
+
+    int64_t returned_dist = vSize(supposed_result - p);
+
+    std::stringstream ss;
+    if (actual_returned)
+    {
+        if (supposed_returned)
+        {
+            ss << "Point " << p << " was projected on (" << a << "-" << b << ") to " << supposed_result << " instead of " << actual_result << ".";
+        }
+        else
+        {
+            ss << "Point " << p << " wasn't projected on (" << a << "-" << b << ") instead of projecting to " << actual_result << ".";
+        }
+    }
+    else
+    {
+        if (supposed_returned)
+        {
+            ss << "Point " << p << " was projected on (" << a << "-" << b << ") to " << supposed_result << ", but it wasn't supposed to project.";
+        }
+        else
+        {
+            ss << "This is no error! This should never show!";
+        }
+    }
+    ss << " \t Requested dist was " << dist << " result dist is " << returned_dist << ".";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), (!actual_returned && !supposed_returned) || (actual_returned && vSize2(actual_result - supposed_result) < 10 * 10 && std::abs(returned_dist - dist) < 10));
+}
+
+
 }

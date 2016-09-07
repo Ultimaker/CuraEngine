@@ -225,6 +225,20 @@ public:
     {
         return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
     }
+
+    /*!
+     * Get a point on the line segment (\p a - \p b)with a given distance to point \p p
+     * 
+     * In case there are two possible point that meet the criteria, choose the one closest to a.
+     * 
+     * \param p The reference point
+     * \param a Start of the line segment
+     * \param b End of the line segment
+     * \param dist The required distance of \p result to \p p
+     * \param[out] result The result (if any was found)
+     * \return Whether any such point has been found
+     */
+    static bool getPointOnLineWithDist(const Point p, const Point a, const Point b, int64_t dist, Point& result);
 };
 
 
