@@ -403,6 +403,8 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
 
 void PolygonRef::smooth(int remove_length, PolygonRef result)
 {
+// a typical zigzag with the middle part to be removed by removing (1) :
+//
 //               3
 //               ^
 //               |
@@ -414,62 +416,69 @@ void PolygonRef::smooth(int remove_length, PolygonRef result)
 //          |
 //          |
 //          0
-    int remove_length_2 = remove_length * remove_length;
     PolygonRef& thiss = *this;
     ClipperLib::Path* poly = result.path;
     if (size() > 0)
     {
         poly->push_back(thiss[0]);
     }
-    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+    auto is_zigzag = [remove_length](const int64_t v02_size, const int64_t v12_size, const int64_t v13_size, const Point v02, const Point v12, const Point v13, const int64_t dot1, const int64_t dot2)
     {
-        const Point& p0 = poly->back();
-        const Point& p1 = thiss[poly_idx];
-        const Point& p2 = thiss[(poly_idx + 1) % size()];
-        const Point& p3 = thiss[(poly_idx + 2) % size()];
-        const Point v02 = p2 - p0;
-        const Point v12 = p2 - p1;
-        const Point v13 = p3 - p1;
-        const int64_t v02_size = vSize(v02);
-        const int64_t v12_size = vSize(v12);
-        const int64_t v13_size = vSize(v13);
-//         if (v02_size < remove_length || v13_size < remove_length || v12_size > remove_length)
         if (v12_size > remove_length)
         { // v12 or v13 is too long
-            poly->push_back(thiss[poly_idx]);
-            continue;
+            return false;
         }
-        const int64_t dot1 = dot(turn90CCW(v02), v12);
         const bool p1_is_left_of_v02 = dot1 < 0;
         if (!p1_is_left_of_v02)
         { // removing p1 wouldn't smooth outward
-            poly->push_back(thiss[poly_idx]);
-            continue;
+            return false;
         }
-        const int64_t dot2 = dot(turn90CCW(v13), v12);
         const bool p2_is_left_of_v13 = dot2 > 0;
         if (p2_is_left_of_v13)
         { // l0123 doesn't constitute a zigzag ''|,,
-            poly->push_back(thiss[poly_idx]);
-            continue;
+            return false;
         }
         if (-dot1 <= v02_size * v12_size / 2)
         { // angle at p1 isn't sharp enough
-            poly->push_back(thiss[poly_idx]);
-            continue;
+            return false;
         }
         if (-dot2 <= v13_size * v12_size / 2)
         { // angle at p2 isn't sharp enough
-            poly->push_back(thiss[poly_idx]);
-            continue;
+            return false;
         }
-        // do not add the current one to the result
+        return true;
+    };
+    Point v02 = thiss[2] - thiss[0];
+    Point v02T = turn90CCW(v02);
+    int64_t v02_size = vSize(v02);
+    bool force_push = false;
+    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
+    {
+        const Point& p1 = thiss[poly_idx];
+        const Point& p2 = thiss[(poly_idx + 1) % size()];
+        const Point& p3 = thiss[(poly_idx + 2) % size()];
+        const Point v12 = p2 - p1;
+        const Point v13 = p3 - p1;
+        const int64_t v12_size = vSize(v12);
+        const int64_t v13_size = vSize(v13);
 
-        poly_idx++; // skip the next line piece (dont escalate the removal of edges)
-        if (poly_idx < size())
+        const int64_t dot1 = dot(v02T, v12);
+        const Point v13T = turn90CCW(v13);
+        const int64_t dot2 = dot(v13T, v12);
+        bool push_point = force_push || !is_zigzag(v02_size, v12_size, v13_size, v02, v12, v13, dot1, dot2);
+        force_push = false;
+        if (push_point)
         {
-            poly->push_back(thiss[poly_idx]);
+            poly->push_back(p1);
         }
+        else
+        {
+            // do not add the current one to the result
+            force_push = true; // ensure the next point is added; it cannot also be a zigzag
+        }
+        v02T = v13T;
+        v02 = v13;
+        v02_size = v13_size;
     }
 }
 
