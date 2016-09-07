@@ -422,7 +422,7 @@ void PolygonRef::smooth(int remove_length, PolygonRef result)
     {
         poly->push_back(thiss[0]);
     }
-    auto is_zigzag = [remove_length](const int64_t v02_size, const int64_t v12_size, const int64_t v13_size, const Point v02, const Point v12, const Point v13, const int64_t dot1, const int64_t dot2)
+    auto is_zigzag = [remove_length](const Point v02, const int64_t v02_size, const Point v12, const int64_t v12_size, const Point v13, const int64_t v13_size, const int64_t dot1, const int64_t dot2)
     {
         if (v12_size > remove_length)
         { // v12 or v13 is too long
@@ -457,15 +457,18 @@ void PolygonRef::smooth(int remove_length, PolygonRef result)
         const Point& p1 = thiss[poly_idx];
         const Point& p2 = thiss[(poly_idx + 1) % size()];
         const Point& p3 = thiss[(poly_idx + 2) % size()];
+        // v02 computed in last iteration
+        // v02_size as well
         const Point v12 = p2 - p1;
-        const Point v13 = p3 - p1;
         const int64_t v12_size = vSize(v12);
+        const Point v13 = p3 - p1;
         const int64_t v13_size = vSize(v13);
 
+        // v02T computed in last iteration
         const int64_t dot1 = dot(v02T, v12);
         const Point v13T = turn90CCW(v13);
         const int64_t dot2 = dot(v13T, v12);
-        bool push_point = force_push || !is_zigzag(v02_size, v12_size, v13_size, v02, v12, v13, dot1, dot2);
+        bool push_point = force_push || !is_zigzag(v02, v02_size, v12, v12_size, v13, v13_size, dot1, dot2);
         force_push = false;
         if (push_point)
         {
