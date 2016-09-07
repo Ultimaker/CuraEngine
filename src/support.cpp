@@ -72,6 +72,41 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
     {
         storage.support.supportLayers[layer_idx].supportAreas = storage.support.supportLayers[layer_idx].supportAreas.unionPolygons();
+
+        // get a support line width representative for all support
+        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
+        int support_infill_extruder_nr = (layer_idx == 0)? storage.getSettingAsIndex("support_extruder_nr_layer_0") : storage.getSettingAsIndex("support_infill_extruder_nr");
+        int interface_enable = storage.getSettingBoolean("support_interface_enable");
+        int interface_extruder_nr = interface_enable? support_skin_extruder_nr : support_infill_extruder_nr;
+        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(interface_extruder_nr);
+        int support_line_width = train.getSettingInMicrons(interface_enable? "support_interface_line_width" : "support_line_width");
+
+        // remove jagged line pieces introduced by unioning separate overhang areas for consectuive layers
+        //
+        // support may otherwise look like:
+        //      _____________________      .
+        //     /                     \      } dist_from_lower_layer
+        //    /__                   __\    /
+        //      /                   \        `\.
+        //     /                     \         } dist_from_lower_layer
+        //    /__                   __\      ./
+        //      /                   \     `\.
+        //     /                     \      } dist_from_lower_layer
+        //    /_______________________\   ,/
+        //            rather than
+        //     _______________________
+        //    |                       |
+        //    |                       |
+        //    |                       |
+        //    |                       |
+        //    |                       |
+        //    |                       |
+        //    |                       |
+        //    |_______________________|
+        //
+        // dist_from_lower_layer may be up to max_dist_from_lower_layer (see below), but that value may be extremely high
+        storage.support.supportLayers[layer_idx].supportAreas.simplify(support_line_width / 2);
+        
     }
 }
 
@@ -189,14 +224,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
 
         Polygons& supportLayer_this = overhang; 
-        
+
         if (extension_offset)
         {
             supportLayer_this = supportLayer_this.offset(extension_offset);
         }
-        
-        supportLayer_this.simplify(50); // TODO: hardcoded value!
-        
+
         if (supportMinAreaSqrt > 0)
         {
             // handle straight walls

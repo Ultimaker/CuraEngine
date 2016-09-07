@@ -3,6 +3,8 @@
 
 #include "linearAlg2D.h" // pointLiesOnTheRightOfLine
 
+#include "ListPolyIt.h"
+
 namespace cura 
 {
 
@@ -280,38 +282,6 @@ Polygon Polygons::convexHull() const
 }
 
 void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_distance_squared){
-    PolygonRef& thiss = *this;
-    
-    if (size() <= 2)
-    {
-        clear();
-        return; 
-    }
-    
-    { // remove segments smaller than allowed_error_distance
-    // this is neccesary in order to avoid the case where a long segment is followed by a lot of small segments would get simplified to a long segment going to the wrong end point
-    //  .......                _                 _______
-    // |                      /                 |
-    // |     would become    /    instead of    |
-    // |                    /                   |
-        Point* last = &thiss.back();
-        unsigned int writing_idx = 0;
-        for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
-        {
-            Point& here = thiss[poly_idx];
-            if (vSize2(*last - here) < smallest_line_segment_squared)
-            {
-                // don't add the point
-            }
-            else 
-            {
-                thiss[writing_idx] = here;
-                writing_idx++;
-                last = &here;
-            }
-        }
-        path->erase(path->begin() + writing_idx , path->end());
-    }
 
     if (size() < 3)
     {
@@ -319,60 +289,155 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
         return;
     }
 
-    Point* last = &thiss[0];
-    unsigned int writing_idx = 1;
-    for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
-    {
-        Point& here = thiss[poly_idx];
-        if ( vSize2(here-*last) < allowed_error_distance_squared )
+// Algorithm Explanation:
+// initial: 1
+// after stage I: 2
+// after first step of stage II: 3
+//
+//                       111111111111111111111111111
+//                      1         22 332222         1
+//                     1       222  3  3   222       1
+//                    1      22    3   3      222     1
+//                    1   222      3    3        2222 1
+//                   1 222        3      3           221
+//                  122          3       3              12
+//                 12            3        3              1
+//                 12           3          3             1
+//                1 2          3            3            21
+//               1  2          3            3            21
+//               1  2         3              3          2  1
+//              1    2        3               3         2  1
+//              1    2       3                 3        2   1
+//             1     2      3                  3        2   1
+//              1    2      3                   3       2    1
+//               1    2    3                     3      2    1
+//                1   2   3                      3     2    1
+//                 1  2   3                       3    2   1
+//                  1  2 3                         3   2  1
+//                   1 23                           3  2 1
+//                    123                           3  21
+//                     1                             321
+//                                                    1
+//
+// this is neccesary in order to avoid the case where a long segment is followed by a lot of small segments would get simplified to a long segment going to the wrong end point
+//  .......                _                 _______
+// |                      /                 |
+// |     would become    /    instead of    |
+// |                    /                   |
+//
+// therefore every time a vert is removed the next is kept (for the moment)
+//
+// .......            ._._._._.         .___.___.          .________
+// |                  |                 |                  |
+// |    will  become  |    will become  |     will become  |
+// |                  |                 |                  |
+//
+
+    ClipperLib::Path this_path = *path;
+    coord_t min_length_2 = std::min(smallest_line_segment_squared, allowed_error_distance_squared);
+
+    ListPolygon result_list_poly;
+    result_list_poly.emplace_back(path->front());
+
+    std::vector<ListPolyIt> skipped_verts;
+    // add the first point as starting point for the algorithm
+    // whether the first point has to be removed is checked separately afterwards
+    skipped_verts.emplace_back(result_list_poly, result_list_poly.begin());
+
+    char here_is_beyond_line = 0;
+    { // stage I: convert to a ListPolygon and remove verts, but don't remove verts just after removed verts (i.e. skip them)
+        Point prev = this_path[0];
+        auto skip = [this, &result_list_poly, &this_path, &prev, &skipped_verts](unsigned int& poly_idx)
         {
-            // don't add the point to the result
-            continue;
-        }
-        Point& next = thiss[(poly_idx+1) % size()];
-        char here_is_beyond_line = 0;
-        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next, &here_is_beyond_line);
-        if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
-        {// don't add the point to the result
-        } else 
+            poly_idx++;
+            if (poly_idx >= size())
+            { // don't wrap around, the first point has already been added
+                return;
+            }
+            result_list_poly.emplace_back(this_path[poly_idx]);
+            prev = result_list_poly.back();
+            skipped_verts.emplace_back(result_list_poly, --result_list_poly.end());
+        };
+
+        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
         {
-            thiss[writing_idx] = here;
-            writing_idx++;
-            last = &here;
+            const Point& here = this_path[poly_idx];
+            const Point& next = this_path[(poly_idx + 1) % size()];
+            if (here == next)
+            { // disregard duplicate points without skipping the next point
+                continue;
+            }
+            if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
+            {
+                // don't add [here] to the result
+                // skip checking whether the next point has to be removed for now
+                skip(poly_idx);
+                continue;
+            }
+            int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
+            if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
+            {
+                // don't add [here] to the result
+                // skip checking whether the next point has to be removed for now
+                skip(poly_idx);
+            }
+            else
+            {
+                result_list_poly.emplace_back(here);
+                prev = result_list_poly.back();
+            }
         }
     }
-    path->erase(path->begin() + writing_idx , path->end());
-    
-            
-    if (size() < 3)
+
+    { // stage II: keep removing skipped verts (and skip the next vert if it was a skipped vert)
+        auto skip = [&skipped_verts, &result_list_poly](unsigned int& skipped_vert_idx, const ListPolyIt skipped_vert, std::vector<ListPolyIt>& new_skipped_verts)
+        {
+            unsigned int next_skipped_vert_idx = skipped_vert_idx + 1;
+            if (next_skipped_vert_idx < skipped_verts.size() && skipped_vert.next() == skipped_verts[next_skipped_vert_idx])
+            {
+                skipped_vert_idx++;
+                new_skipped_verts.emplace_back(skipped_verts[next_skipped_vert_idx]);
+            }
+            result_list_poly.erase(skipped_vert.it);
+        };
+        while (!skipped_verts.empty() && result_list_poly.size() >= 3)
+        {
+            std::vector<ListPolyIt> new_skipped_verts;
+
+            for (unsigned int skipped_vert_idx = 0; skipped_vert_idx < skipped_verts.size(); skipped_vert_idx++)
+            {
+                ListPolyIt skipped_vert = skipped_verts[skipped_vert_idx];
+                const Point& here = skipped_vert.p();
+                const Point& prev = skipped_vert.prev().p();
+
+                const Point& next = skipped_vert.next().p();
+                if ( vSize2(here - prev) < min_length_2 && vSize2(next - here) < min_length_2 )
+                {
+                    // skip checking whether the next point has to be removed for now
+                    skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
+                    continue;
+                }
+                int64_t error2 = LinearAlg2D::getDist2FromLineSegment(prev, here, next, &here_is_beyond_line);
+                if (here_is_beyond_line == 0 && error2 < allowed_error_distance_squared)
+                {
+                    // skip checking whether the next point has to be removed for now
+                    skip(skipped_vert_idx, skipped_vert, new_skipped_verts);
+                }
+                else
+                {
+                    // keep the point
+                }
+            }
+            skipped_verts = new_skipped_verts;
+        }
+    }
+
+    clear();
+    if (result_list_poly.size() < 3)
     {
-        clear();
         return;
     }
-    
-    { // handle the line segments spanning the vector end and begin
-        Point* last = &thiss.back();
-        Point& here = thiss[0];
-        if ( vSize2(here-*last) < allowed_error_distance_squared )
-        {
-            remove(0);
-        }
-        Point& next = thiss[1];
-        int64_t error2 = LinearAlg2D::getDist2FromLineSegment(*last, here, next);
-        if (error2 < allowed_error_distance_squared)
-        {
-            remove(0);
-        } else 
-        {
-            // leave it in
-        }
-    }
-    
-    if (size() < 3)
-    {
-        clear();
-        return;
-    }
+    ListPolyIt::convertListPolygonToPolygon(result_list_poly, *this);
 }
 
 Polygons Polygons::getOutsidePolygons() const
