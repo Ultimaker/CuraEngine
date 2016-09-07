@@ -85,10 +85,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         //      _____________________      .
         //     /                     \      } dist_from_lower_layer
         //    /__                   __\    /
-        //      /                   \        `\
+        //      /                   \        `\.
         //     /                     \         } dist_from_lower_layer
         //    /__                   __\      ./
-        //      /                   \     `\
+        //      /                   \     `\.
         //     /                     \      } dist_from_lower_layer
         //    /_______________________\   ,/
         //            rather than
