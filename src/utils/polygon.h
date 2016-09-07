@@ -248,6 +248,11 @@ public:
     void smooth(int remove_length, PolygonRef result);
 
     /*!
+     * Smooth out sharp inner corners
+     */
+    void smooth_outward(float angle, int shortcut_length, PolygonRef result) const;
+
+    /*!
      * Smooth out the polygon and store the result in \p result.
      * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
      * 
@@ -528,6 +533,11 @@ public:
      * \return The smoothed polygon
      */
     Polygons smooth(int remove_length);
+
+    /*!
+     * Smooth out sharp inner corners
+     */
+    Polygons smooth_outward(float angle, int shortcut_length);
 
     Polygons smooth2(int remove_length, int min_area); //!< removes points connected to small lines
     

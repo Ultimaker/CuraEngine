@@ -86,6 +86,11 @@ public:
         --ret;
         return ret;
     }
+    //! Remove this point from the list polygon
+    void remove()
+    {
+        poly->erase(it);
+    }
     /*!
      * Convert Polygons to ListPolygons
      * 

@@ -155,8 +155,8 @@ static Point no_point(std::numeric_limits<int32_t>::infinity(), std::numeric_lim
 INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
 INLINE Point operator+(const Point& p0, const Point& p1) { return Point(p0.X+p1.X, p0.Y+p1.Y); }
 INLINE Point operator-(const Point& p0, const Point& p1) { return Point(p0.X-p1.X, p0.Y-p1.Y); }
-INLINE Point operator*(const Point& p0, const int32_t i) { return Point(p0.X*i, p0.Y*i); }
-INLINE Point operator*(const int32_t i, const Point& p0) { return p0 * i; }
+template<typename T> INLINE Point operator*(const Point& p0, const T i) { return Point(p0.X * i, p0.Y * i); }
+template<typename T> INLINE Point operator*(const T i, const Point& p0) { return p0 * i; }
 INLINE Point operator/(const Point& p0, const int32_t i) { return Point(p0.X/i, p0.Y/i); }
 INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.X, p0.Y/p1.Y); }
 
