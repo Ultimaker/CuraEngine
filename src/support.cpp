@@ -523,8 +523,8 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
             if (roof_layer_count > 0)
             {
                 Polygons model;
-                unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count);
-                float z_skip = float(roof_layer_count - 1) / float(n_scans);
+                const unsigned int n_scans = std::max(1u, (roof_layer_count - 1) / skip_layer_count);
+                const float z_skip = float(roof_layer_count - 1) / float(n_scans);
                 for (float layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top; layer_idx_above -= z_skip)
                 {
                     const Polygons outlines_above = mesh.layers[std::round(layer_idx_above)].getOutlines();
@@ -536,8 +536,8 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
             if (bottom_layer_count > 0)
             {
                 Polygons model;
-                unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count);
-                float z_skip = float(bottom_layer_count - 1) / float(n_scans);
+                const unsigned int n_scans = std::max(1u, (bottom_layer_count - 1) / skip_layer_count);
+                const float z_skip = float(bottom_layer_count - 1) / float(n_scans);
                 for (float layer_idx_below = bottom_layer_idx_below; std::round(layer_idx_below) < (int)(layer_idx - z_distance_bottom); layer_idx_below += z_skip)
                 {
                     const Polygons outlines_below = mesh.layers[std::round(layer_idx_below)].getOutlines();
