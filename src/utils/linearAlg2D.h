@@ -252,9 +252,10 @@ public:
         // return px_size
         Point vab = b - a;
         Point vap = p - a;
-        int64_t ax_size = dot(vab, vap) / vSize(vab);
+        int64_t dott = dot(vab, vap);
+        int64_t ax_size2 = dott * dott / vSize2(vab);
         int64_t ap_size2 = vSize2(vap);
-        int64_t px_size2 = ap_size2 - ax_size * ax_size;
+        int64_t px_size2 = std::max(0l, ap_size2 - ax_size2);
         return px_size2;
     }
 };
