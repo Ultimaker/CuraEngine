@@ -474,6 +474,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 else
                 {
                     const int64_t a1_size = shortcut_length / 2 / sin(acos(cos_angle) / 2);
+                    assert(a1_size < 300000 && "No points outside the build plate should be introduced!");
                     if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
                     {
                         Point a = p1 + normal(v10, a1_size);
@@ -654,7 +655,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
     ListPolyIt::convertListPolygonToPolygon(poly, result);
 }
 
-Polygons Polygons::smooth_outward(float min_angle, int shortcut_length)
+Polygons Polygons::smooth_outward(float max_angle, int shortcut_length)
 {
     Polygons ret;
     for (unsigned int p = 0; p < size(); p++)
@@ -669,11 +670,10 @@ Polygons Polygons::smooth_outward(float min_angle, int shortcut_length)
             ret.add(poly);
             continue;
         }
-        poly.smooth_outward(min_angle, shortcut_length, ret.newPoly());
-        PolygonRef back = ret.back();
-        if (back.size() < 3)
+        poly.smooth_outward(max_angle, shortcut_length, ret.newPoly());
+        if (ret.back().size() < 3)
         {
-            back.path->resize(back.path->size() - 1);
+            ret.paths.resize(ret.paths.size() - 1);
         }
     }
     return ret;

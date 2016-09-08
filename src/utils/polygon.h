@@ -248,7 +248,11 @@ public:
     void smooth(int remove_length, PolygonRef result);
 
     /*!
-     * Smooth out sharp inner corners
+     * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
+     * 
+     * \param angle The maximal angle of inner corners to be smoothed out
+     * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
+     * \param result The resulting polygon
      */
     void smooth_outward(float angle, int shortcut_length, PolygonRef result) const;
 
@@ -535,7 +539,11 @@ public:
     Polygons smooth(int remove_length);
 
     /*!
-     * Smooth out sharp inner corners
+     * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
+     * 
+     * \param angle The maximal angle of inner corners to be smoothed out
+     * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
+     * \return The resulting polygons
      */
     Polygons smooth_outward(float angle, int shortcut_length);
 
