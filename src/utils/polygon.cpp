@@ -597,12 +597,17 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         continue;
                     }
                 }
-// }
+}
 // ----------------------------------------------------------------------------------------------------------------------------------------
 //                 set the following:
 //                 p0_it = start point of line
 //                 p2_it = end point of line
-                if (!backward_is_blocked && !forward_is_blocked)
+                if (std::abs(vSize2(v02) - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
+                { // v02 is approximately shortcut length
+                    // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
+                    // p0_it and p2_it are already correct
+                }
+                else if (!backward_is_blocked && !forward_is_blocked)
                 { // introduce two new points
                     const int64_t v02_size = vSize(v02);
 
