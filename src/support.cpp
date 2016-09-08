@@ -46,8 +46,8 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
     //    /_______________________\   ,/
     //            rather than
     //      _____________________
-    //     /                     \
-    //    /                       \
+    //     /                     \                                                          .
+    //    /                       \                                                         .
     //    |                       |
     //    |                       |
     //    |                       |

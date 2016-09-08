@@ -516,14 +516,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 bool forward_is_too_far = false;
                 bool backward_is_blocked = false;
                 bool backward_is_too_far = false;
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// {
-// SVG svg("bs.html", AABB(*this));
-// Polygon pp;
-// ListPolyIt::convertListPolygonToPolygon(poly, pp);
-// svg.writePolygon(pp);
-// svg.writePoints(pp, true);
-// svg.writePoint(p1, false, 5, SVG::Color::GREEN);
                 while (true)
                 {
                     const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
@@ -535,7 +527,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                     const Point p0 = p0_it.p();
                     const Point p2 = p2_it.p();
                     bool walk_forward = !forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
-                    
+
                     if (walk_forward)
                     {
                         const ListPolyIt p2_2_it = p2_it.next();
@@ -544,8 +536,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         if (!p2_is_left)
                         {
                             forward_is_blocked = true;
-// svg.writePoint(p2, false, 5, SVG::Color::RED);
-// svg.writeLine(p0, p2_2, SVG::Color::RED);
                             continue;
                         }
 
@@ -553,7 +543,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         if (vSize2(v02_2) > shortcut_length * shortcut_length)
                         {
                             forward_is_too_far = true;
-// svg.writeLine(p0, p2_2, SVG::Color::YELLOW);
                             continue;
                         }
 
@@ -570,8 +559,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         if (!p0_is_left)
                         {
                             backward_is_blocked = true;
-// svg.writePoint(p0, false, 5, SVG::Color::RED);
-// svg.writeLine(p0_2, p2, SVG::Color::RED);
                             continue;
                         }
 
@@ -579,7 +566,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         if (vSize2(v02_2) > shortcut_length * shortcut_length)
                         {
                             backward_is_too_far = true;
-// svg.writeLine(p2, p0_2, SVG::Color::YELLOW);
                             continue;
                         }
 
@@ -589,8 +575,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                         continue;
                     }
                 }
-}
-// ----------------------------------------------------------------------------------------------------------------------------------------
 //                 set the following:
 //                 p0_it = start point of line
 //                 p2_it = end point of line
@@ -620,9 +604,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 { // forward is blocked, back is open
                     Point new_p0;
                     bool success = LinearAlg2D::getPointOnLineWithDist(p2_it.p(), p0_it.p(), p0_it.prev().p(), shortcut_length, new_p0);
-                    std::cerr << vSize(p0_it.p() - p2_it.p()) << "\n";
-                    std::cerr << vSize(p2_it.next().p() - p2_it.p()) << "\n";
-                    std::cerr << p0_it.p() << " on " <<p2_it.p() << " - " << p2_it.next().p() << "\n";
                     assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
                     p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
                 }
