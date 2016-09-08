@@ -129,9 +129,8 @@ private:
     /*!
      * Generate the outline of the ooze shield.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param total_layers The total number of layers 
      */
-    void processOozeShield(SliceDataStorage& storage, unsigned int total_layers);
+    void processOozeShield(SliceDataStorage& storage);
     
     /*!
      * Generate the skin areas.

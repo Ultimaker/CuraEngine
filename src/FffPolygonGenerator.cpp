@@ -262,7 +262,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     storage.primeTower.generatePaths(storage, print_layer_count);
     
     logDebug("Processing ooze shield\n");
-    processOozeShield(storage, print_layer_count);
+    processOozeShield(storage);
 
     logDebug("Processing draft shield\n");
     processDraftShield(storage, print_layer_count);
@@ -524,31 +524,31 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     }
 }
 
-void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage, unsigned int total_layers)
+void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
     if (!getSettingBoolean("ooze_shield_enabled"))
     {
         return;
     }
-    
+
     int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
-    
-    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
+
+    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
     }
-    
+
     int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
-    for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
+    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
     }
-    int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height");//Allow for a 60deg angle in the oozeShield.
-    for(unsigned int layer_nr=1; layer_nr<total_layers; layer_nr++)
+    int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height"); // Allow for a 60deg angle in the oozeShield.
+    for (int layer_nr = 1; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
     }
-    for(unsigned int layer_nr=total_layers-1; layer_nr>0; layer_nr--)
+    for (int layer_nr = storage.max_object_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
     {
         storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
     }
