@@ -474,41 +474,31 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 else
                 {
                     const int64_t a1_size = shortcut_length / 2 / sin(acos(cos_angle) / 2);
-                    if (a1_size * a1_size < vSize2(v10))
+                    if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
                     {
-                        if (a1_size * a1_size < vSize2(v12))
-                        {
-                            Point a = p1 + normal(v10, a1_size);
-                            Point b = p1 + normal(v12, a1_size);
-                            p1_it.remove();
-                            poly.insert(p2_it.it, a);
-                            poly.insert(p2_it.it, b);
-                        }
-                        else
-                        {
-                            const Point& b = p2_it.p();
-                            Point a;
-                            bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
-                            assert(success && "v02 has to be longer than ab!");
-                            poly.insert(p1_it.it, a);
-                            p1_it.remove();
-                        }
+                        Point a = p1 + normal(v10, a1_size);
+                        Point b = p1 + normal(v12, a1_size);
+                        p1_it.remove();
+                        poly.insert(p2_it.it, a);
+                        poly.insert(p2_it.it, b);
+                    }
+                    else if (vSize2(v12) < vSize2(v10))
+                    {
+                        const Point& b = p2_it.p();
+                        Point a;
+                        bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
+                        assert(success && "v02 has to be longer than ab!");
+                        poly.insert(p1_it.it, a);
+                        p1_it.remove();
                     }
                     else
                     {
-                        if (a1_size * a1_size < vSize2(v12))
-                        {
-                            const Point& a = p0_it.p();
-                            Point b;
-                            bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
-                            assert(success && "v02 has to be longer than ab!");
-                            p1_it.remove();
-                            poly.insert(p2_it.it, b);
-                        }
-                        else
-                        {
-                            assert(false && "v02 seems to be longer than ab!");
-                        }
+                        const Point& a = p0_it.p();
+                        Point b;
+                        bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
+                        assert(success && "v02 has to be longer than ab!");
+                        p1_it.remove();
+                        poly.insert(p2_it.it, b);
                     }
                 }
                 // update:
