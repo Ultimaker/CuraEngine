@@ -491,7 +491,7 @@ void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& g
 
 void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
 {
-    if (storage.oozeShield.size() > 0)
+    if (storage.oozeShield.size() > 0 && layer_nr < storage.oozeShield.size())
     {
         gcode_layer.addPolygonsByOptimizer(storage.oozeShield[layer_nr], &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
     }
