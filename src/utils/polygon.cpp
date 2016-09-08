@@ -464,6 +464,14 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 //  |
                 //  0
                 // ideally a1_size == b1_size
+                if (vSize2(v02) <= shortcut_length * (shortcut_length + 10))
+                { // v02 is approximately shortcut length
+                    // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
+                    p1_it.remove();
+                    // don't insert new elements
+                }
+                else
+                {
                 const int64_t a1_size = shortcut_length / 2 / sin(acos(cos_angle) / 2);
                 if (a1_size * a1_size < vSize2(v10))
                 {
@@ -500,6 +508,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                     {
                         assert(false && "v02 seems to be longer than ab!");
                     }
+                }
                 }
                 // update:
                 p1_it = p2_it; // next point to consider for whether it's an internal corner
