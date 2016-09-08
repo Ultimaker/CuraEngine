@@ -464,8 +464,9 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 //  |
                 //  0
                 // ideally a1_size == b1_size
-                if (vSize2(v02) <= shortcut_length * (shortcut_length + 10))
-                { // v02 is approximately shortcut length
+                if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
+                    || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+                {
                     // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
                     p1_it.remove();
                     // don't insert new elements
