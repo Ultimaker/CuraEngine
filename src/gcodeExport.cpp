@@ -55,13 +55,19 @@ void GCodeExport::preSetup(const MeshGroup* settings)
     {
         const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
 
-        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr)
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
-            || (settings->getSettingBoolean("support_enable") && settings->getSettingBoolean("support_interface_enable") && settings->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
-            )
+        if (settings->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr))
         {
             extruder_attr[extruder_nr].is_used = true;
+        }
+        for (const Mesh& mesh : settings->meshes)
+        {
+            if ((mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_interface_enable") && settings->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
+                || (mesh.getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+                || (mesh.getSettingBoolean("support_enable") && settings->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+                )
+            {
+                extruder_attr[extruder_nr].is_used = true;
+            }
         }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 

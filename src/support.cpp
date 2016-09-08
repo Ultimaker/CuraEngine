@@ -149,7 +149,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     // get a support line width representative for all support
     int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
-    int interface_enable = storage.getSettingBoolean("support_interface_enable");
+    bool interface_enable = false;
+    for (SliceMeshStorage& mesh : storage.meshes)
+    {
+        interface_enable |= mesh.getSettingBoolean("support_interface_enable");
+    }
     int interface_extruder_nr = interface_enable? support_skin_extruder_nr : support_infill_extruder_nr;
     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(interface_extruder_nr);
     int support_line_width = train.getSettingInMicrons(interface_enable? "support_interface_line_width" : "support_line_width");
