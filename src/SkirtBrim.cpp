@@ -28,12 +28,20 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
     }
     else
     { // don't add brim _around_ support, but underneath it by removing support where there's brim
-        const bool include_helper_parts = false;
+        const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
         if (outside_only)
         {
             first_layer_outline = first_layer_outline.removeEmptyHoles();
+        }
+        if (storage.support.generated && primary_line_count > 0)
+        { // remove model-brim from support
+            const Polygons& model_brim_covered_area = first_layer_outline.offset(primary_line_count * primary_extruder_skirt_brim_line_width + primary_line_count % 2); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            SupportLayer& support_layer = storage.support.supportLayers[0];
+            support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
+            first_layer_outline.add(support_layer.supportAreas);
+            first_layer_outline.add(support_layer.skin);
         }
     }
 
@@ -80,23 +88,6 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
             {
                 storage.skirt_brim[extruder].add(first_layer_outline.offset(offset_distance, ClipperLib::jtRound));
                 offset_distance += width;
-            }
-        }
-    }
-
-    if (!is_skirt && storage.support.generated)
-    { // remove brim from support
-        for (int extruder_nr = storage.meshgroup->getExtruderCount() - 1; extruder_nr >= 0; extruder_nr--)
-        {
-            Polygons& last_brim = storage.skirt_brim[extruder_nr];
-            if (last_brim.size() > 0)
-            {
-                int brim_line_width = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInMicrons("skirt_brim_line_width");
-                SupportLayer& support_layer = storage.support.supportLayers[0];
-                Polygons area_covered_by_brim = last_brim.offset(brim_line_width / 2);
-                support_layer.skin = support_layer.skin.difference(area_covered_by_brim);
-                support_layer.supportAreas = support_layer.supportAreas.difference(area_covered_by_brim);
-                break;
             }
         }
     }
