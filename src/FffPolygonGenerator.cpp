@@ -40,7 +40,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     return true;
 }
 
-unsigned int FffPolygonGenerator::getDraftShieldHeight(const unsigned int total_layers) const
+unsigned int FffPolygonGenerator::getDraftShieldLayerCount(const unsigned int total_layers) const
 {
     if (!getSettingBoolean("draft_shield_enabled"))
     {
@@ -52,7 +52,7 @@ unsigned int FffPolygonGenerator::getDraftShieldHeight(const unsigned int total_
         case DraftShieldHeightLimitation::FULL:
             return total_layers;
         case DraftShieldHeightLimitation::LIMITED:
-            return getSettingInMicrons("draft_shield_height");
+            return std::max(0, (getSettingInMicrons("draft_shield_height") - getSettingInMicrons("layer_height_0")) / getSettingInMicrons("layer_height") + 1);
     }
 }
 
@@ -557,19 +557,17 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
-    const int draft_shield_layers = getDraftShieldHeight(total_layers);
+    const int draft_shield_layers = getDraftShieldLayerCount(total_layers);
     if (draft_shield_layers <= 0)
     {
         return;
     }
-    const int layer_height_0 = getSettingInMicrons("layer_height_0");
     const int layer_height = getSettingInMicrons("layer_height");
 
-    const unsigned int max_screen_layer = (draft_shield_layers - layer_height_0) / layer_height + 1;
     const unsigned int layer_skip = 500 / layer_height + 1;
 
     Polygons& draft_shield = storage.draft_protection_shield;
-    for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < max_screen_layer; layer_nr += layer_skip)
+    for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }

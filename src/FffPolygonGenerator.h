@@ -57,7 +57,7 @@ private:
      * of the draft shield if the limit is FULL.
      * \return The actual height of the draft shield.
      */
-    unsigned int getDraftShieldHeight(unsigned int total_layers) const;
+    unsigned int getDraftShieldLayerCount(unsigned int total_layers) const;
 
     /*!
      * Slice the \p object and store the outlines in the \p storage.
