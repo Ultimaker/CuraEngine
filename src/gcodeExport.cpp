@@ -832,7 +832,15 @@ void GCodeExport::writeJerk(double jerk)
 {
     if (current_jerk != jerk)
     {
-        *output_stream << "M205 X" << jerk << new_line;
+        if (getFlavor() == EGCodeFlavor::REPETIER)
+        {
+            *output_stream << "M207 X";
+        }
+        else
+        {
+            *output_stream << "M205 X";
+        }
+        *output_stream << jerk << new_line;
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }

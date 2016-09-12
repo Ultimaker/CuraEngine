@@ -86,6 +86,8 @@ enum class EGCodeFlavor
  *  M227 is used to initialize a single extrusion train.
  **/
     GRIFFIN = 6,
+
+    REPETIER = 7,
 };
 
 /*!
