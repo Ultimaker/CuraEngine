@@ -63,6 +63,11 @@ ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
         return extruders[extruder_nr];
     }
 
+bool MeshGroup::getExtruderTrainIsInstantiated(unsigned int extruder_nr) const
+{
+    return extruders[extruder_nr] != nullptr;
+}
+
 ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr)
 {
     assert(extruders[extruder_nr]);

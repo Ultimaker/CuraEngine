@@ -253,8 +253,11 @@ void slice(int argc, char **argv)
     int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (extruder_train_nr = 0; extruder_train_nr < extruder_count; extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
-        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, train);
+        if (!meshgroup->getExtruderTrainIsInstantiated(extruder_train_nr))
+        {
+            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
+            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, train);
+        }
     }
     
     

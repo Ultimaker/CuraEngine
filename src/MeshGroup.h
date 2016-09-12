@@ -33,6 +33,11 @@ public:
 
     ExtruderTrain* getExtruderTrain(unsigned int extruder_nr);
 
+    /*!
+     * Check whether a given extruder train is already instantiated
+     */
+    bool getExtruderTrainIsInstantiated(unsigned int extruder_nr) const;
+
     const ExtruderTrain* getExtruderTrain(unsigned int extruder_nr) const;
 
     std::vector<Mesh> meshes;
