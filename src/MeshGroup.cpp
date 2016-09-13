@@ -8,7 +8,7 @@
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
-#include "settings/SettingRegistry.h"
+#include "settings/SettingRegistry.h" // loadExtruderJSONsettings
 
 namespace cura
 {
@@ -57,18 +57,13 @@ int MeshGroup::getExtruderCount()
 }
 
 ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
-    {
-        if (!extruders[extruder_nr])
-        {
-            extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
-            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
-        }
-        return extruders[extruder_nr];
-    }
-
-bool MeshGroup::getExtruderTrainIsInstantiated(unsigned int extruder_nr) const
 {
-    return extruders[extruder_nr] != nullptr;
+    if (!extruders[extruder_nr])
+    {
+        extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
+        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
+    }
+    return extruders[extruder_nr];
 }
 
 ExtruderTrain* MeshGroup::getExtruderTrain(unsigned int extruder_nr)

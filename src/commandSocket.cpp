@@ -18,8 +18,6 @@
 #include <windows.h>
 #endif
 
-#include "settings/SettingRegistry.h" // loadExtruderJSONsettings
-
 #define DEBUG_OUTPUT_OBJECT_STL_THROUGH_CERR(x) 
 
 // std::cerr << x;
@@ -419,7 +417,7 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
     { // load extruder settings
         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
         { // initialize remaining extruder trains and load the defaults
-            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
         }
 
         for (auto extruder : settings_per_extruder_train)
