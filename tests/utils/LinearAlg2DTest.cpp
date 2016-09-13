@@ -287,31 +287,31 @@ void LinearAlg2DTest::pointIsLeftOfLineTest()
 
 void LinearAlg2DTest::getPointOnLineWithDistTest1()
 {
-    getPointOnLineWithDistAssert(Point(110,30), Point(0,0), Point(100,0), 50, Point(70,0), true);
+    getPointOnLineWithDistAssert(Point(110, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), true);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest2()
 {
-    getPointOnLineWithDistAssert(Point(90,30), Point(0,0), Point(100,0), 50, Point(50,0), true);
+    getPointOnLineWithDistAssert(Point(90, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest3()
 {
-    getPointOnLineWithDistAssert(Point(10,30), Point(0,0), Point(100,0), 50, Point(50,0), true);
+    getPointOnLineWithDistAssert(Point(10, 30), Point(0, 0), Point(100, 0), 50, Point(50, 0), true);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest4()
 {
-    getPointOnLineWithDistAssert(Point(-10,30), Point(0,0), Point(100,0), 50, Point(30,0), true);
+    getPointOnLineWithDistAssert(Point(-10, 30), Point(0, 0), Point(100, 0), 50, Point(30, 0), true);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest5()
 {
-    getPointOnLineWithDistAssert(Point(50,30), Point(0,0), Point(100,0), 50, Point(10,0), true);
+    getPointOnLineWithDistAssert(Point(50, 30), Point(0, 0), Point(100, 0), 50, Point(10, 0), true);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest6()
 {
-    getPointOnLineWithDistAssert(Point(210,30), Point(0,0), Point(100,0), 50, Point(70,0), false);
+    getPointOnLineWithDistAssert(Point(210, 30), Point(0, 0), Point(100, 0), 50, Point(70, 0), false);
 }
 void LinearAlg2DTest::getPointOnLineWithDistTest7()
 {
-    getPointOnLineWithDistAssert(Point(110,130), Point(0,0), Point(100,0), 50, Point(70,0), false);
+    getPointOnLineWithDistAssert(Point(110, 130), Point(0, 0), Point(100, 0), 50, Point(70, 0), false);
 }
 
 
