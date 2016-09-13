@@ -420,13 +420,12 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
         { // initialize remaining extruder trains and load the defaults
             ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
-            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
         }
 
         for (auto extruder : settings_per_extruder_train)
         {
             int extruder_nr = extruder.id();
-            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
+            ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
             for (auto setting : extruder.settings().settings())
             {
                 train->setSetting(setting.name(), setting.value());

@@ -124,7 +124,7 @@ void slice(int argc, char **argv)
     
     int extruder_train_nr = 0;
 
-    SettingsBase* last_extruder_train = meshgroup->createExtruderTrain(0);
+    SettingsBase* last_extruder_train = nullptr;
     // extruder defaults cannot be loaded yet cause no json has been parsed
     SettingsBase* last_settings_object = FffProcessor::getInstance();
     for(int argn = 2; argn < argc; argn++)
@@ -143,8 +143,7 @@ void slice(int argc, char **argv)
                         
                         for (int extruder_nr = 0; extruder_nr < FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count"); extruder_nr++)
                         { // initialize remaining extruder trains and load the defaults
-                            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
-                            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, train);
+                            meshgroup->createExtruderTrain(extruder_nr); // create new extruder train objects or use already existing ones
                         }
 
                         meshgroup->finalize();
@@ -158,7 +157,6 @@ void slice(int argc, char **argv)
                         meshgroup = new MeshGroup(FffProcessor::getInstance());
                         last_extruder_train = meshgroup->createExtruderTrain(0); 
                         last_settings_object = meshgroup;
-                        SettingRegistry::getInstance()->loadExtruderJSONsettings(0, last_extruder_train);
                         
                     }catch(...){
                         cura::logError("Unknown exception\n");
@@ -190,14 +188,17 @@ void slice(int argc, char **argv)
                         extruder_train_nr = int(*str - '0'); // TODO: parse int instead (now "-e10"="-e:" , "-e11"="-e;" , "-e12"="-e<" .. etc) 
                         last_settings_object = meshgroup->createExtruderTrain(extruder_train_nr);
                         last_extruder_train = last_settings_object;
-                        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, last_extruder_train);
                         break;
                     case 'l':
                         argn++;
                         
                         log("Loading %s from disk...\n", argv[argn]);
                         // transformation = // TODO: get a transformation from somewhere
-                        
+
+                        if (!last_extruder_train)
+                        {
+                            last_extruder_train = meshgroup->createExtruderTrain(0); // assume a json has already been provided on the command line
+                        }
                         if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation, last_extruder_train))
                         {
                             logError("Failed to load model: %s\n", argv[argn]);
@@ -253,11 +254,7 @@ void slice(int argc, char **argv)
     int extruder_count = FffProcessor::getInstance()->getSettingAsCount("machine_extruder_count");
     for (extruder_train_nr = 0; extruder_train_nr < extruder_count; extruder_train_nr++)
     { // initialize remaining extruder trains and load the defaults
-        if (!meshgroup->getExtruderTrainIsInstantiated(extruder_train_nr))
-        {
-            ExtruderTrain* train = meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
-            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_train_nr, train);
-        }
+        meshgroup->createExtruderTrain(extruder_train_nr); // create new extruder train objects or use already existing ones
     }
     
     

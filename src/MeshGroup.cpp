@@ -8,6 +8,8 @@
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
+#include "settings/SettingRegistry.h"
+
 namespace cura
 {
 
@@ -59,6 +61,7 @@ ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
         if (!extruders[extruder_nr])
         {
             extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
+            SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
         }
         return extruders[extruder_nr];
     }
