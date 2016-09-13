@@ -205,6 +205,7 @@ void slice(int argc, char **argv)
                         if (!loadMeshIntoMeshGroup(meshgroup, argv[argn], transformation, last_extruder_train))
                         {
                             logError("Failed to load model: %s\n", argv[argn]);
+                            std::ecit(1);
                         }
                         else 
                         {

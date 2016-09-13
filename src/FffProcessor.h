@@ -152,13 +152,6 @@ public:
     }
 
     /*!
-     * Process all files into one meshgroup
-     * 
-     * \warning Unused!
-     */
-    bool processFiles(const std::vector<std::string> &files);
-
-    /*!
      * Generate gcode for a given \p meshgroup
      * The primary function of this class.
      * 
