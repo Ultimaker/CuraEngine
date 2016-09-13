@@ -61,7 +61,11 @@ ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
     if (!extruders[extruder_nr])
     {
         extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
-        SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
+        int err = SettingRegistry::getInstance()->loadExtruderJSONsettings(extruder_nr, extruders[extruder_nr]);
+        if (err)
+        {
+            logError("Couldn't load extruder.def.json for extruder %i\n", extruder_nr);
+        }
     }
     return extruders[extruder_nr];
 }

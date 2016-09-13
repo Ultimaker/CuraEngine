@@ -127,6 +127,7 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
 {
     if (extruder_nr >= extruder_train_ids.size())
     {
+        logError("Couldn't load extruder.def.json file for extruder %i. Index out of bounds.\n", extruder_nr);
         return -1;
     }
     
@@ -134,6 +135,7 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
     bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
     if (!found)
     {
+        logError("Couldn't find extruder.def.json file for extruder %i.\n", extruder_nr);
         return -1;
     }
     bool warn_base_file_duplicates = false;
