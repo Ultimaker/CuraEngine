@@ -33,6 +33,7 @@ void print_usage()
     logAlways("CuraEngine connect <host>[:<port>] [-j <settings.def.json>]\n");
     logAlways("  --connect <host>[:<port>]\n\tConnect to <host> via a command socket, \n\tinstead of passing information via the command line\n");
     logAlways("  -j<settings.def.json>\n\tLoad settings.json file to register all settings and their defaults\n");
+    logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
     logAlways("\n");
     logAlways("CuraEngine slice [-v] [-p] [-j <settings.json>] [-s <settingkey>=<value>] [-g] [-e<extruder_nr>] [-o <output.gcode>] [-l <model.stl>] [--next]\n");
     logAlways("  -v\n\tIncrease the verbose level (show log messages).\n");
@@ -98,6 +99,7 @@ void connect(int argc, char **argv)
                     if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], FffProcessor::getInstance()))
                     {
                         cura::logError("Failed to load json file: %s\n", argv[argn]);
+                        std::exit(1);
                     }
                     break;
                 default:
@@ -181,6 +183,7 @@ void slice(int argc, char **argv)
                         if (SettingRegistry::getInstance()->loadJSONsettings(argv[argn], last_settings_object))
                         {
                             cura::logError("Failed to load json file: %s\n", argv[argn]);
+                            std::exit(1);
                         }
                         break;
                     case 'e':

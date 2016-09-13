@@ -65,6 +65,7 @@ ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
         if (err)
         {
             logError("Couldn't load extruder.def.json for extruder %i\n", extruder_nr);
+            std::exit(1);
         }
     }
     return extruders[extruder_nr];
