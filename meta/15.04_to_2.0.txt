@@ -1,0 +1,203 @@
+This file is a conversion from the ENGINE settings of 15.04 to the ENGINE setting of 2.0
+
+This is NOT a conversion on the frontend internal setting names (15.04 has the dictionary of doom)
+
+
+autoCenter ?        ==> center_object OR machine_center_is_zero ??
+coolHeadLift        ==> cool_lift_head
+downSkinCount       ==> bottom_layers
+enableCombing       ==> retraction_combing
+enableOozeShield    ==> ooze_shield_enabled
+endCode             ==> machine_end_gcode
+extruderOffset[MAX_EXTRUDERS] = (machine_nozzle_offset_x, machine_nozzle_offset_y)
+extrusionWidth      ==> infill_line_width, skirt_line_width, support_line_width
+fanFullOnLayerNr    ==> cool_fan_full_layer
+fanSpeedMax         ==> cool_fan_speed_max
+fanSpeedMin         ==> cool_fan_speed_min
+filamentDiameter    ==> material_diameter
+filamentFlow        ==> material_flow
+fixHorrible         ==> meshfix_union_all AND/OR meshfix_union_all_remove_holes AND/OR meshfix_extensive_stitching AND/OR magic_mesh_surface_mode
+gcodeFlavor         ==> machine_gcode_flavor
+infillOverlap       ==> infill_overlap
+infillPattern       ==> infill_pattern
+infillSpeed         ==> speed_infill
+initialLayerSpeed   ==> speed_layer_0
+initialLayerThickness   ==> layer_height_0
+initialSpeedupLayers    ==> speed_slowdown_layers
+inset0Speed         ==> speed_wall_0
+insetCount          ==> wall_line_count
+insetXSpeed         ==> speed_wall_x
+layer0extrusionWidth    [ Doesn't exist anymore ]
+layerThickness      ==> layer_height
+matrix                  [ Doesn't exist anymore ]
+minimalExtrusionBeforeRetraction
+minimalFeedrate     ==> cool_min_speed
+minimalLayerTime    ==> cool_min_layer_time
+moveSpeed           ==> speed_travel
+multiVolumeOverlap  ==> multiple_mesh_overlap
+nozzleSize          ==> machine_nozzle_size
+objectPosition      ==> mesh_position_x, mesh_position_y, mesh_position_z
+objectSink              [ Doesn't exist in CuraEngine anymore ]
+perimeterBeforeInfill = not(infill_before_walls)
+postSwitchExtruderCode  ==> machine_extruder_start_code
+preSwitchExtruderCode   ==> machine_extruder_end_code
+printSpeed          ==> speed_prime_tower, speed_support_lines, speed_support_roof, skirt_speed
+raftAirGap          ==> raft_airgap
+raftAirGapLayer0        ?!?!?
+raftBaseLinewidth       ==> raft_base_line_width
+raftBaseSpeed           ==> raft_interface_speed, raft_base_speed
+raftBaseThickness       ==> raft_base_thickness
+raftFanSpeed            ==> raft_base_fan_speed, raft_interface_fan_speed, raft_surface_fan_speed
+raftInterfaceLineSpacing==> raft_interface_line_spacing
+raftInterfaceLinewidth  ==> raft_interface_line_width
+raftInterfaceThickness  ==> raft_interface_thickness
+raftLineSpacing         ==> raft_base_line_spacing
+raftMargin              ==> raft_margin
+raftSurfaceLayers       ==> raft_surface_layers
+raftSurfaceLineSpacing  ==> raft_surface_line_spacing
+raftSurfaceLinewidth    ==> raft_surface_line_width
+raftSurfaceSpeed        ==> raft_surface_speed
+raftSurfaceThickness    ==> raft_surface_thickness
+retractionAmount                ==> retraction_amount (set retraction_enable = true)
+retractionAmountExtruderSwitch  ==> switch_extruder_retraction_amount
+retractionAmountPrime           ==> retraction_extra_prime_amount
+retractionMinimalDistance       ==> retraction_extrusion_window ( set retraction_count_max = 1 )
+retractionSpeed                 ==> retraction_retract_speed (, retraction_prime_speed ?), switch_extruder_retraction_speed
+retractionZHop                  ==> retraction_hop
+simpleMode              ??!
+skinSpeed           ==> speed_topbottom
+skirtDistance       ==> skirt_gap
+skirtLineCount      ==> brim_line_count, skirt_line_count
+skirtMinLength      ==> skirt_minimal_length
+sparseInfillLineDistance    ==> infill_line_distance
+spiralizeMode   ==> magic_spiralize
+startCode       ==> machine_start_gcode
+supportAngle        ==> support_angle, support_enable=true if support_angle>0
+supportEverywhere   ==> support_type
+supportExtruder     ==> support_extruder_nr, support_extruder_nr_layer_0
+supportLineDistance ==> support_line_distance
+supportType         ==> support_pattern
+supportXYDistance   ==> support_xy_distance
+supportZDistance    ==> support_z_distance
+upSkinCount         ==> top_layers
+wipeTowerSize       ==> prime_tower_size
+
+
+
+
+
+NEW:
+adhesion_extruder_nr
+adhesion_type
+alternate_extra_perimeter
+coasting_enable
+coasting_min_volume_move
+coasting_min_volume_retract
+coasting_speed_move
+coasting_speed_retract
+coasting_volume_move
+coasting_volume_retract
+cool_min_layer_time_fan_speed_max
+draft_shield_dist
+draft_shield_height
+extruder_nr
+fill_perimeter_gaps
+infill_sparse_thickness
+infill_wipe_dist
+machine_depth
+machine_extruder_count
+machine_extruder_end_pos_abs
+machine_extruder_end_pos_x
+machine_extruder_end_pos_y
+machine_extruder_start_pos_abs
+machine_extruder_start_pos_x
+machine_extruder_start_pos_y
+machine_heated_bed
+machine_nozzle_cool_down_speed
+machine_nozzle_expansion_angle
+machine_nozzle_head_distance
+machine_nozzle_heat_up_speed
+machine_nozzle_tip_outer_diameter
+machine_print_temp_wait
+machine_use_extruder_offset_to_offset_coords
+machine_width
+magic_fuzzy_skin_enabled
+magic_fuzzy_skin_point_dist
+magic_fuzzy_skin_thickness
+material_bed_temperature
+material_bed_temp_prepend
+material_bed_temp_wait
+material_extrusion_cool_down_speed
+material_flow_dependent_temperature
+material_flow_temp_graph
+material_print_temperature
+material_print_temp_prepend
+material_print_temp_wait
+material_standby_temperature
+meshfix_keep_open_polygons
+ooze_shield_angle
+ooze_shield_dist
+prime_tower_dir_outward
+prime_tower_distance
+prime_tower_flow
+prime_tower_line_width
+prime_tower_position_x
+prime_tower_position_y
+prime_tower_wipe_enabled
+remove_overlapping_walls_0_enabled
+remove_overlapping_walls_x_enabled
+retraction_min_travel
+skin_alternate_rotation
+skin_line_width
+skin_no_small_gaps_heuristic
+skin_outline_count
+support_area_smoothing
+support_bottom_distance
+support_bottom_stair_step_height
+support_conical_angle
+support_conical_enabled
+support_conical_min_width
+support_connect_zigzags
+support_join_distance
+support_minimal_diameter
+support_offset
+support_roof_enable
+support_roof_extruder_nr
+support_roof_height
+support_roof_line_distance
+support_roof_line_width
+support_roof_pattern
+support_top_distance
+support_tower_diameter
+support_tower_roof_angle
+switch_extruder_prime_speed
+top_bottom_pattern
+travel_avoid_distance
+travel_avoid_other_parts
+travel_compensate_overlapping_walls_enabled
+wall_line_width_0
+wall_line_width_x
+wireframe_bottom_delay
+wireframe_drag_along
+wireframe_enabled
+wireframe_fall_down
+wireframe_flat_delay
+wireframe_flow_connection
+wireframe_flow_flat
+wireframe_height
+wireframe_nozzle_clearance
+wireframe_printspeed_bottom
+wireframe_printspeed_down
+wireframe_printspeed_flat
+wireframe_printspeed_up
+wireframe_roof_drag_along
+wireframe_roof_fall_down
+wireframe_roof_inset
+wireframe_roof_outer_delay
+wireframe_straight_before_down
+wireframe_strategy
+wireframe_top_delay
+wireframe_top_jump
+wireframe_up_half_speed
+xy_offset
+z_seam_type

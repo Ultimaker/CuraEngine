@@ -1,0 +1,52 @@
+{
+    "version": 2,
+    "name": "Command line setting defaults CuraEngine",
+    "metadata":
+    {
+        "author": "Ultimaker B.V."
+    },
+    "settings": {
+        "command_line_settings": {
+            "label": "Command Line Settings",
+            "type": "category",
+            "children": {
+                "center_object": {
+                    "description": "Whether to center the object on the middle of the build platform (0,0), instead of using the coordinate system in which the object was saved.",
+                    "type": "bool",
+                    "label": "Center object",
+                    "default_value": true
+                },
+                "machine_print_temp_wait": {
+                    "description": "Whether to wait for the nozzle temperature to be reached when preheating the nozzles at the start of the gcode.",
+                    "type": "bool",
+                    "label": "Machine print temp wait",
+                    "default_value": true
+                },
+                "mesh_position_x": {
+                    "description": "Offset applied to the object in the x direction.",
+                    "type": "float",
+                    "label": "Mesh position x",
+                    "default_value": 0
+                },
+                "mesh_position_y": {
+                    "description": "Offset applied to the object in the y direction.",
+                    "type": "float",
+                    "label": "Mesh position y",
+                    "default_value": 0
+                },
+                "mesh_position_z": {
+                    "description": "Offset applied to the object in the z direction. With this you can perform what was used to call 'Object Sink'.",
+                    "type": "float",
+                    "label": "Mesh position z",
+                    "default_value": 0
+                },
+                "prime_tower_dir_outward": {
+                    "description": "Whether to start printing in the middle of the prime tower and end up at the perimeter, or the other way around. This is only used for certain types of prime tower.",
+                    "type": "bool",
+                    "label": "Prime tower direction outward",
+                    "default_value": false
+                }
+            }
+        }
+    }
+}

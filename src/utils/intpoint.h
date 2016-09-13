@@ -75,14 +75,14 @@ public:
     }
 
 
-    int32_t max()
+    int32_t max() const
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
 
-    bool testLength(int32_t len)
+    bool testLength(int32_t len) const
     {
         if (x > len || x < -len)
             return false;
@@ -119,7 +119,7 @@ public:
             x*p.y-y*p.x);
     }
 
-    int64_t dot(const Point3& p)
+    int64_t dot(const Point3& p) const
     {
         return x*p.x + y*p.y + z*p.z;
     }
@@ -135,6 +135,8 @@ inline Point3 operator*(const int32_t i, const Point3& rhs) {
 inline Point3 operator*(const double d, const Point3& rhs) {
     return rhs * d;
 }
+
+using coord_t = ClipperLib::cInt;
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
@@ -202,7 +204,7 @@ INLINE Point normal(const Point& p0, int64_t len)
     return p0 * len / _len;
 }
 
-INLINE Point crossZ(const Point& p0)
+INLINE Point turn90CCW(const Point& p0)
 {
     return Point(-p0.Y, p0.X);
 }

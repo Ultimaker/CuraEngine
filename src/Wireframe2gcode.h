@@ -4,9 +4,11 @@
 
 #include <functional> // passing function pointer or lambda as argument to a function
 
+#include "utils/NoCopy.h"
+
 #include "weaveDataStorage.h"
 #include "commandSocket.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 #include "MeshGroup.h"
 #include "slicer.h"
@@ -14,15 +16,13 @@
 #include "utils/polygon.h"
 #include "Weaver.h"
 
-#include "debug.h"
-
 namespace cura
 {
 
 /*!
  * Export class for exporting wireframe print gcode / weaver gcode / wireprint gcode.
  */
-class Wireframe2gcode : public SettingsMessenger
+class Wireframe2gcode : public SettingsMessenger, NoCopy
 {
 private:
     static const int STRATEGY_COMPENSATE = 0;
@@ -31,11 +31,11 @@ private:
     
     int initial_layer_thickness;
     int filament_diameter;
-    int extrusionWidth;
+    int line_width;
     double flowConnection;
     double flowFlat; 
-    double extrusion_per_mm_connection; 
-    double extrusion_per_mm_flat; 
+    double extrusion_mm3_per_mm_connection;
+    double extrusion_mm3_per_mm_flat;
     int nozzle_outer_diameter;
     int nozzle_head_distance;
     double nozzle_expansion_angle;
@@ -69,21 +69,21 @@ public:
     
     Wireframe2gcode(Weaver& weaver, GCodeExport& gcode, SettingsBase* settings_base);
     
-    void writeGCode(CommandSocket* commandSocket);
+    void writeGCode();
 
 
 private:
-    WireFrame wireFrame;
+    WireFrame& wireFrame;
     
     /*!
      * Startup gcode: nozzle temp up, retraction settings, bed temp
      */
-    void processStartingCode(CommandSocket* command_socket);
+    void processStartingCode();
     
     /*!
      * Lay down a skirt
      */
-    void processSkirt(CommandSocket* commandSocket);
+    void processSkirt();
     
     /*!
      * End gcode: nozzle temp down

@@ -2,22 +2,33 @@
 #include <stdio.h>
 #include <string.h>
 #include <algorithm>
+
+#include "utils/math.h"
 #include "timeEstimate.h"
+#include "settings/settings.h"
 
 namespace cura
 {
-    
+
 #define MINIMUM_PLANNER_SPEED 0.05// (mm/sec)
 
-const double max_feedrate[TimeEstimateCalculator::NUM_AXIS] = {600, 600, 40, 25};
-const double minimumfeedrate = 0.01;
-const double acceleration = 3000;
-const double max_acceleration[TimeEstimateCalculator::NUM_AXIS] = {9000,9000,100,10000};
-const double max_xy_jerk = 20.0;
-const double max_z_jerk = 0.4;
-const double max_e_jerk = 5.0;
+void TimeEstimateCalculator::setFirmwareDefaults(const SettingsBaseVirtual* settings_base)
+{
+    max_feedrate[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_x");
+    max_feedrate[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_y");
+    max_feedrate[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_z");
+    max_feedrate[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_feedrate_e");
+    max_acceleration[X_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_x");
+    max_acceleration[Y_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_y");
+    max_acceleration[Z_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_z");
+    max_acceleration[E_AXIS] = settings_base->getSettingInMillimetersPerSecond("machine_max_acceleration_e");
+    max_xy_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_xy");
+    max_z_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_z");
+    max_e_jerk = settings_base->getSettingInMillimetersPerSecond("machine_max_jerk_e");
+    minimumfeedrate = settings_base->getSettingInMillimetersPerSecond("machine_minimum_feedrate");
+    acceleration = settings_base->getSettingInMillimetersPerSecond("machine_acceleration");
+}
 
-template<typename T> const T square(const T& a) { return a * a; }
 
 void TimeEstimateCalculator::setPosition(Position newPos)
 {
@@ -29,6 +40,20 @@ void TimeEstimateCalculator::addTime(double time)
     extra_time += time;
 }
 
+void TimeEstimateCalculator::setAcceleration(double acc)
+{
+    acceleration = acc;
+}
+
+void TimeEstimateCalculator::setMaxXyJerk(double jerk)
+{
+    max_xy_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setMaxZFeedrate(double max_z_feedrate)
+{
+    max_feedrate[Z_AXIS] = max_z_feedrate;
+}
 
 void TimeEstimateCalculator::reset()
 {
@@ -65,10 +90,13 @@ static inline double intersection_distance(double initial_rate, double final_rat
 // This function gives the time it needs to accelerate from an initial speed to reach a final distance.
 static inline double acceleration_time_from_distance(double initial_feedrate, double distance, double acceleration)
 {
-    double discriminant = sqrt(square(initial_feedrate) - 2 * acceleration * -distance);
-    return (-initial_feedrate + discriminant) / acceleration;
+    double discriminant = square(initial_feedrate) - 2 * acceleration * -distance;
+    //If discriminant is negative, we're moving in the wrong direction.
+    //Making the discriminant 0 then gives the extremum of the parabola instead of the intersection.
+    discriminant = std::max(0.0, discriminant);
+    return (-initial_feedrate + sqrt(discriminant)) / acceleration;
 }
-
+    
 // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
 void TimeEstimateCalculator::calculate_trapezoid_for_block(Block *block, double entry_factor, double exit_factor)
 {

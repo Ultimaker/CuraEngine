@@ -5,12 +5,25 @@ namespace cura
 
 FffProcessor FffProcessor::instance; // definition must be in cpp
 
+FffProcessor::FffProcessor()
+: polygon_generator(this)
+, gcode_writer(this)
+, meshgroup_number(0)
+{
+}
+
+int FffProcessor::getMeshgroupNr()
+{
+    return meshgroup_number;
+}
+
 
 std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup)
 {
     std::stringstream sstream;
     if (first_meshgroup)
     {
+        sstream << getAllLocalSettingsString(); // global settings
         sstream << " -g";
     }
     else 
@@ -26,7 +39,7 @@ std::string FffProcessor::getAllSettingsString(MeshGroup& meshgroup, bool first_
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup.meshes.size(); mesh_idx++)
     {
         Mesh& mesh = meshgroup.meshes[mesh_idx];
-        sstream << " -e" << mesh.getSettingAsCount("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
+        sstream << " -e" << mesh.getSettingAsIndex("extruder_nr") << " -l \"" << mesh_idx << "\"" << mesh.getAllLocalSettingsString();
     }
     sstream << "\n";
     return sstream.str();
@@ -57,19 +70,30 @@ bool FffProcessor::processFiles(const std::vector< std::string >& files)
 
 bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
 {
-    if (SHOW_ALL_SETTINGS) { logWarning(getAllSettingsString(*meshgroup, first_meshgroup).c_str()); }
+    if (SHOW_ALL_SETTINGS) { logWarning(getAllSettingsString(*meshgroup, meshgroup_number == 0).c_str()); }
     time_keeper.restart();
     if (!meshgroup)
         return false;
 
     TimeKeeper time_keeper_total;
-    
-    if (meshgroup->meshes.empty())
+
+    polygon_generator.setParent(meshgroup);
+    gcode_writer.setParent(meshgroup);
+
+    bool empty = true;
+    for (Mesh& mesh : meshgroup->meshes)
     {
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+        if (!mesh.getSettingBoolean("infill_mesh"))
+        {
+            empty = false;
+        }
+    }
+    if (empty)
+    {
+        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
         log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
-        profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
+        profile_string += getAllSettingsString(*meshgroup, meshgroup_number == 0);
         return true;
     }
     
@@ -78,11 +102,11 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         log("starting Neith Weaver...\n");
                     
         Weaver w(this);
-        w.weave(meshgroup, command_socket);
+        w.weave(meshgroup);
         
         log("starting Neith Gcode generation...\n");
         Wireframe2gcode gcoder(w, gcode_writer.gcode, this);
-        gcoder.writeGCode(command_socket);
+        gcoder.writeGCode();
         log("finished Neith Gcode generation...\n");
         
     } else 
@@ -93,17 +117,25 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
         {
             return false;
         }
-        gcode_writer.setCommandSocket(command_socket);
         
-        Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper, command_socket);
+        Progress::messageProgressStage(Progress::Stage::EXPORT, &time_keeper);
         gcode_writer.writeGCode(storage, time_keeper);
     }
 
-    Progress::messageProgress(Progress::Stage::FINISH, 1, 1, command_socket); //Report the GUI that a file has been fully processed.
+    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
+    if (CommandSocket::isInstantiated())
+    {
+        CommandSocket::getInstance()->flushGcode();
+        CommandSocket::getInstance()->sendOptimizedLayerData();
+    }
     log("Total time elapsed %5.2fs.\n", time_keeper_total.restart());
 
-    profile_string += getAllSettingsString(*meshgroup, first_meshgroup);
-    first_meshgroup = false;
+    profile_string += getAllSettingsString(*meshgroup, meshgroup_number == 0);
+    meshgroup_number++;
+
+    polygon_generator.setParent(this); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
+    gcode_writer.setParent(this); // otherwise consequent getSetting calls (e.g. for finalize) will refer to non-existent meshgroup
+
     return true;
 }
 

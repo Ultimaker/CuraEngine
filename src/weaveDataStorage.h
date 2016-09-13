@@ -2,18 +2,25 @@
 #ifndef WEAVE_DATA_STORAGE_H
 #define WEAVE_DATA_STORAGE_H
 
+#include "utils/NoCopy.h"
 #include "utils/intpoint.h"
 #include "utils/polygon.h"
 #include "mesh.h"
 #include "gcodePlanner.h"
 #include "MeshGroup.h"
 
-#include "debug.h"
 
 namespace cura {
 
     
-ENUM( WeaveSegmentType, UP, DOWN, FLAT, MOVE, DOWN_AND_FLAT); // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
+enum class WeaveSegmentType
+{
+    UP, 
+    DOWN, 
+    FLAT, 
+    MOVE, 
+    DOWN_AND_FLAT // DOWN_AND_FLAT is for parts of the roof which can either be viewed as flat or as down, since their [to] location is an up move with zero length
+};
 
 
 struct WeaveConnectionSegment
@@ -69,7 +76,7 @@ struct WeaveLayer : WeaveConnection
     // [connections] are the vertical connections
     WeaveRoof roofs; //!< parts which are filled horizontally (both roofs and floors...)
 };
-struct WireFrame
+struct WireFrame : public NoCopy
 {
     MeshGroup* meshgroup;
     WeaveRoof bottom_infill;

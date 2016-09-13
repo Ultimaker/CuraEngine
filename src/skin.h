@@ -6,66 +6,64 @@
 
 namespace cura 
 {
-
-/*!
- * Generate the gap areas which occur between consecutive insets.
- * 
- * \param layerNr The index of the layer for which to generate the gaps.
- * \param storage The storage where the layer outline information (input) is stored and where the gap areas (output) are stored.
- * \param extrusionWidth extrusionWidth
- * \param downSkinCount The number of layers of bottom gaps
- * \param upSkinCount The number of layers of top gaps
- */
-void generatePerimeterGaps(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount);
-
 /*!
  * Generate the skin areas and its insets.
  * 
  * \param layerNr The index of the layer for which to generate the skins.
- * \param storage The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
- * \param extrusionWidth extrusionWidth
+ * \param mesh The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
  * \param downSkinCount The number of layers of bottom skin
  * \param upSkinCount The number of layers of top skin
- * \param innermost_wall_extrusion_width The line width of the inner most wall
+ * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
+ * \param innermost_wall_line_width The line width of the inner most wall
  * \param insetCount The number of perimeters to surround the skin
  * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
- * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
- * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
  */
-void generateSkins(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, int innermost_wall_extrusion_width, int insetCount, bool no_small_gaps_heuristic, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
+void generateSkins(int layerNr, SliceMeshStorage& mesh, int downSkinCount, int upSkinCount, int wall_line_count, int innermost_wall_line_width, int insetCount, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin areas (outlines)
  * 
  * \param layerNr The index of the layer for which to generate the skins.
- * \param storage The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
- * \param extrusionWidth extrusionWidth
- * \param downSkinCount The number of layers of bottom skin
- * \param upSkinCount The number of layers of top skin
- * \param no_small_gaps_heuristic A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+ * \param mesh The storage where the layer outline information (input) is stored
+ * and where the skin outline (output) is stored.
+ * \param innermost_wall_line_width The line width of the walls around the skin, by which
+ * we must inset for each wall.
+ * \param downSkinCount The number of layers of bottom skin.
+ * \param upSkinCount The number of layers of top skin.
+ * \param wall_line_count The number of walls, i.e. the number of the wall from
+ * which to offset.
+ * \param no_small_gaps_heuristic A heuristic which assumes there will be no
+ * small gaps between bottom and top skin with a z size smaller than the skin
+ * size itself.
  */
-void generateSkinAreas(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int downSkinCount, int upSkinCount, bool no_small_gaps_heuristic);
+void generateSkinAreas(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int downSkinCount, int upSkinCount, int wall_line_count, bool no_small_gaps_heuristic);
 
 /*!
  * Generate the skin insets.
  * 
  * \param layerNr The index of the layer for which to generate the skins.
- * \param part The part where the skin outline information (input) is stored and where the skin insets (output) are stored.
- * \param extrusionWidth extrusionWidth
- * \param insetCount The number of perimeters to surround the skin
- * \param avoidOverlappingPerimeters_0 Whether to remove the parts of the first perimeters where it have overlap with itself (and store the gaps thus created in the \p storage)
- * \param avoidOverlappingPerimeters Whether to remove the parts of two consecutive perimeters where they have overlap (and store the gaps thus created in the \p storage)
+ * \param part The part where the skin outline information (input) is stored and
+ * where the skin insets (output) are stored.
+ * \param wall_line_width The width of the perimeters around the skin.
+ * \param insetCount The number of perimeters to surround the skin.
  */
-void generateSkinInsets(SliceLayerPart* part, int extrusionWidth, int insetCount, bool avoidOverlappingPerimeters_0, bool avoidOverlappingPerimeters);
+void generateSkinInsets(SliceLayerPart* part, const int wall_line_width, int insetCount);
 
 /*!
- * Generate Infill
+ * Generate Infill by offsetting from the last wall.
+ * 
+ * The walls should already be generated.
+ * 
+ * After this function has been called on a layer of a mesh, each SliceLayerPart of that layer should have an infill_area consisting of exactly one Polygons : the normal uncombined infill area.
+ * 
  * \param layerNr The index of the layer for which to generate the infill
+ * \param mesh The storage where the layer outline information (input) is stored and where the skin outline (output) is stored.
  * \param part The part where the insets (input) are stored and where the infill (output) is stored.
- * \param extrusionWidth width of the wall lines
+ * \param innermost_wall_line_width width of the innermost wall lines
  * \param infill_skin_overlap overlap distance between infill and skin
+ * \param wall_line_count The number of walls, i.e. the number of the wall from which to offset.
  */
-void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, int infill_skin_overlap);
+void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wall_line_width, int infill_skin_overlap, int wall_line_count);
 
 /*!
  * \brief Combines the infill of multiple layers for a specified mesh.
@@ -74,10 +72,32 @@ void generateInfill(int layerNr, SliceMeshStorage& storage, int extrusionWidth, 
  * multiplied such that the infill should fill up again to the full height of
  * all combined layers.
  * 
- * \param storage The mesh to combine the infill layers of.
+ * \param mesh The mesh to combine the infill layers of.
  * \param amount The number of layers to combine.
  */
-void combineInfillLayers(SliceMeshStorage& storage,unsigned int amount);
+void combineInfillLayers(SliceMeshStorage& mesh, unsigned int amount);
+
+/*!
+ * Class containing all skin and infill area computation functions
+ */
+class SkinInfillAreaComputation
+{
+public:
+    /*!
+     * Generate infill areas which cause a gradually less dense infill structure from top to bottom.
+     * 
+     * The areas generated overlap, so that more dense infill adds on to less dense infill.
+     * That way you don't have infill lines which are broken when they cross a border between separated infill areas - if they would be as such.
+     * 
+     * This function also guarantees that the SliceLayerPart::infill_area_per_combine_per_density is initialized with at least one item.
+     * The last item in the list will be equal to the infill_area after this function.
+     * 
+     * \param gradual_infill_step_height // The height difference between consecutive density infill areas
+     * \param max_infill_steps the maximum exponent of division of infill density. At 5 the least dense infill will be 2^4 * infill_line_distance i.e. one 16th as dense
+     */
+    static void generateGradualInfill(SliceMeshStorage& mesh, unsigned int gradual_infill_step_height, unsigned int max_infill_steps);
+    
+};
 
 }//namespace cura
 

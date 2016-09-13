@@ -12,12 +12,11 @@ class AreaSupport {
 public:
 
     /*!
-     * Generate the support areas and support roof areas for all models.
+     * Generate the support areas and support skin areas for all models.
      * \param storage data storage containing the input layer outline data and containing the output support storage per layer
      * \param layer_count total number of layers
-     * \param commandSocket Socket over which to report the progress
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
         
 private:
     /*!
@@ -28,22 +27,20 @@ private:
      * \param storage data storage containing the input layer outline data
      * \param mesh_idx The index of the object for which to generate support areas
      * \param layer_count total number of layers
-     * \param commandSocket Socket over which to report the progress
      */
-    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas, CommandSocket* commandSocket);
+    static void generateSupportAreas(SliceDataStorage& storage, unsigned int mesh_idx, unsigned int layer_count, std::vector<Polygons>& supportAreas);
 
 
 
     /*!
-     * Generate support roof areas and non-roof areas for a given mesh.
+     * Generate support skin areas and non-skin areas for a given mesh.
      * 
-     * \param storage Output storage: support area + support roof area output
-     * \param supportAreas The basic support areas for the current mesh
-     * \param commandSocket Socket over which to report the progress
-     * \param layerThickness The layer height
-     * \param support_roof_height The thickness of the hammock in z directiontt
+     * \param storage Output storage: support area + support skin area output
+     * \param mesh The mesh to generate support skins for.
+     * \param support_areas The basic support areas for the current mesh
+     * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportRoofs(SliceDataStorage& storage, std::vector<Polygons>& supportAreas,  unsigned int layer_count, int layerThickness, int support_roof_height, CommandSocket* commandSocket);
+    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
@@ -67,16 +64,32 @@ private:
      * \param overhang_points stores overhang_points along with the layer index at which the overhang point occurs
      * \param layer_count total number of layers
      * \param supportMinAreaSqrt diameter of the minimal area which can be supported without a specialized strut
-     * \param extrusionWidth extrusionWidth
      */
     static void detectOverhangPoints(
         SliceDataStorage& storage,
         SliceMeshStorage& mesh,
         std::vector<std::pair<int, std::vector<Polygons>>>& overhang_points, 
         int layer_count,
-        int supportMinAreaSqrt,
-        int extrusionWidth
+        int supportMinAreaSqrt
     );
+    
+    /*!
+     * Compute the basic overhang and full overhang of a layer. 
+     * The basic overhang consists of the parts of this layer which are too far away from the layer below to be supported.
+     * The full overhang consists of the basic overhang extended toward the border of the layer below.
+     * 
+     *             layer 2
+     * layer 1 ______________|
+     * _______|         ^^^^^ basic overhang
+     *         ^^^^^^^^^^^^^^ full overhang
+     * 
+     * \param storage The slice data storage
+     * \param mesh The mesh for which to compute the basic overhangs
+     * \param layer_idx The layer for which to compute the overhang
+     * \param max_dist_from_lower_layer The outward distance from the layer below which can be supported by it
+     * \return a pair of basic overhang and full overhang
+     */
+    static std::pair<Polygons, Polygons> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_idx, const int64_t max_dist_from_lower_layer);
     
     /*!
      * Adds tower pieces to the current support layer.

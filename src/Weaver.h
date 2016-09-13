@@ -3,15 +3,14 @@
 
 #include "weaveDataStorage.h"
 #include "commandSocket.h"
-#include "settings.h"
+#include "settings/settings.h"
 
 #include "MeshGroup.h"
 #include "slicer.h"
 
+#include "utils/NoCopy.h"
 #include "utils/polygon.h"
 #include "utils/polygonUtils.h"
-
-#include "debug.h"
 
 namespace cura
 {
@@ -19,7 +18,7 @@ namespace cura
 /*!
  * The main weaver / WirePrint / wireframe printing class, which computes the basic paths to be followed.
  */
-class Weaver : public SettingsMessenger
+class Weaver : public SettingsMessenger, NoCopy
 {
     friend class Wireframe2gcode;
 private:
@@ -29,7 +28,7 @@ private:
     
     int initial_layer_thickness;
     int connectionHeight; 
-    int extrusionWidth;
+    int line_width;
     
     int roof_inset; 
     
@@ -46,7 +45,7 @@ public:
         initial_layer_thickness = getSettingInMicrons("layer_height_0");
         connectionHeight = getSettingInMicrons("wireframe_height"); 
         
-        extrusionWidth = getSettingInMicrons("wall_line_width_x");
+        line_width = getSettingInMicrons("wall_line_width_x");
         
         roof_inset = getSettingInMicrons("wireframe_roof_inset"); 
         nozzle_outer_diameter = getSettingInMicrons("machine_nozzle_tip_outer_diameter");      // ___       ___   .
@@ -60,9 +59,8 @@ public:
      * Creates a wireframe for the model consisting of horizontal 'flat' parts and connections between consecutive flat parts consisting of UP moves and diagonally DOWN moves.
      * 
      * \param objects The objects for which to create a wireframe print
-     * \param commandSocket the commandSocket
      */
-    void weave(MeshGroup* objects, CommandSocket* commandSocket);
+    void weave(MeshGroup* objects);
     
 
 private:

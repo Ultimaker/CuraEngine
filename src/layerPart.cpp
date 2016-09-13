@@ -1,8 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 
 #include "layerPart.h"
-#include "settings.h"
-#include "Progress.h"
+#include "settings/settings.h"
+#include "progress/Progress.h"
 
 #include "utils/SVG.h" // debug output
 
@@ -26,15 +26,15 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
 
     if (union_all_remove_holes)
     {
-        for(unsigned int i=0; i<layer->polygonList.size(); i++)
+        for(unsigned int i=0; i<layer->polygons.size(); i++)
         {
-            if (layer->polygonList[i].orientation())
-                layer->polygonList[i].reverse();
+            if (layer->polygons[i].orientation())
+                layer->polygons[i].reverse();
         }
     }
     
     std::vector<PolygonsPart> result;
-    result = layer->polygonList.splitIntoParts(union_layers || union_all_remove_holes);
+    result = layer->polygons.splitIntoParts(union_layers || union_all_remove_holes);
     for(unsigned int i=0; i<result.size(); i++)
     {
         storageLayer.parts.emplace_back();
@@ -42,14 +42,14 @@ void createLayerWithParts(SliceLayer& storageLayer, SlicerLayer* layer, bool uni
         storageLayer.parts[i].boundaryBox.calculate(storageLayer.parts[i].outline);
     }
 }
-void createLayerParts(SliceMeshStorage& storage, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
+void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers, bool union_all_remove_holes)
 {
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
-        storage.layers.push_back(SliceLayer());
-        storage.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
-        storage.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
-        createLayerWithParts(storage.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
+        mesh.layers.push_back(SliceLayer());
+        mesh.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
+        mesh.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
+        createLayerWithParts(mesh.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
     }
 }
 

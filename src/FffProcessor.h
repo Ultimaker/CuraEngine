@@ -1,13 +1,13 @@
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
-#include "settings.h"
+#include "settings/settings.h"
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
 #include "commandSocket.h"
 #include "Weaver.h"
 #include "Wireframe2gcode.h"
-#include "Progress.h"
+#include "progress/Progress.h"
 #include "utils/gettime.h"
 #include "utils/NoCopy.h"
 
@@ -19,76 +19,152 @@ namespace cura {
 class FffProcessor : public SettingsBase , NoCopy
 {
 private:
+    /*!
+     * The FffProcessor used for the (current) slicing (The instance of this singleton)
+     */
     static FffProcessor instance; 
     
-    FffProcessor()
-    : polygon_generator(this)
-    , gcode_writer(this)
-    , first_meshgroup(true)
-    {
-        command_socket = NULL;
-    }
+    FffProcessor();
 public:
+    /*!
+     * Get the instance
+     * \return The instance
+     */
     static FffProcessor* getInstance() 
     { 
         return &instance; 
     }
-    
+
+    /*!
+     * Get the index of the meshgroup currently being processed, starting at zero.
+     */
+    int getMeshgroupNr();
+
 private:
+    /*!
+     * The polygon generator, which slices the models and generates all polygons to be printed and areas to be filled.
+     */
     FffPolygonGenerator polygon_generator;
+
+    /*!
+     * The gcode writer, which generates paths in layer plans in a buffer, which converts these paths into gcode commands.
+     */
     FffGcodeWriter gcode_writer;
-    CommandSocket* command_socket; // TODO: replace all refs to command_socket by CommandSocket::getInstance()
-    
-    bool first_meshgroup;
-    
+
+    /*!
+     * The index of the meshgroup currently being processed, starting at zero.
+     */
+    int meshgroup_number;
+
+    /*!
+     * A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
+     * 
+     * Used in debugging.
+     */
     std::string profile_string = "";
-    
+
+    /*!
+     * Get all settings for the current meshgroup in the format by which CuraEngine is called via the command line.
+     * 
+     * Also includes all global settings if this is the first meshgroup.
+     * 
+     * Used in debugging.
+     * 
+     * \param meshgroup The meshgroup for which to stringify all settings
+     * \param first_meshgroup Whether this is the first meshgroup and all global settigns should be included as well
+     */
     std::string getAllSettingsString(MeshGroup& meshgroup, bool first_meshgroup);
-    
+
 public:
+    /*!
+     * Get a string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
+     * 
+     * \return A string containing all setting values passed to the engine in the format by which CuraEngine is called via the command line.
+     */
     std::string getProfileString() { return profile_string; }
-    
+
+    /*!
+     * The stop watch used to time how long the different stages take to compute.
+     */
     TimeKeeper time_keeper; // TODO: use singleton time keeper
-    
-    void resetFileNumber()
+
+    /*!
+     * Reset the meshgroup number to the first meshgroup to start a new slicing.
+     */
+    void resetMeshGroupNumber()
     {
-        gcode_writer.resetFileNumber();
+        meshgroup_number = 0;
     }
 
-    void setCommandSocket(CommandSocket* socket)
-    {
-        command_socket = socket;
-        gcode_writer.setCommandSocket(socket);
-        polygon_generator.setCommandSocket(socket);
-    }
-    
+    /*!
+     * Set the target to write gcode to: to a file.
+     * 
+     * Used when CuraEngine is used as command line tool.
+     * 
+     * \param filename The filename of the file to which to write the gcode.
+     */
     bool setTargetFile(const char* filename)
     {
         return gcode_writer.setTargetFile(filename);
     }
-    
+
+    /*!
+     * Set the target to write gcode to: an output stream.
+     * 
+     * Used when CuraEngine is NOT used as command line tool.
+     * 
+     * \param stream The stream to write gcode to.
+     */
     void setTargetStream(std::ostream* stream)
     {
         return gcode_writer.setTargetStream(stream);
     }
 
-    double getTotalFilamentUsed(int e)
+    /*!
+     * Get the total extruded volume for a specific extruder in mm^3
+     * 
+     * Retractions and unretractions don't contribute to this.
+     * 
+     * \param extruder_nr The extruder number for which to get the total netto extruded volume
+     * \return total filament printed in mm^3
+     */
+    double getTotalFilamentUsed(int extruder_nr)
     {
-        return gcode_writer.getTotalFilamentUsed(e);
+        return gcode_writer.getTotalFilamentUsed(extruder_nr);
     }
 
+    /*!
+     * Get the total estimated print time in seconds
+     * 
+     * \return total print time in seconds
+     */
     double getTotalPrintTime()
     {
         return gcode_writer.getTotalPrintTime();
     }
-    
+
+    /*!
+     * Add the end gcode and set all temperatures to zero.
+     */
     void finalize()
     {
         gcode_writer.finalize();
     }
 
+    /*!
+     * Process all files into one meshgroup
+     * 
+     * \warning Unused!
+     */
     bool processFiles(const std::vector<std::string> &files);
-    
+
+    /*!
+     * Generate gcode for a given \p meshgroup
+     * The primary function of this class.
+     * 
+     * \param meshgroup The meshgroup for which to generate gcode
+     * \return Whether this function succeeded
+     */
     bool processMeshGroup(MeshGroup* meshgroup);
 };
 

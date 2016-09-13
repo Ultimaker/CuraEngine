@@ -1,0 +1,19 @@
+find engine setting literals
+
+
+cd ~/Development/CuraEngine/output/reflection/
+
+~/bin/substitute.pl y 'while(/getSetting\w+\("(\w+)"\)/gsm) { print "$1\n"; }' ../../src/ | sort | uniq > engineSettingLiterals.txt
+
+
+run setting inheritance reflection
+
+cd ~/Development/CuraEngine
+./build/CuraEngine analyse ../Cura/resources/definitions/fdmprinter.def.json meta/refl_ff.gv output/reflection/engineSettingLiterals.txt -piew
+
+dot meta/refl_ff.gv -Tpng > meta/rafl_ff_dotted.png
+
+
+green block = used in engine
+red edge = inherit function only
+black edge = parent-child relation

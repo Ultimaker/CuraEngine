@@ -63,8 +63,34 @@ public:
         return -1;
                 
     }
-    
-    
+
+    /*!
+     * Find whether a point projected on a line segment would be projected to
+     * - properly on the line : zero returned
+     * - closer to \p a : -1 returned
+     * - closer to \p b : 1 returned
+     * 
+     * \param from The point to check in relation to the line segment
+     * \param a The start point of the line segment
+     * \param b The end point of the line segment
+     * \return the sign of the projection wrt the line segment
+     */
+    inline static short pointIsProjectedBeyondLine(const Point from, const Point a, const Point b)
+    {
+        const Point vec = b - a;
+        const Point point_vec = from - a;
+        const int64_t dot_prod = dot(point_vec, vec);
+        if (dot_prod < 0)
+        { // point is projected to before ab
+            return -1;
+        }
+        if (dot_prod > vSize2(vec))
+        { // point is projected to after ab
+            return 1;
+        }
+        return 0;
+    }
+
     /*!
     * Find the point closest to \p from on the line from \p p0 to \p p1
     */
@@ -103,6 +129,8 @@ public:
     /*!
     * Get the squared distance from point \p b to a line *segment* from \p a to \p c.
     * 
+    * In case \p b is on \p a or \p c, \p b_is_beyond_ac should become 0.
+    * 
     * \param a the first point of the line segment
     * \param b the point to measure the distance from
     * \param c the second point on the line segment
@@ -127,34 +155,106 @@ public:
     */
         Point ac = c - a;
         int64_t ac_size = vSize(ac);
-        if (ac_size == 0) 
-        {
-//             if (b_is_beyond_ac) { *b_is_beyond_ac = 1; } // variable b_is_beyond_ac remains its value
-            return 0; 
-        }
 
         Point ab = b - a;
+        if (ac_size == 0) 
+        {
+            int64_t ab_dist2 = vSize2(ab); 
+            if (ab_dist2 == 0)
+            {
+                *b_is_beyond_ac = 0; // a is on b is on c
+            }
+            // otherwise variable b_is_beyond_ac remains its value; it doesn't make sense to choose between -1 and 1
+            return ab_dist2;
+        }
         int64_t projected_x = dot(ab, ac);
         int64_t ax_size = projected_x / ac_size;
         
         if (ax_size < 0) 
         {// b is 'before' segment ac 
-            if (b_is_beyond_ac) { *b_is_beyond_ac = -1; }
+            if (b_is_beyond_ac)
+            {
+                *b_is_beyond_ac = -1;
+            }
             return vSize2(ab);
         }
         if (ax_size > ac_size)
         {// b is 'after' segment ac
-            if (b_is_beyond_ac) { *b_is_beyond_ac = 1; }
+            if (b_is_beyond_ac)
+            {
+                *b_is_beyond_ac = 1;
+            }
             return vSize2(b - c);
         }
         
-        if (b_is_beyond_ac) { *b_is_beyond_ac = 0; }
+        if (b_is_beyond_ac)
+        {
+            *b_is_beyond_ac = 0;
+        }
         Point ax = ac * ax_size / ac_size;
         Point bx = ab - ax;
         return vSize2(bx);
 //         return vSize2(ab) - ax_size*ax_size; // less accurate
     }
 
+    /*!
+     * Checks whether the minimal distance between two line segments is at most \p max_dist
+     * The first line semgent is given by end points \p a and \p b, the second by \p c and \p d.
+     * 
+     * \param a One end point of the first line segment
+     * \param b Another end point of the first line segment
+     * \param c One end point of the second line segment
+     * \param d Another end point of the second line segment
+     * \param max_dist The maximal distance between the two line segments for which this function will return true.
+     */
+    static bool lineSegmentsAreCloserThan(const Point& a, const Point& b, const Point& c, const Point& d, int64_t max_dist)
+    {
+        int64_t max_dist2 = max_dist * max_dist;
+
+        return getDist2FromLineSegment(a, c, b) <= max_dist2
+                || getDist2FromLineSegment(a, d, b) <= max_dist2
+                || getDist2FromLineSegment(c, a, d) <= max_dist2
+                || getDist2FromLineSegment(c, b, d) <= max_dist2;
+    }
+    
+    /*!
+     * Compute the angle between two consecutive line segments.
+     * 
+     * The angle is computed from the left side of b when looking from a.
+     * 
+     *   c
+     *    \                     .
+     *     \ b
+     * angle|
+     *      |
+     *      a
+     * 
+     * \param a start of first line segment
+     * \param b end of first segment and start of second line segment
+     * \param c end of second line segment
+     * \return the angle in radians between 0 and 2 * pi of the corner in \p b
+     */
+    static float getAngleLeft(const Point& a, const Point& b, const Point& c);
+
+    /*!
+     * Check whether a corner is acute or obtuse.
+     * 
+     * This function is irrespective of the order between \p a and \p c;
+     * the lowest angle among bot hsides of the corner is always chosen.
+     * 
+     * isAcuteCorner(a, b, c) === isAcuteCorner(c, b, a)
+     * 
+     * \param a start of first line segment
+     * \param b end of first segment and start of second line segment
+     * \param c end of second line segment
+     * \return positive if acute, negative if obtuse, zero if 90 degree corner
+     */
+    static inline int isAcuteCorner(const Point a, const Point b, const Point c)
+    {
+        Point ba = a - b;
+        Point bc = c - b;
+        return dot(ba, bc);
+    }
 
 };
 

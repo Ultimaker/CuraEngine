@@ -19,45 +19,52 @@ But in general it boils down to: You need to share the source of any CuraEngine 
 How to Install
 ==============
 1. Clone the repository from https://github.com/Ultimaker/CuraEngine.git (the URL at the right hand side of this page).
-2. Install Protobuf (see below)
+2. Install Protobuf >= 3.0.0 (see below)
 3. Install libArcus (see https://github.com/Ultimaker/libArcus)
 
 In order to compile CuraEngine, either use CMake or start a project in your preferred IDE. 
 CMake compilation:
 
 1. Navigate to the CuraEngine directory and execute the following commands
-2. $ mkdir build && cd build
-3. $ cmake ..
-4. $ make
+2. ```$ mkdir build && cd build```
+3. ```$ cmake ..```
+4. ```$ make```
 
 Project files generation:
 1. Navigate to the CuraEngine directory and execute the following commands
-2. cmake . -G "CodeBlocks - Unix Makefiles"
+2. ```cmake . -G "CodeBlocks - Unix Makefiles"```
 3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
 
 Installing Protobuf
 -------------------
 1. Be sure to have libtool installed.
-2. Download protobuf from https://github.com/google/protobuf/ (download ZIP and unZIP at desired location, or clone the repo) The protocol buffer is used for communication between the CuraEngine and the GUI.
-3. Before installing protobuf, change autogen.sh : comment line 18 to line 38 using '#'s. This removes the dependency on gtest-1.7.0.
-4. Run autogen.sh from the protobuf directory: 
-   $ ./autogen.sh
-5. $ ./configure
-6. $ make
-7. $ make install     # Requires superused priviliges.
-8. (In case the shared library cannot be loaded, you can try "sudo ldconfig" on Linux systems)
+2. Download protobuf from https://github.com/google/protobuf/releases (download ZIP and unZIP at desired location, or clone the repo). The protocol buffer is used for communication between the CuraEngine and the GUI.
+3. Run ```$ autogen.sh``` from the protobuf directory: 
+   $ ```$ ./autogen.sh```
+4. $ ```$ ./configure```
+5. $ ```$ make```
+6. $ ```# make install```  
+   (Please note the ```#```. It indicates the need of superuser, as known as root, priviliges.)
+7. (In case the shared library cannot be loaded, you can try ```sudo ldconfig``` on Linux systems)
 
 Running
 =======
 Other than running CuraEngine from a frontend, such as Ultimaker/Cura, one can run CuraEngine from the command line.
 For that one needs a settings JSON file, which can be found in the Ultimaker/Cura repository.
+Note that the structure of the json files has changed since 2.1. In the corresponding branch of the Cura repository you can find how the json files used to be structured.
+
 An example run for an UM2 machine looks as follows:
 * Navigate to the CuraEngine directory and execute the following
 ```
-./build/CuraEngine slice -v -j ../Cura/resources/machines/dual_extrusion_printer.json -o "output/test.gcode" -e1 -s infill_line_distance=0 -e0 -l "/model_1.stl" -e1 -l "fully_filled_model.stl" 
+./build/CuraEngine slice -v -j ../Cura/resources/definitions/dual_extrusion_printer.def.json -o "output/test.gcode" -e1 -s infill_line_distance=0 -e0 -l "/model_1.stl" -e1 -l "fully_filled_model.stl" 
 ```
 
 Run `CuraEngine help` for a general description of how to use the CuraEngine tool.
+
+[Set the environment variable](https://help.ubuntu.com/community/EnvironmentVariables) CURA_ENGINE_SEARCH_PATH to the appropriate paths, delimited by a colon e.g.
+```
+CURA_ENGINE_SEARCH_PATH=/path/to/Cura/resources/definitions:/user/defined/path
+```
 
 Internals
 =========
