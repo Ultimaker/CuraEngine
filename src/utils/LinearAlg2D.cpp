@@ -46,7 +46,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
     }
     const int64_t xr_size = sqrt(dist * dist - px_size * px_size);
     if (ax_size <= 0)
-    { // x lies before ba
+    { // x lies before ab
         const int64_t ar_size = xr_size + ax_size;
         if (ar_size < 0 || ar_size > ab_size)
         { // r lies outisde of ab
