@@ -218,22 +218,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
         return 3;
     }
 
-    { // handle machine name
-        std::string machine_name = "Unknown";
-        if (json_document.HasMember("name"))
-        {
-            const rapidjson::Value& machine_name_field = json_document["name"];
-            if (machine_name_field.IsString())
-            {
-                machine_name = machine_name_field.GetString();
-            }
-        }
-        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
-        machine_name_setting.setDefault(machine_name);
-        machine_name_setting.setType("string");
-        settings_base->_setSetting(machine_name_setting.getKey(), machine_name_setting.getDefaultValue());
-    }
-
     if (json_document.HasMember("settings"))
     {
         std::list<std::string> path;
