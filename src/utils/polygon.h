@@ -250,7 +250,7 @@ public:
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
      * 
-     * \param angle The maximal angle of inner corners to be smoothed out
+     * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
      */
@@ -541,7 +541,7 @@ public:
     /*!
      * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
      * 
-     * \param angle The maximal angle of inner corners to be smoothed out
+     * \param angle The maximum angle of inner corners to be smoothed out
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
      */
