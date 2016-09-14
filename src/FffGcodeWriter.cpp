@@ -813,67 +813,67 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
         }
         if (mesh->getSettingBoolean("outer_inset_first"))
         {
-			for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)
-			{
-				if (inset_number == 0)
-				{
-					if (!compensate_overlap_0)
-					{
-						gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
-					}
-					else
-					{
-						Polygons& outer_wall = part.insets[0];
-						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
-					}
-				}
-				else
-				{
-					if (!compensate_overlap_x)
-					{
-						gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
-					}
-					else
-					{
-						Polygons& outer_wall = part.insets[inset_number];
-						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
-					}
-				}
-			}
+            for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)
+            {
+                if (inset_number == 0)
+                {
+                    if (!compensate_overlap_0)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[0];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
+                    }
+                }
+                else
+                {
+                    if (!compensate_overlap_x)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[inset_number];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
+                    }
+                }
+            }
         }
         else
         {
-			for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
-			{
-				if (inset_number == 0)
-				{
-					if (!compensate_overlap_0)
-					{
-						gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
-					}
-					else
-					{
-						Polygons& outer_wall = part.insets[0];
-						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
-					}
-				}
-				else
-				{
-					if (!compensate_overlap_x)
-					{
-						gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
-					}
-					else
-					{
-						Polygons& outer_wall = part.insets[inset_number];
-						WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-						gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
-					}
-				}
-			}
+            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+            {
+                if (inset_number == 0)
+                {
+                    if (!compensate_overlap_0)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[0];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
+                    }
+                }
+                else
+                {
+                    if (!compensate_overlap_x)
+                    {
+                        gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
+                    }
+                    else
+                    {
+                        Polygons& outer_wall = part.insets[inset_number];
+                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
+                    }
+                }
+            }
         }
     }
 }
