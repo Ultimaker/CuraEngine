@@ -503,6 +503,9 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {
+#ifdef ASSERT_INSANE_OUTPUT
+            assert(vSize(new_p0) < 300000);
+#endif // #ifdef ASSERT_INSANE_OUTPUT
             p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
         }
         else
@@ -529,6 +532,9 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {
+#ifdef ASSERT_INSANE_OUTPUT
+            assert(vSize(new_p2) < 300000);
+#endif // #ifdef ASSERT_INSANE_OUTPUT
             p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
         }
         else
@@ -646,6 +652,10 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
         {
             Point a = p1 + normal(v10, a1_size);
             Point b = p1 + normal(v12, a1_size);
+#ifdef ASSERT_INSANE_OUTPUT
+            assert(vSize(a) < 300000);
+            assert(vSize(b) < 300000);
+#endif // #ifdef ASSERT_INSANE_OUTPUT
             p1_it.remove();
             poly.insert(p2_it.it, a);
             poly.insert(p2_it.it, b);
@@ -667,6 +677,9 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             // v02 has to be longer than ab!
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
+#ifdef ASSERT_INSANE_OUTPUT
+                assert(vSize(a) < 300000);
+#endif // #ifdef ASSERT_INSANE_OUTPUT
                 poly.insert(p1_it.it, a);
             }
             p1_it.remove();
@@ -685,6 +698,9 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             p1_it.remove();
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
+#ifdef ASSERT_INSANE_OUTPUT
+                assert(vSize(b) < 300000);
+#endif // #ifdef ASSERT_INSANE_OUTPUT
                 poly.insert(p2_it.it, b);
             }
         }
