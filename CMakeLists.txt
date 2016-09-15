@@ -28,7 +28,7 @@ set(CURA_ENGINE_VERSION "master" CACHE STRING "Version name of Cura")
 option(BUILD_TESTS OFF)
 
 # Add a compiler flag to check the output for insane values if we are in debug mode.
-if(CMAKE_BUILD_TYPE MATCHES DEBUG)
+if(CMAKE_BUILD_TYPE MATCHES DEBUG OR CMAKE_BUILD_TYPE MATCHES RelWithDebInfo)
     message(STATUS "Building debug release of CuraEngine.")
     add_definitions(-DASSERT_INSANE_OUTPUT)
     add_definitions(-DUSE_CPU_TIME)

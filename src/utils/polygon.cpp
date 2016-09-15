@@ -414,15 +414,10 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     bool forward_is_too_far = false;
     bool backward_is_blocked = false;
     bool backward_is_too_far = false;
-    std::cerr << "start\n";
-    while (true)
+    while (p0_it.prev() != p2_it && p0_it != p2_it) // condition to pragmatically prevent infinite loops
     {
         const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
         const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
-        if (forward_is_blocked) std::cerr << "forward_is_blocked\n";
-        if (backward_is_blocked) std::cerr << "backward_is_blocked\n";
-        if (forward_is_too_far) std::cerr << "forward_is_too_far\n";
-        if (backward_is_too_far) std::cerr << "backward_is_too_far\n";
         if (forward_has_converged && backward_has_converged)
         {
             if (forward_is_too_far && backward_is_too_far && vSize2(p0_it.prev().p() - p2_it.next().p()) < shortcut_length2)
@@ -438,6 +433,8 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
                 //        o o
                 --p0_it;
                 ++p2_it;
+                forward_is_too_far = false; // invalidate data
+                backward_is_too_far = false; // invalidate data
                 continue;
             }
             else
@@ -476,7 +473,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         const Point p0_2 = p0_2_it.p();
         const Point v02_2 = p0_2 - p2_2;
         const int64_t v02_2_size = vSize(v02_2);
-        float progress = INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size);
+        float progress = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
         p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
