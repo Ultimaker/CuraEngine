@@ -473,7 +473,6 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 else
                 {
                     const int64_t a1_size = shortcut_length / 2 / sin(acos(cos_angle) / 2); // compute the distance a1 == b1 to get vSize(ab)==shortcut_length with the given angle between v10 and v12
-                    assert(a1_size < 300000 && "No points outside the build plate should be introduced!");
                     if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
                     {
                         Point a = p1 + normal(v10, a1_size);
