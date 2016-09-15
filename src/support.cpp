@@ -154,11 +154,15 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
     int smoothing_distance;
     { // compute best smoothing_distance
-        int interface_extruder_nr = interface_enable? support_skin_extruder_nr : support_infill_extruder_nr;
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(interface_extruder_nr);
-        // get a support line width representative for all support
-        int support_line_width = train.getSettingInMicrons(interface_enable? "support_interface_line_width" : "support_line_width");
-        smoothing_distance = support_line_width;
+        ExtruderTrain& infill_train = *storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
+        int support_infill_line_width = infill_train.getSettingInMicrons("support_interface_line_width");
+        smoothing_distance = support_infill_line_width;
+        if (interface_enable)
+        {
+            ExtruderTrain& interface_train = *storage.meshgroup->getExtruderTrain(support_skin_extruder_nr);
+            int support_interface_line_width = interface_train.getSettingInMicrons("support_interface_line_width");
+            smoothing_distance = std::max(support_interface_line_width, smoothing_distance);
+        }
     }
 
     const int z_layer_distance_tower = 1; // start tower directly below overhang point
