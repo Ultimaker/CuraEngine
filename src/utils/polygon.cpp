@@ -401,6 +401,62 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     ListPolyIt::convertListPolygonToPolygon(result_list_poly, *this);
 }
 
+void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_length, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far)
+{
+    const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
+    const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
+    const Point p0 = p0_it.p();
+    const Point p2 = p2_it.p();
+    bool walk_forward = !forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
+
+    if (walk_forward)
+    {
+        const ListPolyIt p2_2_it = p2_it.next();
+        const Point p2_2 = p2_2_it.p();
+        bool p2_is_left = LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
+        if (!p2_is_left)
+        {
+            forward_is_blocked = true;
+            return;
+        }
+
+        const Point v02_2 = p2_2 - p0_it.p();
+        if (vSize2(v02_2) > shortcut_length * shortcut_length)
+        {
+            forward_is_too_far = true;
+            return;
+        }
+
+        p2_it = p2_2_it; // make one step in the forward direction
+        backward_is_blocked = false; // invalidate data about backward walking
+        backward_is_too_far = false;
+        return;
+    }
+    else
+    {
+        const ListPolyIt p0_2_it = p0_it.prev();
+        const Point p0_2 = p0_2_it.p();
+        bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
+        if (!p0_is_left)
+        {
+            backward_is_blocked = true;
+            return;
+        }
+
+        const Point v02_2 = p2_it.p() - p0_2;
+        if (vSize2(v02_2) > shortcut_length * shortcut_length)
+        {
+            backward_is_too_far = true;
+            return;
+        }
+
+        p0_it = p0_2_it; // make one step in the backward direction
+        forward_is_blocked = false; // invalidate data about forward walking
+        forward_is_too_far = false;
+        return;
+    }
+}
+
 void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef result) const
 {
 //               6
@@ -522,56 +578,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                     {
                         break;
                     }
-                    const Point p0 = p0_it.p();
-                    const Point p2 = p2_it.p();
-                    bool walk_forward = !forward_has_converged && (backward_has_converged || (vSize2(p2 - p1) < vSize2(p0 - p1))); // whether to walk along the p1-p2 direction or in the p1-p0 direction
-
-                    if (walk_forward)
-                    {
-                        const ListPolyIt p2_2_it = p2_it.next();
-                        const Point p2_2 = p2_2_it.p();
-                        bool p2_is_left = LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
-                        if (!p2_is_left)
-                        {
-                            forward_is_blocked = true;
-                            continue;
-                        }
-
-                        const Point v02_2 = p2_2 - p0_it.p();
-                        if (vSize2(v02_2) > shortcut_length * shortcut_length)
-                        {
-                            forward_is_too_far = true;
-                            continue;
-                        }
-
-                        p2_it = p2_2_it; // make one step in the forward direction
-                        backward_is_blocked = false; // invalidate data about backward walking
-                        backward_is_too_far = false;
-                        continue;
-                    }
-                    else
-                    {
-                        const ListPolyIt p0_2_it = p0_it.prev();
-                        const Point p0_2 = p0_2_it.p();
-                        bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
-                        if (!p0_is_left)
-                        {
-                            backward_is_blocked = true;
-                            continue;
-                        }
-
-                        const Point v02_2 = p2_it.p() - p0_2;
-                        if (vSize2(v02_2) > shortcut_length * shortcut_length)
-                        {
-                            backward_is_too_far = true;
-                            continue;
-                        }
-
-                        p0_it = p0_2_it; // make one step in the backward direction
-                        forward_is_blocked = false; // invalidate data about forward walking
-                        forward_is_too_far = false;
-                        continue;
-                    }
+                    smooth_outward_step(p1, shortcut_length, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
                 }
 //                 set the following:
 //                 p0_it = start point of line
