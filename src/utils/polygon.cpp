@@ -409,6 +409,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     // - same in the other direction
     // - stop if both are cut off
     // walk by updating p0_it and p2_it
+    int64_t shortcut_length2 = shortcut_length * shortcut_length;
     bool forward_is_blocked = false;
     bool forward_is_too_far = false;
     bool backward_is_blocked = false;
@@ -421,7 +422,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         {
             break;
         }
-        smooth_outward_step(p1, shortcut_length, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
+        smooth_outward_step(p1, shortcut_length2, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
     }
 
     const Point v02 = p2_it.p() - p0_it.p();
@@ -429,7 +430,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     // set the following:
     // p0_it = start point of line
     // p2_it = end point of line
-    if (std::abs(v02_size2 - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
+    if (std::abs(v02_size2 - shortcut_length2) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
     { // v02 is approximately shortcut length
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         // p0_it and p2_it are already correct
@@ -502,7 +503,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     }
 }
 
-void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_length, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far)
+void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far)
 {
     const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
     const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
@@ -522,7 +523,7 @@ void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_leng
         }
 
         const Point v02_2 = p2_2 - p0_it.p();
-        if (vSize2(v02_2) > shortcut_length * shortcut_length)
+        if (vSize2(v02_2) > shortcut_length2)
         {
             forward_is_too_far = true;
             return;
@@ -545,7 +546,7 @@ void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_leng
         }
 
         const Point v02_2 = p2_it.p() - p0_2;
-        if (vSize2(v02_2) > shortcut_length * shortcut_length)
+        if (vSize2(v02_2) > shortcut_length2)
         {
             backward_is_too_far = true;
             return;
@@ -650,6 +651,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
 //         |
 //         0
 
+    int shortcut_length2 = shortcut_length * shortcut_length;
     float cos_min_angle = cos(min_angle / 180 * M_PI);
 
     ListPolygon poly;
@@ -685,7 +687,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
         {
             // angle is so sharp that it can be removed
             Point v02 = p2_it.p() - p0_it.p();
-            if (vSize2(v02) >= shortcut_length * shortcut_length)
+            if (vSize2(v02) >= shortcut_length2)
             {
                 smooth_corner_simple(poly, p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
                 // update:

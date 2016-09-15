@@ -357,7 +357,7 @@ private:
      * Auxiliary function for \ref smooth_outward
      * 
      * \param[in] p1 The corner point
-     * \param[in] shortcut_length The desired length ofthe shortcutting line
+     * \param[in] shortcut_length2 The square of the desired length ofthe shortcutting line
      * \param[in,out] p0_it Iterator to the previously checked point somewhere beyond \p p1. Updated for the next iteration.
      * \param[in,out] p2_it Iterator to the previously checked point somewhere before \p p1. Updated for the next iteration.
      * \param[in,out] forward_is_blocked Whether trying another step forward is blocked by the smoothing outward condition. Updated for the next iteration.
@@ -365,7 +365,7 @@ private:
      * \param[in,out] forward_is_too_far Whether trying another step forward is blocked by the shortcut length condition. Updated for the next iteration.
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
-    static void smooth_outward_step(const Point p1, const int64_t shortcut_length, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
+    static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
 };
 
 class Polygon : public PolygonRef
