@@ -146,21 +146,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
     const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
 
-    // get a support line width representative for all support
     int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+    bool interface_enable = mesh.getSettingBoolean("support_interface_enable");
 
     // derived settings:
     const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
     int smoothing_distance;
     { // compute best smoothing_distance
-        bool interface_enable = false;
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            interface_enable |= mesh.getSettingBoolean("support_interface_enable");
-        }
         int interface_extruder_nr = interface_enable? support_skin_extruder_nr : support_infill_extruder_nr;
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(interface_extruder_nr);
+        // get a support line width representative for all support
         int support_line_width = train.getSettingInMicrons(interface_enable? "support_interface_line_width" : "support_line_width");
         smoothing_distance = support_line_width;
     }
