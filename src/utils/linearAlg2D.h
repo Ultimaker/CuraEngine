@@ -241,7 +241,7 @@ public:
     static bool getPointOnLineWithDist(const Point p, const Point a, const Point b, int64_t dist, Point& result);
 
     /*!
-     * Get the distance from a point \p p to the line on which \p a and \p b lie
+     * Get the squared distance from a point \p p to the line on which \p a and \p b lie
      */
     static inline int64_t getDist2FromLine(const Point p, const Point a, const Point b)
     {
