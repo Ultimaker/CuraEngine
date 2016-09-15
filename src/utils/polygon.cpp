@@ -466,34 +466,63 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         //  1->b
         //  ^  :
         //  | /
-        //  | :
+        //  0 :
         //  |/
         //  |a
         //  |
-        //  0
+        //  0_2
+        const ListPolyIt p0_2_it = p0_it.prev();
+        const Point p0 = p0_it.p();
+        const Point p0_2 = p0_2_it.p();
+        const Point p2 = p2_it.p();
         Point new_p0;
-        bool success = LinearAlg2D::getPointOnLineWithDist(p2_it.p(), p0_it.p(), p0_it.prev().p(), shortcut_length, new_p0);
-        assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
-        p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+        bool success = LinearAlg2D::getPointOnLineWithDist(p2, p0, p0_2, shortcut_length, new_p0);
+        // shortcut length must be possible given that last length was ok and new length is too long
+        if (success)
+        {
+            p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+        }
+        else
+        { // if not then a rounding error occured
+            if (vSize(p2 - p0_2) < vSize2(p2 - p0))
+            {
+                p0_it = p0_2_it; // start shortcut at 0
+            }
+        }
     }
     else if (!forward_is_blocked)
     { // backward is blocked, front is open
-        //  1---------b----------->2
+        //  1----2----b----------->2_2
         //  ^      ,-'
         //  |   ,-'
         //--0.-'
         //  a
+        const ListPolyIt p2_2_it = p2_it.next();
+        const Point p0 = p0_it.p();
+        const Point p2 = p2_it.p();
+        const Point p2_2 = p2_2_it.p();
         Point new_p2;
-        bool success = LinearAlg2D::getPointOnLineWithDist(p0_it.p(), p2_it.p(), p2_it.next().p(), shortcut_length, new_p2);
-        assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
-        p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
+        bool success = LinearAlg2D::getPointOnLineWithDist(p0, p2, p2_2, shortcut_length, new_p2);
+        // shortcut length must be possible given that last length was ok and new length is too long
+        if (success)
+        {
+            p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
+        }
+        else
+        { // if not then a rounding error occured
+            if (vSize(p2_2 - p0) < vSize2(p2 - p0))
+            {
+                p2_it = p2_2_it; // start shortcut at 0
+            }
+        }
     }
     else
     {
         //        |
-        //      __|
+        //      __|2
         //     | /  > shortcut cannot be of the desired length
-        //  ___|/                                                           .
+        //  ___|/                                                       .
+        //     0
         // both are blocked and p0_it and p2_it are already correct
     }
     // delete all cut off points
@@ -612,8 +641,11 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             const Point& b = p2_it.p();
             Point a;
             bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
-            assert(success && "v02 has to be longer than ab!");
-            poly.insert(p1_it.it, a);
+            // v02 has to be longer than ab!
+            if (success)
+            { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
+                poly.insert(p1_it.it, a);
+            }
             p1_it.remove();
         }
         else
@@ -626,9 +658,12 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             const Point& a = p0_it.p();
             Point b;
             bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
-            assert(success && "v02 has to be longer than ab!");
+            // v02 has to be longer than ab!
             p1_it.remove();
-            poly.insert(p2_it.it, b);
+            if (success)
+            { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
+                poly.insert(p2_it.it, b);
+            }
         }
     }
 }
