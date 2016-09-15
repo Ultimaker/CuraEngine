@@ -528,7 +528,17 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 }
                 else
                 {
-                    const int64_t a1_size = shortcut_length / 2 / sin(acos(cos_angle) / 2); // compute the distance a1 == b1 to get vSize(ab)==shortcut_length with the given angle between v10 and v12
+                    // compute the distance a1 == b1 to get vSize(ab)==shortcut_length with the given angle between v10 and v12
+                    //       1
+                    //      /|\                                                      .
+                    //     / | \                                                     .
+                    //    /  |  \                                                    .
+                    //   /   |   \                                                   .
+                    // a/____|____\b                                                 .
+                    //       m
+                    // use trigonometry on the right-angled triangle am1
+                    double a1m_angle = acos(cos_angle) / 2;
+                    const int64_t a1_size = shortcut_length / 2 / sin(a1m_angle);
                     if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
                     {
                         Point a = p1 + normal(v10, a1_size);
@@ -539,6 +549,15 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                     }
                     else if (vSize2(v12) < vSize2(v10))
                     {
+                        //     b
+                        //  1->2
+                        //  ^  |
+                        //  | /
+                        //  | |
+                        //  |/
+                        //  |a
+                        //  |
+                        //  0
                         const Point& b = p2_it.p();
                         Point a;
                         bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
@@ -548,6 +567,11 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                     }
                     else
                     {
+                        //  1---------b----------->2
+                        //  ^      ,-'
+                        //  |   ,-'
+                        //  0.-'
+                        //  a
                         const Point& a = p0_it.p();
                         Point b;
                         bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
@@ -590,6 +614,14 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 }
                 else if (!backward_is_blocked && !forward_is_blocked)
                 { // introduce two new points
+                    //  1----b---->2
+                    //  ^   /
+                    //  |  /
+                    //  | /
+                    //  |/
+                    //  |a
+                    //  |
+                    //  0
                     const int64_t v02_size = vSize(v02);
 
                     const ListPolyIt p0_2_it = p0_it.prev();
@@ -607,6 +639,15 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 }
                 else if (!backward_is_blocked)
                 { // forward is blocked, back is open
+                    //     |
+                    //  1->b
+                    //  ^  :
+                    //  | /
+                    //  | :
+                    //  |/
+                    //  |a
+                    //  |
+                    //  0
                     Point new_p0;
                     bool success = LinearAlg2D::getPointOnLineWithDist(p2_it.p(), p0_it.p(), p0_it.prev().p(), shortcut_length, new_p0);
                     assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
@@ -614,6 +655,11 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 }
                 else if (!forward_is_blocked)
                 { // backward is blocked, front is open
+                    //  1---------b----------->2
+                    //  ^      ,-'
+                    //  |   ,-'
+                    //--0.-'
+                    //  a
                     Point new_p2;
                     bool success = LinearAlg2D::getPointOnLineWithDist(p0_it.p(), p2_it.p(), p2_it.next().p(), shortcut_length, new_p2);
                     assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
@@ -621,6 +667,10 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 }
                 else
                 {
+                    //        |
+                    //      __|
+                    //     | /  > shortcut cannot be of the desired length
+                    //  ___|/                                                           .
                     // both are blocked and p0_it and p2_it are already correct
                 }
                 // delete all cut off points
