@@ -457,8 +457,84 @@ void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_leng
     }
 }
 
+void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle)
+{
+    //  1----b---->2
+    //  ^   /
+    //  |  /
+    //  | /
+    //  |/
+    //  |a
+    //  |
+    //  0
+    // ideally a1_size == b1_size
+    if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
+        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+    {
+        // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
+        p1_it.remove();
+        // don't insert new elements
+    }
+    else
+    {
+        // compute the distance a1 == b1 to get vSize(ab)==shortcut_length with the given angle between v10 and v12
+        //       1
+        //      /|\                                                      .
+        //     / | \                                                     .
+        //    /  |  \                                                    .
+        //   /   |   \                                                   .
+        // a/____|____\b                                                 .
+        //       m
+        // use trigonometry on the right-angled triangle am1
+        double a1m_angle = acos(cos_angle) / 2;
+        const int64_t a1_size = shortcut_length / 2 / sin(a1m_angle);
+        if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
+        {
+            Point a = p1 + normal(v10, a1_size);
+            Point b = p1 + normal(v12, a1_size);
+            p1_it.remove();
+            poly.insert(p2_it.it, a);
+            poly.insert(p2_it.it, b);
+        }
+        else if (vSize2(v12) < vSize2(v10))
+        {
+            //     b
+            //  1->2
+            //  ^  |
+            //  | /
+            //  | |
+            //  |/
+            //  |a
+            //  |
+            //  0
+            const Point& b = p2_it.p();
+            Point a;
+            bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
+            assert(success && "v02 has to be longer than ab!");
+            poly.insert(p1_it.it, a);
+            p1_it.remove();
+        }
+        else
+        {
+            //  1---------b----------->2
+            //  ^      ,-'
+            //  |   ,-'
+            //  0.-'
+            //  a
+            const Point& a = p0_it.p();
+            Point b;
+            bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
+            assert(success && "v02 has to be longer than ab!");
+            p1_it.remove();
+            poly.insert(p2_it.it, b);
+        }
+    }
+}
+
 void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef result) const
 {
+// example of smoothed out corner:
+//
 //               6
 //               ^
 //               |
@@ -510,76 +586,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
             Point v02 = p2_it.p() - p0_it.p();
             if (vSize2(v02) >= shortcut_length * shortcut_length)
             {
-                //  1----b---->2
-                //  ^   /
-                //  |  /
-                //  | /
-                //  |/
-                //  |a
-                //  |
-                //  0
-                // ideally a1_size == b1_size
-                if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
-                    || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
-                {
-                    // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
-                    p1_it.remove();
-                    // don't insert new elements
-                }
-                else
-                {
-                    // compute the distance a1 == b1 to get vSize(ab)==shortcut_length with the given angle between v10 and v12
-                    //       1
-                    //      /|\                                                      .
-                    //     / | \                                                     .
-                    //    /  |  \                                                    .
-                    //   /   |   \                                                   .
-                    // a/____|____\b                                                 .
-                    //       m
-                    // use trigonometry on the right-angled triangle am1
-                    double a1m_angle = acos(cos_angle) / 2;
-                    const int64_t a1_size = shortcut_length / 2 / sin(a1m_angle);
-                    if (a1_size * a1_size < vSize2(v10) && a1_size * a1_size < vSize2(v12))
-                    {
-                        Point a = p1 + normal(v10, a1_size);
-                        Point b = p1 + normal(v12, a1_size);
-                        p1_it.remove();
-                        poly.insert(p2_it.it, a);
-                        poly.insert(p2_it.it, b);
-                    }
-                    else if (vSize2(v12) < vSize2(v10))
-                    {
-                        //     b
-                        //  1->2
-                        //  ^  |
-                        //  | /
-                        //  | |
-                        //  |/
-                        //  |a
-                        //  |
-                        //  0
-                        const Point& b = p2_it.p();
-                        Point a;
-                        bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
-                        assert(success && "v02 has to be longer than ab!");
-                        poly.insert(p1_it.it, a);
-                        p1_it.remove();
-                    }
-                    else
-                    {
-                        //  1---------b----------->2
-                        //  ^      ,-'
-                        //  |   ,-'
-                        //  0.-'
-                        //  a
-                        const Point& a = p0_it.p();
-                        Point b;
-                        bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
-                        assert(success && "v02 has to be longer than ab!");
-                        p1_it.remove();
-                        poly.insert(p2_it.it, b);
-                    }
-                }
+                smooth_corner_simple(poly, p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
                 // update:
                 p1_it = p2_it; // next point to consider for whether it's an internal corner
             }

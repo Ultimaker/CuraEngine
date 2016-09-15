@@ -13,10 +13,6 @@
 namespace cura 
 {
 
-typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
-typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
-
-
 /*!
  * A wrapper class for a ListPolygon::iterator and a reference to the containing ListPolygon
  */
@@ -87,7 +83,7 @@ public:
         return ret;
     }
     //! Remove this point from the list polygon
-    void remove()
+    void remove() const
     {
         poly->erase(it);
     }
