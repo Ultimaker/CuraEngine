@@ -690,16 +690,13 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
             if (vSize2(v02) >= shortcut_length2)
             {
                 smooth_corner_simple(poly, p0, p1, p2, p0_it, p1_it, p2_it, v10, v12, v02, shortcut_length, cos_angle);
-                // update:
-                p1_it = p2_it; // next point to consider for whether it's an internal corner
             }
             else
             {
-                smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length);
-
-                // update:
-                p1_it = p2_it; // next point to consider for whether it's an internal corner
+                smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
             }
+            // update:
+            p1_it = p2_it; // next point to consider for whether it's an internal corner
         }
         else
         {
