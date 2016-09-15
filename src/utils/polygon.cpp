@@ -401,6 +401,105 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     ListPolyIt::convertListPolygonToPolygon(result_list_poly, *this);
 }
 
+// TODO: Point v02 = p2_it.p() - p0_it.p();
+void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, const Point v02, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+{
+    // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
+    // - walk in both directions untill shortcut > shortcut_length 
+    // - stop walking in one direction if it would otherwise cut off a corner in that direction
+    // - same in the other direction
+    // - stop if both are cut off
+    // walk by updating p0_it and p2_it
+    bool forward_is_blocked = false;
+    bool forward_is_too_far = false;
+    bool backward_is_blocked = false;
+    bool backward_is_too_far = false;
+    while (true)
+    {
+        const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
+        const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
+        if (forward_has_converged && backward_has_converged)
+        {
+            break;
+        }
+        smooth_outward_step(p1, shortcut_length, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
+    }
+    // set the following:
+    // p0_it = start point of line
+    // p2_it = end point of line
+    if (std::abs(vSize2(v02) - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
+    { // v02 is approximately shortcut length
+        // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
+        // p0_it and p2_it are already correct
+    }
+    else if (!backward_is_blocked && !forward_is_blocked)
+    { // introduce two new points
+        //  1----b---->2
+        //  ^   /
+        //  |  /
+        //  | /
+        //  |/
+        //  |a
+        //  |
+        //  0
+        const int64_t v02_size = vSize(v02);
+
+        const ListPolyIt p0_2_it = p0_it.prev();
+        const ListPolyIt p2_2_it = p2_it.next();
+        const Point p2_2 = p2_2_it.p();
+        const Point p0_2 = p0_2_it.p();
+        const Point v02_2 = p0_2 - p2_2;
+        const int64_t v02_2_size = vSize(v02_2);
+        float progress = INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size);
+        assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
+        const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
+        p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+        const Point new_p2 = p2_it.p() + (p2_2 - p2_it.p()) * progress;
+        p2_it = ListPolyIt(poly, poly.insert(p2_2_it.it, new_p2));
+    }
+    else if (!backward_is_blocked)
+    { // forward is blocked, back is open
+        //     |
+        //  1->b
+        //  ^  :
+        //  | /
+        //  | :
+        //  |/
+        //  |a
+        //  |
+        //  0
+        Point new_p0;
+        bool success = LinearAlg2D::getPointOnLineWithDist(p2_it.p(), p0_it.p(), p0_it.prev().p(), shortcut_length, new_p0);
+        assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
+        p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+    }
+    else if (!forward_is_blocked)
+    { // backward is blocked, front is open
+        //  1---------b----------->2
+        //  ^      ,-'
+        //  |   ,-'
+        //--0.-'
+        //  a
+        Point new_p2;
+        bool success = LinearAlg2D::getPointOnLineWithDist(p0_it.p(), p2_it.p(), p2_it.next().p(), shortcut_length, new_p2);
+        assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
+        p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
+    }
+    else
+    {
+        //        |
+        //      __|
+        //     | /  > shortcut cannot be of the desired length
+        //  ___|/                                                           .
+        // both are blocked and p0_it and p2_it are already correct
+    }
+    // delete all cut off points
+    while (p0_it.next() != p2_it)
+    {
+        p0_it.next().remove();
+    }
+}
+
 void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_length, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far)
 {
     const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
@@ -591,100 +690,9 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
                 p1_it = p2_it; // next point to consider for whether it's an internal corner
             }
             else
-            { // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
-                // - walk in both directions untill shortcut > shortcut_length 
-                // - stop walking in one direction if it would otherwise cut off a corner in that direction
-                // - same in the other direction
-                // - stop if both are cut off
-                // walk by updating p0_it and p2_it
-                bool forward_is_blocked = false;
-                bool forward_is_too_far = false;
-                bool backward_is_blocked = false;
-                bool backward_is_too_far = false;
-                while (true)
-                {
-                    const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
-                    const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
-                    if (forward_has_converged && backward_has_converged)
-                    {
-                        break;
-                    }
-                    smooth_outward_step(p1, shortcut_length, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
-                }
-//                 set the following:
-//                 p0_it = start point of line
-//                 p2_it = end point of line
-                if (std::abs(vSize2(v02) - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
-                { // v02 is approximately shortcut length
-                    // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
-                    // p0_it and p2_it are already correct
-                }
-                else if (!backward_is_blocked && !forward_is_blocked)
-                { // introduce two new points
-                    //  1----b---->2
-                    //  ^   /
-                    //  |  /
-                    //  | /
-                    //  |/
-                    //  |a
-                    //  |
-                    //  0
-                    const int64_t v02_size = vSize(v02);
+            {
+                smooth_corner_complex(poly, p1, v02, p0_it, p2_it, shortcut_length);
 
-                    const ListPolyIt p0_2_it = p0_it.prev();
-                    const ListPolyIt p2_2_it = p2_it.next();
-                    const Point p2_2 = p2_2_it.p();
-                    const Point p0_2 = p0_2_it.p();
-                    const Point v02_2 = p0_2 - p2_2;
-                    const int64_t v02_2_size = vSize(v02_2);
-                    float progress = INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size);
-                    assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
-                    const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
-                    p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
-                    const Point new_p2 = p2_it.p() + (p2_2 - p2_it.p()) * progress;
-                    p2_it = ListPolyIt(poly, poly.insert(p2_2_it.it, new_p2));
-                }
-                else if (!backward_is_blocked)
-                { // forward is blocked, back is open
-                    //     |
-                    //  1->b
-                    //  ^  :
-                    //  | /
-                    //  | :
-                    //  |/
-                    //  |a
-                    //  |
-                    //  0
-                    Point new_p0;
-                    bool success = LinearAlg2D::getPointOnLineWithDist(p2_it.p(), p0_it.p(), p0_it.prev().p(), shortcut_length, new_p0);
-                    assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
-                    p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
-                }
-                else if (!forward_is_blocked)
-                { // backward is blocked, front is open
-                    //  1---------b----------->2
-                    //  ^      ,-'
-                    //  |   ,-'
-                    //--0.-'
-                    //  a
-                    Point new_p2;
-                    bool success = LinearAlg2D::getPointOnLineWithDist(p0_it.p(), p2_it.p(), p2_it.next().p(), shortcut_length, new_p2);
-                    assert(success && "shortcut length must be possible given that last length was ok and new length is too long");
-                    p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
-                }
-                else
-                {
-                    //        |
-                    //      __|
-                    //     | /  > shortcut cannot be of the desired length
-                    //  ___|/                                                           .
-                    // both are blocked and p0_it and p2_it are already correct
-                }
-                // delete all cut off points
-                while (p0_it.next() != p2_it)
-                {
-                    p0_it.next().remove();
-                }
                 // update:
                 p1_it = p2_it; // next point to consider for whether it's an internal corner
             }
