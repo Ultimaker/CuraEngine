@@ -343,12 +343,11 @@ private:
      * 
      * \param poly The polygon in which to find the corner
      * \param p1 The corner point
-     * \param v02 The vector from p0 to p2
      * \param[in,out] p0_it Iterator to the last point checked before \p p1 to consider cutting off
      * \param[in,out] p2_it Iterator to the last point checked after \p p1 to consider cutting off
      * \param shortcut_length The desired length ofthe shortcutting line
      */
-    static void smooth_corner_complex(ListPolygon& poly, const Point p1, const Point v02, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static void smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.

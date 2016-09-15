@@ -401,8 +401,7 @@ void PolygonRef::simplify(int smallest_line_segment_squared, int allowed_error_d
     ListPolyIt::convertListPolygonToPolygon(result_list_poly, *this);
 }
 
-// TODO: Point v02 = p2_it.p() - p0_it.p();
-void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, const Point v02, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length 
@@ -424,10 +423,13 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, const 
         }
         smooth_outward_step(p1, shortcut_length, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
     }
+
+    const Point v02 = p2_it.p() - p0_it.p();
+    const int64_t v02_size2 = vSize2(v02);
     // set the following:
     // p0_it = start point of line
     // p2_it = end point of line
-    if (std::abs(vSize2(v02) - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
+    if (std::abs(v02_size2 - shortcut_length * shortcut_length) < shortcut_length * 10) // i.e. if (size2 < l * (l+10) && size2 > l * (l-10))
     { // v02 is approximately shortcut length
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         // p0_it and p2_it are already correct
@@ -442,7 +444,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, const 
         //  |a
         //  |
         //  0
-        const int64_t v02_size = vSize(v02);
+        const int64_t v02_size = sqrt(v02_size2);
 
         const ListPolyIt p0_2_it = p0_it.prev();
         const ListPolyIt p2_2_it = p2_it.next();
@@ -691,7 +693,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
             }
             else
             {
-                smooth_corner_complex(poly, p1, v02, p0_it, p2_it, shortcut_length);
+                smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length);
 
                 // update:
                 p1_it = p2_it; // next point to consider for whether it's an internal corner
