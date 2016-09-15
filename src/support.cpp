@@ -553,7 +553,7 @@ void AreaSupport::generateSupportInterface(SliceDataStorage& storage, const Slic
         }
         else 
         {
-            layer.skin.add(layer.supportAreas);
+            layer.skin.add(support_areas[layer_idx]);
         }
     }
 }

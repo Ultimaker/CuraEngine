@@ -127,13 +127,14 @@ int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, Settings
 {
     if (extruder_nr >= extruder_train_ids.size())
     {
-        return -1;
+        logWarning("Couldn't load extruder.def.json file for extruder %i. Index out of bounds.\n Loading first extruder definition instead.\n", extruder_nr);
+        extruder_nr = 0;
     }
-    
     std::string definition_file;
     bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
     if (!found)
     {
+        logError("Couldn't find extruder.def.json file for extruder %i.\n", extruder_nr);
         return -1;
     }
     bool warn_base_file_duplicates = false;
@@ -215,22 +216,6 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     {
         cura::logError("JSON file is not an object.\n");
         return 3;
-    }
-
-    { // handle machine name
-        std::string machine_name = "Unknown";
-        if (json_document.HasMember("name"))
-        {
-            const rapidjson::Value& machine_name_field = json_document["name"];
-            if (machine_name_field.IsString())
-            {
-                machine_name = machine_name_field.GetString();
-            }
-        }
-        SettingConfig& machine_name_setting = addSetting("machine_name", "Machine Name");
-        machine_name_setting.setDefault(machine_name);
-        machine_name_setting.setType("string");
-        settings_base->_setSetting(machine_name_setting.getKey(), machine_name_setting.getDefaultValue());
     }
 
     if (json_document.HasMember("settings"))

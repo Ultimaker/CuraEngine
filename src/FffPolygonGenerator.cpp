@@ -557,7 +557,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
 {
-    const int draft_shield_layers = getDraftShieldLayerCount(total_layers);
+    const unsigned int draft_shield_layers = getDraftShieldLayerCount(total_layers);
     if (draft_shield_layers <= 0)
     {
         return;

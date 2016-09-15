@@ -27,7 +27,7 @@ void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned i
         first_layer_outline = first_layer_outline.approxConvexHull();
     }
     else
-    { // don't add brim _around_ support, but underneath it by removing support where there's brim
+    { // add brim underneath support by removing support where there's brim around the model
         const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
