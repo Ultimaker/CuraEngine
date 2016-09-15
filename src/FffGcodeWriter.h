@@ -313,6 +313,16 @@ private:
     void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
+     * Generate the inset for a given layer. Called from processInsets for loop.
+     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param part The part for which to create gcode
+     * \param layer_nr The current layer number.
+     * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
+     */
+    void processInsetLoop(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, int inset_number, bool spiralize, bool compensate_overlap_0, bool compensate_overlap_x);
+    
+    /*!
      * Generate the insets for the walls of a given layer part.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
