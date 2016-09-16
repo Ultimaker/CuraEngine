@@ -793,36 +793,6 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     }
 }
 
-void FffGcodeWriter::processInsetLoop(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, int inset_number, bool spiralize, bool compensate_overlap_0, bool compensate_overlap_x)
-{
-    if (inset_number == 0)
-    {
-        if (!compensate_overlap_0)
-        {
-            gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
-        }
-        else
-        {
-            Polygons& outer_wall = part.insets[0];
-            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
-        }
-    }
-    else
-    {
-        if (!compensate_overlap_x)
-        {
-            gcode_layer.addPolygonsByOptimizer(part.insets[inset_number], &mesh->insetX_config);
-        }
-        else
-        {
-            Polygons& outer_wall = part.insets[inset_number];
-            WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
-            gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
-        }
-    }
-}
-
 void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
@@ -841,18 +811,39 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
                 gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, false);
             }
         }
-        if (mesh->getSettingBoolean("outer_inset_first"))
+        int processed_inset_number = -1;
+        for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
         {
-            for(unsigned int inset_number=0; inset_number<part.insets.size(); inset_number++)
+            processed_inset_number = inset_number;
+            if (mesh->getSettingBoolean("outer_inset_first"))
             {
-                processInsetLoop(gcode_layer,mesh,part,layer_nr,z_seam_type, inset_number, spiralize, compensate_overlap_0 ,compensate_overlap_x);
+                processed_inset_number = part.insets.size() - 1 - inset_number;
             }
-        }
-        else
-        {
-            for(int inset_number=part.insets.size()-1; inset_number>-1; inset_number--)
+            if (processed_inset_number == 0)
             {
-                processInsetLoop(gcode_layer,mesh,part,layer_nr,z_seam_type, inset_number, spiralize, compensate_overlap_0 ,compensate_overlap_x);
+                if (!compensate_overlap_0)
+                {
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
+                }
+                else
+                {
+                    Polygons& outer_wall = part.insets[0];
+                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
+                }
+            }
+            else
+            {
+                if (!compensate_overlap_x)
+                {
+                    gcode_layer.addPolygonsByOptimizer(part.insets[processed_inset_number], &mesh->insetX_config);
+                }
+                else
+                {
+                    Polygons& outer_wall = part.insets[processed_inset_number];
+                    WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_x"));
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->insetX_config, &wall_overlap_computation);
+                }
             }
         }
     }
