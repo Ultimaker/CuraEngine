@@ -141,7 +141,7 @@ int SettingsBaseVirtual::getSettingAsCount(std::string key) const
 
 unsigned int SettingsBaseVirtual::getSettingAsLayerNumber(std::string key) const
 {
-    const unsigned int indicated_layer_number = stol(getSettingString(key));
+    const unsigned int indicated_layer_number = stoul(getSettingString(key));
     if (indicated_layer_number < 1) //Input checking: Layer 0 is not allowed.
     {
         cura::logWarning("Invalid layer number %i for setting %s.", indicated_layer_number, key.c_str());
