@@ -139,6 +139,17 @@ int SettingsBaseVirtual::getSettingAsCount(std::string key) const
     return atoi(value.c_str());
 }
 
+unsigned int SettingsBaseVirtual::getSettingAsLayerNumber(std::string key) const
+{
+    const unsigned int indicated_layer_number = stol(getSettingString(key));
+    if (indicated_layer_number < 1) //Input checking: Layer 0 is not allowed.
+    {
+        cura::logWarning("Invalid layer number %i for setting %s.", indicated_layer_number, key.c_str());
+        return 0; //Assume layer 1.
+    }
+    return indicated_layer_number - 1; //Input starts counting at layer 1, but engine code starts counting at layer 0.
+}
+
 double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
 {
     std::string value = getSettingString(key);

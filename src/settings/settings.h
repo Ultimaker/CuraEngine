@@ -208,7 +208,17 @@ public:
     
     int getSettingAsIndex(std::string key) const;
     int getSettingAsCount(std::string key) const;
-    
+
+    /*!
+     * \brief Interprets a setting as a layer number.
+     *
+     * The input of the layer number is one-based. This translates it to
+     * zero-based numbering.
+     *
+     * \return Zero-based numbering of a layer number setting.
+     */
+    unsigned int getSettingAsLayerNumber(std::string key) const;
+
     double getSettingInAngleRadians(std::string key) const;
     double getSettingInMillimeters(std::string key) const;
     int getSettingInMicrons(std::string key) const;
