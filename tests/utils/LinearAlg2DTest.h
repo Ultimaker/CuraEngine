@@ -51,6 +51,16 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getAngleLeftAABTest);
     CPPUNIT_TEST(getAngleLeftABBTest);
     CPPUNIT_TEST(getAngleLeftAAATest);
+
+    CPPUNIT_TEST(pointIsLeftOfLineTest);
+
+    CPPUNIT_TEST(getPointOnLineWithDistTest1);
+    CPPUNIT_TEST(getPointOnLineWithDistTest2);
+    CPPUNIT_TEST(getPointOnLineWithDistTest3);
+    CPPUNIT_TEST(getPointOnLineWithDistTest4);
+    CPPUNIT_TEST(getPointOnLineWithDistTest5);
+    CPPUNIT_TEST(getPointOnLineWithDistTest6);
+    CPPUNIT_TEST(getPointOnLineWithDistTest7);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -109,6 +119,16 @@ public:
     void getAngleLeftABBTest();
     void getAngleLeftAAATest();
 
+    void pointIsLeftOfLineTest();
+
+    void getPointOnLineWithDistTest1();
+    void getPointOnLineWithDistTest2();
+    void getPointOnLineWithDistTest3();
+    void getPointOnLineWithDistTest4();
+    void getPointOnLineWithDistTest5();
+    void getPointOnLineWithDistTest6();
+    void getPointOnLineWithDistTest7();
+
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
@@ -144,6 +164,8 @@ private:
      * \param actual_angle_in_half_rounds the actual angle where 0.5 equals ???
      */
     void getAngleAssert(Point a, Point b, Point c, float actual_angle_in_half_rounds);
+
+    void getPointOnLineWithDistAssert(const Point p, const Point a, const Point b, int64_t dist, Point actual_result, bool actual_returned);
 };
 
 }

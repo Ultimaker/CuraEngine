@@ -39,18 +39,36 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(const MeshGroup* settings)
+void GCodeExport::preSetup(const MeshGroup* meshgroup)
 {
-    setFlavor(settings->getSettingAsGCodeFlavor("machine_gcode_flavor"));
-    use_extruder_offset_to_offset_coords = settings->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
+    setFlavor(meshgroup->getSettingAsGCodeFlavor("machine_gcode_flavor"));
+    use_extruder_offset_to_offset_coords = meshgroup->getSettingBoolean("machine_use_extruder_offset_to_offset_coords");
 
-    extruder_count = settings->getSettingAsCount("machine_extruder_count");
+    extruder_count = meshgroup->getSettingAsCount("machine_extruder_count");
+
+    for (const Mesh& mesh : meshgroup->meshes)
+    {
+        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+    }
 
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        const ExtruderTrain* train = settings->getExtruderTrain(extruder_nr);
-        extruder_attr[extruder_nr].is_used |= settings->getExtruderTrain(extruder_nr)->getIsUsed();
+        const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
 
+        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr))
+        {
+            extruder_attr[extruder_nr].is_used = true;
+        }
+        for (const Mesh& mesh : meshgroup->meshes)
+        {
+            if ((mesh.getSettingBoolean("support_enable") && mesh.getSettingBoolean("support_interface_enable") && meshgroup->getSettingAsIndex("support_interface_extruder_nr") == int(extruder_nr))
+                || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_infill_extruder_nr") == int(extruder_nr))
+                || (mesh.getSettingBoolean("support_enable") && meshgroup->getSettingAsIndex("support_extruder_nr_layer_0") == int(extruder_nr))
+                )
+            {
+                extruder_attr[extruder_nr].is_used = true;
+            }
+        }
         setFilamentDiameter(extruder_nr, train->getSettingInMicrons("material_diameter")); 
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
@@ -65,11 +83,11 @@ void GCodeExport::preSetup(const MeshGroup* settings)
 
         extruder_attr[extruder_nr].last_retraction_prime_speed = train->getSettingInMillimetersPerSecond("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
     }
-    machine_dimensions.x = settings->getSettingInMicrons("machine_width");
-    machine_dimensions.y = settings->getSettingInMicrons("machine_depth");
-    machine_dimensions.z = settings->getSettingInMicrons("machine_height");
+    machine_dimensions.x = meshgroup->getSettingInMicrons("machine_width");
+    machine_dimensions.y = meshgroup->getSettingInMicrons("machine_depth");
+    machine_dimensions.z = meshgroup->getSettingInMicrons("machine_height");
 
-    machine_name = settings->getSettingString("machine_name");
+    machine_name = meshgroup->getSettingString("machine_name");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -80,7 +98,7 @@ void GCodeExport::preSetup(const MeshGroup* settings)
         new_line = "\n";
     }
 
-    estimateCalculator.setFirmwareDefaults(settings);
+    estimateCalculator.setFirmwareDefaults(meshgroup);
 }
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)
