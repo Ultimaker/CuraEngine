@@ -597,7 +597,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         generateSkirtBrim(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingBoolean("brim_outside_only"));
         break;
     case EPlatformAdhesion::RAFT:
-        generateRaft(storage, train->getSettingInMicrons("raft_margin"));
+        Raft::generate(storage, train->getSettingInMicrons("raft_margin"));
         break;
     }
 }

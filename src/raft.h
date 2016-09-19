@@ -6,7 +6,11 @@
 
 namespace cura {
 
-void generateRaft(SliceDataStorage& storage, int distance);
+class Raft
+{
+public:
+    static void generate(SliceDataStorage& storage, int distance);
+};
 
 }//namespace cura
 

@@ -6,7 +6,7 @@
 
 namespace cura {
 
-void generateRaft(SliceDataStorage& storage, int distance)
+void Raft::generate(SliceDataStorage& storage, int distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
