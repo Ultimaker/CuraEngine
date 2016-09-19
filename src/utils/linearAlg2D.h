@@ -281,7 +281,7 @@ public:
         int64_t dott = dot(vab, vap);
         int64_t ax_size2 = dott * dott / vSize2(vab);
         int64_t ap_size2 = vSize2(vap);
-        int64_t px_size2 = std::max(0L, ap_size2 - ax_size2);
+        int64_t px_size2 = std::max(int64_t(0), ap_size2 - ax_size2);
         return px_size2;
     }
     
