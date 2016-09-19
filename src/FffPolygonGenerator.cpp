@@ -533,7 +533,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     }
 
     int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
-    int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
+    float largest_printed_radius = 1.0; // TODO: make var a parameter, and perhaps even a setting?
 
     for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
