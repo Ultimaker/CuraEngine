@@ -8,18 +8,23 @@ namespace cura {
 
 void generateRaft(SliceDataStorage& storage, int distance)
 {
+    assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
+    storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
+    int shield_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"))->getSettingInMicrons("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
-        storage.raftOutline = storage.raftOutline.unionPolygons(storage.draft_protection_shield.offset(distance, ClipperLib::jtRound));
+        Polygons draft_shield_raft = storage.draft_protection_shield.offset(shield_line_width) // start half a line width outside shield
+                                        .difference(storage.draft_protection_shield.offset(-distance - shield_line_width / 2, ClipperLib::jtRound)); // end distance inside shield
+        storage.raftOutline = storage.raftOutline.unionPolygons(draft_shield_raft);
     }
-    else if (storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
+    if (storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0)
     {
-        storage.raftOutline = storage.raftOutline.unionPolygons(storage.oozeShield[0].offset(distance, ClipperLib::jtRound));
+        const Polygons& ooze_shield = storage.oozeShield[0];
+        Polygons ooze_shield_raft = ooze_shield.offset(shield_line_width) // start half a line width outside shield
+                                        .difference(ooze_shield.offset(-distance - shield_line_width / 2, ClipperLib::jtRound)); // end distance inside shield
+        storage.raftOutline = storage.raftOutline.unionPolygons(ooze_shield_raft);
     }
-    else 
-    {
-        storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    }
+    storage.raftOutline = storage.raftOutline.offset(1000).offset(-1000); // remove small holes
 }
 
 }//namespace cura
