@@ -219,6 +219,7 @@ public:
      */
     unsigned int getSettingAsLayerNumber(std::string key) const;
 
+    double getSettingInAngleDegrees(std::string key) const;
     double getSettingInAngleRadians(std::string key) const;
     double getSettingInMillimeters(std::string key) const;
     int getSettingInMicrons(std::string key) const;
