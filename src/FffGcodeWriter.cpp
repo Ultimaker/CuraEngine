@@ -303,11 +303,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         {
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
-        gcode_layer.addPolygonsByOptimizer(storage.raftOutline, &storage.raft_base_config);
+
+        Polygons wall = storage.raftOutline.offset(-storage.raft_base_config.getLineWidth() / 2);
+        gcode_layer.addPolygonsByOptimizer(wall, &storage.raft_base_config);
 
         Polygons raftLines;
         double fill_angle = 0;
-        Infill infill_comp(EFillMethod::LINES, storage.raftOutline, offset_from_poly_outline, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
+        Infill infill_comp(EFillMethod::LINES, wall, offset_from_poly_outline, storage.raft_base_config.getLineWidth(), train->getSettingInMicrons("raft_base_line_spacing"), fill_overlap, fill_angle, z, extra_infill_shift);
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
 
