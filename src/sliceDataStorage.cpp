@@ -111,7 +111,7 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {
-    if (layer_nr < 0)
+    if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount(*this))
     { // when processing raft
         if (include_helper_parts)
         {
@@ -138,25 +138,28 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
     else 
     {
         Polygons total;
-        for (const SliceMeshStorage& mesh : meshes)
+        if (layer_nr >= 0)
         {
-            if (mesh.getSettingBoolean("infill_mesh"))
+            for (const SliceMeshStorage& mesh : meshes)
             {
-                continue;
-            }
-            const SliceLayer& layer = mesh.layers[layer_nr];
-            layer.getOutlines(total, external_polys_only);
-            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
-            {
-                total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                if (mesh.getSettingBoolean("infill_mesh"))
+                {
+                    continue;
+                }
+                const SliceLayer& layer = mesh.layers[layer_nr];
+                layer.getOutlines(total, external_polys_only);
+                if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make all getSetting functions const??
+                {
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                }
             }
         }
         if (include_helper_parts)
         {
             if (support.generated) 
             {
-                total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].skin);
+                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
+                total.add(support.supportLayers[std::max(0, layer_nr)].skin);
             }
             total.add(primeTower.ground_poly);
         }
@@ -166,7 +169,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
 
 Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool include_helper_parts) const
 {
-    if (layer_nr < 0)
+    if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount(*this))
     { // when processing raft
         if (include_helper_parts)
         {
@@ -180,21 +183,24 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
     else 
     {
         Polygons total;
-        for (const SliceMeshStorage& mesh : meshes)
+        if (layer_nr >= 0)
         {
-            const SliceLayer& layer = mesh.layers[layer_nr];
-            layer.getSecondOrInnermostWalls(total);
-            if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make getSetting const? make settings.setting_values mapping mutable??
+            for (const SliceMeshStorage& mesh : meshes)
             {
-                total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                const SliceLayer& layer = mesh.layers[layer_nr];
+                layer.getSecondOrInnermostWalls(total);
+                if (const_cast<SliceMeshStorage&>(mesh).getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL) // TODO: make getSetting const? make settings.setting_values mapping mutable??
+                {
+                    total = total.unionPolygons(layer.openPolyLines.offsetPolyLine(100));
+                }
             }
         }
         if (include_helper_parts)
         {
             if (support.generated) 
             {
-                total.add(support.supportLayers[layer_nr].supportAreas);
-                total.add(support.supportLayers[layer_nr].skin);
+                total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
+                total.add(support.supportLayers[std::max(0, layer_nr)].skin);
             }
             total.add(primeTower.ground_poly);
         }

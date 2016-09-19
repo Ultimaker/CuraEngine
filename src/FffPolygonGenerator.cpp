@@ -141,9 +141,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
                 layer.printZ += 
-                    train->getSettingInMicrons("raft_base_thickness") 
-                    + train->getSettingInMicrons("raft_interface_thickness") 
-                    + train->getSettingAsCount("raft_surface_layers") * train->getSettingInMicrons("raft_surface_thickness")
+                    Raft::getTotalThickness(storage)
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
                 if (layer_nr == 0)
