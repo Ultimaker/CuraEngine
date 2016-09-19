@@ -5,7 +5,7 @@
 namespace cura 
 {
 
-void generateSkirtBrim(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, bool outside_only)
+void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, bool outside_only)
 {
     bool is_skirt = start_distance > 0;
     bool external_only = is_skirt; // whether to include holes or not
