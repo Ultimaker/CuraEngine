@@ -80,7 +80,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
-        processLayer(storage, layer_nr, total_layers, has_raft);
+        processLayer(storage, layer_nr, total_layers);
     }
     
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
@@ -380,7 +380,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     }
 }
 
-void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft)
+void FffGcodeWriter::processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers)
 {
     Progress::messageProgress(Progress::Stage::EXPORT, layer_nr+1, total_layers);
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
