@@ -39,7 +39,7 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
     const Point ap = p - a;
     const int64_t ax_size = (ab_size < 50)? dot(normal(ab, 1000), ap) / 1000 : dot(ab, ap) / ab_size;
     const int64_t ap_size2 = vSize2(ap);
-    const int64_t px_size = sqrt(std::max(0L, ap_size2 - ax_size * ax_size));
+    const int64_t px_size = sqrt(std::max(int64_t(0), ap_size2 - ax_size * ax_size));
     if (px_size > dist)
     {
         return false;
