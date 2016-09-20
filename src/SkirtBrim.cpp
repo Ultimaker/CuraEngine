@@ -95,11 +95,11 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         Polygons shield_brim;
         if (has_ooze_shield)
         {
-            shield_brim = storage.oozeShield[0].difference(storage.oozeShield[0].offset(-primary_skirt_brim_width));
+            shield_brim = storage.oozeShield[0].difference(storage.oozeShield[0].offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width));
         }
         if (has_draft_shield)
         {
-            shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width)));
+            shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
         const Polygons outer_primary_brim = first_layer_outline.offset(offset_distance, ClipperLib::jtRound);
         shield_brim = shield_brim.difference(outer_primary_brim);
