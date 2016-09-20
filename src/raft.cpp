@@ -36,6 +36,23 @@ int Raft::getTotalThickness(const SliceDataStorage& storage)
         + train.getSettingAsCount("raft_surface_layers") * train.getSettingInMicrons("raft_surface_thickness");
 }
 
+int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
+{
+    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        return 0;
+    }
+    int64_t airgap = std::max(0, train.getSettingInMicrons("raft_airgap"));
+    int64_t layer_0_overlap = storage.getSettingInMicrons("layer_0_z_overlap");
+
+    int64_t layer_height_0 = storage.getSettingInMicrons("layer_height_0");
+
+    int64_t z_diff_raft_to_bottom_of_layer_1 = std::max(int64_t(0), airgap + layer_height_0 - layer_0_overlap);
+    return z_diff_raft_to_bottom_of_layer_1;
+}
+
+
 int Raft::getFillerLayerCount(const SliceDataStorage& storage)
 {
     const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
@@ -43,12 +60,23 @@ int Raft::getFillerLayerCount(const SliceDataStorage& storage)
     {
         return 0;
     }
-    int airgap = std::max(0, train.getSettingInMicrons("raft_airgap"));
-    int normal_layer_height = storage.getSettingInMicrons("layer_height");
-
-    int filler_layer_count = round_divide(airgap, normal_layer_height);
+    int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
+    unsigned int filler_layer_count = round_divide(getZdiffBetweenRaftAndLayer1(storage), normal_layer_height);
     return filler_layer_count;
 }
+
+int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
+{
+    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
+    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        return normal_layer_height;
+    }
+    unsigned int filler_layer_height = round_divide(getZdiffBetweenRaftAndLayer1(storage), getFillerLayerCount(storage));
+    return filler_layer_height;
+}
+
 
 int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
 {

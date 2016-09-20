@@ -392,14 +392,14 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     
     int layer_thickness = getSettingInMicrons("layer_height");
     int64_t z;
+    bool include_helper_parts = true;
     if (layer_nr < 0)
     {
         const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
         assert(train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
-        int airgap = train.getSettingInMicrons("raft_airgap");
 
         int filler_layer_count = Raft::getFillerLayerCount(storage);
-        layer_thickness = airgap / filler_layer_count;
+        layer_thickness = Raft::getFillerLayerHeight(storage);
         z = Raft::getTotalThickness(storage) + (filler_layer_count + layer_nr + 1) * layer_thickness;
 
         if (CommandSocket::isInstantiated())
@@ -412,6 +412,11 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         z = storage.meshes[0].layers[layer_nr].printZ;
         if (layer_nr == 0)
         {
+            const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+            if (train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
+            {
+                include_helper_parts = false;
+            }
             layer_thickness = getSettingInMicrons("layer_height_0");
         }
     }
@@ -443,7 +448,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
     GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
-    if (layer_nr == 0)
+    if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
         int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
         if (storage.skirt_brim[extruder_nr].size() > 0)
@@ -454,11 +459,14 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     }
 
     int extruder_nr_before = gcode_layer.getExtruder();
-    addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, true);
+    if (include_helper_parts)
+    {
+        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, true);
 
-    processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
-    
-    processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
+        processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
+
+        processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
+    }
 
     if (layer_nr >= 0)
     {
@@ -478,9 +486,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, false);
+    if (include_helper_parts)
+    {
+        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, false);
+    }
 
-    if (layer_nr == 0)
+    if (include_helper_parts && layer_nr == 0)
     { //Add skirt for all extruders which haven't primed the skirt or brim yet.
         for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
         {
@@ -490,6 +501,8 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
             }
         }
     }
+
+    if (include_helper_parts)
     { // add prime tower if it hasn't already been added
         // print the prime tower if it hasn't been printed yet
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
