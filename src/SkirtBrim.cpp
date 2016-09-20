@@ -37,7 +37,7 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         }
         if (storage.support.generated && primary_line_count > 0)
         { // remove model-brim from support
-            const Polygons& model_brim_covered_area = first_layer_outline.offset(primary_line_count * primary_extruder_skirt_brim_line_width + primary_line_count % 2); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            const Polygons& model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             SupportLayer& support_layer = storage.support.supportLayers[0];
             support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
             first_layer_outline.add(support_layer.supportAreas);
