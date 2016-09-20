@@ -237,6 +237,55 @@ public:
     static float getAngleLeft(const Point& a, const Point& b, const Point& c);
 
     /*!
+     * Returns the determinant of the 2D matrix defined by the the vectors ab and ap as rows.
+     * 
+     * The returned value is zero for \p p lying (approximately) on the line going through \p a and \p b
+     * The value is positive for values lying to the left and negative for values lying to the right when looking from \p a to \p b.
+     * 
+     * \param p the point to check
+     * \param a the from point of the line
+     * \param b the to point of the line
+     * \return a positive value when \p p lies to the left of the line from \p a to \p b
+     */
+    static inline int64_t pointIsLeftOfLine(const Point& p, const Point& a, const Point& b)
+    {
+        return (b.X - a.X) * (p.Y - a.Y) - (b.Y - a.Y) * (p.X - a.X);
+    }
+
+    /*!
+     * Get a point on the line segment (\p a - \p b)with a given distance to point \p p
+     * 
+     * In case there are two possible point that meet the criteria, choose the one closest to a.
+     * 
+     * \param p The reference point
+     * \param a Start of the line segment
+     * \param b End of the line segment
+     * \param dist The required distance of \p result to \p p
+     * \param[out] result The result (if any was found)
+     * \return Whether any such point has been found
+     */
+    static bool getPointOnLineWithDist(const Point p, const Point a, const Point b, int64_t dist, Point& result);
+
+    /*!
+     * Get the squared distance from a point \p p to the line on which \p a and \p b lie
+     */
+    static inline int64_t getDist2FromLine(const Point p, const Point a, const Point b)
+    {
+        //  x.......a------------b
+        //  :
+        //  :
+        //  p
+        // return px_size
+        Point vab = b - a;
+        Point vap = p - a;
+        int64_t dott = dot(vab, vap);
+        int64_t ax_size2 = dott * dott / vSize2(vab);
+        int64_t ap_size2 = vSize2(vap);
+        int64_t px_size2 = std::max(int64_t(0), ap_size2 - ax_size2);
+        return px_size2;
+    }
+    
+    /*!
      * Check whether a corner is acute or obtuse.
      * 
      * This function is irrespective of the order between \p a and \p c;

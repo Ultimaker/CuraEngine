@@ -13,7 +13,7 @@ namespace cura
 {
     
     
-Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int min_smoothing_area, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
+Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_this, int64_t supportJoinDistance, int64_t smoothing_distance, int max_smoothing_angle, bool conical_support, int64_t conical_support_offset, int64_t conical_smallest_breadth)
 {
     Polygons joined;
     if (conical_support)
@@ -33,9 +33,33 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
         joined = joined.offset(supportJoinDistance)
                         .offset(-supportJoinDistance);
     }
-    if (smoothing_distance > 0)
-        joined = joined.smooth(smoothing_distance, min_smoothing_area);
-    
+
+    // remove jagged line pieces introduced by unioning separate overhang areas for consectuive layers
+    //
+    // support may otherwise look like:
+    //      _____________________      .
+    //     /                     \      } dist_from_lower_layer
+    //    /__                   __\    /
+    //      /''--...........--''\        `\                                                 .
+    //     /                     \         } dist_from_lower_layer
+    //    /__                   __\      ./
+    //      /''--...........--''\     `\                                                    .
+    //     /                     \      } dist_from_lower_layer
+    //    /_______________________\   ,/
+    //            rather than
+    //      _____________________
+    //     /                     \                                                          .
+    //    /                       \                                                         .
+    //    |                       |
+    //    |                       |
+    //    |                       |
+    //    |                       |
+    //    |                       |
+    //    |_______________________|
+    //
+    // dist_from_lower_layer may be up to max_dist_from_lower_layer (see below), but that value may be extremely high
+    joined = joined.smooth_outward(max_smoothing_angle, smoothing_distance);
+
     return joined;
 }
 
@@ -71,42 +95,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     
     for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
     {
-        storage.support.supportLayers[layer_idx].supportAreas = storage.support.supportLayers[layer_idx].supportAreas.unionPolygons();
-
-        // get a support line width representative for all support
-        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
-        int support_infill_extruder_nr = (layer_idx == 0)? storage.getSettingAsIndex("support_extruder_nr_layer_0") : storage.getSettingAsIndex("support_infill_extruder_nr");
-        int interface_enable = storage.getSettingBoolean("support_interface_enable");
-        int interface_extruder_nr = interface_enable? support_skin_extruder_nr : support_infill_extruder_nr;
-        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(interface_extruder_nr);
-        int support_line_width = train.getSettingInMicrons(interface_enable? "support_interface_line_width" : "support_line_width");
-
-        // remove jagged line pieces introduced by unioning separate overhang areas for consectuive layers
-        //
-        // support may otherwise look like:
-        //      _____________________      .
-        //     /                     \      } dist_from_lower_layer
-        //    /__                   __\    /
-        //      /                   \        `\.
-        //     /                     \         } dist_from_lower_layer
-        //    /__                   __\      ./
-        //      /                   \     `\.
-        //     /                     \      } dist_from_lower_layer
-        //    /_______________________\   ,/
-        //            rather than
-        //     _______________________
-        //    |                       |
-        //    |                       |
-        //    |                       |
-        //    |                       |
-        //    |                       |
-        //    |                       |
-        //    |                       |
-        //    |_______________________|
-        //
-        // dist_from_lower_layer may be up to max_dist_from_lower_layer (see below), but that value may be extremely high
-        storage.support.supportLayers[layer_idx].supportAreas.simplify(support_line_width / 2);
-        
+        Polygons& support_areas = storage.support.supportLayers[layer_idx].supportAreas;
+        support_areas = support_areas.unionPolygons();
     }
 }
 
@@ -139,16 +129,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const int supportZDistanceTop = mesh.getSettingInMicrons("support_top_distance");
     const int join_distance = mesh.getSettingInMicrons("support_join_distance");
     const int support_bottom_stair_step_height = mesh.getSettingInMicrons("support_bottom_stair_step_height");
-    const int smoothing_distance = mesh.getSettingInMicrons("support_area_smoothing"); 
 
     const int extension_offset = mesh.getSettingInMicrons("support_offset");
 
     const int supportTowerDiameter = mesh.getSettingInMicrons("support_tower_diameter");
     const int supportMinAreaSqrt = mesh.getSettingInMicrons("support_minimal_diameter");
     const double supportTowerRoofAngle = mesh.getSettingInAngleRadians("support_tower_roof_angle");
-
-    const int min_smoothing_area = 100 * 100; // minimal area for which to perform smoothing
-    const int z_layer_distance_tower = 1; // start tower directly below overhang point
 
     const int layerThickness = storage.getSettingInMicrons("layer_height");
     const int supportXYDistance = mesh.getSettingInMicrons("support_xy_distance");
@@ -159,8 +145,27 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     const double conical_support_angle = mesh.getSettingInAngleRadians("support_conical_angle");
     const bool conical_support = mesh.getSettingBoolean("support_conical_enabled") && conical_support_angle != 0;
     const int64_t conical_smallest_breadth = mesh.getSettingInMicrons("support_conical_min_width");
-    
+
+    int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr");
+    int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr");
+    bool interface_enable = mesh.getSettingBoolean("support_interface_enable");
+
     // derived settings:
+    const int max_smoothing_angle = 135; // maximum angle of inner corners to be smoothed
+    int smoothing_distance;
+    { // compute best smoothing_distance
+        ExtruderTrain& infill_train = *storage.meshgroup->getExtruderTrain(support_infill_extruder_nr);
+        int support_infill_line_width = infill_train.getSettingInMicrons("support_interface_line_width");
+        smoothing_distance = support_infill_line_width;
+        if (interface_enable)
+        {
+            ExtruderTrain& interface_train = *storage.meshgroup->getExtruderTrain(support_skin_extruder_nr);
+            int support_interface_line_width = interface_train.getSettingInMicrons("support_interface_line_width");
+            smoothing_distance = std::max(support_interface_line_width, smoothing_distance);
+        }
+    }
+
+    const int z_layer_distance_tower = 1; // start tower directly below overhang point
     
     
     int supportLayerThickness = layerThickness;
@@ -240,7 +245,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     
         if (layer_idx+1 < support_layer_count)
         { // join with support from layer up                
-            supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, min_smoothing_area, conical_support, conical_support_offset, conical_smallest_breadth);
+            supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
         
         

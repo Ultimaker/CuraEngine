@@ -22,10 +22,14 @@ static inline double getTime()
     return double(GetTickCount()) / 1000.0;
 #else // not __WIN32
  #if USE_CPU_TIME // Use cpu usage time if available, otherwise wall clock time
-    int ret;
     struct rusage usage;
-    ret = getrusage(RUSAGE_SELF,&usage);
-    assert(ret==0);
+    #ifdef DEBUG
+        int ret = getrusage(RUSAGE_SELF, &usage);
+        assert(ret == 0);
+        ((void)ret);
+    #else
+        getrusage(RUSAGE_SELF, &usage);
+    #endif
     double user_time =  double(usage.ru_utime.tv_sec) + double(usage.ru_utime.tv_usec) / 1000000.0;
     double sys_time  =  double(usage.ru_stime.tv_sec) + double(usage.ru_stime.tv_usec) / 1000000.0;
     return user_time + sys_time;

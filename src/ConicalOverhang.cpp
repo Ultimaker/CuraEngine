@@ -20,7 +20,7 @@ void ConicalOverhang::apply(Slicer* slicer, double angle, int layer_thickness)
             int safe_dist = 20;
             Polygons diff = layer_above.polygons.difference(layer.polygons.offset(-safe_dist));
             layer.polygons = layer.polygons.unionPolygons(diff);
-            layer.polygons = layer.polygons.smooth(safe_dist, 100*100);
+            layer.polygons = layer.polygons.smooth(safe_dist);
             layer.polygons.simplify(safe_dist, safe_dist * safe_dist / 4);
             // somehow layer.polygons get really jagged lines with a lot of vertices
             // without the above steps slicing goes really slow

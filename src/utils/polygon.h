@@ -9,6 +9,7 @@
 #include <algorithm>    // std::reverse, fill_n array
 #include <cmath> // fabs
 #include <limits> // int64_t.min
+#include <list>
 
 #include "intpoint.h"
 
@@ -24,6 +25,11 @@ namespace cura {
 
 class PartsView;
 class Polygons;
+
+class ListPolyIt;
+
+typedef std::list<Point> ListPolygon; //!< A polygon represented by a linked list instead of a vector
+typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
@@ -235,39 +241,35 @@ public:
     }
     
     /*!
+     * Smooth out small perpendicular segments and store the result in \p result.
+     * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
+     * which has an angle with the next and previous line segment smaller than roughly 150*
+     * 
+     * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
+     * Such would be the case for an N shape.
+     * 
+     * \param remove_length The length of the largest segment removed
+     * \param result (output) The result polygon, assumed to be empty
+     */
+    void smooth(int remove_length, PolygonRef result);
+
+    /*!
+     * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
+     * 
+     * \param angle The maximum angle of inner corners to be smoothed out
+     * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
+     * \param result The resulting polygon
+     */
+    void smooth_outward(float angle, int shortcut_length, PolygonRef result) const;
+
+    /*!
      * Smooth out the polygon and store the result in \p result.
      * Smoothing is performed by removing vertices for which both connected line segments are smaller than \p remove_length
      * 
      * \param remove_length The length of the largest segment removed
      * \param result (output) The result polygon, assumed to be empty
      */
-    void smooth(int remove_length, PolygonRef result)
-    {
-        PolygonRef& thiss = *this;
-        ClipperLib::Path* poly = result.path;
-        if (size() > 0)
-        {
-            poly->push_back(thiss[0]);
-        }
-        for (unsigned int poly_idx = 1; poly_idx < size(); poly_idx++)
-        {
-            Point& last = thiss[poly_idx - 1];
-            Point& now = thiss[poly_idx];
-            Point& next = thiss[(poly_idx + 1) % size()];
-            if (shorterThen(last - now, remove_length) && shorterThen(now - next, remove_length)) 
-            {
-                poly_idx++; // skip the next line piece (dont escalate the removal of edges)
-                if (poly_idx < size())
-                {
-                    poly->push_back(thiss[poly_idx]);
-                }
-            }
-            else
-            {
-                poly->push_back(thiss[poly_idx]);
-            }
-        }
-    }
+    void smooth2(int remove_length, PolygonRef result);
 
     /*! 
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -312,6 +314,58 @@ public:
 
     friend class Polygons;
     friend class Polygon;
+
+private:
+    /*!
+     * Smooth out a simple corner consisting of two linesegments.
+     * 
+     * Auxiliary function for \ref smooth_outward
+     * 
+     * \param poly The polygon in which to find the corner
+     * \param p0 The point before the corner
+     * \param p1 The corner
+     * \param p2 The point after the corner
+     * \param p0_it Iterator to the point before the corner
+     * \param p1_it Iterator to the corner
+     * \param p2_it Iterator to the point after the corner
+     * \param v10 Vector from \p p1 to \p p0
+     * \param v12 Vector from \p p1 to \p p2
+     * \param v02 Vector from \p p0 to \p p2
+     * \param shortcut_length The desired length ofthe shortcutting line
+     * \param cos_angle The cosine on the angle in L 012
+     */
+    static void smooth_corner_simple(ListPolygon& poly, const Point p0, const Point p1, const Point p2, const ListPolyIt p0_it, const ListPolyIt p1_it, const ListPolyIt p2_it, const Point v10, const Point v12, const Point v02, const int64_t shortcut_length, float cos_angle);
+
+    /*!
+     * Smooth out a complex corner where the shortcut bypasses more than two line segments
+     * 
+     * Auxiliary function for \ref smooth_outward
+     * 
+     * \param poly The polygon in which to find the corner
+     * \param p1 The corner point
+     * \param[in,out] p0_it Iterator to the last point checked before \p p1 to consider cutting off
+     * \param[in,out] p2_it Iterator to the last point checked after \p p1 to consider cutting off
+     * \param shortcut_length The desired length ofthe shortcutting line
+     */
+    static void smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+
+    /*!
+     * Try to take a step away from the corner point in order to take a bigger shortcut.
+     * 
+     * Try to take the shortcut from a place as far away from the corner as the place we are taking the shortcut to.
+     * 
+     * Auxiliary function for \ref smooth_outward
+     * 
+     * \param[in] p1 The corner point
+     * \param[in] shortcut_length2 The square of the desired length ofthe shortcutting line
+     * \param[in,out] p0_it Iterator to the previously checked point somewhere beyond \p p1. Updated for the next iteration.
+     * \param[in,out] p2_it Iterator to the previously checked point somewhere before \p p1. Updated for the next iteration.
+     * \param[in,out] forward_is_blocked Whether trying another step forward is blocked by the smoothing outward condition. Updated for the next iteration.
+     * \param[in,out] backward_is_blocked Whether trying another step backward is blocked by the smoothing outward condition. Updated for the next iteration.
+     * \param[in,out] forward_is_too_far Whether trying another step forward is blocked by the shortcut length condition. Updated for the next iteration.
+     * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
+     */
+    static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
 };
 
 class Polygon : public PolygonRef
@@ -526,35 +580,35 @@ public:
      */
     Polygon convexHull() const;
 
-    Polygons smooth(int remove_length, int min_area) //!< removes points connected to small lines
-    {
-        Polygons ret;
-        for (unsigned int p = 0; p < size(); p++)
-        {
-            PolygonRef poly(paths[p]);
-            if (poly.area() < min_area || poly.size() <= 5) // when optimally removing, a poly with 5 pieces results in a triangle. Smaller polys dont have area!
-            {
-                ret.add(poly);
-                continue;
-            }
-            
-            if (poly.size() == 0)
-                continue;
-            if (poly.size() < 4)
-                ret.add(poly);
-            else 
-                poly.smooth(remove_length, ret.newPoly());
-            
+    /*!
+     * Smooth out small perpendicular segments
+     * Smoothing is performed by removing the inner most vertex of a line segment smaller than \p remove_length
+     * which has an angle with the next and previous line segment smaller than roughly 150*
+     * 
+     * Note that in its current implementation this function doesn't remove line segments with an angle smaller than 30*
+     * Such would be the case for an N shape.
+     * 
+     * \param remove_length The length of the largest segment removed
+     * \return The smoothed polygon
+     */
+    Polygons smooth(int remove_length);
 
-        }
-        return ret;
-    }
+    /*!
+     * Smooth out sharp inner corners, by taking a shortcut which bypasses the corner
+     * 
+     * \param angle The maximum angle of inner corners to be smoothed out
+     * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
+     * \return The resulting polygons
+     */
+    Polygons smooth_outward(float angle, int shortcut_length);
+
+    Polygons smooth2(int remove_length, int min_area); //!< removes points connected to small lines
     
     /*!
      * removes points connected to similarly oriented lines
      * 
-     * \param smallest_line_segment_squared maximal squared length of removed line segments
-     * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
+     * \param smallest_line_segment maximal length of removed line segments
+     * \param allowed_error_distance The distance of the middle point to the line segment of the consecutive and previous point for which the middle point is removed
      */
     void simplify(int smallest_line_segment = 10, int allowed_error_distance = 5) 
     {
