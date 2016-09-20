@@ -33,6 +33,11 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             first_layer_outline.add(support_layer.skin);
         }
     }
+    int join_distance = 20;
+    first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
+    int smallest_line_length = 200;
+    int largest_error_of_removed_point = 50;
+    first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
 }
 
 int SkirtBrim::generatePrimarySkirtBrimLines(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)

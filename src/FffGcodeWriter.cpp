@@ -395,9 +395,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     bool include_helper_parts = true;
     if (layer_nr < 0)
     {
+#ifdef DEBUG
         const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
         assert(train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
-
+#endif // DEBUG
         int filler_layer_count = Raft::getFillerLayerCount(storage);
         layer_thickness = Raft::getFillerLayerHeight(storage);
         z = Raft::getTotalThickness(storage) + (filler_layer_count + layer_nr + 1) * layer_thickness;
