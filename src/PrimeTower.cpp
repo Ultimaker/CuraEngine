@@ -119,52 +119,11 @@ void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_lay
 {
     if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
     {
-        generatePaths3(storage);
+        generatePaths_denseInfill(storage);
     }
 }
-void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int total_layers)
-{
-    
-    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
-    {
-        PolygonRef p = storage.primeTower.ground_poly.newPoly();
-        int tower_size = storage.getSettingInMicrons("prime_tower_size");
-        int tower_distance = 0; 
-        int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
-        int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
-        p.add(Point(x + tower_distance, y + tower_distance));
-        p.add(Point(x + tower_distance, y + tower_distance + tower_size));
-        p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
-        p.add(Point(x + tower_distance - tower_size, y + tower_distance));
 
-        wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
-    }
-}
-    
-    
-void PrimeTower::generatePaths2(SliceDataStorage& storage) // half baked attempt at spiral shaped prime tower pattern
-{
-//     extruder_count = storage.getSettingAsCount("machine_extruder_count");
-//     
-//     int64_t line_dists[extruder_count + 1]; // distance between the lines of different extruders, and half the line dist for beginning and ending
-//     int64_t total_width = 0;
-//     {
-//         int64_t last_line_width = 0;
-//         for (int extr = 0; extr < extruder_count; extr++)
-//         {
-//             int64_t line_width = config_per_extruder[extr].getLineWidth();
-//             line_dists[extr] = (line_width + last_line_width) / 2;
-//             total_width += line_width;
-//             last_line_width = line_width;
-//         }
-//         line_dists[extruder_count] = last_line_width / 2;
-//     }
-//     
-    
-    
-}
-
-void PrimeTower::generatePaths3(SliceDataStorage& storage)
+void PrimeTower::generatePaths_denseInfill(SliceDataStorage& storage)
 {
         
     int n_patterns = 2; // alternating patterns between layers
@@ -215,10 +174,10 @@ void PrimeTower::addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer,
     {
         wipe = false;
     }
-    addToGcode3(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
+    addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, wipe, last_prime_tower_poly_printed);
 }
 
-void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
+void PrimeTower::addToGcode_denseInfill(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
 {
     if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
     {
@@ -246,60 +205,5 @@ void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer
     }
 }
 
-void PrimeTower::addToGcode_OLD(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
-{
-    if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
-    {
-        return;
-    }
-    
-    int new_extruder = gcodeLayer.getExtruder();
 
-    int64_t offset = -config_per_extruder[new_extruder].getLineWidth(); 
-    if (layer_nr > 0)
-        offset *= 2;
-    
-    //If we changed extruder, print the wipe/prime tower for this nozzle;
-    std::vector<Polygons> insets;
-    { // generate polygons
-        if ((layer_nr % 2) == 1)
-            insets.push_back(storage.primeTower.ground_poly.offset(offset / 2));
-        else
-            insets.push_back(storage.primeTower.ground_poly);
-        while(true)
-        {
-            Polygons new_inset = insets[insets.size() - 1].offset(offset);
-            if (new_inset.size() < 1)
-                break;
-            insets.push_back(new_inset);
-        }
-    }
-    
-    
-    for(unsigned int n=0; n<insets.size(); n++)
-    {
-        GCodePathConfig& config = config_per_extruder[new_extruder];
-        gcodeLayer.addPolygonsByOptimizer(insets[(prime_tower_dir_outward)? insets.size() - 1 - n : n], &config);
-    }
-    last_prime_tower_poly_printed[new_extruder] = layer_nr;
-    
-    if (wipe)
-    { //Make sure we wipe the old extruder on the prime tower.
-        gcodeLayer.addTravel(wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
-    }
-};
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 }//namespace cura
