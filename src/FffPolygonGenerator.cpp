@@ -530,8 +530,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         return;
     }
 
-    int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
-    float largest_printed_radius = 1.0; // TODO: make var a parameter, and perhaps even a setting?
+    const int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
 
     for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
@@ -551,9 +550,11 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
             storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
         }
     }
+
+    const float largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
     for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_radius * largest_printed_radius);
+        storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
 }
 

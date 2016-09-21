@@ -358,9 +358,9 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
     for (int raftSurfaceLayer = 1; raftSurfaceLayer <= train->getSettingAsCount("raft_surface_layers"); raftSurfaceLayer++)
     { // raft surface layers
-        int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1;
+        const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
-        int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
+        const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
@@ -389,7 +389,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 {
     Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, layer_nr) + 1, total_layers);
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
-    
+
     int layer_thickness = getSettingInMicrons("layer_height");
     int64_t z;
     bool include_helper_parts = true;
@@ -399,7 +399,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
         assert(train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
-        int filler_layer_count = Raft::getFillerLayerCount(storage);
+        const int filler_layer_count = Raft::getFillerLayerCount(storage);
         layer_thickness = Raft::getFillerLayerHeight(storage);
         z = Raft::getTotalThickness(storage) + (filler_layer_count + layer_nr + 1) * layer_thickness;
 

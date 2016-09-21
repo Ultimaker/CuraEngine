@@ -26,6 +26,13 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
         }
         if (storage.support.generated && primary_line_count > 0)
         { // remove model-brim from support
+            // avoid gap in the middle
+            //    V
+            //  +---+     +----+
+            //  |+-+|     |+--+|
+            //  || ||     ||[]|| > expand to fit an extra brim line
+            //  |+-+|     |+--+|
+            //  +---+     +----+ 
             const Polygons& model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             SupportLayer& support_layer = storage.support.supportLayers[0];
             support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
@@ -73,7 +80,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(SliceDataStorage& storage, int star
 
 void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, bool outside_only)
 {
-    bool is_skirt = start_distance > 0;
+    const bool is_skirt = start_distance > 0;
 
     const int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
     const ExtruderTrain* adhesion_extruder = storage.meshgroup->getExtruderTrain(adhesion_extruder_nr);
@@ -85,8 +92,8 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     Polygons first_layer_outline;
     getFirstLayerOutline(storage, primary_line_count, primary_extruder_skirt_brim_line_width, is_skirt, outside_only, first_layer_outline);
 
-    bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0 ;
-    bool has_draft_shield = storage.draft_protection_shield.size() > 0;
+    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0 ;
+    const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
     
     int offset_distance = generatePrimarySkirtBrimLines(storage, start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
@@ -95,6 +102,13 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     if (!is_skirt && (has_ooze_shield || has_draft_shield))
     {
         // generate areas where to make extra brim for the shields
+        // avoid gap in the middle
+        //    V
+        //  +---+     +----+
+        //  |+-+|     |+--+|
+        //  || ||     ||[]|| > expand to fit an extra brim line
+        //  |+-+|     |+--+|
+        //  +---+     +----+ 
         const int64_t primary_skirt_brim_width = (primary_line_count + primary_line_count % 2) * primary_extruder_skirt_brim_line_width; // always use an even number, because we will fil the area from both sides
 
         Polygons shield_brim;

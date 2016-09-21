@@ -11,7 +11,7 @@ void Raft::generate(SliceDataStorage& storage, int distance)
 {
     assert(storage.raftOutline.size() == 0 && "Raft polygon isn't generated yet, so should be empty!");
     storage.raftOutline = storage.getLayerOutlines(0, true).offset(distance, ClipperLib::jtRound);
-    int shield_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"))->getSettingInMicrons("skirt_brim_line_width");
+    const int shield_line_width = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"))->getSettingInMicrons("skirt_brim_line_width");
     if (storage.draft_protection_shield.size() > 0)
     {
         Polygons draft_shield_raft = storage.draft_protection_shield.offset(shield_line_width) // start half a line width outside shield
@@ -43,37 +43,32 @@ int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
     {
         return 0;
     }
-    int64_t airgap = std::max(0, train.getSettingInMicrons("raft_airgap"));
-    int64_t layer_0_overlap = storage.getSettingInMicrons("layer_0_z_overlap");
+    const int64_t airgap = std::max(0, train.getSettingInMicrons("raft_airgap"));
+    const int64_t layer_0_overlap = storage.getSettingInMicrons("layer_0_z_overlap");
 
-    int64_t layer_height_0 = storage.getSettingInMicrons("layer_height_0");
+    const int64_t layer_height_0 = storage.getSettingInMicrons("layer_height_0");
 
-    int64_t z_diff_raft_to_bottom_of_layer_1 = std::max(int64_t(0), airgap + layer_height_0 - layer_0_overlap);
+    const int64_t z_diff_raft_to_bottom_of_layer_1 = std::max(int64_t(0), airgap + layer_height_0 - layer_0_overlap);
     return z_diff_raft_to_bottom_of_layer_1;
 }
 
 
 int Raft::getFillerLayerCount(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
-    {
-        return 0;
-    }
-    int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
-    unsigned int filler_layer_count = round_divide(getZdiffBetweenRaftAndLayer1(storage), normal_layer_height);
+    const int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
+    const unsigned int filler_layer_count = round_divide(getZdiffBetweenRaftAndLayer1(storage), normal_layer_height);
     return filler_layer_count;
 }
 
 int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 {
     const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-    int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
+    const int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
     if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return normal_layer_height;
     }
-    unsigned int filler_layer_height = round_divide(getZdiffBetweenRaftAndLayer1(storage), getFillerLayerCount(storage));
+    const unsigned int filler_layer_height = round_divide(getZdiffBetweenRaftAndLayer1(storage), getFillerLayerCount(storage));
     return filler_layer_height;
 }
 
