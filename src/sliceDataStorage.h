@@ -200,7 +200,6 @@ public:
 
     std::vector<Polygons> oozeShield;        //oozeShield per layer
     Polygons draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
-    Point wipePoint;
 
     /*!
      * Construct the initial retraction_config_per_extruder

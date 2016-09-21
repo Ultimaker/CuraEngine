@@ -21,6 +21,8 @@ private:
     int extruder_count;
     std::vector<GCodePathConfig> config_per_extruder;
 
+    Point wipe_point;
+
     class WallInfill
     {
         

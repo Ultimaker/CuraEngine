@@ -112,7 +112,7 @@ void PrimeTower::generateGroundpoly(SliceDataStorage& storage)
     p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
     p.add(Point(x + tower_distance - tower_size, y + tower_distance));
 
-    storage.wipePoint = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);   
+    wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);   
 }
 
 void PrimeTower::generatePaths(SliceDataStorage& storage, unsigned int total_layers)
@@ -137,7 +137,7 @@ void PrimeTower::generatePaths_OLD(SliceDataStorage& storage, unsigned int total
         p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
         p.add(Point(x + tower_distance - tower_size, y + tower_distance));
 
-        storage.wipePoint = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
+        wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
     }
 }
     
@@ -242,7 +242,7 @@ void PrimeTower::addToGcode3(SliceDataStorage& storage, GCodePlanner& gcodeLayer
 
     if (wipe)
     { //Make sure we wipe the old extruder on the prime tower.
-        gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+        gcodeLayer.addTravel(wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
 }
 
@@ -285,7 +285,7 @@ void PrimeTower::addToGcode_OLD(SliceDataStorage& storage, GCodePlanner& gcodeLa
     
     if (wipe)
     { //Make sure we wipe the old extruder on the prime tower.
-        gcodeLayer.addTravel(storage.wipePoint - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
+        gcodeLayer.addTravel(wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
 };
     
