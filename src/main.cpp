@@ -303,7 +303,7 @@ int main(int argc, char **argv)
 
     Progress::init();
     
-    
+    std::cerr << std::boolalpha;
     logAlways("\n");
     logAlways("Cura_SteamEngine version %s\n", VERSION);
     logAlways("Copyright (C) 2014 David Braam\n");

@@ -570,7 +570,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
                 //Assume default UM2 retraction settings.
                 if (prime_volume > 0)
                 {
-                    *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
+                    *output_stream << "G1 F" << std::setprecision(1) << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
                     currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 }
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), 25.0);
@@ -578,7 +578,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
             else
             {
                 current_e_value += extruder_attr[current_extruder].retraction_e_amount_current;
-                *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
+                *output_stream << "G1 F" << std::setprecision(1) << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
                 currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
                 estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
             }
@@ -590,7 +590,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         }
         else if (prime_volume > 0.0)
         {
-            *output_stream << "G1 F" << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
+            *output_stream << "G1 F" << std::setprecision(1) << (extruder_attr[current_extruder].last_retraction_prime_speed * 60) << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value << new_line;
             currentSpeed = extruder_attr[current_extruder].last_retraction_prime_speed;
             estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
         }
@@ -607,7 +607,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
 
     if (currentSpeed != speed)
     {
-        *output_stream << " F" << (speed * 60);
+        *output_stream << " F" << std::setprecision(1) << (speed * 60);
         currentSpeed = speed;
     }
 
@@ -798,7 +798,7 @@ void GCodeExport::writeFanCommand(double speed)
         if (flavor == EGCodeFlavor::MAKERBOT)
             *output_stream << "M126 T0" << new_line; //value = speed * 255 / 100 // Makerbot cannot set fan speed...;
         else
-            *output_stream << "M106 S" << (speed * 255 / 100) << new_line;
+            *output_stream << "M106 S" << std::setprecision(1) << (speed * 255 / 100) << new_line;
     }
     else
     {
@@ -824,7 +824,7 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 #ifdef ASSERT_INSANE_OUTPUT
     assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
-    *output_stream << " S" << temperature << new_line;
+    *output_stream << " S" << std::setprecision(1) << temperature << new_line;
     extruder_attr[extruder].currentTemperature = temperature;
 }
 
@@ -834,14 +834,14 @@ void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
         *output_stream << "M190 S";
     else
         *output_stream << "M140 S";
-    *output_stream << temperature << new_line;
+    *output_stream << std::setprecision(1) << temperature << new_line;
 }
 
 void GCodeExport::writeAcceleration(double acceleration)
 {
     if (current_acceleration != acceleration)
     {
-        *output_stream << "M204 S" << acceleration << new_line; // Print and Travel acceleration
+        *output_stream << "M204 S" << std::setprecision(0) << acceleration << new_line; // Print and Travel acceleration
         current_acceleration = acceleration;
         estimateCalculator.setAcceleration(acceleration);
     }
@@ -859,7 +859,7 @@ void GCodeExport::writeJerk(double jerk)
         {
             *output_stream << "M205 X";
         }
-        *output_stream << jerk << new_line;
+        *output_stream << std::setprecision(2) << jerk << new_line;
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
@@ -869,7 +869,7 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        *output_stream << "M203 Z" << int(max_z_feedrate * 60) << new_line;
+        *output_stream << "M203 Z" << std::setprecision(1) << int(max_z_feedrate * 60) << new_line;
         current_max_z_feedrate = max_z_feedrate;
         estimateCalculator.setMaxZFeedrate(max_z_feedrate);
     }

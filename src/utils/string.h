@@ -1,5 +1,5 @@
-#ifndef STRING_H
-#define STRING_H
+#ifndef UTILS_STRING_H
+#define UTILS_STRING_H
 
 #include <ctype.h>
 
@@ -20,4 +20,4 @@ static inline int stringcasecompare(const char* a, const char* b)
 }
 
 }//namespace cura
-#endif//STRING_H
+#endif//UTILS_STRING_H
