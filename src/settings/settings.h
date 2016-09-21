@@ -117,6 +117,7 @@ enum class EFillMethod
  */
 enum class EPlatformAdhesion
 {
+    NONE,
     SKIRT,
     BRIM,
     RAFT

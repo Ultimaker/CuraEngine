@@ -595,6 +595,8 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     case EPlatformAdhesion::RAFT:
         generateRaft(storage, train->getSettingInMicrons("raft_margin"));
         break;
+    case EPlatformAdhesion::NONE:
+	break;
     }
 }
 

@@ -316,7 +316,9 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
-    return EPlatformAdhesion::SKIRT;
+    if (value == "skirt")
+    	return EPlatformAdhesion::SKIRT;
+    return EPlatformAdhesion::NONE;
 }
 
 ESupportType SettingsBaseVirtual::getSettingAsSupportType(std::string key) const
