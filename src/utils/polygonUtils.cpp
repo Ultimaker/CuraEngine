@@ -17,7 +17,7 @@ namespace cura
 
 const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point){ return 0; };
 
-Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_idx)
 {
     Point p1 = poly[point_idx];
 
@@ -51,10 +51,30 @@ Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int poi
 
     Point off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
     Point off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
-    Point n = normal(off0 + off1, -offset);
-
-    return p1 + n;
+    Point n = off0 + off1;
+    return n;
 }
+
+
+Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+{
+    return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
+}
+
+Point PolygonUtils::moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset)
+{
+    Point p0 = point_on_boundary.poly[point_on_boundary.point_idx];
+    Point p1 = point_on_boundary.poly[(point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()];
+    if (vSize2(p0 - point_on_boundary.location) < vSize2(p1 - point_on_boundary.location))
+    {
+        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, point_on_boundary.point_idx), inset);
+    }
+    else
+    {
+        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, (point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()), inset);
+    }
+}
+
 
 unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, int distance, int64_t maxDist2)
 {

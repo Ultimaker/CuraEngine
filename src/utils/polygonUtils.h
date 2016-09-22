@@ -83,6 +83,16 @@ public:
     static const std::function<int(Point)> no_penalty_function; //!< Function always returning zero
 
     /*!
+     * Get the normal of a boundary point, pointing outward.
+     * Only the direction is set.
+     * Nothing is said about the length of the vector returned.
+     * 
+     * \param poly The polygon.
+     * \param point_idx The index of the point in the polygon.
+     */
+    static Point getVertexInwardNormal(PolygonRef poly, unsigned int point_idx);
+
+    /*!
     * Get a point from the \p poly with a given \p offset.
     * 
     * \param poly The polygon.
@@ -91,6 +101,14 @@ public:
     * \return A point at the given distance inward from the point on the boundary polygon.
     */
     static Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset);
+
+    /*!
+     * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
+     * 
+     * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param offset The distance the point has to be moved inward from the polygon.
+     */
+    static Point moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset);
 
     /*!
     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.

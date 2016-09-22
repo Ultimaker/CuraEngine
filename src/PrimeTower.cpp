@@ -311,7 +311,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
     const int inward_dist = train.getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;
     const int start_dist = train.getSettingInMicrons("machine_nozzle_size") * 2;
-    const Point end = PolygonUtils::moveInside(wipe_location, inward_dist);
+    const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
     // for hollow wipe tower:
