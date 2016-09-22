@@ -37,8 +37,11 @@ class ExtruderPlan
     friend class GCodePlanner; // TODO: GCodePlanner still does a lot which should actually be handled in this class.
     friend class LayerPlanBuffer; // TODO: LayerPlanBuffer handles paths directly
 protected:
-    std::vector<GCodePath> paths; //!< The paths planned for this extruder
+    std::list<GCodePath> paths_list; //!< The paths planned for this extruder
+    std::vector<GCodePath> paths_vector; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
+
+    bool is_paths_vector_initialised; //!< Keeps information if content of \p paths_list has been copied to \p paths_vector
 
     int extruder; //!< The extruder used for this paths in the current plan.
     double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
@@ -101,7 +104,7 @@ public:
         while ( ! inserts.empty() )
         { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
             NozzleTempInsert& insert = inserts.front();
-            assert(insert.path_idx == paths.size());
+            assert(insert.path_idx == getPaths().size());
             insert.write(gcode);
             inserts.pop_front();
         }
@@ -156,6 +159,39 @@ public:
      * \return The fan speed computed in processFanSpeedAndMinimalLayerTime
      */
     double getFanSpeed();
+
+    /*!
+     * Move the paths data from the input list to the vector container
+     *
+     * \warning empties the \p paths_list which will no longer contain data. No references to the paths in \p paths_list should be kept.
+     */
+    void convertListToVector();
+
+    /*!
+     * Get the paths in a list container
+     *
+     * \warning should not be called after paths_list has been converted to paths variable
+     *
+     * \return The paths as a list
+     */
+    std::list<GCodePath>& getPathsList()
+    {
+        assert(!is_paths_vector_initialised);
+        return paths_list;
+    }
+
+    /*!
+     * Get the paths in a vector container
+     *
+     * \warning should not be called before paths_list has been converted to paths variable
+     *
+     * \return The paths as a vector
+     */
+    std::vector<GCodePath>& getPaths()
+    {
+        assert(is_paths_vector_initialised);
+        return paths_vector;
+    }
 protected:
 
     Point start_position; //!< The position the print head was at at the start of this extruder plan
