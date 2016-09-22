@@ -319,9 +319,6 @@ void PrimeTower::preWipe(SliceDataStorage& storage, GCodePlanner& gcode_layer, c
     const Point end = PolygonUtils::moveInside(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
-    std::cerr << end << " : " << vSize(wipe_location.location - end) << wipe_location.poly.inside(end) << "\n";
-    std::cerr << start << " : " << vSize(wipe_location.location - start) << "\n";
-    std::cerr << wipe_location.poly[wipe_location.point_idx] << wipe_location.location << (wipe_location.poly)[(wipe_location.point_idx + 1) % wipe_location.poly.size()] << "\n";
     // for hollow wipe tower:
     // start from above
     // go to the level of the previous layer
