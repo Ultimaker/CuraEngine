@@ -222,7 +222,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool _inside(Point p, bool border_result = false);
+    bool _inside(Point p, bool border_result = false) const;
 
     /*!
      * Clipper function.
@@ -230,7 +230,7 @@ public:
      * 
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
-    bool inside(Point p, bool border_result = false)
+    bool inside(Point p, bool border_result = false) const
     {
         int res = ClipperLib::PointInPolygon(p, *path);
         if (res == -1)

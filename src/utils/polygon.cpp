@@ -25,7 +25,7 @@ bool PolygonRef::shorterThan(int64_t check_length) const
     return true;
 }
 
-bool PolygonRef::_inside(Point p, bool border_result)
+bool PolygonRef::_inside(Point p, bool border_result) const
 {
     PolygonRef thiss = *this;
     if (size() < 1)
