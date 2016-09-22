@@ -161,6 +161,12 @@ int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
     return getSettingInMillimeters(key) * 1000.0;
 }
 
+double SettingsBaseVirtual::getSettingInAngleDegrees(std::string key) const
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str());
+}
+
 double SettingsBaseVirtual::getSettingInAngleRadians(std::string key) const
 {
     std::string value = getSettingString(key);

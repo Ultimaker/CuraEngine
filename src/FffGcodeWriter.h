@@ -202,20 +202,22 @@ private:
     /*!
      * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
      * 
-     * \param[in] storage where the slice data is stored.
+     * \param[in,out] storage where the slice data is stored.
      * \param total_layers The total number of layers.
      */
     void processRaft(SliceDataStorage& storage, unsigned int total_layers);
-    
+
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
+     * 
+     * In case of negative layer numbers, create layers only containing the data from
+     * the helper parts (support etc) to fill up the gap between the raft and the model.
      * 
      * \param[in] storage where the slice data is stored.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
-     * \param has_raft Whether a raft is used for this print.
      */
-    void processLayer(SliceDataStorage& storage, unsigned int layer_nr, unsigned int total_layers, bool has_raft);
+    void processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers);
     
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer.

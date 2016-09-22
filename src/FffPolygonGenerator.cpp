@@ -141,9 +141,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 ExtruderTrain* train = storage.meshgroup->getExtruderTrain(getSettingAsIndex("adhesion_extruder_nr"));
                 layer.printZ += 
-                    train->getSettingInMicrons("raft_base_thickness") 
-                    + train->getSettingInMicrons("raft_interface_thickness") 
-                    + train->getSettingAsCount("raft_surface_layers") * train->getSettingInMicrons("raft_surface_thickness")
+                    Raft::getTotalThickness(storage)
                     + train->getSettingInMicrons("raft_airgap")
                     - train->getSettingInMicrons("layer_0_z_overlap"); // shift all layers (except 0) down
                 if (layer_nr == 0)
@@ -532,26 +530,31 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         return;
     }
 
-    int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
+    const int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
 
     for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist));
+        storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist, ClipperLib::jtRound));
     }
 
-    int largest_printed_radius = MM2INT(1.0); // TODO: make var a parameter, and perhaps even a setting?
+    double angle = getSettingInAngleDegrees("ooze_shield_angle");
+    if (angle <= 89)
+    {
+        int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height"); // Allow for a 60deg angle in the oozeShield.
+        for (int layer_nr = 1; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+        {
+            storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr - 1].offset(-allowed_angle_offset));
+        }
+        for (int layer_nr = storage.max_object_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
+        {
+            storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
+        }
+    }
+
+    const float largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
     for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
     {
-        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].offset(-largest_printed_radius).offset(largest_printed_radius); 
-    }
-    int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height"); // Allow for a 60deg angle in the oozeShield.
-    for (int layer_nr = 1; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
-    {
-        storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr-1].offset(-allowed_angle_offset));
-    }
-    for (int layer_nr = storage.max_object_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
-    {
-        storage.oozeShield[layer_nr-1] = storage.oozeShield[layer_nr-1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
+        storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
 }
 
@@ -586,14 +589,14 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
             || (getSettingAsDraftShieldHeightLimitation("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED && getSettingInMicrons("draft_shield_height") == 0)) //Draft shield replaces skirt.
         {
             constexpr bool outside_polygons_only = true;
-            generateSkirtBrim(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), outside_polygons_only);
+            SkirtBrim::generate(storage, train->getSettingInMicrons("skirt_gap"), train->getSettingAsCount("skirt_line_count"), outside_polygons_only);
         }
         break;
     case EPlatformAdhesion::BRIM:
-        generateSkirtBrim(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingBoolean("brim_outside_only"));
+        SkirtBrim::generate(storage, 0, train->getSettingAsCount("brim_line_count"), train->getSettingBoolean("brim_outside_only"));
         break;
     case EPlatformAdhesion::RAFT:
-        generateRaft(storage, train->getSettingInMicrons("raft_margin"));
+        Raft::generate(storage, train->getSettingInMicrons("raft_margin"));
         break;
     }
 }
