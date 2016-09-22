@@ -92,9 +92,20 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
     Polygons first_layer_outline;
     getFirstLayerOutline(storage, primary_line_count, primary_extruder_skirt_brim_line_width, is_skirt, outside_only, first_layer_outline);
 
-    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0 ;
+    const bool has_ooze_shield = storage.oozeShield.size() > 0 && storage.oozeShield[0].size() > 0;
     const bool has_draft_shield = storage.draft_protection_shield.size() > 0;
-    
+
+    if (is_skirt && (has_ooze_shield || has_draft_shield))
+    { // make sure we don't generate skirt through draft / ooze shield
+        first_layer_outline = first_layer_outline.offset(start_distance - primary_extruder_skirt_brim_line_width / 2, ClipperLib::jtRound).unionPolygons(storage.draft_protection_shield);
+        if (has_ooze_shield)
+        {
+            first_layer_outline = first_layer_outline.unionPolygons(storage.oozeShield[0]);
+        }
+        first_layer_outline = first_layer_outline.approxConvexHull();
+        start_distance = primary_extruder_skirt_brim_line_width / 2;
+    }
+
     int offset_distance = generatePrimarySkirtBrimLines(storage, start_distance, primary_line_count, primary_extruder_skirt_brim_line_width, primary_extruder_minimal_length, first_layer_outline, skirt_brim_primary_extruder);
 
 
@@ -121,9 +132,10 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
             shield_brim = shield_brim.unionPolygons(storage.draft_protection_shield.difference(storage.draft_protection_shield.offset(-primary_skirt_brim_width - primary_extruder_skirt_brim_line_width)));
         }
         const Polygons outer_primary_brim = first_layer_outline.offset(offset_distance, ClipperLib::jtRound);
-        shield_brim = shield_brim.difference(outer_primary_brim);
+        shield_brim = shield_brim.difference(outer_primary_brim.offset(primary_extruder_skirt_brim_line_width));
 
         // generate brim within shield_brim
+        skirt_brim_primary_extruder.add(shield_brim);
         while (shield_brim.size() > 0)
         {
             shield_brim = shield_brim.offset(-primary_extruder_skirt_brim_line_width);
@@ -131,7 +143,11 @@ void SkirtBrim::generate(SliceDataStorage& storage, int start_distance, unsigned
         }
 
         // update parameters to generate secondary skirt around
-        first_layer_outline = storage.draft_protection_shield;
+        first_layer_outline = outer_primary_brim;
+        if (has_draft_shield)
+        {
+            first_layer_outline = first_layer_outline.unionPolygons(storage.draft_protection_shield);
+        }
         if (has_ooze_shield)
         {
             first_layer_outline = first_layer_outline.unionPolygons(storage.oozeShield[0]);
