@@ -30,9 +30,10 @@ void LayerPlanBuffer::flush()
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
 {
     double acc_time = 0.0;
-    for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1 ; path_idx--)
+    std::vector<GCodePath>& extruder_plan_before_paths = extruder_plan_before.getPaths();
+    for (unsigned int path_idx = extruder_plan_before_paths.size() - 1; int(path_idx) != -1 ; path_idx--)
     {
-        GCodePath& path = extruder_plan_before.paths[path_idx];
+        GCodePath& path = extruder_plan_before_paths[path_idx];
         const double time_this_path = path.estimates.getTotalTime();
         acc_time += time_this_path;
         if (acc_time > time_after_extruder_plan_start)
@@ -176,11 +177,16 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_
 
 void LayerPlanBuffer::insertPreheatCommands()
 {
-    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
+    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].getPathsList().empty()))
     { // disregard empty layer
         buffer.pop_back();
         return;
     }
+    for (ExtruderPlan& plan: buffer.back().extruder_plans)
+    {
+        plan.convertListToVector();
+    }
+
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);
