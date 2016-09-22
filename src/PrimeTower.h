@@ -1,9 +1,12 @@
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
+#include <vector>
+
 #include "GCodePathConfig.h"
 #include "MeshGroup.h"
 #include "utils/polygon.h" // Polygons
+#include "utils/polygonUtils.h"
 
 namespace cura 
 {
@@ -23,7 +26,13 @@ private:
 
     Point wipe_point;
 
-    std::vector<PolyLine> extruder_paths; //!< Precompiled 
+    std::vector<PolyLine> extruder_paths; //!< Precompiled so that we don't need to generate the paths each layer over again
+
+    const unsigned int wipe_location_skip = 8;
+    const unsigned int number_of_wipe_locations = 13;
+    // note that the above are two consecutive numbers in the fibonacci sequence
+    std::vector<ClosestPolygonPoint> wipe_locations;
+    int current_wipe_location_idx;
 
 public:
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
@@ -49,10 +58,16 @@ public:
 
     void addToGcode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
 private:
+    /*!
+     * Depends on ground_poly being generated
+     */
+    void generateWipeLocations(const SliceDataStorage& storage);
+
     void generatePaths_denseInfill(SliceDataStorage& storage);
 
     void addToGcode_denseInfill(SliceDataStorage& storage, GCodePlanner& gcodeLayer, GCodeExport& gcode, int layer_nr, int prev_extruder, bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
 
+    void preWipe(SliceDataStorage& storage, GCodePlanner& gcode_layer, const int extruder_nr);
 };
 
 
