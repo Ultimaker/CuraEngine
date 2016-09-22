@@ -40,10 +40,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             first_layer_outline.add(support_layer.skin);
         }
     }
-    int join_distance = 20;
+    constexpr int join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
-    int smallest_line_length = 200;
-    int largest_error_of_removed_point = 50;
+    constexpr int smallest_line_length = 200;
+    constexpr int largest_error_of_removed_point = 50;
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
 }
 
