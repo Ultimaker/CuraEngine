@@ -52,6 +52,14 @@ struct PolygonsPointIndex
     , point_idx(point_idx)
     {
     }
+    Point p() const
+    {
+        if (!polygons)
+        {
+            return Point(0, 0);
+        }
+        return (*polygons)[poly_idx][point_idx];
+    }
 };
 
 /*!
