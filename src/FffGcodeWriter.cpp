@@ -181,7 +181,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         }
     }
     
-    storage.primeTower.initConfigs(storage.meshgroup, storage.retraction_config_per_extruder);
+    storage.primeTower.initConfigs(storage.meshgroup);
 }
 
 void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)

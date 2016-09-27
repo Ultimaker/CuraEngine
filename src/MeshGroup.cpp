@@ -47,7 +47,7 @@ MeshGroup::~MeshGroup()
     }
 }
 
-int MeshGroup::getExtruderCount()
+int MeshGroup::getExtruderCount() const
 {
     if (extruder_count == -1)
     {
