@@ -88,11 +88,10 @@ public:
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
-     * \param prime_tower_dir_outward Whether to print the prime tower from the inside outward (TODO: deprecated)
      * \param wipe Whether to wipe of the (not previous, but) current nozzle on the wipe tower (only occurs if previous extruder is different fromt he current one)
      * \param[in,out] last_prime_tower_poly_printed At which layer a prime tower was (already) printed. (TODO: move inside this class)
      */
-    void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed);
+    void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, bool wipe, int* last_prime_tower_poly_printed);
 private:
     /*!
      * \param storage where to get settings from
@@ -119,10 +118,9 @@ private:
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
-     * \param prime_tower_dir_outward Whether to print the prime tower from the inside outward (TODO: deprecated)
      * \param[in,out] last_prime_tower_poly_printed At which layer a prime tower was (already) printed. (TODO: move inside this class)
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const bool prime_tower_dir_outward, int* last_prime_tower_poly_printed);
+    void addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, int* last_prime_tower_poly_printed);
 
     /*!
      * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.

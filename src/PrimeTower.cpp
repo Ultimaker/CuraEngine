@@ -154,7 +154,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const bool prime_tower_dir_outward, bool wipe, int* last_prime_tower_poly_printed)
+void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, bool wipe, int* last_prime_tower_poly_printed)
 {
     if (!( storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
     {
@@ -178,7 +178,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     int new_extruder = gcodeLayer.getExtruder();
     preWipe(storage, gcodeLayer, gcodeLayer.getExtruder());
 
-    addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder, prime_tower_dir_outward, last_prime_tower_poly_printed);
+    addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder, last_prime_tower_poly_printed);
 
     // post-wipe:
     if (false && wipe) // TODO: make a separate setting for the post-wipe!
@@ -187,7 +187,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     }
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const bool prime_tower_dir_outward, int* last_prime_tower_poly_printed)
+void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, int* last_prime_tower_poly_printed)
 {
     if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
     {
