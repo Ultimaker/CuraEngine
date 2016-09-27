@@ -74,10 +74,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         processRaft(storage, total_layers);
     }
-    
-    for (int extruder = 0; extruder < storage.meshgroup->getExtruderCount(); extruder++)
-        last_prime_tower_poly_printed[extruder] = -1; // layer 0 has its prime tower printed during the brim (?)
-    
+
     for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         processLayer(storage, layer_nr, total_layers, has_raft);
@@ -1100,7 +1097,7 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
 
     bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
 
-    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, wipe, last_prime_tower_poly_printed);
+    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, wipe);
 }
 
 void FffGcodeWriter::finalize()
