@@ -147,7 +147,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
         for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
         {
             Polygons result_polygons; // should remain empty, since we generate lines pattern!
-            int outline_offset = -line_width/2;
+            int outline_offset = -line_width;
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
             Polygons& result_lines = patterns[pattern_idx];
@@ -205,7 +205,9 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
 
     GCodePathConfig& config = config_per_extruder[new_extruder];
     int start_idx = 0; // TODO: figure out which idx is closest to the far right corner
-    gcodeLayer.addPolygon(ground_poly.back(), start_idx, &config);
+
+    Polygon outer_wall = ground_poly.offset(-config.getLineWidth() / 2).back();
+    gcodeLayer.addPolygon(outer_wall, start_idx, &config);
     gcodeLayer.addLinesByOptimizer(pattern, &config, SpaceFillType::Lines);
 
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
