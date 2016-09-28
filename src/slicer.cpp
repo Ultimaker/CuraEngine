@@ -787,7 +787,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 }
 
 
-Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 {
     assert(slice_layer_count > 0);
@@ -891,6 +891,7 @@ Slicer::Slicer(const Mesh* mesh, int initial, int thickness, int slice_layer_cou
     {
         layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
     }
+    mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
     log("slice make polygons took %.3f seconds\n",slice_timer.restart());
 }
 
