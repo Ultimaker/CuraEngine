@@ -2,6 +2,7 @@
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
+#include <vector>
 #include <functional> // function
 
 #include "polygon.h"
@@ -55,6 +56,34 @@ class PolygonUtils
 {
 public:
     static const std::function<int(Point)> no_penalty_function; //!< Function always returning zero
+
+    /*!
+     * compute the length of a segment of a polygon
+     * 
+     * if \p end == \p start then the full polygon is taken
+     * 
+     * \warning assumes that start and end lie on the same polygon!
+     * 
+     * \param start The start vertex of the segment
+     * \param end the end vertex of the segment
+     * \return the total length of all the line segments in between the two vertices.
+     */
+    static int64_t segmentLength(PolygonsPointIndex start, PolygonsPointIndex end);
+
+    /*!
+     * Generate evenly spread out dots along a segment of a polygon
+     * 
+     * Start at a distance from \p start and end at a distance from \p end,
+     * unless \p end == \p start; then that point is in the result
+     * 
+     * \warning Assumes that start and end lie on the same polygon!
+     * 
+     * \param start The start vertex of the segment
+     * \param end the end vertex of the segment
+     * \param n_dots number of dots to spread out
+     * \param result Where to store the generated points
+     */
+    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
 
     /*!
      * Get the normal of a boundary point, pointing outward.

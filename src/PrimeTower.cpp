@@ -251,42 +251,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonsPointIndex segment_start = closest_vert.prev(); // from where to start the sequence of wipe points
     PolygonsPointIndex segment_end = closest_vert.next(); // where to end the sequence of wipe points
 
-    int64_t segment_length = 0;
-    { // compute segment length
-        Point prev_vert = segment_start.p();
-        const PolygonRef poly = (*segment_start.polygons)[segment_start.poly_idx];
-        for (unsigned int point_idx = segment_start.point_idx + 1; ; point_idx++)
-        {
-            Point vert = poly[point_idx];
-            segment_length += vSize(vert - prev_vert);
-
-            if (point_idx == segment_end.point_idx)
-            { // break at the end of the loop, so that segment_end and segment_start may be the same
-                break;
-            }
-            prev_vert = vert;
-        }
-    }
-
-    int64_t wipe_point_dist = segment_length / (number_of_pre_wipe_locations + 1); // distance between two wipe points; keep a distance at both sides of the segment
-    const PolygonRef poly = (*segment_start.polygons)[segment_start.poly_idx];
-    int64_t dist_past_vert_to_insert_wipe_point = wipe_point_dist;
-    unsigned int number_of_wipe_locations_generated = 0;
-    for (unsigned int point_idx = segment_start.point_idx; point_idx != segment_end.point_idx; point_idx++)
-    {
-        Point p0 = poly[point_idx];
-        Point p1 = poly[(point_idx + 1) % poly.size()];
-        Point p0p1 = p1 - p0;
-        int64_t p0p1_length = vSize(p0p1);
-
-        for ( ; dist_past_vert_to_insert_wipe_point < p0p1_length && number_of_wipe_locations_generated < number_of_pre_wipe_locations; dist_past_vert_to_insert_wipe_point += wipe_point_dist)
-        {
-            pre_wipe_locations.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_wipe_point), point_idx, poly);
-            number_of_wipe_locations_generated++;
-        }
-        dist_past_vert_to_insert_wipe_point -= p0p1_length;
-    }
-    assert(pre_wipe_locations.size() == number_of_pre_wipe_locations && "we didn't generated as many wipe locations as we asked for.");
+    PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
 void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int extruder_nr)
