@@ -8,6 +8,7 @@
 #include "SparsePointGridInclusive.h"
 #include "SparseLineGrid.h"
 #include "optional.h"
+#include "PolygonsPointIndex.h"
 
 namespace cura 
 {
@@ -33,33 +34,6 @@ struct GivenDistPoint
 {
     Point location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
-};
-
-struct PolygonsPointIndex
-{
-    const Polygons* polygons; //!< The polygons into which this index is indexing
-    unsigned int poly_idx; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
-    unsigned int point_idx; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
-    PolygonsPointIndex()
-    : polygons(nullptr)
-    , poly_idx(0)
-    , point_idx(0)
-    {
-    }
-    PolygonsPointIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
-    : polygons(polygons)
-    , poly_idx(poly_idx)
-    , point_idx(point_idx)
-    {
-    }
-    Point p() const
-    {
-        if (!polygons)
-        {
-            return Point(0, 0);
-        }
-        return (*polygons)[poly_idx][point_idx];
-    }
 };
 
 /*!
