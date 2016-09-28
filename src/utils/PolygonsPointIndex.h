@@ -66,7 +66,7 @@ public:
     //! move the iterator forward (and wrap around at the end)
     PolygonsPointIndex& operator++() 
     { 
-        point_idx = (point_idx + 1) % polygons[poly_idx].size();
+        point_idx = (point_idx + 1) % (*polygons)[poly_idx].size();
         return *this; 
     }
     //! move the iterator backward (and wrap around at the beginning)
@@ -74,7 +74,7 @@ public:
     { 
         if (point_idx == 0)
         {
-            point_idx = polygons[poly_idx].size();
+            point_idx = (*polygons)[poly_idx].size();
         }
         point_idx--;
         return *this; 

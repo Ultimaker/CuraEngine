@@ -21,22 +21,21 @@ int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex
 {
     assert(start.poly_idx == end.poly_idx);
     int64_t segment_length = 0;
+    Point prev_vert = start.p();
+    const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    for (unsigned int point_idx = 1; point_idx <= poly.size(); point_idx++)
     {
-        Point prev_vert = start.p();
-        const PolygonRef poly = (*start.polygons)[start.poly_idx];
-        for (unsigned int point_idx = start.point_idx + 1; ; point_idx++)
-        {
-            Point vert = poly[point_idx];
-            segment_length += vSize(vert - prev_vert);
+        unsigned int vert_idx = (start.point_idx + point_idx) % poly.size();
+        Point vert = poly[vert_idx];
+        segment_length += vSize(vert - prev_vert);
 
-            if (point_idx == end.point_idx)
-            { // break at the end of the loop, so that [end] and [start] may be the same
-                break;
-            }
-            prev_vert = vert;
+        if (vert_idx == end.point_idx)
+        { // break at the end of the loop, so that [end] and [start] may be the same
+            return segment_length;
         }
+        prev_vert = vert;
     }
-    return segment_length;
+    assert(false && "The segment end should have been encountered!");
 }
 
 void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result)
@@ -45,29 +44,37 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
     int64_t segment_length = segmentLength(start, end);
 
     const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    unsigned int n_dots_in_between = n_dots;
     if (start == end)
     {
         result.emplace_back(start.p(), start.point_idx, poly);
-        n_dots--; // generate one less below, because we already pushed a point to the result
+        n_dots_in_between--; // generate one less below, because we already pushed a point to the result
     }
 
-    int64_t wipe_point_dist = segment_length / (n_dots + 1); // distance between two wipe points; keep a distance at both sides of the segment
+    int64_t wipe_point_dist = segment_length / (n_dots_in_between + 1); // distance between two wipe points; keep a distance at both sides of the segment
 
     int64_t dist_past_vert_to_insert_point = wipe_point_dist;
     unsigned int n_points_generated = 0;
-    for (unsigned int point_idx = start.point_idx; point_idx != end.point_idx; point_idx++)
+    PolygonsPointIndex vert = start;
+    while (true)
     {
-        Point p0 = poly[point_idx];
-        Point p1 = poly[(point_idx + 1) % poly.size()];
+        Point p0 = vert.p();
+        Point p1 = vert.next().p();
         Point p0p1 = p1 - p0;
         int64_t p0p1_length = vSize(p0p1);
 
-        for ( ; dist_past_vert_to_insert_point < p0p1_length && n_points_generated < n_dots; dist_past_vert_to_insert_point += wipe_point_dist)
+        for ( ; dist_past_vert_to_insert_point < p0p1_length && n_points_generated < n_dots_in_between; dist_past_vert_to_insert_point += wipe_point_dist)
         {
-            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), point_idx, poly);
+            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), vert.point_idx, poly);
             n_points_generated++;
         }
         dist_past_vert_to_insert_point -= p0p1_length;
+
+        ++vert;
+        if (vert == end)
+        { // break at end of loop to allow for [start] and [end] being the same, meaning the full polygon
+            break;
+        }
     }
     assert(result.size() == n_dots && "we didn't generated as many wipe locations as we asked for.");
 }

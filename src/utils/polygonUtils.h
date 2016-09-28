@@ -26,6 +26,10 @@ struct ClosestPolygonPoint
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
     ClosestPolygonPoint(PolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
+    Point p() const
+    { // conformity with other classes
+        return location;
+    }
 };
 
 /*!
