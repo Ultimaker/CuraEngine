@@ -76,7 +76,7 @@ void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, 
             break;
         }
     }
-    assert(result.size() == n_dots && "we didn't generated as many wipe locations as we asked for.");
+    assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
 }
 
 Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_idx)
