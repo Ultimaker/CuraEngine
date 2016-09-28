@@ -215,61 +215,41 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
     CommandSocket::sendPolygons(PrintFeatureType::Support, pattern, config.getLineWidth());
 }
 
-void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
+Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
 {
-    PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
-    PolygonsPointIndex segment_end; // where to end the sequence of wipe points
-    { // find the side of the prime tower which is most likely to be the side from which the prime tower is entered
-        Point from(0, 0); // point representing the location before going to the prime tower
-        { // find an approriate representation for [from]
+            Point ret(0, 0);
             int absolute_starting_points = 0;
             for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
             {
                 ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
                 if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
                 {
-                    from += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
+                    ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
                     absolute_starting_points++;
                 }
             }
             if (absolute_starting_points > 0)
             { // take the average over all absolute starting positions
-                from /= absolute_starting_points;
+                ret /= absolute_starting_points;
             }
             else
             { // use the middle of the bed
                 if (!storage.getSettingBoolean("machine_center_is_zero"))
                 {
-                    from = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
+                    ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
                 }
                 // otherwise keep (0, 0)
             }
-        }
+            return ret;
+}
 
-        // naive approach which works for a square prime tower:
-        // - find closest vertex
-        // - generate wipe locations in the two segments connected to that vertex
-        int64_t best_dist2 = std::numeric_limits<int64_t>::max();
-        PolygonsPointIndex closest_vert;
-        for (unsigned int poly_idx = 0; poly_idx < ground_poly.size(); poly_idx++)
-        {
-            const PolygonRef poly = ground_poly[poly_idx];
-            for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
-            {
-                int64_t dist2 = vSize2(poly[point_idx] - from);
-                if (dist2 < best_dist2)
-                {
-                    best_dist2 = dist2;
-                    closest_vert = PolygonsPointIndex(&ground_poly, poly_idx, point_idx);
-                }
-            }
-        }
-        assert(closest_vert.polygons != nullptr && "a closest vert should have been found!");
+void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
+{
+    Point from = getLocationBeforePrimeTower(storage);
 
-        const PolygonRef best_poly = (*closest_vert.polygons)[closest_vert.poly_idx];
-        segment_start = PolygonsPointIndex(closest_vert.polygons, closest_vert.poly_idx, (closest_vert.point_idx - 1 + best_poly.size()) % best_poly.size());
-        segment_end = PolygonsPointIndex(closest_vert.polygons, closest_vert.poly_idx, (closest_vert.point_idx + 1) % best_poly.size());
-    }
+    PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
+    PolygonsPointIndex segment_start = closest_vert.prev(); // from where to start the sequence of wipe points
+    PolygonsPointIndex segment_end = closest_vert.next(); // where to end the sequence of wipe points
 
     int64_t segment_length = 0;
     { // compute segment length

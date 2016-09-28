@@ -100,7 +100,17 @@ private:
      * 
      * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
      */
-    int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
+    int last_prime_tower_poly_printed[MAX_EXTRUDERS];
+
+    /*!
+     * Find an approriate representation for the point representing the location before going to the prime tower
+     * 
+     * \warning This is not the actual position each time before the wipe tower
+     * 
+     * \param storage where to get settings from
+     * \return that location
+     */
+    Point getLocationBeforePrimeTower(const SliceDataStorage& storage);
 
     /*!
      * \param storage where to get settings from
