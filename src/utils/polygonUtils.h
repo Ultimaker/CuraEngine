@@ -246,6 +246,22 @@ public:
     static ClosestPolygonPoint findClosest(Point from, const PolygonRef polygon, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
+     * Find the nearest vertex to \p from in \p polys
+     * \param from the point from where to look
+     * \param polys The polygons in which to search
+     * \return The nearest vertex on the polygons
+     */
+    static PolygonsPointIndex findNearestVert(const Point from, const Polygons& polys);
+
+    /*!
+     * Find the nearest vertex to \p from in \p poly
+     * \param from the point from where to look
+     * \param poly The polygon in which to search
+     * \return The index to the nearest vertex on the polygon
+     */
+    static unsigned int findNearestVert(const Point from, const PolygonRef poly);
+
+    /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons
      * 
      * \warning The caller of this function is responsible for deleting the returned object

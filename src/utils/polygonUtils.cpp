@@ -558,6 +558,43 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
 
+PolygonsPointIndex PolygonUtils::findNearestVert(const Point from, const Polygons& polys)
+{
+    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    PolygonsPointIndex closest_vert;
+    for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+    {
+        const PolygonRef poly = polys[poly_idx];
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            int64_t dist2 = vSize2(poly[point_idx] - from);
+            if (dist2 < best_dist2)
+            {
+                best_dist2 = dist2;
+                closest_vert = PolygonsPointIndex(&polys, poly_idx, point_idx);
+            }
+        }
+    }
+    return closest_vert;
+}
+
+unsigned int PolygonUtils::findNearestVert(const Point from, const PolygonRef poly)
+{
+    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    unsigned int closest_vert_idx = -1;
+    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+    {
+        int64_t dist2 = vSize2(poly[point_idx] - from);
+        if (dist2 < best_dist2)
+        {
+            best_dist2 = dist2;
+            closest_vert_idx = point_idx;
+        }
+    }
+    return closest_vert_idx;
+}
+
+
 SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
