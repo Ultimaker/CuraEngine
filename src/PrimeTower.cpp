@@ -217,30 +217,30 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
 {
-            Point ret(0, 0);
-            int absolute_starting_points = 0;
-            for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
-            {
-                ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
-                if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
-                {
-                    ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
-                    absolute_starting_points++;
-                }
-            }
-            if (absolute_starting_points > 0)
-            { // take the average over all absolute starting positions
-                ret /= absolute_starting_points;
-            }
-            else
-            { // use the middle of the bed
-                if (!storage.getSettingBoolean("machine_center_is_zero"))
-                {
-                    ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
-                }
-                // otherwise keep (0, 0)
-            }
-            return ret;
+    Point ret(0, 0);
+    int absolute_starting_points = 0;
+    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    {
+        ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(0);
+        if (train.getSettingBoolean("machine_extruder_start_pos_abs"))
+        {
+            ret += Point(train.getSettingInMicrons("machine_extruder_start_pos_x"), train.getSettingInMicrons("machine_extruder_start_pos_y"));
+            absolute_starting_points++;
+        }
+    }
+    if (absolute_starting_points > 0)
+    { // take the average over all absolute starting positions
+        ret /= absolute_starting_points;
+    }
+    else
+    { // use the middle of the bed
+        if (!storage.getSettingBoolean("machine_center_is_zero"))
+        {
+            ret = Point(storage.getSettingInMicrons("machine_width"), storage.getSettingInMicrons("machine_depth")) / 2;
+        }
+        // otherwise keep (0, 0)
+    }
+    return ret;
 }
 
 void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
