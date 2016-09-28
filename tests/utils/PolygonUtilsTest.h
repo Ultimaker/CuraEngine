@@ -49,6 +49,8 @@ class PolygonUtilsTest : public CppUnit::TestFixture
     CPPUNIT_TEST(middleTest2);
     CPPUNIT_TEST(noMoveTest2);
     CPPUNIT_TEST(farMoveTest2);
+    CPPUNIT_TEST(spreadDotsTestSegment);
+    CPPUNIT_TEST(spreadDotsTestFull);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -104,6 +106,9 @@ public:
     void moveInsidePointyCornerTestFail();
     void moveOutsidePointyCornerTestFail();
 
+    void spreadDotsTestSegment();
+    void spreadDotsTestFull();
+
 private:
     /*!
      * \brief The maximum allowed error in distance measurements.
@@ -111,6 +116,7 @@ private:
     static const int64_t maximum_error = 10;
     
     Polygon test_square;
+    Polygons test_squares; // same in a vector with one element
     Polygon pointy_square;
     
     /*!
@@ -127,6 +133,11 @@ private:
      * cppunit assert for PolygonUtils::findClose
      */
     void findCloseAssert(const PolygonRef poly, Point close_to, Point supposed, int cell_size, const std::function<int(Point)>* penalty_function = nullptr);
+
+    /*!
+     * cppunit assert for PolygonUtils::spreadDots
+     */
+    void spreadDotsAssert(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, const std::vector<ClosestPolygonPoint>& supposed);
 };
 
 }
