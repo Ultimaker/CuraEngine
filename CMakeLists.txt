@@ -120,6 +120,7 @@ set(engine_TEST_UTILS
     LinearAlg2DTest
     PolygonUtilsTest
     PolygonTest
+    StringTest
 )
 
 # Generating ProtoBuf protocol
