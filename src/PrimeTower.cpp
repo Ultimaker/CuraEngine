@@ -174,13 +174,13 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
 
+    int new_extruder = gcodeLayer.getExtruder();
     if (prev_extruder == gcodeLayer.getExtruder())
     {
         wipe = false;
     }
     // pre-wipe:
-    int new_extruder = gcodeLayer.getExtruder();
-    preWipe(storage, gcodeLayer, gcodeLayer.getExtruder());
+    preWipe(storage, gcodeLayer, new_extruder);
 
     addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder);
 
