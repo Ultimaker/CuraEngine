@@ -42,26 +42,38 @@ public:
     
     /*!
      * Place a new layer plan (GcodePlanner) by constructing it with the given arguments.
-     * Pop back the oldest layer plan is it exceeds the buffer size and write it to gcode.
      */
     template<typename... Args>
-    GCodePlanner& emplace_back(Args&&... constructor_args)
+    GCodePlanner& createPlanner(Args&&... constructor_args)
     {
         if (buffer.size() > 0)
         {
             insertPreheatCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
         buffer.emplace_back(constructor_args...);
+        
         if (buffer.size() > buffer_size)
         {
-            buffer.front().writeGCode(gcode);
-            if (CommandSocket::isInstantiated())
-            {
-                CommandSocket::getInstance()->flushGcode();
-            }
-            buffer.pop_front();
+            issueWriteGCode();
         }
         return buffer.back();
+    }
+    
+    /*
+     * Write GCode for the oldest layer plan.
+     */
+    void issueWriteGCode();
+
+    /*
+     * Pop back the oldest layer plan if it exceeds the buffer size and it has been written to gcode.
+     */
+    void trimBuffer()
+    {
+        if (buffer.size() > buffer_size)
+        {
+            assert(buffer.front().isGCodeWritten() && "GCode should be written before planner is discarded");
+            buffer.pop_front();
+        }
     }
     
     /*!

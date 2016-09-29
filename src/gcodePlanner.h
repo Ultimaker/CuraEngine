@@ -510,6 +510,8 @@ private:
 
     std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder;
     
+    int gcode_written;
+
 private:
     /*!
      * Either create a new path with the given config or return the last path if it already had that config.
@@ -687,7 +689,16 @@ public:
      * \param gcode The gcode to write the planned paths to
      */
     void writeGCode(GCodeExport& gcode);
-    
+    /*!
+     * Has the planned paths been written to gcode
+     */
+    int isGCodeWritten()
+    {
+        int gcode_written_tmp;
+#pragma omp atomic read
+        gcode_written_tmp = gcode_written;
+        return gcode_written_tmp;
+    }
     /*!
      * Complete all GcodePathConfigs by
      * - altering speeds to conform to speed_print_layer_0 and

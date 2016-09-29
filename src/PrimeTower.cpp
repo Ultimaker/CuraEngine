@@ -160,8 +160,6 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
     gcodeLayer.addLinesByOptimizer(pattern, &config, SpaceFillType::Lines);
 
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
-
-    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern, config.getLineWidth());
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)

@@ -7,6 +7,31 @@
 
 namespace cura {
 
+void issueWriteGCode_impl(
+    GCodeExport* p_gcode,
+    GCodePlanner* p_front_buffer
+){
+#pragma omp task default(none) firstprivate(p_gcode, p_front_buffer)
+    { MULTITHREAD_TASK_CATCH_EXCEPTION(
+        GCodeExport& gcode_ref = *p_gcode;
+#ifdef _OPENMP
+        omp_lock_guard_t<omp_nest_lock_type> gcode_output_lock_guard(gcode_ref.getOutputStreamLock());
+#endif
+        p_front_buffer->writeGCode(gcode_ref);
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->flushGcode();
+        }
+    )}
+}
+
+void LayerPlanBuffer::issueWriteGCode()
+{
+    assert(!(buffer.front().isGCodeWritten()) && "GCode shouldn't be written more than once");
+    GCodeExport* p_gcode = &gcode;
+    GCodePlanner* p_front_buffer = &buffer.front();
+    issueWriteGCode_impl(p_gcode, p_front_buffer);
+}
 
 
 void LayerPlanBuffer::flush()
@@ -15,6 +40,10 @@ void LayerPlanBuffer::flush()
     {
         insertPreheatCommands(); // insert preheat commands of the very last layer
     }
+
+#ifdef _OPENMP
+    omp_lock_guard_t<omp_nest_lock_type> gcode_output_lock_guard(gcode.getOutputStreamLock());
+#endif
     while (!buffer.empty())
     {
         buffer.front().writeGCode(gcode);
