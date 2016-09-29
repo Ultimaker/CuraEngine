@@ -162,6 +162,8 @@ INLINE Point operator/(const Point& p0, const Point& p1) { return Point(p0.X/p1.
 
 INLINE Point& operator += (Point& p0, const Point& p1) { p0.X += p1.X; p0.Y += p1.Y; return p0; }
 INLINE Point& operator -= (Point& p0, const Point& p1) { p0.X -= p1.X; p0.Y -= p1.Y; return p0; }
+template<typename T> INLINE Point& operator *= (Point& p0, const T i) { p0.X *= i; p0.Y *= i; return p0; }
+template<typename T> INLINE Point& operator /= (Point& p0, const T i) { p0.X /= i; p0.Y /= i; return p0; }
 
 //INLINE bool operator==(const Point& p0, const Point& p1) { return p0.X==p1.X&&p0.Y==p1.Y; }
 //INLINE bool operator!=(const Point& p0, const Point& p1) { return p0.X!=p1.X||p0.Y!=p1.Y; }

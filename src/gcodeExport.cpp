@@ -197,27 +197,27 @@ void GCodeExport::setOutputStream(std::ostream* stream)
     *output_stream << std::fixed;
 }
 
-bool GCodeExport::getExtruderIsUsed(int extruder_nr)
+bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
 {
     return extruder_attr[extruder_nr].is_used;
 }
 
-int GCodeExport::getNozzleSize(int extruder_nr)
+int GCodeExport::getNozzleSize(const int extruder_nr) const
 {
     return extruder_attr[extruder_nr].nozzle_size;
 }
 
-Point GCodeExport::getExtruderOffset(int id)
+Point GCodeExport::getExtruderOffset(const int id) const
 {
     return extruder_attr[id].nozzle_offset;
 }
 
-std::string GCodeExport::getMaterialGUID(int extruder_nr)
+std::string GCodeExport::getMaterialGUID(const int extruder_nr) const
 {
     return extruder_attr[extruder_nr].material_guid;
 }
 
-Point GCodeExport::getGcodePos(int64_t x, int64_t y, int extruder_train)
+Point GCodeExport::getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const
 {
     if (use_extruder_offset_to_offset_coords) { return Point(x,y) - getExtruderOffset(extruder_train); }
     else { return Point(x,y); }

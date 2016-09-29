@@ -2,12 +2,14 @@
 #ifndef UTILS_POLYGON_UTILS_H
 #define UTILS_POLYGON_UTILS_H
 
+#include <vector>
 #include <functional> // function
 
 #include "polygon.h"
 #include "SparsePointGridInclusive.h"
 #include "SparseLineGrid.h"
 #include "optional.h"
+#include "PolygonsPointIndex.h"
 
 namespace cura 
 {
@@ -24,6 +26,10 @@ struct ClosestPolygonPoint
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly) :  location(p), poly(poly), poly_idx(NO_INDEX), point_idx(pos) {};
     ClosestPolygonPoint(Point p, int pos, PolygonRef poly, int poly_idx) :  location(p), poly(poly), poly_idx(poly_idx), point_idx(pos) {};
     ClosestPolygonPoint(PolygonRef poly) : poly(poly), poly_idx(NO_INDEX), point_idx(NO_INDEX) {};
+    Point p() const
+    { // conformity with other classes
+        return location;
+    }
 };
 
 /*!
@@ -33,25 +39,6 @@ struct GivenDistPoint
 {
     Point location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
-};
-
-struct PolygonsPointIndex
-{
-    const Polygons* polygons; //!< The polygons into which this index is indexing
-    unsigned int poly_idx; //!< The index of the polygon in \ref PolygonsPointIndex::polygons
-    unsigned int point_idx; //!< The index of the point in the polygon in \ref PolygonsPointIndex::polygons
-    PolygonsPointIndex()
-    : polygons(nullptr)
-    , poly_idx(0)
-    , point_idx(0)
-    {
-    }
-    PolygonsPointIndex(const Polygons* polygons, unsigned int poly_idx, unsigned int point_idx)
-    : polygons(polygons)
-    , poly_idx(poly_idx)
-    , point_idx(point_idx)
-    {
-    }
 };
 
 /*!
@@ -75,6 +62,44 @@ public:
     static const std::function<int(Point)> no_penalty_function; //!< Function always returning zero
 
     /*!
+     * compute the length of a segment of a polygon
+     * 
+     * if \p end == \p start then the full polygon is taken
+     * 
+     * \warning assumes that start and end lie on the same polygon!
+     * 
+     * \param start The start vertex of the segment
+     * \param end the end vertex of the segment
+     * \return the total length of all the line segments in between the two vertices.
+     */
+    static int64_t segmentLength(PolygonsPointIndex start, PolygonsPointIndex end);
+
+    /*!
+     * Generate evenly spread out dots along a segment of a polygon
+     * 
+     * Start at a distance from \p start and end at a distance from \p end,
+     * unless \p end == \p start; then that point is in the result
+     * 
+     * \warning Assumes that start and end lie on the same polygon!
+     * 
+     * \param start The start vertex of the segment
+     * \param end the end vertex of the segment
+     * \param n_dots number of dots to spread out
+     * \param result Where to store the generated points
+     */
+    static void spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result);
+
+    /*!
+     * Get the normal of a boundary point, pointing outward.
+     * Only the direction is set.
+     * Nothing is said about the length of the vector returned.
+     * 
+     * \param poly The polygon.
+     * \param point_idx The index of the point in the polygon.
+     */
+    static Point getVertexInwardNormal(PolygonRef poly, unsigned int point_idx);
+
+    /*!
     * Get a point from the \p poly with a given \p offset.
     * 
     * \param poly The polygon.
@@ -83,6 +108,14 @@ public:
     * \return A point at the given distance inward from the point on the boundary polygon.
     */
     static Point getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset);
+
+    /*!
+     * Move a point away from the boundary by looking at the boundary normal of the nearest vert.
+     * 
+     * \param point_on_boundary The object holding the point on the boundary along with the information of which line segment the point is on.
+     * \param offset The distance the point has to be moved inward from the polygon.
+     */
+    static Point moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset);
 
     /*!
     * Moves the point \p from onto the nearest polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -244,6 +277,22 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
     static ClosestPolygonPoint findClosest(Point from, const PolygonRef polygon, const std::function<int(Point)>& penalty_function = no_penalty_function);
+
+    /*!
+     * Find the nearest vertex to \p from in \p polys
+     * \param from the point from where to look
+     * \param polys The polygons in which to search
+     * \return The nearest vertex on the polygons
+     */
+    static PolygonsPointIndex findNearestVert(const Point from, const Polygons& polys);
+
+    /*!
+     * Find the nearest vertex to \p from in \p poly
+     * \param from the point from where to look
+     * \param poly The polygon in which to search
+     * \return The index to the nearest vertex on the polygon
+     */
+    static unsigned int findNearestVert(const Point from, const PolygonRef poly);
 
     /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons

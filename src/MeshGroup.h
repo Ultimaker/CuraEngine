@@ -18,9 +18,9 @@ namespace cura
 class MeshGroup : public SettingsBase, NoCopy
 {
     ExtruderTrain* extruders[MAX_EXTRUDERS] = {nullptr};
-    int extruder_count;
+    mutable int extruder_count; //!< The number of extruders. (mutable because of lazy evaluation)
 public:
-    int getExtruderCount();
+    int getExtruderCount() const;
 
     MeshGroup(SettingsBaseVirtual* settings_base);
     

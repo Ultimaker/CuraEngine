@@ -60,13 +60,6 @@ private:
     std::ofstream output_file;
 
     /*!
-     * Layer number of the last layer in which a prime tower has been printed per extruder train.  
-     * 
-     * This is recorded per extruder to account for a prime tower per extruder, instead of the mixed prime tower.
-     */
-    int last_prime_tower_poly_printed[MAX_EXTRUDERS]; 
-
-    /*!
      * Whether the skirt or brim polygons have been processed into planned paths
      * for each extruder train.
      */
