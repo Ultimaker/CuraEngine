@@ -7,6 +7,7 @@
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
 #include "utils/Date.h"
+#include "utils/string.h" // writeInt2mm
 
 namespace cura {
 
@@ -518,10 +519,13 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
             extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    *output_stream << std::setprecision(3) << 
-        "G1 X" << INT2MM(gcode_pos.X) << 
-        " Y" << INT2MM(gcode_pos.Y) << 
-        " Z" << INT2MM(z) << std::setprecision(1) << " F" << fspeed << new_line;
+    *output_stream << "G1 X";
+    writeInt2mm(gcode_pos.X, *output_stream);
+    *output_stream << " Y";
+    writeInt2mm(gcode_pos.Y, *output_stream);
+    *output_stream << " Z";
+    writeInt2mm(z, *output_stream);
+    *output_stream << std::setprecision(1) << " F" << fspeed << new_line;
     
     currentPosition = Point3(x, y, z);
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
@@ -557,7 +561,9 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         Point3 diff = Point3(x,y,z) - getPosition();
         if (isZHopped > 0)
         {
-            *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z) << new_line;
+            *output_stream << "G1 Z";
+            writeInt2mm(currentPosition.z, *output_stream);
+            *output_stream << new_line;
             isZHopped = 0;
         }
         double prime_volume = extruder_attr[current_extruder].prime_volume;
@@ -611,11 +617,15 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         currentSpeed = speed;
     }
 
-    *output_stream << std::setprecision(3) << 
-        " X" << INT2MM(gcode_pos.X) << 
-        " Y" << INT2MM(gcode_pos.Y);
+    *output_stream << " X";
+    writeInt2mm(gcode_pos.X, *output_stream);
+    *output_stream << " Y";
+    writeInt2mm(gcode_pos.Y, *output_stream);
     if (z != currentPosition.z + isZHopped)
-        *output_stream << " Z" << INT2MM(z + isZHopped);
+    {
+        *output_stream << " Z";
+        writeInt2mm(z + isZHopped, *output_stream);
+    }
     if (extrusion_mm3_per_mm > 0.000001)
         *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << std::setprecision(5) << current_e_value;
     *output_stream << new_line;
