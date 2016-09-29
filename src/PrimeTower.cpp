@@ -255,9 +255,25 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     //  .
     //  ^ nozzle switch location
 
+    PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
+    PolygonsPointIndex segment_end; // where to end the sequence of wipe points
+
+    // find the single line segment closest to [from] pointing most toward [from]
     PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
-    PolygonsPointIndex segment_start = closest_vert.prev(); // from where to start the sequence of wipe points
-    PolygonsPointIndex segment_end = closest_vert.next(); // where to end the sequence of wipe points
+    PolygonsPointIndex prev = closest_vert.prev();
+    PolygonsPointIndex next = closest_vert.next();
+    int64_t prev_dot_score = dot(from - closest_vert.p(), turn90CCW(prev.p() - closest_vert.p()));
+    int64_t next_dot_score = dot(from - closest_vert.p(), turn90CCW(closest_vert.p() - next.p()));
+    if (prev_dot_score > next_dot_score)
+    {
+        segment_start = prev;
+        segment_end = closest_vert;
+    }
+    else
+    {
+        segment_start = closest_vert;
+        segment_end = next;
+    }
 
     // TODO: come up with alternatives for better segments once the prime tower can be different shapes
 
