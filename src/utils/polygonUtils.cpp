@@ -36,6 +36,7 @@ int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex
         prev_vert = vert;
     }
     assert(false && "The segment end should have been encountered!");
+    return segment_length;
 }
 
 void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result)
