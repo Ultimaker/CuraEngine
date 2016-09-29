@@ -107,6 +107,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int l
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(current_extruder))
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
+, gcode_written(0)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
@@ -889,6 +890,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     } // extruder plans /\  .
     
     gcode.updateTotalPrintTime();
+#pragma omp flush
+#pragma omp atomic update
+    ++gcode_written;
 }
 
 void GCodePlanner::overrideFanSpeeds(double speed)

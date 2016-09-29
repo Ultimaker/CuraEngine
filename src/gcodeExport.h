@@ -13,6 +13,7 @@
 #include "MeshGroup.h"
 #include "commandSocket.h"
 #include "RetractionConfig.h"
+#include "multithreadOpenMP.h"
 
 namespace cura {
 
@@ -90,6 +91,9 @@ private:
     std::string machine_name;
 
     std::ostream* output_stream;
+#ifdef _OPENMP
+    omp_nest_lock_type output_stream_lock;
+#endif
     std::string new_line;
 
     double current_e_value; //!< The last E value written to gcode (in mm or mm^3)
@@ -176,6 +180,13 @@ public:
     void setLayerNr(unsigned int layer_nr);
     
     void setOutputStream(std::ostream* stream);
+
+#ifdef _OPENMP
+    omp_nest_lock_type& getOutputStreamLock()
+    {
+        return output_stream_lock;
+    }
+#endif
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
 
