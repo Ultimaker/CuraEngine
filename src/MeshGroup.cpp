@@ -133,13 +133,25 @@ void MeshGroup::finalize()
     {
         createExtruderTrain(extruder_nr); // create it if it didn't exist yet
 
-        if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr
-            || (getSettingBoolean("support_enable") && getSettingAsIndex("support_infill_extruder_nr") == extruder_nr)
-            || (getSettingBoolean("support_enable") && getSettingAsIndex("support_extruder_nr_layer_0") == extruder_nr)
-            || (getSettingBoolean("support_enable") && getSettingBoolean("support_interface_enable") && getSettingAsIndex("support_interface_extruder_nr") == extruder_nr)
-            )
+        if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr)
         {
             getExtruderTrain(extruder_nr)->setIsUsed(true);
+            continue;
+        }
+
+        for (const Mesh& mesh : meshes)
+        {
+            if (mesh.getSettingBoolean("support_enable")
+                && (
+                    getSettingAsIndex("support_infill_extruder_nr") == extruder_nr
+                    || getSettingAsIndex("support_extruder_nr_layer_0") == extruder_nr
+                    || (getSettingBoolean("support_interface_enable") && getSettingAsIndex("support_interface_extruder_nr") == extruder_nr)
+                    )
+                )
+            {
+                getExtruderTrain(extruder_nr)->setIsUsed(true);
+                break;
+            }
         }
     }
 
