@@ -174,6 +174,11 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
 
+    if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
+    {
+        return;
+    }
+
     int new_extruder = gcodeLayer.getExtruder();
     if (prev_extruder == gcodeLayer.getExtruder())
     {
@@ -193,11 +198,6 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
 
 void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder)
 {
-    if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
-    {
-        return;
-    }
-
     int new_extruder = gcodeLayer.getExtruder();
 
     Polygons& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
@@ -298,7 +298,8 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     // go to normal layer height (automatically on the next extrusion move...
     gcode_layer.addTravel_simple(start); // TODO: verify that this move has a z hop ==> cylindric wipe tower
 //     gcode_layer.makeLastPathZhopped which calls forceNewPathStart TODO ==> cylindric wipe tower
-    gcode_layer.addTravel_simple(end); // TODO: verify that this move doesn't have a z hop ==> cylindric wipe tower
+    float flow = 0.0;
+    gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
 
