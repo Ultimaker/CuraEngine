@@ -40,6 +40,12 @@
                     "label": "Mesh position z",
                     "default_value": 0
                 },
+                "mesh_rotation_matrix": {
+                    "label": "Mesh Rotation Matrix",
+                    "description": "Transformation matrix to be applied to the model when loading it from file.",
+                    "type": "string",
+                    "default_value": "[[1,0,0], [0,1,0], [0,0,1]]"
+                },
                 "prime_tower_dir_outward": {
                     "description": "Whether to start printing in the middle of the prime tower and end up at the perimeter, or the other way around. This is only used for certain types of prime tower.",
                     "type": "bool",

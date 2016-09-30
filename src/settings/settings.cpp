@@ -274,6 +274,41 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
     return ret;
 }
 
+FMatrix3x3 SettingsBaseVirtual::getSettingAsPointMatrix(std::string key) const
+{
+    FMatrix3x3 ret;
+
+    std::string value_string = getSettingString(key);
+    if (value_string.empty())
+    {
+        return ret; // standard matrix ([1,0,0],[0,1,0],[0,0,1])
+    }
+
+    std::string num("([^,\\] ]*)"); // match with anything but the next ',' ']' or space  and capture the match
+    std::ostringstream row; // match with "[num,num,num]" and ignore whitespace
+    row << "\\s*\\[\\s*" << num << "\\s*,\\s*" << num << "\\s*,\\s*" << num << "\\s*\\]\\s*";
+
+    std::ostringstream matrix; // match with "[row,row,row]" and ignore whitespace
+    matrix << "\\s*\\[" << row.str() << "\\s*,\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\]\\s*";
+
+    std::regex point_matrix_regex(matrix.str());
+    std::cmatch sub_matches;    // same as std::match_results<const char*> cm;
+    std::regex_match(value_string.c_str(), sub_matches, point_matrix_regex);
+
+    unsigned int sub_match_idx = 1; // skip the first because the first submatch is the whole string
+    for (unsigned int x = 0; x < 3; x++)
+    {
+        for (unsigned int y = 0; y < 3; y++)
+        {
+            std::sub_match<const char*> sub_match = sub_matches[sub_match_idx];
+            ret.m[y][x] = strtod(std::string(sub_match.str()).c_str(), nullptr);
+            sub_match_idx++;
+        }
+    }
+
+    return ret;
+}
+
 
 EGCodeFlavor SettingsBaseVirtual::getSettingAsGCodeFlavor(std::string key) const
 {
