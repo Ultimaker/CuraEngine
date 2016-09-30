@@ -77,6 +77,20 @@ static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
 }
 
 /*!
+ * Struct to make it possible to inline calls to writeInt2mm with writing other stuff to the output stream
+ */
+struct MMtoStream
+{
+    int64_t value; //!< The coord in micron
+
+    friend inline std::ostream& operator<< (std::ostream& out, const MMtoStream precision_and_input)
+    {
+        writeInt2mm(precision_and_input.value, out);
+        return out;
+    }
+};
+
+/*!
  * Efficient writing of a double to a stringstream
  * 
  * writes with \p precision digits after the decimal dot, but removes trailing zeros

@@ -7,7 +7,7 @@
 #include "utils/logoutput.h"
 #include "PrintFeature.h"
 #include "utils/Date.h"
-#include "utils/string.h" // writeInt2mm
+#include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {
 
@@ -519,12 +519,7 @@ void GCodeExport::writeMoveBFB(int x, int y, int z, double speed, double extrusi
             extruder_attr[current_extruder].retraction_e_amount_current = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    *output_stream << "G1 X";
-    writeInt2mm(gcode_pos.X, *output_stream);
-    *output_stream << " Y";
-    writeInt2mm(gcode_pos.Y, *output_stream);
-    *output_stream << " Z";
-    writeInt2mm(z, *output_stream);
+    *output_stream << "G1 X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y} << " Z" << MMtoStream{z};
     *output_stream << " F" << PrecisionedDouble{1, fspeed} << new_line;
     
     currentPosition = Point3(x, y, z);
@@ -561,9 +556,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         Point3 diff = Point3(x,y,z) - getPosition();
         if (isZHopped > 0)
         {
-            *output_stream << "G1 Z";
-            writeInt2mm(currentPosition.z, *output_stream);
-            *output_stream << new_line;
+            *output_stream << "G1 Z" << MMtoStream{currentPosition.z} << new_line;
             isZHopped = 0;
         }
         double prime_volume = extruder_attr[current_extruder].prime_volume;
@@ -617,14 +610,10 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
         currentSpeed = speed;
     }
 
-    *output_stream << " X";
-    writeInt2mm(gcode_pos.X, *output_stream);
-    *output_stream << " Y";
-    writeInt2mm(gcode_pos.Y, *output_stream);
+    *output_stream << " X" << MMtoStream{gcode_pos.X} << " Y" << MMtoStream{gcode_pos.Y};
     if (z != currentPosition.z + isZHopped)
     {
-        *output_stream << " Z";
-        writeInt2mm(z + isZHopped, *output_stream);
+        *output_stream << " Z" << MMtoStream{z + isZHopped};
     }
     if (extrusion_mm3_per_mm > 0.000001)
         *output_stream << " " << extruder_attr[current_extruder].extruderCharacter << PrecisionedDouble{5, current_e_value};
@@ -719,7 +708,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     if (hop_height > 0)
     {
         isZHopped = hop_height;
-        *output_stream << std::setprecision(3) << "G1 Z" << INT2MM(currentPosition.z + isZHopped) << new_line;
+        *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
     }
 }
 
