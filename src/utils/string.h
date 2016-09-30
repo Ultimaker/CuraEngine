@@ -103,31 +103,31 @@ struct MMtoStream
  */
 static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
 {
-        char format[5] = "%.xf"; // write a float with [x] digits after the dot
-        format[2] = '0' + precision; // set [x]
-        char buffer[24];
-        int char_count = snprintf(buffer, 24, format, coord);
-        if (char_count <= 0)
+    char format[5] = "%.xf"; // write a float with [x] digits after the dot
+    format[2] = '0' + precision; // set [x]
+    char buffer[24];
+    int char_count = snprintf(buffer, 24, format, coord);
+    if (char_count <= 0)
+    {
+        return;
+    }
+    if (buffer[char_count - precision - 1] == '.')
+    {
+        int non_nul_pos = char_count - 1;
+        while (buffer[non_nul_pos] == '0')
         {
-            return;
+            non_nul_pos--;
         }
-        if (buffer[char_count - precision - 1] == '.')
+        if (buffer[non_nul_pos] == '.')
         {
-            int non_nul_pos = char_count - 1;
-            while (buffer[non_nul_pos] == '0')
-            {
-                non_nul_pos--;
-            }
-            if (buffer[non_nul_pos] == '.')
-            {
-                buffer[non_nul_pos] = '\0';
-            }
-            else
-            {
-                buffer[non_nul_pos + 1] = '\0';
-            }
+            buffer[non_nul_pos] = '\0';
         }
-        ss << buffer;
+        else
+        {
+            buffer[non_nul_pos + 1] = '\0';
+        }
+    }
+    ss << buffer;
 }
 
 /*!
