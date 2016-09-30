@@ -76,5 +76,62 @@ static inline void writeInt2mm(int64_t coord, std::ostream& ss)
     }
 }
 
+/*!
+ * Efficient writing of a double to a stringstream
+ * 
+ * writes with \p precision digits after the decimal dot, but removes trailing zeros
+ * 
+ * \warning only works with precision up to 9 and input up to 10^14
+ * 
+ * \param precision The number of (non-zero) digits after the decimal dot
+ * \param coord double to output
+ * \param ss The output stream to write the string to
+ */
+static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
+{
+        char format[5] = "%.xf"; // write a float with [x] digits after the dot
+        format[2] = '0' + precision; // set [x]
+        char buffer[24];
+        int char_count = snprintf(buffer, 24, format, coord);
+        if (char_count <= 0)
+        {
+            return;
+        }
+        if (buffer[char_count - precision - 1] == '.')
+        {
+            int non_nul_pos = char_count - 1;
+            while (buffer[non_nul_pos] == '0')
+            {
+                non_nul_pos--;
+            }
+            if (buffer[non_nul_pos] == '.')
+            {
+                buffer[non_nul_pos] = '\0';
+            }
+            else
+            {
+                buffer[non_nul_pos + 1] = '\0';
+            }
+        }
+        ss << buffer;
+}
+
+/*!
+ * Struct to make it possible to inline calls to writeDoubleToStream with writing other stuff to the output stream
+ */
+struct PrecisionedDouble
+{
+    unsigned int precision; //!< Number of digits after the decimal mark with which to convert to string
+    double value; //!< The double value
+
+    friend inline std::ostream& operator<< (std::ostream& out, const PrecisionedDouble precision_and_input)
+    {
+        writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
+        return out;
+    }
+};
+
+
 }//namespace cura
+
 #endif//UTILS_STRING_H
