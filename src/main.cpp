@@ -197,7 +197,7 @@ void slice(int argc, char **argv)
                         
                         log("Loading %s from disk...\n", argv[argn]);
 
-                        transformation = last_settings_object->getSettingAsPointMatrix("mesh_rotation"); // the transformation applied to a model when loaded
+                        transformation = last_settings_object->getSettingAsPointMatrix("mesh_rotation_matrix"); // the transformation applied to a model when loaded
 
                         if (!last_extruder_train)
                         {

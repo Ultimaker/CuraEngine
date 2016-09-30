@@ -295,6 +295,12 @@ FMatrix3x3 SettingsBaseVirtual::getSettingAsPointMatrix(std::string key) const
     std::cmatch sub_matches;    // same as std::match_results<const char*> cm;
     std::regex_match(value_string.c_str(), sub_matches, point_matrix_regex);
 
+    if (sub_matches.size() != 10) // one match for the whole string
+    {
+        logWarning("Mesh transformation matrix could not be parsed!\n\tFormat should be [[f,f,f],[f,f,f],[f,f,f]] allowing whitespace anywhere in between.\n\tWhile what was given was \"%s\".\n", value_string.c_str());
+        return ret; // standard matrix ([1,0,0],[0,1,0],[0,0,1])
+    }
+
     unsigned int sub_match_idx = 1; // skip the first because the first submatch is the whole string
     for (unsigned int x = 0; x < 3; x++)
     {
