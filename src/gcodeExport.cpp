@@ -879,7 +879,7 @@ void GCodeExport::writeMaxZFeedrate(double max_z_feedrate)
 {
     if (current_max_z_feedrate != max_z_feedrate)
     {
-        *output_stream << "M203 Z" << std::setprecision(1) << int(max_z_feedrate * 60) << new_line;
+        *output_stream << "M203 Z" << int(max_z_feedrate * 60) << new_line;
         current_max_z_feedrate = max_z_feedrate;
         estimateCalculator.setMaxZFeedrate(max_z_feedrate);
     }

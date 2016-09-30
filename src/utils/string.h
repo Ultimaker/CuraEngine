@@ -27,7 +27,7 @@ static inline int stringcasecompare(const char* a, const char* b)
  * \param coord The micron unit to convert
  * \param ss The output stream to write the string to
  */
-static inline void writeInt2mm(int64_t coord, std::ostream& ss)
+static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
 {
     char buffer[24];
     int char_count = sprintf(buffer, "%ld", coord); // convert int to string
