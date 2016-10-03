@@ -151,7 +151,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
             Polygons& result_lines = patterns[pattern_idx];
-            Infill infill_comp(EFillMethod::ZIG_ZAG, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
+            Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
             infill_comp.generate(result_polygons, result_lines);
         }
     }
