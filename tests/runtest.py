@@ -39,6 +39,14 @@ def extruderValuesWrapper(_locals):
     return extruderValues
 
 
+# Mock function that occurs in fdmprinter.def.json
+# Use wrapper to provide locals
+def resolveOrValueWrapper(_locals):
+    def resolveOrValue(parameter):
+        return eval(parameter, globals(), _locals)
+    return resolveOrValue
+
+
 ## The TestSuite class stores the test results of a single set of tests.
 #  TestSuite objects are created by the TestResults class.
 class TestSuite:
@@ -348,6 +356,9 @@ class EngineTest:
 
         extruderValues = extruderValuesWrapper(self._locals)
         self._locals['extruderValues'] = extruderValues
+
+        resolveOrValue = resolveOrValueWrapper(self._locals)
+        self._locals['resolveOrValue'] = resolveOrValue
 
     ##  Adds the default values in a node of the setting tree to the locals.
     #
