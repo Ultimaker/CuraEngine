@@ -20,8 +20,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
         const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
         first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+        Polygons first_layer_empty_holes;
         if (outside_only)
         {
+            first_layer_empty_holes = first_layer_outline.getEmptyHoles();
             first_layer_outline = first_layer_outline.removeEmptyHoles();
         }
         if (storage.support.generated && primary_line_count > 0)
@@ -33,7 +35,11 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  || ||     ||[]|| > expand to fit an extra brim line
             //  |+-+|     |+--+|
             //  +---+     +----+ 
-            const Polygons& model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            if (outside_only)
+            { // don't remove support within empty holes where no brim is generated.
+                model_brim_covered_area.add(first_layer_empty_holes);
+            }
             SupportLayer& support_layer = storage.support.supportLayers[0];
             support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
             first_layer_outline.add(support_layer.supportAreas);
