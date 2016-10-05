@@ -466,7 +466,8 @@ Polygons Polygons::removeEmptyHoles() const
     clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
-    removeEmptyHoles_processPolyTreeNode(poly_tree, true, ret);
+    bool remove_holes = true;
+    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
     return ret;
 }
 
@@ -479,7 +480,8 @@ Polygons Polygons::getEmptyHoles() const
     clipper.AddPaths(paths, ClipperLib::ptSubject, paths_are_closed_polys);
     clipper.Execute(ClipperLib::ctUnion, poly_tree);
 
-    removeEmptyHoles_processPolyTreeNode(poly_tree, false, ret);
+    bool remove_holes = false;
+    removeEmptyHoles_processPolyTreeNode(poly_tree, remove_holes, ret);
     return ret;
 }
 
