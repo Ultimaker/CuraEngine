@@ -504,7 +504,7 @@ void Polygons::removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& 
     }
 }
 
-void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
+bool PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length 
@@ -517,7 +517,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     bool forward_is_too_far = false;
     bool backward_is_blocked = false;
     bool backward_is_too_far = false;
-    while (p0_it.prev() != p2_it && p0_it != p2_it) // condition to pragmatically prevent infinite loops
+    while (true)
     {
         const bool forward_has_converged = forward_is_blocked || forward_is_too_far;
         const bool backward_has_converged = backward_is_blocked || backward_is_too_far;
@@ -546,6 +546,30 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
             }
         }
         smooth_outward_step(p1, shortcut_length2, p0_it, p2_it, forward_is_blocked, backward_is_blocked, forward_is_too_far, backward_is_too_far);
+        if (p0_it.prev() == p2_it || p0_it == p2_it)
+        { // stop if we went all the way around the polygon
+            // this should only be the case for hole polygons (?)
+            if (forward_is_too_far && backward_is_too_far)
+            {
+                // in case p0_it.prev() == p2_it :
+                //     /                                                .
+                //    /                /|
+                //   |       becomes  | |
+                //    \                \|
+                //     \                                                .
+                // in case p0_it == p2_it :
+                //     /                                                .
+                //    /    becomes     /|
+                //    \                \|
+                //     \                                                .
+                break;
+            }
+            else
+            {
+                // this whole polygon can be removed
+                return true;
+            }
+        }
     }
 
     const Point v02 = p2_it.p() - p0_it.p();
@@ -579,9 +603,9 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
         float progress = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
-        p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+        p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         const Point new_p2 = p2_it.p() + (p2_2 - p2_it.p()) * progress;
-        p2_it = ListPolyIt(poly, poly.insert(p2_2_it.it, new_p2));
+        p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
     }
     else if (!backward_is_blocked)
     { // forward is blocked, back is open
@@ -606,7 +630,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
 #ifdef ASSERT_INSANE_OUTPUT
             assert(vSize(new_p0) < 300000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-            p0_it = ListPolyIt(poly, poly.insert(p0_it.it, new_p0));
+            p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         }
         else
         { // if not then a rounding error occured
@@ -635,7 +659,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
 #ifdef ASSERT_INSANE_OUTPUT
             assert(vSize(new_p2) < 300000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-            p2_it = ListPolyIt(poly, poly.insert(p2_it.next().it, new_p2));
+            p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
         }
         else
         { // if not then a rounding error occured
@@ -659,6 +683,7 @@ void PolygonRef::smooth_corner_complex(ListPolygon& poly, const Point p1, ListPo
     {
         p0_it.next().remove();
     }
+    return false;
 }
 
 void PolygonRef::smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far)
@@ -756,9 +781,9 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             assert(vSize(a) < 300000);
             assert(vSize(b) < 300000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
+            ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
+            ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             p1_it.remove();
-            poly.insert(p2_it.it, a);
-            poly.insert(p2_it.it, b);
         }
         else if (vSize2(v12) < vSize2(v10))
         {
@@ -780,7 +805,7 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
 #ifdef ASSERT_INSANE_OUTPUT
                 assert(vSize(a) < 300000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-                poly.insert(p1_it.it, a);
+                ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
             p1_it.remove();
         }
@@ -801,7 +826,7 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
 #ifdef ASSERT_INSANE_OUTPUT
                 assert(vSize(b) < 300000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-                poly.insert(p2_it.it, b);
+                ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
         }
     }
@@ -843,7 +868,7 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
             p1_it = next;
         } while (p1_it != ListPolyIt(poly, poly.begin()));
     }
-    
+
     ListPolyIt p1_it(poly, poly.begin());
     do
     {
@@ -867,7 +892,12 @@ void PolygonRef::smooth_outward(float min_angle, int shortcut_length, PolygonRef
             }
             else
             {
-                smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
+                bool remove_poly = smooth_corner_complex(poly, p1, p0_it, p2_it, shortcut_length); // edits p0_it and p2_it!
+                if (remove_poly)
+                {
+                    // don't convert ListPolygon into result
+                    return;
+                }
             }
             // update:
             p1_it = p2_it; // next point to consider for whether it's an internal corner

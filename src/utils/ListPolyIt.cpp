@@ -56,5 +56,23 @@ void ListPolyIt::convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonR
     }
 }
 
+ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point to_insert)
+{
+    if (to_insert == before.p())
+    {
+        return before;
+    }
+    else if (to_insert == after.p())
+    {
+        return after;
+    }
+    else
+    {
+        ListPolygon& poly = *after.poly;
+        return ListPolyIt(poly, poly.insert(after.it, to_insert));
+    }
+}
+
+
 
 }//namespace cura 
