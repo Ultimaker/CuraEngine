@@ -298,7 +298,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     // go to normal layer height (automatically on the next extrusion move...
     gcode_layer.addTravel(start); // TODO: verify that this move has a z hop ==> cylindric wipe tower
 //     gcode_layer.makeLastPathZhopped which calls forceNewPathStart TODO ==> cylindric wipe tower
-    float flow = 0.0;
+    float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
     gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
