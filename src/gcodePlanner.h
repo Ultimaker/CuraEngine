@@ -694,7 +694,7 @@ public:
      * \param z_seam_type The seam type / poly start optimizer
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      */
-    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
+    void addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputationSettings* wall_overlap_computation_settings = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
 
     /*!
      * Add lines to the gcode with optimized order.

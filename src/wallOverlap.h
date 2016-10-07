@@ -20,6 +20,11 @@
 namespace cura 
 {
 
+struct WallOverlapComputationSettings
+{
+    int lineWidth;
+};
+
 /*!
  * Class for computing and compensating for overlapping (outer) wall lines.
  * The overlapping area is approximated with connected trapzoids.
@@ -66,7 +71,7 @@ public:
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    WallOverlapComputation(Polygons& polygons, int lineWidth);
+    WallOverlapComputation(Polygons& polygons, const std::vector<int>& start_indices, int lineWidth);
 
 private:
     /*!

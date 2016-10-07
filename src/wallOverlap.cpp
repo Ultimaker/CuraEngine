@@ -10,8 +10,8 @@
 namespace cura 
 {
 
-WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int line_width)
-: overlap_linker(polygons, line_width)
+WallOverlapComputation::WallOverlapComputation(Polygons& polygons, const std::vector<int>& start_indices, int line_width)
+: overlap_linker(polygons, start_indices, line_width)
 , line_width(line_width)
 { 
 

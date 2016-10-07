@@ -58,6 +58,7 @@ private:
 
     Polygons& polygons; //!< The polygons for which to compensate overlapping walls for
     ListPolygons list_polygons; //!< The PolygonProximityLinker::polygons converted
+    std::vector<ListPolygon::const_iterator> start_point_iterators; //!< The iterator of the point in each polygon that is the start/end point.
 
     int proximity_distance; //!< The line width of the walls
     int proximity_distance_2; //!< The squared line width of the walls
@@ -173,7 +174,7 @@ public:
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
      * \param polygons The wall polygons for which to compute the overlaps
      */
-    PolygonProximityLinker(Polygons& polygons, int proximity_distance);
+    PolygonProximityLinker(Polygons& polygons, const std::vector<int>& start_indices, int proximity_distance);
 
     /*!
      * Check whether a point has any links

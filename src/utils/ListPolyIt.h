@@ -95,15 +95,38 @@ public:
      */
     static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
     /*!
-     * Convert Polygons to ListPolygons
+     * Convert Polygons to ListPolygons and change the initial points of the polygons
+     *
+     * \param polys The polygons to convert
+     * \param result The converted polygons
+     */
+    static void convertPolygonsToLists(Polygons& polys, const std::vector<int>& start_indices, ListPolygons& result);
+    /*!
+     * Convert Polygon to ListPolygon
      * 
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
     static void convertPolygonToList(const PolygonRef& poly, ListPolygon& result);
     /*!
+     * Convert Polygon to ListPolygon and change the initial point to a particular point
+     *
+     * \param polys The polygons to convert
+     * \param start_index Which point in the polygon should be the initial point
+     * \param result The converted polygons
+     */
+    static void convertPolygonToList(PolygonRef poly, const int start_index, ListPolygon& result);
+    /*!
      * Convert ListPolygons to Polygons
      * 
+     * \param list_polygons The polygons to convert
+     * \param start_point_iterators Iterators to the desired start points in the polygons
+     * \param polygons The converted polygons
+     */
+    static void convertListPolygonsToPolygons(ListPolygons& list_polygons, std::vector<ListPolygon::const_iterator>& start_point_iterators, Polygons& polygons);
+    /*!
+     * Convert ListPolygons to Polygons
+     *
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
@@ -116,6 +139,14 @@ public:
      */
     static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon);
 
+    /*!
+     * Convert ListPolygons to Polygons
+     *
+     * \param list_polygons The polygons to convert
+     * \param start_iterator Iterator referencing the point which should be the start point
+     * \param polygons The converted polygons
+     */
+    static void convertListPolygonToPolygon(ListPolygon& list_polygon, ListPolygon::const_iterator start_iterators, PolygonRef polygon);
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
      * 

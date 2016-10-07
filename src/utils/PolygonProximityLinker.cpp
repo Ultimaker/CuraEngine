@@ -11,7 +11,7 @@
 namespace cura 
 {
 
-PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity_distance)
+PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, const std::vector<int>& start_indices, int proximity_distance)
  : polygons(polygons)
  , proximity_distance(proximity_distance)
  , proximity_distance_2(proximity_distance * proximity_distance)
@@ -21,7 +21,11 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     proximity_point_links.reserve(polygons.pointCount()); // When the whole model consists of thin walls, there will generally be a link for every point, plus some endings minus some points which map to eachother
 
     // convert to list polygons for insertion of points
-    ListPolyIt::convertPolygonsToLists(polygons, list_polygons); 
+    ListPolyIt::convertPolygonsToLists(polygons, start_indices, list_polygons);
+    for (unsigned int poly_idx = 0; poly_idx < list_polygons.size(); ++poly_idx)
+    {
+        start_point_iterators.push_back(list_polygons[poly_idx].begin());
+    }
 
     // link each corner to itself
     addSharpCorners();
@@ -33,7 +37,7 @@ PolygonProximityLinker::PolygonProximityLinker(Polygons& polygons, int proximity
     addProximityEndings();
 
     // convert list polygons back
-    ListPolyIt::convertListPolygonsToPolygons(list_polygons, polygons);
+    ListPolyIt::convertListPolygonsToPolygons(list_polygons, start_point_iterators, polygons);
 //     proximity2HTML("linker.html");
 }
 
