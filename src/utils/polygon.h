@@ -514,6 +514,15 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
+    ClipperLib::PolyTree lineSegIntersection(const Polygons& other) const
+    {
+        ClipperLib::PolyTree ret;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(paths, ClipperLib::ptClip, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
+        clipper.Execute(ClipperLib::ctIntersection, ret);
+        return ret;
+    }
     Polygons xorPolygons(const Polygons& other) const
     {
         Polygons ret;

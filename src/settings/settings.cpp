@@ -345,6 +345,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::GRID;
     if (value == "cubic")
         return EFillMethod::CUBIC;
+    if (value == "cubicsubdiv")
+        return EFillMethod::CUBICSUBDIV;
     if (value == "tetrahedral")
         return EFillMethod::TETRAHEDRAL;
     if (value == "triangles")

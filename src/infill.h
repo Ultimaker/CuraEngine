@@ -12,6 +12,7 @@
 #include "infill/ZigzagConnectorProcessorEndPieces.h"
 #include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
 #include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
+#include "infill/subDivCube.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 
@@ -99,6 +100,12 @@ private:
      * \param result (output) The resulting lines
      */
     void generateTriangleInfill(Polygons& result);
+
+    /*!
+     * Generate a 3d pattern of subdivided cubes on their points
+     * \param result (output) The resulting lines
+     */
+    void generateCubicSubDivInfill(Polygons& result);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
@@ -111,6 +118,13 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t total_shift);
+
+    /*!
+     * Crop line segments by the infill polygon using Clipper
+     * \param result (output) The resulting lines
+     * \param input The line segments to be cropped
+     */
+    void addLineSegmentsInfill(Polygons& result, Polygons& input);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance

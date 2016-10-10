@@ -105,6 +105,7 @@ enum class EFillMethod
     LINES,
     GRID,
     CUBIC,
+    CUBICSUBDIV,
     TETRAHEDRAL,
     TRIANGLES,
     CONCENTRIC,
