@@ -185,7 +185,10 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         wipe = false;
     }
     // pre-wipe:
-    preWipe(storage, gcodeLayer, new_extruder);
+    if (wipe)
+    {
+        preWipe(storage, gcodeLayer, new_extruder);
+    }
 
     addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder);
 
