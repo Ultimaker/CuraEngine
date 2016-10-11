@@ -8,3 +8,5 @@ This is the documentation for CuraEngine, the back-end slicer of Cura.
 [Glossary](documentation/glossary.md)
 
 [Code Conventions](https://github.com/Ultimaker/Meta/blob/master/code_conventions.md)
+
+[Settings](documentation/settings.md)
