@@ -109,6 +109,11 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
         fan_speed_layer_time_settings.cool_fan_speed_max = train->getSettingInPercentage("cool_fan_speed_max");
         fan_speed_layer_time_settings.cool_min_speed = train->getSettingInMillimetersPerSecond("cool_min_speed");
         fan_speed_layer_time_settings.cool_fan_full_layer = train->getSettingAsLayerNumber("cool_fan_full_layer");
+        if (!train->getSettingBoolean("cool_fan_enabled"))
+        {
+            fan_speed_layer_time_settings.cool_fan_speed_min = 0;
+            fan_speed_layer_time_settings.cool_fan_speed_max = 0;
+        }
     }
 }
 
