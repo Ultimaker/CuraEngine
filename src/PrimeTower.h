@@ -84,9 +84,8 @@ public:
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
-     * \param wipe Whether to wipe of the (not previous, but) current nozzle on the wipe tower (only occurs if previous extruder is different fromt he current one)
      */
-    void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, bool wipe);
+    void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder);
 private:
     /*!
      * Layer number of the last layer in which a prime tower has been printed per extruder train.  

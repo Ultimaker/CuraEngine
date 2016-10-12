@@ -104,7 +104,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, bool wipe)
+void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder)
 {
     if (!( storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
     {
@@ -125,13 +125,15 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
 
+    bool post_wipe = storage.getSettingBoolean("prime_tower_wipe_enabled");
+
     int new_extruder = gcodeLayer.getExtruder();
     if (prev_extruder == gcodeLayer.getExtruder())
     {
-        wipe = false;
+        post_wipe = false;
     }
     // pre-wipe:
-    if (wipe)
+    if (false && post_wipe)
     {
         preWipe(storage, gcodeLayer, new_extruder);
     }
@@ -139,7 +141,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder);
 
     // post-wipe:
-    if (false && wipe) // TODO: make a separate setting for the post-wipe!
+    if (post_wipe)
     { //Make sure we wipe the old extruder on the prime tower.
         gcodeLayer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }

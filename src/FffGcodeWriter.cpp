@@ -1166,9 +1166,7 @@ void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcod
         return;
     }
 
-    bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
-
-    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, wipe);
+    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder);
 }
 
 void FffGcodeWriter::finalize()
