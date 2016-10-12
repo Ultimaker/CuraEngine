@@ -222,7 +222,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool _inside(Point p, bool border_result = false);
+    bool _inside(Point p, bool border_result = false) const;
 
     /*!
      * Clipper function.
@@ -230,7 +230,7 @@ public:
      * 
      * http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Functions/PointInPolygon.htm
      */
-    bool inside(Point p, bool border_result = false)
+    bool inside(Point p, bool border_result = false) const
     {
         int res = ClipperLib::PointInPolygon(p, *path);
         if (res == -1)
@@ -341,13 +341,18 @@ private:
      * 
      * Auxiliary function for \ref smooth_outward
      * 
+     * \warning This function might try to remove the whole polygon
+     * Error code -1 means the whole polygon should be removed (which means it is a hole polygon)
+     * 
+     * 
      * \param poly The polygon in which to find the corner
      * \param p1 The corner point
      * \param[in,out] p0_it Iterator to the last point checked before \p p1 to consider cutting off
      * \param[in,out] p2_it Iterator to the last point checked after \p p1 to consider cutting off
      * \param shortcut_length The desired length ofthe shortcutting line
+     * \return Whether this whole polygon whould be removed by the smoothing
      */
-    static void smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static bool smooth_corner_complex(ListPolygon& poly, const Point p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
@@ -640,17 +645,24 @@ public:
     Polygons removeEmptyHoles() const;
 
     /*!
+     * Return hole polygons which have no parts inside of them.
+     * \return the resulting polygons.
+     */
+    Polygons getEmptyHoles() const;
+
+    /*!
      * Split up the polygons into groups according to the even-odd rule.
      * Each PolygonsPart in the result has an outline as first polygon, whereas the rest are holes.
      */
     std::vector<PolygonsPart> splitIntoParts(bool unionAll = false) const;
 private:
     /*!
-     * recursive part of \ref Polygons::removeEmptyHoles
+     * recursive part of \ref Polygons::removeEmptyHoles and \ref Polygons::getEmptyHoles
      * \param node The node of the polygons part to process
+     * \param remove_holes Whether to remove empty holes or everything but the empty holes
      * \param ret Where to store polygons which are not empty holes
      */
-    void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, Polygons& ret) const;
+    void removeEmptyHoles_processPolyTreeNode(const ClipperLib::PolyNode& node, const bool remove_holes, Polygons& ret) const;
     void splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, std::vector<PolygonsPart>& ret) const;
 public:
     /*!

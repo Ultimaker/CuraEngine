@@ -17,7 +17,70 @@ namespace cura
 
 const std::function<int(Point)> PolygonUtils::no_penalty_function = [](Point){ return 0; };
 
-Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+int64_t PolygonUtils::segmentLength(PolygonsPointIndex start, PolygonsPointIndex end)
+{
+    assert(start.poly_idx == end.poly_idx);
+    int64_t segment_length = 0;
+    Point prev_vert = start.p();
+    const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    for (unsigned int point_idx = 1; point_idx <= poly.size(); point_idx++)
+    {
+        unsigned int vert_idx = (start.point_idx + point_idx) % poly.size();
+        Point vert = poly[vert_idx];
+        segment_length += vSize(vert - prev_vert);
+
+        if (vert_idx == end.point_idx)
+        { // break at the end of the loop, so that [end] and [start] may be the same
+            return segment_length;
+        }
+        prev_vert = vert;
+    }
+    assert(false && "The segment end should have been encountered!");
+    return segment_length;
+}
+
+void PolygonUtils::spreadDots(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, std::vector<ClosestPolygonPoint>& result)
+{
+    assert(start.poly_idx == end.poly_idx);
+    int64_t segment_length = segmentLength(start, end);
+
+    const PolygonRef poly = (*start.polygons)[start.poly_idx];
+    unsigned int n_dots_in_between = n_dots;
+    if (start == end)
+    {
+        result.emplace_back(start.p(), start.point_idx, poly);
+        n_dots_in_between--; // generate one less below, because we already pushed a point to the result
+    }
+
+    int64_t wipe_point_dist = segment_length / (n_dots_in_between + 1); // distance between two wipe points; keep a distance at both sides of the segment
+
+    int64_t dist_past_vert_to_insert_point = wipe_point_dist;
+    unsigned int n_points_generated = 0;
+    PolygonsPointIndex vert = start;
+    while (true)
+    {
+        Point p0 = vert.p();
+        Point p1 = vert.next().p();
+        Point p0p1 = p1 - p0;
+        int64_t p0p1_length = vSize(p0p1);
+
+        for ( ; dist_past_vert_to_insert_point < p0p1_length && n_points_generated < n_dots_in_between; dist_past_vert_to_insert_point += wipe_point_dist)
+        {
+            result.emplace_back(p0 + normal(p0p1, dist_past_vert_to_insert_point), vert.point_idx, poly);
+            n_points_generated++;
+        }
+        dist_past_vert_to_insert_point -= p0p1_length;
+
+        ++vert;
+        if (vert == end)
+        { // break at end of loop to allow for [start] and [end] being the same, meaning the full polygon
+            break;
+        }
+    }
+    assert(result.size() == n_dots && "we didn't generate as many wipe locations as we asked for.");
+}
+
+Point PolygonUtils::getVertexInwardNormal(PolygonRef poly, unsigned int point_idx)
 {
     Point p1 = poly[point_idx];
 
@@ -51,10 +114,30 @@ Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int poi
 
     Point off0 = turn90CCW(normal(p1 - p0, MM2INT(10.0))); // 10.0 for some precision
     Point off1 = turn90CCW(normal(p2 - p1, MM2INT(10.0))); // 10.0 for some precision
-    Point n = normal(off0 + off1, -offset);
-
-    return p1 + n;
+    Point n = off0 + off1;
+    return n;
 }
+
+
+Point PolygonUtils::getBoundaryPointWithOffset(PolygonRef poly, unsigned int point_idx, int64_t offset)
+{
+    return poly[point_idx] + normal(getVertexInwardNormal(poly, point_idx), -offset);
+}
+
+Point PolygonUtils::moveInsideDiagonally(ClosestPolygonPoint point_on_boundary, int64_t inset)
+{
+    Point p0 = point_on_boundary.poly[point_on_boundary.point_idx];
+    Point p1 = point_on_boundary.poly[(point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()];
+    if (vSize2(p0 - point_on_boundary.location) < vSize2(p1 - point_on_boundary.location))
+    {
+        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, point_on_boundary.point_idx), inset);
+    }
+    else
+    {
+        return point_on_boundary.location + normal(getVertexInwardNormal(point_on_boundary.poly, (point_on_boundary.point_idx + 1) % point_on_boundary.poly.size()), inset);
+    }
+}
+
 
 unsigned int PolygonUtils::moveOutside(const Polygons& polygons, Point& from, int distance, int64_t maxDist2)
 {
@@ -537,6 +620,43 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const PolygonRef polyg
 
     return ClosestPolygonPoint(best, bestPos, polygon);
 }
+
+PolygonsPointIndex PolygonUtils::findNearestVert(const Point from, const Polygons& polys)
+{
+    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    PolygonsPointIndex closest_vert;
+    for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
+    {
+        const PolygonRef poly = polys[poly_idx];
+        for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+        {
+            int64_t dist2 = vSize2(poly[point_idx] - from);
+            if (dist2 < best_dist2)
+            {
+                best_dist2 = dist2;
+                closest_vert = PolygonsPointIndex(&polys, poly_idx, point_idx);
+            }
+        }
+    }
+    return closest_vert;
+}
+
+unsigned int PolygonUtils::findNearestVert(const Point from, const PolygonRef poly)
+{
+    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    unsigned int closest_vert_idx = -1;
+    for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
+    {
+        int64_t dist2 = vSize2(poly[point_idx] - from);
+        if (dist2 < best_dist2)
+        {
+            best_dist2 = dist2;
+            closest_vert_idx = point_idx;
+        }
+    }
+    return closest_vert_idx;
+}
+
 
 SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {

@@ -53,6 +53,7 @@ class LinearAlg2DTest : public CppUnit::TestFixture
     CPPUNIT_TEST(getAngleLeftAAATest);
 
     CPPUNIT_TEST(pointIsLeftOfLineTest);
+    CPPUNIT_TEST(pointIsLeftOfLineSharpTest);
 
     CPPUNIT_TEST(getPointOnLineWithDistTest1);
     CPPUNIT_TEST(getPointOnLineWithDistTest2);
@@ -120,6 +121,7 @@ public:
     void getAngleLeftAAATest();
 
     void pointIsLeftOfLineTest();
+    void pointIsLeftOfLineSharpTest();
 
     void getPointOnLineWithDistTest1();
     void getPointOnLineWithDistTest2();

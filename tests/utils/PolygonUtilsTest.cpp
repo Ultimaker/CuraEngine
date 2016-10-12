@@ -15,6 +15,8 @@ void PolygonUtilsTest::setUp()
     test_square.emplace_back(100, 100);
     test_square.emplace_back(0, 100);
 
+    test_squares.add(test_square);
+
 
     pointy_square.emplace_back(0, 0);
     pointy_square.emplace_back(47, 0);
@@ -361,6 +363,61 @@ void PolygonUtilsTest::moveOutsidePointyCornerTestFail()
         ss << from << " could be moved inside to " << result << ", while it was designed to fail.\n";
 //         CPPUNIT_ASSERT_MESSAGE(ss.str(), vSize(result - supposed) < 5 + maximum_error && !inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
         CPPUNIT_ASSERT_MESSAGE(ss.str(), inside.inside(result)); // +5 because ensureInside might do half the preferred distance moved inside
+    }
+}
+
+
+
+
+
+
+
+
+
+
+void PolygonUtilsTest::spreadDotsTestSegment()
+{
+    std::vector<ClosestPolygonPoint> supposed;
+    supposed.emplace_back(Point(50, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point(100, 0), 1, test_squares[0], 0);
+    supposed.emplace_back(Point(100, 50), 1, test_squares[0], 0);
+
+    spreadDotsAssert(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 2), 3, supposed);
+}
+
+
+void PolygonUtilsTest::spreadDotsTestFull()
+{
+    std::vector<ClosestPolygonPoint> supposed;
+    supposed.emplace_back(Point(0, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point(50, 0), 0, test_squares[0], 0);
+    supposed.emplace_back(Point(100, 0), 1, test_squares[0], 0);
+    supposed.emplace_back(Point(100, 50), 1, test_squares[0], 0);
+    supposed.emplace_back(Point(100, 100), 2, test_squares[0], 0);
+    supposed.emplace_back(Point(50, 100), 2, test_squares[0], 0);
+    supposed.emplace_back(Point(0, 100), 3, test_squares[0], 0);
+    supposed.emplace_back(Point(0, 50), 3, test_squares[0], 0);
+
+    spreadDotsAssert(PolygonsPointIndex(&test_squares, 0, 0), PolygonsPointIndex(&test_squares, 0, 0), 8, supposed);
+
+}
+
+
+
+void PolygonUtilsTest::spreadDotsAssert(PolygonsPointIndex start, PolygonsPointIndex end, unsigned int n_dots, const std::vector<ClosestPolygonPoint>& supposed)
+{
+    std::vector<ClosestPolygonPoint> result;
+    PolygonUtils::spreadDots(start, end, n_dots, result);
+
+    std::stringstream ss;
+    ss << "PolygonUtils::spreadDots(" << start.point_idx << ", " << end.point_idx << ", " << n_dots << ") generated " << result.size() << " points, rather than " << supposed.size() << "!\n";
+    CPPUNIT_ASSERT_MESSAGE(ss.str(), result.size() == supposed.size());
+
+    for (unsigned int point_idx = 0 ; point_idx < result.size(); point_idx++)
+    {
+        std::stringstream ss;
+        ss << point_idx << "nd point of PolygonUtils::spreadDots(" << start.point_idx << ", " << end.point_idx << ", " << n_dots << ") was " << result[point_idx].p() << ", rather than " << supposed[point_idx].p() << "!\n";
+        CPPUNIT_ASSERT_MESSAGE(ss.str(), result[point_idx].p() == supposed[point_idx].p());
     }
 }
 

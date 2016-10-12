@@ -493,15 +493,6 @@ void CommandSocket::handleObjectList(cura::proto::ObjectList* list, const google
 }
 #endif
 
-void CommandSocket::sendLayerInfo(int layer_nr, int32_t z, int32_t height)
-{
-#ifdef ARCUS
-    std::shared_ptr<cura::proto::Layer> layer = private_data->getLayerById(layer_nr);
-    layer->set_height(z);
-    layer->set_thickness(height);
-#endif
-}
-
 void CommandSocket::sendOptimizedLayerInfo(int layer_nr, int32_t z, int32_t height)
 {
 #ifdef ARCUS

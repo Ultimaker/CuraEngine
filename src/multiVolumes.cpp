@@ -61,6 +61,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
             {
                 if (other_volume->mesh->getSettingBoolean("infill_mesh")
                     || !other_volume->mesh->getAABB().hit(aabb)
+                    || other_volume == volume
                 )
                 {
                     continue;
@@ -68,10 +69,9 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
                 SlicerLayer& other_volume_layer = other_volume->layers[layer_nr];
                 all_other_volumes = all_other_volumes.unionPolygons(other_volume_layer.polygons.offset(offset_to_merge_other_merged_volumes));
             }
-            all_other_volumes = all_other_volumes.offset(-offset_to_merge_other_merged_volumes);
 
             SlicerLayer& volume_layer = volume->layers[layer_nr];
-            volume_layer.polygons.unionPolygons(all_other_volumes.intersection(volume_layer.polygons.offset(overlap / 2)));
+            volume_layer.polygons = volume_layer.polygons.unionPolygons(all_other_volumes.intersection(volume_layer.polygons.offset(overlap / 2)));
         }
     }
 }

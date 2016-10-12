@@ -161,6 +161,12 @@ int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
     return getSettingInMillimeters(key) * 1000.0;
 }
 
+double SettingsBaseVirtual::getSettingInAngleDegrees(std::string key) const
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str());
+}
+
 double SettingsBaseVirtual::getSettingInAngleRadians(std::string key) const
 {
     std::string value = getSettingString(key);
@@ -265,6 +271,47 @@ FlowTempGraph SettingsBaseVirtual::getSettingAsFlowTempGraph(std::string key) co
             logError("Couldn't read 2D graph element [%s,%s] in setting '%s'. Ignored.\n", first_substring.c_str(), second_substring.c_str(), key.c_str());
         }
     }
+    return ret;
+}
+
+FMatrix3x3 SettingsBaseVirtual::getSettingAsPointMatrix(std::string key) const
+{
+    FMatrix3x3 ret;
+
+    std::string value_string = getSettingString(key);
+    if (value_string.empty())
+    {
+        return ret; // standard matrix ([1,0,0],[0,1,0],[0,0,1])
+    }
+
+    std::string num("([^,\\] ]*)"); // match with anything but the next ',' ']' or space  and capture the match
+    std::ostringstream row; // match with "[num,num,num]" and ignore whitespace
+    row << "\\s*\\[\\s*" << num << "\\s*,\\s*" << num << "\\s*,\\s*" << num << "\\s*\\]\\s*";
+
+    std::ostringstream matrix; // match with "[row,row,row]" and ignore whitespace
+    matrix << "\\s*\\[" << row.str() << "\\s*,\\s*" << row.str() << "\\s*,\\s*" << row.str() << "\\]\\s*";
+
+    std::regex point_matrix_regex(matrix.str());
+    std::cmatch sub_matches;    // same as std::match_results<const char*> cm;
+    std::regex_match(value_string.c_str(), sub_matches, point_matrix_regex);
+
+    if (sub_matches.size() != 10) // one match for the whole string
+    {
+        logWarning("Mesh transformation matrix could not be parsed!\n\tFormat should be [[f,f,f],[f,f,f],[f,f,f]] allowing whitespace anywhere in between.\n\tWhile what was given was \"%s\".\n", value_string.c_str());
+        return ret; // standard matrix ([1,0,0],[0,1,0],[0,0,1])
+    }
+
+    unsigned int sub_match_idx = 1; // skip the first because the first submatch is the whole string
+    for (unsigned int x = 0; x < 3; x++)
+    {
+        for (unsigned int y = 0; y < 3; y++)
+        {
+            std::sub_match<const char*> sub_match = sub_matches[sub_match_idx];
+            ret.m[y][x] = strtod(std::string(sub_match.str()).c_str(), nullptr);
+            sub_match_idx++;
+        }
+    }
+
     return ret;
 }
 

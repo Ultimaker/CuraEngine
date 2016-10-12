@@ -196,7 +196,8 @@ void slice(int argc, char **argv)
                         argn++;
                         
                         log("Loading %s from disk...\n", argv[argn]);
-                        // transformation = // TODO: get a transformation from somewhere
+
+                        transformation = last_settings_object->getSettingAsPointMatrix("mesh_rotation_matrix"); // the transformation applied to a model when loaded
 
                         if (!last_extruder_train)
                         {
@@ -303,7 +304,7 @@ int main(int argc, char **argv)
 
     Progress::init();
     
-    
+    std::cerr << std::boolalpha;
     logAlways("\n");
     logAlways("Cura_SteamEngine version %s\n", VERSION);
     logAlways("Copyright (C) 2014 David Braam\n");

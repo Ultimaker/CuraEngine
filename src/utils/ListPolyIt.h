@@ -47,7 +47,7 @@ public:
     }
     bool operator!=(const ListPolyIt& other) const
     {
-        return poly != other.poly || it != other.it;
+        return !(*this == other);
     }
     void operator=(const ListPolyIt& other)
     {
@@ -115,6 +115,16 @@ public:
      * \param polygons The converted polygons
      */
     static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon);
+
+    /*!
+     * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
+     * 
+     * \param before Iterator to the point before the point to insert
+     * \param after Iterator to the point after the point to insert
+     * \param to_insert The point to insert into the ListPolygon in between \p before and \p after
+     * \return Iterator to the newly inserted point, or \p before or \p after in case to_insert was already in the polygon
+     */
+    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point to_insert);
 };
 
 

@@ -175,15 +175,15 @@ public:
     
     void setOutputStream(std::ostream* stream);
 
-    bool getExtruderIsUsed(int extruder_nr); //!< Returns whether the extruder with the given index is used up until the current meshgroup
+    bool getExtruderIsUsed(const int extruder_nr) const; //!< Returns whether the extruder with the given index is used up until the current meshgroup
 
-    int getNozzleSize(int extruder_nr);
+    int getNozzleSize(const int extruder_nr) const;
 
-    Point getExtruderOffset(int id);
+    Point getExtruderOffset(const int id) const;
 
-    std::string getMaterialGUID(int extruder_nr); //!< returns the GUID of the material used for the nozzle with id \p extruder_nr
+    std::string getMaterialGUID(const int extruder_nr) const; //!< returns the GUID of the material used for the nozzle with id \p extruder_nr
 
-    Point getGcodePos(int64_t x, int64_t y, int extruder_train);
+    Point getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const;
     
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor();

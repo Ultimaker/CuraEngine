@@ -72,6 +72,10 @@ AABB3D Mesh::getAABB() const
 {
     return aabb;
 }
+void Mesh::expandXY(int64_t offset)
+{
+    aabb.expandXY(offset);
+}
 
 
 int Mesh::findIndexOfVertex(const Point3& v)

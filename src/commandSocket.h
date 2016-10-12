@@ -50,11 +50,6 @@ public:
      */
     void handleObjectList(cura::proto::ObjectList* list, const google::protobuf::RepeatedPtrField<cura::proto::Extruder> settings_per_extruder_train);
 #endif
-    
-    /*!
-     * Send info on a layer to be displayed by the forntend: set the z and the thickness of the layer.
-     */
-    void sendLayerInfo(int layer_nr, int32_t z, int32_t height);
 
     /*!
      * Send info on an optimized layer to be displayed by the forntend: set the z and the thickness of the layer.
