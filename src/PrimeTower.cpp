@@ -125,15 +125,17 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
 
+    bool pre_wipe = storage.getSettingBoolean("dual_pre_wipe");
     bool post_wipe = storage.getSettingBoolean("prime_tower_wipe_enabled");
 
     int new_extruder = gcodeLayer.getExtruder();
     if (prev_extruder == gcodeLayer.getExtruder())
     {
+        pre_wipe = false;
         post_wipe = false;
     }
     // pre-wipe:
-    if (false && post_wipe)
+    if (pre_wipe)
     {
         preWipe(storage, gcodeLayer, new_extruder);
     }
