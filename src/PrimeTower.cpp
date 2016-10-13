@@ -13,7 +13,8 @@ namespace cura
 {
 
 PrimeTower::PrimeTower()
-: current_pre_wipe_location_idx(0)
+: is_hollow(false)
+, current_pre_wipe_location_idx(0)
 {
     for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
     {
@@ -52,8 +53,15 @@ void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thicknes
 
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 {
+    int64_t prime_tower_wall_thickness = storage.getSettingInMicrons("prime_tower_wall_thickness");
+    int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
+
+    if (prime_tower_wall_thickness * 2 < tower_size)
+    {
+        is_hollow = true;
+    }
+
     PolygonRef p = ground_poly.newPoly();
-    int tower_size = storage.getSettingInMicrons("prime_tower_size");
     int tower_distance = 0; 
     int x = storage.getSettingInMicrons("prime_tower_position_x"); // storage.model_max.x
     int y = storage.getSettingInMicrons("prime_tower_position_y"); // storage.model_max.y
@@ -61,6 +69,11 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     p.add(Point(x + tower_distance, y + tower_distance + tower_size));
     p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
     p.add(Point(x + tower_distance - tower_size, y + tower_distance));
+
+    if (is_hollow)
+    {
+        ground_poly = ground_poly.difference(ground_poly.offset(-prime_tower_wall_thickness));
+    }
 
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
 }

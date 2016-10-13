@@ -28,8 +28,9 @@ private:
     int extruder_count; //!< number of extruders
     std::vector<GCodePathConfig> config_per_extruder; //!< Path config for prime tower for each extruder
 
-    Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
+    bool is_hollow; //!< Whether the prime tower is hollow
 
+    Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
 
     std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int pre_wipe_location_skip = 8; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
