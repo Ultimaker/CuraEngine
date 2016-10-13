@@ -25,6 +25,11 @@ class GCodeExport;
 class PrimeTower
 {
 private:
+    struct ExtrusionMoves
+    {
+        Polygons polygons;
+        Polygons lines;
+    };
     int extruder_count; //!< number of extruders
     std::vector<GCodePathConfig> config_per_extruder; //!< Path config for prime tower for each extruder
 
@@ -40,6 +45,8 @@ private:
 
 public:
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
+
+    std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers
 
     /*!
      * Initialize \ref PrimeTower::config_per_extruder with speed and line width settings.
@@ -62,8 +69,6 @@ public:
      * \param storage Where to retrieve prime tower settings from
      */
     void generateGroundpoly(const SliceDataStorage& storage);
-
-    std::vector<std::vector<Polygons>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers
 
     /*!
      * Generate the area where the prime tower should be.

@@ -102,14 +102,16 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     {
         int line_width = storage.meshgroup->getExtruderTrain(extruder)->getSettingInMicrons("prime_tower_line_width");
         patterns_per_extruder.emplace_back(n_patterns);
-        std::vector<Polygons>& patterns = patterns_per_extruder.back();
+        std::vector<ExtrusionMoves>& patterns = patterns_per_extruder.back();
+        patterns.resize(n_patterns);
         for (int pattern_idx = 0; pattern_idx < n_patterns; pattern_idx++)
         {
-            Polygons result_polygons; // should remain empty, since we generate lines pattern!
+            patterns[pattern_idx].polygons = ground_poly.offset(-line_width / 2);
+            Polygons& result_lines = patterns[pattern_idx].lines;
             int outline_offset = -line_width;
             int line_distance = line_width;
             double fill_angle = 45 + pattern_idx * 90;
-            Polygons& result_lines = patterns[pattern_idx];
+            Polygons result_polygons; // should remain empty, since we generate lines pattern!
             Infill infill_comp(EFillMethod::LINES, ground_poly, outline_offset, line_width, line_distance, infill_overlap, fill_angle, z, extra_infill_shift);
             infill_comp.generate(result_polygons, result_lines);
         }
@@ -163,19 +165,17 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
 
 void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder)
 {
-    Polygons& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
-
+    ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
 
     GCodePathConfig& config = config_per_extruder[new_extruder];
-    int start_idx = 0; // TODO: figure out which idx is closest to the far right corner
 
-    Polygon outer_wall = ground_poly.offset(-config.getLineWidth() / 2).back();
-    gcodeLayer.addPolygon(outer_wall, start_idx, &config);
-    gcodeLayer.addLinesByOptimizer(pattern, &config, SpaceFillType::Lines);
+    gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
+    gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
 
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
 
-    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern, config.getLineWidth());
+    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern.polygons, config.getLineWidth());
+    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern.lines, config.getLineWidth());
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
