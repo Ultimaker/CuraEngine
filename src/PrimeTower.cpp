@@ -264,13 +264,17 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
-    // for hollow wipe tower:
-    // start from above
-    // go to the level of the previous layer
-    // wipe
-    // go to normal layer height (automatically on the next extrusion move...
-    gcode_layer.addTravel(start); // TODO: verify that this move has a z hop ==> cylindric wipe tower
-//     gcode_layer.makeLastPathZhopped which calls forceNewPathStart TODO ==> cylindric wipe tower
+    gcode_layer.addTravel(start);
+    if (is_hollow)
+    {
+        // for hollow wipe tower:
+        // start from above
+        // go to wipe start
+        // go to the Z height of the previous/current layer
+        // wipe
+        // go to normal layer height (automatically on the next extrusion move...
+        gcode_layer.makeLastPathZhopped();
+    }
     float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
     gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
