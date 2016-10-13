@@ -35,6 +35,8 @@ private:
 
     bool is_hollow; //!< Whether the prime tower is hollow
 
+    Point middle; //!< The middle of the prime tower
+
     Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
 
     std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
@@ -65,6 +67,8 @@ public:
 
     /*!
      * Generate the prime tower area to be used on each layer
+     * 
+     * Fills \ref PrimeTower::ground_poly and sets \ref PrimeTower::middle
      * 
      * \param storage Where to retrieve prime tower settings from
      */

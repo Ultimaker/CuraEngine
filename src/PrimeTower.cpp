@@ -69,6 +69,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     p.add(Point(x + tower_distance, y + tower_distance + tower_size));
     p.add(Point(x + tower_distance - tower_size, y + tower_distance + tower_size));
     p.add(Point(x + tower_distance - tower_size, y + tower_distance));
+    middle = Point(x - tower_size / 2, y + tower_size / 2);
 
     if (is_hollow)
     {
@@ -221,21 +222,30 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
     PolygonsPointIndex segment_end; // where to end the sequence of wipe points
 
-    // find the single line segment closest to [from] pointing most toward [from]
-    PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
-    PolygonsPointIndex prev = closest_vert.prev();
-    PolygonsPointIndex next = closest_vert.next();
-    int64_t prev_dot_score = dot(from - closest_vert.p(), turn90CCW(prev.p() - closest_vert.p()));
-    int64_t next_dot_score = dot(from - closest_vert.p(), turn90CCW(closest_vert.p() - next.p()));
-    if (prev_dot_score > next_dot_score)
+    if (is_hollow)
     {
-        segment_start = prev;
-        segment_end = closest_vert;
+        // take the same start as end point so that the whole poly os covered.
+        // find the inner polygon.
+        segment_start = segment_end = PolygonUtils::findNearestVert(middle, ground_poly);
     }
     else
     {
-        segment_start = closest_vert;
-        segment_end = next;
+        // find the single line segment closest to [from] pointing most toward [from]
+        PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
+        PolygonsPointIndex prev = closest_vert.prev();
+        PolygonsPointIndex next = closest_vert.next();
+        int64_t prev_dot_score = dot(from - closest_vert.p(), turn90CCW(prev.p() - closest_vert.p()));
+        int64_t next_dot_score = dot(from - closest_vert.p(), turn90CCW(closest_vert.p() - next.p()));
+        if (prev_dot_score > next_dot_score)
+        {
+            segment_start = prev;
+            segment_end = closest_vert;
+        }
+        else
+        {
+            segment_start = closest_vert;
+            segment_end = next;
+        }
     }
 
     // TODO: come up with alternatives for better segments once the prime tower can be different shapes
