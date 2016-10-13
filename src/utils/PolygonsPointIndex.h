@@ -57,11 +57,12 @@ public:
     {
         return !(*this == other);
     }
-    void operator=(const PolygonsPointIndex& other)
+    PolygonsPointIndex& operator=(const PolygonsPointIndex& other)
     {
         polygons = other.polygons;
         poly_idx = other.poly_idx;
         point_idx = other.point_idx;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
     PolygonsPointIndex& operator++() 
