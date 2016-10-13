@@ -40,9 +40,9 @@ private:
     Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
 
     std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
-    const unsigned int pre_wipe_location_skip = 8; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
-    const unsigned int number_of_pre_wipe_locations = 13; //!< The required size of \ref PrimeTower::wipe_locations
-    // note that the above are two consecutive numbers in the fibonacci sequence
+    const unsigned int pre_wipe_location_skip = 13; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
+    const unsigned int number_of_pre_wipe_locations = 21; //!< The required size of \ref PrimeTower::wipe_locations
+    // note that the above are two consecutive numbers in the Fibonacci sequence
     int current_pre_wipe_location_idx; //!< Index into \ref PrimeTower::wipe_locations of where to pre-wipe the nozzle
 
 public:
