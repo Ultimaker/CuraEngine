@@ -16,8 +16,6 @@ class SliceDataStorage;
 class GCodePlanner;
 class GCodeExport;
 
-typedef std::vector<IntPoint> PolyLine;
-
 /*!
  * Class for everything to do with the prime tower:
  * - generating the areas
@@ -32,7 +30,6 @@ private:
 
     Point post_wipe_point; //!< location to post-wipe the unused nozzle off on
 
-    std::vector<PolyLine> extruder_paths; //!< Precomputed so that we don't need to generate the paths each layer over again
 
     std::vector<ClosestPolygonPoint> pre_wipe_locations; //!< The differernt locations where to pre-wipe the active nozzle
     const unsigned int pre_wipe_location_skip = 8; //!< How big the steps are when stepping through \ref PrimeTower::wipe_locations
