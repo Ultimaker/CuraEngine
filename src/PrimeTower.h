@@ -112,7 +112,8 @@ private:
     /*!
      * \see WipeTower::generatePaths
      * 
-     * Generate the area where the prime tower should be.
+     * Generate the extrude paths for each extruder on even and odd layers
+     * Fill the ground poly with dense infill.
      * 
      * \param storage where to get settings from
      * \param total_layers The total number of layers 
