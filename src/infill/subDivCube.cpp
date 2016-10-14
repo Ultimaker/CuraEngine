@@ -138,13 +138,13 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     this->depth = depth;
     this->center = center;
 
-    if(depth == 0) //!< lowest layer, no need for subdivision, exit.
+    if(depth == 0) // lowest layer, no need for subdivision, exit.
     {
         return;
     }
     Point3 child_center;
     long int radius = rad_mult * height[depth] / 4 + rad_add;
-    //!< top child cube
+    // top child cube
     child_center.x = center.x;
     child_center.y = center.y;
     child_center.z = center.z + (height[depth] / 4);
@@ -152,7 +152,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     {
         children[0] = new SubDivCube(mesh, child_center, depth - 1);
     }
-    //!< top three children
+    // top three children
     Point relative_center; //!< center of the child cube relative to the center of the parent.
     child_center.z = center.z + height[depth] / 12;
     relative_center.X = 0;
@@ -169,14 +169,14 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
             rotatePoint120(relative_center);
         }
     }
-    //!< bottom child
+    // bottom child
     child_center.x = center.x;
     child_center.y = center.y;
     child_center.z = center.z - (height[depth] / 4);
     if(isValidSubdivision(mesh, child_center, radius)){
         children[4] = new SubDivCube(mesh, child_center, depth - 1);
     }
-    //!< bottom three children
+    // bottom three children
     child_center.z = center.z - height[depth] / 12;
     relative_center.X = 0;
     relative_center.Y = max_line_offset[depth];
@@ -206,7 +206,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     const long int layer_height = mesh.getSettingInMicrons("layer_height");
     long int bottom_layer = (center.z - radius) / layer_height;
     long int top_layer = (center.z + radius) / layer_height;
-    for(long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) //!< steps of three. Low-hanging speed gain.
+    for(long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
         part_dist = (double)(test_layer * layer_height - center.z) / radius;
         sphere_slice_radius = radius * (sqrt(1 - (part_dist * part_dist)));
@@ -253,14 +253,16 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_n
 }
 
 
-void SubDivCube::rotatePointInitial(Point& target){
+void SubDivCube::rotatePointInitial(Point& target)
+{
     int64_t x;
     x = rot_coef_x * target.X - rot_coef_y * target.Y;
     target.Y = rot_coef_x * target.Y + rot_coef_y * target.X;
     target.X = x;
 }
 
-void SubDivCube::rotatePoint120(Point& target){
+void SubDivCube::rotatePoint120(Point& target)
+{
     int64_t x;
     x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
     target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
