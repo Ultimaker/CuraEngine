@@ -16,13 +16,13 @@ SubDivCube* base_subdiv_cube;
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    rad_mult = 1;//mesh.getSettingInMillimeters("sub_div_rad_mult");
+    rad_mult = 1;//mesh.getSettingInMillimeters("sub_div_rad_mult"); //NOTE: these are the new settings for this infill. They don't both have to be used, but one would be nice... Your choice!
     rad_add = 0;//mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
     rot_coef_x = cos(infill_angle);
     rot_coef_y = sin(infill_angle);
     int curr_recursion_depth = 0;
-    for(int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2)//!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
+    for(int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
         side_length.push_back(curr_side_length);
         height.push_back(sqrt(curr_side_length * curr_side_length * 3));

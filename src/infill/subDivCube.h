@@ -13,7 +13,7 @@ public:
      * \param my_center the center of the cube
      * \param depth the recursion depth of the cube (0 is most recursed)
      */
-    SubDivCube(SliceMeshStorage& mesh, Point3& my_center, int depth);
+    SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth);
     /*!
      * Precompute the octree of subdivided cubes
      * \param mesh contains infill layer data and settings
@@ -42,7 +42,7 @@ private:
      * \param mesh contains infill layer data and settings
      * \param center the center of the described cube
      * \param radius the radius of the enclosing sphere
-     * \return if the described cube should be subdivided
+     * \return the described cube should be subdivided
      */
     static bool isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius);
     /*!
