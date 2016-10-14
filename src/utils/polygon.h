@@ -514,7 +514,12 @@ public:
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
         return ret;
     }
-    ClipperLib::PolyTree lineSegIntersection(const Polygons& other) const
+    /*!
+     * Clips input line segments by this Polygons.
+     * \param other Input line segments to be cropped
+     * \return the resulting interior line segments
+     */
+    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other) const
     {
         ClipperLib::PolyTree ret;
         ClipperLib::Clipper clipper(clipper_init);
