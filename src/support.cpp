@@ -75,6 +75,11 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
         }
     }
     storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)max_layer_nr_support_mesh_filled);
+    for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
+    {
+        SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
+    }
 
     // initialization of supportAreasPerLayer
     if (layer_count > storage.support.supportLayers.size())
@@ -260,8 +265,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         { // join with support from layer up                
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
-        
-        
+
+        supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
         {

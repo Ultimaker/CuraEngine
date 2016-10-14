@@ -151,7 +151,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             {
                 SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
                 SlicerLayer& slicer_layer = slicer->layers[layer_nr];
-                support_layer.supportAreas.add(slicer_layer.polygons);
+                support_layer.support_mesh.add(slicer_layer.polygons);
             }
             continue;
         }
