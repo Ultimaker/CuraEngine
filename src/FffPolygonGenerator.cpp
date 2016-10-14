@@ -145,6 +145,16 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
             continue;
         }
+        if (mesh.getSettingBoolean("support_mesh"))
+        {
+            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+            {
+                SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+                SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+                support_layer.supportAreas.add(slicer_layer.polygons);
+            }
+            continue;
+        }
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
 
