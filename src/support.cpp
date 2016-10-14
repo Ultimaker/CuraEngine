@@ -65,6 +65,17 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
 
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
+    int max_layer_nr_support_mesh_filled;
+    for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled++)
+    {
+        const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        if (support_layer.supportAreas.size() > 0)
+        {
+            break;
+        }
+    }
+    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)max_layer_nr_support_mesh_filled);
+
     // initialization of supportAreasPerLayer
     if (layer_count > storage.support.supportLayers.size())
     { // there might alsready be anti_overhang_area data in the supportLayers
