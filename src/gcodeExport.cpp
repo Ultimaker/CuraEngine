@@ -691,7 +691,7 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool ext
     {
         double speed = ((retraction_diff_e_amount < 0.0)? config->speed : extr_attr.last_retraction_prime_speed) * 60;
         current_e_value += retraction_diff_e_amount;
-        *output_stream << "G1 F" << speed << " "
+        *output_stream << "G1 F" << PrecisionedDouble{1, speed} << " "
             << extr_attr.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
         currentSpeed = speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);

@@ -109,6 +109,11 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
         fan_speed_layer_time_settings.cool_fan_speed_max = train->getSettingInPercentage("cool_fan_speed_max");
         fan_speed_layer_time_settings.cool_min_speed = train->getSettingInMillimetersPerSecond("cool_min_speed");
         fan_speed_layer_time_settings.cool_fan_full_layer = train->getSettingAsLayerNumber("cool_fan_full_layer");
+        if (!train->getSettingBoolean("cool_fan_enabled"))
+        {
+            fan_speed_layer_time_settings.cool_fan_speed_min = 0;
+            fan_speed_layer_time_settings.cool_fan_speed_max = 0;
+        }
     }
 }
 
@@ -393,8 +398,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     if (layer_nr < 0)
     {
 #ifdef DEBUG
-        const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-        assert(train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
+        assert(getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
         const int filler_layer_count = Raft::getFillerLayerCount(storage);
         layer_thickness = Raft::getFillerLayerHeight(storage);
@@ -410,8 +414,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         z = storage.meshes[0].layers[layer_nr].printZ;
         if (layer_nr == 0)
         {
-            const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-            if (train.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
+            if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
             {
                 include_helper_parts = false;
             }
