@@ -74,7 +74,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_support_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             continue;
         }

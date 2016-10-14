@@ -60,7 +60,7 @@ bool FffProcessor::processMeshGroup(MeshGroup* meshgroup)
     bool empty = true;
     for (Mesh& mesh : meshgroup->meshes)
     {
-        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_support_mesh"))
+        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             empty = false;
         }

@@ -142,7 +142,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         {
             for (const SliceMeshStorage& mesh : meshes)
             {
-                if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_support_mesh"))
+                if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
                 {
                     continue;
                 }

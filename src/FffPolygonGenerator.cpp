@@ -107,7 +107,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_support_mesh"))
+        if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
         }
@@ -123,7 +123,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
-        if (!mesh.getSettingBoolean("anti_support_mesh") && !mesh.getSettingBoolean("infill_mesh"))
+        if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh"))
         {
             max_layer_count = std::max(max_layer_count, slicer->layers.size());
         }
@@ -135,7 +135,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Slicer* slicer = slicerList[meshIdx];
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        if (mesh.getSettingBoolean("anti_support_mesh"))
+        if (mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
             {
@@ -190,7 +190,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     unsigned int slice_layer_count = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_support_mesh"))
+        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }
