@@ -107,7 +107,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for(unsigned int meshIdx=0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
-        if (mesh.getSettingBoolean("conical_overhang_enabled"))
+        if (mesh.getSettingBoolean("conical_overhang_enabled") && !mesh.getSettingBoolean("anti_support_mesh"))
         {
             ConicalOverhang::apply(slicerList[meshIdx], mesh.getSettingInAngleRadians("conical_overhang_angle"), layer_thickness);
         }
@@ -118,13 +118,35 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     carveMultipleVolumes(slicerList);
     generateMultipleVolumesOverlap(slicerList);
 
+    size_t max_layer_count = 0;
+    for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
+    {
+        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        Slicer* slicer = slicerList[meshIdx];
+        if (!mesh.getSettingBoolean("anti_support_mesh") && !mesh.getSettingBoolean("infill_mesh"))
+        {
+            max_layer_count = std::max(max_layer_count, slicer->layers.size());
+        }
+    }
+    storage.support.supportLayers.resize(max_layer_count);
+
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
+        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+        if (mesh.getSettingBoolean("anti_support_mesh"))
+        {
+            for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+            {
+                SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+                SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+                support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
+            }
+            continue;
+        }
         storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
         SliceMeshStorage& meshStorage = storage.meshes.back();
-        Mesh& mesh = storage.meshgroup->meshes[meshIdx];
 
         createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
@@ -168,7 +190,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     unsigned int slice_layer_count = 0;
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        if (!mesh.getSettingBoolean("infill_mesh"))
+        if (!mesh.getSettingBoolean("infill_mesh") && !mesh.getSettingBoolean("anti_support_mesh"))
         {
             slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }

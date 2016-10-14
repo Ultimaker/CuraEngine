@@ -66,13 +66,15 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
     // initialization of supportAreasPerLayer
-    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
-        storage.support.supportLayers.emplace_back();
-    
-    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    if (layer_count > storage.support.supportLayers.size())
+    { // there might alsready be anti_overhang_area data in the supportLayers
+        storage.support.supportLayers.resize(layer_count);
+    }
+
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getSettingBoolean("infill_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_support_mesh"))
         {
             continue;
         }
@@ -349,6 +351,9 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons supportLayer_supported =  supportLayer_supporter.offset(max_dist_from_lower_layer);
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 
+    const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
+    basic_overhang = basic_overhang.difference(support_layer.anti_overhang);
+
 //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
 //     support_extension = support_extension.intersection(supportLayer_supported);
 //     support_extension = support_extension.intersection(supportLayer_supportee);
@@ -388,12 +393,17 @@ void AreaSupport::detectOverhangPoints(
                 
                 if (part_poly.size() > 0)
                 {
+                    Polygons part_poly_recomputed = part_poly.difference(storage.support.supportLayers[layer_idx].anti_overhang);
+                    if (part_poly_recomputed.size() == 0)
+                    {
+                        continue;
+                    }
                     if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
-                        overhang_points.back().second.push_back(part_poly);
+                        overhang_points.back().second.push_back(part_poly_recomputed);
                     else 
                     {
                         std::vector<Polygons> small_part_polys;
-                        small_part_polys.push_back(part_poly);
+                        small_part_polys.push_back(part_poly_recomputed);
                         overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
                     }
                 }

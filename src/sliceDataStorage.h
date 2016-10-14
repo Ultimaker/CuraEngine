@@ -125,6 +125,7 @@ class SupportLayer
 public:
     Polygons supportAreas; //!< normal support areas
     Polygons skin; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
+    Polygons anti_overhang; //!< Areas where no overhang should be detected.
 };
 
 class SupportStorage
