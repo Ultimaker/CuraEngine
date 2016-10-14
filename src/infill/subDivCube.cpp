@@ -226,8 +226,9 @@ void SubDivCube::init(SliceMeshStorage& gMesh)
 {
     radMult = 1;//gMesh.getSettingInMillimeters("sub_div_rad_mult");
     radAdd = 0;//gMesh.getSettingInMicrons("sub_div_rad_add");
-    rotCoefX = cos(M_PI / 4);//90 degrees hard coded in because it is for the other infills too. This prevents any of the three directions from being parallel to x or y axis
-    rotCoefY = sin(M_PI / 4);
+    double infill_angle = M_PI / 4.0;
+    rotCoefX = cos(infill_angle);
+    rotCoefY = sin(infill_angle);
     int maxDepth = 0;
     for(int64_t maxSideLen = gMesh.getSettingInMicrons("infill_line_distance") * 2; maxSideLen < 25600000; maxSideLen *= 2)
     {//beginning at zero (most recursed) precompute values
