@@ -264,7 +264,6 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
-    gcode_layer.addTravel(start);
     if (is_hollow)
     {
         // for hollow wipe tower:
@@ -273,7 +272,15 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
         // go to the Z height of the previous/current layer
         // wipe
         // go to normal layer height (automatically on the next extrusion move...
-        gcode_layer.makeLastPathZhopped();
+        GCodePath& toward_middle = gcode_layer.addTravel(middle);
+        toward_middle.perform_z_hop = true;
+        gcode_layer.forceNewPathStart();
+        GCodePath& toward_wipe_start = gcode_layer.addTravel_simple(start);
+        toward_wipe_start.perform_z_hop = false; // TODO problem: travel moves ignore actual requested height untill destination is reached :(
+    }
+    else
+    {
+        gcode_layer.addTravel(start);
     }
     float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
     gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
