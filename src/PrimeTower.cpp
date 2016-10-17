@@ -2,7 +2,6 @@
 
 #include <limits>
 
-#include "utils/algorithm.h"
 #include "ExtruderTrain.h"
 #include "sliceDataStorage.h"
 #include "gcodeExport.h"
@@ -48,49 +47,6 @@ void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thicknes
     {
         GCodePathConfig& conf = config_per_extruder[extr];
         conf.setLayerHeight(layer_thickness);
-    }
-}
-
-    
-
-void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
-{ // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the prime tower
-        
-    extruder_count = storage.meshgroup->getExtruderCount();
-    
-    std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
-    assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    max_print_height_per_extruder.resize(extruder_count, -1); // unitialize all as -1
-    { // compute max_object_height_per_extruder
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            max_print_height_per_extruder[extr_nr] = 
-                std::max(   max_print_height_per_extruder[extr_nr]
-                        ,   mesh.layer_nr_max_filled_layer  ); 
-        }
-        int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
-        max_print_height_per_extruder[support_infill_extruder_nr] =
-        std::max(   max_print_height_per_extruder[support_infill_extruder_nr]
-                ,   storage.support.layer_nr_max_filled_layer  );
-        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
-        max_print_height_per_extruder[support_skin_extruder_nr] =
-        std::max(   max_print_height_per_extruder[support_skin_extruder_nr]
-                ,   storage.support.layer_nr_max_filled_layer  );
-        int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-        max_print_height_per_extruder[adhesion_extruder_nr] =
-        std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
-    }
-
-    storage.max_print_height_order = order(max_print_height_per_extruder);
-    if (extruder_count >= 2)
-    {
-        int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
-        storage.max_print_height_second_to_last_extruder = max_print_height_per_extruder[second_highest_extruder];
-    }
-    else
-    {
-        storage.max_print_height_second_to_last_extruder = -1;
     }
 }
 

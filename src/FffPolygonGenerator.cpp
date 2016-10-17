@@ -4,6 +4,7 @@
 #include <map> // multimap (ordered map allowing duplicate keys)
 
 #include "utils/math.h"
+#include "utils/algorithm.h"
 #include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -256,8 +257,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     */
 
+    computePrintHeightStatistics(storage);
+
     // handle helpers
-    storage.primeTower.computePrimeTowerMax(storage);
     storage.primeTower.generatePaths(storage, print_layer_count);
     
     logDebug("Processing ooze shield\n");
@@ -520,6 +522,47 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
         generateInfill(layer_nr, mesh, innermost_wall_line_width, infill_skin_overlap, wall_line_count);
     }
 }
+
+void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
+{
+    int extruder_count = storage.meshgroup->getExtruderCount();
+
+    std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
+    assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
+    max_print_height_per_extruder.resize(extruder_count, -1); // unitialize all as -1
+    { // compute max_object_height_per_extruder
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
+            max_print_height_per_extruder[extr_nr] =
+                std::max(   max_print_height_per_extruder[extr_nr]
+                        ,   mesh.layer_nr_max_filled_layer  );
+        }
+        int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
+        max_print_height_per_extruder[support_infill_extruder_nr] =
+        std::max(   max_print_height_per_extruder[support_infill_extruder_nr]
+                ,   storage.support.layer_nr_max_filled_layer  );
+        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
+        max_print_height_per_extruder[support_skin_extruder_nr] =
+        std::max(   max_print_height_per_extruder[support_skin_extruder_nr]
+                ,   storage.support.layer_nr_max_filled_layer  );
+        int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+        max_print_height_per_extruder[adhesion_extruder_nr] =
+        std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
+    }
+
+    storage.max_print_height_order = order(max_print_height_per_extruder);
+    if (extruder_count >= 2)
+    {
+        int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
+        storage.max_print_height_second_to_last_extruder = max_print_height_per_extruder[second_highest_extruder];
+    }
+    else
+    {
+        storage.max_print_height_second_to_last_extruder = -1;
+    }
+}
+
 
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
