@@ -5,6 +5,8 @@
 #include <cstdio> // sprintf
 #include <sstream> // ostringstream
 
+#include <cinttypes> // PRId64
+
 #include "logoutput.h"
 
 namespace cura
@@ -33,7 +35,7 @@ static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%ld", coord); // convert int to string
+    int char_count = sprintf(buffer, "%" PRId64, coord); // convert int to string
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
@@ -116,7 +118,7 @@ struct MMtoStream
  */
 static inline void writeDoubleToStream(const unsigned int precision, const double coord, std::ostream& ss)
 {
-    char format[5] = "%.xf"; // write a float with [x] digits after the dot
+    char format[5] = "%.xF"; // write a float with [x] digits after the dot
     format[2] = '0' + precision; // set [x]
     constexpr size_t buffer_size = 400;
     char buffer[buffer_size];
