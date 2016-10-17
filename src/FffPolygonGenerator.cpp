@@ -494,6 +494,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
             {
                 layer.printZ -= n_empty_first_layers * layer_height;
             }
+            mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }
         total_layers -= n_empty_first_layers;
     }
