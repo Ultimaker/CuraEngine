@@ -530,7 +530,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 
     const int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
 
-    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+    for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist, ClipperLib::jtRound));
     }
@@ -539,18 +539,18 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     if (angle <= 89)
     {
         int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height"); // Allow for a 60deg angle in the oozeShield.
-        for (int layer_nr = 1; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+        for (int layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
             storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr - 1].offset(-allowed_angle_offset));
         }
-        for (int layer_nr = storage.max_object_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
+        for (int layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
         {
             storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
         }
     }
 
     const float largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
-    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+    for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
