@@ -653,7 +653,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             { // turn off previous extruder
                 constexpr bool wait = false;
                 double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                if (layer_nr > storage.max_print_height_per_extruder[prev_extruder])
+                int prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
+                if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
