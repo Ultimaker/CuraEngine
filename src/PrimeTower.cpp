@@ -67,6 +67,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage, unsigned int total_layers)
 {
+    extruder_count = storage.meshgroup->getExtruderCount();
     if (storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
     {
         generatePaths_denseInfill(storage);
