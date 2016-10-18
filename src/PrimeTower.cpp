@@ -81,8 +81,11 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage, unsigned int total_layers)
 {
-    extruder_count = storage.meshgroup->getExtruderCount();
-    if (storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
+    enabled = storage.max_print_height_second_to_last_extruder >= 0
+            && storage.getSettingBoolean("prime_tower_enable")
+            && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
+            && storage.getSettingInMicrons("prime_tower_size") > 10;
+    if (enabled)
     {
         generatePaths_denseInfill(storage);
         generateWipeLocations(storage);
@@ -122,7 +125,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 
 void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder)
 {
-    if (!( storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
+    if (!enabled)
     {
         return;
     }

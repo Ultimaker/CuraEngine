@@ -30,6 +30,8 @@ private:
         Polygons polygons;
         Polygons lines;
     };
+    bool enabled; //!< Whether the prime tower is enabled
+
     int extruder_count; //!< number of extruders
     std::vector<GCodePathConfig> config_per_extruder; //!< Path config for prime tower for each extruder
 
