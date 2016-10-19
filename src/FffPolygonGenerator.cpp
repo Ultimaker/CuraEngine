@@ -124,6 +124,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         carveMultipleVolumes(slicerList, storage.getSettingBoolean("alternate_carve_order"));
     }
+
+    AreaSupport::handleSupportMeshes(storage, slicerList);
+
     generateMultipleVolumesOverlap(slicerList);
 
     storage.print_layer_count = 0;
@@ -162,7 +165,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
             continue;
         }
-        if (mesh.getSettingBoolean("support_mesh"))
+        if (mesh.getSettingBoolean("support_mesh") && mesh.getSettingBoolean("support_mesh_drop_down"))
         {
             for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
             {

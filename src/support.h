@@ -5,11 +5,19 @@
 #include "sliceDataStorage.h"
 #include "MeshGroup.h"
 #include "commandSocket.h"
+#include "slicer.h"
 
 namespace cura {
 
 class AreaSupport {
 public:
+    /*!
+     * Move support mesh from slicer data into the support storage
+     * 
+     * \param[out] storage Where to store the support areas
+     * \param volumes All sliced volumes in the meshgroup
+     */
+    static void handleSupportMeshes(SliceDataStorage& storage, std::vector<Slicer*>& volumes);
 
     /*!
      * Generate the support areas and support skin areas for all models.
