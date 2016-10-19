@@ -162,8 +162,17 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wal
             }
         }
         infill.removeSmallAreas(MIN_AREA_SIZE);
-        
-        part.infill_area = infill.offset(infill_skin_overlap);
+
+        Polygons final_infill = infill.offset(infill_skin_overlap);
+
+        if (mesh.getSettingBoolean("infill_hollow"))
+        {
+            part.print_outline = part.print_outline.difference(final_infill);
+        }
+        else
+        {
+            part.infill_area = final_infill;
+        }
     }
 }
 
