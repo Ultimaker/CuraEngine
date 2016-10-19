@@ -213,7 +213,7 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
 
 void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
 {
-    wipe_from_middle = true;
+    wipe_from_middle = is_hollow;
     // only wipe from the middle of the prime tower if we have a z hop already on the first move after the layer switch
     for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
