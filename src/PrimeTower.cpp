@@ -14,6 +14,7 @@ namespace cura
 
 PrimeTower::PrimeTower()
 : is_hollow(false)
+, wipe_from_middle(false)
 , current_pre_wipe_location_idx(0)
 {
     for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
@@ -212,13 +213,19 @@ Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
 
 void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
 {
-    Point from = getLocationBeforePrimeTower(storage);
-
+    wipe_from_middle = true;
+    // only wipe from the middle of the prime tower if we have a z hop already on the first move after the layer switch
+    for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
+    {
+        const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+        wipe_from_middle &= train.getSettingBoolean("retraction_hop_enabled") 
+                        && (!train.getSettingBoolean("retraction_hop_only_when_collides") || train.getSettingBoolean("retraction_hop_after_extruder_switch"));
+    }
 
     PolygonsPointIndex segment_start; // from where to start the sequence of wipe points
     PolygonsPointIndex segment_end; // where to end the sequence of wipe points
 
-    if (is_hollow)
+    if (wipe_from_middle)
     {
         // take the same start as end point so that the whole poly os covered.
         // find the inner polygon.
@@ -233,6 +240,7 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
         //     +-----
         //  .
         //  ^ nozzle switch location
+        Point from = getLocationBeforePrimeTower(storage);
 
         // find the single line segment closest to [from] pointing most toward [from]
         PolygonsPointIndex closest_vert = PolygonUtils::findNearestVert(from, ground_poly);
@@ -266,7 +274,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     const Point end = PolygonUtils::moveInsideDiagonally(wipe_location, inward_dist);
     const Point outward_dir = wipe_location.location - end;
     const Point start = wipe_location.location + normal(outward_dir, start_dist);
-    if (is_hollow)
+    if (wipe_from_middle)
     {
         // for hollow wipe tower:
         // start from above
