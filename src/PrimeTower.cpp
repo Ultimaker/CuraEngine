@@ -278,7 +278,8 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
         toward_middle.perform_z_hop = true;
         gcode_layer.forceNewPathStart();
         GCodePath& toward_wipe_start = gcode_layer.addTravel_simple(start);
-        toward_wipe_start.perform_z_hop = false; // TODO problem: travel moves ignore actual requested height untill destination is reached :(
+        toward_wipe_start.perform_z_hop = false;
+        toward_wipe_start.retract = true;
     }
     else
     {
