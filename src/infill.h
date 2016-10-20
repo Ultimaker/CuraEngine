@@ -70,11 +70,11 @@ private:
     static inline int computeScanSegmentIdx(int x, int line_distance);
     /*!
      * Generate sparse concentric infill 
-     * \param outline The actual outline of the area within which to generate infill
+     * \param outline The first concentric wall
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(Polygons outline, Polygons& result, int inset_value);
+    void generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value);
 
     /*!
      * Generate a rectangular grid of infill lines

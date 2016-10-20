@@ -21,7 +21,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
-    const Polygons* outline = &in_outline;
     Polygons outline_offsetted;
     switch(pattern)
     {
@@ -42,8 +41,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         break;
     case EFillMethod::CONCENTRIC:
         outline_offsetted = in_outline.offset(outline_offset - infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
-        outline = &outline_offsetted;
-        generateConcentricInfill(*outline, result_polygons, line_distance);
+        generateConcentricInfill(outline_offsetted, result_polygons, line_distance);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
@@ -54,12 +52,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
-void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
+void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
 {
-    while(outline.size() > 0)
+    while(first_concentric_wall.size() > 0)
     {
-        result.add(outline);
-        outline = outline.offset(-inset_value);
+        result.add(first_concentric_wall);
+        first_concentric_wall = first_concentric_wall.offset(-inset_value);
     } 
 }
 
