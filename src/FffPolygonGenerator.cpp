@@ -135,6 +135,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         Slicer* slicer = slicerList[meshIdx];
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
+
+        // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
+        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
+        SliceMeshStorage& meshStorage = storage.meshes.back();
+
         if (mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
@@ -155,8 +160,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
             continue;
         }
-        storage.meshes.emplace_back(&meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
-        SliceMeshStorage& meshStorage = storage.meshes.back();
 
         createLayerParts(meshStorage, slicer, mesh.getSettingBoolean("meshfix_union_all"), mesh.getSettingBoolean("meshfix_union_all_remove_holes"));
         delete slicerList[meshIdx];
