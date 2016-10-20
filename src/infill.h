@@ -77,6 +77,12 @@ private:
     void generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value);
 
     /*!
+     * Generate sparse concentric infill 
+     * \param result (output) The resulting polygons
+     */
+    void generateConcentric3DInfill(Polygons& result);
+
+    /*!
      * Generate a rectangular grid of infill lines
      * \param result (output) The resulting lines
      */
