@@ -40,7 +40,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         generateTriangleInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        outline_offsetted = in_outline.offset(outline_offset - infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
+        outline_offsetted = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
         generateConcentricInfill(outline_offsetted, result_polygons, line_distance);
         break;
     case EFillMethod::CONCENTRIC_3D:
