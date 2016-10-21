@@ -423,7 +423,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, 
 
     //SubDivCube Pre-compute Octree
     if(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV){
-        SubDivCube::init(mesh);
+        SubDivCube::precomputeOctree(mesh);
     }
 
     // combine infill

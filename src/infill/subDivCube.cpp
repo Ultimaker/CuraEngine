@@ -3,39 +3,69 @@
 #include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
 namespace cura {
-SubDivCube* baseSubDivCube;
-double SubDivCube::rotCoefX;
-double SubDivCube::rotCoefY;
-std::vector<int64_t> SubDivCube::sideLen;
+std::vector<int64_t> SubDivCube::side_length;
 std::vector<int64_t> SubDivCube::height;
-std::vector<int64_t> SubDivCube::maxDrawDiff;
-std::vector<int64_t> SubDivCube::squareCutAcross;
-std::vector<int64_t> SubDivCube::maxLineOffset;
-double SubDivCube::radMult = 1;
-int32_t SubDivCube::radAdd = 0;
+std::vector<int64_t> SubDivCube::square_height;
+std::vector<int64_t> SubDivCube::max_draw_z_diff;
+std::vector<int64_t> SubDivCube::max_line_offset;
+double SubDivCube::rad_mult = 1;
+int32_t SubDivCube::rad_add = 0;
+double SubDivCube::rot_coef_x;
+double SubDivCube::rot_coef_y;
+SubDivCube* base_subdiv_cube;
 
-void SubDivCube::draw(int64_t z, Polygons& result, Polygons** dir)
+void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    int epsilon = 10;
-    auto addLine = [&](Point from, Point to)//this simply adds a line segment to result
+    rad_mult = 1;//mesh.getSettingInMillimeters("sub_div_rad_mult"); //NOTE: these are the new settings for this infill. They don't both have to be used, but one would be nice... Your choice!
+    rad_add = 0;//mesh.getSettingInMicrons("sub_div_rad_add");
+    double infill_angle = M_PI / 4.0;
+    rot_coef_x = cos(infill_angle);
+    rot_coef_y = sin(infill_angle);
+    int curr_recursion_depth = 0;
+    for(int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
+    {
+        side_length.push_back(curr_side_length);
+        height.push_back(sqrt(curr_side_length * curr_side_length * 3));
+        square_height.push_back(sqrt(curr_side_length * curr_side_length * 2));
+        max_draw_z_diff.push_back((1.0 / sqrt(3.0)) * curr_side_length);
+        max_line_offset.push_back((sqrt(2.0 / 3.0) * curr_side_length) / 2);
+        curr_recursion_depth++;
+    }
+    Point3 center(0, 0, 0);
+    base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
+}
+
+void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups)
+{
+    auto addLine = [&](Point from, Point to)
     {
         PolygonRef p = result.newPoly();
         p.add(from);
         p.add(to);
     };
-    auto addLineAndCombine = [&](Polygons& group, Point from, Point to)//this adds a line segment to a polygon of parallel line segments and combines segments that touch within epsilon
+    /*!
+     * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.
+     * \param group the polygons to add the line to
+     * \param from the first endpoint of the line
+     * \param to the second endpoint of the line
+     */
+    auto addLineAndCombine = [&](Polygons& group, Point from, Point to)
     {
-        for(int x = 0; x < group.size(); x++){
-            if(abs(from.X-group[x][1].X)<epsilon && abs(from.Y-group[x][1].Y)<epsilon){
-                from = group[x][0];
-                group.remove(x);
-                x--;
+        int epsilon = 10;
+        for(unsigned int idx = 0; idx < group.size(); idx++)
+        {
+            if(abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
+            {
+                from = group[idx][0];
+                group.remove(idx);
+                idx--;
                 continue;
             }
-            if(abs(to.X-group[x][0].X)<epsilon && abs(to.Y-group[x][0].Y)<epsilon){
-                to = group[x][1];
-                group.remove(x);
-                x--;
+            if(abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
+            {
+                to = group[idx][1];
+                group.remove(idx);
+                idx--;
                 continue;
             }
         }
@@ -43,184 +73,200 @@ void SubDivCube::draw(int64_t z, Polygons& result, Polygons** dir)
         p.add(from);
         p.add(to);
     };
-    int topLevel = 0;//if this cube is the top level (ie root of octree).
-    if(dir == NULL){//if the three directional polygons have not yet been created, then this is the root of the recursive draw call
-        dir = (Polygons**)calloc(3, sizeof(Polygons*));
-        for(int temp = 0; temp < 3; temp++) dir[temp] = new Polygons();
-        topLevel=1;
+    bool top_level = false; //!< if this cube is the top level of the recursive call
+    if(directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
+    {
+        top_level = true;
+        directional_line_groups = (Polygons**)calloc(3, sizeof(Polygons*));
+        for(int idx = 0; idx < 3; idx++)
+        {
+            directional_line_groups[idx] = new Polygons();
+        }
     }
-    int32_t diff = abs(z-center.z);//z difference from current layer
-    if(diff>height[d]/2){//outside of cube. No drawing or subdivision needed
+    int32_t z_diff = abs(z - center.z); //!< the difference between the cube center and the target layer.
+    if(z_diff > height[depth] / 2) //!< this cube does not touch the target layer. Early exit.
+    {
         return;
     }
-    if(diff<maxDrawDiff[d]){//inside of drawing range
-        Point rela, relb, a, b;
-        rela.X=(squareCutAcross[d]/2)*((double)(maxDrawDiff[d]-diff)/(double)maxDrawDiff[d]);//rela and relb are relative coordinates of the two end points of the drawn line from the cube center
-        relb.X=-rela.X;
-        rela.Y=maxLineOffset[d]-((z-(center.z-maxDrawDiff[d]))*(1/sqrt(2)));
-        relb.Y=rela.Y;
-        initRot(rela);
-        initRot(relb);
-        for(int temp = 0; temp < 3; temp++){//draw and rotate
-            a.X = center.x+rela.X;
-            a.Y = center.y+rela.Y;
-            b.X = center.x+relb.X;
-            b.Y = center.y+relb.Y;
-            addLineAndCombine(*(dir[temp]), a, b);
-            if(temp < 2){
-                rot120(rela);
-                rot120(relb);
+    if(z_diff < max_draw_z_diff[depth]) //!< this cube has lines that need to be drawn.
+    {
+        Point relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
+        Point a, b; //!< absolute coordinates of line endpoints
+        relative_a.X = (square_height[depth] / 2) * ((double)(max_draw_z_diff[depth] - z_diff) / (double)max_draw_z_diff[depth]);
+        relative_b.X = -relative_a.X;
+        relative_a.Y = max_line_offset[depth] - ((z - (center.z - max_draw_z_diff[depth])) * one_over_sqrt_2);
+        relative_b.Y = relative_a.Y;
+        rotatePointInitial(relative_a);
+        rotatePointInitial(relative_b);
+        for(int idx = 0; idx < 3; idx++)//!< draw the line, then rotate 120 degrees.
+        {
+            a.X = center.x + relative_a.X;
+            a.Y = center.y + relative_a.Y;
+            b.X = center.x + relative_b.X;
+            b.Y = center.y + relative_b.Y;
+            addLineAndCombine(*(directional_line_groups[idx]), a, b);
+            if(idx < 2)
+            {
+                rotatePoint120(relative_a);
+                rotatePoint120(relative_b);
             }
         }
     }
-    for(int temp = 0; temp < 8; temp++){//draw all children too
-        if(children[temp] != NULL){
-            children[temp]->draw(z, result, dir);
+    for(int idx = 0; idx < 8; idx++) //!< draws the eight children
+    {
+        if(children[idx] != nullptr)
+        {
+            children[idx]->generateSubdivisionLines(z, result, directional_line_groups);
         }
     }
-    if(topLevel){//take care of copying the contents of the three directional polygons into result set AND free the three directional polygons
-        for(int temp = 0; temp < 3; temp++){
-            for(unsigned int x = 0; x < dir[temp]->size(); x++){
-                addLine((*dir[temp])[x][0], (*dir[temp])[x][1]);
+    if(top_level) //!< copy directional groups into result, then free the directional groups
+    {
+        for(int temp = 0; temp < 3; temp++)
+        {
+            for(unsigned int idx = 0; idx < directional_line_groups[temp]->size(); idx++)
+            {
+                addLine((*directional_line_groups[temp])[idx][0], (*directional_line_groups[temp])[idx][1]);
             }
-            delete dir[temp];
+            delete directional_line_groups[temp];
         }
-        free(dir);
+        free(directional_line_groups);
     }
 }
 
-SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& myCenter, int d){
-    this->d = d;//d is depth of current recursion. kind of. except 0 is completely recursed...
-    center = myCenter;
+SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
+{
+    this->depth = depth;
+    this->center = center;
 
-    if(d == 0) return;//Lowest layer, no need for subdivision.
-    Point3 c;//c will be the centers of the new 8 cubes
-    int32_t nsideLen = sideLen[d-1];//the new sideLen is the sideLen for recursed one more time...
-    long int rad = radMult*height[d]/4+radAdd;//note:divided by four because it is half of half of the parent height.
-    //top
-    c.x=center.x;
-    c.y=center.y;
-    c.z=center.z+(height[d]/4);
-    if(subDiv(mesh, c, nsideLen, rad)){
-        children[0] = new SubDivCube(mesh, c, d-1);
+    if(depth == 0) // lowest layer, no need for subdivision, exit.
+    {
+        return;
     }
-    //top three
-    Point relCenter;
-    c.z=center.z+height[d]/12;
-    relCenter.X=0;
-    relCenter.Y=-maxLineOffset[d];
-    initRot(relCenter);
-    for(int temp = 0; temp < 3; temp++){
-        c.x = relCenter.X+center.x;
-        c.y = relCenter.Y+center.y;
-        if(subDiv(mesh, c, nsideLen, rad)){
-            children[temp+1] = new SubDivCube(mesh, c, d-1);
+    Point3 child_center;
+    long int radius = rad_mult * height[depth] / 4 + rad_add;
+    // top child cube
+    child_center.x = center.x;
+    child_center.y = center.y;
+    child_center.z = center.z + (height[depth] / 4);
+    if(isValidSubdivision(mesh, child_center, radius))
+    {
+        children[0] = new SubDivCube(mesh, child_center, depth - 1);
+    }
+    // top three children
+    Point relative_center; //!< center of the child cube relative to the center of the parent.
+    child_center.z = center.z + height[depth] / 12;
+    relative_center.X = 0;
+    relative_center.Y = -max_line_offset[depth];
+    rotatePointInitial(relative_center);
+    for(int temp = 0; temp < 3; temp++)
+    {
+        child_center.x = relative_center.X + center.x;
+        child_center.y = relative_center.Y + center.y;
+        if(isValidSubdivision(mesh, child_center, radius)){
+            children[temp + 1] = new SubDivCube(mesh, child_center, depth - 1);
         }
         if(temp < 2){
-            rot120(relCenter);
+            rotatePoint120(relative_center);
         }
     }
-    //bottom
-    c.x=center.x;
-    c.y=center.y;
-    c.z=center.z-(height[d]/4);
-    if(subDiv(mesh, c, nsideLen, rad)){
-        children[4] = new SubDivCube(mesh, c, d-1);
+    // bottom child
+    child_center.x = center.x;
+    child_center.y = center.y;
+    child_center.z = center.z - (height[depth] / 4);
+    if(isValidSubdivision(mesh, child_center, radius)){
+        children[4] = new SubDivCube(mesh, child_center, depth - 1);
     }
-    //botton three
-    c.z=center.z-height[d]/12;
-    relCenter.X=0;
-    relCenter.Y=maxLineOffset[d];
-    initRot(relCenter);
-    for(int temp = 0; temp < 3; temp++){
-        c.x = relCenter.X+center.x;
-        c.y = relCenter.Y+center.y;
-        if(subDiv(mesh, c, nsideLen, rad)){
-            children[temp+5] = new SubDivCube(mesh, c, d-1);
+    // bottom three children
+    child_center.z = center.z - height[depth] / 12;
+    relative_center.X = 0;
+    relative_center.Y = max_line_offset[depth];
+    rotatePointInitial(relative_center);
+    for(int temp = 0; temp < 3; temp++)
+    {
+        child_center.x = relative_center.X + center.x;
+        child_center.y = relative_center.Y + center.y;
+        if(isValidSubdivision(mesh, child_center, radius))
+        {
+            children[temp + 5] = new SubDivCube(mesh, child_center, depth - 1);
         }
         if(temp < 2){
-            rot120(relCenter);
+            rotatePoint120(relative_center);
         }
     }
 }
 
-int SubDivCube::subDiv(SliceMeshStorage& mesh, Point3& center, int32_t sideLen, int32_t rad){//put inside of constructor as a lambda? (returns one if a described cube should be subdivided, else zero)
-    int32_t distance;
-    long int heightRad;//radius of sphere slice on target layer
-    int insideSomewhere = 0;
-    int outsideSomewhere = 0;
+bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
+{
+    int64_t distance;
+    long int sphere_slice_radius;//!< radius of bounding sphere slice on target layer
+    bool inside_somewhere = false;
+    bool outside_somewhere = false;
     int inside;
-    double partDist;
-    long int layer_height = mesh.getSettingInMicrons("layer_height");
-    long int bot_layer = (center.z-(rad))/layer_height;
-    long int top_layer = (center.z+(rad))/layer_height;
-    for(long int templayer = bot_layer; templayer <= top_layer; templayer+=3/*plus three as a quick speed fix... 3 layers doesn't seem like to many?*/){
-        partDist = (double)(templayer*layer_height-center.z)/rad;//how far through the radius are we (0-1)
-        heightRad = rad*(sqrt(1-(partDist*partDist)));//radius of circumscribed sphere at this level
+    double part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
+    const long int layer_height = mesh.getSettingInMicrons("layer_height");
+    long int bottom_layer = (center.z - radius) / layer_height;
+    long int top_layer = (center.z + radius) / layer_height;
+    for(long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
+    {
+        part_dist = (double)(test_layer * layer_height - center.z) / radius;
+        sphere_slice_radius = radius * (sqrt(1 - (part_dist * part_dist)));
         Point loc(center.x, center.y);
 
-        inside = dist(mesh, templayer, loc, &distance);
-        if(inside == 1){//0 = outside, 1 = inside, 2 = invalid layer(outside)//FIXME LAST does the 2 option cause a speed-up?
-            insideSomewhere = 1;
-        }else{
-            outsideSomewhere = 1;
+        inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance);
+        if(inside == 1)
+        {
+            inside_somewhere = true;
         }
-        if(outsideSomewhere && insideSomewhere){
-            return 1;
+        else
+        {
+            outside_somewhere = true;
         }
-        if((inside!=2)&&abs(distance) < heightRad){
-            return 1;
+        if(outside_somewhere && inside_somewhere)
+        {
+            return true;
+        }
+        if((inside != 2) && abs(distance) < sphere_slice_radius)
+        {
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
-int SubDivCube::dist(SliceMeshStorage& mesh, long int layer_nr, Point& loc, int32_t* dist){
-    if(layer_nr < 0 || layer_nr>=mesh.layers.size()){//if this layer is outside of existing layer range...
+int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance)
+    {
+    if(layer_nr < 0 || (unsigned long int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
+    {
         return 2;
     }
     Polygons collide;
     mesh.layers[layer_nr].getSecondOrInnermostWalls(collide);
-    Point centerpoint = loc;
+    Point centerpoint = location;
     bool inside = collide.inside(centerpoint);
-    ClosestPolygonPoint rimpoint = PolygonUtils::moveInside2(collide, centerpoint);
-    *dist = sqrt((rimpoint.location.X-loc.X)*(rimpoint.location.X-loc.X)+(rimpoint.location.Y-loc.Y)*(rimpoint.location.Y-loc.Y));
-    if(inside){
+    ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
+    *distance = sqrt((border_point.location.X - location.X) * (border_point.location.X - location.X) + (border_point.location.Y - location.Y) * (border_point.location.Y - location.Y));
+    if(inside)
+    {
         return 1;
     }
     return 0;
 }
 
-void SubDivCube::init(SliceMeshStorage& gMesh){
-    radMult = 1;//gMesh.getSettingInMillimeters("sub_div_rad_mult");
-    radAdd = 0;//gMesh.getSettingInMicrons("sub_div_rad_add");
-    rotCoefX = cos(M_PI/4);//90 degrees hard coded in because it is for the other infills too. This prevents any of the three directions from being parallel to x or y axis
-    rotCoefY = sin(M_PI/4);
-    int maxDepth = 0;
-    for(int64_t maxSideLen = gMesh.getSettingInMicrons("infill_line_distance")*2; maxSideLen < 25600000; maxSideLen *= 2){//beginning at zero (most recursed) precompute values
-        sideLen.push_back(maxSideLen);
-        height.push_back(sqrt(maxSideLen*maxSideLen*3));
-        squareCutAcross.push_back(sqrt(maxSideLen*maxSideLen*2));
-        maxDrawDiff.push_back((1.0/sqrt(3.0))*maxSideLen);
-        maxLineOffset.push_back((sqrt(2.0/3.0)*maxSideLen)/2);
-        maxDepth++;
-    }
-    Point3 center(0, 0, 0);
-    baseSubDivCube = new SubDivCube(gMesh, center, maxDepth-1);
+
+void SubDivCube::rotatePointInitial(Point& target)
+{
+    int64_t x;
+    x = rot_coef_x * target.X - rot_coef_y * target.Y;
+    target.Y = rot_coef_x * target.Y + rot_coef_y * target.X;
+    target.X = x;
 }
 
-void SubDivCube::initRot(Point& targ){//perform initial rotation.
+void SubDivCube::rotatePoint120(Point& target)
+{
     int64_t x;
-    x = rotCoefX*targ.X-rotCoefY*targ.Y;
-    targ.Y = rotCoefX*targ.Y+rotCoefY*targ.X;
-    targ.X = x;
-}
-
-void SubDivCube::rot120(Point& targ){//rotate 120 degrees
-    int64_t x;
-    x = (-0.5)*targ.X-(sqrt_three_fourths)*targ.Y;
-    targ.Y = (-0.5)*targ.Y+(sqrt_three_fourths)*targ.X;
-    targ.X = x;
+    x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
+    target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
+    target.X = x;
 }
 
 }//namespace cura

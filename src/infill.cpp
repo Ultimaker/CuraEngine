@@ -103,7 +103,7 @@ void Infill::generateTriangleInfill(Polygons& result)
 void Infill::generateCubicSubDivInfill(Polygons& result)
 {
     Polygons uncropped;
-    baseSubDivCube->draw(z, uncropped, NULL);
+    base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     addLineSegmentsInfill(result, uncropped);
 }
 
@@ -115,11 +115,11 @@ void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
         p.add(from);
         p.add(to);
     };
-    ClipperLib::PolyTree goodSegsTree = in_outline.lineSegIntersection(input);
-    ClipperLib::Paths goodSegs;
-    ClipperLib::OpenPathsFromPolyTree(goodSegsTree, goodSegs);
-    for(uint64_t idx = 0; idx < goodSegs.size(); idx++){
-        addLine(goodSegs[idx][0], goodSegs[idx][1]);
+    ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
+    ClipperLib::Paths interior_segments;
+    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
+    for(uint64_t idx = 0; idx < interior_segments.size(); idx++){
+        addLine(interior_segments[idx][0], interior_segments[idx][1]);
     }
 }
 

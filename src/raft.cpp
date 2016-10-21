@@ -39,7 +39,7 @@ int Raft::getTotalThickness(const SliceDataStorage& storage)
 int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
 {
     const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
     }
@@ -62,10 +62,9 @@ int Raft::getFillerLayerCount(const SliceDataStorage& storage)
 
 int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 {
-    const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
-    const int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
-    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
     {
+        const int64_t normal_layer_height = storage.getSettingInMicrons("layer_height");
         return normal_layer_height;
     }
     const unsigned int filler_layer_height = round_divide(getZdiffBetweenRaftAndLayer1(storage), getFillerLayerCount(storage));
