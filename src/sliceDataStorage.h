@@ -163,11 +163,20 @@ public:
     , inset0_config(PrintFeatureType::OuterWall)
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
+    , base_subdiv_cube(nullptr)
     {
         layers.reserve(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(PrintFeatureType::Infill);
+    }
+
+    virtual ~SliceMeshStorage()
+    {
+        if (base_subdiv_cube)
+        {
+            delete base_subdiv_cube;
+        }
     }
 };
 
