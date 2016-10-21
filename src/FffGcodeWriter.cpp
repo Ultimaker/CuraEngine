@@ -680,7 +680,12 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    PathOrderOptimizer part_order_optimizer(last_position_planned, z_seam_type);
+    Point layer_start_position = last_position_planned;
+    if (storage.getSettingBoolean("start_layers_at_same_position"))
+    {
+        layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
+    }
+    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
