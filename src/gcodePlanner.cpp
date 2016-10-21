@@ -367,6 +367,29 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
         Point& p1 = polygon[start_idx];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+
+        if (wall_0_wipe_dist > 0)
+        {
+            p0 = polygon[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
+            {
+                Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                {
+                    Point vector = p1 - p0;
+                    Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
+                }
+                else
+                {
+                    addTravel_simple(p1);
+                    distance_traversed += p0p1_dist;
+                }
+            }
+        }
     }
     else 
     {
