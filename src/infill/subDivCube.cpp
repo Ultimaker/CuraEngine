@@ -15,8 +15,8 @@ double SubDivCube::rot_coef_y;
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    rad_mult = 1;//mesh.getSettingInMillimeters("sub_div_rad_mult"); //NOTE: these are the new settings for this infill. They don't both have to be used, but one would be nice... Your choice!
-    rad_add = 0;//mesh.getSettingInMicrons("sub_div_rad_add");
+    rad_mult = mesh.getSettingAsRatio("sub_div_rad_mult");
+    rad_add = mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
     rot_coef_x = cos(infill_angle);
     rot_coef_y = sin(infill_angle);
@@ -142,7 +142,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
         return;
     }
     Point3 child_center;
-    long int radius = rad_mult * height[depth] / 4 + rad_add;
+    coord_t radius = double(rad_mult * double(height[depth])) / 4.0 + rad_add;
     // top child cube
     child_center.x = center.x;
     child_center.y = center.y;
