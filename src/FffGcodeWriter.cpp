@@ -776,7 +776,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
                 }
                 
                 Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
-                infill_comp.generate(infill_polygons, infill_lines);
+                infill_comp.generate(infill_polygons, infill_lines, mesh);
             }
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
             gcode_layer.addLinesByOptimizer(infill_lines, &mesh->infill_config[combine_idx], (infill_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
@@ -832,7 +832,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
             infill_line_distance_here /= 2;
         }
         Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
-        infill_comp.generate(infill_polygons, infill_lines);
+        infill_comp.generate(infill_polygons, infill_lines, mesh);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
     if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)

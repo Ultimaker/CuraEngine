@@ -12,7 +12,6 @@ double SubDivCube::rad_mult = 1;
 int32_t SubDivCube::rad_add = 0;
 double SubDivCube::rot_coef_x;
 double SubDivCube::rot_coef_y;
-SubDivCube* base_subdiv_cube;
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
@@ -32,7 +31,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
-    base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
+    mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
 
 void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups)

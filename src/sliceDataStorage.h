@@ -141,6 +141,8 @@ public:
 };
 /******************/
 
+class SubDivCube; // forward declaration to prevent dependency loop
+
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
 public:
@@ -152,6 +154,8 @@ public:
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
+
+    SubDivCube* base_subdiv_cube;
 
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
