@@ -351,20 +351,20 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillT
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, bool spiralize)
+void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, bool spiralize)
 {
-    Point p0 = polygon[startIdx];
+    Point p0 = polygon[start_idx];
     addTravel(p0);
-    for(unsigned int i=1; i<polygon.size(); i++)
+    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(startIdx + i) % polygon.size()];
+        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
-        Point& p1 = polygon[startIdx];
+        Point& p1 = polygon[start_idx];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
     }
