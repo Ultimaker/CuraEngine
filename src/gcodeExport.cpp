@@ -112,7 +112,7 @@ void GCodeExport::setInitialTemps(const MeshGroup& settings)
         setInitialTemp(extr_nr, temp);
     }
 
-    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature");
+    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)

@@ -207,9 +207,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") > 0)
             {
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature_layer_0"), getSettingBoolean("material_bed_temp_wait"));
             }
         }
 
@@ -257,8 +257,13 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
+
+    bool wait = true;
+    gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+
     gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
     last_position_planned = Point(storage.model_min.x, storage.model_min.y);

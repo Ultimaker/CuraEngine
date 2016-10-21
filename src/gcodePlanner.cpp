@@ -5,6 +5,7 @@
 #include "sliceDataStorage.h"
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
+#include "raft.h"
 
 namespace cura {
 
@@ -638,7 +639,13 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.setLayerNr(layer_nr);
     
     gcode.writeLayerComment(layer_nr);
-    
+
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage))
+    {
+        bool wait = false;
+        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
+    }
+
     gcode.setZ(z);
     
     
