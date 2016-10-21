@@ -369,10 +369,10 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
         if (wall_0_wipe_dist > 0)
-        {
+        { // apply outer wall wipe
             p0 = polygon[start_idx];
             int distance_traversed = 0;
-            for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
+            for (unsigned int point_idx = 1; ; point_idx++)
             {
                 Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
                 int p0p1_dist = vSize(p1 - p0);
