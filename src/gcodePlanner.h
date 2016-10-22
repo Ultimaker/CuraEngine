@@ -294,7 +294,7 @@ public:
      * \param extruder The extruder number for which this object is a plan.
      * \param start_position The position the head is when this extruder plan starts
      */
-    ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -398,6 +398,8 @@ protected:
     Point start_position; //!< The position the print head was at at the start of this extruder plan
 
     int layer_nr; //!< The layer number at which we are currently printing.
+    bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
+
     int layer_thickness; //!< The thickness of this layer in Z-direction
 
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
@@ -454,6 +456,7 @@ private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
     int layer_nr; //!< The layer number of this layer plan
+    int is_initial_layer; //!< Whether this is the first layer (which might be raft)
     
     int z; 
     
