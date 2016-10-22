@@ -1,6 +1,8 @@
 /** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <string.h>
+#ifndef WIN32
 #include <strings.h>
+#endif
 #include <stdio.h>
 
 #include "MeshGroup.h"

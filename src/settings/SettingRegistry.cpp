@@ -3,7 +3,11 @@
 
 #include <sstream>
 #include <iostream> // debug IO
+#ifndef WIN32
 #include <libgen.h> // dirname
+#else
+extern char *dirname(char *path);
+#endif
 #include <string>
 #include <cstring> // strtok (split string using delimiters) strcpy
 #include <fstream> // ifstream (to see if file exists)
@@ -151,7 +155,7 @@ int SettingRegistry::loadJSONsettings(std::string filename, SettingsBase* settin
     if (err) { return err; }
 
     { // add parent folder to search paths
-        char filename_cstr[filename.size()];
+        char *filename_cstr = (char*)alloca(filename.size());
         std::strcpy(filename_cstr, filename.c_str()); // copy the string because dirname(.) changes the input string!!!
         std::string folder_name = std::string(dirname(filename_cstr));
         search_paths.emplace(folder_name);
@@ -381,3 +385,15 @@ void SettingRegistry::_loadSettingValues(SettingConfig* config, const rapidjson:
 }
 
 }//namespace cura
+
+#ifdef WIN32
+#include <windows.h>
+
+char *dirname(char *path)
+{
+	static char folder_name[MAX_PATH + 1], *p;
+	GetFullPathNameA(path, _countof(folder_name), folder_name, &p);
+	p[-1] = 0;
+	return folder_name;
+}
+#endif
