@@ -104,11 +104,14 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)
 {
+    int start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
-        const ExtruderTrain* extr_train = settings.getExtruderTrain(extr_nr);
-        assert(extr_train);
-        double temp = extr_train->getSettingInDegreeCelsius((extr_nr == 0)? "material_print_temperature" : "material_standby_temperature");
+        const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
+        
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        double temp = (extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
         setInitialTemp(extr_nr, temp);
     }
 
