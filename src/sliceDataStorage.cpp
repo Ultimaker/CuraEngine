@@ -243,6 +243,90 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     return ret;
 }
 
+std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
+{
+
+    std::vector<bool> ret;
+    ret.resize(meshgroup->getExtruderCount(), false);
+
+    bool include_adhesion = true;
+    bool include_helper_parts = true;
+    bool include_models = true;
+    if (layer_nr < 0)
+    {
+        include_models = false;
+        if (layer_nr < -Raft::getFillerLayerCount(*this))
+        {
+            include_helper_parts = false;
+        }
+        else
+        {
+            layer_nr = 0; // because the helper parts are copied from the initial layer in the filler layer
+            include_adhesion = false;
+        }
+    }
+    if (include_adhesion)
+    {
+        ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
+        { // process brim/skirt
+            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
+            {
+                if (skirt_brim[extr_nr].size() > 0)
+                {
+                    ret[extr_nr] = true;
+                    continue;
+                }
+            }
+        }
+    }
+
+    // TODO: ooze shield, draft shield ..?
+
+    if (include_helper_parts)
+    {
+        // support
+        if (layer_nr < int(support.supportLayers.size()))
+        {
+            SupportLayer& support_layer = support.supportLayers[layer_nr];
+            if (layer_nr == 0)
+            {
+                if (support_layer.supportAreas.size() > 0)
+                {
+                    ret[getSettingAsIndex("support_extruder_nr_layer_0")] = true;
+                }
+            }
+            else
+            {
+                if (support_layer.supportAreas.size() > 0)
+                {
+                    ret[getSettingAsIndex("support_infill_extruder_nr")] = true;
+                }
+            }
+            if (support_layer.skin.size() > 0)
+            {
+                ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
+            }
+        }
+    }
+
+    if (include_models)
+    {
+        for (SliceMeshStorage& mesh : meshes)
+        {
+            if (layer_nr >= int(mesh.layers.size()))
+            {
+                continue;
+            }
+            SliceLayer& layer = mesh.layers[layer_nr];
+            if (layer.parts.size() > 0)
+            {
+                ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+            }
+        }
+    }
+    return ret;
+}
+
 
 
 
