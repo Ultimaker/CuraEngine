@@ -981,22 +981,47 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-    
-    bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
-                                    || support_skin_extruder_nr == extruder_nr_before;
-    // TODO: always print support after rest when only one nozzle is used for the whole meshgroup
-    
-    if (print_support_before_rest != before_rest)
-        return;
-    
+
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
     if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
     {
         return;
     }
-    
+
+    { // check whether we need to add support now or in the other call
+        // This method is called twice: once before all models and once after
+        bool print_support_before_rest;
+        std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
+        bool only_one_extruder_used = false;
+        for (bool extruder_used : extruders_used)
+        {
+            if (!only_one_extruder_used)
+            { // we haven't seen a used extruder yet
+                only_one_extruder_used = extruder_used;
+            }
+            else if (extruder_used)
+            { // we've already seen one extruder used
+                only_one_extruder_used = false;
+                break;
+            }
+        }
+        if (only_one_extruder_used)
+        { // alternate, so that support is printed consecutively, leading to less print speed/pressure changes
+            print_support_before_rest = layer_nr % 2 == 0;
+        }
+        else
+        {
+            print_support_before_rest = (support_layer.supportAreas.size() > 0 && support_infill_extruder_nr == extruder_nr_before)
+                                        || (support_layer.skin.size() > 0 && support_skin_extruder_nr == extruder_nr_before);
+        }
+        if (print_support_before_rest != before_rest)
+        {
+            return;
+        }
+    }
+
     int current_extruder_nr = gcode_layer.getExtruder();
-    
+
     if (support_layer.skin.size() > 0)
     {
         if (support_skin_extruder_nr != support_infill_extruder_nr && support_skin_extruder_nr == current_extruder_nr)
