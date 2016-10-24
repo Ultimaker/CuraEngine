@@ -19,7 +19,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
     for(unsigned int poly_idx = 0; poly_idx < boundary.size(); poly_idx++)
     {
         PolyCrossings minMax(poly_idx); 
-        PolygonRef poly = boundary[poly_idx];
+        ConstPolygonRef poly = boundary[poly_idx];
         Point p0 = transformation_matrix.apply(poly[poly.size() - 1]);
         for(unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
@@ -79,7 +79,7 @@ bool LinePolygonsCrossings::lineSegmentCollidesWithBoundary()
     transformed_startPoint = transformation_matrix.apply(startPoint);
     transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    for(PolygonRef poly : boundary)
+    for(ConstPolygonRef poly : boundary)
     {
         Point p0 = transformation_matrix.apply(poly.back());
         for(Point p1_ : poly)
@@ -144,7 +144,7 @@ void LinePolygonsCrossings::getBasicCombingPath(CombPath& combPath)
 
 void LinePolygonsCrossings::getBasicCombingPath(PolyCrossings& polyCrossings, CombPath& combPath) 
 {
-    PolygonRef poly = boundary[polyCrossings.poly_idx];
+    ConstPolygonRef poly = boundary[polyCrossings.poly_idx];
     combPath.push_back(transformation_matrix.unapply(Point(polyCrossings.min.x - dist_to_move_boundary_point_outside, transformed_startPoint.Y)));
     if ( ( polyCrossings.max.point_idx - polyCrossings.min.point_idx + poly.size() ) % poly.size() 
         < poly.size() / 2 )

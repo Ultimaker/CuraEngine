@@ -1102,8 +1102,8 @@ public:
 class PartsView : public std::vector<std::vector<unsigned int>>
 {
 public:
-    Polygons& polygons;
-    PartsView(Polygons& polygons) : polygons(polygons) { }
+    const Polygons& polygons;
+    PartsView(const Polygons& polygons) : polygons(polygons) { }
     /*!
      * Get the index of the PolygonsPart of which the polygon with index \p poly_idx is part.
      * 
@@ -1111,7 +1111,7 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+    unsigned int getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      * 
@@ -1119,7 +1119,7 @@ public:
      * \param boundary_poly_idx Optional output parameter: The index of the boundary polygon of the part in \p polygons
      * \return The PolygonsPart containing the polygon with index \p poly_idx
      */
-    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr);
+    PolygonsPart assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx = nullptr) const;
     /*!
      * Assemble the PolygonsPart of which the polygon with index \p poly_idx is part.
      * 

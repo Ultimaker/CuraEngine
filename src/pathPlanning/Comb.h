@@ -12,6 +12,8 @@
 #include "CombPath.h"
 #include "CombPaths.h"
 
+#include "../multithreadOpenMP.h"
+
 namespace cura 
 {
 
@@ -75,7 +77,7 @@ private:
          * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          */
-        bool findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber);
+        bool findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, const Comb& comber);
 
     private:
         const Point dest_point; //!< Either the eventual startPoint or the eventual endPoint of this combing move
@@ -93,11 +95,11 @@ private:
          * \param comber[in] The combing calculator which has references to the offsets and boundaries to use in combing.
          * \return A pair of which the first is the crossing point on the inside boundary and the second the crossing point on the outside boundary
          */
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, ConstPolygonRef from, Point estimated_start, Point estimated_end, Comb& comber);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findBestCrossing(const Polygons& outside, ConstPolygonRef from, Point estimated_start, Point estimated_end, const Comb& comber);
     };
 
 
-    SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
+    const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
@@ -112,19 +114,25 @@ private:
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
-    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    //The following pointers are mutable due to lazy initiallization.
+    mutable Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    mutable SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part.
+
+#ifdef _OPENMP
+    mutable omp_lock_type boundary_outside_lock;
+    mutable omp_lock_type outside_loc_to_line_lock;
+#endif
 
     /*!
      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
      */
-    Polygons& getBoundaryOutside();
+    const Polygons& getBoundaryOutside() const;
     
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& getOutsideLocToLine();
+    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& getOutsideLocToLine() const;
 
     /*!
      * Move the startPoint or endPoint inside when it should be inside
@@ -133,7 +141,7 @@ private:
      * \param start_inside_poly[out] The polygon in which the point has been moved
      * \return Whether we have moved the point inside
      */
-    bool moveInside(bool is_inside, Point& dest_point, unsigned int& start_inside_poly);
+    bool moveInside(bool is_inside, Point& dest_point, unsigned int& start_inside_poly) const;
 
 public:
     /*!
@@ -161,7 +169,16 @@ public:
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
      */    
-    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
+    bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles) const;
+
+    /*!
+     * Move the \p dest_point to the layer plan to move inside the current layer part by a given distance away from the outline.
+     * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
+     *
+     * \param dest_point[in,out] The point to move
+     * \param distance[in] The distance to the comb boundary after we moved inside it.
+     */
+    bool movePointInsideCombBoundary(Point& dest_point, int distance) const;
 };
 
 }//namespace cura

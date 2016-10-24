@@ -1169,14 +1169,14 @@ void Polygons::splitIntoParts_processPolyTreeNode(ClipperLib::PolyNode* node, st
     }
 }
 
-unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) 
+unsigned int PartsView::getPartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const
 {
-    PartsView& partsView = *this;
+    const PartsView& partsView = *this;
     for (unsigned int part_idx_now = 0; part_idx_now < partsView.size(); part_idx_now++)
     {
-        std::vector<unsigned int>& partView = partsView[part_idx_now];
+        const std::vector<unsigned int>& partView = partsView[part_idx_now];
         if (partView.size() == 0) { continue; }
-        std::vector<unsigned int>::iterator result = std::find(partView.begin(), partView.end(), poly_idx);
+        std::vector<unsigned int>::const_iterator result = std::find(partView.begin(), partView.end(), poly_idx);
         if (result != partView.end()) 
         { 
             if (boundary_poly_idx) { *boundary_poly_idx = partView[0]; }
@@ -1194,13 +1194,13 @@ PolygonsPart PartsView::assemblePart(unsigned int part_idx) const
     {
         for (unsigned int poly_idx_ff : partsView[part_idx])
         {
-            ret.add(PolygonRef{polygons[poly_idx_ff]});
+            ret.add(ConstPolygonRef{polygons[poly_idx_ff]});
         }
     }
     return ret;
 }
 
-PolygonsPart PartsView::assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) 
+PolygonsPart PartsView::assemblePartContaining(unsigned int poly_idx, unsigned int* boundary_poly_idx) const
 {
     PolygonsPart ret;
     unsigned int part_idx = getPartContaining(poly_idx, boundary_poly_idx);

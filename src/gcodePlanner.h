@@ -51,6 +51,25 @@ struct NozzleTempInsert
     }
 };
 
+//Forward declare GCodePath
+class GCodePath;
+
+/*!
+ * The arguments other than Comb needed to calculate combing travel.
+ */
+struct AddTravelArguments{
+    GCodePath* first_path;
+    GCodePath* second_path;
+    Point lastPosition;
+    Point p;
+    const SettingsBaseVirtual* extr;
+    bool bypass_combing;
+    bool perform_z_hops;
+    bool was_inside;
+    bool is_inside;
+    int retraction_min_travel_distance;
+};
+
 class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
 
 
@@ -501,7 +520,8 @@ private:
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
-    SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
+    std::vector<const SettingsBaseVirtual*> extruder_setting_base;
+    const SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
     bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
@@ -524,7 +544,19 @@ private:
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
     GCodePath* getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
-    
+
+    /*!
+     * Create a new path with the given config. Also sets \p done member of the GCodePath so
+     * that the returned path is not used anywhere else in a multi-threaded setting.
+     *
+     * \param config The config used for the path returned
+     * \param space_fill_type The type of space filling which this path employs
+     * \param flow (optional) A ratio for the extrusion speed
+     * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
+     * \return A path with the given config which is now the last path in GCodePlanner::paths
+     */
+    GCodePath* getSafePathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
      * 
@@ -553,7 +585,7 @@ public:
      * Get the settings base of the last extruder planned.
      * \return the settings base of the last extruder planned.
      */
-    SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
+    const SettingsBaseVirtual* getLastPlannedExtruderTrainSettings();
 private:
     /*!
      * Compute the boundary within which to comb, or to move into when performing a retraction.

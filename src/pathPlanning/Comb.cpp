@@ -11,22 +11,48 @@ namespace cura {
 
 
 // boundary_outside is only computed when it's needed!
-Polygons& Comb::getBoundaryOutside()
+const Polygons& Comb::getBoundaryOutside() const
 {
-    if (!boundary_outside)
+    Polygons* boundary_outside_tmp;
+#pragma omp atomic read
+	boundary_outside_tmp = boundary_outside;
+    if (!boundary_outside_tmp)
     {
-        boundary_outside = new Polygons();
-        *boundary_outside = storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
+#ifdef _OPENMP
+        omp_lock_guard_t<omp_lock_type> lock(boundary_outside_lock);
+#endif
+#pragma omp atomic read
+        boundary_outside_tmp = boundary_outside;
+        if (!boundary_outside_tmp)
+        {
+            boundary_outside_tmp = new Polygons();
+            *boundary_outside_tmp = storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside);
+#pragma omp atomic write
+            boundary_outside = boundary_outside_tmp;
+        }
     }
     return *boundary_outside;
 }
 
-SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine()
+const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine() const
 {
-    if (!outside_loc_to_line)
+    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line_tmp;
+#pragma omp atomic read
+	outside_loc_to_line_tmp = outside_loc_to_line;
+    if (!outside_loc_to_line_tmp)
     {
-        Polygons& outside = getBoundaryOutside();
-        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_inside_to_outside * 3 / 2);
+        const Polygons& outside = getBoundaryOutside();
+        {
+#ifdef _OPENMP
+            omp_lock_guard_t<omp_lock_type> lock(outside_loc_to_line_lock);
+#endif
+#pragma omp atomic read
+            outside_loc_to_line_tmp = outside_loc_to_line;
+            if(!outside_loc_to_line_tmp){
+#pragma omp atomic write
+                outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_inside_to_outside * 3 / 2);
+            }
+        }
     }
     return *outside_loc_to_line;
 }
@@ -61,7 +87,7 @@ Comb::~Comb()
     }
 }
 
-bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles)
+bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles) const
 {
     if (shorterThen(endPoint - startPoint, max_comb_distance_ignored))
     {
@@ -115,7 +141,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
         if (avoid_other_parts_now)
         { // compute the crossing points when moving through air
-            Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            const Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
 
             bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, fail_on_unavoidable_obstacles, *this);
             if (!success)
@@ -197,7 +223,7 @@ Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, con
 
 }
 
-bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_poly)
+bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_poly) const
 {
     if (is_inside)
     {
@@ -209,6 +235,22 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
         else
         {
             inside_poly = cpp.poly_idx;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Comb::movePointInsideCombBoundary(Point& dest_point, int distance) const
+{
+    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    // this function is to be used to move from the boudary of a part to inside the part
+    if (PolygonUtils::moveInside(boundary_inside, dest_point, distance, max_dist2) != NO_INDEX)
+    {
+        //Move inside again, so we move out of tight 90deg corners
+        PolygonUtils::moveInside(boundary_inside, dest_point, distance, max_dist2);
+        if (boundary_inside.inside(dest_point))
+        {
             return true;
         }
     }
@@ -242,7 +284,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
     }
 };
 
-bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
+bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, const bool fail_on_unavoidable_obstacles, const Comb& comber)
 {
     out = in_or_mid;
     if (dest_is_inside || outside.inside(in_or_mid, true)) // start in_between
@@ -278,7 +320,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
 }
 
 
-std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber)
+std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, const Comb& comber)
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;

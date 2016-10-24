@@ -79,7 +79,7 @@ private:
     unsigned int min_crossing_idx; //!< The index into LinePolygonsCrossings::crossings to the crossing with the minimal PolyCrossings::min crossing of all PolyCrossings's.
     unsigned int max_crossing_idx; //!< The index into LinePolygonsCrossings::crossings to the crossing with the maximal PolyCrossings::max crossing of all PolyCrossings's.
     
-    Polygons& boundary; //!< The boundary not to cross during combing.
+    const Polygons& boundary; //!< The boundary not to cross during combing.
     Point startPoint; //!< The start point of the scanline.
     Point endPoint; //!< The end point of the scanline.
     
@@ -163,7 +163,7 @@ private:
      * \param end the end point
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
-    LinePolygonsCrossings(Polygons& boundary, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
+    LinePolygonsCrossings(const Polygons& boundary, Point& start, Point& end, int64_t dist_to_move_boundary_point_outside)
     : boundary(boundary), startPoint(start), endPoint(end), dist_to_move_boundary_point_outside(dist_to_move_boundary_point_outside)
     {
     }
@@ -179,7 +179,7 @@ public:
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
-    static bool comb(Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
+    static bool comb(const Polygons& boundary, Point startPoint, Point endPoint, CombPath& combPath, int64_t dist_to_move_boundary_point_outside, int64_t max_comb_distance_ignored, bool fail_on_unavoidable_obstacles)
     {
         LinePolygonsCrossings linePolygonsCrossings(boundary, startPoint, endPoint, dist_to_move_boundary_point_outside);
         return linePolygonsCrossings.getCombingPath(combPath, max_comb_distance_ignored, fail_on_unavoidable_obstacles);

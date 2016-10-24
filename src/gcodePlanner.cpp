@@ -82,7 +82,7 @@ void ExtruderPlan::convertListToVector()
 GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::list<GCodePath>& paths = extruder_plans.back().getPathsList();
-    if (paths.size() > 0 && paths.back().config == config && !paths.back().done && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && !paths.back().done && paths.back().config == config && paths.back().flow == flow) // spiralize can only change when a travel path is in between
         return &paths.back();
     paths.emplace_back();
     GCodePath* ret = &paths.back();
@@ -90,6 +90,22 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, 
     ret->perform_z_hop = false;
     ret->config = config;
     ret->done = false;
+    ret->flow = flow;
+    ret->spiralize = spiralize;
+    ret->space_fill_type = space_fill_type;
+    return ret;
+}
+
+GCodePath* GCodePlanner::getSafePathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
+{
+    std::list<GCodePath>& paths = extruder_plans.back().getPathsList();
+    //TODO: Should the previous path get the done parameter set? Probably not necessary.
+    paths.emplace_back();
+    GCodePath* ret = &paths.back();
+    ret->retract = false;
+    ret->perform_z_hop = false;
+    ret->config = config;
+    ret->done = true;
     ret->flow = flow;
     ret->spiralize = spiralize;
     ret->space_fill_type = space_fill_type;
@@ -118,6 +134,13 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, start_position, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
+
+    extruder_setting_base.reserve(storage.meshgroup->getExtruderCount());
+    for(int i = 0; i < storage.meshgroup->getExtruderCount(); ++i)
+    {
+        extruder_setting_base.push_back(storage.meshgroup->getExtruderTrain(i));
+    }
+
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
@@ -135,7 +158,7 @@ GCodePlanner::~GCodePlanner()
         delete comb;
 }
 
-SettingsBaseVirtual* GCodePlanner::getLastPlannedExtruderTrainSettings()
+const SettingsBaseVirtual* GCodePlanner::getLastPlannedExtruderTrainSettings()
 {
     return last_planned_extruder_setting_base;
 }
@@ -197,7 +220,7 @@ bool GCodePlanner::setExtruder(int extruder)
     }
     setIsInside(false);
     { // handle end position of the prev extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
+        const SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
         bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
         Point end_pos(train->getSettingInMicrons("machine_extruder_end_pos_x"), train->getSettingInMicrons("machine_extruder_end_pos_y"));
         if (!end_pos_absolute)
@@ -224,7 +247,7 @@ bool GCodePlanner::setExtruder(int extruder)
 //     forceNewPathStart(); // automatic by the fact that we start a new ExtruderPlan
 
     { // handle starting pos of the new extruder
-        SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
+        const SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
         bool start_pos_absolute = train->getSettingBoolean("machine_extruder_start_pos_abs");
         Point start_pos(train->getSettingInMicrons("machine_extruder_start_pos_x"), train->getSettingInMicrons("machine_extruder_start_pos_y"));
         if (!start_pos_absolute)
@@ -243,45 +266,31 @@ bool GCodePlanner::setExtruder(int extruder)
 
 void GCodePlanner::moveInsideCombBoundary(int distance)
 {
-    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
     Point p = lastPosition; // copy, since we are going to move p
-    if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
+    if (comb->movePointInsideCombBoundary(p, distance))
     {
-        //Move inside again, so we move out of tight 90deg corners
-        PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2);
-        if (comb_boundary_inside.inside(p))
-        {
-            addTravel_simple(p);
-            //Make sure the that any retraction happens after this move, not before it by starting a new move path.
-            forceNewPathStart();
-        }
+        addTravel_simple(p);
+        //Make sure the that any retraction happens after this move, not before it by starting a new move path.
+        forceNewPathStart();
     }
 }
 
-void GCodePlanner::addTravel(Point p)
+
+inline void addTravel_impl(const Comb* comb, GCodePath* first_path, GCodePath* second_path, Point lastPosition, Point p, const SettingsBaseVirtual* extr, const bool bypass_combing, const bool perform_z_hops, const bool was_inside, const bool is_inside, int retraction_min_travel_distance)
 {
-    GCodePath* path = nullptr;
-    GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
-    RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
-    
     bool combed = false;
-
-    SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
-
-    const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
-
-    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().getPathsList().size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
-
-    if (comb != nullptr && !bypass_combing && lastPosition != no_point)
+    
+    const bool perform_combing = comb != nullptr && !bypass_combing && lastPosition != no_point;
+    if (perform_combing)
     {
         const bool perform_z_hops_only_when_collides = extr->getSettingBoolean("retraction_hop_only_when_collides");
+        assert(!shorterThen(lastPosition - p, retraction_min_travel_distance));
 
         CombPaths combPaths;
-        bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
-        bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
-        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, retraction_config.retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
+        const bool via_outside_makes_combing_fail = perform_z_hops && !perform_z_hops_only_when_collides;
+        const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
+        combed = comb->calc(lastPosition, p, combPaths, was_inside, is_inside, retraction_min_travel_distance, via_outside_makes_combing_fail, fail_on_unavoidable_obstacles);
         if (combed)
         {
             bool retract = combPaths.size() > 1;
@@ -318,35 +327,91 @@ void GCodePlanner::addTravel(Point p)
                 {
                     continue;
                 }
-                path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-                path->retract = retract;
+                // path = getLatestPathWithConfig(&travel_config, SpaceFillType::None); //path preallocated.
+                second_path->retract = retract;
                 // don't perform a z-hop
                 for (Point& combPoint : combPath)
                 {
-                    path->points.push_back(combPoint);
+                    second_path->points.push_back(combPoint);
                 }
-                lastPosition = combPath.back();
+                //lastPosition = combPath.back();
             }
         }
     }
     
-    if (!combed) {
+    if (!combed)
+    {
         // no combing? always retract!
-        if (!shorterThen(lastPosition - p, retraction_config.retraction_min_travel_distance))
-        {
-            if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
-            {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
-                assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
+        assert(!shorterThen(lastPosition - p, retraction_min_travel_distance));
+
+        if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
+        {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
+            assert (extr != nullptr);
+            Point q = lastPosition;
+            if (comb->movePointInsideCombBoundary(q, extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1))
+            {
+                first_path->retract = false;
+                first_path->points.push_back(q);
             }
-            path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
-            path->retract = true;
-            path->perform_z_hop = perform_z_hops;
         }
+        //path = getLatestPathWithConfig(&travel_config, SpaceFillType::None); // preallocated second_path
+        second_path->retract = true;
+        second_path->perform_z_hop = perform_z_hops;
+    }
+    second_path->points.push_back(p); // unconditionally add move to target position
+    //was_inside = is_inside; // already performed
+}
+
+void GCodePlanner::addTravel(Point p)
+{
+    const GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
+    const RetractionConfig& retraction_config__ = storage.retraction_config_per_extruder[getExtruder()];
+    auto retraction_min_travel_distance = retraction_config__.retraction_min_travel_distance;
+
+    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
+    assert(extr == extruder_setting_base[getExtruder()] && "Just test if this is ever the case");
+
+    const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
+
+    const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().getPathsList().empty() && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
+    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+
+    const bool was_inside_ = was_inside;
+    const bool is_inside_ = is_inside;
+    const Point lastPosition_ = lastPosition;
+    was_inside = is_inside;
+
+    if (shorterThen(lastPosition_ - p, retraction_min_travel_distance))
+    {
+        addTravel_simple(p);
+        return;
     }
 
-    addTravel_simple(p, path);
-    was_inside = is_inside;
+    if (!comb){
+        GCodePath* path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
+        path->retract = true;
+        path->perform_z_hop = perform_z_hops;
+        addTravel_simple(p, path);
+        return;
+    }
+
+    GCodePath* const first_path = getSafePathWithConfig(&travel_config, SpaceFillType::None); // path to store potential unretracted move inside comb boundary
+    GCodePath* const second_path = getSafePathWithConfig(&travel_config, SpaceFillType::None); // path to store the main sequence of moves performed
+    assert( &extruder_plans.back().getPathsList().back() == second_path );
+    lastPosition = p;
+
+    /*
+     * At this point the paths needed to perform the travel move have been reserved and resulting lastPosition has been set.
+     * It is safe to fill in the data for the possibly combed move asynchronously.
+     */
+
+    AddTravelArguments args = {first_path, second_path, lastPosition_, p, extr, bypass_combing, perform_z_hops, was_inside_, is_inside_, retraction_min_travel_distance};
+    const Comb* comb_object = comb;
+
+#pragma omp task default(none) firstprivate(comb_object, args)
+    { MULTITHREAD_TASK_CATCH_EXCEPTION(
+        addTravel_impl(comb_object, args.first_path, args.second_path, args.lastPosition, args.p, args.extr, args.bypass_combing, args.perform_z_hops, args.was_inside, args.is_inside, args.retraction_min_travel_distance);
+    )}
 }
 
 void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
