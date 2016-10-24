@@ -54,8 +54,9 @@ public:
      * 
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
+     * \param mesh The mesh for which to geenrate infill (should only be used for non-helper objects)
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines);
+    void generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
@@ -103,9 +104,10 @@ private:
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
-     * \param result (output) The resulting lines
+     * \param[out] result The resulting lines
+     * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(Polygons& result);
+    void generateCubicSubDivInfill(Polygons& result, SliceMeshStorage* mesh);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

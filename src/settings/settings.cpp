@@ -210,6 +210,12 @@ double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
     return std::max(0.0, atof(value.c_str()));
 }
 
+double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) / 100.0;
+}
+
 double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
 {
     std::string value = getSettingString(key);

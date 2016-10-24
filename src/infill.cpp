@@ -17,7 +17,7 @@ int Infill::computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -49,7 +49,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
     case EFillMethod::CUBICSUBDIV:
-        generateCubicSubDivInfill(result_lines);
+        generateCubicSubDivInfill(result_lines, mesh);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -100,10 +100,15 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle + 120, 0);
 }
 
-void Infill::generateCubicSubDivInfill(Polygons& result)
+void Infill::generateCubicSubDivInfill(Polygons& result, SliceMeshStorage* mesh)
 {
+    if (mesh == nullptr)
+    {
+        logError("Cannot generate Cubic Subdivision infill without a mesh!\n");
+        return;
+    }
     Polygons uncropped;
-    base_subdiv_cube->generateSubdivisionLines(z, uncropped);
+    mesh->base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     addLineSegmentsInfill(result, uncropped);
 }
 

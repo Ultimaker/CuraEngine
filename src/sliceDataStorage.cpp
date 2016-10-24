@@ -1,6 +1,8 @@
 #include "sliceDataStorage.h"
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
+#include "infill/subDivCube.h" // For the destructor
+
 
 namespace cura
 {
@@ -64,6 +66,14 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
         // so we'll just use the regular outline
         layer_walls.add(part.outline);
         continue;
+    }
+}
+
+SliceMeshStorage::~SliceMeshStorage()
+{
+    if (base_subdiv_cube)
+    {
+        delete base_subdiv_cube;
     }
 }
 

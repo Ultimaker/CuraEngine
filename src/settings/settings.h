@@ -229,6 +229,7 @@ public:
     double getSettingInMillimetersPerSecond(std::string key) const;
     double getSettingInCubicMillimeters(std::string key) const;
     double getSettingInPercentage(std::string key) const;
+    double getSettingAsRatio(std::string key) const; //!< For settings which are provided in percentage
     double getSettingInSeconds(std::string key) const;
 
     FlowTempGraph getSettingAsFlowTempGraph(std::string key) const;

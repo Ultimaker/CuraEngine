@@ -141,6 +141,8 @@ public:
 };
 /******************/
 
+class SubDivCube; // forward declaration to prevent dependency loop
+
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
 public:
@@ -153,18 +155,23 @@ public:
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
 
+    SubDivCube* base_subdiv_cube;
+
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
     , layer_nr_max_filled_layer(0)
     , inset0_config(PrintFeatureType::OuterWall)
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
+    , base_subdiv_cube(nullptr)
     {
         layers.reserve(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(PrintFeatureType::Infill);
     }
+
+    virtual ~SliceMeshStorage();
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
