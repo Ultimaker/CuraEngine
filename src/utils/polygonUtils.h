@@ -334,6 +334,22 @@ public:
     static std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> findClose(const PolygonRef from, const Polygons& destination, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& destination_loc_to_line, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
+     * Checks whether a given line segment collides with polygons as given in a loc_to_line grid.
+     * 
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     * 
+     * \param[in] from The start point
+     * \param[in] to The end point
+     * \param[in] loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons 
+     * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
+     * \return whether the line segment collides with the boundary of the polygons
+     */
+    static bool polygonCollidesWithlineSegment(const Point from, const Point to, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
+
+    /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
     * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
     * The point \p from and the polygon \p poly are assumed to lie on the same plane.

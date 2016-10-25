@@ -842,6 +842,37 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const Poly
 }
 
 
+bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point to, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line, PolygonsPointIndex* collision_result)
+{
+    bool ret = false;
+    Point diff = to - from;
+    PointMatrix transformation_matrix = PointMatrix(diff);
+    Point transformed_startPoint = transformation_matrix.apply(from);
+    Point transformed_endPoint = transformation_matrix.apply(to);
+
+    PolygonsPointIndex result;
+
+    std::function<void (const PolygonsPointIndex&)> process_elem_func =
+        [transformed_startPoint, transformed_endPoint, &transformation_matrix, &result, &ret]
+        (const PolygonsPointIndex& line_start)
+        {
+            Point p0 = transformation_matrix.apply(line_start.p());
+            Point p1 = transformation_matrix.apply(line_start.next().p());
+
+            if (LinearAlg2D::lineSegmentsCollide(transformed_startPoint, transformed_endPoint, p0, p1))
+            {
+                result = line_start;
+                ret = true;
+            }
+        };
+    loc_to_line.processLine(std::make_pair(from, to), process_elem_func);
+
+    if (collision_result)
+    {
+        *collision_result = result;
+    }
+    return ret;
+}
 
 bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
