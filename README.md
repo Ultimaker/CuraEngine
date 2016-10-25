@@ -31,6 +31,7 @@ CMake compilation:
 4. ```$ make```
 
 Project files generation:
+
 1. Navigate to the CuraEngine directory and execute the following commands
 2. ```cmake . -G "CodeBlocks - Unix Makefiles"```
 3. (for a list of supported IDE's see http://www.cmake.org/Wiki/CMake_Generator_Specific_Information#Code::Blocks_Generator)
