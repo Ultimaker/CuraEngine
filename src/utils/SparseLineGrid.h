@@ -50,7 +50,6 @@ protected:
 
     /*! \brief Accessor for getting locations from elements. */
     Locator m_locator;
-    grid_coord_t nonzero_sign(grid_coord_t z);
 };
 
 
@@ -68,61 +67,11 @@ SGI_TEMPLATE
 void SGI_THIS::insert(const Elem &elem)
 {
     const std::pair<Point, Point> line = m_locator(elem);
-    Point start = line.first;
-    Point end = line.second;
-    if (end.X < start.X)
-    { // make sure X increases between start and end
-        std::swap(start, end);
-    }
-
-    const GridPoint start_cell = SparseGrid<ElemT>::toGridPoint(start);
-    const GridPoint end_cell = SparseGrid<ElemT>::toGridPoint(end);
-    const coord_t y_diff = end.Y - start.Y;
-    const grid_coord_t y_dir = nonzero_sign(y_diff);
-
-    grid_coord_t x_cell_start = start_cell.X;
-    for (grid_coord_t cell_y = start_cell.Y; cell_y * y_dir <= end_cell.Y * y_dir; cell_y += y_dir)
-    { // for all Y from start to end
-        // nearest y coordinate of the cells in the next row
-        coord_t nearest_next_y = SparseGrid<ElemT>::toLowerCoord(cell_y + ((nonzero_sign(cell_y) == y_dir || cell_y == 0) ? y_dir : coord_t(0)));
-        grid_coord_t x_cell_end; // the X coord of the last cell to include from this row
-        if (y_diff == 0)
+    auto process_cell_func = [&elem, this](const GridPoint& grid_loc)
         {
-            x_cell_end = end_cell.X;
-        }
-        else
-        {
-            coord_t area = (end.X - start.X) * (nearest_next_y - start.Y);
-            // corresponding_x: the x coordinate corresponding to nearest_next_y
-            coord_t corresponding_x = start.X + area / y_diff;
-            x_cell_end = SparseGrid<ElemT>::toGridCoord(corresponding_x + ((corresponding_x < 0) && ((area % y_diff) != 0)));
-            if (x_cell_end < start_cell.X)
-            { // process at least one cell!
-                x_cell_end = x_cell_start;
-            }
-        }
-
-        for (grid_coord_t cell_x = x_cell_start; cell_x <= x_cell_end; ++cell_x)
-        {
-            GridPoint grid_loc(cell_x, cell_y);
             SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
-            if (grid_loc == end_cell)
-            {
-                return;
-            }
-        }
-        // TODO: this causes at least a one cell overlap for each row, which
-        // includes extra cells when crossing precisely on the corners
-        // where positive slope where x > 0 and negative slope where x < 0
-        x_cell_start = x_cell_end;
-    }
-    assert(false && "We should have returned already before here!");
-}
-
-SGI_TEMPLATE
-typename SGI_THIS::grid_coord_t SGI_THIS::nonzero_sign(grid_coord_t z)
-{
-    return (z >= 0) - (z < 0);
+        };
+    SparseGrid<ElemT>::processLineCells(line, process_cell_func);
 }
 
 SGI_TEMPLATE
@@ -132,16 +81,16 @@ void SGI_THIS::debugHTML(std::string filename)
     for (std::pair<GridPoint, ElemT> cell:  SparseGrid<ElemT>::m_grid)
     {
         aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first));
-        aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(nonzero_sign(cell.first.X), nonzero_sign(cell.first.Y))));
+        aabb.include(SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y))));
     }
     SVG svg(filename.c_str(), aabb);
     for (std::pair<GridPoint, ElemT> cell:  SparseGrid<ElemT>::m_grid)
     {
         // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
         Point lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
-        Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, nonzero_sign(cell.first.Y)));
-        Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(nonzero_sign(cell.first.X), nonzero_sign(cell.first.Y)));
-        Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(nonzero_sign(cell.first.X), 0));
+        Point lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        Point rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        Point rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
         if (lb.X == 0)
         {
             lb.X = -SparseGrid<ElemT>::m_cell_size;
