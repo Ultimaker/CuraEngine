@@ -112,7 +112,7 @@ void PolygonProximityLinker::findProximatePoints()
                 //  o--->o-->o-->o->
                 //  2    4   6   8
                 std::unordered_set<ListPolyIt> nearby_lines;
-                auto process_func = [&nearby_lines](const ListPolyIt& elem)
+                std::function<void (const ListPolyIt&)> process_func = [&nearby_lines](const ListPolyIt& elem)
                 {
                     nearby_lines.emplace(elem);
                 };
@@ -139,7 +139,7 @@ void PolygonProximityLinker::findProximatePoints()
         //  o--->o-->o-->o->
         //  2    4   6   8
         std::unordered_set<ListPolyIt> nearby_vert_its;
-        auto process_func = [&nearby_vert_its](const ListPolyIt& elem)
+        std::function<void (const ListPolyIt&)> process_func = [&nearby_vert_its](const ListPolyIt& elem)
         {
             nearby_vert_its.emplace(elem);
         };
