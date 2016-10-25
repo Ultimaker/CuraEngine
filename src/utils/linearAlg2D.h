@@ -216,7 +216,23 @@ public:
                 || getDist2FromLineSegment(c, a, d) <= max_dist2
                 || getDist2FromLineSegment(c, b, d) <= max_dist2;
     }
-    
+
+    /*!
+     * Check whether two line segments collide.
+     * 
+     * \warning Edge cases (end points of line segments fall on other line segment) register as a collision.
+     * 
+     * \note All points are assumed to be transformed by the transformation matrix of the vector from \p a_from to \p a_to.
+     * I.e. a is a vertical line; the Y of \p a_from_transformed is the same as the Y of \p a_to_transformed.
+     * 
+     * \param a_from_transformed The transformed from location of line a
+     * \param a_from_transformed The transformed to location of line a
+     * \param b_from_transformed The transformed from location of line b
+     * \param b_from_transformed The transformed to location of line b
+     * \return Whether the two line segments collide
+     */
+    static bool lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point b_from_transformed, Point b_to_transformed);
+
     /*!
      * Compute the angle between two consecutive line segments.
      * 

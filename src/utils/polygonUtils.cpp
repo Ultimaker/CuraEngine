@@ -849,20 +849,9 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& 
     for(Point p1_ : poly)
     {
         Point p1 = transformation_matrix.apply(p1_);
-        if ((p0.Y >= transformed_startPoint.Y && p1.Y <= transformed_startPoint.Y) || (p1.Y >= transformed_startPoint.Y && p0.Y <= transformed_startPoint.Y))
+        if (LinearAlg2D::lineSegmentsCollide(transformed_startPoint, transformed_endPoint, p0, p1))
         {
-            int64_t x;
-            if(p1.Y == p0.Y)
-            {
-                x = p0.X;
-            }
-            else
-            {
-                x = p0.X + (p1.X - p0.X) * (transformed_startPoint.Y - p0.Y) / (p1.Y - p0.Y);
-            }
-            
-            if (x >= transformed_startPoint.X && x <= transformed_endPoint.X)
-                return true;
+            return true;
         }
         p0 = p1;
     }
