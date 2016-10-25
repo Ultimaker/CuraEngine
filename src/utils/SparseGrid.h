@@ -80,6 +80,19 @@ public:
      */
     void processNearby(const Point &query_pt, coord_t radius,
                        std::function<void (const ElemT&)>& process_func) const;
+
+    /*! \brief Process elements from cells that might contain sought after points along a line.
+     *
+     * Processes elements from cells that cross the line \p query_line.
+     * May process elements that are up to sqrt(2) * cell_size from \p query_line.
+     *
+     * \param[in] query_line The line along which to check each cell
+     * \param[in] process_func Processes each element.  process_func(elem) is
+     *    called for each element in the cells.
+     */
+    void processLine(const std::pair<Point, Point> query_line,
+                       std::function<void (const Elem&)>& process_elem_func) const;
+
     coord_t getCellSize() const;
 
 protected:
@@ -292,6 +305,17 @@ void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
             processFromCell(grid_pt, process_func);
         }
     }
+}
+
+SGI_TEMPLATE
+void SGI_THIS::processLine(const std::pair<Point, Point> query_line,
+                            std::function<void (const Elem&)>& process_elem_func) const
+{
+    std::function<void (const GridPoint&)> process_cell_func = [&process_elem_func](GridPoint grid_loc)
+        {
+            processFromCell(grid_loc, process_elem_func);
+        };
+    processLineCells(query_line, process_cell_func);
 }
 
 SGI_TEMPLATE
