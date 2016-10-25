@@ -79,7 +79,7 @@ public:
      *    called for each element in the cell.
      */
     void processNearby(const Point &query_pt, coord_t radius,
-                       std::function<void (const ElemT&)>& process_func) const;
+                       const std::function<void (const ElemT&)>& process_func) const;
 
     /*! \brief Process elements from cells that might contain sought after points along a line.
      *
@@ -91,7 +91,7 @@ public:
      *    called for each element in the cells.
      */
     void processLine(const std::pair<Point, Point> query_line,
-                       std::function<void (const Elem&)>& process_elem_func) const;
+                       const std::function<void (const Elem&)>& process_elem_func) const;
 
     coord_t getCellSize() const;
 
@@ -107,7 +107,7 @@ protected:
      *    called for each element in the cell.
      */
     void processFromCell(const GridPoint &grid_pt,
-                         std::function<void (const Elem&)>& process_func) const;
+                         const std::function<void (const Elem&)>& process_func) const;
 
     /*! \brief Process cells along a line indicated by \p line.
      *
@@ -116,7 +116,16 @@ protected:
      *    called for each cell.
      */
     void processLineCells(const std::pair<Point, Point> line,
-                         std::function<void (GridPoint)>& process_cell_func);
+                         const std::function<void (GridPoint)>& process_cell_func);
+
+    /*! \brief Process cells along a line indicated by \p line.
+     *
+     * \param[in] line The line along which to process cells
+     * \param[in] process_func Processes each cell.  process_func(elem) is
+     *    called for each cell.
+     */
+    void processLineCells(const std::pair<Point, Point> line,
+                         const std::function<void (GridPoint)>& process_cell_func) const;
 
     /*! \brief Compute the grid coordinates of a point.
      *
@@ -214,7 +223,7 @@ typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  c
 SGI_TEMPLATE
 void SGI_THIS::processFromCell(
     const GridPoint &grid_pt,
-    std::function<void (const Elem&)>& process_func) const
+    const std::function<void (const Elem&)>& process_func) const
 {
     auto grid_range = m_grid.equal_range(grid_pt);
     for (auto iter = grid_range.first; iter != grid_range.second; ++iter)
@@ -227,7 +236,15 @@ void SGI_THIS::processFromCell(
 SGI_TEMPLATE
 void SGI_THIS::processLineCells(
     const std::pair<Point, Point> line,
-    std::function<void (GridPoint)>& process_cell_func)
+    const std::function<void (GridPoint)>& process_cell_func)
+{
+    static_cast<const SGI_THIS*>(this)->processLineCells(line, process_cell_func);
+}
+
+SGI_TEMPLATE
+void SGI_THIS::processLineCells(
+    const std::pair<Point, Point> line,
+    const std::function<void (GridPoint)>& process_cell_func) const
 {
 
     Point start = line.first;
@@ -289,7 +306,7 @@ typename SGI_THIS::grid_coord_t SGI_THIS::nonzero_sign(const grid_coord_t z) con
 
 SGI_TEMPLATE
 void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
-                             std::function<void (const Elem&)>& process_func) const
+                             const std::function<void (const Elem&)>& process_func) const
 {
     Point min_loc(query_pt.X - radius, query_pt.Y - radius);
     Point max_loc(query_pt.X + radius, query_pt.Y + radius);
@@ -309,9 +326,9 @@ void SGI_THIS::processNearby(const Point &query_pt, coord_t radius,
 
 SGI_TEMPLATE
 void SGI_THIS::processLine(const std::pair<Point, Point> query_line,
-                            std::function<void (const Elem&)>& process_elem_func) const
+                            const std::function<void (const Elem&)>& process_elem_func) const
 {
-    std::function<void (const GridPoint&)> process_cell_func = [&process_elem_func](GridPoint grid_loc)
+    const std::function<void (const GridPoint&)> process_cell_func = [&process_elem_func, this](GridPoint grid_loc)
         {
             processFromCell(grid_loc, process_elem_func);
         };
@@ -323,7 +340,7 @@ std::vector<typename SGI_THIS::Elem>
 SGI_THIS::getNearby(const Point &query_pt, coord_t radius) const
 {
     std::vector<Elem> ret;
-    std::function<void (const Elem&)> process_func = [&ret](const Elem &elem)
+    const std::function<void (const Elem&)> process_func = [&ret](const Elem &elem)
         {
             ret.push_back(elem);
         };
@@ -346,7 +363,7 @@ bool SGI_THIS::getNearest(
 {
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
-    std::function<void (const Elem&)> process_func =
+    const std::function<void (const Elem&)> process_func =
         [&query_pt, &elem_nearest, &found, &best_dist2, &precondition](const Elem &elem)
         {
             if (!precondition(elem))
