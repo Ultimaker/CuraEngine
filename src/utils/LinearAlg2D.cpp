@@ -112,8 +112,8 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
 
 bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point p0, Point p1)
 {
-    assert(a_from_transformed.Y == a_to_transformed.Y && "line a is supposed to be transformed to be aligned with the X axis!");
-    assert(a_from_transformed.X <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
+    assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
+    assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
     if ((p0.Y >= a_from_transformed.Y && p1.Y <= a_from_transformed.Y) || (p1.Y >= a_from_transformed.Y && p0.Y <= a_from_transformed.Y))
     {
         if(p1.Y == p0.Y)
