@@ -31,6 +31,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
+, inside_loc_to_line(PolygonUtils::createLocToLineGrid(boundary_inside, comb_boundary_offset))
 , boundary_outside(
         [&storage, layer_nr, travel_avoid_distance]()
         {
@@ -51,6 +52,10 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 
 Comb::~Comb()
 {
+    if (inside_loc_to_line)
+    {
+        delete inside_loc_to_line;
+    }
 }
 
 bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles)
@@ -167,11 +172,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             if (startInside == endInside && start_part_idx == end_part_idx)
             {
                 if (startInside)
-                {
-                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *outside_loc_to_line); // TODO: inside_loc_to_line
+                { // both start and end are inside
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *inside_loc_to_line);
                 }
                 else
-                {
+                { // both start and end are outside
                     combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *outside_loc_to_line);
                 }
             }
