@@ -2,6 +2,7 @@
 #include "Comb.h"
 
 #include <algorithm>
+#include <functional> // function
 
 #include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
@@ -9,24 +10,11 @@
 
 namespace cura {
 
-
-// boundary_outside is only computed when it's needed!
-Polygons& Comb::getBoundaryOutside()
-{
-    if (!boundary_outside)
-    {
-        boundary_outside = new Polygons();
-        *boundary_outside = storage.getLayerOutlines(layer_nr, false).offset(offset_from_outlines_outside); 
-    }
-    return *boundary_outside;
-}
-
 SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine()
 {
     if (!outside_loc_to_line)
     {
-        Polygons& outside = getBoundaryOutside();
-        outside_loc_to_line = PolygonUtils::createLocToLineGrid(outside, offset_from_inside_to_outside * 3 / 2);
+        outside_loc_to_line = PolygonUtils::createLocToLineGrid(*boundary_outside, offset_from_inside_to_outside * 3 / 2);
     }
     return *outside_loc_to_line;
 }
@@ -43,7 +31,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
-, boundary_outside(nullptr)
+, boundary_outside(std::function<Polygons ()>([&storage, layer_nr, travel_avoid_distance]() { return storage.getLayerOutlines(layer_nr, false).offset(travel_avoid_distance); }))
 , outside_loc_to_line(nullptr)
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
@@ -51,10 +39,6 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 
 Comb::~Comb()
 {
-    if (boundary_outside)
-    {
-        delete boundary_outside;
-    }
     if (outside_loc_to_line)
     {
         delete outside_loc_to_line;
@@ -115,15 +99,15 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
         if (avoid_other_parts_now)
         { // compute the crossing points when moving through air
-            Polygons& outside = getBoundaryOutside(); // comb through all air, since generally the outside consists of a single part
+            // comb through all air, since generally the outside consists of a single part
 
-            bool success = start_crossing.findOutside(outside, end_crossing.in_or_mid, fail_on_unavoidable_obstacles, *this);
+            bool success = start_crossing.findOutside(*boundary_outside, end_crossing.in_or_mid, fail_on_unavoidable_obstacles, *this);
             if (!success)
             {
                 return false;
             }
 
-            success = end_crossing.findOutside(outside, start_crossing.out, fail_on_unavoidable_obstacles, *this);
+            success = end_crossing.findOutside(*boundary_outside, start_crossing.out, fail_on_unavoidable_obstacles, *this);
             if (!success)
             {
                 return false;
@@ -155,7 +139,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             }
             else
             {
-                bool combing_succeeded = LinePolygonsCrossings::comb(getBoundaryOutside(), start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
+                bool combing_succeeded = LinePolygonsCrossings::comb(*boundary_outside, start_crossing.out, end_crossing.out, combPaths.back(), offset_dist_to_get_from_on_the_polygon_to_outside, max_comb_distance_ignored, fail_on_unavoidable_obstacles);
                 if (!combing_succeeded)
                 {
                     return false;

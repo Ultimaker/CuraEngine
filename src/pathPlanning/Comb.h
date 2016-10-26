@@ -7,6 +7,7 @@
 #include "../utils/polygon.h"
 #include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
+#include "../utils/LazyInitialization.h"
 
 #include "LinePolygonsCrossings.h"
 #include "CombPath.h"
@@ -112,15 +113,10 @@ private:
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
-    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
 
-    /*!
-     * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
-     */
-    Polygons& getBoundaryOutside();
-    
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
