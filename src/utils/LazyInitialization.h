@@ -35,6 +35,28 @@ public:
     , bind_([&](Args&&... args) { std::optional<T>::instance = new T(args...); }, std::forward<Args>(args)...)
     { }
 
+    /*!
+     * Delayed function call for creating a T object
+     * 
+     * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
+     * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
+     */
+    LazyInitialization(std::function<T (Args&&...)> f, Args&&... args)
+    : std::optional<T>()
+    , bind_([&](Args&&...) { std::optional<T>::instance = new T(f(args...)); }, std::forward<Args>(args)...)
+    { }
+
+    /*!
+     * Delayed function call for creating a T object
+     * 
+     * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
+     * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
+     */
+    LazyInitialization(std::function<T* (Args&&...)> f, Args&&... args)
+    : std::optional<T>()
+    , bind_([&](Args&&...) { std::optional<T>::instance = f(args...); }, std::forward<Args>(args)...)
+    { }
+
     LazyInitialization(LazyInitialization<T, Args...>& other) //!< copy constructor
     : std::optional<T>(other)
     , bind_(other.bind_)
