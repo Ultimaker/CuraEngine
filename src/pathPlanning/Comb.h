@@ -31,7 +31,7 @@ class SliceDataStorage;
  * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts, 
  * because generally there is only one outside part; encapsulated holes occur less often.
  */
-class Comb 
+class Comb
 {
     friend class LinePolygonsCrossings;
 private:
@@ -114,13 +114,18 @@ private:
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    LazyInitialization<SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
     SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& getOutsideLocToLine();
+
+     /*!
+      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
+      */
+    Polygons& getBoundaryOutside();
 
     /*!
      * Move the startPoint or endPoint inside when it should be inside

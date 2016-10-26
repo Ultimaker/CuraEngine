@@ -12,13 +12,13 @@ namespace cura {
 
 SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine()
 {
-    if (!outside_loc_to_line)
-    {
-        outside_loc_to_line = PolygonUtils::createLocToLineGrid(*boundary_outside, offset_from_inside_to_outside * 3 / 2);
-    }
     return *outside_loc_to_line;
 }
 
+Polygons& Comb::getBoundaryOutside()
+{
+    return *boundary_outside;
+}
   
 Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
@@ -31,18 +31,26 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , avoid_other_parts(travel_avoid_other_parts)
 // , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
-, boundary_outside(std::function<Polygons ()>([&storage, layer_nr, travel_avoid_distance]() { return storage.getLayerOutlines(layer_nr, false).offset(travel_avoid_distance); }))
-, outside_loc_to_line(nullptr)
+, boundary_outside(
+        [&storage, layer_nr, travel_avoid_distance]()
+        {
+            return storage.getLayerOutlines(layer_nr, false).offset(travel_avoid_distance);
+        }
+    )
+, outside_loc_to_line(
+        [](Comb* comber, const int64_t offset_from_inside_to_outside)
+        {
+            return PolygonUtils::createLocToLineGrid(comber->getBoundaryOutside(), offset_from_inside_to_outside * 3 / 2);
+        }
+        , this
+        , offset_from_inside_to_outside
+    )
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
 }
 
 Comb::~Comb()
 {
-    if (outside_loc_to_line)
-    {
-        delete outside_loc_to_line;
-    }
 }
 
 bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _startInside, bool _endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles)
@@ -160,13 +168,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             {
                 if (startInside)
                 {
-                    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& grid = getOutsideLocToLine(); // TODO: getInsideLocToLine()
-                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, grid);
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *outside_loc_to_line); // TODO: inside_loc_to_line
                 }
                 else
                 {
-                    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& grid = getOutsideLocToLine();
-                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, grid);
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *outside_loc_to_line);
                 }
             }
             else
