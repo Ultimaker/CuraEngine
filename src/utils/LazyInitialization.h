@@ -22,17 +22,38 @@ class LazyInitialization : public std::optional<T>
 {
 public:
 
-    using bind_type = decltype(std::bind(std::declval<std::function<void(Args...)>>(),std::declval<Args>()...)); //!< The type of the constructor call
-
     /*!
      * Delayed constructor call of T class
      * 
      * \warning passing references or pointers as parameters means these objects will be given to the constructor at evaluation time.
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
-    LazyInitialization(Args&&... args)
+    LazyInitialization(Args... args)
     : std::optional<T>()
-    , bind_([&](Args&&... args) { std::optional<T>::instance = new T(args...); }, std::forward<Args>(args)...)
+    , constructor(
+            [this, args...]()
+            {
+                std::optional<T>::instance = new T(args...);
+            }
+        )
+    { }
+
+    /*!
+     * Delayed function call for creating a T object
+     * 
+     * Performs a copy from the return value of the function on the stack to the heap.
+     * 
+     * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
+     * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
+     */
+    LazyInitialization(const std::function<T (Args...)>& f, Args... args)
+    : std::optional<T>()
+    , constructor(
+            [this, f, args...]()
+            {
+                std::optional<T>::instance = new T(f(args...));
+            }
+        )
     { }
 
     /*!
@@ -41,31 +62,27 @@ public:
      * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
      * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
      */
-    LazyInitialization(std::function<T (Args&&...)> f, Args&&... args)
+    LazyInitialization(const std::function<T* (Args...)>& f, Args... args)
     : std::optional<T>()
-    , bind_([&](Args&&...) { std::optional<T>::instance = new T(f(args...)); }, std::forward<Args>(args)...)
-    { }
-
-    /*!
-     * Delayed function call for creating a T object
-     * 
-     * \warning passing references or pointers as parameters means these objects will be given to the function object at evaluation time.
-     * Make sure these references/pointers are not invalidated between construction of the lazy object and the evaluation.
-     */
-    LazyInitialization(std::function<T* (Args&&...)> f, Args&&... args)
-    : std::optional<T>()
-    , bind_([&](Args&&...) { std::optional<T>::instance = f(args...); }, std::forward<Args>(args)...)
-    { }
+    , constructor(
+            [this, f, args...]()
+            {
+                std::optional<T>::instance = f(args...);
+            }
+        )
+    {
+    }
 
     LazyInitialization(LazyInitialization<T, Args...>& other) //!< copy constructor
     : std::optional<T>(other)
-    , bind_(other.bind_)
-    { }
+    , constructor(other.constructor)
+    {
+    }
 
     LazyInitialization(LazyInitialization<T, Args...>&& other) //!< move constructor
     : std::optional<T>(other)
     {
-        bind_ = std::move(other);
+        constructor = std::move(other.constructor);
     }
 
     /*!
@@ -77,7 +94,7 @@ public:
     {
         if (!std::optional<T>::instance)
         {
-            bind_();
+            constructor();
         }
         return std::optional<T>::operator*();
     }
@@ -86,7 +103,7 @@ public:
     {
         if (!std::optional<T>::instance)
         {
-            bind_();
+            constructor();
         }
         return std::optional<T>::operator->();
     }
@@ -94,18 +111,18 @@ public:
     LazyInitialization<T, Args...>& operator=(LazyInitialization<T, Args...>&& other)
     {
         std::optional<T>::operator=(other);
-        bind_ = other.bind_;
+        constructor = other.constructor;
         return *this;
     }
 
     void swap(LazyInitialization<T, Args...>& other)
     {
         std::optional<T>::swap(other);
-        std::swap(bind_, other.bind_);
+        std::swap(constructor, other.constructor);
     }
 
 private:
-    bind_type bind_;
+    std::function<void ()> constructor;
 };
 
 }//namespace cura
