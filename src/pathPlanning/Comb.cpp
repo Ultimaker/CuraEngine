@@ -91,13 +91,13 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             end_crossing.findCrossingInOrMid(partsView_inside, start_crossing.in_or_mid);
         }
 
-        bool avoid_other_parts_now = avoid_other_parts;
-        if (avoid_other_parts_now && vSize2(start_crossing.in_or_mid - end_crossing.in_or_mid) < offset_from_inside_to_outside * offset_from_inside_to_outside * 4)
+        bool skip_avoid_other_parts_path = false;
+        if (skip_avoid_other_parts_path && vSize2(start_crossing.in_or_mid - end_crossing.in_or_mid) < offset_from_inside_to_outside * offset_from_inside_to_outside * 4)
         { // parts are next to eachother, i.e. the direct crossing will always be smaller than two crossings via outside
-            avoid_other_parts_now = false;
+            skip_avoid_other_parts_path = true;
         }
 
-        if (avoid_other_parts_now)
+        if (avoid_other_parts && !skip_avoid_other_parts_path)
         { // compute the crossing points when moving through air
             // comb through all air, since generally the outside consists of a single part
 
@@ -128,7 +128,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         }
         
         // throught air from boundary to boundary
-        if (avoid_other_parts_now)
+        if (avoid_other_parts && !skip_avoid_other_parts_path)
         {
             combPaths.emplace_back();
             combPaths.throughAir = true;
@@ -150,9 +150,29 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
         { // directly through air (not avoiding other parts)
             combPaths.emplace_back();
             combPaths.throughAir = true;
-            combPaths.back().cross_boundary = true; // TODO: calculate whether we cross a boundary!
+            combPaths.back().cross_boundary = true; // note: we don't actually know whether this is cross boundary, but it might very well be
             combPaths.back().push_back(start_crossing.in_or_mid);
             combPaths.back().push_back(end_crossing.in_or_mid);
+        }
+        if (skip_avoid_other_parts_path)
+        {
+            if (startInside == endInside && start_part_idx == end_part_idx)
+            {
+                if (startInside)
+                {
+                    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& grid = getOutsideLocToLine(); // TODO: getInsideLocToLine()
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, grid);
+                }
+                else
+                {
+                    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& grid = getOutsideLocToLine();
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, grid);
+                }
+            }
+            else
+            {
+                combPaths.back().cross_boundary = true;
+            }
         }
         
         if (endInside)
