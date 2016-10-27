@@ -91,6 +91,27 @@ void PolygonTest::isOutsideTest()
     CPPUNIT_ASSERT_MESSAGE("Below point is calculated as inside while it's outside!", !test_triangle.inside(Point(100, -100)));
 }
 
+void PolygonTest::isInsideTest()
+{
+    Polygons test_polys;
+    PolygonRef poly = test_polys.newPoly();
+    poly.add(Point(82124,98235));
+    poly.add(Point(83179,98691));
+    poly.add(Point(83434,98950));
+    poly.add(Point(82751,99026));
+    poly.add(Point(82528,99019));
+    poly.add(Point(81605,98854));
+    poly.add(Point(80401,98686));
+    poly.add(Point(79191,98595));
+    poly.add(Point(78191,98441));
+    poly.add(Point(78998,98299));
+    poly.add(Point(79747,98179));
+    poly.add(Point(80960,98095));
+
+    CPPUNIT_ASSERT_MESSAGE("Inside point is calculated as being outside!", test_polys.inside(Point(78315, 98440)));
+
+}
+
 
 
 
