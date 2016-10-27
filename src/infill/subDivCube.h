@@ -66,10 +66,10 @@ private:
     static std::vector<int64_t> square_height; //!< precomputed array of square cut across lengths based on recursion depth. This is the diagonal distance across a face of the cube.
     static std::vector<int64_t> max_draw_z_diff; //!< precomputed array of maximum draw z differences based on recursion depth. This is the maximum difference in z at which lines need to be drawn.
     static std::vector<int64_t> max_line_offset; //!< precomputed array of maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
-    static double rad_mult; //!< multiplier for the bounding radius when determining if a cube should be subdivided
-    static int32_t rad_add; //!< addition to the bounding radius when determining if a cube should be subdivided
-    static double rot_coef_x; //!< cosine of infill angle. used to perform initial rotations of points to align the infill.
-    static double rot_coef_y; //!< sine of infill angle. used to perform initial rotations of points to align the infill
+    static double radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
+    static int32_t radius_addition; //!< addition to the bounding radius when determining if a cube should be subdivided
+    static double rotation_coef_x; //!< cosine of infill angle. used to perform initial rotations of points to align the infill.
+    static double rotation_coef_y; //!< sine of infill angle. used to perform initial rotations of points to align the infill
     static constexpr double sqrt_three_fourths = 0.8660254037844386467637231707529361834714026269051903; //!< sqrt(3.0 / 4.0)
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 };

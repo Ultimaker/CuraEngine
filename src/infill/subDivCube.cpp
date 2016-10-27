@@ -13,18 +13,18 @@ std::vector<int64_t> SubDivCube::height;
 std::vector<int64_t> SubDivCube::square_height;
 std::vector<int64_t> SubDivCube::max_draw_z_diff;
 std::vector<int64_t> SubDivCube::max_line_offset;
-double SubDivCube::rad_mult = 1;
-int32_t SubDivCube::rad_add = 0;
-double SubDivCube::rot_coef_x;
-double SubDivCube::rot_coef_y;
+double SubDivCube::radius_multiplier = 1;
+int32_t SubDivCube::radius_addition = 0;
+double SubDivCube::rotation_coef_x;
+double SubDivCube::rotation_coef_y;
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
-    rad_mult = mesh.getSettingAsRatio("sub_div_rad_mult");
-    rad_add = mesh.getSettingInMicrons("sub_div_rad_add");
+    radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");
+    radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
-    rot_coef_x = cos(infill_angle);
-    rot_coef_y = sin(infill_angle);
+    rotation_coef_x = cos(infill_angle);
+    rotation_coef_y = sin(infill_angle);
     int curr_recursion_depth = 0;
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
@@ -147,7 +147,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
         return;
     }
     Point3 child_center;
-    coord_t radius = double(rad_mult * double(height[depth])) / 4.0 + rad_add;
+    coord_t radius = double(radius_multiplier * double(height[depth])) / 4.0 + radius_addition;
     // top child cube
     child_center.x = center.x;
     child_center.y = center.y;
@@ -264,8 +264,8 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_n
 void SubDivCube::rotatePointInitial(Point& target)
 {
     int64_t x;
-    x = rot_coef_x * target.X - rot_coef_y * target.Y;
-    target.Y = rot_coef_x * target.Y + rot_coef_y * target.X;
+    x = rotation_coef_x * target.X - rotation_coef_y * target.Y;
+    target.Y = rotation_coef_x * target.Y + rotation_coef_y * target.X;
     target.X = x;
 }
 
