@@ -114,14 +114,14 @@ private:
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
+    LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    LazyInitialization<SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+    LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& getOutsideLocToLine();
+    LocToLineGrid& getOutsideLocToLine();
 
      /*!
       * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.

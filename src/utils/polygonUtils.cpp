@@ -658,7 +658,7 @@ unsigned int PolygonUtils::findNearestVert(const Point from, const PolygonRef po
 }
 
 
-SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
+LocToLineGrid* PolygonUtils::createLocToLineGrid(const Polygons& polygons, int square_size)
 {
     unsigned int n_points = 0;
     for (const auto& poly : polygons)
@@ -666,7 +666,7 @@ SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUti
         n_points += poly.size();
     }
 
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* ret = new SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>(square_size, n_points);
+    LocToLineGrid* ret = new LocToLineGrid(square_size, n_points);
 
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -689,7 +689,7 @@ SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* PolygonUti
  */
 std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
     Point from, const Polygons& polygons,
-    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line,
+    const LocToLineGrid& loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<PolygonsPointIndex> near_lines =
@@ -728,7 +728,7 @@ std::optional<ClosestPolygonPoint> PolygonUtils::findClose(
 
 std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> PolygonUtils::findClose(
     const PolygonRef from, const Polygons& destination,
-    const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& destination_loc_to_line,
+    const LocToLineGrid& destination_loc_to_line,
     const std::function<int(Point)>& penalty_function)
 {
     std::vector<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> ret;
@@ -842,7 +842,7 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const Poly
 }
 
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point to, const SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& loc_to_line, PolygonsPointIndex* collision_result)
+bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
 {
     bool ret = false;
     Point diff = to - from;

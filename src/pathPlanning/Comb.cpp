@@ -10,7 +10,7 @@
 
 namespace cura {
 
-SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& Comb::getOutsideLocToLine()
+LocToLineGrid& Comb::getOutsideLocToLine()
 {
     return *outside_loc_to_line;
 }
