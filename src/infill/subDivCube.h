@@ -1,9 +1,13 @@
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
+
 #include "../sliceDataStorage.h"
+
 namespace cura
 {
+
 class Infill;
+
 class SubDivCube
 {
 public:
@@ -56,7 +60,7 @@ private:
     static int distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance);
     int depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
-    SubDivCube *(children[8]) = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
+    SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
     static std::vector<int64_t> side_length; //!< precomputed array of side lengths of cubes based on recursion depth.
     static std::vector<int64_t> height; //!< precomputed array of heights of cubes based on recursion depth. This is the distance from one point of a cube to its 3d opposite.
     static std::vector<int64_t> square_height; //!< precomputed array of square cut across lengths based on recursion depth. This is the diagonal distance across a face of the cube.
@@ -69,6 +73,6 @@ private:
     static constexpr double sqrt_three_fourths = 0.8660254037844386467637231707529361834714026269051903; //!< sqrt(3.0 / 4.0)
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 };
-extern SubDivCube *base_subdiv_cube; //!< the root of the octree
+
 }
 #endif //INFILL_SUBDIVCUBE_H

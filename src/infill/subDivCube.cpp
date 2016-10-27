@@ -1,8 +1,13 @@
 #include "subDivCube.h"
-#include "functional"
+
+#include <functional>
+
 #include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
-namespace cura {
+
+namespace cura
+{
+
 std::vector<int64_t> SubDivCube::side_length;
 std::vector<int64_t> SubDivCube::height;
 std::vector<int64_t> SubDivCube::square_height;
@@ -21,7 +26,7 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     rot_coef_x = cos(infill_angle);
     rot_coef_y = sin(infill_angle);
     int curr_recursion_depth = 0;
-    for(int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
+    for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
         side_length.push_back(curr_side_length);
         height.push_back(sqrt(curr_side_length * curr_side_length * 3));
@@ -51,16 +56,16 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
     auto addLineAndCombine = [&](Polygons& group, Point from, Point to)
     {
         int epsilon = 10;
-        for(unsigned int idx = 0; idx < group.size(); idx++)
+        for (unsigned int idx = 0; idx < group.size(); idx++)
         {
-            if(abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
+            if (abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
             {
                 from = group[idx][0];
                 group.remove(idx);
                 idx--;
                 continue;
             }
-            if(abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
+            if (abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
             {
                 to = group[idx][1];
                 group.remove(idx);
@@ -73,21 +78,21 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         p.add(to);
     };
     bool top_level = false; //!< if this cube is the top level of the recursive call
-    if(directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
+    if (directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
     {
         top_level = true;
         directional_line_groups = (Polygons**)calloc(3, sizeof(Polygons*));
-        for(int idx = 0; idx < 3; idx++)
+        for (int idx = 0; idx < 3; idx++)
         {
             directional_line_groups[idx] = new Polygons();
         }
     }
     int32_t z_diff = abs(z - center.z); //!< the difference between the cube center and the target layer.
-    if(z_diff > height[depth] / 2) //!< this cube does not touch the target layer. Early exit.
+    if (z_diff > height[depth] / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
     }
-    if(z_diff < max_draw_z_diff[depth]) //!< this cube has lines that need to be drawn.
+    if (z_diff < max_draw_z_diff[depth]) //!< this cube has lines that need to be drawn.
     {
         Point relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
         Point a, b; //!< absolute coordinates of line endpoints
@@ -97,32 +102,32 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
-        for(int idx = 0; idx < 3; idx++)//!< draw the line, then rotate 120 degrees.
+        for (int idx = 0; idx < 3; idx++)//!< draw the line, then rotate 120 degrees.
         {
             a.X = center.x + relative_a.X;
             a.Y = center.y + relative_a.Y;
             b.X = center.x + relative_b.X;
             b.Y = center.y + relative_b.Y;
             addLineAndCombine(*(directional_line_groups[idx]), a, b);
-            if(idx < 2)
+            if (idx < 2)
             {
                 rotatePoint120(relative_a);
                 rotatePoint120(relative_b);
             }
         }
     }
-    for(int idx = 0; idx < 8; idx++) //!< draws the eight children
+    for (int idx = 0; idx < 8; idx++) //!< draws the eight children
     {
-        if(children[idx] != nullptr)
+        if (children[idx] != nullptr)
         {
             children[idx]->generateSubdivisionLines(z, result, directional_line_groups);
         }
     }
-    if(top_level) //!< copy directional groups into result, then free the directional groups
+    if (top_level) //!< copy directional groups into result, then free the directional groups
     {
-        for(int temp = 0; temp < 3; temp++)
+        for (int temp = 0; temp < 3; temp++)
         {
-            for(unsigned int idx = 0; idx < directional_line_groups[temp]->size(); idx++)
+            for (unsigned int idx = 0; idx < directional_line_groups[temp]->size(); idx++)
             {
                 addLine((*directional_line_groups[temp])[idx][0], (*directional_line_groups[temp])[idx][1]);
             }
@@ -137,7 +142,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     this->depth = depth;
     this->center = center;
 
-    if(depth == 0) // lowest layer, no need for subdivision, exit.
+    if (depth == 0) // lowest layer, no need for subdivision, exit.
     {
         return;
     }
@@ -147,7 +152,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     child_center.x = center.x;
     child_center.y = center.y;
     child_center.z = center.z + (height[depth] / 4);
-    if(isValidSubdivision(mesh, child_center, radius))
+    if (isValidSubdivision(mesh, child_center, radius))
     {
         children[0] = new SubDivCube(mesh, child_center, depth - 1);
     }
@@ -157,14 +162,16 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     relative_center.X = 0;
     relative_center.Y = -max_line_offset[depth];
     rotatePointInitial(relative_center);
-    for(int temp = 0; temp < 3; temp++)
+    for (int temp = 0; temp < 3; temp++)
     {
         child_center.x = relative_center.X + center.x;
         child_center.y = relative_center.Y + center.y;
-        if(isValidSubdivision(mesh, child_center, radius)){
+        if (isValidSubdivision(mesh, child_center, radius))
+        {
             children[temp + 1] = new SubDivCube(mesh, child_center, depth - 1);
         }
-        if(temp < 2){
+        if (temp < 2)
+        {
             rotatePoint120(relative_center);
         }
     }
@@ -172,7 +179,8 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     child_center.x = center.x;
     child_center.y = center.y;
     child_center.z = center.z - (height[depth] / 4);
-    if(isValidSubdivision(mesh, child_center, radius)){
+    if (isValidSubdivision(mesh, child_center, radius))
+    {
         children[4] = new SubDivCube(mesh, child_center, depth - 1);
     }
     // bottom three children
@@ -180,15 +188,16 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     relative_center.X = 0;
     relative_center.Y = max_line_offset[depth];
     rotatePointInitial(relative_center);
-    for(int temp = 0; temp < 3; temp++)
+    for (int temp = 0; temp < 3; temp++)
     {
         child_center.x = relative_center.X + center.x;
         child_center.y = relative_center.Y + center.y;
-        if(isValidSubdivision(mesh, child_center, radius))
+        if (isValidSubdivision(mesh, child_center, radius))
         {
             children[temp + 5] = new SubDivCube(mesh, child_center, depth - 1);
         }
-        if(temp < 2){
+        if (temp < 2)
+        {
             rotatePoint120(relative_center);
         }
     }
@@ -205,14 +214,14 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     const long int layer_height = mesh.getSettingInMicrons("layer_height");
     long int bottom_layer = (center.z - radius) / layer_height;
     long int top_layer = (center.z + radius) / layer_height;
-    for(long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
+    for (long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
         part_dist = (double)(test_layer * layer_height - center.z) / radius;
         sphere_slice_radius = radius * (sqrt(1 - (part_dist * part_dist)));
         Point loc(center.x, center.y);
 
         inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance);
-        if(inside == 1)
+        if (inside == 1)
         {
             inside_somewhere = true;
         }
@@ -220,11 +229,11 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
         {
             outside_somewhere = true;
         }
-        if(outside_somewhere && inside_somewhere)
+        if (outside_somewhere && inside_somewhere)
         {
             return true;
         }
-        if((inside != 2) && abs(distance) < sphere_slice_radius)
+        if ((inside != 2) && abs(distance) < sphere_slice_radius)
         {
             return true;
         }
@@ -233,8 +242,8 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
 }
 
 int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance)
-    {
-    if(layer_nr < 0 || (unsigned long int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
+{
+    if (layer_nr < 0 || (unsigned long int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
         return 2;
     }
@@ -244,7 +253,7 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_n
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
     *distance = sqrt((border_point.location.X - location.X) * (border_point.location.X - location.X) + (border_point.location.Y - location.Y) * (border_point.location.Y - location.Y));
-    if(inside)
+    if (inside)
     {
         return 1;
     }
