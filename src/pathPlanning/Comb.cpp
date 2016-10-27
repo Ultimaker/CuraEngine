@@ -29,8 +29,8 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , avoid_other_parts(travel_avoid_other_parts)
-// , boundary_inside( boundary.offset(-offset_from_outlines) ) // TODO: make inside boundary configurable?
 , boundary_inside( comb_boundary_inside )
+, partsView_inside( boundary_inside.splitIntoPartsView() ) // WARNING !! changes the order of boundary_inside !!
 , inside_loc_to_line(PolygonUtils::createLocToLineGrid(boundary_inside, comb_boundary_offset))
 , boundary_outside(
         [&storage, layer_nr, travel_avoid_distance]()
@@ -46,7 +46,6 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
         , this
         , offset_from_inside_to_outside
     )
-, partsView_inside( boundary_inside.splitIntoPartsView() ) // !! changes the order of boundary_inside !!
 {
 }
 

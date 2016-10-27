@@ -113,10 +113,10 @@ private:
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
+    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
     SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
@@ -140,6 +140,9 @@ private:
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
+     * 
+     * \warning \ref Comb::calc changes the order of polygons in \p Comb::comb_boundary_inside
+     * 
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
      * \param comb_boundary_inside The comb boundary within which to comb within layer parts.
@@ -148,11 +151,13 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
     Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
-    
+
     ~Comb();
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
+     * 
+     * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
      * 
      * \param startPoint Where to start moving from
      * \param endPoint Where to move to
@@ -162,7 +167,7 @@ public:
      * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
-     */    
+     */
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
 };
 
