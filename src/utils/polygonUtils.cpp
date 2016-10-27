@@ -443,9 +443,9 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                         }
                     }
                     svg.writeComment("From location");
-                    svg.writePoint(from, false, 5, SVG::Color::GREEN);
+                    svg.writePoint(from, true, 5, SVG::Color::GREEN);
                     svg.writeComment("Location computed to be inside the black polygon");
-                    svg.writePoint(inside.location, false, 5, SVG::Color::RED);
+                    svg.writePoint(inside.location, true, 5, SVG::Color::RED);
                 }
                 catch(...)
                 {
