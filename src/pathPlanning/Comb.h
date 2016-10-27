@@ -48,6 +48,8 @@ private:
         Point out; //!< The point on the outside boundary
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
         PolygonRef dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        const Polygons& boundary_inside; //!< The inside boundary as in \ref Comb::boundary_inside
+        const LocToLineGrid* inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
         /*!
          * Simple constructor
@@ -58,7 +60,7 @@ private:
          * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon).
          * \param boundary_inside The boundary within which to comb.
          */
-        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside);
+        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line);
 
         /*!
          * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary

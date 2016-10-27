@@ -95,8 +95,8 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             return false;
         }
 
-        Crossing start_crossing(startPoint, startInside, start_part_idx, start_part_boundary_poly_idx, boundary_inside);
-        Crossing end_crossing(endPoint, endInside, end_part_idx, end_part_boundary_poly_idx, boundary_inside);
+        Crossing start_crossing(startPoint, startInside, start_part_idx, start_part_boundary_poly_idx, boundary_inside, inside_loc_to_line);
+        Crossing end_crossing(endPoint, endInside, end_part_idx, end_part_boundary_poly_idx, boundary_inside, inside_loc_to_line);
 
         { // find crossing over the in-between area between inside and outside
             start_crossing.findCrossingInOrMid(partsView_inside, endPoint);
@@ -202,9 +202,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
     }
 }
 
-Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside)
+Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line)
 : dest_is_inside(dest_is_inside)
 , dest_crossing_poly(boundary_inside[(dest_is_inside)? dest_part_boundary_crossing_poly_idx : 0]) // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
+, boundary_inside(boundary_inside)
+, inside_loc_to_line(inside_loc_to_line)
 , dest_point(dest_point)
 , dest_part_idx(dest_part_idx)
 {
@@ -215,7 +217,7 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
 {
     if (is_inside)
     {
-        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2);
+        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2, &boundary_inside, inside_loc_to_line);
         if (cpp.point_idx == NO_INDEX)
         {
             return false;
@@ -239,7 +241,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         dest_part = partsView_inside.assemblePart(dest_part_idx);
         Point result(close_to);
         int64_t max_dist2 = std::numeric_limits<int64_t>::max();
-        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside, max_dist2, close_towards_start_penalty_function);
+        ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside, max_dist2, &boundary_inside, inside_loc_to_line, close_towards_start_penalty_function);
         if (crossing_1_in_cp.point_idx != NO_INDEX)
         {
             dest_crossing_poly = crossing_1_in_cp.poly;

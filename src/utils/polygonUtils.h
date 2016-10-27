@@ -143,9 +143,12 @@ public:
      * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \param loc_to_line_polygons All polygons with which the \p loc_to_line_grid has been created.
+     * \param loc_to_line_grid A SparseGrid mapping locations to line segments of \p polygons
+     * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint moveInside2(const Polygons& polygons, Point& from, const int distance = 0, const int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static ClosestPolygonPoint moveInside2(const Polygons& polygons, Point& from, const int distance = 0, const int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
      * Moves the point \p from onto the nearest segment of \p polygon or leaves the point as-is, when the comb boundary is not within the root of \p max_dist2 distance.
@@ -153,14 +156,20 @@ public:
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
+     * \warning When a \p loc_to_line is given this function only considers nearby elements.
+     * Even when the penalty function favours elements farther away.
+     * Also using the \p loc_to_line_grid automatically considers \p all_polygons
+     * 
+     * \param loc_to_line_polygons All polygons which are present in the \p loc_to_line_grid of which \p polygon is an element
      * \param polygon The polygon onto which to move the point
      * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \param loc_to_line_grid A SparseGrid mapping locations to line segments of \p polygon
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint moveInside2(const PolygonRef polygon, Point& from, const int distance = 0, const int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static ClosestPolygonPoint moveInside2(const Polygons& loc_to_line_polygons, const PolygonRef polygon, Point& from, const int distance = 0, const int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
      * The opposite of moveInside.
@@ -216,10 +225,12 @@ public:
      * \param from[in,out] The point to move.
      * \param preferred_dist_inside The preferred distance from the boundary to the point
      * \param max_dist2 The squared maximal allowed distance from the point to the nearest polygon.
+     * \param loc_to_line_polygons The original polygons with which the \p loc_to_line_grid has been created
+     * \param loc_to_line_grid A SparseGrid mapping locations to line segments of \p polygons
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The point on the polygon closest to \p from
      */
-    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const std::function<int(Point)>& penalty_function = no_penalty_function);
+    static ClosestPolygonPoint ensureInsideOrOutside(const Polygons& polygons, Point& from, int preferred_dist_inside, int64_t max_dist2 = std::numeric_limits<int64_t>::max(), const Polygons* loc_to_line_polygons = nullptr, const LocToLineGrid* loc_to_line_grid = nullptr, const std::function<int(Point)>& penalty_function = no_penalty_function);
 
     /*!
     * Find the two points in two polygons with the smallest distance.
