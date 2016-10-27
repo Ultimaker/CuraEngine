@@ -13,7 +13,7 @@
 
 #include "intpoint.h"
 
-//#define CHECK_POLY_ACCESS
+#define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
 #define POLY_ASSERT(e) assert(e)
 #else
@@ -52,7 +52,7 @@ public:
 
     Point& operator[] (unsigned int index) const
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         return (*path)[index];
     }
 
@@ -85,7 +85,7 @@ public:
 
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         path->erase(path->begin() + index);
     }
 
@@ -407,7 +407,7 @@ public:
 
     PolygonRef operator[] (unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         return PolygonRef(paths[index]);
     }
     const PolygonRef operator[] (unsigned int index) const
@@ -432,7 +432,7 @@ public:
     }
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         paths.erase(paths.begin() + index);
     }
     void erase(ClipperLib::Paths::iterator start, ClipperLib::Paths::iterator end)
