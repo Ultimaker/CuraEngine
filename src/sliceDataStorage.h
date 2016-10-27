@@ -171,6 +171,14 @@ public:
             infill_config.emplace_back(PrintFeatureType::Infill);
     }
 
+    virtual ~SliceMeshStorage()
+    {
+        if (base_subdiv_cube)
+        {
+            delete base_subdiv_cube;
+        }
+    }
+
     virtual ~SliceMeshStorage();
 };
 
