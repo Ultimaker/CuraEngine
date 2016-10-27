@@ -204,7 +204,7 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
 Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside)
 : dest_is_inside(dest_is_inside)
-, dest_crossing_poly(boundary_inside[dest_part_boundary_crossing_poly_idx]) // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
+, dest_crossing_poly(boundary_inside[(dest_is_inside)? dest_part_boundary_crossing_poly_idx : 0]) // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
 , dest_point(dest_point)
 , dest_part_idx(dest_part_idx)
 {

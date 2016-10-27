@@ -846,6 +846,11 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point 
 {
     bool ret = false;
     Point diff = to - from;
+    if (vSize2(diff) < 2)
+    { // transformation matrix would fail
+        return false;
+    }
+
     PointMatrix transformation_matrix = PointMatrix(diff);
     Point transformed_startPoint = transformation_matrix.apply(from);
     Point transformed_endPoint = transformation_matrix.apply(to);
