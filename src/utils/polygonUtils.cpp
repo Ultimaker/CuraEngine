@@ -857,7 +857,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point 
 
     PolygonsPointIndex result;
 
-    std::function<void (const PolygonsPointIndex&)> process_elem_func =
+    std::function<bool (const PolygonsPointIndex&)> process_elem_func =
         [transformed_startPoint, transformed_endPoint, &transformation_matrix, &result, &ret]
         (const PolygonsPointIndex& line_start)
         {
@@ -868,7 +868,9 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point 
             {
                 result = line_start;
                 ret = true;
+                return false;
             }
+            return true;
         };
     loc_to_line.processLine(std::make_pair(from, to), process_elem_func);
 

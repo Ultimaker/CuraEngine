@@ -109,9 +109,10 @@ std::vector<Val>
 SG_THIS::getNearbyVals(const Point &query_pt, coord_t radius) const
 {
     std::vector<Val> ret;
-    std::function<void (const SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem &elem)
+    std::function<bool (const SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem &elem)
         {
             ret.push_back(elem.val);
+            return true;
         };
     this->processNearby(query_pt, radius, process_func);
     return ret;

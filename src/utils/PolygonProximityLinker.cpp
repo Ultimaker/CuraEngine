@@ -112,9 +112,10 @@ void PolygonProximityLinker::findProximatePoints()
                 //  o--->o-->o-->o->
                 //  2    4   6   8
                 std::unordered_set<ListPolyIt> nearby_lines;
-                std::function<void (const ListPolyIt&)> process_func = [&nearby_lines](const ListPolyIt& elem)
+                std::function<bool (const ListPolyIt&)> process_func = [&nearby_lines](const ListPolyIt& elem)
                 {
                     nearby_lines.emplace(elem);
+                    return true;
                 };
                 line_grid.processNearby(point_it.p(), proximity_distance, process_func);
                 for (const ListPolyIt& nearby_line : nearby_lines)
@@ -139,9 +140,10 @@ void PolygonProximityLinker::findProximatePoints()
         //  o--->o-->o-->o->
         //  2    4   6   8
         std::unordered_set<ListPolyIt> nearby_vert_its;
-        std::function<void (const ListPolyIt&)> process_func = [&nearby_vert_its](const ListPolyIt& elem)
+        std::function<bool (const ListPolyIt&)> process_func = [&nearby_vert_its](const ListPolyIt& elem)
         {
             nearby_vert_its.emplace(elem);
+            return true;
         };
         line_grid.processNearby(new_point_it.p(), proximity_distance, process_func);
         // because we use the same line_grid as before the resulting nearby_points

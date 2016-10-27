@@ -67,9 +67,10 @@ SGI_TEMPLATE
 void SGI_THIS::insert(const Elem &elem)
 {
     const std::pair<Point, Point> line = m_locator(elem);
-    std::function<void (const GridPoint)> process_cell_func = [&elem, this](const GridPoint grid_loc)
+    std::function<bool (const GridPoint)> process_cell_func = [&elem, this](const GridPoint grid_loc)
         {
             SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
+            return true;
         };
     SparseGrid<ElemT>::processLineCells(line, process_cell_func);
 }
