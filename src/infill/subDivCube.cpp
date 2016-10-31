@@ -18,6 +18,17 @@ int32_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
 PointMatrix SubDivCube::infill_rotation_matrix;
 
+SubDivCube::~SubDivCube()
+{
+    for (int child_idx = 0; child_idx < 8; child_idx++)
+    {
+        if (children[child_idx])
+        {
+            delete children[child_idx];
+        }
+    }
+}
+
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
     radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");

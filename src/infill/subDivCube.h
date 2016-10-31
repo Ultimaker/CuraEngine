@@ -18,6 +18,9 @@ public:
      * \param depth the recursion depth of the cube (0 is most recursed)
      */
     SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth);
+
+    ~SubDivCube(); //!< destructor (also destroys children
+
     /*!
      * Precompute the octree of subdivided cubes
      * \param mesh contains infill layer data and settings
