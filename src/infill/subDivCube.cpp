@@ -148,57 +148,35 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     }
     Point3 child_center;
     coord_t radius = double(radius_multiplier * double(height[depth])) / 4.0 + radius_addition;
-    // top child cube
-    child_center.x = center.x;
-    child_center.y = center.y;
-    child_center.z = center.z + (height[depth] / 4);
-    if (isValidSubdivision(mesh, child_center, radius))
+
+    Point3Matrix rotation;
+    double one_over_sqrt_3 = 1.0 / sqrt(3.0);
+    double one_over_sqrt_6 = 1.0 / sqrt(6.0);
+    double sqrt_two_third = sqrt(2.0 / 3.0);
+    rotation.matrix[0] = one_over_sqrt_2; rotation.matrix[1] = -one_over_sqrt_2; rotation.matrix[2] = 0;
+    rotation.matrix[3] = one_over_sqrt_6; rotation.matrix[4] = one_over_sqrt_6;  rotation.matrix[5] = -sqrt_two_third ;
+    rotation.matrix[6] = one_over_sqrt_3; rotation.matrix[7] = one_over_sqrt_3;  rotation.matrix[8] = one_over_sqrt_3;
+
+    double infill_angle = M_PI / 4.0;
+    PointMatrix infill_angle_mat_2d(infill_angle);
+    Point3Matrix infill_angle_mat(infill_angle_mat_2d);
+
+    rotation = rotation.compose(infill_angle_mat);
+
+    int child_nr = 0;
+    for (int x = -1; x < 2; x += 2)
     {
-        children[0] = new SubDivCube(mesh, child_center, depth - 1);
-    }
-    // top three children
-    Point relative_center; //!< center of the child cube relative to the center of the parent.
-    child_center.z = center.z + height[depth] / 12;
-    relative_center.X = 0;
-    relative_center.Y = -max_line_offset[depth];
-    rotatePointInitial(relative_center);
-    for (int temp = 0; temp < 3; temp++)
-    {
-        child_center.x = relative_center.X + center.x;
-        child_center.y = relative_center.Y + center.y;
-        if (isValidSubdivision(mesh, child_center, radius))
+        for (int y = -1; y < 2; y += 2)
         {
-            children[temp + 1] = new SubDivCube(mesh, child_center, depth - 1);
-        }
-        if (temp < 2)
-        {
-            rotatePoint120(relative_center);
-        }
-    }
-    // bottom child
-    child_center.x = center.x;
-    child_center.y = center.y;
-    child_center.z = center.z - (height[depth] / 4);
-    if (isValidSubdivision(mesh, child_center, radius))
-    {
-        children[4] = new SubDivCube(mesh, child_center, depth - 1);
-    }
-    // bottom three children
-    child_center.z = center.z - height[depth] / 12;
-    relative_center.X = 0;
-    relative_center.Y = max_line_offset[depth];
-    rotatePointInitial(relative_center);
-    for (int temp = 0; temp < 3; temp++)
-    {
-        child_center.x = relative_center.X + center.x;
-        child_center.y = relative_center.Y + center.y;
-        if (isValidSubdivision(mesh, child_center, radius))
-        {
-            children[temp + 5] = new SubDivCube(mesh, child_center, depth - 1);
-        }
-        if (temp < 2)
-        {
-            rotatePoint120(relative_center);
+            for (int z = -1; z < 2; z += 2)
+            {
+                child_center = center + rotation.apply(Point3(x, y, z) * int32_t(side_length[depth] / 4));
+                if (isValidSubdivision(mesh, child_center, radius))
+                {
+                    children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
+                    child_nr++;
+                }
+            }
         }
     }
 }
