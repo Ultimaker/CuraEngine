@@ -4,6 +4,7 @@
 #include <map> // multimap (ordered map allowing duplicate keys)
 
 #include "utils/math.h"
+#include "utils/algorithm.h"
 #include "slicer.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -259,8 +260,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     */
 
+    computePrintHeightStatistics(storage);
+
     // handle helpers
-    storage.primeTower.computePrimeTowerMax(storage);
     storage.primeTower.generatePaths(storage, print_layer_count);
     
     logDebug("Processing ooze shield\n");
@@ -495,6 +497,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
             {
                 layer.printZ -= n_empty_first_layers * layer_height;
             }
+            mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }
         total_layers -= n_empty_first_layers;
     }
@@ -524,6 +527,47 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned
     }
 }
 
+void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
+{
+    int extruder_count = storage.meshgroup->getExtruderCount();
+
+    std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
+    assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
+    max_print_height_per_extruder.resize(extruder_count, -1); // unitialize all as -1
+    { // compute max_object_height_per_extruder
+        for (SliceMeshStorage& mesh : storage.meshes)
+        {
+            unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
+            max_print_height_per_extruder[extr_nr] =
+                std::max(   max_print_height_per_extruder[extr_nr]
+                        ,   mesh.layer_nr_max_filled_layer  );
+        }
+        int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
+        max_print_height_per_extruder[support_infill_extruder_nr] =
+            std::max(   max_print_height_per_extruder[support_infill_extruder_nr]
+                    ,   storage.support.layer_nr_max_filled_layer  );
+        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
+        max_print_height_per_extruder[support_skin_extruder_nr] =
+            std::max(   max_print_height_per_extruder[support_skin_extruder_nr]
+                    ,   storage.support.layer_nr_max_filled_layer  );
+        int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+        max_print_height_per_extruder[adhesion_extruder_nr] =
+            std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
+    }
+
+    storage.max_print_height_order = order(max_print_height_per_extruder);
+    if (extruder_count >= 2)
+    {
+        int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
+        storage.max_print_height_second_to_last_extruder = max_print_height_per_extruder[second_highest_extruder];
+    }
+    else
+    {
+        storage.max_print_height_second_to_last_extruder = -1;
+    }
+}
+
+
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
     if (!getSettingBoolean("ooze_shield_enabled"))
@@ -533,7 +577,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 
     const int ooze_shield_dist = getSettingInMicrons("ooze_shield_dist");
 
-    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+    for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield.push_back(storage.getLayerOutlines(layer_nr, true).offset(ooze_shield_dist, ClipperLib::jtRound));
     }
@@ -542,18 +586,18 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     if (angle <= 89)
     {
         int allowed_angle_offset = tan(getSettingInAngleRadians("ooze_shield_angle")) * getSettingInMicrons("layer_height"); // Allow for a 60deg angle in the oozeShield.
-        for (int layer_nr = 1; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+        for (int layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
             storage.oozeShield[layer_nr] = storage.oozeShield[layer_nr].unionPolygons(storage.oozeShield[layer_nr - 1].offset(-allowed_angle_offset));
         }
-        for (int layer_nr = storage.max_object_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
+        for (int layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
         {
             storage.oozeShield[layer_nr - 1] = storage.oozeShield[layer_nr - 1].unionPolygons(storage.oozeShield[layer_nr].offset(-allowed_angle_offset));
         }
     }
 
     const float largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
-    for (int layer_nr = 0; layer_nr <= storage.max_object_height_second_to_last_extruder; layer_nr++)
+    for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.oozeShield[layer_nr].removeSmallAreas(largest_printed_area);
     }
