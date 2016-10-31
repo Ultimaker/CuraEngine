@@ -54,10 +54,10 @@ private:
      * \param mesh contains infill layer data and settings
      * \param layer_nr the number of the specified layer
      * \param location the location of the specified point
-     * \param distance (output) the distance to the infill border
+     * \param[out] distance2 the squared distance to the infill border
      * \return Code 0: outside, 1: inside, 2: boundary does not exist at specified layer
      */
-    static int distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance);
+    static int distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance2);
     int depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
     SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
