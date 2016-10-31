@@ -29,10 +29,10 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
         side_length.push_back(curr_side_length);
-        height.push_back(sqrt(curr_side_length * curr_side_length * 3));
-        square_height.push_back(sqrt(curr_side_length * curr_side_length * 2));
+        height.push_back(sqrt(3) * curr_side_length);
+        square_height.push_back(sqrt(2) * curr_side_length);
         max_draw_z_diff.push_back((1.0 / sqrt(3.0)) * curr_side_length);
-        max_line_offset.push_back((sqrt(2.0 / 3.0) * curr_side_length) / 2);
+        max_line_offset.push_back((sqrt(1.0 / 6.0) * curr_side_length));
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
