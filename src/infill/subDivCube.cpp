@@ -15,16 +15,14 @@ std::vector<int64_t> SubDivCube::max_draw_z_diff;
 std::vector<int64_t> SubDivCube::max_line_offset;
 double SubDivCube::radius_multiplier = 1;
 int32_t SubDivCube::radius_addition = 0;
-double SubDivCube::rotation_coef_x;
-double SubDivCube::rotation_coef_y;
+Point3Matrix SubDivCube::rotation_matrix;
+PointMatrix SubDivCube::infill_rotation_matrix;
 
 void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 {
     radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");
     radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
-    rotation_coef_x = cos(infill_angle);
-    rotation_coef_y = sin(infill_angle);
     int curr_recursion_depth = 0;
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
@@ -36,6 +34,31 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
+
+    Point3Matrix tilt; // rotation matrix to get from axis aligned cubes to cubes standing on their tip
+    // The Z axis is transformed to go in positive Y direction
+    //
+    //  cross section in a horizontal plane      horizontal plane showing
+    //  looking down at the origin O             positive X and positive Y
+    //                 Z                                                        .
+    //                /:\                              Y                        .
+    //               / : \                             ^                        .
+    //              /  :  \                            |                        .
+    //             /  .O.  \                           |                        .
+    //            /.~'   '~.\                          O---->X                  .
+    //          X """"""""""" Y                                                 .
+    double one_over_sqrt_3 = 1.0 / sqrt(3.0);
+    double one_over_sqrt_6 = 1.0 / sqrt(6.0);
+    double sqrt_two_third = sqrt(2.0 / 3.0);
+    tilt.matrix[0] = -one_over_sqrt_2;  tilt.matrix[1] = one_over_sqrt_2; tilt.matrix[2] = 0;
+    tilt.matrix[3] = -one_over_sqrt_6; tilt.matrix[4] = -one_over_sqrt_6; tilt.matrix[5] = sqrt_two_third ;
+    tilt.matrix[6] = one_over_sqrt_3;  tilt.matrix[7] = one_over_sqrt_3;  tilt.matrix[8] = one_over_sqrt_3;
+
+    infill_rotation_matrix = PointMatrix(infill_angle);
+    Point3Matrix infill_angle_mat(infill_rotation_matrix);
+
+    rotation_matrix = infill_angle_mat.compose(tilt);
+
     mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
 
@@ -149,34 +172,23 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     Point3 child_center;
     coord_t radius = double(radius_multiplier * double(height[depth])) / 4.0 + radius_addition;
 
-    Point3Matrix rotation;
-    double one_over_sqrt_3 = 1.0 / sqrt(3.0);
-    double one_over_sqrt_6 = 1.0 / sqrt(6.0);
-    double sqrt_two_third = sqrt(2.0 / 3.0);
-    rotation.matrix[0] = one_over_sqrt_2; rotation.matrix[1] = -one_over_sqrt_2; rotation.matrix[2] = 0;
-    rotation.matrix[3] = one_over_sqrt_6; rotation.matrix[4] = one_over_sqrt_6;  rotation.matrix[5] = -sqrt_two_third ;
-    rotation.matrix[6] = one_over_sqrt_3; rotation.matrix[7] = one_over_sqrt_3;  rotation.matrix[8] = one_over_sqrt_3;
-
-    double infill_angle = M_PI / 4.0;
-    PointMatrix infill_angle_mat_2d(infill_angle);
-    Point3Matrix infill_angle_mat(infill_angle_mat_2d);
-
-    rotation = rotation.compose(infill_angle_mat);
-
     int child_nr = 0;
-    for (int x = -1; x < 2; x += 2)
+    std::vector<Point3> rel_child_centers;
+    rel_child_centers.emplace_back(1, 1, 1); // top
+    rel_child_centers.emplace_back(-1, 1, 1); // top three
+    rel_child_centers.emplace_back(1, -1, 1);
+    rel_child_centers.emplace_back(1, 1, -1);
+    rel_child_centers.emplace_back(-1, -1, -1); // bottom
+    rel_child_centers.emplace_back(1, -1, -1); // bottom three
+    rel_child_centers.emplace_back(-1, 1, -1);
+    rel_child_centers.emplace_back(-1, -1, 1);
+    for (Point3 rel_child_center : rel_child_centers)
     {
-        for (int y = -1; y < 2; y += 2)
+        child_center = center + rotation_matrix.apply(rel_child_center * int32_t(side_length[depth] / 4));
+        if (isValidSubdivision(mesh, child_center, radius))
         {
-            for (int z = -1; z < 2; z += 2)
-            {
-                child_center = center + rotation.apply(Point3(x, y, z) * int32_t(side_length[depth] / 4));
-                if (isValidSubdivision(mesh, child_center, radius))
-                {
-                    children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
-                    child_nr++;
-                }
-            }
+            children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
+            child_nr++;
         }
     }
 }
@@ -241,10 +253,7 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_n
 
 void SubDivCube::rotatePointInitial(Point& target)
 {
-    int64_t x;
-    x = rotation_coef_x * target.X - rotation_coef_y * target.Y;
-    target.Y = rotation_coef_x * target.Y + rotation_coef_y * target.X;
-    target.X = x;
+    target = infill_rotation_matrix.apply(target);
 }
 
 void SubDivCube::rotatePoint120(Point& target)
