@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <vector>
 #include <functional>
+#include <numeric>
 
 // extensions to algorithm.h from the standard library
 
