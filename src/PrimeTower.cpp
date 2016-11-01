@@ -281,7 +281,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
         // go to wipe start
         // go to the Z height of the previous/current layer
         // wipe
-        // go to normal layer height (automatically on the next extrusion move...
+        // go to normal layer height (automatically on the next extrusion move)...
         GCodePath& toward_middle = gcode_layer.addTravel(middle);
         toward_middle.perform_z_hop = true;
         gcode_layer.forceNewPathStart();
