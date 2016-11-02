@@ -868,19 +868,19 @@ bool PolygonUtils::polygonCollidesWithLineSegment(const Point from, const Point 
     }
 
     PointMatrix transformation_matrix = PointMatrix(diff);
-    Point transformed_startPoint = transformation_matrix.apply(from);
-    Point transformed_endPoint = transformation_matrix.apply(to);
+    Point transformed_from = transformation_matrix.apply(from);
+    Point transformed_to = transformation_matrix.apply(to);
 
     PolygonsPointIndex result;
 
     std::function<bool (const PolygonsPointIndex&)> process_elem_func =
-        [transformed_startPoint, transformed_endPoint, &transformation_matrix, &result, &ret]
+        [transformed_from, transformed_to, &transformation_matrix, &result, &ret]
         (const PolygonsPointIndex& line_start)
         {
             Point p0 = transformation_matrix.apply(line_start.p());
             Point p1 = transformation_matrix.apply(line_start.next().p());
 
-            if (LinearAlg2D::lineSegmentsCollide(transformed_startPoint, transformed_endPoint, p0, p1))
+            if (LinearAlg2D::lineSegmentsCollide(transformed_from, transformed_to, p0, p1))
             {
                 result = line_start;
                 ret = true;
