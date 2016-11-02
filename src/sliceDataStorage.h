@@ -256,7 +256,7 @@ public:
      * 
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed();
+    std::vector<bool> getExtrudersUsed() const;
 
     /*!
      * Get the extruders used on a particular layer.
@@ -264,7 +264,7 @@ public:
      * \param layer_nr the layer for which to check
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed(int layer_nr);
+    std::vector<bool> getExtrudersUsed(int layer_nr) const;
 };
 
 }//namespace cura

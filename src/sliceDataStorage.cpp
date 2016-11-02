@@ -209,7 +209,7 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
 
 }
 
-std::vector< bool > SliceDataStorage::getExtrudersUsed()
+std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 {
 
     std::vector<bool> ret;
@@ -236,14 +236,14 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     ret[getSettingAsIndex("support_interface_extruder_nr")] = true;
 
     // all meshes are presupposed to actually have content
-    for (SliceMeshStorage& mesh : meshes)
+    for (const SliceMeshStorage& mesh : meshes)
     {
         ret[mesh.getSettingAsIndex("extruder_nr")] = true;
     }
     return ret;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
+std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
 {
 
     std::vector<bool> ret;
@@ -287,7 +287,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
         // support
         if (layer_nr < int(support.supportLayers.size()))
         {
-            SupportLayer& support_layer = support.supportLayers[layer_nr];
+            const SupportLayer& support_layer = support.supportLayers[layer_nr];
             if (layer_nr == 0)
             {
                 if (support_layer.supportAreas.size() > 0)
@@ -311,13 +311,13 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr)
 
     if (include_models)
     {
-        for (SliceMeshStorage& mesh : meshes)
+        for (const SliceMeshStorage& mesh : meshes)
         {
             if (layer_nr >= int(mesh.layers.size()))
             {
                 continue;
             }
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             if (layer.parts.size() > 0)
             {
                 ret[mesh.getSettingAsIndex("extruder_nr")] = true;
