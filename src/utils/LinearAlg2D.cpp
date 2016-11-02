@@ -110,23 +110,23 @@ bool LinearAlg2D::getPointOnLineWithDist(const Point p, const Point a, const Poi
     }
 }
 
-bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point p0, Point p1)
+bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_transformed, Point b_from_transformed, Point b_to_transformed)
 {
     assert(std::abs(a_from_transformed.Y - a_to_transformed.Y) < 2 && "line a is supposed to be transformed to be aligned with the X axis!");
     assert(a_from_transformed.X - 2 <= a_to_transformed.X && "line a is supposed to be aligned with X axis in positive direction!");
-    if ((p0.Y >= a_from_transformed.Y && p1.Y <= a_from_transformed.Y) || (p1.Y >= a_from_transformed.Y && p0.Y <= a_from_transformed.Y))
+    if ((b_from_transformed.Y >= a_from_transformed.Y && b_to_transformed.Y <= a_from_transformed.Y) || (b_to_transformed.Y >= a_from_transformed.Y && b_from_transformed.Y <= a_from_transformed.Y))
     {
-        if(p1.Y == p0.Y)
+        if(b_to_transformed.Y == b_from_transformed.Y)
         {
-            if (p1.X < p0.X)
+            if (b_to_transformed.X < b_from_transformed.X)
             {
-                std::swap(p1.X, p0.X);
+                std::swap(b_to_transformed.X, b_from_transformed.X);
             }
-            if (p0.X > a_to_transformed.X)
+            if (b_from_transformed.X > a_to_transformed.X)
             {
                 return false;
             }
-            if (p1.X < a_from_transformed.X)
+            if (b_to_transformed.X < a_from_transformed.X)
             {
                 return false;
             }
@@ -134,7 +134,7 @@ bool LinearAlg2D::lineSegmentsCollide(Point a_from_transformed, Point a_to_trans
         }
         else
         {
-            int64_t x = p0.X + (p1.X - p0.X) * (a_from_transformed.Y - p0.Y) / (p1.Y - p0.Y);
+            int64_t x = b_from_transformed.X + (b_to_transformed.X - b_from_transformed.X) * (a_from_transformed.Y - b_from_transformed.Y) / (b_to_transformed.Y - b_from_transformed.Y);
             if (x >= a_from_transformed.X && x <= a_to_transformed.X)
             {
                 return true;
