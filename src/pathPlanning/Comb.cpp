@@ -172,11 +172,11 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
             {
                 if (startInside)
                 { // both start and end are inside
-                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *inside_loc_to_line);
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(startPoint, endPoint, *inside_loc_to_line);
                 }
                 else
                 { // both start and end are outside
-                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithlineSegment(startPoint, endPoint, *outside_loc_to_line);
+                    combPaths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(startPoint, endPoint, *outside_loc_to_line);
                 }
             }
             else

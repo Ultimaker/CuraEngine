@@ -858,7 +858,7 @@ bool PolygonUtils::getNextPointWithDistance(Point from, int64_t dist, const Poly
 }
 
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
 {
     bool ret = false;
     Point diff = to - from;
@@ -897,7 +897,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Point from, const Point 
     return ret;
 }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+bool PolygonUtils::polygonCollidesWithLineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
     Point p0 = transformation_matrix.apply(poly.back());
     for(Point p1_ : poly)
@@ -912,7 +912,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& 
     return false;
 }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithLineSegment(const PolygonRef poly, Point& startPoint, Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 
@@ -920,15 +920,15 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const PolygonRef poly, Point& 
     Point transformed_startPoint = transformation_matrix.apply(startPoint);
     Point transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    return PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
+    return PolygonUtils::polygonCollidesWithLineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix)
 {
     for (const PolygonRef poly : const_cast<Polygons&>(polys))
     {
         if (poly.size() == 0) { continue; }
-        if (PolygonUtils::polygonCollidesWithlineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
+        if (PolygonUtils::polygonCollidesWithLineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix))
         {
             return true;
         }
@@ -938,7 +938,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& 
 }
 
 
-bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& startPoint, Point& endPoint)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Polygons& polys, Point& startPoint, Point& endPoint)
 {
     Point diff = endPoint - startPoint;
 
@@ -946,7 +946,7 @@ bool PolygonUtils::polygonCollidesWithlineSegment(const Polygons& polys, Point& 
     Point transformed_startPoint = transformation_matrix.apply(startPoint);
     Point transformed_endPoint = transformation_matrix.apply(endPoint);
 
-    return polygonCollidesWithlineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
+    return polygonCollidesWithLineSegment(polys, transformed_startPoint, transformed_endPoint, transformation_matrix);
 }
 
 

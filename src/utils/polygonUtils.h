@@ -360,7 +360,7 @@ public:
      * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
      * \return whether the line segment collides with the boundary of the polygons
      */
-    static bool polygonCollidesWithlineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
+    static bool polygonCollidesWithLineSegment(const Point from, const Point to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
 
     /*!
     * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
@@ -395,7 +395,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithlineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+    static bool polygonCollidesWithLineSegment(const PolygonRef poly, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -411,7 +411,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithlineSegment(const PolygonRef poly, Point& startPoint, Point& endPoint);
+    static bool polygonCollidesWithLineSegment(const PolygonRef poly, Point& startPoint, Point& endPoint);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -433,7 +433,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithlineSegment(const Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
+    static bool polygonCollidesWithLineSegment(const Polygons& polys, Point& transformed_startPoint, Point& transformed_endPoint, PointMatrix transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -449,7 +449,7 @@ public:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool polygonCollidesWithlineSegment(const Polygons& polys, Point& startPoint, Point& endPoint);
+    static bool polygonCollidesWithLineSegment(const Polygons& polys, Point& startPoint, Point& endPoint);
 
 private:
     /*!
