@@ -74,7 +74,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int l
             break;
         }
     }
-    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)max_layer_nr_support_mesh_filled);
+    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, max_layer_nr_support_mesh_filled);
     for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
         SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
