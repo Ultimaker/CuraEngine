@@ -328,16 +328,24 @@ private:
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
     void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
-    
+
+    /*!
+     * See whether we need to print support before all models or after all models in the current layer
+     * \param[in] storage where the slice data is stored.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * \param extruder_nr_before The extruder number at the start of the layer (before other print parts aka the rest)
+     * \return Whether support should be printed before or after models have been printed
+     */
+    bool handleSupportBeforeModels(const SliceDataStorage& storage, int layer_nr, int extruder_nr_before);
+
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * \param extruder_nr_before The extruder number at the start of the layer (before other print parts aka the rest)
-     * \param before_rest Whether the function has been called before adding the rest to the layer plan \p gcodeLayer, or after.
      */
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr_before, bool before_rest);
+    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr_before);
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
