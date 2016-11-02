@@ -504,13 +504,6 @@ public:
     void forceNewPathStart();
 
     /*!
-     * Make the last path (if any) be z hopped.
-     * 
-     * Used for wiping in the hollow prime tower.
-     */
-    void makeLastPathZhopped();
-
-    /*!
      * 
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
      * \param travel_avoid_other_parts Whether to avoid other layer parts when travaeling through air.
