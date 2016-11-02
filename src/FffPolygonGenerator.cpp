@@ -150,13 +150,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
             continue;
         }
-        if (mesh.getSettingBoolean("overhang_mesh"))
+        if (mesh.getSettingBoolean("support_mesh"))
         {
             for (unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
             {
                 SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
                 SlicerLayer& slicer_layer = slicer->layers[layer_nr];
-                support_layer.overhang_mesh.add(slicer_layer.polygons);
+                support_layer.support_mesh.add(slicer_layer.polygons);
             }
             continue;
         }

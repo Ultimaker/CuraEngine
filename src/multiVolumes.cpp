@@ -11,7 +11,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
         Slicer& volume_1 = *volumes[volume_1_idx];
         if (volume_1.mesh->getSettingBoolean("infill_mesh") 
             || volume_1.mesh->getSettingBoolean("anti_overhang_mesh")
-            || volume_1.mesh->getSettingBoolean("overhang_mesh")
+            || volume_1.mesh->getSettingBoolean("support_mesh")
             )
         {
             continue;
@@ -21,7 +21,7 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             Slicer& volume_2 = *volumes[volume_2_idx];
             if (volume_2.mesh->getSettingBoolean("infill_mesh")
                 || volume_2.mesh->getSettingBoolean("anti_overhang_mesh")
-                || volume_2.mesh->getSettingBoolean("overhang_mesh")
+                || volume_2.mesh->getSettingBoolean("support_mesh")
                 )
             {
                 continue;
@@ -55,7 +55,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
         int overlap = volume->mesh->getSettingInMicrons("multiple_mesh_overlap");
         if (volume->mesh->getSettingBoolean("infill_mesh")
             || volume->mesh->getSettingBoolean("anti_overhang_mesh")
-            || volume->mesh->getSettingBoolean("overhang_mesh")
+            || volume->mesh->getSettingBoolean("support_mesh")
             || overlap == 0)
         {
             continue;
@@ -69,7 +69,7 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
             {
                 if (other_volume->mesh->getSettingBoolean("infill_mesh")
                     || other_volume->mesh->getSettingBoolean("anti_overhang_mesh")
-                    || other_volume->mesh->getSettingBoolean("overhang_mesh")
+                    || other_volume->mesh->getSettingBoolean("support_mesh")
                     || !other_volume->mesh->getAABB().hit(aabb)
                     || other_volume == volume
                 )

@@ -65,20 +65,20 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
 
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
-    int max_layer_nr_overhang_mesh_filled;
-    for (max_layer_nr_overhang_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_overhang_mesh_filled >= 0; max_layer_nr_overhang_mesh_filled--)
+    int max_layer_nr_support_mesh_filled;
+    for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
     {
-        const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_overhang_mesh_filled];
+        const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
         if (support_layer.supportAreas.size() > 0)
         {
             break;
         }
     }
-    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)max_layer_nr_overhang_mesh_filled);
-    for (int layer_nr = 0; layer_nr < max_layer_nr_overhang_mesh_filled; layer_nr++)
+    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)max_layer_nr_support_mesh_filled);
+    for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
     {
-        SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_overhang_mesh_filled];
-        support_layer.overhang_mesh = support_layer.overhang_mesh.unionPolygons();
+        SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
 
     // initialization of supportAreasPerLayer
@@ -266,7 +266,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
 
-        supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].overhang_mesh);
+        supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
 
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
