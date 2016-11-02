@@ -1,5 +1,6 @@
 #include "FffPolygonGenerator.h"
 
+#include <numeric>
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <omp.h>

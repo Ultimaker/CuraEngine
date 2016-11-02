@@ -3,6 +3,7 @@
 #define GCODE_PLANNER_H
 
 #include <vector>
+#include <memory>
 
 #include "gcodeExport.h"
 #include "pathPlanning/Comb.h"
@@ -241,13 +242,42 @@ class GCodePath
 public:
     const GCodePathConfig* config; //!< The configuration settings of the path.
     SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
+private:
     float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
+public:
     bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
     bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     std::vector<Point> points; //!< The points constituting this path.
+private:
+    std::unique_ptr<std::vector<float>> point_flows; //!< Potentially stores individual flow settings for each segment
+public:
     bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
 
     bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
+public:
+    GCodePath(const GCodePathConfig* config_in, SpaceFillType space_fill_type_in, float flow_in = 0.f, bool spiralize_in = false)
+    : config{config_in}
+    , space_fill_type{space_fill_type_in}
+    , flow{flow_in}
+    , retract{false}
+    , perform_z_hop{false}
+    , done{false}
+    , spiralize{spiralize_in}
+    {
+    }
+    GCodePath(const GCodePath& orig)
+    : config(orig.config)
+    , space_fill_type{orig.space_fill_type}
+    , flow{orig.flow}
+    , retract{orig.retract}
+    , perform_z_hop{orig.perform_z_hop}
+    , points{orig.points}
+    , point_flows{ orig.point_flows ? new std::vector<float>{*(orig.point_flows)} : nullptr}
+    , done{orig.done}
+    , spiralize{orig.spiralize}
+    {
+    }
+    GCodePath(GCodePath&& rv) = default;
 
     TimeMaterialEstimates estimates; //!< Naive time and material estimates
 
@@ -256,9 +286,45 @@ public:
      * 
      * \return Whether this config is the config of a travel path.
      */
-    bool isTravelPath()
+    bool isTravelPath() const
     {
         return config->isTravelPath();
+    }
+
+    /*!
+     * Whether this path would contains extrusion.
+     *
+     * \return Whether this path will cause extrusion.
+     */
+    bool isExtrusionPath() const
+    {
+        if (config->getExtrusionMM3perMM() <= 0)
+        {
+            return false;
+        }
+        if (!point_flows)
+        {
+            return flow * config->getExtrusionMM3perMM() > 0;
+        }
+        else
+        {
+            for (auto segment_flow : *point_flows)
+            {
+                if(segment_flow > 0)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /*!
+     * Get the flow setting for a specific segment.
+     *
+     * \return  The flow for segment \p segment_number
+     */
+    float getFlowForSegment(int segment_number) const
+    {
+        return point_flows ? (*point_flows)[segment_number] : flow;
     }
 
     /*!
@@ -266,20 +332,46 @@ public:
      * 
      * \warning Can only be called after the layer height has been set (which is done while writing the gcode!)
      * 
-     * \return The flow
+     * \return The material extrusion in mm^3 per mm for segment \p segment_number
      */
-    double getExtrusionMM3perMM()
+    double getExtrusionMM3perMM(int segment_number) const
     {
-        return flow * config->getExtrusionMM3perMM();
+        return getFlowForSegment(segment_number) * config->getExtrusionMM3perMM();
     }
-    
+
     /*!
      * Get the actual line width (modulated by the flow)
-     * \return the actual line width as shown in layer view
+     * \param segment_number
+     * \return the actual line width of segment as shown in layer view
      */
-    int getLineWidth()
+    int getLineWidth(int segment_number) const
     {
-        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
+        return getFlowForSegment(segment_number) * config->getLineWidth() * config->getFlowPercentage() / 100.0;
+    }
+
+    float getFlow() const
+    {
+        return flow;
+    }
+
+    void setFlow(float flow_)
+    {
+        flow = flow_;
+    }
+
+    void initializeFlowVector()
+    {
+        assert(points.empty() && "Flow vector should be initialized before any points are added");
+        if(!point_flows){
+            point_flows.reset(new std::vector<float>{});
+        }
+    }
+    void addSegmentWithFlow(const Point& p, float segment_flow)
+    {
+        assert(point_flows);
+        assert(point_flows->size() == points.size());
+        points.push_back(p);
+        point_flows->push_back(segment_flow);
     }
 };
 
@@ -556,6 +648,16 @@ private:
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
     GCodePath* getSafePathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
+
+    /*!
+     * Create a new path with the given config. Sets \p done member of the GCodePath so
+     * that the returned path is not used anywhere else in a multi-threaded setting. Also
+     * initializes the path with a flow vector to store individual flow for each segment.
+     *
+     * \param config The config used for the path returned
+     * \param space_fill_type The type of space filling which this path employs
+     */
+    GCodePath* getSafePathWithConfigAndFlowVector(const GCodePathConfig* config, SpaceFillType space_fill_type, bool spiralize = false);
 
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.

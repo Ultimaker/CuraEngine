@@ -68,7 +68,7 @@ void ExtruderPlan::convertListToVector()
 {
     unsigned int number_of_paths = paths_list.size();
     paths_vector.reserve(number_of_paths);
-    for (auto path : paths_list)
+    for (auto&& path : paths_list)
     {
         if (path.points.size())
         {
@@ -82,17 +82,12 @@ void ExtruderPlan::convertListToVector()
 GCodePath* GCodePlanner::getLatestPathWithConfig(const GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {
     std::list<GCodePath>& paths = extruder_plans.back().getPathsList();
-    if (paths.size() > 0 && !paths.back().done && paths.back().config == config && paths.back().flow == flow) // spiralize can only change when a travel path is in between
+    if (paths.size() > 0 && !paths.back().done && paths.back().config == config && paths.back().getFlow() == flow) // spiralize can only change when a travel path is in between
+    {
         return &paths.back();
-    paths.emplace_back();
+    }
+    paths.emplace_back(config, space_fill_type, flow, spiralize);
     GCodePath* ret = &paths.back();
-    ret->retract = false;
-    ret->perform_z_hop = false;
-    ret->config = config;
-    ret->done = false;
-    ret->flow = flow;
-    ret->spiralize = spiralize;
-    ret->space_fill_type = space_fill_type;
     return ret;
 }
 
@@ -100,15 +95,16 @@ GCodePath* GCodePlanner::getSafePathWithConfig(const GCodePathConfig* config, Sp
 {
     std::list<GCodePath>& paths = extruder_plans.back().getPathsList();
     //TODO: Should the previous path get the done parameter set? Probably not necessary.
-    paths.emplace_back();
+    paths.emplace_back(config, space_fill_type, flow, spiralize);
     GCodePath* ret = &paths.back();
-    ret->retract = false;
-    ret->perform_z_hop = false;
-    ret->config = config;
     ret->done = true;
-    ret->flow = flow;
-    ret->spiralize = spiralize;
-    ret->space_fill_type = space_fill_type;
+    return ret;
+}
+
+GCodePath* GCodePlanner::getSafePathWithConfigAndFlowVector(const GCodePathConfig* config, SpaceFillType space_fill_type, bool spiralize)
+{
+    GCodePath* ret = getSafePathWithConfig(config, space_fill_type, 1.0f, spiralize);
+    ret->initializeFlowVector();
     return ret;
 }
 
@@ -454,6 +450,69 @@ void GCodePlanner::addPolygon(ConstPolygonRef polygon, int startIdx, const GCode
     }
 }
 
+struct AddPolygonWithWallOverlapComputationArguments
+{
+    const Polygons* p_polygons;
+    WallOverlapComputationSettings wall_overlap_computation_settings;
+    std::vector<GCodePath*>* p_polygon_write_locations;
+    std::vector<int>* p_polyOrder;
+    std::vector<int>* p_polyStart;
+};
+
+void addPolygonWithWallOverlapComputation_impl(const Polygons& polygons, WallOverlapComputationSettings& wall_overlap_settings, std::vector<GCodePath*>& polygon_write_locations, std::vector<int>& polyOrder, std::vector<int>& polyStart)
+{
+    Polygons processed_polygons = polygons;
+    WallOverlapComputation wall_overlap_computation(processed_polygons, polyStart, wall_overlap_settings.lineWidth);
+    for (unsigned int poly_i = 0; poly_i < polyOrder.size(); ++poly_i)
+    {
+        unsigned int poly_idx  = polyOrder[poly_i];
+        //addPolygon(processed_polygons[poly_idx], 0, config, &wall_overlap_computation, spiralize);
+        //                                        ^^ Should be 0 since WallOverlapCompensation has modified polygons to start at first point
+        assert(processed_polygons[poly_idx][0] == polygons[poly_idx][polyStart[poly_idx]]);
+        ConstPolygonRef polygon = processed_polygons[poly_idx];
+        const int startIdx = 0;
+        GCodePath* path = polygon_write_locations[poly_i];
+
+        Point p0 = polygon[0]; // startIdx -> 0
+        for (unsigned int i = 1; i < polygon.size(); ++i)
+        {
+            Point p1 = polygon[i]; // (startIdx + i) % polygon.size() -> i
+            float flow = wall_overlap_computation.getFlow(p0, p1);
+            path->addSegmentWithFlow(p1, flow);
+            p0 = p1;
+        }
+        if (polygon.size() > 2)
+        {
+            const Point& p1 = polygon[0]; // startIdx -> 0
+            float flow = wall_overlap_computation.getFlow(p0, p1);
+            path->addSegmentWithFlow(p1, flow);
+        }
+        else
+        {
+            logWarning("WARNING: line added as polygon! (gcodePlanner)\n");
+        }
+    }
+}
+
+inline void addPolygonWithWallOverlapComputation_dispatch(AddPolygonWithWallOverlapComputationArguments arguments)
+{
+#pragma omp task default(none) firstprivate(arguments)
+    { MULTITHREAD_TASK_CATCH_EXCEPTION(
+        // Manage lifetime of passed in pointers.
+        std::unique_ptr<std::vector<GCodePath*>> p_polygon_write_locations{arguments.p_polygon_write_locations};
+        std::unique_ptr<std::vector<int>> p_polyOrder{arguments.p_polyOrder};
+        std::unique_ptr<std::vector<int>> p_polyStart{arguments.p_polyStart};
+
+        addPolygonWithWallOverlapComputation_impl(
+                *arguments.p_polygons,
+                arguments.wall_overlap_computation_settings,
+                *p_polygon_write_locations,
+                *p_polyOrder,
+                *p_polyStart);
+
+    )}
+}
+
 void GCodePlanner::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputationSettings* wall_overlap_computation_settings, EZSeamType z_seam_type, bool spiralize)
 {
     if (polygons.size() == 0)
@@ -468,14 +527,29 @@ void GCodePlanner::addPolygonsByOptimizer(const Polygons& polygons, const GCodeP
     orderOptimizer.optimize();
     if (wall_overlap_computation_settings)
     {
-        Polygons processed_polygons = polygons;
-        WallOverlapComputation wall_overlap_computation(processed_polygons, orderOptimizer.polyStart, wall_overlap_computation_settings->lineWidth);
+        //TODO: Manage the lifetime of these raw pointers better.
+        AddPolygonWithWallOverlapComputationArguments arguments = {
+                &polygons,
+                *wall_overlap_computation_settings,
+                new std::vector<GCodePath*>{},
+                new std::vector<int>{orderOptimizer.polyOrder},
+                new std::vector<int>{orderOptimizer.polyStart}
+        };
+        //Reserve space for the result of WallOverlapComputation to be written to.
+        std::vector<GCodePath*>& polygon_write_locations = *arguments.p_polygon_write_locations;
+        polygon_write_locations.reserve(orderOptimizer.polyOrder.size());
         for (unsigned int poly_idx : orderOptimizer.polyOrder)
         {
-            addPolygon(processed_polygons[poly_idx], 0, config, &wall_overlap_computation, spiralize);
-            //                                      ^^ Should be 0 since WallOverlapCompensation has modified polygons to start at first point
-            assert(processed_polygons[poly_idx][0] == polygons[poly_idx][orderOptimizer.polyStart[poly_idx]]);
+            Point p0 = polygons[poly_idx][orderOptimizer.polyStart[poly_idx]];
+            addTravel(p0);
+            polygon_write_locations.push_back(getSafePathWithConfigAndFlowVector(config, SpaceFillType::Polygons, spiralize));
+            // Only if the polygon is a line segment does it end at a different location than it began.
+            if (polygons[poly_idx].size() == 2)
+            {
+                lastPosition = orderOptimizer.polyStart[poly_idx] == 0 ? polygons[poly_idx][1] : polygons[poly_idx][0];
+            }
         }
+        addPolygonWithWallOverlapComputation_dispatch(arguments);
     }
     else
     {
@@ -818,11 +892,11 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             { // early comp for travel paths, which are handled more simply
                 for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                 {
-                    gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                    gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM(point_idx));
                     if (point_idx == path.points.size() - 1)
                     {
                         gcode.setZ(z); // go down to extrusion level when we spiralized before on this layer
-                        gcode.writeMove(gcode.getPositionXY(), speed, path.getExtrusionMM3perMM());
+                        gcode.writeMove(gcode.getPositionXY(), speed, path.getExtrusionMM3perMM(point_idx));
                     }
                 }
                 continue;
@@ -850,16 +924,16 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                         && shorterThen(paths[path_idx+2].points.back() - paths[path_idx+1].points.back(), 2 * nozzle_size) // consecutive extrusion is close by
                     )
                     {
-                        sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth());
-                        gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM());
+                        sendLineTo(paths[path_idx+2].config->type, paths[path_idx+2].points.back(), paths[path_idx+2].getLineWidth(0)); //getLineWidth(0) index 0 is not really well defined, but currently not used
+                        gcode.writeMove(paths[path_idx+2].points.back(), speed, paths[path_idx+1].getExtrusionMM3perMM(0)); //getExtrusionMM3perMM(0) index 0 is not really well defined, but currently not used
                         path_idx += 2;
                     }
                     else 
                     {
                         for(unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                         {
-                            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                            gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth(point_idx));
+                            gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM(point_idx));
                         }
                     }
                 }
@@ -891,8 +965,8 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
                         gcode.setZ(z + layer_thickness * length / totalLength);
-                        sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-                        gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM());
+                        sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth(point_idx));
+                        gcode.writeMove(path.points[point_idx], speed, path.getExtrusionMM3perMM(point_idx));
                     }
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
@@ -1038,7 +1112,7 @@ bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int ext
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].getPaths();
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
     {
-        if (paths[path_idx2].getExtrusionMM3perMM() > 0) 
+        if (paths[path_idx2].isExtrusionPath()) //TODO: Is this a correct interpretation
         {
             return false; 
         }
@@ -1083,19 +1157,22 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     
     double extrude_speed = path.config->getSpeed() * extruder_plan.getExtrudeSpeedFactor(); // travel speed 
     
-    int64_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    int64_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
+//    int64_t coasting_dist = MM2INT(MM2_2INT(coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+//    int64_t coasting_min_dist = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layerThickness) / path.config->getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
+    double required_volume_for_full_coasting = coasting_min_volume + coasting_volume;
+    //           /\ the minimal volume when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
     
+    std::vector<double> accumulated_volume_per_point;
+    accumulated_volume_per_point.push_back(0);
+//    std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
+//    accumulated_dist_per_point.push_back(0);
     
-    std::vector<int64_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
-    accumulated_dist_per_point.push_back(0);
-    
+    double accumulated_volume = 0;
     int64_t accumulated_dist = 0;
     
-    bool length_is_less_than_min_dist = true;
+    bool volume_is_less_than_min_coasting_volume = true;
     
-    unsigned int acc_dist_idx_gt_coast_dist = NO_INDEX; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
+    unsigned int coasting_points_count = NO_INDEX; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
      // == the point printed BEFORE the start point for coasting
     
     
@@ -1104,48 +1181,60 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     {
         Point& point = path.points[path.points.size() - 1 - backward_point_idx];
         int64_t dist = vSize(point - *last);
-        accumulated_dist += dist;
-        accumulated_dist_per_point.push_back(accumulated_dist);
-        
-        if (acc_dist_idx_gt_coast_dist == NO_INDEX && accumulated_dist >= coasting_dist)
+        const double segment_extrusion_per_mm = path.getExtrusionMM3perMM(path.points.size() - backward_point_idx);
+        //TODO: The following check should probably check against a small positive value (disregard segments with really low extrusion per mm for numerical stability)
+        if (segment_extrusion_per_mm <= .0)
         {
-            acc_dist_idx_gt_coast_dist = backward_point_idx; // the newly added point
+            continue;
+        }
+        accumulated_volume += INT2MM(dist) * segment_extrusion_per_mm;
+        accumulated_volume_per_point.push_back(accumulated_volume);
+        accumulated_dist += dist;
+//        accumulated_dist_per_point.push_back(accumulated_dist);
+        
+        if (coasting_points_count == NO_INDEX && accumulated_volume >= coasting_volume)
+        {
+            coasting_points_count = backward_point_idx; // the newly added point
         }
         
-        if (accumulated_dist >= coasting_min_dist)
+        if (accumulated_volume >= required_volume_for_full_coasting)
         {
-            length_is_less_than_min_dist = false;
+            volume_is_less_than_min_coasting_volume = false;
             break;
         }
         
         last = &point;
     }
+    //TODO: Also add volume from lastPosition to first point
     
+    //TODO: Should this also use volume?
     if (accumulated_dist < coasting_min_dist_considered)
     {
         return false;
     }
-    int64_t actual_coasting_dist = coasting_dist;
-    if (length_is_less_than_min_dist)
+    int64_t actual_coasting_volume = coasting_volume;
+    if (volume_is_less_than_min_coasting_volume)
     {
-        // in this case accumulated_dist is the length of the whole path
-        actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
-        for (acc_dist_idx_gt_coast_dist = 0 ; acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size() ; acc_dist_idx_gt_coast_dist++)
-        { // search for the correct coast_dist_idx
-            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist] > actual_coasting_dist)
+        // in this case accumulated_volume is the length of the whole path
+        actual_coasting_volume = accumulated_volume * (coasting_volume / required_volume_for_full_coasting);
+        for (coasting_points_count = 0 ; coasting_points_count < accumulated_volume_per_point.size() ; coasting_points_count++)
+        { // search for the correct coast_volume_idx
+            if (accumulated_volume_per_point[coasting_points_count] > actual_coasting_volume)
             {
                 break;
             }
         }
     }
 
-    assert (acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
+    assert (coasting_points_count < accumulated_volume_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
 
-    unsigned int point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist;
+    unsigned int point_idx_before_start = path.points.size() - 1 - coasting_points_count;
 
     Point start;
     { // computation of begin point of coasting
-        int64_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist - 1];
+        const double segment_extrusion_per_mm = path.getExtrusionMM3perMM(point_idx_before_start + 1);
+        //TODO: To avoid bad results in the following division the denominator magnitude should be checked in the accumulation step.
+        int64_t residual_dist = MM2INT((actual_coasting_volume - accumulated_volume_per_point[coasting_points_count - 1]) / segment_extrusion_per_mm);
         Point& a = path.points[point_idx_before_start];
         Point& b = path.points[point_idx_before_start + 1];
         start = b + normal(a-b, residual_dist);
@@ -1154,11 +1243,11 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
     { // write normal extrude path:
         for(unsigned int point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
         {
-            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth());
-            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM());
+            sendLineTo(path.config->type, path.points[point_idx], path.getLineWidth(point_idx));
+            gcode.writeMove(path.points[point_idx], extrude_speed, path.getExtrusionMM3perMM(point_idx));
         }
-        sendLineTo(path.config->type, start, path.getLineWidth());
-        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM());
+        sendLineTo(path.config->type, start, path.getLineWidth(point_idx_before_start));
+        gcode.writeMove(start, extrude_speed, path.getExtrusionMM3perMM(point_idx_before_start));
     }
 
     // write coasting path
@@ -1167,7 +1256,7 @@ bool GCodePlanner::writePathWithCoasting(GCodeExport& gcode, unsigned int extrud
         gcode.writeMove(path.points[point_idx], coasting_speed * path.config->getSpeed(), 0);
     }
 
-    gcode.addLastCoastedVolume(path.getExtrusionMM3perMM() * INT2MM(actual_coasting_dist));
+    gcode.addLastCoastedVolume(actual_coasting_volume);
     return true;
 }
 

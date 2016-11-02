@@ -18,8 +18,8 @@ void MergeInfillLines::writeCompensatedMove(Point& to, double speed, GCodePath& 
         double speed_mod = old_line_width / new_line_width_mm;
         new_speed = std::min(speed * speed_mod, speed_equalize_flow_max);
     }
-    sendLineTo(last_path.config->type, to, last_path.getLineWidth());
-    gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM() * extrusion_mod);
+    sendLineTo(last_path.config->type, to, last_path.getLineWidth(0)); // getLineWidth(0), index 0 because isConvertible(...) requires extrusion to be single line.
+    gcode.writeMove(to, new_speed, last_path.getExtrusionMM3perMM(0) * extrusion_mod); // getExtrusionMM3perMM(0), index 0 because isConvertible(...) requires extrusion to be single line.
 }
     
 bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
@@ -35,7 +35,7 @@ bool MergeInfillLines::mergeInfillLines(unsigned int& path_idx)
             GCodePath& move_path = paths[path_idx];
             for(unsigned int point_idx = 0; point_idx < move_path.points.size() - 1; point_idx++)
             {
-                gcode.writeMove(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor(), move_path.getExtrusionMM3perMM());
+                gcode.writeMove(move_path.points[point_idx], move_path.config->getSpeed() * extruder_plan.getTravelSpeedFactor(), move_path.getExtrusionMM3perMM(point_idx));
             }
             gcode.writeMove(prev_middle, travelConfig.getSpeed(), 0);
             GCodePath& last_path = paths[path_idx + 3];
