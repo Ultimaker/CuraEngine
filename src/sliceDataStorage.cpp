@@ -265,6 +265,11 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(int layer_nr) const
             include_adhesion = false;
         }
     }
+    else if (layer_nr > 0 || getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::RAFT)
+    { // only include adhesion only for layers where platform adhesion actually occurs
+        // i.e. layers < 0 are for raft, layer 0 is for brim/skirt
+        include_adhesion = false;
+    }
     if (include_adhesion)
     {
         ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
