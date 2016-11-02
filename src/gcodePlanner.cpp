@@ -388,6 +388,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
                     addTravel_simple(p1);
                     distance_traversed += p0p1_dist;
                 }
+                p0 = p1;
             }
         }
     }
