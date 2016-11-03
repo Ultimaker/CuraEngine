@@ -31,9 +31,9 @@ public:
     LazyInitialization(Args... args)
     : std::optional<T>()
     , constructor(
-            [this, args...]()
+            [args...]()
             {
-                std::optional<T>::instance = new T(args...);
+                return new T(args...);
             }
         )
     { }
@@ -49,9 +49,9 @@ public:
     LazyInitialization(const std::function<T (Args...)>& f, Args... args)
     : std::optional<T>()
     , constructor(
-            [this, f, args...]()
+            [f, args...]()
             {
-                std::optional<T>::instance = new T(f(args...));
+                return new T(f(args...));
             }
         )
     { }
@@ -65,9 +65,9 @@ public:
     LazyInitialization(const std::function<T* (Args...)>& f, Args... args)
     : std::optional<T>()
     , constructor(
-            [this, f, args...]()
+            [f, args...]()
             {
-                std::optional<T>::instance = f(args...);
+                return f(args...);
             }
         )
     {
@@ -94,7 +94,7 @@ public:
     {
         if (!std::optional<T>::instance)
         {
-            constructor();
+            std::optional<T>::instance = constructor();
         }
         return std::optional<T>::operator*();
     }
@@ -103,7 +103,7 @@ public:
     {
         if (!std::optional<T>::instance)
         {
-            constructor();
+            std::optional<T>::instance = constructor();
         }
         return std::optional<T>::operator->();
     }
@@ -122,7 +122,7 @@ public:
     }
 
 private:
-    std::function<void ()> constructor;
+    std::function<T* ()> constructor;
 };
 
 }//namespace cura
