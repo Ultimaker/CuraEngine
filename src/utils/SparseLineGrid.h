@@ -6,6 +6,7 @@
 #include <cassert>
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "intpoint.h"
 #include "SparseGrid.h"
@@ -67,11 +68,17 @@ SGI_TEMPLATE
 void SGI_THIS::insert(const Elem &elem)
 {
     const std::pair<Point, Point> line = m_locator(elem);
-    std::function<bool (const GridPoint)> process_cell_func = [&elem, this](const GridPoint grid_loc)
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+    // below is a workaround for the fact that lambda functions cannot access private or protected members
+    // first we define a lambda which works on any GridMap and then we bind it to the actual protected GridMap of the parent class
+    std::function<bool (GridMap&, const GridPoint)> process_cell_func_ = [&elem, this](GridMap& m_grid, const GridPoint grid_loc)
         {
-            SparseGrid<ElemT>::m_grid.emplace(grid_loc, elem);
+            m_grid.emplace(grid_loc, elem);
             return true;
         };
+    using namespace std::placeholders;  // for _1, _2, _3...
+    std::function<bool (const GridPoint)> process_cell_func(std::bind(process_cell_func_, SparseGrid<ElemT>::m_grid, _1));
+
     SparseGrid<ElemT>::processLineCells(line, process_cell_func);
 }
 
