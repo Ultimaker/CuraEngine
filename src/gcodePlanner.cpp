@@ -390,6 +390,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
                 }
                 p0 = p1;
             }
+            forceNewPathStart();
         }
     }
     else 
