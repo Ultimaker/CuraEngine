@@ -162,7 +162,7 @@ public:
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
     {
-        layers.reserve(slice_layer_count);
+        layers.resize(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(PrintFeatureType::Infill);
