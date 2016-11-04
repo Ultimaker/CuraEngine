@@ -291,13 +291,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
-    storage.primeTower.generatePaths(storage, storage.print_layer_count);
+    storage.primeTower.generatePaths(storage);
     
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
 
     logDebug("Processing draft shield\n");
-    processDraftShield(storage, storage.print_layer_count);
+    processDraftShield(storage);
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
@@ -590,9 +590,9 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
     }
 }
 
-void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned int total_layers)
+void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 {
-    const unsigned int draft_shield_layers = getDraftShieldLayerCount(total_layers);
+    const unsigned int draft_shield_layers = getDraftShieldLayerCount(storage.print_layer_count);
     if (draft_shield_layers <= 0)
     {
         return;
@@ -602,7 +602,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage, unsigned
     const unsigned int layer_skip = 500 / layer_height + 1;
 
     Polygons& draft_shield = storage.draft_protection_shield;
-    for (unsigned int layer_nr = 0; layer_nr < total_layers && layer_nr < draft_shield_layers; layer_nr += layer_skip)
+    for (unsigned int layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, true));
     }

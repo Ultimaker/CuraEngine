@@ -141,9 +141,8 @@ private:
      * Generate the polygons where the draft screen should be.
      * 
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     * \param total_layers The total number of layers 
      */
-    void processDraftShield(SliceDataStorage& storage, unsigned int total_layers);
+    void processDraftShield(SliceDataStorage& storage);
 
     /*!
      * Generate the skirt/brim/raft areas/insets.

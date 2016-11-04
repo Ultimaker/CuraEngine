@@ -73,7 +73,7 @@ public:
      * \param storage where to get settings from
      * \param total_layers The total number of layers 
      */
-    void generatePaths(const SliceDataStorage& storage, unsigned int total_layers);
+    void generatePaths(const SliceDataStorage& storage);
 
     /*!
      * Compute the maximum layer at which a layer switch will occur and store the result in \ref SliceDataStorage::max_object_height_second_to_last_extruder
