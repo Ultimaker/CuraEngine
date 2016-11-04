@@ -35,7 +35,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  || ||     ||[]|| > expand to fit an extra brim line
             //  |+-+|     |+--+|
             //  +---+     +----+ 
-            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             if (outside_only)
             { // don't remove support within empty holes where no brim is generated.
                 model_brim_covered_area.add(first_layer_empty_holes);
