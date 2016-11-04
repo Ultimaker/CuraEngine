@@ -118,17 +118,17 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     carveMultipleVolumes(slicerList);
     generateMultipleVolumesOverlap(slicerList);
 
-    size_t max_layer_count = 0;
+    storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Mesh& mesh = storage.meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (!mesh.getSettingBoolean("anti_overhang_mesh") && !mesh.getSettingBoolean("infill_mesh"))
         {
-            max_layer_count = std::max(max_layer_count, slicer->layers.size());
+            storage.print_layer_count = std::max(storage.print_layer_count, (unsigned int)slicer->layers.size());
         }
     }
-    storage.support.supportLayers.resize(max_layer_count);
+    storage.support.supportLayers.resize(storage.print_layer_count);
 
     storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
@@ -236,7 +236,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    unsigned int print_layer_count = 0;
     for (unsigned int layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
         SliceLayer* layer = nullptr;
@@ -246,7 +245,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
             if (int(layer_nr) <= mesh.layer_nr_max_filled_layer)
             {
                 layer = &mesh.layers[layer_nr];
-                print_layer_count = layer_nr + 1;
                 break;
             }
         }
@@ -259,21 +257,21 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         }
     }
 
-    log("Layer count: %i\n", print_layer_count);
+    log("Layer count: %i\n", storage.print_layer_count);
 
     //layerparts2HTML(storage, "output/output.html");
 
     Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
-    AreaSupport::generateSupportAreas(storage, print_layer_count);
+    AreaSupport::generateSupportAreas(storage, storage.print_layer_count);
 
     // we need to remove empty layers after we have procesed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
     // only remove empty layers if we haven't generate support, because then support was added underneath the model.
     //   for some materials it's better to print on support than on the buildplate.
-    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), print_layer_count); // changes total_layers!
-    if (print_layer_count == 0)
+    removeEmptyFirstLayers(storage, getSettingInMicrons("layer_height"), storage.print_layer_count); // changes storage.print_layer_count!
+    if (storage.print_layer_count == 0)
     {
         log("Stopping process because there are no non-empty layers.\n");
         return;
@@ -282,7 +280,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     /*
     if (storage.support.generated)
     {
-        for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
+        for (unsigned int layer_idx = 0; layer_idx < storage.print_layer_count; layer_idx++)
         {
             Polygons& support = storage.support.supportLayers[layer_idx].supportAreas;
             ExtruderTrain* infill_extr = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
@@ -293,13 +291,13 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.primeTower.computePrimeTowerMax(storage);
-    storage.primeTower.generatePaths(storage, print_layer_count);
+    storage.primeTower.generatePaths(storage, storage.print_layer_count);
     
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
 
     logDebug("Processing draft shield\n");
-    processDraftShield(storage, print_layer_count);
+    processDraftShield(storage, storage.print_layer_count);
 
     logDebug("Processing platform adhesion\n");
     processPlatformAdhesion(storage);
