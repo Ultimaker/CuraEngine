@@ -232,7 +232,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     }
     for (unsigned int mesh_order_idx(0); mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
-        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, slice_layer_count, inset_skin_progress_estimate);
+        processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, inset_skin_progress_estimate);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
@@ -307,17 +307,18 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // meshes post processing
     for (SliceMeshStorage& mesh : storage.meshes)
     {
-        processDerivedWallsSkinInfill(mesh, print_layer_count);
+        processDerivedWallsSkinInfill(mesh);
     }
 }
 
-void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers, ProgressStageEstimator& inset_skin_progress_estimate)
+void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
 {
     unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+    size_t mesh_layer_count = mesh.layers.size();
     if (mesh.getSettingBoolean("infill_mesh"))
     {
-        processInfillMesh(storage, mesh_order_idx, mesh_order, total_layers);
+        processInfillMesh(storage, mesh_order_idx, mesh_order);
     }
     
     // TODO: make progress more accurate!!
@@ -327,20 +328,20 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
     
-    ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(total_layers);
+    ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(inset_estimator);
     
     
     // walls
-    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
+    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
-        logDebug("Processing insets for layer %i of %i\n", layer_number, total_layers);
+        logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
         double progress = inset_skin_progress_estimate.progress(layer_number);
         Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 
-    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(total_layers);
+    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
 
     bool process_infill = mesh.getSettingInMicrons("infill_line_distance") > 0;
@@ -368,9 +369,9 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
         mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
-    for(unsigned int layer_number = 0; layer_number < total_layers; layer_number++)
+    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
-        logDebug("Processing skins and infill layer %i of %i\n", layer_number, total_layers);
+        logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
         if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
         {
             processSkinsAndInfill(mesh, layer_number, process_infill);
@@ -380,7 +381,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     }
 }
 
-void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, size_t total_layers)
+void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)
 {
     unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
@@ -451,7 +452,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
     
 }
 
-void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, size_t total_layers)
+void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 {
     // create gradual infill areas
     SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
