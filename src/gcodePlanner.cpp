@@ -351,22 +351,47 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillT
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, bool spiralize)
+void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
 {
-    Point p0 = polygon[startIdx];
+    Point p0 = polygon[start_idx];
     addTravel(p0);
-    for(unsigned int i=1; i<polygon.size(); i++)
+    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(startIdx + i) % polygon.size()];
+        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
-        Point& p1 = polygon[startIdx];
+        Point& p1 = polygon[start_idx];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+
+        if (wall_0_wipe_dist > 0)
+        { // apply outer wall wipe
+            p0 = polygon[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1; ; point_idx++)
+            {
+                Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                {
+                    Point vector = p1 - p0;
+                    Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
+                }
+                else
+                {
+                    addTravel_simple(p1);
+                    distance_traversed += p0p1_dist;
+                }
+                p0 = p1;
+            }
+            forceNewPathStart();
+        }
     }
     else 
     {
@@ -374,7 +399,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, bool spiralize)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, coord_t wall_0_wipe_dist, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -388,7 +413,7 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize);
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)

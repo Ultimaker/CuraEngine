@@ -622,7 +622,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
 }
@@ -865,7 +865,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             }
             if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, false);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, mesh->getSettingInMicrons("wall_0_wipe_dist"), false);
             }
         }
         int processed_inset_number = -1;
@@ -880,13 +880,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 if (!compensate_overlap_0)
                 {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
             }
             else
