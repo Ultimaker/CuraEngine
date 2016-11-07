@@ -84,6 +84,21 @@ unsigned int Polygons::pointCount() const
 
 bool Polygons::inside(Point p, bool border_result) const
 {
+    int poly_count_inside = 0;
+    for (const ClipperLib::Path& poly : *this)
+    {
+        const int is_inside_this_poly = ClipperLib::PointInPolygon(p, poly);
+        if (is_inside_this_poly == -1)
+        {
+            return border_result;
+        }
+        poly_count_inside += is_inside_this_poly;
+    }
+    return (poly_count_inside % 2) == 1;
+}
+
+bool Polygons::insideOld(Point p, bool border_result) const
+{
     const Polygons& thiss = *this;
     if (size() < 1)
     {
