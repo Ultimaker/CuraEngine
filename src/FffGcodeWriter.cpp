@@ -476,7 +476,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     {
         if (handle_support_before_models)
         {
-            addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before);
+            addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr));
         }
 
         processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
@@ -504,7 +504,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
     if (include_helper_parts && !handle_support_before_models)
     {
-        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before);
+        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr));
     }
 
     if (include_helper_parts && layer_nr == 0)
@@ -1013,7 +1013,7 @@ bool FffGcodeWriter::handleSupportBeforeModels(const SliceDataStorage& storage, 
 }
 
 
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before)
+void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
         return; 
