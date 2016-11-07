@@ -162,10 +162,7 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_
     
     if (prev_extruder == extruder)
     {
-        if (preheat_config.usesFlowDependentTemp(extruder))
-        {
-            insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, required_temp);
-        }
+        insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, required_temp);
     }
     else 
     {
