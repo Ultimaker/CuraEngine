@@ -816,7 +816,12 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 {
     if (!wait && extruder_attr[extruder].currentTemperature == temperature)
         return;
-    
+
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M109";
     else
@@ -832,6 +837,11 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 
 void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 {
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M190 S";
     else
