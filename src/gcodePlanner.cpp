@@ -5,6 +5,7 @@
 #include "sliceDataStorage.h"
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
+#include "raft.h" // getTotalExtraLayers
 
 namespace cura {
 
@@ -22,11 +23,12 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
     return *this;
 }
 
-ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , required_temp(-1)
 , start_position(start_position)
 , layer_nr(layer_nr)
+, is_initial_layer(is_initial_layer)
 , layer_thickness(layer_thickness)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , retraction_config(retraction_config)
@@ -89,9 +91,10 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
+, is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , z(z)
 , layer_thickness(layer_thickness)
 , start_position(last_position)
@@ -102,7 +105,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
+    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
@@ -202,7 +205,7 @@ bool GCodePlanner::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
 
@@ -638,7 +641,13 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.setLayerNr(layer_nr);
     
     gcode.writeLayerComment(layer_nr);
-    
+
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage))
+    {
+        bool wait = false;
+        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
+    }
+
     gcode.setZ(z);
     
     

@@ -104,15 +104,18 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)
 {
+    int start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
-        const ExtruderTrain* extr_train = settings.getExtruderTrain(extr_nr);
-        assert(extr_train);
-        double temp = extr_train->getSettingInDegreeCelsius((extr_nr == 0)? "material_print_temperature" : "material_standby_temperature");
+        const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
+        
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        double temp = ((int)extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
         setInitialTemp(extr_nr, temp);
     }
 
-    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature");
+    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -813,7 +816,12 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 {
     if (!wait && extruder_attr[extruder].currentTemperature == temperature)
         return;
-    
+
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M109";
     else
@@ -829,6 +837,11 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 
 void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 {
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M190 S";
     else

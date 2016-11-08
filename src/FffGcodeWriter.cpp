@@ -207,9 +207,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") > 0)
             {
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature_layer_0"), getSettingBoolean("material_bed_temp_wait"));
             }
         }
 
@@ -217,15 +217,19 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         {
             for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
-                double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
-                gcode.writeTemperatureCommand(extruder_nr, print_temp);
+                ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
             }
             if (getSettingBoolean("material_print_temp_wait")) 
             {
                 for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
                 {
-                    double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
-                    gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
+                    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                    double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                    double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
                 }
             }
         }
@@ -247,7 +251,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
         constexpr bool wait = true;
-        gcode.writeTemperatureCommand(start_extruder_nr, train.getSettingInDegreeCelsius("material_print_temperature"), wait);
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(&retraction_config);
@@ -257,8 +263,13 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
+
+    bool wait = true;
+    gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+
     gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
     last_position_planned = Point(storage.model_min.x, storage.model_min.y);

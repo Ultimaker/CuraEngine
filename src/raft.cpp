@@ -75,6 +75,10 @@ int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
 {
     const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        return 0;
+    }
     return 2 + train.getSettingAsCount("raft_surface_layers") + getFillerLayerCount(storage);
 }
 
