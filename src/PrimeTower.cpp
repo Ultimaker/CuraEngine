@@ -42,7 +42,6 @@ void PrimeTower::initConfigs(const MeshGroup* meshgroup)
 
 void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thickness)
 {
-
     extruder_count = meshgroup->getExtruderCount();
 
     for (int extr = 0; extr < extruder_count; extr++)
@@ -54,6 +53,8 @@ void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thicknes
 
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 {
+    extruder_count = storage.meshgroup->getExtruderCount();
+
     int64_t prime_tower_wall_thickness = storage.getSettingInMicrons("prime_tower_wall_thickness");
     int64_t tower_size = storage.getSettingInMicrons("prime_tower_size");
 
