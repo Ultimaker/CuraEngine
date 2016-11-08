@@ -459,41 +459,35 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    int extruder_nr_before = gcode_layer.getExtruder();
-    bool handle_support_before_models = handleSupportBeforeModels(storage, layer_nr, extruder_nr_before);
-    if (include_helper_parts)
+    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+
+    //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
+    std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
+    for (int extruder_nr : extruder_order)
     {
-        if (handle_support_before_models)
+        if (include_helper_parts
+            && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
         {
-            addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr));
+            addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr);
         }
 
-        processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
-
-        processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
-    }
-
-    if (layer_nr >= 0)
-    {
-        //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
-        std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
-        for(unsigned int mesh_idx : mesh_order)
+        if (layer_nr >= 0)
         {
-            SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
-            if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+            std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, extruder_nr);
+            for (unsigned int mesh_idx : mesh_order)
             {
-                addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
-            }
-            else
-            {
-                addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
+                SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
+                if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                {
+                    addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
+                }
+                else
+                {
+                    addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
+                }
             }
         }
-    }
-
-    if (include_helper_parts && !handle_support_before_models)
-    {
-        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr));
     }
 
     if (include_helper_parts && layer_nr == 0)
@@ -579,30 +573,35 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
+std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storage, int current_extruder)
+{
+    int extruder_count = storage.getSettingAsCount("machine_extruder_count");
+    std::vector<int> ret;
+    ret.push_back(current_extruder);
+    int next_extruder_nr = (current_extruder == 0)? 1 : 0;
+    while (next_extruder_nr < extruder_count)
+    {
+        ret.push_back(next_extruder_nr);
+        next_extruder_nr++;
+        if (next_extruder_nr == current_extruder)
+        { // skip the current extruder, it's the one we started out planning
+            next_extruder_nr++;
+        }
+    }
+    assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn;t used.");
+    return ret;
+}
+
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr)
 {
     std::vector<unsigned int> ret;
-    std::list<unsigned int> add_list;
-    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-        add_list.push_back(mesh_idx);
-
-    int add_extruder_nr = current_extruder;
-    while(add_list.size() > 0)
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        for(auto add_it = add_list.begin(); add_it != add_list.end(); )
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            if (storage.meshes[*add_it].getSettingAsIndex("extruder_nr") == add_extruder_nr)
-            {
-                ret.push_back(*add_it);
-                add_it = add_list.erase(add_it);
-            } 
-            else 
-            {
-                ++add_it;
-            }
+            ret.push_back(mesh_idx);
         }
-        if (add_list.size() > 0)
-            add_extruder_nr = storage.meshes[*add_list.begin()].getSettingAsIndex("extruder_nr");
     }
     return ret;
 }
@@ -962,74 +961,33 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     }
 }
 
-bool FffGcodeWriter::handleSupportBeforeModels(const SliceDataStorage& storage, int layer_nr, int extruder_nr_before)
+bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
 {
-    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-
-    const SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
-
-    bool print_support_before_rest;
-    const std::vector<bool> extruders_used = storage.getExtrudersUsed(layer_nr);
-    bool only_one_extruder_used = false;
-    for (bool extruder_used : extruders_used)
-    {
-        if (!only_one_extruder_used)
-        { // we haven't seen a used extruder yet
-            only_one_extruder_used = extruder_used;
-        }
-        else if (extruder_used)
-        { // we've already seen one extruder used
-            only_one_extruder_used = false;
-            break;
-        }
-    }
-    if (only_one_extruder_used)
-    { // alternate, so that support is printed consecutively, leading to less print speed/pressure changes
-        print_support_before_rest = layer_nr % 2 == 0;
-    }
-    else
-    {
-        print_support_before_rest = (support_layer.supportAreas.size() > 0 && support_infill_extruder_nr == extruder_nr_before)
-                                    || (support_layer.skin.size() > 0 && support_skin_extruder_nr == extruder_nr_before);
-    }
-    return print_support_before_rest;
-}
-
-
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
-{
+    bool support_added = false;
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
-        return; 
-    
+    {
+        return support_added;
+    }
+
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
     if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
     {
-        return;
+        return support_added;
     }
 
-    int current_extruder_nr = gcode_layer.getExtruder();
 
-    if (support_layer.skin.size() > 0)
+    if (extruder_nr == support_infill_extruder_nr)
     {
-        if (support_skin_extruder_nr != support_infill_extruder_nr && support_skin_extruder_nr == current_extruder_nr)
-        {
-            addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
-            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
-        }
-        else 
-        {
-            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
-            addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
-        }
+        support_added |= addSupportInfillToGCode(storage, gcode_layer, layer_nr);
     }
-    else
+    if (extruder_nr == support_skin_extruder_nr)
     {
-        addSupportInfillToGCode(storage, gcode_layer, layer_nr);
+        support_added |= addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
     }
+    return support_added;
 }
 
 bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
