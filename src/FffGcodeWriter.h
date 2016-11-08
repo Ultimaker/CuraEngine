@@ -239,16 +239,25 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      */
     void processDraftShield(SliceDataStorage& storage, GCodePlanner& gcodeLayer, unsigned int layer_nr);
-    
+
     /*!
-     * Calculate in which order to print the meshes.
+     * Calculate in which order to plan the extruders
      * 
      * \param[in] storage where the slice data is stored.
      * \param current_extruder The current extruder with which we last printed
-     * \return A vector of mesh indices ordered on print order.
+     * \return A vector of pairs of extruder numbers coupled with the mesh indices ordered on print order for that extruder.
      */
-    std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int current_extruder);
-        
+    std::vector<int> calculateExtruderOrder(SliceDataStorage& storage, int current_extruder);
+
+    /*!
+     * Calculate in which order to plan the meshes of a specific extruder
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param extruder_nr The extruder for which to determine the order
+     * \return A vector of pairs of extruder numbers coupled with the mesh indices ordered on print order for that extruder.
+     */
+    std::vector<unsigned int> calculateMeshOrder(SliceDataStorage& storage, int extruder_nr);
+
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.
      * 
@@ -330,21 +339,13 @@ private:
     void processSkin(cura::GCodePlanner& gcode_layer, cura::SliceMeshStorage* mesh, cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
 
     /*!
-     * See whether we need to print support before all models or after all models in the current layer
-     * \param[in] storage where the slice data is stored.
-     * \param layer_nr The index of the layer to write the gcode of.
-     * \param extruder_nr_before The extruder number at the start of the layer (before other print parts aka the rest)
-     * \return Whether support should be printed before or after models have been printed
-     */
-    bool handleSupportBeforeModels(const SliceDataStorage& storage, int layer_nr, int extruder_nr_before);
-
-    /*!
-     * Add the support to the layer plan \p gcodeLayer of the current layer.
+     * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
+     * \return whether any support was added to the layer plan
      */
-    void addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
+    bool addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int extruder_nr);
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
