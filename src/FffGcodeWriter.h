@@ -350,15 +350,17 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
+     * \return whether any support infill was added to the layer plan
      */
-    void addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
+    bool addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     /*!
      * Add the support skins to the layer plan \p gcodeLayer of the current layer.
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
+     * \return whether any support skin was added to the layer plan
      */
-    void addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
+    bool addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.

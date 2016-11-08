@@ -1032,13 +1032,14 @@ void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     }
 }
 
-void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || storage.support.supportLayers[layer_nr].supportAreas.size() == 0)
     {
-        return;
+        return added;
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1092,24 +1093,26 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
             gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
             gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            added = true;
         }
     }
+    return added;
 }
 
-void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || storage.support.supportLayers[layer_nr].skin.size() == 0)
     {
-        return;
+        return added;
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
 
     int skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     const ExtruderTrain& interface_extr = *storage.meshgroup->getExtruderTrain(skin_extruder_nr);
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
 
     EFillMethod pattern = interface_extr.getSettingAsFillMethod("support_interface_pattern");
     int support_line_distance = interface_extr.getSettingInMicrons("support_interface_line_distance");
@@ -1147,8 +1150,14 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
 
-    gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_skin_config);
-    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    if (support_lines.size() > 0 || support_polygons.size() > 0)
+    {
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
+        gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_skin_config);
+        gcode_layer.addLinesByOptimizer(support_lines, &storage.support_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        added = true;
+    }
+    return added;
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
