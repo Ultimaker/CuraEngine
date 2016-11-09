@@ -969,7 +969,7 @@ bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
         return support_added;
     }
 
-    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    int support_interface_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
@@ -983,7 +983,7 @@ bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     {
         support_added |= addSupportInfillToGCode(storage, gcode_layer, layer_nr);
     }
-    if (extruder_nr == support_skin_extruder_nr)
+    if (extruder_nr == support_interface_extruder_nr)
     {
         support_added |= addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
     }
