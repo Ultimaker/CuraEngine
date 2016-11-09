@@ -588,7 +588,7 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
             next_extruder_nr++;
         }
     }
-    assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn;t used.");
+    assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn't used.");
     return ret;
 }
 
