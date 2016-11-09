@@ -609,7 +609,14 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     {
         return;
     }
-    
+
+    if (mesh->getSettingBoolean("anti_overhang_mesh")
+        || mesh->getSettingBoolean("support_mesh")
+    )
+    {
+        return;
+    }
+
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     SliceLayer* layer = &mesh->layers[layer_nr];
@@ -652,7 +659,14 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     {
         return;
     }
-    
+
+    if (mesh->getSettingBoolean("anti_overhang_mesh")
+        || mesh->getSettingBoolean("support_mesh")
+    )
+    {
+        return;
+    }
+
     SliceLayer* layer = &mesh->layers[layer_nr];
 
     if (layer->parts.size() == 0)

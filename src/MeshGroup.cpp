@@ -157,7 +157,12 @@ void MeshGroup::finalize()
 
     for (const Mesh& mesh : meshes)
     {
-        getExtruderTrain(mesh.getSettingAsIndex("extruder_nr"))->setIsUsed(true);
+        if (!mesh.getSettingBoolean("anti_overhang_mesh")
+            && !mesh.getSettingBoolean("support_mesh")
+        )
+        {
+            getExtruderTrain(mesh.getSettingAsIndex("extruder_nr"))->setIsUsed(true);
+        }
     }
 
     //If the machine settings have been supplied, offset the given position vertices to the center of vertices (0,0,0) is at the bed center.

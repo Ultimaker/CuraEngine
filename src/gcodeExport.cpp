@@ -49,7 +49,12 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     for (const Mesh& mesh : meshgroup->meshes)
     {
-        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+        if (!mesh.getSettingBoolean("anti_overhang_mesh")
+            && !mesh.getSettingBoolean("support_mesh")
+        )
+        {
+            extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+        }
     }
 
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)

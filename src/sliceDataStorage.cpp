@@ -239,7 +239,12 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     // all meshes are presupposed to actually have content
     for (SliceMeshStorage& mesh : meshes)
     {
-        ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+        if (!mesh.getSettingBoolean("anti_overhang_mesh")
+            && !mesh.getSettingBoolean("support_mesh")
+        )
+        {
+            ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+        }
     }
     return ret;
 }

@@ -62,10 +62,15 @@ void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
     { // compute max_object_height_per_extruder
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-            max_object_height_per_extruder[extr_nr] = 
-                std::max(   max_object_height_per_extruder[extr_nr]
-                        ,   mesh.layer_nr_max_filled_layer  ); 
+            if (!mesh.getSettingBoolean("anti_overhang_mesh")
+                && !mesh.getSettingBoolean("support_mesh")
+            )
+            {
+                unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
+                max_object_height_per_extruder[extr_nr] = 
+                    std::max(   max_object_height_per_extruder[extr_nr]
+                            ,   mesh.layer_nr_max_filled_layer  );
+            }
         }
         int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
         max_object_height_per_extruder[support_infill_extruder_nr] = 
