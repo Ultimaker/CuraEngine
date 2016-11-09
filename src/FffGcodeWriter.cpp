@@ -589,15 +589,17 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
     int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     std::vector<int> ret;
     ret.push_back(current_extruder);
-    int next_extruder_nr = (current_extruder == 0)? 1 : 0;
-    while (next_extruder_nr < extruder_count)
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        ret.push_back(next_extruder_nr);
-        next_extruder_nr++;
-        if (next_extruder_nr == current_extruder)
+        if (extruder_nr == current_extruder)
         { // skip the current extruder, it's the one we started out planning
-            next_extruder_nr++;
+            extruder_nr++;
+            if (extruder_nr >= extruder_count)
+            {
+                break;
+            }
         }
+        ret.push_back(extruder_nr);
     }
     assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn't used.");
     return ret;
