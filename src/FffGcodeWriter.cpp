@@ -105,12 +105,14 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         fan_speed_layer_time_settings.cool_min_layer_time = train->getSettingInSeconds("cool_min_layer_time");
         fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train->getSettingInSeconds("cool_min_layer_time_fan_speed_max");
+        fan_speed_layer_time_settings.cool_fan_speed_0 = train->getSettingInPercentage("cool_fan_speed_0");
         fan_speed_layer_time_settings.cool_fan_speed_min = train->getSettingInPercentage("cool_fan_speed_min");
         fan_speed_layer_time_settings.cool_fan_speed_max = train->getSettingInPercentage("cool_fan_speed_max");
         fan_speed_layer_time_settings.cool_min_speed = train->getSettingInMillimetersPerSecond("cool_min_speed");
         fan_speed_layer_time_settings.cool_fan_full_layer = train->getSettingAsLayerNumber("cool_fan_full_layer");
         if (!train->getSettingBoolean("cool_fan_enabled"))
         {
+            fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
             fan_speed_layer_time_settings.cool_fan_speed_min = 0;
             fan_speed_layer_time_settings.cool_fan_speed_max = 0;
         }
