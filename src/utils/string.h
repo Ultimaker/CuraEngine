@@ -68,7 +68,7 @@ static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
             ss << '-';
             start = 1;
         }
-        ss << '.';
+        ss << "0.";
         for (int nulls = char_count - start; nulls < 3; nulls++)
         { // fill up to 3 decimals with zeros
             ss << '0';
