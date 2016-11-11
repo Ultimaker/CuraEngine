@@ -791,7 +791,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
                     infill_line_distance_here /= 2;
                 }
                 
-                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines);
             }
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
@@ -847,7 +847,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
 //     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
         infill_comp.generate(infill_polygons, infill_lines);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
@@ -984,7 +984,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, &perimeter_gaps);
         infill_comp.generate(skin_polygons, skin_lines);
 
         { // handle perimeter_gaps of skin insets
@@ -1118,7 +1118,10 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, infill_extr.getSettingBoolean("support_connect_zigzags"), true);
+        bool use_endpieces = true;
+        Polygons* perimeter_gaps = nullptr;
+        double fill_angle = 0;
+        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
@@ -1176,8 +1179,10 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     int support_skin_overlap = 0; // the skin (roofs/bottoms) should never be expanded outwards
     int outline_offset =  0;
     int extra_infill_shift = 0;
-    
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
+    Polygons* perimeter_gaps = nullptr;
+    bool use_endpieces = true;
+    bool connected_zigzags = false;
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);

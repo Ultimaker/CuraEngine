@@ -20,6 +20,8 @@ namespace cura
 
 class Infill 
 {
+    static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     int outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
@@ -29,12 +31,29 @@ class Infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     int64_t z; //!< height of the layer for which we generate infill
     int64_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, int64_t shift, bool connected_zigzags = false, bool use_endpieces = false)
+    /*!
+     * 
+     * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
+     */
+    Infill(EFillMethod pattern
+        , const Polygons& in_outline
+        , int outline_offset
+        , int infill_line_width
+        , int line_distance
+        , int infill_overlap
+        , double fill_angle
+        , int64_t z
+        , int64_t shift
+        , Polygons* perimeter_gaps = nullptr
+        , bool connected_zigzags = false
+        , bool use_endpieces = false
+    )
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
@@ -44,6 +63,7 @@ public:
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     {
