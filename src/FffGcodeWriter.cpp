@@ -633,7 +633,8 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
+    Point z_seam_pos(storage.getSettingInMicrons("z_seam_x"), storage.getSettingInMicrons("z_seam_y"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
 }
@@ -691,12 +692,13 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
+    Point z_seam_pos(storage.getSettingInMicrons("z_seam_x"), storage.getSettingInMicrons("z_seam_y"));
     Point layer_start_position = last_position_planned;
     if (storage.getSettingBoolean("start_layers_at_same_position"))
     {
         layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
     }
-    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_type);
+    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_pos, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
@@ -731,7 +733,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
         }
         
-        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type);
+        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
         {
@@ -861,7 +863,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     }
 }
 
-void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type)
+void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
@@ -876,7 +878,9 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             }
             if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, mesh->getSettingInMicrons("wall_0_wipe_dist"), false);
+                WallOverlapComputation* wall_overlap_computation(nullptr);
+                int wall_0_wipe_dist(0);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, wall_overlap_computation, EZSeamType::SHORTEST, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), wall_0_wipe_dist);
             }
         }
         int processed_inset_number = -1;
@@ -891,13 +895,14 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 if (!compensate_overlap_0)
                 {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    WallOverlapComputation* wall_overlap_computation(nullptr);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
             }
             else
