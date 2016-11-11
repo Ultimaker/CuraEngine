@@ -923,8 +923,18 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
-    for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), EZSeamType::SHORTEST);
+    for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
+        PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
+        part_order_optimizer.addPolygon(outline.outerPolygon());
+    }
+    part_order_optimizer.optimize();
+
+    for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
+    {
+        SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+
         Polygons skin_polygons;
         Polygons skin_lines;
         
