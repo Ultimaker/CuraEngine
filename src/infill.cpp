@@ -249,14 +249,18 @@ void Infill::generateLinearBasedInfill(const int outline_offset, Polygons& resul
     if (outline_offset != 0)
     {
         outline = in_outline.offset(outline_offset);
+        if (perimeter_gaps)
+        {
+            perimeter_gaps->add(in_outline.difference(outline.offset(infill_line_width / 2 + perimeter_gaps_extra_offset)));
+        }
     }
     else
     {
         outline = in_outline;
     }
-    
-        outline = outline.offset(infill_overlap);
-    
+
+    outline = outline.offset(infill_overlap);
+
     if (outline.size() == 0)
     {
         return;

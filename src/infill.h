@@ -38,6 +38,10 @@ class Infill
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
     /*!
+     * \warning If \p perimeter_gaps is given, then the difference between the \p in_outline
+     * and the polygons which result from offsetting it by the \p outline_offset
+     * and then expanding it again by half the \p infill_line_width
+     * is added to the \p perimeter_gaps
      * 
      * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
      */
