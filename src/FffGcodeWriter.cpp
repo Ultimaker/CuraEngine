@@ -924,6 +924,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
     constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+    bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE;
 
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), EZSeamType::SHORTEST);
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
@@ -965,16 +966,20 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 inner_skin_outline = &skin_part.insets.back();
                 offset_from_inner_skin_outline = -mesh->insetX_config.getLineWidth() / 2;
 
-                // add perimeter gaps between the outer skin inset and the innermost wall
-                const Polygons outer = skin_part.outline;
-                const Polygons inner = skin_part.insets[0].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset * 2);
-                perimeter_gaps.add(outer.difference(inner));
-            }
-            for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
-            {
-                const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh->insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
-                const Polygons inner = skin_part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
-                perimeter_gaps.add(outer.difference(inner));
+                if (fill_perimeter_gaps)
+                {
+                    // add perimeter gaps between the outer skin inset and the innermost wall
+                    const Polygons outer = skin_part.outline;
+                    const Polygons inner = skin_part.insets[0].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset * 2);
+                    perimeter_gaps.add(outer.difference(inner));
+
+                    for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
+                    { // add perimeter gaps between consecutive skin walls
+                        const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh->insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
+                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
+                        perimeter_gaps.add(outer.difference(inner));
+                    }
+                }
             }
         }
 
@@ -984,9 +989,11 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, &perimeter_gaps);
+        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &perimeter_gaps : nullptr;
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
 
+        if (fill_perimeter_gaps)
         { // handle perimeter_gaps of skin insets
             int offset = 0;
             Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
@@ -1005,6 +1012,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         }
     }
 
+    if (fill_perimeter_gaps)
     { // handle perimeter gaps of normal insets
         Polygons perimeter_gaps;
         for (unsigned int inset_idx = 1; inset_idx < part.insets.size(); inset_idx++)
