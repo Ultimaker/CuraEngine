@@ -923,6 +923,8 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
+    constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), EZSeamType::SHORTEST);
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
@@ -981,6 +983,25 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
+    }
+
+    { // handle perimeter gaps of normal insets
+        Polygons perimeter_gaps;
+        for (unsigned int inset_idx = 1; inset_idx < part.insets.size(); inset_idx++)
+        {
+            const Polygons outer = part.insets[inset_idx - 1].offset(-1 * mesh->insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
+            const Polygons inner = part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
+            perimeter_gaps.add(outer.difference(inner));
+        }
+
+        Polygons skin_polygons; // unused
+        Polygons skin_lines; // soon to be generated gap filler lines
+        int offset = 0;
+        int extra_infill_shift = 0;
+        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(skin_polygons, skin_lines);
+
+        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines);
     }
 }
 
