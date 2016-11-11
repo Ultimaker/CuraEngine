@@ -88,13 +88,24 @@ private:
      * \param line_distance the width of the scan segments
      */
     static inline int computeScanSegmentIdx(int x, int line_distance);
+
     /*!
-     * Generate sparse concentric infill 
-     * \param outline The first concentric wall
+     * Generate sparse concentric infill
+     * 
+     * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
+     * 
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(Polygons& result, int inset_value);
+
+    /*!
+     * Generate sparse concentric infill starting from a specific outer wall
+     * \param first_wall The outer wall from which to start
+     * \param result (output) The resulting polygons
+     * \param inset_value The offset between each consecutive two polygons
+     */
+    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
 
     /*!
      * Generate sparse concentric infill 

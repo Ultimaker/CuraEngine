@@ -40,8 +40,7 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         generateTriangleInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        outline_offsetted = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
-        generateConcentricInfill(outline_offsetted, result_polygons, line_distance);
+        generateConcentricInfill(result_polygons, line_distance);
         break;
     case EFillMethod::CONCENTRIC_3D:
         generateConcentric3DInfill(result_polygons);
@@ -55,13 +54,37 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
     }
 }
 
+void Infill::generateConcentricInfill(Polygons& result, int inset_value)
+{
+    Polygons first_concentric_wall = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+
+    result.add(first_concentric_wall);
+    if (perimeter_gaps)
+    {
+        const Polygons inner = first_concentric_wall.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
+        const Polygons gaps_here = in_outline.difference(inner);
+        perimeter_gaps->add(gaps_here);
+    }
+    generateConcentricInfill(first_concentric_wall, result, inset_value);
+}
+
 void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
 {
-    while(first_concentric_wall.size() > 0)
+    Polygons* prev_inset = &first_concentric_wall;
+    Polygons next_inset;
+    while (prev_inset->size() > 0)
     {
-        result.add(first_concentric_wall);
-        first_concentric_wall = first_concentric_wall.offset(-inset_value);
-    } 
+        next_inset = prev_inset->offset(-inset_value);
+        result.add(next_inset);
+        if (perimeter_gaps)
+        {
+            const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
+            const Polygons inner = next_inset.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
+            const Polygons gaps_here = outer.difference(inner);
+            perimeter_gaps->add(gaps_here);
+        }
+        prev_inset = &next_inset;
+    }
 }
 
 void Infill::generateConcentric3DInfill(Polygons& result)
