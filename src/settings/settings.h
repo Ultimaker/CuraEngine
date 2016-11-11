@@ -150,8 +150,7 @@ enum class ESurfaceMode
 enum class FillPerimeterGapMode
 {
     NOWHERE,
-    EVERYWHERE,
-    SKIN
+    EVERYWHERE
 };
 
 enum class CombingMode

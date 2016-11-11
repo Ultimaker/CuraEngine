@@ -413,10 +413,6 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     {
         return FillPerimeterGapMode::EVERYWHERE;
     }
-    if (value == "skin")
-    {
-        return FillPerimeterGapMode::SKIN;
-    }
     return FillPerimeterGapMode::NOWHERE;
 }
 
