@@ -38,11 +38,14 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, d
         if (acc_time > time_after_extruder_plan_start)
         {
             const double time_before_path_end = acc_time - time_after_extruder_plan_start;
-            extruder_plan_before.insertCommand(path_idx, extruder, temp, false, time_this_path - time_before_path_end);
+            bool wait = false;
+            extruder_plan_before.insertCommand(path_idx, extruder, temp, wait, time_this_path - time_before_path_end);
             return;
         }
     }
-    extruder_plan_before.insertCommand(0, extruder, temp, false); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    bool wait = false;
+    unsigned int path_idx = 0;
+    extruder_plan_before.insertCommand(path_idx, extruder, temp, wait); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -141,7 +144,9 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     }
     
     // time_before_extruder_plan_to_insert falls before all plans in the buffer
-    extruder_plans[0]->insertCommand(0, extruder, required_temp, false); // insert preheat command at verfy beginning of buffer
+    bool wait = false;
+    unsigned int path_idx = 0;
+    extruder_plans[0]->insertCommand(path_idx, extruder, initial_print_temp, wait); // insert preheat command at verfy beginning of buffer
 }
 
 void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -162,7 +167,7 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_
     
     if (prev_extruder == extruder)
     {
-        insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, required_temp);
+        insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, extruder_plan.printing_temperature);
     }
     else 
     {
