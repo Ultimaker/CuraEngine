@@ -38,7 +38,11 @@ class Preheat
         double material_print_temperature; //!< default print temp (backward compatilibily)
 
         double material_print_temperature_layer_0; //!< initial layer print temp
-        
+
+        double material_initial_print_temperature; //!< print temp when first starting to extrude after a layer switch
+
+        double material_final_print_temperature; //!< print temp at the end of all extrusion moves of an extruder to which it's cooled down just before - during the extrusion
+
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
     
         FlowTempGraph flow_temp_graph; //!< The graph linking flows to corresponding temperatures
@@ -78,6 +82,22 @@ public:
     }
 
     /*!
+     * Get the initial print temperature when starting to extrude.
+     */
+    double getInitialPrintTemp(int extruder)
+    {
+        return config_per_extruder[extruder].material_initial_print_temperature;
+    }
+
+    /*!
+     * Get the final print temperature at the end of all extrusion moves with the current extruder
+     */
+    double getFinalPrintTemp(int extruder)
+    {
+        return config_per_extruder[extruder].material_final_print_temperature;
+    }
+
+    /*!
      * Set the nozzle and material temperature settings for each extruder train.
      */
     void setConfig(MeshGroup& settings)
@@ -95,10 +115,11 @@ public:
 
             config.min_time_window = extruder_train.getSettingInSeconds("machine_min_cool_heat_time_window");
 
-            config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
-
+            config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature");
             config.material_print_temperature_layer_0 = extruder_train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
-            
+            config.material_initial_print_temperature = extruder_train.getSettingInDegreeCelsius("material_initial_print_temperature");
+            config.material_final_print_temperature = extruder_train.getSettingInDegreeCelsius("material_final_print_temperature");
+
             config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
             
             config.flow_temp_graph = extruder_train.getSettingAsFlowTempGraph("material_flow_temp_graph"); // [[0.1,180],[20,230]]
