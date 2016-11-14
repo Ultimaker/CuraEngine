@@ -133,7 +133,7 @@ Preheat::CoolDownResult Preheat::timeBeforeEndToInsertPreheatCommand_warmUpCoolD
         outer_temp = temp2;
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
-    double cool_down_time = getTimeToGoFromTempToTemp(extruder, outer_temp, temp1, during_printing);
+    double cool_down_time = getTimeToGoFromTempToTemp(extruder, temp1, outer_temp, during_printing);
     double time_needed_to_reach_temp1 = cool_down_time * (1.0 + time_ratio_cooldown_heatup);
     if (time_needed_to_reach_temp1 < limited_time_window)
     {
