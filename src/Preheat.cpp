@@ -29,11 +29,6 @@ void Preheat::setConfig(MeshGroup& settings)
     }
 }
 
-double Preheat::timeToHeatFromStandbyToPrintTemp(unsigned int extruder, double temp)
-{
-    return (temp - config_per_extruder[extruder].standby_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
-}
-
 double Preheat::getTimeToGoFromTempToTemp(int extruder, double temp_before, double temp_after, bool during_printing)
 {
     Config& config = config_per_extruder[extruder];
@@ -56,23 +51,50 @@ double Preheat::getTemp(unsigned int extruder, double flow, bool is_initial_laye
     return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
 }
 
-Preheat::WarmUpResult Preheat::timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp)
+Preheat::WarmUpResult Preheat::timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing)
 {
     WarmUpResult result;
     const Config& config = config_per_extruder[extruder];
+    double time_to_cooldown_1_degree = config.time_to_cooldown_1_degree - during_printing * config.heatup_cooldown_time_mod_while_printing;
+    double time_to_heatup_1_degree = config.time_to_heatup_1_degree + during_printing * config.heatup_cooldown_time_mod_while_printing;
     result.total_time_window = time_window;
-    double time_ratio_cooldown_heatup = config.time_to_cooldown_1_degree / config.time_to_heatup_1_degree;
-    double time_to_heat_from_standby_to_print_temp = timeToHeatFromStandbyToPrintTemp(extruder, temp);
-    double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
-    if (time_needed_to_reach_standby_temp < time_window)
+
+    //                  ,temp2
+    //                 /                                    .
+    //     ,temp0     /                                     .
+    //      \ ' ' ' '/ ' ' '> outer_temp                    .
+    //       \______/                                       .
+    //               "-> temp1
+    //      ^^^^^^^^^^
+    //      limited_time_window
+    double outer_temp;
+    double limited_time_window;
+    if (temp0 < temp2)
+    { // extra time needed during heating
+        double extra_heatup_time = (temp2 - temp0) * time_to_heatup_1_degree;
+        result.heating_time = extra_heatup_time;
+        limited_time_window = time_window - extra_heatup_time;
+        outer_temp = temp0;
+    }
+    else
     {
-        result.heating_time = time_to_heat_from_standby_to_print_temp;
-        result.lowest_temperature = config.standby_temp;
+        double extra_cooldown_time = (temp0 - temp2) * time_to_cooldown_1_degree;
+        result.heating_time = 0;
+        limited_time_window = time_window - extra_cooldown_time;
+        outer_temp = temp2;
+    }
+    double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
+    double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp1, outer_temp, during_printing);
+    double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
+    if (time_needed_to_reach_standby_temp < limited_time_window)
+    {
+        result.heating_time += time_to_heat_from_standby_to_print_temp;
+        result.lowest_temperature = temp1;
     }
     else 
     {
-        result.heating_time = time_window * config.time_to_heatup_1_degree / (config.time_to_cooldown_1_degree + config.time_to_heatup_1_degree);
-        result.lowest_temperature = std::max(config.standby_temp, temp - result.heating_time / config.time_to_heatup_1_degree);
+        result.heating_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
+        result.lowest_temperature = std::max(temp1, temp2 - result.heating_time / time_to_heatup_1_degree);
     }
     return result;
 }

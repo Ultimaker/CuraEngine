@@ -116,16 +116,6 @@ public:
     {
         return config_per_extruder[extruder_nr].flow_dependent_temperature;
     }
-private:
-    /*!
-     * Calculate time to heat up from standby temperature to a given temperature.
-     * Assumes @p temp is higher than the standby temperature.
-     * 
-     * \param extruder The extruder for which to get the time
-     * \param temp The temperature to be reached
-     */
-    double timeToHeatFromStandbyToPrintTemp(unsigned int extruder, double temp);
-
 public:
     /*!
      * Get the optimal temperature corresponding to a given average flow,
@@ -149,21 +139,28 @@ public:
     }
 
     /*!
-     * Decide when to start warming up again after starting to cool down towards the standby temperature.
+     * Decide when to start warming up again after starting to cool down towards \p temp1.
      * Two cases are considered: 
      * the case where the standby temperature is reached  \__/    .
      * and the case where it isn't  \/    .
      * 
-     * IT is assumed that the printer is not printing during this cool down and warm up time.
+     * \warning it is assumed that \p temp1 is lower than both \p temp0 and \p temp2. If not somewhat weird results may follow.
      * 
-     * Assumes from_temp is approximately the same as @p temp
-     * 
+    //                  ,temp2
+    //                 /                                    .
+    //     ,temp0     /                                     .
+    //      \        /                                      .
+    //       \______/                                       .
+    //               "-> temp1
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
-     * \param temp The temperature to which to heat
+     * \param temp0 The temperature from which to start cooling down
+     * \param temp1 The temeprature to which we try to cool down
+     * \param temp2 The temperature to which we need to have heated up at the end of the \p time_window
+     * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the @p time_window to insert the preheat command and the temperature from which the heating starts
      */
-    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp);
+    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing);
 
     /*!
      * Decide when to start cooling down again after starting to warm up towards the \p temp1

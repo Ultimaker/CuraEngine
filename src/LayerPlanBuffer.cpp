@@ -61,14 +61,20 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
     double in_between_time = 0.0;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
-        ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_before_idx];
-        if (extruder_plan.extruder == extruder)
+        ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
+        if (extruder_plan_before.extruder == extruder)
         {
-            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, initial_print_temp);
+            double temp_before = preheat_config.getFinalPrintTemp(extruder);
+            if (temp_before == 0)
+            {
+                temp_before = extruder_plan_before.printing_temperature;
+            }
+            constexpr bool during_printing = false;
+            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, temp_before, preheat_config.getStandbyTemp(extruder), initial_print_temp, during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
-        in_between_time += extruder_plan.estimates.getTotalTime();
+        in_between_time += extruder_plan_before.estimates.getTotalTime();
     }
     // The last extruder plan with the same extruder falls outside of the buffer
     // assume the nozzle has cooled down to strandby temperature already.
