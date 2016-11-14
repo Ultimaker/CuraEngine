@@ -146,7 +146,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     }
 
     double heated_pre_travel_time = 0;
-    if (initial_print_temp != 0)
+    if (preheat_config.getInitialPrintTemp(extruder) != 0)
     { // handle heating from initial_print_temperature to printing_tempreature
         unsigned int path_idx;
         for (path_idx = 0; path_idx < extruder_plan.paths.size(); path_idx++)
