@@ -61,6 +61,16 @@ public:
     };
 
     /*!
+     * The type of result when computing when to start cooling down a nozzle before it's not going to be used again.
+     */
+    struct CoolDownResult
+    {
+        double total_time_window; //!< The total time in which heating and cooling takes place.
+        double cooling_time; //!< The total time needed to cool down to the required temperature.
+        double highest_temperature; //!< The upper temperature from which cooling starts.
+    };
+
+    /*!
      * Get the standby temperature of an extruder train
      * \param extruder the extruder train for which to get the standby tmep
      * \return the standby temp
@@ -208,6 +218,25 @@ public:
         }
         return result;
     }
+
+    /*!
+     * Decide when to start cooling down again after starting to warm up towards the \p temp1
+     * Two cases are considered: 
+     * the case where the temperature is reached  /"""\    .
+     * and the case where it isn't  /\    .
+     * 
+     * \warning it is assumed that \p temp1 is higher than both \p temp0 and \p temp2. If not somewhat weird results may follow.
+     * 
+     * \param window_time The time window within which the cooldown and heat up must take place.
+     * \param extruder The extruder used
+     * \param temp0 The temperature from which to start heating up
+     * \param temp1 The temeprature to which we try to heat up
+     * \param temp2 The temperature to which we need to have cooled down after \p time_window time
+     * \param during_printing Whether the warming up and cooling down is performed during printing
+     * \return The time before the end of the \p time_window to insert the preheat command and the temperature from which the cooling starts
+     */
+    CoolDownResult timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing);
+
     /*!
      * Calculate time needed to warm up the nozzle from a given temp to a given temp.
      * If the printer is printing in the mean time the warming up will take longer.
@@ -244,6 +273,16 @@ public:
             }
         }
     }
+
+    /*!
+     * Get the time to go from one temperature to another temperature
+     * \param extruder The extruder number for which to perform the heatup / cooldown
+     * \param temp_before The before temperature
+     * \param temp_after The after temperature
+     * \param during_printing Whether the planned cooldown / warmup occurs during printing or while in standby mode
+     * \return The time needed
+     */
+    double getTimeToGoFromTempToTemp(int extruder, double temp_before, double temp_after, bool during_printing);
 };
 
 } // namespace cura 
