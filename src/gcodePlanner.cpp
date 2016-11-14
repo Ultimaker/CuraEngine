@@ -676,7 +676,12 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder, extruder_plan.printing_temperature, wait);
+                double initial_print_temp = train->getSettingInDegreeCelsius("material_initial_print_temperature");
+                if (initial_print_temp == 0)
+                {
+                    initial_print_temp = train->getSettingInDegreeCelsius("material_print_temperature");
+                }
+                gcode.writeTemperatureCommand(extruder, initial_print_temp, wait);
             }
 
             // prime extruder if it hadn't been used yet

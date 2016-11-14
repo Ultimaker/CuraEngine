@@ -52,15 +52,19 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
-    double print_temp = extruder_plan.printing_temperature;
-    
+    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
+    if (initial_print_temp == 0)
+    {
+        initial_print_temp = extruder_plan.printing_temperature;
+    }
+
     double in_between_time = 0.0;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
         ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_before_idx];
         if (extruder_plan.extruder == extruder)
         {
-            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, print_temp);
+            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, initial_print_temp);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
@@ -71,7 +75,8 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
     Preheat::WarmUpResult warm_up;
     warm_up.total_time_window = in_between_time;
     warm_up.lowest_temperature = preheat_config.getStandbyTemp(extruder);
-    warm_up.heating_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(warm_up.lowest_temperature, extruder, print_temp, false);
+    constexpr bool during_printing = false;
+    warm_up.heating_time = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUp(warm_up.lowest_temperature, extruder, initial_print_temp, during_printing);
     if (warm_up.heating_time > in_between_time)
     {
         warm_up.heating_time = in_between_time;
@@ -114,13 +119,19 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
+    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
     double print_temp = extruder_plan.printing_temperature;
+    double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
+    if (initial_print_temp == 0)
+    {
+        initial_print_temp = extruder_plan.printing_temperature;
+    }
     
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(extruder_plans, extruder_plan_idx);
 
     if (heating_time_and_from_temp.total_time_window < preheat_config.getMinimalTimeWindow(extruder))
     {
-        handleStandbyTemp(extruder_plans, extruder_plan_idx, print_temp);
+        handleStandbyTemp(extruder_plans, extruder_plan_idx, initial_print_temp);
         return; // don't insert preheat command and just stay on printing temperature
     }
     else
@@ -133,16 +144,16 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     {
         ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
         assert (extruder_plan_before.extruder != extruder);
-        
+
         double time_here = extruder_plan_before.estimates.getTotalTime();
         if (time_here >= time_before_extruder_plan_to_insert)
         {
-            insertPreheatCommand(extruder_plan_before, time_before_extruder_plan_to_insert, extruder, print_temp);
+            insertPreheatCommand(extruder_plan_before, time_before_extruder_plan_to_insert, extruder, initial_print_temp);
             return;
         }
         time_before_extruder_plan_to_insert -= time_here;
     }
-    
+
     // time_before_extruder_plan_to_insert falls before all plans in the buffer
     bool wait = false;
     unsigned int path_idx = 0;
@@ -153,7 +164,6 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_
 {   
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
-    double print_temp = extruder_plan.printing_temperature;
     
     
     ExtruderPlan* prev_extruder_plan = extruder_plans[extruder_plan_idx - 1];
