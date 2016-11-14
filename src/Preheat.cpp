@@ -96,34 +96,34 @@ Preheat::CoolDownResult Preheat::timeBeforeEndToInsertPreheatCommand_warmUpCoolD
     //                  ^temp2
     double outer_temp;
     double limited_time_window;
-    double extra_cooldown_time = 0;
     if (temp0 < temp2)
     { // extra time needed during heating
         double extra_heatup_time = (temp2 - temp0) * time_to_heatup_1_degree;
+        result.cooling_time = 0;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp0;
     }
     else
     {
-        extra_cooldown_time = (temp0 - temp2) * time_to_cooldown_1_degree;
+        double extra_cooldown_time = (temp0 - temp2) * time_to_cooldown_1_degree;
+        result.cooling_time = extra_cooldown_time;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp2;
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     double cool_down_time = getTimeToGoFromTempToTemp(extruder, outer_temp, temp1, during_printing);
-    double time_needed_to_reach_temp1 = cool_down_time * (1.0 + time_ratio_heatup_cooldown);
+    double time_needed_to_reach_temp1 = cool_down_time * (1.0 + time_ratio_cooldown_heatup);
     if (time_needed_to_reach_temp1 < limited_time_window)
     {
-        result.cooling_time = cool_down_time;
+        result.cooling_time += cool_down_time;
         result.highest_temperature = temp1;
     }
     else 
     {
-        result.cooling_time = limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
+        result.cooling_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
         result.highest_temperature = std::min(temp1, temp2 + result.cooling_time / time_to_cooldown_1_degree);
     }
 
-    result.cooling_time += extra_cooldown_time;
     return result;
 }
 
