@@ -173,6 +173,12 @@ public:
      * 
      * \warning it is assumed that \p temp1 is higher than both \p temp0 and \p temp2. If not somewhat weird results may follow.
      * 
+    //               _> temp1
+    //       /""""""\                                       .
+    //      /        \                                    .
+    //     ^temp0     \                                     .
+    //                 \                                    .
+    //                  ^temp2
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
      * \param temp0 The temperature from which to start heating up

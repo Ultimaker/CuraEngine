@@ -94,15 +94,15 @@ Preheat::CoolDownResult Preheat::timeBeforeEndToInsertPreheatCommand_warmUpCoolD
     double outer_temp;
     double limited_time_window;
     double extra_cooldown_time = 0;
-    if (temp0 > temp2)
+    if (temp0 < temp2)
     { // extra time needed during heating
-        double extra_heatup_time = (temp0 - temp2) * (config.time_to_heatup_1_degree + during_printing * config.heatup_cooldown_time_mod_while_printing);
+        double extra_heatup_time = (temp2 - temp0) * (config.time_to_heatup_1_degree + during_printing * config.heatup_cooldown_time_mod_while_printing);
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp0;
     }
     else
     {
-        extra_cooldown_time = (temp2 - temp0) * (config.time_to_cooldown_1_degree - during_printing * config.heatup_cooldown_time_mod_while_printing);
+        extra_cooldown_time = (temp0 - temp2) * (config.time_to_cooldown_1_degree - during_printing * config.heatup_cooldown_time_mod_while_printing);
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp2;
     }
