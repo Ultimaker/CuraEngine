@@ -215,7 +215,9 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
     std::vector<bool> ret;
     ret.resize(meshgroup->getExtruderCount(), false);
 
-    ret[getSettingAsIndex("adhesion_extruder_nr")] = true; 
+    if (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    {
+    ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
     { // process brim/skirt
         for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
         {
@@ -225,6 +227,7 @@ std::vector< bool > SliceDataStorage::getExtrudersUsed()
                 continue;
             }
         }
+    }
     }
 
     // TODO: ooze shield, draft shield ..?
