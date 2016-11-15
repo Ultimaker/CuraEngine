@@ -346,8 +346,9 @@ void LayerPlanBuffer::insertPreheatCommands()
             continue;
         }
         
-        double avg_flow = extruder_plan.estimates.getMaterial() / time; // TODO: subtract retracted travel time
+        double avg_flow = extruder_plan.estimates.getMaterial() / time;
         extruder_plan.printing_temperature = preheat_config.getTemp(extruder_plan.extruder, avg_flow, extruder_plan.is_initial_layer);
+        assert(extruder_plan.printing_temperature != -1 && "extruder_plan.printing_temperature should now have been set");
 
         if (buffer.size() == 1 && extruder_plan_idx == 0)
         { // the very first extruder plan of the current meshgroup
