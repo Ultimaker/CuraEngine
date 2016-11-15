@@ -281,6 +281,7 @@ protected:
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
     int extruder; //!< The extruder used for this paths in the current plan.
+    double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
     double printing_temperature; //!< The required temperature at the start of this extruder plan.
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 

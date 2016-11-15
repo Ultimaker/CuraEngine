@@ -25,6 +25,7 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
 
 ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
+, heated_pre_travel_time(0)
 , printing_temperature(-1)
 , start_position(start_position)
 , layer_nr(layer_nr)

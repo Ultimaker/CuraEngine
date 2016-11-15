@@ -126,8 +126,6 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
     double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
-    double print_temp = extruder_plan.printing_temperature;
-    double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
     if (initial_print_temp == 0)
     {
         initial_print_temp = extruder_plan.printing_temperature;
@@ -144,57 +142,6 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     {
         handleStandbyTemp(extruder_plans, extruder_plan_idx, heating_time_and_from_temp.lowest_temperature);
     }
-
-    double heated_pre_travel_time = 0;
-    if (preheat_config.getInitialPrintTemp(extruder) != 0)
-    { // handle heating from initial_print_temperature to printing_tempreature
-        unsigned int path_idx;
-        for (path_idx = 0; path_idx < extruder_plan.paths.size(); path_idx++)
-        {
-            GCodePath& path = extruder_plan.paths[path_idx];
-            heated_pre_travel_time += path.estimates.getTotalTime();
-            if (!path.isTravelPath())
-            {
-                break;
-            }
-        }
-        bool wait = false;
-        extruder_plan.insertCommand(path_idx, extruder, print_temp, wait);
-    }
-
-    double heated_post_travel_time = 0;
-    if (final_print_temp != 0)
-    { // handle precool from print_temp to final_print_temperature
-        unsigned int path_idx;
-        for (path_idx = extruder_plan.paths.size() - 1; int(path_idx) >= 0; path_idx--)
-        {
-            GCodePath& path = extruder_plan.paths[path_idx];
-            if (!path.isTravelPath())
-            {
-                break;
-            }
-            heated_post_travel_time += path.estimates.getTotalTime();
-        }
-        double time_window = extruder_plan.estimates.getTotalTime() - heated_pre_travel_time - heated_post_travel_time;
-        constexpr bool during_printing = true;
-        Preheat::CoolDownResult warm_cool_result = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(time_window, extruder, initial_print_temp, print_temp, final_print_temp, during_printing);
-
-        double cool_down_time = warm_cool_result.cooling_time;
-        double extrusion_time_seen = 0;
-        for (; int(path_idx) >= 0; path_idx--)
-        {
-            GCodePath& path = extruder_plan.paths[path_idx];
-            extrusion_time_seen += path.estimates.getTotalTime();
-            if (extrusion_time_seen >= cool_down_time)
-            {
-                break;
-            }
-        }
-        bool wait = false;
-        double time_after_path_start = extrusion_time_seen - cool_down_time;
-        extruder_plan.insertCommand(path_idx, extruder, final_print_temp, wait, time_after_path_start);
-    }
-
 
     // handle preheat command
     double time_before_extruder_plan_to_insert = heating_time_and_from_temp.heating_time;
@@ -240,9 +187,132 @@ void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_
     else 
     {
         insertPreheatCommand_multiExtrusion(extruder_plans, extruder_plan_idx);
+        insertFinalPrintTempCommand(extruder_plans, extruder_plan_idx - 1);
+        insertPrintTempCommand(extruder_plan);
     }
-    
 }
+
+void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
+{
+    unsigned int extruder = extruder_plan.extruder;
+    double print_temp = extruder_plan.printing_temperature;
+
+    double heated_pre_travel_time = 0;
+    if (preheat_config.getInitialPrintTemp(extruder) != 0)
+    { // handle heating from initial_print_temperature to printing_tempreature
+        unsigned int path_idx;
+        for (path_idx = 0; path_idx < extruder_plan.paths.size(); path_idx++)
+        {
+            GCodePath& path = extruder_plan.paths[path_idx];
+            heated_pre_travel_time += path.estimates.getTotalTime();
+            if (!path.isTravelPath())
+            {
+                break;
+            }
+        }
+        bool wait = false;
+        extruder_plan.insertCommand(path_idx, extruder, print_temp, wait);
+    }
+    extruder_plan.heated_pre_travel_time = heated_pre_travel_time;
+}
+
+void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
+{
+    ExtruderPlan& last_extruder_plan = *extruder_plans[extruder_plan_idx];
+    int extruder = last_extruder_plan.extruder;
+
+    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder); // actual used printing temp or zero if unused
+    double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
+    if (final_print_temp == 0)
+    {
+        return;
+    }
+
+    double heated_post_travel_time = 0;
+    { // compute heated_post_travel_time
+        unsigned int path_idx;
+        for (path_idx = last_extruder_plan.paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        {
+            GCodePath& path = last_extruder_plan.paths[path_idx];
+            if (!path.isTravelPath())
+            {
+                break;
+            }
+            heated_post_travel_time += path.estimates.getTotalTime();
+        }
+    }
+
+    double time_window = 0;
+    double average_print_temp = 0;
+    double used_initial_print_temp = initial_print_temp; // the printing temp with which to start printing with the extruder (initial_print_temp or printing_temperature)
+    { // compute time window and print temp statistics
+        double heated_pre_travel_time;
+        unsigned int print_temp_count = 0;
+        for (unsigned int prev_extruder_plan_idx = extruder_plan_idx; (int)prev_extruder_plan_idx >= 0; prev_extruder_plan_idx--)
+        {
+            ExtruderPlan& prev_extruder_plan = *extruder_plans[prev_extruder_plan_idx];
+            if (prev_extruder_plan.extruder != extruder)
+            {
+                break;
+            }
+            time_window += prev_extruder_plan.estimates.getTotalTime();
+            heated_pre_travel_time = prev_extruder_plan.heated_pre_travel_time;
+
+            if (prev_extruder_plan.estimates.getTotalUnretractedTime() > 0 && prev_extruder_plan.estimates.getMaterial() > 0)
+            { // handle temp statistics
+                assert(prev_extruder_plan.printing_temperature != -1 && "Previous extruder plan should already have a temperature planned");
+                average_print_temp += prev_extruder_plan.printing_temperature;
+                print_temp_count++;
+                if (initial_print_temp == 0)
+                {
+                    used_initial_print_temp = prev_extruder_plan.printing_temperature;
+                }
+            }
+        }
+        time_window -= heated_pre_travel_time + heated_post_travel_time;
+        average_print_temp /= print_temp_count;
+    }
+
+
+    constexpr bool during_printing = true;
+    Preheat::CoolDownResult warm_cool_result = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(time_window, extruder, used_initial_print_temp, average_print_temp, final_print_temp, during_printing);
+    double cool_down_time = warm_cool_result.cooling_time;
+
+    // find extruder plan in which to insert cooling command
+    ExtruderPlan* precool_extruder_plan = &last_extruder_plan;
+    {
+        for (unsigned int precool_extruder_plan_idx = extruder_plan_idx; (int)precool_extruder_plan_idx >= 0; precool_extruder_plan_idx--)
+        {
+            precool_extruder_plan = extruder_plans[precool_extruder_plan_idx];
+            double time_here = precool_extruder_plan->estimates.getTotalTime();
+            if (cool_down_time < time_here)
+            {
+                break;
+            }
+            cool_down_time -= time_here;
+        }
+    }
+
+    // at this point cool_down_time is what time is left if cool down time of extruder plans after precool_extruder_plan (up until last_extruder_plan) are already taken into account
+
+    { // insert temp command in precool_extruder_plan
+        double extrusion_time_seen = 0;
+        unsigned int path_idx;
+        for (path_idx = precool_extruder_plan->paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        {
+            GCodePath& path = precool_extruder_plan->paths[path_idx];
+            extrusion_time_seen += path.estimates.getTotalTime();
+            if (extrusion_time_seen >= cool_down_time)
+            {
+                break;
+            }
+        }
+        bool wait = false;
+        double time_after_path_start = extrusion_time_seen - cool_down_time;
+        precool_extruder_plan->insertCommand(path_idx, extruder, final_print_temp, wait, time_after_path_start);
+    }
+}
+
 
 void LayerPlanBuffer::insertPreheatCommands()
 {

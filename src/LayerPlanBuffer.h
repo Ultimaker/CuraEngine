@@ -121,6 +121,25 @@ public:
     void insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
 
     /*!
+     * Insert the temperature command to heat from the initial print temperature to the printing temperature
+     * 
+     * The temperature command is insert at the start of the very first extrusion move
+     * 
+     * \param extruder_plan The extruder plan in which to insert the heat up command
+     */
+    void insertPrintTempCommand(ExtruderPlan& extruder_plan);
+
+    /*!
+     * Insert the temp command to start cooling from the printing temperature to the final print temp
+     * 
+     * The command is inserted at a timed offset before the end of the last extrusion move
+     * 
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param extruder_plan_idx The index of the last extruder plan in \p extruder_plans with the same extruder as previous extruder plans
+     */
+    void insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+
+    /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
     void insertPreheatCommands();
