@@ -82,7 +82,7 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
     if (warm_up.heating_time > in_between_time)
     {
         warm_up.heating_time = in_between_time;
-        warm_up.lowest_temperature = in_between_time / preheat_config.getTimeToHeatup1Degree(extruder);
+        warm_up.lowest_temperature = in_between_time / preheat_config.getTimeToHeatup1Degree(extruder, during_printing);
     }
     warm_up.heating_time = warm_up.heating_time + extra_preheat_time;
     return warm_up;

@@ -26,10 +26,8 @@ class Preheat
     class Config
     {
     public:
-        double time_to_heatup_1_degree; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature)
-        double time_to_cooldown_1_degree; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature)
-
-        double heatup_cooldown_time_mod_while_printing; //!< The time to be added to Preheat::time_to_heatup_1_degree and subtracted from Preheat::time_to_cooldown_1_degree to get the timings while printing
+        double time_to_heatup_1_degree[2]; //!< average time it takes to heat up one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
+        double time_to_cooldown_1_degree[2]; //!< average time it takes to cool down one degree (in the range of normal print temperatures and standby temperature), while not-printing and while printing
 
         double standby_temp; //!< The temperature at which the nozzle rests when it is not printing.
 
@@ -84,15 +82,17 @@ public:
      * Get the time it takes to heat up one degree celsius
      * 
      * \param extruder the extruder train for which to get time it takes to heat up one degree celsius
+     * \param during_printing whether the heating takes time during printing or when idle
      * \return the time it takes to heat up one degree celsius
      */
-    double getTimeToHeatup1Degree(int extruder)
+    double getTimeToHeatup1Degree(int extruder, bool during_printing)
     {
-        return config_per_extruder[extruder].time_to_heatup_1_degree;
+        return config_per_extruder[extruder].time_to_heatup_1_degree[during_printing];
     }
 
     /*!
      * Get the initial print temperature when starting to extrude.
+     * \param during_printing whether the heating takes time during printing or when idle
      */
     double getInitialPrintTemp(int extruder)
     {
