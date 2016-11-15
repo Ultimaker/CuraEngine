@@ -13,7 +13,7 @@ void LayerPlanBuffer::flush()
 {
     if (buffer.size() > 0)
     {
-        insertPreheatCommands(); // insert preheat commands of the very last layer
+        insertTempCommands(); // insert preheat commands of the very last layer
     }
     while (!buffer.empty())
     {
@@ -165,7 +165,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     extruder_plans[0]->insertCommand(path_idx, extruder, initial_print_temp, wait); // insert preheat command at verfy beginning of buffer
 }
 
-void LayerPlanBuffer::insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
+void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
 {   
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
@@ -314,7 +314,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 }
 
 
-void LayerPlanBuffer::insertPreheatCommands()
+void LayerPlanBuffer::insertTempCommands()
 {
     if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
     { // disregard empty layer
@@ -381,7 +381,7 @@ void LayerPlanBuffer::insertPreheatCommands()
         }
 
         unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
-        insertPreheatCommand(extruder_plans, overall_extruder_plan_idx);
+        insertTempCommands(extruder_plans, overall_extruder_plan_idx);
     }
 }
 

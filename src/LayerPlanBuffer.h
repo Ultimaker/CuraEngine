@@ -49,7 +49,7 @@ public:
     {
         if (buffer.size() > 0)
         {
-            insertPreheatCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
+            insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
@@ -119,7 +119,7 @@ private:
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command
      */
-    void insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+    void insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
 
     /*!
      * Insert the temperature command to heat from the initial print temperature to the printing temperature
@@ -143,7 +143,7 @@ private:
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
-    void insertPreheatCommands();
+    void insertTempCommands();
 
     /*!
      * Reconfigure the standby temperature during which we didn't print with this extruder.
