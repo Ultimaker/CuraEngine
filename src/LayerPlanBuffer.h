@@ -68,7 +68,8 @@ public:
      * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
      */
     void flush();
-    
+
+private:
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 
@@ -143,7 +144,7 @@ public:
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
     void insertPreheatCommands();
-private:
+
     /*!
      * Reconfigure the standby temperature during which we didn't print with this extruder.
      * Find the previous extruder plan with the same extruder as layers[layer_plan_idx].extruder_plans[extruder_plan_idx]
