@@ -27,12 +27,14 @@ class LayerPlanBuffer : SettingsMessenger
 
     static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
+    std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
     , gcode(gcode)
+    , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
     
     void setPreheatConfig(MeshGroup& settings)

@@ -340,7 +340,9 @@ void LayerPlanBuffer::insertTempCommands()
     GCodePlanner& layer_plan = buffer.back();
     for (unsigned int extruder_plan_idx = 0; extruder_plan_idx < layer_plan.extruder_plans.size(); extruder_plan_idx++)
     {
+        unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
+        int extruder = extruder_plan.extruder;
         double time = extruder_plan.estimates.getTotalUnretractedTime();
         if (time <= 0.0 
             || extruder_plan.estimates.getMaterial() == 0.0 // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
@@ -350,7 +352,16 @@ void LayerPlanBuffer::insertTempCommands()
         }
         
         double avg_flow = extruder_plan.estimates.getMaterial() / time;
-        extruder_plan.printing_temperature = preheat_config.getTemp(extruder_plan.extruder, avg_flow, extruder_plan.is_initial_layer);
+        extruder_plan.printing_temperature = preheat_config.getTemp(extruder, avg_flow, extruder_plan.is_initial_layer);
+        extruder_plan.initial_printing_temperature = preheat_config.getInitialPrintTemp(extruder);
+        if (extruder_plan.initial_printing_temperature == 0
+            || !extruder_used_in_meshgroup[extruder]
+            || (overall_extruder_plan_idx > 0 && extruder_plans[overall_extruder_plan_idx - 1]->extruder == extruder)
+        )
+        {
+            extruder_plan.initial_printing_temperature = extruder_plan.printing_temperature;
+            extruder_used_in_meshgroup[extruder] = true;
+        }
         assert(extruder_plan.printing_temperature != -1 && "extruder_plan.printing_temperature should now have been set");
 
         if (buffer.size() == 1 && extruder_plan_idx == 0)
@@ -383,7 +394,6 @@ void LayerPlanBuffer::insertTempCommands()
             continue;
         }
 
-        unsigned int overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans.size() + extruder_plan_idx;
         insertTempCommands(extruder_plans, overall_extruder_plan_idx);
     }
 }
