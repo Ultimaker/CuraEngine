@@ -187,19 +187,6 @@ public:
     CoolDownResult timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing);
 
     /*!
-     * Calculate time needed to warm up the nozzle from a given temp to a given temp.
-     * If the printer is printing in the mean time the warming up will take longer.
-     * 
-     * 
-     * \param from_temp The temperature at which the nozzle was before
-     * \param extruder The extruder used
-     * \param temp The temperature to which to heat
-     * \param printing Whether the printer is printing in the time to heat up the nozzle
-     * \return The time needed to reach the desired temperature (@p temp)
-     */
-    double timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp, bool printing);
-
-    /*!
      * Get the time to go from one temperature to another temperature
      * \param extruder The extruder number for which to perform the heatup / cooldown
      * \param temp_before The before temperature

@@ -150,30 +150,4 @@ Preheat::CoolDownResult Preheat::timeBeforeEndToInsertPreheatCommand_warmUpCoolD
 }
 
 
-double Preheat::timeBeforeEndToInsertPreheatCommand_warmUp(double from_temp, unsigned int extruder, double temp, bool printing)
-{
-    if (temp > from_temp)
-    {
-        if (printing)
-        {
-            return (temp - from_temp) * (config_per_extruder[extruder].time_to_heatup_1_degree + config_per_extruder[extruder].heatup_cooldown_time_mod_while_printing); 
-        }
-        else 
-        {
-            return (temp - from_temp) * config_per_extruder[extruder].time_to_heatup_1_degree; 
-        }
-    }
-    else 
-    {
-        if (printing)
-        {
-            return (from_temp - temp) * config_per_extruder[extruder].time_to_cooldown_1_degree; 
-        }
-        else 
-        {
-            return (from_temp - temp) * std::max(0.0, config_per_extruder[extruder].time_to_cooldown_1_degree - config_per_extruder[extruder].heatup_cooldown_time_mod_while_printing); 
-        }
-    }
-}
-
 }//namespace cura
