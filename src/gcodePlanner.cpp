@@ -26,6 +26,7 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
 ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
+, initial_printing_temperature(-1)
 , printing_temperature(-1)
 , start_position(start_position)
 , layer_nr(layer_nr)
@@ -677,12 +678,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                double initial_print_temp = train->getSettingInDegreeCelsius("material_initial_print_temperature");
-                if (initial_print_temp == 0)
-                {
-                    initial_print_temp = train->getSettingInDegreeCelsius("material_print_temperature");
-                }
-                gcode.writeTemperatureCommand(extruder, initial_print_temp, wait);
+                gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
             }
 
             // prime extruder if it hadn't been used yet

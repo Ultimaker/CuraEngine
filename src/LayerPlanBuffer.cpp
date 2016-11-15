@@ -52,11 +52,7 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
-    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
-    if (initial_print_temp == 0)
-    {
-        initial_print_temp = extruder_plan.printing_temperature;
-    }
+    double initial_print_temp = extruder_plan.initial_printing_temperature;
 
     double in_between_time = 0.0;
     for (unsigned int extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
@@ -126,11 +122,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
 {
     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = extruder_plan.extruder;
-    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder);
-    if (initial_print_temp == 0)
-    {
-        initial_print_temp = extruder_plan.printing_temperature;
-    }
+    double initial_print_temp = extruder_plan.initial_printing_temperature;
     
     Preheat::WarmUpResult heating_time_and_from_temp = timeBeforeExtruderPlanToInsert(extruder_plans, extruder_plan_idx);
 
@@ -222,7 +214,6 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     ExtruderPlan& last_extruder_plan = *extruder_plans[extruder_plan_idx];
     int extruder = last_extruder_plan.extruder;
 
-    double initial_print_temp = preheat_config.getInitialPrintTemp(extruder); // actual used printing temp or zero if unused
     double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
     if (final_print_temp == 0)
     {
@@ -245,7 +236,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
     double time_window = 0;
     double average_print_temp = 0;
-    double used_initial_print_temp = initial_print_temp; // the printing temp with which to start printing with the extruder (initial_print_temp or printing_temperature)
+    double initial_print_temp = -1;
     { // compute time window and print temp statistics
         double heated_pre_travel_time;
         unsigned int print_temp_count = 0;
@@ -264,20 +255,31 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
                 assert(prev_extruder_plan.printing_temperature != -1 && "Previous extruder plan should already have a temperature planned");
                 average_print_temp += prev_extruder_plan.printing_temperature;
                 print_temp_count++;
-                if (initial_print_temp == 0)
-                {
-                    used_initial_print_temp = prev_extruder_plan.printing_temperature;
-                }
+                initial_print_temp = prev_extruder_plan.initial_printing_temperature;
             }
         }
         time_window -= heated_pre_travel_time + heated_post_travel_time;
         average_print_temp /= print_temp_count;
     }
 
+    assert((time_window >= 0 || last_extruder_plan.estimates.getMaterial() == 0) && "Time window should always be positive if we actually extrude");
 
+    //          ,layer change                                                                                   .
+    //          :     ,precool command                   ,layer change                                          .
+    //          : ____:                                  :     ,precool command                                 .
+    //          :/    \                             _____:_____:                                                .
+    //     _____/      \                           /           \                                                .
+    //    /             \                         /             \                                               .
+    //   /                                       /                                                              .
+    //  /                                       /                                                               .
+    //                                                                                                          .
+    // approximate ^               by                   ^                                                       .
+    // This approximation is quite ok since it only determines where to insert the precool temp command,
+    // which means the stable temperature of the previous extruder plan and the stable temperature of the next extruder plan couldn't be reached
     constexpr bool during_printing = true;
-    Preheat::CoolDownResult warm_cool_result = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(time_window, extruder, used_initial_print_temp, average_print_temp, final_print_temp, during_printing);
+    Preheat::CoolDownResult warm_cool_result = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(time_window, extruder, initial_print_temp, average_print_temp, final_print_temp, during_printing);
     double cool_down_time = warm_cool_result.cooling_time;
+    assert(cool_down_time >= 0);
 
     // find extruder plan in which to insert cooling command
     ExtruderPlan* precool_extruder_plan = &last_extruder_plan;
