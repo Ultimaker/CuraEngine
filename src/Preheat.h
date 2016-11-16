@@ -140,52 +140,52 @@ public:
     }
 
     /*!
-     * Decide when to start warming up again after starting to cool down towards \p temp1.
+     * Decide when to start warming up again after starting to cool down towards \p temp_mid.
      * Two cases are considered: 
      * the case where the standby temperature is reached  \__/    .
      * and the case where it isn't  \/    .
      * 
-     * \warning it is assumed that \p temp1 is lower than both \p temp0 and \p temp2. If not somewhat weird results may follow.
+     * \warning it is assumed that \p temp_mid is lower than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
      * 
-    //                  ,temp2
-    //                 /                                    .
-    //     ,temp0     /                                     .
-    //      \        /                                      .
-    //       \______/                                       .
-    //               "-> temp1
+    //                    ,temp_end
+    //                   /                                    .
+    //     ,temp_start  /                                     .
+    //      \          /                                      .
+    //       \________/                                       .
+    //               "-> temp_mid
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
-     * \param temp0 The temperature from which to start cooling down
-     * \param temp1 The temeprature to which we try to cool down
-     * \param temp2 The temperature to which we need to have heated up at the end of the \p time_window
+     * \param temp_start The temperature from which to start cooling down
+     * \param temp_mid The temeprature to which we try to cool down
+     * \param temp_end The temperature to which we need to have heated up at the end of the \p time_window
      * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the @p time_window to insert the preheat command and the temperature from which the heating starts
      */
-    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing);
+    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
 
     /*!
-     * Decide when to start cooling down again after starting to warm up towards the \p temp1
+     * Decide when to start cooling down again after starting to warm up towards the \p temp_mid
      * Two cases are considered: 
      * the case where the temperature is reached  /"""\    .
      * and the case where it isn't  /\    .
      * 
-     * \warning it is assumed that \p temp1 is higher than both \p temp0 and \p temp2. If not somewhat weird results may follow.
+     * \warning it is assumed that \p temp_mid is higher than both \p temp_start and \p temp_end. If not somewhat weird results may follow.
      * 
-    //               _> temp1
-    //       /""""""\                                       .
-    //      /        \                                    .
-    //     ^temp0     \                                     .
-    //                 \                                    .
-    //                  ^temp2
+    //               _> temp_mid
+    //       /""""""""\                                       .
+    //      /          \                                      .
+    //     ^temp_start  \                                     .
+    //                   \                                    .
+    //                    ^temp_end
      * \param window_time The time window within which the cooldown and heat up must take place.
      * \param extruder The extruder used
-     * \param temp0 The temperature from which to start heating up
-     * \param temp1 The temeprature to which we try to heat up
-     * \param temp2 The temperature to which we need to have cooled down after \p time_window time
+     * \param temp_start The temperature from which to start heating up
+     * \param temp_mid The temeprature to which we try to heat up
+     * \param temp_end The temperature to which we need to have cooled down after \p time_window time
      * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the \p time_window to insert the preheat command and the temperature from which the cooling starts
      */
-    CoolDownResult timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp0, double temp1, double temp2, bool during_printing);
+    CoolDownResult timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
 
     /*!
      * Get the time to go from one temperature to another temperature
