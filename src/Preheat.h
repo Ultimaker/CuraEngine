@@ -161,7 +161,7 @@ public:
      * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the @p time_window to insert the preheat command and the temperature from which the heating starts
      */
-    WarmUpResult timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
+    WarmUpResult getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
 
     /*!
      * Decide when to start cooling down again after starting to warm up towards the \p temp_mid
@@ -185,7 +185,7 @@ public:
      * \param during_printing Whether the warming up and cooling down is performed during printing
      * \return The time before the end of the \p time_window to insert the preheat command and the temperature from which the cooling starts
      */
-    CoolDownResult timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
+    CoolDownResult getCoolDownPointAfterWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing);
 
     /*!
      * Get the time to go from one temperature to another temperature

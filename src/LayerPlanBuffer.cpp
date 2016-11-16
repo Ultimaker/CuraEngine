@@ -66,7 +66,7 @@ Preheat::WarmUpResult LayerPlanBuffer::timeBeforeExtruderPlanToInsert(std::vecto
                 temp_before = extruder_plan_before.printing_temperature;
             }
             constexpr bool during_printing = false;
-            Preheat::WarmUpResult warm_up = preheat_config.timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(in_between_time, extruder, temp_before, preheat_config.getStandbyTemp(extruder), initial_print_temp, during_printing);
+            Preheat::WarmUpResult warm_up = preheat_config.getWarmUpPointAfterCoolDown(in_between_time, extruder, temp_before, preheat_config.getStandbyTemp(extruder), initial_print_temp, during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time);
             return warm_up;
         }
@@ -276,7 +276,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     // This approximation is quite ok since it only determines where to insert the precool temp command,
     // which means the stable temperature of the previous extruder plan and the stable temperature of the next extruder plan couldn't be reached
     constexpr bool during_printing = true;
-    Preheat::CoolDownResult warm_cool_result = preheat_config.timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(time_window, extruder, initial_print_temp, weighted_average_print_temp, final_print_temp, during_printing);
+    Preheat::CoolDownResult warm_cool_result = preheat_config.getCoolDownPointAfterWarmUp(time_window, extruder, initial_print_temp, weighted_average_print_temp, final_print_temp, during_printing);
     double cool_down_time = warm_cool_result.cooling_time;
     assert(cool_down_time >= 0);
 

@@ -58,7 +58,7 @@ double Preheat::getTemp(unsigned int extruder, double flow, bool is_initial_laye
     return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
 }
 
-Preheat::WarmUpResult Preheat::timeBeforeEndToInsertPreheatCommand_coolDownWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
+Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
 {
     WarmUpResult result;
     const Config& config = config_per_extruder[extruder];
@@ -106,7 +106,7 @@ Preheat::WarmUpResult Preheat::timeBeforeEndToInsertPreheatCommand_coolDownWarmU
     return result;
 }
 
-Preheat::CoolDownResult Preheat::timeBeforeEndToInsertPreheatCommand_warmUpCoolDown(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
+Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window, unsigned int extruder, double temp_start, double temp_mid, double temp_end, bool during_printing)
 {
     CoolDownResult result;
     const Config& config = config_per_extruder[extruder];
