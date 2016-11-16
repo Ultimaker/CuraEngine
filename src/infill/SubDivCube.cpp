@@ -99,7 +99,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
     {
         Point relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
         Point a, b; //!< absolute coordinates of line endpoints
-        relative_a.X = (cube_properties.square_height / 2) * ((double)(cube_properties.max_draw_z_diff - z_diff) / (double)cube_properties.max_draw_z_diff);
+        relative_a.X = (cube_properties.square_height / 2) * (cube_properties.max_draw_z_diff - z_diff) / cube_properties.max_draw_z_diff;
         relative_b.X = -relative_a.X;
         relative_a.Y = cube_properties.max_line_offset - ((z - (center.z - cube_properties.max_draw_z_diff)) * one_over_sqrt_2);
         relative_b.Y = relative_a.Y;
