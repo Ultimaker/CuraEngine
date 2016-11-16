@@ -76,20 +76,26 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     mesh.base_subdiv_cube = new SubDivCube(mesh, center, curr_recursion_depth - 1);
 }
 
-void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups)
+void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result)
+{
+    Polygons directional_line_groups[3];
+
+    generateSubdivisionLines(z, result, directional_line_groups);
+
+    for (int dir_idx = 0; dir_idx < 3; dir_idx++)
+    {
+        Polygons& line_group = directional_line_groups[dir_idx];
+        for (unsigned int line_idx = 0; line_idx < line_group.size(); line_idx++)
+        {
+            result.addLine(line_group[line_idx][0], line_group[line_idx][1]);
+        }
+    }
+}
+
+void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons (&directional_line_groups)[3])
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
-    bool top_level = false; //!< if this cube is the top level of the recursive call
-    if (directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
-    {
-        top_level = true;
-        directional_line_groups = (Polygons**)calloc(3, sizeof(Polygons*));
-        for (int idx = 0; idx < 3; idx++)
-        {
-            directional_line_groups[idx] = new Polygons();
-        }
-    }
     int32_t z_diff = abs(z - center.z); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
@@ -105,14 +111,14 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
-        for (int idx = 0; idx < 3; idx++)//!< draw the line, then rotate 120 degrees.
+        for (int dir_idx = 0; dir_idx < 3; dir_idx++)//!< draw the line, then rotate 120 degrees.
         {
             a.X = center.x + relative_a.X;
             a.Y = center.y + relative_a.Y;
             b.X = center.x + relative_b.X;
             b.Y = center.y + relative_b.Y;
-            addLineAndCombine(*(directional_line_groups[idx]), a, b);
-            if (idx < 2)
+            addLineAndCombine(directional_line_groups[dir_idx], a, b);
+            if (dir_idx < 2)
             {
                 rotatePoint120(relative_a);
                 rotatePoint120(relative_b);
@@ -125,18 +131,6 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         {
             children[idx]->generateSubdivisionLines(z, result, directional_line_groups);
         }
-    }
-    if (top_level) //!< copy directional groups into result, then free the directional groups
-    {
-        for (int temp = 0; temp < 3; temp++)
-        {
-            for (unsigned int idx = 0; idx < directional_line_groups[temp]->size(); idx++)
-            {
-                result.addLine((*directional_line_groups[temp])[idx][0], (*directional_line_groups[temp])[idx][1]);
-            }
-            delete directional_line_groups[temp];
-        }
-        free(directional_line_groups);
     }
 }
 

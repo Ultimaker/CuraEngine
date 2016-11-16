@@ -30,10 +30,16 @@ public:
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
      * \param z the specified layer height
      * \param result (output) The resulting lines
-     * \param directional_line_groups Should be nullptr. Used internally to keep track of line segments that are all pointing the same direction for line segment combining
      */
-    void generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups = nullptr);
+    void generateSubdivisionLines(int64_t z, Polygons& result);
 private:
+    /*!
+     * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
+     * \param z the specified layer height
+     * \param result (output) The resulting lines
+     * \param directional_line_groups Array of 3 times a polylines. Used to keep track of line segments that are all pointing the same direction for line segment combining
+     */
+    void generateSubdivisionLines(int64_t z, Polygons& result, Polygons (&directional_line_groups)[3]);
     struct CubeProperties
     {
         int64_t side_length; //!< side length of cubes
