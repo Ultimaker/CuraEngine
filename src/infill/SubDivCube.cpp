@@ -34,6 +34,9 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 
     coord_t furthest_dist_from_origin = std::sqrt(square(mesh.getSettingInMicrons("machine_height")) + square(mesh.getSettingInMicrons("machine_depth") / 2) + square(mesh.getSettingInMicrons("machine_width") / 2));
     coord_t max_side_length = furthest_dist_from_origin * 2;
+    constexpr double one_over_sqrt_3 = 1.0 / sqrt(3.0);
+    constexpr double one_over_sqrt_6 = 1.0 / sqrt(6.0);
+    constexpr double sqrt_two_third = sqrt(2.0 / 3.0);
 
     int curr_recursion_depth = 0;
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
@@ -43,8 +46,8 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
         cube_properties_here.side_length = curr_side_length;
         cube_properties_here.height = sqrt(3) * curr_side_length;
         cube_properties_here.square_height = sqrt(2) * curr_side_length;
-        cube_properties_here.max_draw_z_diff = (1.0 / sqrt(3.0)) * curr_side_length;
-        cube_properties_here.max_line_offset = (sqrt(1.0 / 6.0) * curr_side_length);
+        cube_properties_here.max_draw_z_diff = one_over_sqrt_3 * curr_side_length;
+        cube_properties_here.max_line_offset = one_over_sqrt_6 * curr_side_length;
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
@@ -61,9 +64,6 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     //             /  .O.  \                           |                        .
     //            /.~'   '~.\                          O---->X                  .
     //          X """"""""""" Y                                                 .
-    double one_over_sqrt_3 = 1.0 / sqrt(3.0);
-    double one_over_sqrt_6 = 1.0 / sqrt(6.0);
-    double sqrt_two_third = sqrt(2.0 / 3.0);
     tilt.matrix[0] = -one_over_sqrt_2;  tilt.matrix[1] = one_over_sqrt_2; tilt.matrix[2] = 0;
     tilt.matrix[3] = -one_over_sqrt_6; tilt.matrix[4] = -one_over_sqrt_6; tilt.matrix[5] = sqrt_two_third ;
     tilt.matrix[6] = one_over_sqrt_3;  tilt.matrix[7] = one_over_sqrt_3;  tilt.matrix[8] = one_over_sqrt_3;
