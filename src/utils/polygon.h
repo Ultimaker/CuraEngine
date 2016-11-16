@@ -11,6 +11,8 @@
 #include <limits> // int64_t.min
 #include <list>
 
+#include <initializer_list>
+
 #include "intpoint.h"
 
 //#define CHECK_POLY_ACCESS
@@ -455,6 +457,13 @@ public:
     {
         for(unsigned int n=0; n<other.paths.size(); n++)
             paths.push_back(other.paths[n]);
+    }
+    /*!
+     * Add a 'polygon' consisting of two points
+     */
+    void addLine(const Point from, const Point to)
+    {
+        paths.emplace_back((std::initializer_list<Point>){from, to});
     }
 
     template<typename... Args>

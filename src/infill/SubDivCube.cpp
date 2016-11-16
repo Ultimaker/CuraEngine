@@ -75,12 +75,6 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 
 void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups)
 {
-    auto addLine = [&](Point from, Point to)
-    {
-        PolygonRef p = result.newPoly();
-        p.add(from);
-        p.add(to);
-    };
     /*!
      * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.
      * \param group the polygons to add the line to
@@ -107,9 +101,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
                 continue;
             }
         }
-        PolygonRef p = group.newPoly();
-        p.add(from);
-        p.add(to);
+        group.addLine(from, to);
     };
     bool top_level = false; //!< if this cube is the top level of the recursive call
     if (directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
@@ -163,7 +155,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         {
             for (unsigned int idx = 0; idx < directional_line_groups[temp]->size(); idx++)
             {
-                addLine((*directional_line_groups[temp])[idx][0], (*directional_line_groups[temp])[idx][1]);
+                result.addLine((*directional_line_groups[temp])[idx][0], (*directional_line_groups[temp])[idx][1]);
             }
             delete directional_line_groups[temp];
         }
