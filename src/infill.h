@@ -107,7 +107,7 @@ private:
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(Polygons& result, SliceMeshStorage* mesh);
+    void generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule

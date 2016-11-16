@@ -49,7 +49,12 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMe
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
         break;
     case EFillMethod::CUBICSUBDIV:
-        generateCubicSubDivInfill(result_lines, mesh);
+        if (!mesh)
+        {
+            logError("Cannot generate Cubic Subdivision infill without a mesh!\n");
+            break;
+        }
+        generateCubicSubDivInfill(result_lines, *mesh);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -100,15 +105,10 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle + 120, 0);
 }
 
-void Infill::generateCubicSubDivInfill(Polygons& result, SliceMeshStorage* mesh)
+void Infill::generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh)
 {
-    if (mesh == nullptr)
-    {
-        logError("Cannot generate Cubic Subdivision infill without a mesh!\n");
-        return;
-    }
     Polygons uncropped;
-    mesh->base_subdiv_cube->generateSubdivisionLines(z, uncropped);
+    mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
     addLineSegmentsInfill(result, uncropped);
 }
 
@@ -123,7 +123,8 @@ void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
     ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
     ClipperLib::Paths interior_segments;
     ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
-    for(uint64_t idx = 0; idx < interior_segments.size(); idx++){
+    for (uint64_t idx = 0; idx < interior_segments.size(); idx++)
+    {
         addLine(interior_segments[idx][0], interior_segments[idx][1]);
     }
 }

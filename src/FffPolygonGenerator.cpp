@@ -422,7 +422,8 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh, 
     SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
     //SubDivCube Pre-compute Octree
-    if(mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV){
+    if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    {
         SubDivCube::precomputeOctree(mesh);
     }
 
