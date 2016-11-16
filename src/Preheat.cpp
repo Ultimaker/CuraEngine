@@ -3,12 +3,12 @@
 namespace cura 
 {
 
-void Preheat::setConfig(MeshGroup& settings)
+void Preheat::setConfig(const MeshGroup& meshgroup)
 {
-    for (int extruder_nr = 0; extruder_nr < settings.getExtruderCount(); extruder_nr++)
+    for (int extruder_nr = 0; extruder_nr < meshgroup.getExtruderCount(); extruder_nr++)
     {
-        assert(settings.getExtruderTrain(extruder_nr) != nullptr);
-        ExtruderTrain& extruder_train = *settings.getExtruderTrain(extruder_nr);
+        assert(meshgroup.getExtruderTrain(extruder_nr) != nullptr);
+        const ExtruderTrain& extruder_train = *meshgroup.getExtruderTrain(extruder_nr);
         config_per_extruder.emplace_back();
         Config& config = config_per_extruder.back();
         double machine_nozzle_cool_down_speed = extruder_train.getSettingInSeconds("machine_nozzle_cool_down_speed");

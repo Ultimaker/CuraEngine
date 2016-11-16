@@ -109,8 +109,9 @@ public:
 
     /*!
      * Set the nozzle and material temperature settings for each extruder train.
+     * \param meshgroup Where to get settings from
      */
-    void setConfig(MeshGroup& settings);
+    void setConfig(const MeshGroup& meshgroup);
 
     bool usesFlowDependentTemp(int extruder_nr)
     {
