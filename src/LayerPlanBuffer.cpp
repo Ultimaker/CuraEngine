@@ -220,7 +220,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         return;
     }
 
-    double heated_post_travel_time = 0;
+    double heated_post_travel_time = 0; // The time after the last extrude move toward the end of the extruder plan during which the nozzle is stable at the final print temperature
     { // compute heated_post_travel_time
         unsigned int path_idx;
         for (path_idx = last_extruder_plan.paths.size() - 1; int(path_idx) >= 0; path_idx--)
@@ -234,11 +234,11 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         }
     }
 
-    double time_window = 0;
-    double average_print_temp = 0;
-    double initial_print_temp = -1;
+    double time_window = 0; // The time window within which the nozzle needs to heat from the initial print temp to the printing temperature and then back to the final print temp; i.e. from the first to the last extrusion move with this extruder
+    double average_print_temp = 0; // The average of the normal printing temperatures of the extruder plans (which might be different due to flow dependent temp or due to initial layer temp)
+    double initial_print_temp = -1; // The initial print temp of the first extruder plan with this extruder
     { // compute time window and print temp statistics
-        double heated_pre_travel_time;
+        double heated_pre_travel_time; // The time before the first extrude move from the start of the extruder plan during which the nozzle is stable at the initial print temperature
         unsigned int print_temp_count = 0;
         for (unsigned int prev_extruder_plan_idx = extruder_plan_idx; (int)prev_extruder_plan_idx >= 0; prev_extruder_plan_idx--)
         {
