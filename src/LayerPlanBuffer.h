@@ -16,6 +16,19 @@
 namespace cura 
 {
 
+/*!
+ * Class for buffering multiple layer plans (\ref GCodePlanner) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
+ * 
+ * This class handles where to insert temperature commands for:
+ * - initial layer temperature
+ * - flow dependent temperature
+ * - starting to heat up from the standby temperature
+ * - initial printing temperature | printing temperature | final printing temperature
+ * 
+ * \image html assets/precool.png "Temperature Regulation" width=10cm
+ * \image latex assets/precool.png "Temperature Regulation" width=10cm
+ * 
+ */
 class LayerPlanBuffer : SettingsMessenger
 {
     GCodeExport& gcode;
