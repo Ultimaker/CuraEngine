@@ -209,9 +209,9 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
     extruder_plan.heated_pre_travel_time = heated_pre_travel_time;
 }
 
-void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
+void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx)
 {
-    ExtruderPlan& last_extruder_plan = *extruder_plans[extruder_plan_idx];
+    ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
     int extruder = last_extruder_plan.extruder;
 
     double final_print_temp = preheat_config.getFinalPrintTemp(extruder);
@@ -239,7 +239,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     double initial_print_temp = -1; // The initial print temp of the first extruder plan with this extruder
     { // compute time window and print temp statistics
         double heated_pre_travel_time; // The time before the first extrude move from the start of the extruder plan during which the nozzle is stable at the initial print temperature
-        for (unsigned int prev_extruder_plan_idx = extruder_plan_idx; (int)prev_extruder_plan_idx >= 0; prev_extruder_plan_idx--)
+        for (unsigned int prev_extruder_plan_idx = last_extruder_plan_idx; (int)prev_extruder_plan_idx >= 0; prev_extruder_plan_idx--)
         {
             ExtruderPlan& prev_extruder_plan = *extruder_plans[prev_extruder_plan_idx];
             if (prev_extruder_plan.extruder != extruder)
@@ -283,7 +283,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     // find extruder plan in which to insert cooling command
     ExtruderPlan* precool_extruder_plan = &last_extruder_plan;
     {
-        for (unsigned int precool_extruder_plan_idx = extruder_plan_idx; (int)precool_extruder_plan_idx >= 0; precool_extruder_plan_idx--)
+        for (unsigned int precool_extruder_plan_idx = last_extruder_plan_idx; (int)precool_extruder_plan_idx >= 0; precool_extruder_plan_idx--)
         {
             precool_extruder_plan = extruder_plans[precool_extruder_plan_idx];
             double time_here = precool_extruder_plan->estimates.getTotalTime();

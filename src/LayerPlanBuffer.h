@@ -135,12 +135,14 @@ private:
     /*!
      * Insert the temp command to start cooling from the printing temperature to the final print temp
      * 
+     * The print temp is inserted before the last extrusion move of the extruder plan corresponding to \p last_extruder_plan_idx
+     * 
      * The command is inserted at a timed offset before the end of the last extrusion move
      * 
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
-     * \param extruder_plan_idx The index of the last extruder plan in \p extruder_plans with the same extruder as previous extruder plans
+     * \param last_extruder_plan_idx The index of the last extruder plan in \p extruder_plans with the same extruder as previous extruder plans
      */
-    void insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+    void insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx);
 
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
