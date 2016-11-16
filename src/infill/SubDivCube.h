@@ -34,6 +34,14 @@ public:
      */
     void generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups = nullptr);
 private:
+    struct CubeProperties
+    {
+        int64_t side_length; //!< side length of cubes
+        int64_t height; //!< height of cubes based. This is the distance from one point of a cube to its 3d opposite.
+        int64_t square_height; //!< square cut across lengths. This is the diagonal distance across a face of the cube.
+        int64_t max_draw_z_diff; //!< maximum draw z differences. This is the maximum difference in z at which lines need to be drawn.
+        int64_t max_line_offset; //!< maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
+    };
     /*!
      * Rotates a point 120 degrees about the origin.
      * \param target the point to rotate.
@@ -64,11 +72,7 @@ private:
     int depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
     SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
-    static std::vector<int64_t> side_length; //!< precomputed array of side lengths of cubes based on recursion depth.
-    static std::vector<int64_t> height; //!< precomputed array of heights of cubes based on recursion depth. This is the distance from one point of a cube to its 3d opposite.
-    static std::vector<int64_t> square_height; //!< precomputed array of square cut across lengths based on recursion depth. This is the diagonal distance across a face of the cube.
-    static std::vector<int64_t> max_draw_z_diff; //!< precomputed array of maximum draw z differences based on recursion depth. This is the maximum difference in z at which lines need to be drawn.
-    static std::vector<int64_t> max_line_offset; //!< precomputed array of maximum line offsets. This is the maximum distance at which subdivision lines should be drawn from the 2d cube center.
+    static std::vector<CubeProperties> cube_properties_per_recursion_step; //!< precomputed array of basic properties of cubes based on recursion depth.
     static double radius_multiplier; //!< multiplier for the bounding radius when determining if a cube should be subdivided
     static Point3Matrix rotation_matrix; //!< The rotation matrix to get from axis aligned cubes to cubes standing on a corner point aligned with the infill_angle
     static PointMatrix infill_rotation_matrix; //!< Horizontal rotation applied to infill

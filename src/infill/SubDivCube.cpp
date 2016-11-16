@@ -8,11 +8,7 @@
 namespace cura
 {
 
-std::vector<int64_t> SubDivCube::side_length;
-std::vector<int64_t> SubDivCube::height;
-std::vector<int64_t> SubDivCube::square_height;
-std::vector<int64_t> SubDivCube::max_draw_z_diff;
-std::vector<int64_t> SubDivCube::max_line_offset;
+std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step;
 double SubDivCube::radius_multiplier = 1;
 int32_t SubDivCube::radius_addition = 0;
 Point3Matrix SubDivCube::rotation_matrix;
@@ -37,11 +33,13 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     int curr_recursion_depth = 0;
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
     {
-        side_length.push_back(curr_side_length);
-        height.push_back(sqrt(3) * curr_side_length);
-        square_height.push_back(sqrt(2) * curr_side_length);
-        max_draw_z_diff.push_back((1.0 / sqrt(3.0)) * curr_side_length);
-        max_line_offset.push_back((sqrt(1.0 / 6.0) * curr_side_length));
+        cube_properties_per_recursion_step.emplace_back();
+        CubeProperties& cube_properties_here = cube_properties_per_recursion_step.back();
+        cube_properties_here.side_length = curr_side_length;
+        cube_properties_here.height = sqrt(3) * curr_side_length;
+        cube_properties_here.square_height = sqrt(2) * curr_side_length;
+        cube_properties_here.max_draw_z_diff = (1.0 / sqrt(3.0)) * curr_side_length;
+        cube_properties_here.max_line_offset = (sqrt(1.0 / 6.0) * curr_side_length);
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
@@ -103,6 +101,8 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         }
         group.addLine(from, to);
     };
+    CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
+
     bool top_level = false; //!< if this cube is the top level of the recursive call
     if (directional_line_groups == nullptr) //!< if directional_line_groups is null then set the top level flag and create directional line groups
     {
@@ -114,17 +114,17 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons*
         }
     }
     int32_t z_diff = abs(z - center.z); //!< the difference between the cube center and the target layer.
-    if (z_diff > height[depth] / 2) //!< this cube does not touch the target layer. Early exit.
+    if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
     }
-    if (z_diff < max_draw_z_diff[depth]) //!< this cube has lines that need to be drawn.
+    if (z_diff < cube_properties.max_draw_z_diff) //!< this cube has lines that need to be drawn.
     {
         Point relative_a, relative_b; //!< relative coordinates of line endpoints around cube center
         Point a, b; //!< absolute coordinates of line endpoints
-        relative_a.X = (square_height[depth] / 2) * ((double)(max_draw_z_diff[depth] - z_diff) / (double)max_draw_z_diff[depth]);
+        relative_a.X = (cube_properties.square_height / 2) * ((double)(cube_properties.max_draw_z_diff - z_diff) / (double)cube_properties.max_draw_z_diff);
         relative_b.X = -relative_a.X;
-        relative_a.Y = max_line_offset[depth] - ((z - (center.z - max_draw_z_diff[depth])) * one_over_sqrt_2);
+        relative_a.Y = cube_properties.max_line_offset - ((z - (center.z - cube_properties.max_draw_z_diff)) * one_over_sqrt_2);
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
@@ -168,12 +168,14 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     this->depth = depth;
     this->center = center;
 
+    CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
+
     if (depth == 0) // lowest layer, no need for subdivision, exit.
     {
         return;
     }
     Point3 child_center;
-    coord_t radius = double(radius_multiplier * double(height[depth])) / 4.0 + radius_addition;
+    coord_t radius = double(radius_multiplier * double(cube_properties.height)) / 4.0 + radius_addition;
 
     int child_nr = 0;
     std::vector<Point3> rel_child_centers;
@@ -187,7 +189,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     rel_child_centers.emplace_back(-1, -1, 1);
     for (Point3 rel_child_center : rel_child_centers)
     {
-        child_center = center + rotation_matrix.apply(rel_child_center * int32_t(side_length[depth] / 4));
+        child_center = center + rotation_matrix.apply(rel_child_center * int32_t(cube_properties.side_length / 4));
         if (isValidSubdivision(mesh, child_center, radius))
         {
             children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
