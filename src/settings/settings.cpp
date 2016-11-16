@@ -156,7 +156,7 @@ double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
     return atof(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
+coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 {
     return getSettingInMillimeters(key) * 1000.0;
 }

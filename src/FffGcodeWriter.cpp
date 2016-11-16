@@ -423,7 +423,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     }
 
     bool avoid_other_parts = false;
-    int avoid_distance = 0; // minimal avoid distance is zero
+    coord_t avoid_distance = 0; // minimal avoid distance is zero
     for (int extr_nr = 0; extr_nr < storage.meshgroup->getExtruderCount(); extr_nr++)
     {
         if (gcode.getExtruderIsUsed(extr_nr))
@@ -438,7 +438,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    int max_inner_wall_width = 0;
+    coord_t max_inner_wall_width = 0;
     for (SettingsBaseVirtual& mesh_settings : storage.meshes)
     {
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
@@ -697,7 +697,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_angle = 45;
         if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
         {
-            unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), 1)));
+            unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
             if ((layer_nr / combined_infill_layers) & 1)
             { // switch every [combined_infill_layers] layers
                 infill_angle += 90;

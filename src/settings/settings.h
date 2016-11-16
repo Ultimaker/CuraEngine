@@ -223,7 +223,7 @@ public:
     double getSettingInAngleDegrees(std::string key) const;
     double getSettingInAngleRadians(std::string key) const;
     double getSettingInMillimeters(std::string key) const;
-    int getSettingInMicrons(std::string key) const;
+    coord_t getSettingInMicrons(std::string key) const;
     bool getSettingBoolean(std::string key) const;
     double getSettingInDegreeCelsius(std::string key) const;
     double getSettingInMillimetersPerSecond(std::string key) const;
