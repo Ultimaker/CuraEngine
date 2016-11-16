@@ -69,6 +69,15 @@ private:
      * \return Code 0: outside, 1: inside, 2: boundary does not exist at specified layer
      */
     static int distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance2);
+
+    /*!
+     * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.
+     * \param[out] group the polygons to add the line to
+     * \param from the first endpoint of the line
+     * \param to the second endpoint of the line
+     */
+    void addLineAndCombine(Polygons& group, Point from, Point to);
+
     int depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
     SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children

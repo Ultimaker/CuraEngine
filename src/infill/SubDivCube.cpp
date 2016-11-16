@@ -78,34 +78,6 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 
 void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons** directional_line_groups)
 {
-    /*!
-     * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than epsilon.
-     * \param group the polygons to add the line to
-     * \param from the first endpoint of the line
-     * \param to the second endpoint of the line
-     */
-    auto addLineAndCombine = [&](Polygons& group, Point from, Point to)
-    {
-        int epsilon = 10;
-        for (unsigned int idx = 0; idx < group.size(); idx++)
-        {
-            if (abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
-            {
-                from = group[idx][0];
-                group.remove(idx);
-                idx--;
-                continue;
-            }
-            if (abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
-            {
-                to = group[idx][1];
-                group.remove(idx);
-                idx--;
-                continue;
-            }
-        }
-        group.addLine(from, to);
-    };
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
     bool top_level = false; //!< if this cube is the top level of the recursive call
@@ -273,6 +245,29 @@ void SubDivCube::rotatePoint120(Point& target)
     x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
     target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
     target.X = x;
+}
+
+void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
+{
+    int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
+    for (unsigned int idx = 0; idx < group.size(); idx++)
+    {
+        if (abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
+        {
+            from = group[idx][0];
+            group.remove(idx);
+            idx--;
+            continue;
+        }
+        if (abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
+        {
+            to = group[idx][1];
+            group.remove(idx);
+            idx--;
+            continue;
+        }
+    }
+    group.addLine(from, to);
 }
 
 }//namespace cura
