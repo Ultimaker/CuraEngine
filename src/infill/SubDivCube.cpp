@@ -4,6 +4,7 @@
 
 #include "../utils/polygonUtils.h"
 #include "../sliceDataStorage.h"
+#include "../utils/math.h"
 
 namespace cura
 {
@@ -30,8 +31,12 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     radius_multiplier = mesh.getSettingAsRatio("sub_div_rad_mult");
     radius_addition = mesh.getSettingInMicrons("sub_div_rad_add");
     double infill_angle = M_PI / 4.0;
+
+    coord_t furthest_dist_from_origin = std::sqrt(square(mesh.getSettingInMicrons("machine_height")) + square(mesh.getSettingInMicrons("machine_depth") / 2) + square(mesh.getSettingInMicrons("machine_width") / 2));
+    coord_t max_side_length = furthest_dist_from_origin * 2;
+
     int curr_recursion_depth = 0;
-    for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < 25600000; curr_side_length *= 2) //!< 25600000 is an arbitrarily large number. It is imperative that any infill areas are inside of the cube defined by this number.
+    for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
     {
         cube_properties_per_recursion_step.emplace_back();
         CubeProperties& cube_properties_here = cube_properties_per_recursion_step.back();
