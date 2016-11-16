@@ -241,6 +241,7 @@ void SubDivCube::rotatePointInitial(Point& target)
 
 void SubDivCube::rotatePoint120(Point& target)
 {
+    constexpr double sqrt_three_fourths = 0.8660254037844386467637231707529361834714026269051903; //!< sqrt(3.0 / 4.0) = sqrt(3) / 2
     int64_t x;
     x = (-0.5) * target.X - sqrt_three_fourths * target.Y;
     target.Y = (-0.5)*target.Y + sqrt_three_fourths * target.X;
