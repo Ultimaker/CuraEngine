@@ -432,11 +432,23 @@ public:
     {
         return paths.end();
     }
+    /*!
+     * Remove a polygon from the list and move the last polygon to its place
+     * 
+     * \warning changes the order of the polygons!
+     */
     void remove(unsigned int index)
     {
         POLY_ASSERT(index < size());
-        paths.erase(paths.begin() + index);
+        if (index < paths.size() - 1)
+        {
+            paths[index] = std::move(paths.back());
+        }
+        paths.resize(paths.size() - 1);
     }
+    /*!
+     * Remove a range of polygons
+     */
     void erase(ClipperLib::Paths::iterator start, ClipperLib::Paths::iterator end)
     {
         paths.erase(start, end);
