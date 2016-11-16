@@ -12,7 +12,7 @@
 #include "infill/ZigzagConnectorProcessorEndPieces.h"
 #include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
 #include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
-#include "infill/subDivCube.h"
+#include "infill/SubDivCube.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 

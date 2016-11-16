@@ -84,7 +84,7 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
-    src/infill/subDivCube.cpp
+    src/infill/SubDivCube.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp

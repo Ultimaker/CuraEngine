@@ -1,7 +1,7 @@
 #include "sliceDataStorage.h"
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
-#include "infill/subDivCube.h" // For the destructor
+#include "infill/SubDivCube.h" // For the destructor
 
 
 namespace cura

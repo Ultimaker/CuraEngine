@@ -1,4 +1,4 @@
-#include "subDivCube.h"
+#include "SubDivCube.h"
 
 #include <functional>
 
