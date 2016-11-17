@@ -117,12 +117,12 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
 
     //      limited_time_window
     //      ^^^^^^^^^^
-    //                 _> temp_start
+    //                 _> temp_mid
     //       /""""""""\                                       .
     //      / . . . . .\ . . .> outer_temp                    .
     //     ^temp_start  \                                     .
     //                   \                                    .
-    //                    ^temp2
+    //                    ^temp_end
     double outer_temp;
     double limited_time_window;
     if (temp_start < temp_end)
