@@ -34,6 +34,8 @@ GCodeExport::GCodeExport()
     initial_bed_temp = 0;
 
     extruder_count = 0;
+
+    total_bounding_box = AABB3D();
 }
 
 GCodeExport::~GCodeExport()
@@ -166,12 +168,12 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line;
         }
 
-        prefix << ";PRINT.SIZE.MIN.X:0" << new_line;
-        prefix << ";PRINT.SIZE.MIN.Y:0" << new_line;
-        prefix << ";PRINT.SIZE.MIN.Z:0" << new_line;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(machine_dimensions.x) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(machine_dimensions.y) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(machine_dimensions.z) << new_line;
+        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z) << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         return prefix.str();
     default:
@@ -541,6 +543,8 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
 
+    total_bounding_box.include(Point3(x, y, z));
+
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
 
@@ -712,6 +716,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     {
         isZHopped = hop_height;
         *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
+        total_bounding_box.include(currentPosition + Point3(0, 0, isZHopped));
     }
 }
 
