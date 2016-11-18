@@ -56,7 +56,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     {
         const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
 
-        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr))
+        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr) && meshgroup->getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
         {
             extruder_attr[extruder_nr].is_used = true;
         }
@@ -104,7 +104,11 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)
 {
-    int start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
+    int start_extruder_nr = 0;
+    if (settings.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    {
+        start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
+    }
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
         const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);

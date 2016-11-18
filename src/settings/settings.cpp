@@ -365,6 +365,8 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
+    if (value == "none")
+        return EPlatformAdhesion::NONE;
     return EPlatformAdhesion::SKIRT;
 }
 

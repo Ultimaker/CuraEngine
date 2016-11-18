@@ -550,9 +550,12 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         max_print_height_per_extruder[support_skin_extruder_nr] =
             std::max(   max_print_height_per_extruder[support_skin_extruder_nr]
                     ,   storage.support.layer_nr_max_filled_layer  );
-        int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
-        max_print_height_per_extruder[adhesion_extruder_nr] =
-            std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
+        if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+        {
+            int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
+            max_print_height_per_extruder[adhesion_extruder_nr] =
+                std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
+        }
     }
 
     storage.max_print_height_order = order(max_print_height_per_extruder);
@@ -640,6 +643,8 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         break;
     case EPlatformAdhesion::RAFT:
         Raft::generate(storage, train->getSettingInMicrons("raft_margin"));
+        break;
+    case EPlatformAdhesion::NONE:
         break;
     }
 }

@@ -215,14 +215,17 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     std::vector<bool> ret;
     ret.resize(meshgroup->getExtruderCount(), false);
 
-    ret[getSettingAsIndex("adhesion_extruder_nr")] = true; 
-    { // process brim/skirt
-        for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
-        {
-            if (skirt_brim[extr_nr].size() > 0)
+    if (getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    {
+        ret[getSettingAsIndex("adhesion_extruder_nr")] = true;
+        { // process brim/skirt
+            for (int extr_nr = 0; extr_nr < meshgroup->getExtruderCount(); extr_nr++)
             {
-                ret[extr_nr] = true;
-                continue;
+                if (skirt_brim[extr_nr].size() > 0)
+                {
+                    ret[extr_nr] = true;
+                    continue;
+                }
             }
         }
     }

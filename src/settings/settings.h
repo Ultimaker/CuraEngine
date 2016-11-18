@@ -120,7 +120,8 @@ enum class EPlatformAdhesion
 {
     SKIRT,
     BRIM,
-    RAFT
+    RAFT,
+    NONE
 };
 
 /*!
