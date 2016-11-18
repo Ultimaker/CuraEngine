@@ -593,11 +593,7 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
     {
         if (extruder_nr == current_extruder)
         { // skip the current extruder, it's the one we started out planning
-            extruder_nr++;
-            if (extruder_nr >= extruder_count)
-            {
-                break;
-            }
+            continue;
         }
         ret.push_back(extruder_nr);
     }
