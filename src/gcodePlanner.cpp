@@ -591,22 +591,23 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     }
     /*
     Supposing no influence of minimal layer time; i.e. layer time > min layer time fan speed min:
-    
-           max..   fan 'full' on layer
-                |  :
-                |  :
-      ^    min..|..:________________
-     fan        |  / 
-    speed       | / 
-          zero..|/__________________
-                  layer nr >
-                  
-       
+
+              max..   fan 'full' on layer
+                   |  :
+                   |  :
+      ^       min..|..:________________
+     fan           |  /
+    speed          | /
+          speed_0..|/
+                   |
+                   |__________________
+                     layer nr >
+
     */
     if (layer_nr < fsml.cool_fan_full_layer)
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fan_speed = fan_speed * std::max(0, layer_nr) / fsml.cool_fan_full_layer;
+        fan_speed = fsml.cool_fan_speed_0 + (fan_speed - fsml.cool_fan_speed_0) * std::max(0, layer_nr) / fsml.cool_fan_full_layer;
     }
 }
 
