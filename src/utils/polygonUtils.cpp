@@ -574,12 +574,25 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygo
 {
     ClosestPolygonPoint none;
     
-    if (polygons.size() == 0) return none;
-    PolygonRef aPolygon = polygons[0];
-    if (aPolygon.size() == 0) return none;
-    Point aPoint = aPolygon[0];
-
-    ClosestPolygonPoint best(aPoint, 0, aPolygon, 0);
+    if (polygons.size() == 0)
+    {
+        return none;
+    }
+    PolygonRef any_polygon = polygons[0];
+    unsigned int any_poly_idx;
+    for (any_poly_idx = 0; any_poly_idx < polygons.size(); any_poly_idx++)
+    { // find first point in all polygons
+        if (polygons[any_poly_idx].size() > 0)
+        {
+            any_polygon = polygons[any_poly_idx];
+            break;
+        }
+    }
+    if (any_polygon.size() == 0)
+    {
+        return none;
+    }
+    ClosestPolygonPoint best(any_polygon[0], 0, any_polygon, any_poly_idx);
 
     int64_t closestDist2_score = vSize2(from - best.location) + penalty_function(best.location);
     
