@@ -19,6 +19,7 @@ namespace std
 template<typename T>
 class optional
 {
+protected:
     T* instance;
 public:
     optional() //!< create an optional value which is not instantiated
@@ -46,7 +47,7 @@ public:
     : instance(new T(args...))
     {
     }
-    ~optional() //!< simple destructor
+    virtual ~optional() //!< simple destructor
     {
         if (instance)
         {

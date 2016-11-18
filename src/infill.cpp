@@ -21,7 +21,6 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMe
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
-    const Polygons* outline = &in_outline;
     Polygons outline_offsetted;
     switch(pattern)
     {
@@ -41,9 +40,11 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMe
         generateTriangleInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        outline_offsetted = in_outline.offset(outline_offset - infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline 
-        outline = &outline_offsetted;
-        generateConcentricInfill(*outline, result_polygons, line_distance);
+        outline_offsetted = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
+        generateConcentricInfill(outline_offsetted, result_polygons, line_distance);
+        break;
+    case EFillMethod::CONCENTRIC_3D:
+        generateConcentric3DInfill(result_polygons);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
@@ -62,15 +63,29 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMe
     }
 }
 
-void Infill::generateConcentricInfill(Polygons outline, Polygons& result, int inset_value)
+void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
 {
-    while(outline.size() > 0)
+    while(first_concentric_wall.size() > 0)
     {
-        result.add(outline);
-        outline = outline.offset(-inset_value);
+        result.add(first_concentric_wall);
+        first_concentric_wall = first_concentric_wall.offset(-inset_value);
     } 
 }
 
+void Infill::generateConcentric3DInfill(Polygons& result)
+{
+    int period = line_distance * 2;
+    int shift = int64_t(one_over_sqrt_2 * z) % period;
+    shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
+    shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
+    shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
+    Polygons first_wall;
+    // in contrast to concentric infill we dont do "- infill_line_width / 2" cause this is already handled by the max two lines above
+    first_wall = in_outline.offset(outline_offset - shift);
+    generateConcentricInfill(first_wall, result, period);
+    first_wall = in_outline.offset(outline_offset - period + shift);
+    generateConcentricInfill(first_wall, result, period);
+}
 
 void Infill::generateGridInfill(Polygons& result)
 {
@@ -88,14 +103,15 @@ void Infill::generateCubicInfill(Polygons& result)
 
 void Infill::generateTetrahedralInfill(Polygons& result)
 {
-    int shift = int64_t(one_over_sqrt_2 * z) % line_distance;
-    shift = std::min(shift, line_distance - shift); // symmetry due to the fact that we are applying the shift in both directions
-    shift = std::min(shift, line_distance / 2 - infill_line_width / 2); // don't put lines too close to each other
+    int period = line_distance * 2;
+    int shift = int64_t(one_over_sqrt_2 * z) % period;
+    shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
+    shift = std::min(shift, period / 2 - infill_line_width / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width / 2); // don't put lines too close to each other
-    generateLineInfill(result, line_distance, fill_angle, shift);
-    generateLineInfill(result, line_distance, fill_angle, -shift);
-    generateLineInfill(result, line_distance, fill_angle + 90, shift);
-    generateLineInfill(result, line_distance, fill_angle + 90, -shift);
+    generateLineInfill(result, period, fill_angle, shift);
+    generateLineInfill(result, period, fill_angle, -shift);
+    generateLineInfill(result, period, fill_angle + 90, shift);
+    generateLineInfill(result, period, fill_angle + 90, -shift);
 }
 
 void Infill::generateTriangleInfill(Polygons& result)

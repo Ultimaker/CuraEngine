@@ -25,6 +25,25 @@ class StringTest : public CppUnit::TestFixture
     CPPUNIT_TEST(writeInt2mmTest1000);
     CPPUNIT_TEST(writeInt2mmTest10000);
     CPPUNIT_TEST(writeInt2mmTest123456789);
+    CPPUNIT_TEST(writeInt2mmTestMax);
+
+    CPPUNIT_TEST(writeDoubleToStreamTest10000Negative);
+    CPPUNIT_TEST(writeDoubleToStreamTest1000Negative);
+    CPPUNIT_TEST(writeDoubleToStreamTest100Negative);
+    CPPUNIT_TEST(writeDoubleToStreamTest10Negative);
+    CPPUNIT_TEST(writeDoubleToStreamTest1Negative);
+    CPPUNIT_TEST(writeDoubleToStreamTest0);
+    CPPUNIT_TEST(writeDoubleToStreamTest1);
+    CPPUNIT_TEST(writeDoubleToStreamTest10);
+    CPPUNIT_TEST(writeDoubleToStreamTest100);
+    CPPUNIT_TEST(writeDoubleToStreamTest1000);
+    CPPUNIT_TEST(writeDoubleToStreamTest10000);
+    CPPUNIT_TEST(writeDoubleToStreamTest123456789);
+    CPPUNIT_TEST(writeDoubleToStreamTestMin);
+    CPPUNIT_TEST(writeDoubleToStreamTestMax);
+    CPPUNIT_TEST(writeDoubleToStreamTestLowest);
+    CPPUNIT_TEST(writeDoubleToStreamTestLowestNeg);
+    CPPUNIT_TEST(writeDoubleToStreamTestLow);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -57,6 +76,25 @@ public:
     void writeInt2mmTest1000();
     void writeInt2mmTest10000();
     void writeInt2mmTest123456789();
+    void writeInt2mmTestMax();
+
+    void writeDoubleToStreamTest10000Negative();
+    void writeDoubleToStreamTest1000Negative();
+    void writeDoubleToStreamTest100Negative();
+    void writeDoubleToStreamTest10Negative();
+    void writeDoubleToStreamTest1Negative();
+    void writeDoubleToStreamTest0();
+    void writeDoubleToStreamTest1();
+    void writeDoubleToStreamTest10();
+    void writeDoubleToStreamTest100();
+    void writeDoubleToStreamTest1000();
+    void writeDoubleToStreamTest10000();
+    void writeDoubleToStreamTest123456789();
+    void writeDoubleToStreamTestMin();
+    void writeDoubleToStreamTestMax();
+    void writeDoubleToStreamTestLowest();
+    void writeDoubleToStreamTestLowestNeg();
+    void writeDoubleToStreamTestLow();
 
 private:
 
@@ -69,6 +107,17 @@ private:
      * \param in the integer to check
      */
     void writeInt2mmAssert(int64_t in);
+
+    /*!
+     * \brief Performs the actual assertion for the getDist2FromLineSegmentTest.
+     * 
+     * This is essentially a parameterised version of all unit tests pertaining
+     * to the writeInt2mm tests.
+     * 
+     * \param in the double to check
+     * \param precision the (maximum) number of digits after the decimal mark to print
+     */
+    void writeDoubleToStreamAssert(double in, unsigned int precision = 4);
 };
 
 }

@@ -15,7 +15,7 @@
 
 #include "intpoint.h"
 
-//#define CHECK_POLY_ACCESS
+#define CHECK_POLY_ACCESS
 #ifdef CHECK_POLY_ACCESS
 #define POLY_ASSERT(e) assert(e)
 #else
@@ -54,7 +54,7 @@ public:
 
     Point& operator[] (unsigned int index) const
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         return (*path)[index];
     }
 
@@ -87,7 +87,7 @@ public:
 
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         path->erase(path->begin() + index);
     }
 
@@ -409,7 +409,7 @@ public:
 
     PolygonRef operator[] (unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         return PolygonRef(paths[index]);
     }
     const PolygonRef operator[] (unsigned int index) const
@@ -439,7 +439,7 @@ public:
      */
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size());
+        POLY_ASSERT(index < size() && index >= 0);
         if (index < paths.size() - 1)
         {
             paths[index] = std::move(paths.back());
@@ -573,6 +573,20 @@ public:
     }
     
     /*!
+     * Check if we are inside the polygon.
+     * 
+     * We do this by counting the number of polygons inside which this point lies.
+     * An odd number is inside, while an even number is outside.
+     * 
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
+     * 
+     * \param p The point for which to check if it is inside this polygon
+     * \param border_result What to return when the point is exactly on the border
+     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
+     */
+    bool inside(Point p, bool border_result = false) const;
+
+    /*!
      * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
      * every line we cross increments the crossings counter. If we have an even number of crossings then we are not inside the polygon.
      * Care needs to be taken, if p.Y exactly matches a vertex to the right of p, then we need to count 1 intersect if the
@@ -584,11 +598,13 @@ public:
      * 
      * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
      * 
+     * \deprecated This function is old and no longer used. instead use \ref Polygons::inside
+     * 
      * \param p The point for which to check if it is inside this polygon
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false) const;
+    bool insideOld(Point p, bool border_result = false) const;
     
     /*!
      * Find the polygon inside which point \p p resides. 

@@ -359,6 +359,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::TRIANGLES;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
+    if (value == "concentric_3d")
+        return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
     return EFillMethod::NONE;
@@ -371,6 +373,8 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
+    if (value == "none")
+        return EPlatformAdhesion::NONE;
     return EPlatformAdhesion::SKIRT;
 }
 

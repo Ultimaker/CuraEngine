@@ -5,6 +5,7 @@
 #include "sliceDataStorage.h"
 #include "utils/polygonUtils.h"
 #include "MergeInfillLines.h"
+#include "raft.h" // getTotalExtraLayers
 
 namespace cura {
 
@@ -22,11 +23,12 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
     return *this;
 }
 
-ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , required_temp(-1)
 , start_position(start_position)
 , layer_nr(layer_nr)
+, is_initial_layer(is_initial_layer)
 , layer_thickness(layer_thickness)
 , fan_speed_layer_time_settings(fan_speed_layer_time_settings)
 , retraction_config(retraction_config)
@@ -89,9 +91,10 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
+, is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , z(z)
 , layer_thickness(layer_thickness)
 , start_position(last_position)
@@ -102,7 +105,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int
 , fan_speed_layer_time_settings_per_extruder(fan_speed_layer_time_settings_per_extruder)
 {
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
-    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
+    extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;
     was_inside = is_inside_mesh; 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
@@ -202,7 +205,7 @@ bool GCodePlanner::setExtruder(int extruder)
     }
     else 
     {
-        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        extruder_plans.emplace_back(extruder, lastPosition, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
 
@@ -351,22 +354,47 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillT
     lastPosition = p;
 }
 
-void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, bool spiralize)
+void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
 {
-    Point p0 = polygon[startIdx];
+    Point p0 = polygon[start_idx];
     addTravel(p0);
-    for(unsigned int i=1; i<polygon.size(); i++)
+    for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(startIdx + i) % polygon.size()];
+        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
     }
     if (polygon.size() > 2)
     {
-        Point& p1 = polygon[startIdx];
+        Point& p1 = polygon[start_idx];
         float flow = (wall_overlap_computation)? wall_overlap_computation->getFlow(p0, p1) : 1.0;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
+
+        if (wall_0_wipe_dist > 0)
+        { // apply outer wall wipe
+            p0 = polygon[start_idx];
+            int distance_traversed = 0;
+            for (unsigned int point_idx = 1; ; point_idx++)
+            {
+                Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
+                int p0p1_dist = vSize(p1 - p0);
+                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                {
+                    Point vector = p1 - p0;
+                    Point half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
+                    addTravel_simple(half_way);
+                    break;
+                }
+                else
+                {
+                    addTravel_simple(p1);
+                    distance_traversed += p0p1_dist;
+                }
+                p0 = p1;
+            }
+            forceNewPathStart();
+        }
     }
     else 
     {
@@ -374,7 +402,7 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig*
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, bool spiralize)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, coord_t wall_0_wipe_dist, bool spiralize)
 {
     if (polygons.size() == 0)
     {
@@ -388,7 +416,7 @@ void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* c
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, spiralize);
+        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize);
     }
 }
 void GCodePlanner::addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist)
@@ -563,22 +591,23 @@ void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_t
     }
     /*
     Supposing no influence of minimal layer time; i.e. layer time > min layer time fan speed min:
-    
-           max..   fan 'full' on layer
-                |  :
-                |  :
-      ^    min..|..:________________
-     fan        |  / 
-    speed       | / 
-          zero..|/__________________
-                  layer nr >
-                  
-       
+
+              max..   fan 'full' on layer
+                   |  :
+                   |  :
+      ^       min..|..:________________
+     fan           |  /
+    speed          | /
+          speed_0..|/
+                   |
+                   |__________________
+                     layer nr >
+
     */
     if (layer_nr < fsml.cool_fan_full_layer)
     {
         //Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
-        fan_speed = fan_speed * std::max(0, layer_nr) / fsml.cool_fan_full_layer;
+        fan_speed = fsml.cool_fan_speed_0 + (fan_speed - fsml.cool_fan_speed_0) * std::max(0, layer_nr) / fsml.cool_fan_full_layer;
     }
 }
 
@@ -613,7 +642,13 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     gcode.setLayerNr(layer_nr);
     
     gcode.writeLayerComment(layer_nr);
-    
+
+    if (layer_nr == 1 - Raft::getTotalExtraLayers(storage))
+    {
+        bool wait = false;
+        gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature"), wait);
+    }
+
     gcode.setZ(z);
     
     
@@ -652,8 +687,18 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             if (extruder_plan.prev_extruder_standby_temp)
             { // turn off previous extruder
                 constexpr bool wait = false;
-                gcode.writeTemperatureCommand(prev_extruder, *extruder_plan.prev_extruder_standby_temp, wait);
+                double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
+                int prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
+                if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
+                {
+                    prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
+                }
+                gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
+        }
+        else if (extruder_plan_idx == 0 && layer_nr != 0 && storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("retract_at_layer_change"))
+        {
+            gcode.writeRetraction(&retraction_config);
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
