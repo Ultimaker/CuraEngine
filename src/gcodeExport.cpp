@@ -34,6 +34,8 @@ GCodeExport::GCodeExport()
     initial_bed_temp = 0;
 
     extruder_count = 0;
+
+    total_bounding_box = AABB3D();
 }
 
 GCodeExport::~GCodeExport()
@@ -61,7 +63,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     {
         const ExtruderTrain* train = meshgroup->getExtruderTrain(extruder_nr);
 
-        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr))
+        if (meshgroup->getSettingAsIndex("adhesion_extruder_nr") == int(extruder_nr) && meshgroup->getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
         {
             extruder_attr[extruder_nr].is_used = true;
         }
@@ -109,15 +111,22 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
 void GCodeExport::setInitialTemps(const MeshGroup& settings)
 {
+    int start_extruder_nr = 0;
+    if (settings.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
+    {
+        start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
+    }
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
-        const ExtruderTrain* extr_train = settings.getExtruderTrain(extr_nr);
-        assert(extr_train);
-        double temp = extr_train->getSettingInDegreeCelsius((extr_nr == 0)? "material_print_temperature" : "material_standby_temperature");
+        const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
+        
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        double temp = ((int)extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
         setInitialTemp(extr_nr, temp);
     }
 
-    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature");
+    initial_bed_temp = settings.getSettingInDegreeCelsius("material_bed_temperature_layer_0");
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -168,12 +177,12 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line;
         }
 
-        prefix << ";PRINT.SIZE.MIN.X:0" << new_line;
-        prefix << ";PRINT.SIZE.MIN.Y:0" << new_line;
-        prefix << ";PRINT.SIZE.MIN.Z:0" << new_line;
-        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(machine_dimensions.x) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(machine_dimensions.y) << new_line;
-        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(machine_dimensions.z) << new_line;
+        prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box.min.x) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box.min.y) << new_line;
+        prefix << ";PRINT.SIZE.MIN.Z:" << INT2MM(total_bounding_box.min.z) << new_line;
+        prefix << ";PRINT.SIZE.MAX.X:" << INT2MM(total_bounding_box.max.x) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Y:" << INT2MM(total_bounding_box.max.y) << new_line;
+        prefix << ";PRINT.SIZE.MAX.Z:" << INT2MM(total_bounding_box.max.z) << new_line;
         prefix << ";END_OF_HEADER" << new_line;
         return prefix.str();
     default:
@@ -543,6 +552,8 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
 
+    total_bounding_box.include(Point3(x, y, z));
+
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
 
@@ -714,6 +725,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     {
         isZHopped = hop_height;
         *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
+        total_bounding_box.include(currentPosition + Point3(0, 0, isZHopped));
     }
 }
 
@@ -818,7 +830,12 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 {
     if (!wait && extruder_attr[extruder].currentTemperature == temperature)
         return;
-    
+
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M109";
     else
@@ -834,6 +851,11 @@ void GCodeExport::writeTemperatureCommand(int extruder, double temperature, bool
 
 void GCodeExport::writeBedTemperatureCommand(double temperature, bool wait)
 {
+    if (flavor == EGCodeFlavor::ULTIGCODE)
+    { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
+        return;
+    }
+
     if (wait)
         *output_stream << "M190 S";
     else

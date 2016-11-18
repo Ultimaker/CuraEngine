@@ -143,13 +143,22 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wal
 {
     SliceLayer& layer = mesh.layers[layerNr];
 
+    int extra_offset = 0;
+    EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
+    if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
+        && layerNr % 2 == 0
+        && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
+    {
+        extra_offset = -innermost_wall_line_width;
+    }
+
     for(SliceLayerPart& part : layer.parts)
     {
         if (int(part.insets.size()) < wall_line_count)
         {
             continue; // the last wall is not present, the part should only get inter preimeter gaps, but no infill.
         }
-        Polygons infill = part.insets.back().offset(-innermost_wall_line_width / 2 - infill_skin_overlap);
+        Polygons infill = part.insets.back().offset(extra_offset - innermost_wall_line_width / 2 - infill_skin_overlap);
 
         for(SliceLayerPart& part2 : layer.parts)
         {
@@ -162,8 +171,17 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wal
             }
         }
         infill.removeSmallAreas(MIN_AREA_SIZE);
-        
-        part.infill_area = infill.offset(infill_skin_overlap);
+
+        Polygons final_infill = infill.offset(infill_skin_overlap);
+
+        if (mesh.getSettingBoolean("infill_hollow"))
+        {
+            part.print_outline = part.print_outline.difference(final_infill);
+        }
+        else
+        {
+            part.infill_area = final_infill;
+        }
     }
 }
 

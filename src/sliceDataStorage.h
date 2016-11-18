@@ -199,7 +199,10 @@ public:
     Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
 
-    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
+    int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
+    std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
+    std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
+
     PrimeTower primeTower;
 
     std::vector<Polygons> oozeShield;        //oozeShield per layer
@@ -260,7 +263,15 @@ public:
      * 
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed();
+    std::vector<bool> getExtrudersUsed() const;
+
+    /*!
+     * Get the extruders used on a particular layer.
+     * 
+     * \param layer_nr the layer for which to check
+     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     */
+    std::vector<bool> getExtrudersUsed(int layer_nr) const;
 };
 
 }//namespace cura

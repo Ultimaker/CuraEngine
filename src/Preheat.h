@@ -36,6 +36,8 @@ class Preheat
         double min_time_window; //!< Minimal time (in seconds) to allow an extruder to cool down and then warm up again.
 
         double material_print_temperature; //!< default print temp (backward compatilibily)
+
+        double material_print_temperature_layer_0; //!< initial layer print temp
         
         bool flow_dependent_temperature; //!< Whether to make the temperature dependent on flow
     
@@ -94,6 +96,8 @@ public:
             config.min_time_window = extruder_train.getSettingInSeconds("machine_min_cool_heat_time_window");
 
             config.material_print_temperature = extruder_train.getSettingInDegreeCelsius("material_print_temperature"); // 220
+
+            config.material_print_temperature_layer_0 = extruder_train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
             
             config.flow_dependent_temperature = extruder_train.getSettingBoolean("material_flow_dependent_temperature"); 
             
@@ -121,13 +125,20 @@ private:
 public:
     
     /*!
-     * Get the optimal temperature corresponding to a given average flow.
+     * Get the optimal temperature corresponding to a given average flow,
+     * or the initial layer temperature.
+     * 
      * \param extruder The extruder train
      * \param flow The flow for which to get the optimal temperature
+     * \param is_initial_layer Whether the initial layer temperature should be returned instead of flow-based temperature
      * \return The corresponding optimal temperature
      */
-    double getTemp(unsigned int extruder, double flow)
+    double getTemp(unsigned int extruder, double flow, bool is_initial_layer)
     {
+        if (is_initial_layer)
+        {
+            return config_per_extruder[extruder].material_print_temperature_layer_0;
+        }
         return config_per_extruder[extruder].flow_temp_graph.getTemp(flow, config_per_extruder[extruder].material_print_temperature, config_per_extruder[extruder].flow_dependent_temperature);
     }
 

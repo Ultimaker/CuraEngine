@@ -50,66 +50,6 @@ void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thicknes
     }
 }
 
-    
-
-void PrimeTower::computePrimeTowerMax(SliceDataStorage& storage)
-{ // compute storage.max_object_height_second_to_last_extruder, which is used to determine the highest point in the prime tower
-        
-    extruder_count = storage.meshgroup->getExtruderCount();
-    
-    int max_object_height_per_extruder[extruder_count]; 
-    std::fill_n(max_object_height_per_extruder, extruder_count, -1); // unitialize all as -1
-    { // compute max_object_height_per_extruder
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            if (!mesh.getSettingBoolean("anti_overhang_mesh")
-                && !mesh.getSettingBoolean("support_mesh")
-            )
-            {
-                unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-                max_object_height_per_extruder[extr_nr] = 
-                    std::max(   max_object_height_per_extruder[extr_nr]
-                            ,   mesh.layer_nr_max_filled_layer  );
-            }
-        }
-        int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
-        max_object_height_per_extruder[support_infill_extruder_nr] = 
-        std::max(   max_object_height_per_extruder[support_infill_extruder_nr]
-                ,   storage.support.layer_nr_max_filled_layer  ); 
-        int support_skin_extruder_nr = storage.getSettingAsIndex("support_interface_extruder_nr"); // TODO: support skin extruder should be configurable per object
-        max_object_height_per_extruder[support_skin_extruder_nr] = 
-        std::max(   max_object_height_per_extruder[support_skin_extruder_nr]
-                ,   storage.support.layer_nr_max_filled_layer  ); 
-    }
-    { // // compute max_object_height_second_to_last_extruder
-        int extruder_max_object_height = 0;
-        for (int extruder_nr = 1; extruder_nr < extruder_count; extruder_nr++)
-        {
-            if (max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_max_object_height])
-            {
-                extruder_max_object_height = extruder_nr;
-            }
-        }
-        int extruder_second_max_object_height = -1;
-        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-        {
-            if (extruder_nr == extruder_max_object_height) { continue; }
-            if (extruder_second_max_object_height == -1 || max_object_height_per_extruder[extruder_nr] > max_object_height_per_extruder[extruder_second_max_object_height])
-            {
-                extruder_second_max_object_height = extruder_nr;
-            }
-        }
-        if (extruder_second_max_object_height < 0)
-        {
-            storage.max_object_height_second_to_last_extruder = -1;
-        }
-        else
-        {
-            storage.max_object_height_second_to_last_extruder = max_object_height_per_extruder[extruder_second_max_object_height];
-        }
-    }
-}
-
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 {
     PolygonRef p = ground_poly.newPoly();
@@ -127,7 +67,8 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    if (storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
+    extruder_count = storage.meshgroup->getExtruderCount();
+    if (storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingBoolean("prime_tower_enable"))
     {
         generatePaths_denseInfill(storage);
         generateWipeLocations(storage);
@@ -165,7 +106,7 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 
 void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, bool wipe)
 {
-    if (!( storage.max_object_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
+    if (!( storage.max_print_height_second_to_last_extruder >= 0 && storage.getSettingInMicrons("prime_tower_size") > 0) )
     {
         return;
     }
@@ -179,7 +120,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         return;
     }
 
-    if (layer_nr > storage.max_object_height_second_to_last_extruder + 1)
+    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
     }

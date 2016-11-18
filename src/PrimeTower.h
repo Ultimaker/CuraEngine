@@ -75,13 +75,6 @@ public:
      */
     void generatePaths(const SliceDataStorage& storage);
 
-    /*!
-     * Compute the maximum layer at which a layer switch will occur and store the result in \ref SliceDataStorage::max_object_height_second_to_last_extruder
-     * 
-     * \param[in,out] storage Where to retrieve area data and extruder settings for those areas; where to store the max_object_height_second_to_last_extruder
-     */
-    void computePrimeTowerMax(SliceDataStorage& storage);
-
     PrimeTower(); //!< basic constructor
 
     /*!

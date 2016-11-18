@@ -133,7 +133,7 @@ void MeshGroup::finalize()
     {
         createExtruderTrain(extruder_nr); // create it if it didn't exist yet
 
-        if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr)
+        if (getSettingAsIndex("adhesion_extruder_nr") == extruder_nr && getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
         {
             getExtruderTrain(extruder_nr)->setIsUsed(true);
             continue;

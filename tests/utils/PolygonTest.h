@@ -21,6 +21,7 @@ class PolygonTest : public CppUnit::TestFixture
     CPPUNIT_TEST(polygonOffsetTest);
     CPPUNIT_TEST(polygonOffsetBugTest);
     CPPUNIT_TEST(isOutsideTest);
+    CPPUNIT_TEST(isInsideTest);
     CPPUNIT_TEST_SUITE_END();
 
 public:
@@ -44,6 +45,7 @@ public:
     void polygonOffsetTest();
     void polygonOffsetBugTest();
     void isOutsideTest();
+    void isInsideTest();
 
 
 private:

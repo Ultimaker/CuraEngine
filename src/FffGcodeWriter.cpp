@@ -105,12 +105,14 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extr);
         fan_speed_layer_time_settings.cool_min_layer_time = train->getSettingInSeconds("cool_min_layer_time");
         fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train->getSettingInSeconds("cool_min_layer_time_fan_speed_max");
+        fan_speed_layer_time_settings.cool_fan_speed_0 = train->getSettingInPercentage("cool_fan_speed_0");
         fan_speed_layer_time_settings.cool_fan_speed_min = train->getSettingInPercentage("cool_fan_speed_min");
         fan_speed_layer_time_settings.cool_fan_speed_max = train->getSettingInPercentage("cool_fan_speed_max");
         fan_speed_layer_time_settings.cool_min_speed = train->getSettingInMillimetersPerSecond("cool_min_speed");
         fan_speed_layer_time_settings.cool_fan_full_layer = train->getSettingAsLayerNumber("cool_fan_full_layer");
         if (!train->getSettingBoolean("cool_fan_enabled"))
         {
+            fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
             fan_speed_layer_time_settings.cool_fan_speed_min = 0;
             fan_speed_layer_time_settings.cool_fan_speed_max = 0;
         }
@@ -207,9 +209,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     {
         if (getSettingBoolean("material_bed_temp_prepend")) 
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature_layer_0") > 0)
             {
-                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
+                gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature_layer_0"), getSettingBoolean("material_bed_temp_wait"));
             }
         }
 
@@ -217,15 +219,19 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         {
             for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
             {
-                double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
-                gcode.writeTemperatureCommand(extruder_nr, print_temp);
+                ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
             }
             if (getSettingBoolean("material_print_temp_wait")) 
             {
                 for (int extruder_nr = 0; extruder_nr < storage.getSettingAsCount("machine_extruder_count"); extruder_nr++)
                 {
-                    double print_temp = storage.meshgroup->getExtruderTrain(extruder_nr)->getSettingInDegreeCelsius("material_print_temperature");
-                    gcode.writeTemperatureCommand(extruder_nr, print_temp, true);
+                    ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
+                    double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+                    double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
                 }
             }
         }
@@ -247,7 +253,9 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         gcode.startExtruder(start_extruder_nr);
         ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(start_extruder_nr);
         constexpr bool wait = true;
-        gcode.writeTemperatureCommand(start_extruder_nr, train.getSettingInDegreeCelsius("material_print_temperature"), wait);
+        double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
+        double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
+        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(&retraction_config);
@@ -257,8 +265,13 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
 void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
+
+    bool wait = true;
+    gcode.writeBedTemperatureCommand(storage.getSettingInDegreeCelsius("material_bed_temperature_layer_0"), wait);
+
     gcode.resetExtrusionValue();
     CommandSocket::setSendCurrentPosition(gcode.getPositionXY());
+
     gcode.setZ(max_object_height + 5000);
     gcode.writeMove(gcode.getPositionXY(), storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
     last_position_planned = Point(storage.model_min.x, storage.model_min.y);
@@ -459,37 +472,35 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    int extruder_nr_before = gcode_layer.getExtruder();
-    if (include_helper_parts)
+    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+
+    //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
+    std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
+    for (int extruder_nr : extruder_order)
     {
-        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, true);
-
-        processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
-
-        processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
-    }
-
-    if (layer_nr >= 0)
-    {
-        //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
-        std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, gcode_layer.getExtruder());
-        for(unsigned int mesh_idx : mesh_order)
+        if (include_helper_parts
+            && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_skin_extruder_nr))
         {
-            SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
-            if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+            addSupportToGCode(storage, gcode_layer, layer_nr, extruder_nr);
+        }
+
+        if (layer_nr >= 0)
+        {
+            std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, extruder_nr);
+            for (unsigned int mesh_idx : mesh_order)
             {
-                addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
-            }
-            else
-            {
-                addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
+                SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
+                if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
+                {
+                    addMeshLayerToGCode_meshSurfaceMode(storage, mesh, gcode_layer, layer_nr);
+                }
+                else
+                {
+                    addMeshLayerToGCode(storage, mesh, gcode_layer, layer_nr);
+                }
             }
         }
-    }
-
-    if (include_helper_parts)
-    {
-        addSupportToGCode(storage, gcode_layer, std::max(0, layer_nr), extruder_nr_before, false);
     }
 
     if (include_helper_parts && layer_nr == 0)
@@ -575,30 +586,33 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int current_extruder)
+std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storage, int current_extruder)
+{
+    int extruder_count = storage.getSettingAsCount("machine_extruder_count");
+    std::vector<int> ret;
+    ret.push_back(current_extruder);
+    for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    {
+        if (extruder_nr == current_extruder)
+        { // skip the current extruder, it's the one we started out planning
+            continue;
+        }
+        ret.push_back(extruder_nr);
+    }
+    assert(ret.size() == (size_t)extruder_count && "All extruders must be planned, even if later it appears one wasn't used.");
+    return ret;
+}
+
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr)
 {
     std::vector<unsigned int> ret;
-    std::list<unsigned int> add_list;
-    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
-        add_list.push_back(mesh_idx);
-
-    int add_extruder_nr = current_extruder;
-    while(add_list.size() > 0)
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        for(auto add_it = add_list.begin(); add_it != add_list.end(); )
+        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            if (storage.meshes[*add_it].getSettingAsIndex("extruder_nr") == add_extruder_nr)
-            {
-                ret.push_back(*add_it);
-                add_it = add_list.erase(add_it);
-            } 
-            else 
-            {
-                ++add_it;
-            }
+            ret.push_back(mesh_idx);
         }
-        if (add_list.size() > 0)
-            add_extruder_nr = storage.meshes[*add_list.begin()].getSettingAsIndex("extruder_nr");
     }
     return ret;
 }
@@ -629,7 +643,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
 }
@@ -694,7 +708,12 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    PathOrderOptimizer part_order_optimizer(last_position_planned, z_seam_type);
+    Point layer_start_position = last_position_planned;
+    if (storage.getSettingBoolean("start_layers_at_same_position"))
+    {
+        layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
+    }
+    PathOrderOptimizer part_order_optimizer(layer_start_position, z_seam_type);
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
         part_order_optimizer.addPolygon(layer->parts[partNr].insets[0][0]);
@@ -874,7 +893,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             }
             if (static_cast<int>(layer_nr) == mesh->getSettingAsCount("bottom_layers") && part.insets.size() > 0)
             { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, false);
+                gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->insetX_config, nullptr, EZSeamType::SHORTEST, mesh->getSettingInMicrons("wall_0_wipe_dist"), false);
             }
         }
         int processed_inset_number = -1;
@@ -889,13 +908,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
             {
                 if (!compensate_overlap_0)
                 {
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, spiralize);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, nullptr, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, spiralize);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
                 }
             }
             else
@@ -972,55 +991,43 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     }
 }
 
-void FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr_before, bool before_rest)
+bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
 {
+    bool support_added = false;
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
-        return; 
-    
-    int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
+    {
+        return support_added;
+    }
+
+    int support_interface_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
-    
-    bool print_support_before_rest = support_infill_extruder_nr == extruder_nr_before
-                                    || support_skin_extruder_nr == extruder_nr_before;
-    // TODO: always print support after rest when only one nozzle is used for the whole meshgroup
-    
-    if (print_support_before_rest != before_rest)
-        return;
-    
+
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
     if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
     {
-        return;
+        return support_added;
     }
-    
-    int current_extruder_nr = gcode_layer.getExtruder();
-    
-    if (support_layer.skin.size() > 0)
+
+
+    if (extruder_nr == support_infill_extruder_nr)
     {
-        if (support_skin_extruder_nr != support_infill_extruder_nr && support_skin_extruder_nr == current_extruder_nr)
-        {
-            addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
-            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
-        }
-        else 
-        {
-            addSupportInfillToGCode(storage, gcode_layer, layer_nr);
-            addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
-        }
+        support_added |= addSupportInfillToGCode(storage, gcode_layer, layer_nr);
     }
-    else
+    if (extruder_nr == support_interface_extruder_nr)
     {
-        addSupportInfillToGCode(storage, gcode_layer, layer_nr);
+        support_added |= addSupportRoofsToGCode(storage, gcode_layer, layer_nr);
     }
+    return support_added;
 }
 
-void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || storage.support.supportLayers[layer_nr].supportAreas.size() == 0)
     {
-        return;
+        return added;
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1074,17 +1081,20 @@ void FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
             setExtruder_addPrime(storage, gcode_layer, layer_nr, infill_extruder_nr_here); // only switch extruder if we're sure we're going to switch
             gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_config);
             gcode_layer.addLinesByOptimizer(support_lines, &storage.support_config, (support_pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            added = true;
         }
     }
+    return added;
 }
 
-void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
 {
+    bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
         || storage.support.supportLayers[layer_nr].skin.size() == 0)
     {
-        return;
+        return added;
     }
 
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
@@ -1128,13 +1138,14 @@ void FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
 
-    if (support_polygons.size() == 0 && support_lines.size() == 0)
+    if (support_lines.size() > 0 || support_polygons.size() > 0)
     {
-        return;
+        setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
+        gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_skin_config);
+        gcode_layer.addLinesByOptimizer(support_lines, &storage.support_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        added = true;
     }
-    setExtruder_addPrime(storage, gcode_layer, layer_nr, skin_extruder_nr);
-    gcode_layer.addPolygonsByOptimizer(support_polygons, &storage.support_skin_config);
-    gcode_layer.addLinesByOptimizer(support_lines, &storage.support_skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    return added;
 }
 
 void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
