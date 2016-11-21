@@ -475,15 +475,21 @@ void AreaSupport::handleTowers(
     }
     
     // make tower roofs
-    //for (Polygons& tower_roof : towerRoofs)
-    for (unsigned int r = 0; r < towerRoofs.size(); r++)
+    for (unsigned int roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
     {
-        supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
-        
-        Polygons& tower_roof = towerRoofs[r];
-        if (tower_roof.size() > 0 && tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+        Polygons& tower_roof = towerRoofs[roof_idx];
+        if (tower_roof.size() > 0)
         {
-            towerRoofs[r] = tower_roof.offset(towerRoofExpansionDistance);
+            supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+
+            if (tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+            {
+                tower_roof = tower_roof.offset(towerRoofExpansionDistance);
+            }
+            else
+            {
+                tower_roof.clear();
+            }
         }
     }
 }
