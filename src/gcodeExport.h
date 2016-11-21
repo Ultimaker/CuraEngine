@@ -99,6 +99,8 @@ private:
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
     double current_max_z_feedrate; //!< The current max z speed
 
+    AABB3D total_bounding_box; //!< The bounding box of all g-code.
+
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
      * 

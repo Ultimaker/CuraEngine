@@ -212,7 +212,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
     }
 
-    bool still_in_upper_empty_layers = true;
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;
@@ -283,12 +282,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
         supportAreas[layer_idx] = supportLayer_this;
 
-        if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
-        {
-            storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_idx);
-            still_in_upper_empty_layers = false;
-        }
-        
         Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
     }
     
@@ -323,6 +316,17 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             touching_buildplate = supportLayer.intersection(touching_buildplate); // from bottom to top, support areas can only decrease!
             
             supportAreas[layer_idx] = touching_buildplate;
+        }
+    }
+
+
+    for (unsigned int layer_idx = supportAreas.size() - 1; layer_idx != (unsigned int) std::max(-1, storage.support.layer_nr_max_filled_layer) ; layer_idx--)
+    {
+        const Polygons& support_here = supportAreas[layer_idx];
+        if (support_here.size() > 0)
+        {
+            storage.support.layer_nr_max_filled_layer = layer_idx;
+            break;
         }
     }
 

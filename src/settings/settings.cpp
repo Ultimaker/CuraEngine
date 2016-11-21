@@ -365,6 +365,8 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
+    if (value == "none")
+        return EPlatformAdhesion::NONE;
     return EPlatformAdhesion::SKIRT;
 }
 
@@ -400,6 +402,20 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
     if (value == "both")
         return ESurfaceMode::BOTH;
     return ESurfaceMode::NORMAL;
+}
+
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key) const
+{
+    std::string value = getSettingString(key);
+    if (value == "nowhere")
+    {
+        return FillPerimeterGapMode::NOWHERE;
+    }
+    if (value == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    return FillPerimeterGapMode::NOWHERE;
 }
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
