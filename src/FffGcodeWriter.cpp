@@ -934,7 +934,8 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE;
 
-    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), EZSeamType::SHORTEST);
+    Point z_seam_pos(0, 0); // not used
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
     for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
         PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
