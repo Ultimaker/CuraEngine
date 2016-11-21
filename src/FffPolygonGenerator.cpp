@@ -441,12 +441,14 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
     {
         int inset_count = mesh.getSettingAsCount("wall_line_count");
-        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && layer_nr % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
+        if (mesh.getSettingBoolean("magic_spiralize") && static_cast<int>(layer_nr) < mesh.getSettingAsCount("bottom_layers") && ((layer_nr % 2) + 2) % 2 == 1)//Add extra insets every 2 layers when spiralizing, this makes bottoms of cups watertight.
             inset_count += 5;
         int line_width_x = mesh.getSettingInMicrons("wall_line_width_x");
         int line_width_0 = mesh.getSettingInMicrons("wall_line_width_0");
         if (mesh.getSettingBoolean("alternate_extra_perimeter"))
-            inset_count += layer_nr % 2; 
+        {
+            inset_count += ((layer_nr % 2) + 2) % 2;
+        }
         bool recompute_outline_based_on_outer_wall = mesh.getSettingBoolean("support_enable");
         WallsComputation walls_computation(mesh.getSettingInMicrons("wall_0_inset"), line_width_0, line_width_x, inset_count, recompute_outline_based_on_outer_wall);
         walls_computation.generateInsets(layer);

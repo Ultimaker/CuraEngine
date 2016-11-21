@@ -203,7 +203,7 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
 {
     int new_extruder = gcodeLayer.getExtruder();
 
-    Polygons& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
+    Polygons& pattern = patterns_per_extruder[new_extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
 
     GCodePathConfig& config = config_per_extruder[new_extruder];
