@@ -204,13 +204,15 @@ bool Comb::calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool _st
 
 Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line)
 : dest_is_inside(dest_is_inside)
-, dest_crossing_poly(boundary_inside[(dest_is_inside)? dest_part_boundary_crossing_poly_idx : 0]) // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
 , boundary_inside(boundary_inside)
 , inside_loc_to_line(inside_loc_to_line)
 , dest_point(dest_point)
 , dest_part_idx(dest_part_idx)
 {
-
+    if (dest_is_inside)
+    {
+        dest_crossing_poly = boundary_inside[dest_part_boundary_crossing_poly_idx]; // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
+    }
 }
 
 bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_poly)
@@ -279,6 +281,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
     if (dest_is_inside && in_out_dist2_1 > comber.max_crossing_dist2) // moveInside moved too far
     { // if move is too far over in_between
         // find crossing closer by
+        assert(dest_crossing_poly && "destination crossing poly should have been instantiated!");
         std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(outside, dest_crossing_poly, dest_point, close_to, comber);
         if (best)
         {
