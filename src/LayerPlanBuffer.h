@@ -16,6 +16,19 @@
 namespace cura 
 {
 
+/*!
+ * Class for buffering multiple layer plans (\ref GCodePlanner) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
+ * 
+ * This class handles where to insert temperature commands for:
+ * - initial layer temperature
+ * - flow dependent temperature
+ * - starting to heat up from the standby temperature
+ * - initial printing temperature | printing temperature | final printing temperature
+ * 
+ * \image html assets/precool.png "Temperature Regulation" width=10cm
+ * \image latex assets/precool.png "Temperature Regulation" width=10cm
+ * 
+ */
 class LayerPlanBuffer : SettingsMessenger
 {
     GCodeExport& gcode;
@@ -27,12 +40,14 @@ class LayerPlanBuffer : SettingsMessenger
 
     static constexpr const double extra_preheat_time = 1.0; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
+    std::vector<bool> extruder_used_in_meshgroup; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to the initial_print_temp or to the printing_temperature
 public:
     std::list<GCodePlanner> buffer; //!< The buffer containing several layer plans (GCodePlanner) before writing them to gcode.
     
     LayerPlanBuffer(SettingsBaseVirtual* settings, GCodeExport& gcode)
     : SettingsMessenger(settings)
     , gcode(gcode)
+    , extruder_used_in_meshgroup(MAX_EXTRUDERS, false)
     { }
     
     void setPreheatConfig(MeshGroup& settings)
@@ -49,7 +64,7 @@ public:
     {
         if (buffer.size() > 0)
         {
-            insertPreheatCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
+            insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
         }
         buffer.emplace_back(constructor_args...);
         if (buffer.size() > buffer_size)
@@ -68,7 +83,8 @@ public:
      * Write all remaining layer plans (GCodePlanner) to gcode and empty the buffer.
      */
     void flush();
-    
+
+private:
     /*!
      * Insert the preheat command for @p extruder into @p extruder_plan_before
      * 
@@ -118,13 +134,34 @@ public:
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command
      */
-    void insertPreheatCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+    void insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+
+    /*!
+     * Insert the temperature command to heat from the initial print temperature to the printing temperature
+     * 
+     * The temperature command is insert at the start of the very first extrusion move
+     * 
+     * \param extruder_plan The extruder plan in which to insert the heat up command
+     */
+    void insertPrintTempCommand(ExtruderPlan& extruder_plan);
+
+    /*!
+     * Insert the temp command to start cooling from the printing temperature to the final print temp
+     * 
+     * The print temp is inserted before the last extrusion move of the extruder plan corresponding to \p last_extruder_plan_idx
+     * 
+     * The command is inserted at a timed offset before the end of the last extrusion move
+     * 
+     * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
+     * \param last_extruder_plan_idx The index of the last extruder plan in \p extruder_plans with the same extruder as previous extruder plans
+     */
+    void insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& extruder_plans, unsigned int last_extruder_plan_idx);
 
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
-    void insertPreheatCommands();
-private:
+    void insertTempCommands();
+
     /*!
      * Reconfigure the standby temperature during which we didn't print with this extruder.
      * Find the previous extruder plan with the same extruder as layers[layer_plan_idx].extruder_plans[extruder_plan_idx]
