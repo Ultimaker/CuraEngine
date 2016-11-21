@@ -491,16 +491,19 @@ void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int lay
 
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, const int layer_height, unsigned int& total_layers)
 {
-    // only remove empty layers if we haven't generate support, because then support was added underneath the model.
-    //   for some materials it's better to print on support than on the buildplate.
-    if (storage.support.generated)
-    {
-        return; // the first layer will have support and therefore not be empty
-    }
     int n_empty_first_layers = 0;
     for (unsigned int layer_idx = 0; layer_idx < total_layers; layer_idx++)
     { 
         bool layer_is_empty = true;
+        if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
+        {
+            SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
+            if (support_layer.supportAreas.size() > 0 || support_layer.skin.size() > 0)
+            {
+                layer_is_empty = false;
+                break;
+            }
+        }
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_idx];
@@ -534,6 +537,9 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
             mesh.layer_nr_max_filled_layer -= n_empty_first_layers;
         }
         total_layers -= n_empty_first_layers;
+        storage.support.layer_nr_max_filled_layer -= n_empty_first_layers;
+        std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+        support_layers.erase(support_layers.begin(), support_layers.begin() + n_empty_first_layers);
     }
 }
   
