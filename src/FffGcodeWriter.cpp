@@ -1135,11 +1135,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
-        else
-        {
-            addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
-            
-        }
+        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
     }
 }
 
