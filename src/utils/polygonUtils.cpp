@@ -376,7 +376,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
     ClosestPolygonPoint closest_polygon_point = moveInside2(polygons, from, preferred_dist_inside, max_dist2, loc_to_line_polygons, loc_to_line_grid, penalty_function);
     if (closest_polygon_point.point_idx == NO_INDEX)
     {
-        return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
+        return ClosestPolygonPoint(); // we couldn't move inside
     }
     PolygonRef closest_poly = closest_polygon_point.poly;
     bool is_outside_boundary = closest_poly.orientation();
@@ -406,7 +406,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
         Polygons insetted = closest_poly.offset(offset / 2); // perform less inset, because chances are (thin parts of) the polygon will disappear, given that moveInside did an overshoot
         if (insetted.size() == 0)
         {
-            return ClosestPolygonPoint(polygons[0]); // we couldn't move inside
+            return ClosestPolygonPoint(); // we couldn't move inside
         }
         ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
         if (inside.point_idx != NO_INDEX)
@@ -452,7 +452,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
                 }
                 logError("Clipper::offset failed. See generated debug.html!\n\tBlack is original\n\tBlue is offsetted polygon\n");
 #endif
-                return ClosestPolygonPoint(polygons[0]);
+                return ClosestPolygonPoint();
             }
             from = inside.location;
         } // otherwise we just return the closest polygon point without modifying the from location
@@ -572,7 +572,7 @@ ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef poly
 
 ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygons, const std::function<int(Point)>& penalty_function)
 {
-    ClosestPolygonPoint none(from, -1, polygons[0], -1);
+    ClosestPolygonPoint none;
     
     if (polygons.size() == 0) return none;
     PolygonRef aPolygon = polygons[0];

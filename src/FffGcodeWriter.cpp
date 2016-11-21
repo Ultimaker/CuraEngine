@@ -808,7 +808,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
                     infill_line_distance_here /= 2;
                 }
                 
-                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+                Infill infill_comp(infill_pattern, part.infill_area_per_combine_per_density[density_idx][combine_idx], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
                 infill_comp.generate(infill_polygons, infill_lines);
             }
             gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[combine_idx]);
@@ -864,7 +864,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
 //     ^   highest density line dist
             infill_line_distance_here /= 2;
         }
-        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift, false, false);
+        Infill infill_comp(pattern, part.infill_area_per_combine_per_density[density_idx][0], 0, infill_line_width, infill_line_distance_here, infill_overlap, infill_angle, z, infill_shift);
         infill_comp.generate(infill_polygons, infill_lines);
     }
     gcode_layer.addPolygonsByOptimizer(infill_polygons, &mesh->infill_config[0]);
@@ -940,8 +940,21 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
-    for(SkinPart& skin_part : part.skin_parts) // TODO: optimize parts order
+    constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+    bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE;
+
+    PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), EZSeamType::SHORTEST);
+    for (unsigned int skin_part_idx = 0; skin_part_idx < part.skin_parts.size(); skin_part_idx++)
     {
+        PolygonsPart& outline = part.skin_parts[skin_part_idx].outline;
+        part_order_optimizer.addPolygon(outline.outerPolygon());
+    }
+    part_order_optimizer.optimize();
+
+    for (int ordered_skin_part_idx : part_order_optimizer.polyOrder)
+    {
+        SkinPart& skin_part = part.skin_parts[ordered_skin_part_idx];
+
         Polygons skin_polygons;
         Polygons skin_lines;
         
@@ -954,6 +967,9 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             pattern = EFillMethod::LINES;
             skin_angle = bridge;
         }
+
+        Polygons perimeter_gaps; // the perimeter gaps of the insets of this skin part
+
         Polygons* inner_skin_outline = nullptr;
         int offset_from_inner_skin_outline = 0;
         if (pattern != EFillMethod::CONCENTRIC)
@@ -966,6 +982,21 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             {
                 inner_skin_outline = &skin_part.insets.back();
                 offset_from_inner_skin_outline = -mesh->insetX_config.getLineWidth() / 2;
+
+                if (fill_perimeter_gaps)
+                {
+                    // add perimeter gaps between the outer skin inset and the innermost wall
+                    const Polygons outer = skin_part.outline;
+                    const Polygons inner = skin_part.insets[0].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset * 2);
+                    perimeter_gaps.add(outer.difference(inner));
+
+                    for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
+                    { // add perimeter gaps between consecutive skin walls
+                        const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh->insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
+                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
+                        perimeter_gaps.add(outer.difference(inner));
+                    }
+                }
             }
         }
 
@@ -975,8 +1006,16 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, false, false);
+        Polygons* perimeter_gaps_output = (fill_perimeter_gaps)? &perimeter_gaps : nullptr;
+        Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
+
+        if (fill_perimeter_gaps)
+        { // handle perimeter_gaps of skin insets
+            int offset = 0;
+            Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+            infill_comp.generate(skin_polygons, skin_lines);
+        }
 
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
 
@@ -988,6 +1027,28 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
         }
+    }
+
+    if (fill_perimeter_gaps)
+    { // handle perimeter gaps of normal insets
+        Polygons perimeter_gaps;
+        int line_width = mesh->inset0_config.getLineWidth();
+        for (unsigned int inset_idx = 1; inset_idx < part.insets.size(); inset_idx++)
+        {
+            const Polygons outer = part.insets[inset_idx - 1].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+            line_width = mesh->insetX_config.getLineWidth();
+            const Polygons inner = part.insets[inset_idx].offset(line_width / 2 + perimeter_gaps_extra_offset);
+            perimeter_gaps.add(outer.difference(inner));
+        }
+
+        Polygons skin_polygons; // unused
+        Polygons skin_lines; // soon to be generated gap filler lines
+        int offset = 0;
+        int extra_infill_shift = 0;
+        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(skin_polygons, skin_lines);
+
+        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines);
     }
 }
 
@@ -1072,7 +1133,10 @@ bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
         }
 
         int extra_infill_shift = 0;
-        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, 0, z, extra_infill_shift, infill_extr.getSettingBoolean("support_connect_zigzags"), true);
+        bool use_endpieces = true;
+        Polygons* perimeter_gaps = nullptr;
+        double fill_angle = 0;
+        Infill infill_comp(support_pattern, island, offset_from_outline, support_line_width, support_line_distance, support_infill_overlap, fill_angle, z, extra_infill_shift, perimeter_gaps, infill_extr.getSettingBoolean("support_connect_zigzags"), use_endpieces);
         Polygons support_polygons;
         Polygons support_lines;
         infill_comp.generate(support_polygons, support_lines);
@@ -1132,8 +1196,10 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     int support_skin_overlap = 0; // the skin (roofs/bottoms) should never be expanded outwards
     int outline_offset =  0;
     int extra_infill_shift = 0;
-    
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, false, true);
+    Polygons* perimeter_gaps = nullptr;
+    bool use_endpieces = true;
+    bool connected_zigzags = false;
+    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);

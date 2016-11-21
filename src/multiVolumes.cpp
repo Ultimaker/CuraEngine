@@ -3,7 +3,7 @@
 namespace cura 
 {
  
-void carveMultipleVolumes(std::vector<Slicer*> &volumes)
+void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_order)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
     for (unsigned int volume_1_idx = 0; volume_1_idx < volumes.size(); volume_1_idx++)
@@ -34,7 +34,14 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes)
             {
                 SlicerLayer& layer1 = volume_1.layers[layerNr];
                 SlicerLayer& layer2 = volume_2.layers[layerNr];
-                layer1.polygons = layer1.polygons.difference(layer2.polygons);
+                if (alternate_carve_order && layerNr % 2 == 0)
+                {
+                    layer2.polygons = layer2.polygons.difference(layer1.polygons);
+                }
+                else
+                {
+                    layer1.polygons = layer1.polygons.difference(layer2.polygons);
+                }
             }
         }
     }
