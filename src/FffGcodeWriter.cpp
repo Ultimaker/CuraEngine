@@ -473,7 +473,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     }
 
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
@@ -518,7 +518,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     { // add prime tower if it hasn't already been added
         // print the prime tower if it hasn't been printed yet
         int prev_extruder = gcode_layer.getExtruder(); // most likely the same extruder as we are extruding with now
-        addPrimeTower(storage, gcode_layer, std::max(0, layer_nr), prev_extruder);
+        addPrimeTower(storage, gcode_layer, layer_nr, prev_extruder);
     }
     
     last_position_planned = gcode_layer.getLastPosition();
@@ -1047,7 +1047,7 @@ bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     }
 
     int support_interface_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
-    int support_infill_extruder_nr = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
     SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
     if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
@@ -1083,12 +1083,12 @@ bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     int support_line_distance = infill_extr.getSettingInMicrons("support_line_distance"); // first layer line distance must be the same as the second layer line distance
     const int support_line_width = storage.support_config.getLineWidth();
     EFillMethod support_pattern = infill_extr.getSettingAsFillMethod("support_pattern"); // first layer pattern must be same as other layers
-    if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
+    if (layer_nr <= 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG)) { support_pattern = EFillMethod::GRID; }
 
-    int infill_extruder_nr_here = (layer_nr == 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
+    int infill_extruder_nr_here = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
     const ExtruderTrain& infill_extr_here = *storage.meshgroup->getExtruderTrain(infill_extruder_nr_here);
 
-    Polygons& support = storage.support.supportLayers[layer_nr].supportAreas;
+    Polygons& support = storage.support.supportLayers[std::max(0, layer_nr)].supportAreas;
 
     std::vector<PolygonsPart> support_islands = support.splitIntoParts();
 
@@ -1142,7 +1142,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     bool added = false;
     if (!storage.support.generated 
         || layer_nr > storage.support.layer_nr_max_filled_layer 
-        || storage.support.supportLayers[layer_nr].skin.size() == 0)
+        || storage.support.supportLayers[std::max(0, layer_nr)].skin.size() == 0)
     {
         return added;
     }
@@ -1177,7 +1177,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     }
     else 
     {
-        fillAngle = 45 + (layer_nr % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
+        fillAngle = 45 + (((layer_nr % 2) + 2) % 2) * 90; // alternate between the two kinds of diagonal:  / and \ .
+        // +2) %2 to handle negative layer numbers
     }
     int support_skin_overlap = 0; // the skin (roofs/bottoms) should never be expanded outwards
     int outline_offset =  0;
@@ -1185,7 +1186,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     Polygons* perimeter_gaps = nullptr;
     bool use_endpieces = true;
     bool connected_zigzags = false;
-    Infill infill_comp(pattern, storage.support.supportLayers[layer_nr].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
+    Infill infill_comp(pattern, storage.support.supportLayers[std::max(0, layer_nr)].skin, outline_offset, storage.support_skin_config.getLineWidth(), support_line_distance, support_skin_overlap, fillAngle, z, extra_infill_shift, perimeter_gaps, connected_zigzags, use_endpieces);
     Polygons support_polygons;
     Polygons support_lines;
     infill_comp.generate(support_polygons, support_lines);
@@ -1215,11 +1216,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
-        else
-        {
-            addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
-            
-        }
+        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
     }
 }
 

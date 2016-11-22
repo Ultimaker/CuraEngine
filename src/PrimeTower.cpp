@@ -171,7 +171,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
 
 void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder)
 {
-    ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][layer_nr % 2];
+    ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
     GCodePathConfig& config = config_per_extruder[new_extruder];
 
@@ -179,9 +179,6 @@ void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePl
     gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
 
     last_prime_tower_poly_printed[new_extruder] = layer_nr;
-
-    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern.polygons, config.getLineWidth());
-    CommandSocket::sendPolygons(PrintFeatureType::Support, pattern.lines, config.getLineWidth());
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
