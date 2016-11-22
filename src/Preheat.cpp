@@ -82,6 +82,12 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time = extra_heatup_time;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp_start;
+        if (limited_time_window < 0.0)
+        {
+            result.heating_time = 0.0;
+            result.lowest_temperature = temp_start;
+            return result;
+        }
     }
     else
     {
@@ -89,6 +95,12 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time = 0;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp_end;
+        if (limited_time_window < 0.0)
+        {
+            result.heating_time = 0.0;
+            result.lowest_temperature = temp_end;
+            return result;
+        }
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
@@ -103,6 +115,11 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time += limited_time_window * time_to_heatup_1_degree / (time_to_cooldown_1_degree + time_to_heatup_1_degree);
         result.lowest_temperature = std::max(temp_mid, temp_end - result.heating_time / time_to_heatup_1_degree);
     }
+
+    if (result.heating_time > time_window || result.heating_time < 0.0)
+    {
+        logWarning("getWarmUpPointAfterCoolDown returns result outside of the time window!");
+    }
     return result;
 }
 
@@ -113,13 +130,15 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
     double time_to_cooldown_1_degree = config.time_to_cooldown_1_degree[during_printing];
     double time_to_heatup_1_degree = config.time_to_heatup_1_degree[during_printing];
 
+    assert(temp_start != -1 && temp_mid != -1 && temp_end != -1 && "temperatures must be initialized!");
+
     result.total_time_window = time_window;
 
     //      limited_time_window
-    //      ^^^^^^^^^^
-    //                 _> temp_mid
-    //       /""""""""\                                       .
-    //      / . . . . .\ . . .> outer_temp                    .
+    //     :^^^^^^^^^^^^:
+    //     :  ________. : . . .> temp_mid
+    //     : /        \ :                                     .
+    //     :/ . . . . .\:. . .> outer_temp                    .
     //     ^temp_start  \                                     .
     //                   \                                    .
     //                    ^temp_end
@@ -131,6 +150,12 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.cooling_time = 0;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp_start;
+        if (limited_time_window < 0.0)
+        {
+            result.cooling_time = 0.0;
+            result.highest_temperature = temp_end;
+            return result;
+        }
     }
     else
     {
@@ -138,6 +163,12 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.cooling_time = extra_cooldown_time;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp_end;
+        if (limited_time_window < 0.0)
+        {
+            result.cooling_time = 0.0;
+            result.highest_temperature = temp_start;
+            return result;
+        }
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     double cool_down_time = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
@@ -153,6 +184,10 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.highest_temperature = std::min(temp_mid, temp_end + result.cooling_time / time_to_cooldown_1_degree);
     }
 
+    if (result.cooling_time > time_window || result.cooling_time < 0.0)
+    {
+        logWarning("getCoolDownPointAfterWarmUp returns result outside of the time window!");
+    }
     return result;
 }
 
