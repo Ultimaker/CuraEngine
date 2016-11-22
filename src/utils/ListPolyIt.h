@@ -49,10 +49,11 @@ public:
     {
         return !(*this == other);
     }
-    void operator=(const ListPolyIt& other)
+    ListPolyIt& operator=(const ListPolyIt& other)
     {
         poly = other.poly;
         it = other.it;
+        return *this;
     }
     //! move the iterator forward (and wrap around at the end)
     ListPolyIt& operator++() 

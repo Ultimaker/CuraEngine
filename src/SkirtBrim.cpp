@@ -19,7 +19,6 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     { // add brim underneath support by removing support where there's brim around the model
         const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
-        first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
         Polygons first_layer_empty_holes;
         if (outside_only)
         {
@@ -45,6 +44,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             first_layer_outline.add(support_layer.supportAreas);
             first_layer_outline.add(support_layer.skin);
         }
+        first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
     }
     constexpr int join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon

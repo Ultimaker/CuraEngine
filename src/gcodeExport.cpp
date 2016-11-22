@@ -724,6 +724,15 @@ void GCodeExport::writeZhopStart(int hop_height)
     }
 }
 
+void GCodeExport::writeZhopEnd()
+{
+    if (isZHopped)
+    {
+        isZHopped = 0;
+        *output_stream << "G1 Z" << MMtoStream{currentPosition.z} << new_line;
+    }
+}
+
 void GCodeExport::startExtruder(int new_extruder)
 {
     if (new_extruder != current_extruder) // wouldn't be the case on the very first extruder start if it's extruder 0

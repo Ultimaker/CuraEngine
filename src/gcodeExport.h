@@ -271,6 +271,12 @@ public:
     void writeZhopStart(int hop_height);
 
     /*!
+     * End a z hop: go back to the layer height
+     * 
+     */
+    void writeZhopEnd();
+
+    /*!
      * Start the new_extruder: 
      * - set new extruder
      * - zero E value

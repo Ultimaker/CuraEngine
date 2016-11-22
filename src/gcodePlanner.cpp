@@ -249,7 +249,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     }
 }
 
-void GCodePlanner::addTravel(Point p)
+GCodePath& GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
@@ -335,11 +335,12 @@ void GCodePlanner::addTravel(Point p)
         }
     }
 
-    addTravel_simple(p, path);
+    GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
+    return ret;
 }
 
-void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
+GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
@@ -347,6 +348,7 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
     }
     path->points.push_back(p);
     lastPosition = p;
+    return *path;
 }
 
 
@@ -739,6 +741,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(retraction_config.zHop);
+                }
+                else
+                {
+                    gcode.writeZhopEnd();
                 }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)

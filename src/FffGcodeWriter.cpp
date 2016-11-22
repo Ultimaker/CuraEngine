@@ -1223,17 +1223,14 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     }
 }
 
-void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcodeLayer, int layer_nr, int prev_extruder)
+void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int prev_extruder)
 {
-    
     if (!getSettingBoolean("prime_tower_enable"))
     {
         return;
     }
 
-    bool wipe = getSettingBoolean("prime_tower_wipe_enabled");
-
-    storage.primeTower.addToGcode(storage, gcodeLayer, gcode, layer_nr, prev_extruder, wipe);
+    storage.primeTower.addToGcode(storage, gcode_layer, gcode, layer_nr, prev_extruder, gcode_layer.getExtruder());
 }
 
 void FffGcodeWriter::finalize()
