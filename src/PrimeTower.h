@@ -83,7 +83,7 @@ public:
      * \param storage where to get settings from
      * \param total_layers The total number of layers 
      */
-    void generatePaths(const SliceDataStorage& storage, unsigned int total_layers);
+    void generatePaths(const SliceDataStorage& storage);
 
     PrimeTower(); //!< basic constructor
 

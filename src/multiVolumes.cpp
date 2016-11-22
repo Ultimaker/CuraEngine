@@ -9,14 +9,20 @@ void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_or
     for (unsigned int volume_1_idx = 0; volume_1_idx < volumes.size(); volume_1_idx++)
     {
         Slicer& volume_1 = *volumes[volume_1_idx];
-        if (volume_1.mesh->getSettingBoolean("infill_mesh"))
+        if (volume_1.mesh->getSettingBoolean("infill_mesh") 
+            || volume_1.mesh->getSettingBoolean("anti_overhang_mesh")
+            || volume_1.mesh->getSettingBoolean("support_mesh")
+            )
         {
             continue;
         }
         for (unsigned int volume_2_idx = 0; volume_2_idx < volume_1_idx; volume_2_idx++)
         {
             Slicer& volume_2 = *volumes[volume_2_idx];
-            if (volume_2.mesh->getSettingBoolean("infill_mesh"))
+            if (volume_2.mesh->getSettingBoolean("infill_mesh")
+                || volume_2.mesh->getSettingBoolean("anti_overhang_mesh")
+                || volume_2.mesh->getSettingBoolean("support_mesh")
+                )
             {
                 continue;
             }
@@ -55,6 +61,8 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
     {
         int overlap = volume->mesh->getSettingInMicrons("multiple_mesh_overlap");
         if (volume->mesh->getSettingBoolean("infill_mesh")
+            || volume->mesh->getSettingBoolean("anti_overhang_mesh")
+            || volume->mesh->getSettingBoolean("support_mesh")
             || overlap == 0)
         {
             continue;
@@ -67,6 +75,8 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*> &volumes)
             for (Slicer* other_volume : volumes)
             {
                 if (other_volume->mesh->getSettingBoolean("infill_mesh")
+                    || other_volume->mesh->getSettingBoolean("anti_overhang_mesh")
+                    || other_volume->mesh->getSettingBoolean("support_mesh")
                     || !other_volume->mesh->getAABB().hit(aabb)
                     || other_volume == volume
                 )

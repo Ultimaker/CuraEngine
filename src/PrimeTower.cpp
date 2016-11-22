@@ -81,7 +81,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
     post_wipe_point = Point(x + tower_distance - tower_size / 2, y + tower_distance + tower_size / 2);
 }
 
-void PrimeTower::generatePaths(const SliceDataStorage& storage, unsigned int total_layers)
+void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
     enabled = storage.max_print_height_second_to_last_extruder >= 0
             && storage.getSettingBoolean("prime_tower_enable")
