@@ -337,6 +337,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         current_extruder_planned = gcode_layer.getExtruder();
         is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
+        ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
+
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
     }
