@@ -140,6 +140,10 @@ public:
      * When the point is already in/outside by more than \p distance, \p from is unaltered, but the polygon is returned.
      * When the point is in/outside by less than \p distance, \p from is moved to the correct place.
      * 
+     * \warning If \p loc_to_line_grid is used, it's best to have all and only \p polygons in there.
+     * If \p from is not closest to \p polygons this function may
+     * return a ClosestPolygonPoint on a polygon in \p loc_to_line_grid which is not in \p polygons.
+     * 
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.
      * \param distance The distance by which to move the point.
@@ -221,6 +225,9 @@ public:
      * Some checking is done to make sure we end up inside the polygon, 
      * but it might still be the case that we end up outside:
      * when the closest point on the boundary is very close to another polygon
+     * 
+     * \warning When using a \p loc_to_line_grid which contains more polygons than just \p polygons,
+     * the results is only correct if \p from is already closest to \p polygons, rather than other polygons in the \p loc_to_line_grid.
      * 
      * \param polygons The polygons onto which to move the point
      * \param from[in,out] The point to move.

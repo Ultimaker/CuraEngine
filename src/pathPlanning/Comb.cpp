@@ -3,8 +3,10 @@
 
 #include <algorithm>
 #include <functional> // function
+#include <unordered_set>
 
 #include "../utils/polygonUtils.h"
+#include "../utils/PolygonsPointIndex.h"
 #include "../sliceDataStorage.h"
 #include "../utils/SVG.h"
 
@@ -241,7 +243,34 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         Point _dest_point(dest_point); // copy to local variable for lambda capture
         std::function<int(Point)> close_towards_start_penalty_function([_dest_point](Point candidate){ return vSize2((candidate - _dest_point) / 10); });
         dest_part = partsView_inside.assemblePart(dest_part_idx);
-        Point result(close_to);
+
+        Point result(close_to); // the inside point of the crossing
+        { // set [result] to a point on the destination part closest to close_to (but also a bit close to fest_point)
+            std::unordered_set<unsigned int> dest_part_poly_indices;
+            for (unsigned int poly_idx : partsView_inside[dest_part_idx])
+            {
+                dest_part_poly_indices.emplace(poly_idx);
+            }
+            int32_t dist2_score = std::numeric_limits<int32_t>::max();
+            std::function<bool (const PolygonsPointIndex&)> line_processor
+                = [close_to, _dest_point, &result, &dist2_score, &dest_part_poly_indices](const PolygonsPointIndex& boundary_segment)
+                {
+                    if (dest_part_poly_indices.find(boundary_segment.poly_idx) == dest_part_poly_indices.end())
+                    { // we're not looking at a polygon from the dest_part
+                        return true; // a.k.a. continue;
+                    }
+                    Point closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
+                    int32_t dist2_score_here = vSize2(close_to - closest_here) + vSize2(_dest_point - closest_here) / 10;
+                    if (dist2_score_here < dist2_score)
+                    {
+                        dist2_score = dist2_score_here;
+                        result = closest_here;
+                    }
+                    return true;
+                };
+            inside_loc_to_line->processLine(std::make_pair(dest_point, close_to), line_processor);
+        }
+
         int64_t max_dist2 = std::numeric_limits<int64_t>::max();
         ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, offset_dist_to_get_from_on_the_polygon_to_outside, max_dist2, &boundary_inside, inside_loc_to_line, close_towards_start_penalty_function);
         if (crossing_1_in_cp.point_idx != NO_INDEX)
