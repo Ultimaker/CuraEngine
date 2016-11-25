@@ -577,18 +577,18 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
     max_print_height_per_extruder.resize(extruder_count, -1); //Initialize all as -1.
     { // compute max_object_height_per_extruder
+        //Height of the meshes themselves.
         for (SliceMeshStorage& mesh : storage.meshes)
         {
-            if (!mesh.getSettingBoolean("anti_overhang_mesh")
-                && !mesh.getSettingBoolean("support_mesh")
-            )
+            if (mesh.getSettingBoolean("anti_overhang_mesh") || mesh.getSettingBoolean("support_mesh"))
             {
-                unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
-                max_print_height_per_extruder[extr_nr] =
-                    std::max(   max_print_height_per_extruder[extr_nr]
-                            ,   mesh.layer_nr_max_filled_layer  );
+                continue; //Special type of mesh that doesn't get printed.
             }
+            const unsigned int extr_nr = mesh.getSettingAsIndex("extruder_nr");
+            max_print_height_per_extruder[extr_nr] = std::max(max_print_height_per_extruder[extr_nr], mesh.layer_nr_max_filled_layer);
         }
+
+        //Height of where the support reaches.
         int support_infill_extruder_nr = storage.getSettingAsIndex("support_infill_extruder_nr"); // TODO: support extruder should be configurable per object
         max_print_height_per_extruder[support_infill_extruder_nr] =
             std::max(   max_print_height_per_extruder[support_infill_extruder_nr]
@@ -597,6 +597,8 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         max_print_height_per_extruder[support_skin_extruder_nr] =
             std::max(   max_print_height_per_extruder[support_skin_extruder_nr]
                     ,   storage.support.layer_nr_max_filled_layer  );
+
+        //Height of where the platform adhesion reaches.
         if (storage.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
         {
             int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
