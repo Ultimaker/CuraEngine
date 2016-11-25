@@ -149,7 +149,7 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         double extra_heatup_time = (temp_end - temp_start) * time_to_heatup_1_degree;
         result.cooling_time = 0;
         limited_time_window = time_window - extra_heatup_time;
-        outer_temp = temp_start;
+        outer_temp = temp_end;
         if (limited_time_window < 0.0)
         {
             result.cooling_time = 0.0;
@@ -162,7 +162,7 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         double extra_cooldown_time = (temp_start - temp_end) * time_to_cooldown_1_degree;
         result.cooling_time = extra_cooldown_time;
         limited_time_window = time_window - extra_cooldown_time;
-        outer_temp = temp_end;
+        outer_temp = temp_start;
         if (limited_time_window < 0.0)
         {
             result.cooling_time = 0.0;
