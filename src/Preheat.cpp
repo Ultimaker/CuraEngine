@@ -51,7 +51,7 @@ double Preheat::getTimeToGoFromTempToTemp(int extruder, double temp_before, doub
 
 double Preheat::getTemp(unsigned int extruder, double flow, bool is_initial_layer)
 {
-    if (is_initial_layer)
+    if (is_initial_layer && config_per_extruder[extruder].material_print_temperature_layer_0 != 0)
     {
         return config_per_extruder[extruder].material_print_temperature_layer_0;
     }
