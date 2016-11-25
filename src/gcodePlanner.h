@@ -39,7 +39,9 @@ struct NozzleTempInsert
     , extruder(extruder)
     , temperature(temperature)
     , wait(wait)
-    {}
+    {
+        assert(temperature != 0 && temperature != -1 && "Temperature command must be set!");
+    }
     
     /*!
      * Write the temperature command at the current position in the gcode.
