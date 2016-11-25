@@ -636,7 +636,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    Point z_seam_pos(storage.getSettingInMicrons("z_seam_x"), storage.getSettingInMicrons("z_seam_y"));
+    Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
     gcode_layer.addPolygonsByOptimizer(polygons, &mesh->inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
 
     addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
@@ -695,7 +695,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     setExtruder_addPrime(storage, gcode_layer, layer_nr, mesh->getSettingAsIndex("extruder_nr"));
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
-    Point z_seam_pos(storage.getSettingInMicrons("z_seam_x"), storage.getSettingInMicrons("z_seam_y"));
+    Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
     Point layer_start_position = last_position_planned;
     if (storage.getSettingBoolean("start_layers_at_same_position"))
     {
