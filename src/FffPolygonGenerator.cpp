@@ -603,7 +603,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         {
             const unsigned int adhesion_extruder_nr = storage.getSettingAsIndex("adhesion_extruder_nr");
             max_print_height_per_extruder[adhesion_extruder_nr] =
-                std::max(0, max_print_height_per_extruder[support_skin_extruder_nr]);
+                std::max(0, max_print_height_per_extruder[adhesion_extruder_nr]);
         }
     }
 
