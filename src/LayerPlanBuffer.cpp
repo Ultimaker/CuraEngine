@@ -176,6 +176,7 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
     if (prev_extruder == extruder)
     {
         insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, extruder_plan.printing_temperature);
+        prev_extruder_plan->printing_temperature_command = --prev_extruder_plan->inserts.end();
     }
     else 
     {
@@ -287,6 +288,10 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         for (unsigned int precool_extruder_plan_idx = last_extruder_plan_idx; (int)precool_extruder_plan_idx >= 0; precool_extruder_plan_idx--)
         {
             precool_extruder_plan = extruder_plans[precool_extruder_plan_idx];
+            if (precool_extruder_plan->printing_temperature_command)
+            { // the precool command ends up before the command to go to the print temperature of the next extruder plan, so remove that print temp command
+                precool_extruder_plan->inserts.erase(*precool_extruder_plan->printing_temperature_command);
+            }
             double time_here = precool_extruder_plan->estimates.getTotalTime();
             if (cool_down_time < time_here)
             {
