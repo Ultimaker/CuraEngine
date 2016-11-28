@@ -6,7 +6,7 @@ namespace cura
 void carveMultipleVolumes(std::vector<Slicer*> &volumes, bool alternate_carve_order)
 {
     //Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
-    for (unsigned int volume_1_idx = 0; volume_1_idx < volumes.size(); volume_1_idx++)
+    for (unsigned int volume_1_idx = 1; volume_1_idx < volumes.size(); volume_1_idx++)
     {
         Slicer& volume_1 = *volumes[volume_1_idx];
         if (volume_1.mesh->getSettingBoolean("infill_mesh") 
