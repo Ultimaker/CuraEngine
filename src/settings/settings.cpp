@@ -42,7 +42,7 @@ std::string toString(EGCodeFlavor flavor)
 }
 
 SettingsBaseVirtual::SettingsBaseVirtual()
-: parent(NULL)
+: parent(nullptr)
 {
 }
 
@@ -52,7 +52,7 @@ SettingsBaseVirtual::SettingsBaseVirtual(SettingsBaseVirtual* parent)
 }
 
 SettingsBase::SettingsBase()
-: SettingsBaseVirtual(NULL)
+: SettingsBaseVirtual(nullptr)
 {
 }
 

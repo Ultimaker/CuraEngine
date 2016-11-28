@@ -75,13 +75,13 @@ public:
     {
         if (instance)
         {
-            delete instance;
             if (other.instance)
             {
                 *instance = *other.instance;
             }
             else
             {
+                delete instance;
                 instance = nullptr;
             }
         }
