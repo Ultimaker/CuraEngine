@@ -121,12 +121,12 @@ public:
     }
     constexpr T* operator->() const
     {
-        assert(instance && "instance should be instatiated!");
+        assert(instance && "Instance should be instantiated!");
         return instance;
     }
     constexpr T& operator*() const&
     {
-        assert(instance && "instance should be instatiated!");
+        assert(instance && "Instance should be instantiated!");
         return *instance;
     }
     constexpr explicit operator bool() const
