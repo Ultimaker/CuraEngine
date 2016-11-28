@@ -4,6 +4,7 @@
 
 #include <algorithm> // swap
 #include <type_traits> // enable_if  is_same
+#include <cassert> // assert
 
 namespace std
 {
@@ -120,10 +121,12 @@ public:
     }
     constexpr T* operator->() const
     {
+        assert(instance && "instance should be instatiated!");
         return instance;
     }
     constexpr T& operator*() const&
     {
+        assert(instance && "instance should be instatiated!");
         return *instance;
     }
     constexpr explicit operator bool() const
