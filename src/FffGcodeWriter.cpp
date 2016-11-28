@@ -312,7 +312,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_height = train->getSettingInMicrons("raft_base_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
@@ -335,7 +335,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
-        is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
         ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
 
@@ -348,7 +347,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         int layer_height = train->getSettingInMicrons("raft_interface_thickness");
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -365,7 +364,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
-        is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_interface_fan_speed"));
@@ -378,7 +376,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         const int layer_nr = initial_raft_layer_nr + 2 + raftSurfaceLayer - 1; // 2: 1 base layer, 1 interface layer
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
-        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
+        GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
@@ -395,8 +393,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
 
         last_position_planned = gcode_layer.getLastPosition();
         current_extruder_planned = gcode_layer.getExtruder();
-        is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
-        
+
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_surface_fan_speed"));
     }
@@ -462,7 +459,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
 
 
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
+    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
@@ -519,8 +516,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     
     last_position_planned = gcode_layer.getLastPosition();
     current_extruder_planned = gcode_layer.getExtruder();
-    is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
-    
+
     gcode_layer.processFanSpeedAndMinimalLayerTime();
 }
 

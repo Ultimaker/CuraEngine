@@ -36,9 +36,9 @@ void GCodePlannerTest::setUp()
     fan_speed_layer_time_settings.cool_min_speed = 0.5;
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder;
     fan_speed_layer_time_settings_per_extruder.push_back(fan_speed_layer_time_settings);
-    //                              Slice     layer  z  layer   last        current   is inside  fan speed and layer                        combing           comb    travel  travel avoid
-    //                              storage   nr        height  position    extruder  mesh       time settings                              mode              offset  avoid   distance
-    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        false,     fan_speed_layer_time_settings_per_extruder, CombingMode::OFF, 100,    false,  50          );
+    //                              Slice     layer  z  layer   last        current   fan speed and layer                        combing           comb    travel  travel avoid
+    //                              storage   nr        height  position    extruder  time settings                              mode              offset  avoid   distance
+    gCodePlanner = new GCodePlanner(*storage, 0,     0, 0.1,    Point(0,0), 0,        fan_speed_layer_time_settings_per_extruder, CombingMode::OFF, 100,    false,  50          );
 }
 
 void GCodePlannerTest::tearDown()

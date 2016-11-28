@@ -93,7 +93,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
@@ -109,7 +109,8 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int l
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;
-    was_inside = is_inside_mesh; 
+    bool include_helper_parts = false;
+    was_inside = storage.getLayerOutlines(layer_nr, include_helper_parts).inside(start_position); 
     is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
