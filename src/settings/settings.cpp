@@ -42,7 +42,7 @@ std::string toString(EGCodeFlavor flavor)
 }
 
 SettingsBaseVirtual::SettingsBaseVirtual()
-: parent(NULL)
+: parent(nullptr)
 {
 }
 
@@ -52,7 +52,7 @@ SettingsBaseVirtual::SettingsBaseVirtual(SettingsBaseVirtual* parent)
 }
 
 SettingsBase::SettingsBase()
-: SettingsBaseVirtual(NULL)
+: SettingsBaseVirtual(nullptr)
 {
 }
 
@@ -410,6 +410,20 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
     if (value == "both")
         return ESurfaceMode::BOTH;
     return ESurfaceMode::NORMAL;
+}
+
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key) const
+{
+    std::string value = getSettingString(key);
+    if (value == "nowhere")
+    {
+        return FillPerimeterGapMode::NOWHERE;
+    }
+    if (value == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    return FillPerimeterGapMode::NOWHERE;
 }
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)

@@ -149,6 +149,12 @@ enum class ESurfaceMode
     BOTH
 };
 
+enum class FillPerimeterGapMode
+{
+    NOWHERE,
+    EVERYWHERE
+};
+
 enum class CombingMode
 {
     OFF,
@@ -244,6 +250,7 @@ public:
     ESupportType getSettingAsSupportType(std::string key) const;
     EZSeamType getSettingAsZSeamType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
+    FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key);
     SupportDistPriority getSettingAsSupportDistPriority(std::string key);
 };

@@ -106,6 +106,7 @@ std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtBrimConfigs()
 
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
+    print_layer_count(0),
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
     travel_config_per_extruder(initializeTravelConfigs()),
@@ -152,7 +153,7 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
         {
             for (const SliceMeshStorage& mesh : meshes)
             {
-                if (mesh.getSettingBoolean("infill_mesh"))
+                if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
                 {
                     continue;
                 }
@@ -251,7 +252,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // all meshes are presupposed to actually have content
     for (const SliceMeshStorage& mesh : meshes)
     {
-        ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+        if (!mesh.getSettingBoolean("anti_overhang_mesh")
+            && !mesh.getSettingBoolean("support_mesh")
+        )
+        {
+            ret[mesh.getSettingAsIndex("extruder_nr")] = true;
+        }
     }
     return ret;
 }

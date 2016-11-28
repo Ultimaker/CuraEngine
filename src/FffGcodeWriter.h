@@ -211,7 +211,15 @@ private:
      * \param total_layers The total number of layers.
      */
     void processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers);
-    
+
+    /*!
+     * Plan priming of all used extruders which haven't been primed yet
+     * \param[in] storage where the slice data is stored.
+     * \param layer_plan The initial planning of the g-code of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
+    void ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCodePlanner& layer_plan, const int layer_nr);
+
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer.
      * 

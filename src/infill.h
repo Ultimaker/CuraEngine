@@ -21,6 +21,8 @@ namespace cura
 
 class Infill 
 {
+    static constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
+
     EFillMethod pattern; //!< the space filling pattern of the infill to generate
     const Polygons& in_outline; //!< a reference polygon for getting the actual area within which to generate infill (see outline_offset)
     int outline_offset; //!< Offset from Infill::in_outline to get the actual area within which to generate infill
@@ -30,12 +32,33 @@ class Infill
     double fill_angle; //!< for linear infill types: the angle of the infill lines (or the angle of the grid)
     int64_t z; //!< height of the layer for which we generate infill
     int64_t shift; //!< shift of the scanlines in the direction perpendicular to the fill_angle
+    Polygons* perimeter_gaps; //!< (optional output) The areas in between consecutive insets when Concentric infill is used.
     bool connected_zigzags; //!< (ZigZag) Whether endpieces of zigzag infill should be connected to the nearest infill line on both sides of the zigzag connector
     bool use_endpieces; //!< (ZigZag) Whether to include endpieces: zigzag connector segments from one infill line to itself
 
     static constexpr double one_over_sqrt_2 = 0.7071067811865475244008443621048490392848359376884740; //!< 1.0 / sqrt(2.0)
 public:
-    Infill(EFillMethod pattern, const Polygons& in_outline, int outline_offset, int infill_line_width, int line_distance, int infill_overlap, double fill_angle, int64_t z, int64_t shift, bool connected_zigzags = false, bool use_endpieces = false)
+    /*!
+     * \warning If \p perimeter_gaps is given, then the difference between the \p in_outline
+     * and the polygons which result from offsetting it by the \p outline_offset
+     * and then expanding it again by half the \p infill_line_width
+     * is added to the \p perimeter_gaps
+     * 
+     * \param[out] perimeter_gaps (optional output) The areas in between consecutive insets when Concentric infill is used.
+     */
+    Infill(EFillMethod pattern
+        , const Polygons& in_outline
+        , int outline_offset
+        , int infill_line_width
+        , int line_distance
+        , int infill_overlap
+        , double fill_angle
+        , int64_t z
+        , int64_t shift
+        , Polygons* perimeter_gaps = nullptr
+        , bool connected_zigzags = false
+        , bool use_endpieces = false
+    )
     : pattern(pattern)
     , in_outline(in_outline)
     , outline_offset(outline_offset)
@@ -45,6 +68,7 @@ public:
     , fill_angle(fill_angle)
     , z(z)
     , shift(shift)
+    , perimeter_gaps(perimeter_gaps)
     , connected_zigzags(connected_zigzags)
     , use_endpieces(use_endpieces)
     {
@@ -70,13 +94,24 @@ private:
      * \param line_distance the width of the scan segments
      */
     static inline int computeScanSegmentIdx(int x, int line_distance);
+
     /*!
-     * Generate sparse concentric infill 
-     * \param outline The first concentric wall
+     * Generate sparse concentric infill
+     * 
+     * Also adds \ref Inifll::perimeter_gaps between \ref Infill::in_outline and the first wall
+     * 
      * \param result (output) The resulting polygons
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value);
+    void generateConcentricInfill(Polygons& result, int inset_value);
+
+    /*!
+     * Generate sparse concentric infill starting from a specific outer wall
+     * \param first_wall The outer wall from which to start
+     * \param result (output) The resulting polygons
+     * \param inset_value The offset between each consecutive two polygons
+     */
+    void generateConcentricInfill(Polygons& first_wall, Polygons& result, int inset_value);
 
     /*!
      * Generate sparse concentric infill 

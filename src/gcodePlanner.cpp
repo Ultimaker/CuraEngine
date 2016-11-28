@@ -25,7 +25,9 @@ TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstim
 
 ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
-, required_temp(-1)
+, heated_pre_travel_time(0)
+, initial_printing_temperature(-1)
+, printing_temperature(-1)
 , start_position(start_position)
 , layer_nr(layer_nr)
 , is_initial_layer(is_initial_layer)
@@ -206,6 +208,7 @@ bool GCodePlanner::setExtruder(int extruder)
     else 
     {
         extruder_plans.emplace_back(extruder, lastPosition, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
+        assert((int)extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
 
@@ -247,7 +250,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     }
 }
 
-void GCodePlanner::addTravel(Point p)
+GCodePath& GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
@@ -333,11 +336,12 @@ void GCodePlanner::addTravel(Point p)
         }
     }
 
-    addTravel_simple(p, path);
+    GCodePath& ret = addTravel_simple(p, path);
     was_inside = is_inside;
+    return ret;
 }
 
-void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
+GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
@@ -345,6 +349,7 @@ void GCodePlanner::addTravel_simple(Point p, GCodePath* path)
     }
     path->points.push_back(p);
     lastPosition = p;
+    return *path;
 }
 
 
@@ -677,7 +682,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
-                gcode.writeTemperatureCommand(extruder, extruder_plan.required_temp, wait);
+                gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
             }
 
             // prime extruder if it hadn't been used yet
@@ -737,6 +742,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(retraction_config.zHop);
+                }
+                else
+                {
+                    gcode.writeZhopEnd();
                 }
             }
             if (!path.config->isTravelPath() && last_extrusion_config != path.config)

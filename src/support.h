@@ -17,7 +17,6 @@ public:
      * \param layer_count total number of layers
      */
     static void generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count);
-        
 private:
     /*!
      * Generate support polygons over all layers for one object.

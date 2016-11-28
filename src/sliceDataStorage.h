@@ -125,6 +125,8 @@ class SupportLayer
 public:
     Polygons supportAreas; //!< normal support areas
     Polygons skin; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
+    Polygons support_mesh; //!< Areas from support meshes
+    Polygons anti_overhang; //!< Areas where no overhang should be detected.
 };
 
 class SupportStorage
@@ -165,7 +167,7 @@ public:
     , skin_config(PrintFeatureType::Skin)
     , base_subdiv_cube(nullptr)
     {
-        layers.reserve(slice_layer_count);
+        layers.resize(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(PrintFeatureType::Infill);
@@ -178,6 +180,8 @@ class SliceDataStorage : public SettingsMessenger, NoCopy
 {
 public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
+
+    unsigned int print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;

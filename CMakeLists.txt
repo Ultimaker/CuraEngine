@@ -66,6 +66,7 @@ set(engine_SRCS # Except main.cpp.
     src/MeshGroup.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
+    src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/skin.cpp

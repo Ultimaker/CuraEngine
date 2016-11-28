@@ -39,7 +39,9 @@ struct NozzleTempInsert
     , extruder(extruder)
     , temperature(temperature)
     , wait(wait)
-    {}
+    {
+        assert(temperature != 0 && temperature != -1 && "Temperature command must be set!");
+    }
     
     /*!
      * Write the temperature command at the current position in the gcode.
@@ -281,7 +283,10 @@ protected:
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
     int extruder; //!< The extruder used for this paths in the current plan.
-    double required_temp; //!< The required temperature at the start of this extruder plan.
+    double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
+    double initial_printing_temperature; //!< The required temperature at the start of this extruder plan.
+    double printing_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp
+    std::optional<std::list<NozzleTempInsert>::iterator> printing_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
@@ -489,7 +494,8 @@ private:
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
-    
+
+public:
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
      * 
@@ -501,7 +507,7 @@ private:
      * - when changing extruder, the same travel config is used, but its extruder field is changed.
      */
     void forceNewPathStart();
-public:
+
     /*!
      * 
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
@@ -579,7 +585,7 @@ public:
      * 
      * \param p The point to travel to
      */
-    void addTravel(Point p);
+    GCodePath& addTravel(Point p);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -589,7 +595,7 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    void addTravel_simple(Point p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.

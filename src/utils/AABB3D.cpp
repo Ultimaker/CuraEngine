@@ -15,8 +15,8 @@ AABB3D::AABB3D()
 
 bool AABB3D::hit(const AABB3D& other) const
 {
-    if (   max.x < other.min.y
-        || min.x > other.max.y
+    if (   max.x < other.min.x
+        || min.x > other.max.x
         || max.y < other.min.y
         || min.y > other.max.y
         || max.z < other.min.z

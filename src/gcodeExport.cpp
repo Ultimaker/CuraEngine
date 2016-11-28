@@ -51,7 +51,12 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     for (const Mesh& mesh : meshgroup->meshes)
     {
-        extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+        if (!mesh.getSettingBoolean("anti_overhang_mesh")
+            && !mesh.getSettingBoolean("support_mesh")
+        )
+        {
+            extruder_attr[mesh.getSettingAsIndex("extruder_nr")].is_used = true;
+        }
     }
 
     for (unsigned int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
@@ -721,6 +726,15 @@ void GCodeExport::writeZhopStart(int hop_height)
         isZHopped = hop_height;
         *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
         total_bounding_box.include(currentPosition + Point3(0, 0, isZHopped));
+    }
+}
+
+void GCodeExport::writeZhopEnd()
+{
+    if (isZHopped)
+    {
+        isZHopped = 0;
+        *output_stream << "G1 Z" << MMtoStream{currentPosition.z} << new_line;
     }
 }
 
