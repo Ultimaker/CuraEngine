@@ -336,6 +336,10 @@ Point PolygonUtils::moveOutside(const ClosestPolygonPoint& cpp, const int distan
 
 Point PolygonUtils::moveInside(const ClosestPolygonPoint& cpp, const int distance)
 {
+    if (!cpp.isValid())
+    {
+        return no_point;
+    }
     if (distance == 0)
     { // the point which is assumed to be on the boundary doesn't have to be moved
         return cpp.location;
@@ -384,7 +388,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
 
 ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons, Point& from, ClosestPolygonPoint& closest_polygon_point, int preferred_dist_inside, int64_t max_dist2, const Polygons* loc_to_line_polygons, const LocToLineGrid* loc_to_line_grid, const std::function<int(Point)>& penalty_function)
 {
-    if (closest_polygon_point.point_idx == NO_INDEX)
+    if (!closest_polygon_point.isValid())
     {
         return ClosestPolygonPoint(); // we couldn't move inside
     }
@@ -419,7 +423,7 @@ ClosestPolygonPoint PolygonUtils::ensureInsideOrOutside(const Polygons& polygons
             return ClosestPolygonPoint(); // we couldn't move inside
         }
         ClosestPolygonPoint inside = findClosest(from, insetted, penalty_function);
-        if (inside.point_idx != NO_INDEX)
+        if (inside.isValid())
         {
             bool is_inside = polygons.inside(inside.location) == is_outside_boundary; // inside a hole is outside the part
             if (is_inside != (preferred_dist_inside > 0))
@@ -536,12 +540,12 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPolygonPoint& poly1_re
 ClosestPolygonPoint PolygonUtils::findNearestClosest(Point from, PolygonRef polygon, int start_idx)
 {
     ClosestPolygonPoint forth = findNearestClosest(from, polygon, start_idx, 1);
-    if (forth.point_idx == NO_INDEX)
+    if (!forth.isValid())
     {
         return forth; // stop computation
     }
     ClosestPolygonPoint back = findNearestClosest(from, polygon, start_idx, -1);
-    assert(back.point_idx != NO_INDEX);
+    assert(back.isValid());
     if (vSize2(forth.location - from) < vSize2(back.location - from))
     {
         return forth;
@@ -606,7 +610,7 @@ ClosestPolygonPoint PolygonUtils::findClosest(Point from, const Polygons& polygo
         const PolygonRef poly = polygons[ply];
         if (poly.size() == 0) continue;
         ClosestPolygonPoint closest_here = findClosest(from, poly, penalty_function);
-        if (closest_here.point_idx == NO_INDEX)
+        if (!closest_here.isValid())
         {
             continue;
         }

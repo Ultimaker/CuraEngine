@@ -222,7 +222,7 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
     if (is_inside)
     {
         ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2, &boundary_inside, inside_loc_to_line);
-        if (cpp.point_idx == NO_INDEX)
+        if (!cpp.isValid())
         {
             return false;
         }
@@ -272,14 +272,14 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         }
 
         Point result(boundary_crossing_point.p()); // the inside point of the crossing
-        if (boundary_crossing_point.point_idx == NO_INDEX)
+        if (!boundary_crossing_point.isValid())
         { // no point has been found in the sparse grid
             result = dest_point;
         }
 
         int64_t max_dist2 = std::numeric_limits<int64_t>::max();
         ClosestPolygonPoint crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(dest_part, result, boundary_crossing_point, offset_dist_to_get_from_on_the_polygon_to_outside, max_dist2, &boundary_inside, inside_loc_to_line, close_towards_start_penalty_function);
-        if (crossing_1_in_cp.point_idx != NO_INDEX)
+        if (crossing_1_in_cp.isValid())
         {
             dest_crossing_poly = crossing_1_in_cp.poly;
             in_or_mid = result;
