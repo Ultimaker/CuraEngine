@@ -233,11 +233,28 @@ bool GCodePlanner::setExtruder(int extruder)
     return true;
 }
 
-void GCodePlanner::moveInsideCombBoundary(int distance)
+void GCodePlanner::moveInsideCombBoundary(int distance, SliceLayerPart* part)
 {
-    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boudary of a part to inside the part
+    int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     Point p = lastPosition; // copy, since we are going to move p
+    if (part)
+    { // first move inside the last part, so that the chance is higher that we move inside the same part
+        Polygons* comb_boundary_here;
+        if (part->insets.size() > 1)
+        {
+            comb_boundary_here = &part->insets[2];
+        }
+        else if (part->insets.size() == 1)
+        {
+            comb_boundary_here = &part->insets[1];
+        }
+        else
+        {
+            comb_boundary_here = &part->print_outline;
+        }
+        PolygonUtils::moveInside(*comb_boundary_here, p, distance);
+    }
     if (PolygonUtils::moveInside(comb_boundary_inside, p, distance, max_dist2) != NO_INDEX)
     {
         //Move inside again, so we move out of tight 90deg corners

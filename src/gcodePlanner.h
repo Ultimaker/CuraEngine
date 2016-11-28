@@ -20,6 +20,7 @@ namespace cura
 {
 
 class SliceDataStorage;
+class SliceLayerPart;
 
 /*!
  * A gcode command to insert before a specific path.
@@ -713,8 +714,9 @@ public:
      * This is supposed to be called when the nozzle is around the boundary of a layer part, not when the nozzle is in the middle of support, or in the middle of the air.
      * 
      * \param distance The distance to the comb boundary after we moved inside it.
+     * \param part_outline The part in which we last resided
      */
-    void moveInsideCombBoundary(int distance);
+    void moveInsideCombBoundary(int distance, SliceLayerPart* part = nullptr);
 };
 
 }//namespace cura
