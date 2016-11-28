@@ -317,7 +317,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
     { // if move is too far over in_between
         // find crossing closer by
         assert(dest_crossing_poly && "destination crossing poly should have been instantiated!");
-        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(outside, dest_crossing_poly, dest_point, close_to, comber);
+        std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> best = findBestCrossing(outside, *dest_crossing_poly, dest_point, close_to, comber);
         if (best)
         {
             in_or_mid = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside);

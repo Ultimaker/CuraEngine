@@ -3,6 +3,7 @@
 #define UTILS_OPTIONAL_H
 
 #include <algorithm> // swap
+#include <type_traits> // enable_if  is_same
 
 namespace std
 {
@@ -102,12 +103,14 @@ public:
         other.instance = nullptr;
         return *this;
     }
-    template<class U> 
+    template<class U = T
+        , typename = typename std::enable_if<std::is_assignable<T&, U>::value>::type // type U is T, T& or T&&
+        >
     optional& operator=(U&& value)
     {
         if (instance)
         {
-            *instance = value;
+            *instance = std::forward<U>(value);
         }
         else
         {
