@@ -208,7 +208,7 @@ bool GCodePlanner::setExtruder(int extruder)
     else 
     {
         extruder_plans.emplace_back(extruder, lastPosition, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[extruder], storage.retraction_config_per_extruder[extruder]);
-        assert(extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
+        assert((int)extruder_plans.size() <= storage.meshgroup->getExtruderCount() && "Never use the same extruder twice on one layer!");
     }
     last_planned_extruder_setting_base = storage.meshgroup->getExtruderTrain(extruder);
 
