@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SkirtBrim.h"
 #include "support.h"
 
@@ -19,6 +22,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     { // add brim underneath support by removing support where there's brim around the model
         const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
+        first_layer_outline = first_layer_outline.unionPolygons();
         Polygons first_layer_empty_holes;
         if (outside_only)
         {
