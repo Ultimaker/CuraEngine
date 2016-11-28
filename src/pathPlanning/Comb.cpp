@@ -245,7 +245,7 @@ void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, cons
         dest_part = partsView_inside.assemblePart(dest_part_idx);
 
         ClosestPolygonPoint boundary_crossing_point;
-        { // set [result] to a point on the destination part closest to close_to (but also a bit close to fest_point)
+        { // set [result] to a point on the destination part closest to close_to (but also a bit close to _dest_point)
             std::unordered_set<unsigned int> dest_part_poly_indices;
             for (unsigned int poly_idx : partsView_inside[dest_part_idx])
             {
