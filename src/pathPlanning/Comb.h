@@ -114,12 +114,18 @@ private:
     static const int64_t offset_extra_start_end = 100; //!< Distance to move start point and end point toward eachother to extra avoid collision with the boundaries.
 
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
-    
+
     Polygons& boundary_inside; //!< The boundary within which to comb.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    Polygons outlines; //!< The actual boundary between the model and air
     LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
+
+    /*!
+     * Get the outlines of the meshes or raft for this layer
+     */
+    Polygons getCombOutlines();
 
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.

@@ -12,6 +12,19 @@
 
 namespace cura {
 
+Polygons Comb::getCombOutlines()
+{
+    if (layer_nr >= 0)
+    {
+        bool include_helper_parts = false;
+        return storage.getLayerOutlines(layer_nr, include_helper_parts);
+    }
+    else
+    {
+        return storage.raftOutline;
+    }
+}
+
 LocToLineGrid& Comb::getOutsideLocToLine()
 {
     return *outside_loc_to_line;
@@ -33,6 +46,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , avoid_other_parts(travel_avoid_other_parts)
 , boundary_inside( comb_boundary_inside )
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // WARNING !! changes the order of boundary_inside !!
+, outlines(getCombOutlines())
 , inside_loc_to_line(PolygonUtils::createLocToLineGrid(boundary_inside, comb_boundary_offset))
 , boundary_outside(
         [&storage, layer_nr, travel_avoid_distance]()
@@ -221,15 +235,29 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
 {
     if (is_inside)
     {
-        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2, &boundary_inside, inside_loc_to_line);
+        coord_t max_moveInside_distance2_here = std::numeric_limits<coord_t>::max(); // the distance which would make the moveInside fail
+        if (storage.getSettingAsCombingMode("retraction_combing") == cura::CombingMode::NO_SKIN)
+        {
+            max_moveInside_distance2_here = max_moveInside_distance2;
+        }
+        Point original_dest_point = dest_point;
+        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2_here, &boundary_inside, inside_loc_to_line);
         if (!cpp.isValid())
         {
             return false;
         }
         else
         {
-            inside_poly = cpp.poly_idx;
-            return true;
+            if (vSize2(dest_point - original_dest_point) > max_moveInside_distance2 // only check for collision with outlines for long moves
+                && PolygonUtils::polygonCollidesWithLineSegment(outlines, dest_point, original_dest_point))
+            {
+                return false;
+            }
+            else
+            {
+                inside_poly = cpp.poly_idx;
+                return true;
+            }
         }
     }
     return false;
