@@ -34,20 +34,8 @@ typedef std::vector<ListPolygon> ListPolygons; //!< Polygons represented by a ve
 const static int clipper_init = (0);
 #define NO_INDEX (std::numeric_limits<unsigned int>::max())
 
-/*!
- * A wrapped pointer to a polygon.
- * 
- * All functionality on Polygons is directly available on any PolygonRef
- * 
- * This class is a bit of a misnomer, because it doesn't really behave as a reference.
- * Copying means copying the pointer, not the underlying data.
- * Same goes for copy-initialization.
- * 
- * The class does ensure that the pointer is set, so this that respect it is like a reference.
- */
 class PolygonRef
 {
-protected:
     ClipperLib::Path* path;
     PolygonRef()
     : path(nullptr)
@@ -383,28 +371,6 @@ private:
      * \param[in,out] backward_is_too_far Whether trying another step backward is blocked by the shortcut length condition. Updated for the next iteration.
      */
     static void smooth_outward_step(const Point p1, const int64_t shortcut_length2, ListPolyIt& p0_it, ListPolyIt& p2_it, bool& forward_is_blocked, bool& backward_is_blocked, bool& forward_is_too_far, bool& backward_is_too_far);
-};
-
-/*!
- * A wrapped pointer to a polygon.
- * 
- * All functionality on Polygons is directly available on any PolygonPointer.
- * 
- * Unlike \ref PolygonRef this class may wrap a nullptr.
- */
-class PolygonPointer : public PolygonRef
-{
-public:
-    PolygonPointer()
-    : PolygonRef()
-    {}
-    PolygonPointer(PolygonRef other)
-    : PolygonRef(other)
-    {}
-    explicit operator bool() const
-    {
-        return this->path;
-    }
 };
 
 class Polygon : public PolygonRef
