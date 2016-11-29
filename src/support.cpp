@@ -236,11 +236,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
 
     for (unsigned int layer_idx = support_layer_count - 1 - layerZdistanceTop; layer_idx != (unsigned int) -1 ; layer_idx--)
     {
+        basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
+        
         Polygons overhang;
-        if (layer_idx > 0)
-        { // only compute overhang on layers above layer 0
-            basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
-
+        {
             // compute basic overhang and put in right layer ([layerZdistanceTOp] layers below)
             overhang = basic_and_full_overhang_above.back().second;
             basic_and_full_overhang_above.pop_back();
