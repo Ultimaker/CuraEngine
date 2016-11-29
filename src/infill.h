@@ -12,6 +12,7 @@
 #include "infill/ZigzagConnectorProcessorEndPieces.h"
 #include "infill/ZigzagConnectorProcessorConnectedEndPieces.h"
 #include "infill/ZigzagConnectorProcessorDisconnectedEndPieces.h"
+#include "infill/SubDivCube.h"
 #include "utils/intpoint.h"
 #include "utils/AABB.h"
 
@@ -77,8 +78,9 @@ public:
      * 
      * \param result_polygons (output) The resulting polygons (from concentric infill)
      * \param result_lines (output) The resulting line segments (from linear infill types)
+     * \param mesh The mesh for which to geenrate infill (should only be used for non-helper objects)
      */
-    void generate(Polygons& result_polygons, Polygons& result_lines);
+    void generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh = nullptr);
 
 private:
     /*!
@@ -140,6 +142,13 @@ private:
      * \param result (output) The resulting lines
      */
     void generateTriangleInfill(Polygons& result);
+
+    /*!
+     * Generate a 3d pattern of subdivided cubes on their points
+     * \param[out] result The resulting lines
+     * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
+     */
+    void generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh);
     
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
@@ -152,6 +161,13 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t total_shift);
+
+    /*!
+     * Crop line segments by the infill polygon using Clipper
+     * \param result (output) The resulting lines
+     * \param input The line segments to be cropped
+     */
+    void addLineSegmentsInfill(Polygons& result, Polygons& input);
 
     /*!
      * generate lines within the area of \p in_outline, at regular intervals of \p line_distance

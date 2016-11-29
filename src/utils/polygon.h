@@ -11,6 +11,8 @@
 #include <limits> // int64_t.min
 #include <list>
 
+#include <initializer_list>
+
 #include "intpoint.h"
 
 #define CHECK_POLY_ACCESS
@@ -430,11 +432,23 @@ public:
     {
         return paths.end();
     }
+    /*!
+     * Remove a polygon from the list and move the last polygon to its place
+     * 
+     * \warning changes the order of the polygons!
+     */
     void remove(unsigned int index)
     {
         POLY_ASSERT(index < size() && index >= 0);
-        paths.erase(paths.begin() + index);
+        if (index < paths.size() - 1)
+        {
+            paths[index] = std::move(paths.back());
+        }
+        paths.resize(paths.size() - 1);
     }
+    /*!
+     * Remove a range of polygons
+     */
     void erase(ClipperLib::Paths::iterator start, ClipperLib::Paths::iterator end)
     {
         paths.erase(start, end);
@@ -455,6 +469,13 @@ public:
     {
         for(unsigned int n=0; n<other.paths.size(); n++)
             paths.push_back(other.paths[n]);
+    }
+    /*!
+     * Add a 'polygon' consisting of two points
+     */
+    void addLine(const Point from, const Point to)
+    {
+        paths.emplace_back((std::initializer_list<Point>){from, to});
     }
 
     template<typename... Args>
@@ -512,6 +533,20 @@ public:
         clipper.AddPaths(paths, ClipperLib::ptSubject, true);
         clipper.AddPaths(other.paths, ClipperLib::ptClip, true);
         clipper.Execute(ClipperLib::ctIntersection, ret.paths);
+        return ret;
+    }
+    /*!
+     * Clips input line segments by this Polygons.
+     * \param other Input line segments to be cropped
+     * \return the resulting interior line segments
+     */
+    ClipperLib::PolyTree lineSegmentIntersection(const Polygons& other) const
+    {
+        ClipperLib::PolyTree ret;
+        ClipperLib::Clipper clipper(clipper_init);
+        clipper.AddPaths(paths, ClipperLib::ptClip, true);
+        clipper.AddPaths(other.paths, ClipperLib::ptSubject, false);
+        clipper.Execute(ClipperLib::ctIntersection, ret);
         return ret;
     }
     Polygons xorPolygons(const Polygons& other) const

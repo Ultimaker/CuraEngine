@@ -53,7 +53,7 @@ unsigned int FffPolygonGenerator::getDraftShieldLayerCount(const unsigned int to
         case DraftShieldHeightLimitation::FULL:
             return total_layers;
         case DraftShieldHeightLimitation::LIMITED:
-            return std::max(0, (getSettingInMicrons("draft_shield_height") - getSettingInMicrons("layer_height_0")) / getSettingInMicrons("layer_height") + 1);
+            return std::max((coord_t)0, (getSettingInMicrons("draft_shield_height") - getSettingInMicrons("layer_height_0")) / getSettingInMicrons("layer_height") + 1);
     }
 }
 
@@ -461,8 +461,14 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     // create gradual infill areas
     SkinInfillAreaComputation::generateGradualInfill(mesh, mesh.getSettingInMicrons("gradual_infill_step_height"), mesh.getSettingAsCount("gradual_infill_steps"));
 
+    //SubDivCube Pre-compute Octree
+    if (mesh.getSettingAsFillMethod("infill_pattern") == EFillMethod::CUBICSUBDIV)
+    {
+        SubDivCube::precomputeOctree(mesh);
+    }
+
     // combine infill
-    unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), 1))); //How many infill layers to combine to obtain the requested sparse thickness.
+    unsigned int combined_infill_layers = std::max(1U, round_divide(mesh.getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1))); //How many infill layers to combine to obtain the requested sparse thickness.
     combineInfillLayers(mesh,combined_infill_layers);
 
     // fuzzy skin

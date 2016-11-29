@@ -17,7 +17,7 @@ int Infill::computeScanSegmentIdx(int x, int line_width)
     return x / line_width;
 }
 
-void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
+void Infill::generate(Polygons& result_polygons, Polygons& result_lines, SliceMeshStorage* mesh)
 {
     if (in_outline.size() == 0) return;
     if (line_distance == 0) return;
@@ -47,6 +47,14 @@ void Infill::generate(Polygons& result_polygons, Polygons& result_lines)
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance, fill_angle, connected_zigzags, use_endpieces);
+        break;
+    case EFillMethod::CUBICSUBDIV:
+        if (!mesh)
+        {
+            logError("Cannot generate Cubic Subdivision infill without a mesh!\n");
+            break;
+        }
+        generateCubicSubDivInfill(result_lines, *mesh);
         break;
     default:
         logError("Fill pattern has unknown value.\n");
@@ -136,15 +144,26 @@ void Infill::generateTriangleInfill(Polygons& result)
     generateLineInfill(result, line_distance, fill_angle + 120, 0);
 }
 
+void Infill::generateCubicSubDivInfill(Polygons& result, SliceMeshStorage& mesh)
+{
+    Polygons uncropped;
+    mesh.base_subdiv_cube->generateSubdivisionLines(z, uncropped);
+    addLineSegmentsInfill(result, uncropped);
+}
+
+void Infill::addLineSegmentsInfill(Polygons& result, Polygons& input)
+{
+    ClipperLib::PolyTree interior_segments_tree = in_outline.lineSegmentIntersection(input);
+    ClipperLib::Paths interior_segments;
+    ClipperLib::OpenPathsFromPolyTree(interior_segments_tree, interior_segments);
+    for (uint64_t idx = 0; idx < interior_segments.size(); idx++)
+    {
+        result.addLine(interior_segments[idx][0], interior_segments[idx][1]);
+    }
+}
+
 void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix, const int scanline_min_idx, const int line_distance, const AABB boundary, std::vector<std::vector<int64_t>>& cut_list, int64_t shift)
 {
-    auto addLine = [&](Point from, Point to)
-    {
-        PolygonRef p = result.newPoly();
-        p.add(rotation_matrix.unapply(from));
-        p.add(rotation_matrix.unapply(to));
-    };
-
     auto compare_int64_t = [](const void* a, const void* b)
     {
         int64_t n = (*(int64_t*)a) - (*(int64_t*)b);
@@ -170,7 +189,7 @@ void Infill::addLineInfill(Polygons& result, const PointMatrix& rotation_matrix,
             { // segment is too short to create infill
                 continue;
             }
-            addLine(Point(x, crossings[crossing_idx]), Point(x, crossings[crossing_idx + 1]));
+            result.addLine(rotation_matrix.unapply(Point(x, crossings[crossing_idx])), rotation_matrix.unapply(Point(x, crossings[crossing_idx + 1])));
         }
         scanline_idx += 1;
     }

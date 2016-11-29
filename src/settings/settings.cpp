@@ -156,7 +156,7 @@ double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
     return atof(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
+coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 {
     return getSettingInMillimeters(key) * 1000.0;
 }
@@ -208,6 +208,12 @@ double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
+}
+
+double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) / 100.0;
 }
 
 double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
@@ -345,6 +351,8 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::GRID;
     if (value == "cubic")
         return EFillMethod::CUBIC;
+    if (value == "cubicsubdiv")
+        return EFillMethod::CUBICSUBDIV;
     if (value == "tetrahedral")
         return EFillMethod::TETRAHEDRAL;
     if (value == "triangles")
