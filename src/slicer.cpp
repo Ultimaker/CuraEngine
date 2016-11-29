@@ -759,7 +759,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
         for (PolygonRef polyline : open_polylines)
         {
             if (polyline.size() > 0)
-                openPolylines.add(polyline);
+                polygons.add(polyline);
         }
     }
 
