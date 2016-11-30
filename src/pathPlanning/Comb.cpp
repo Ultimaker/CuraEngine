@@ -237,7 +237,8 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
     {
         coord_t max_move_inside_distance2_here = std::numeric_limits<coord_t>::max(); // the distance which would make the moveInside fail
         if (storage.getSettingAsCombingMode("retraction_combing") == cura::CombingMode::NO_SKIN)
-        {
+        { // if we perform no_skin combing, then a far move inside is likely a consequence of there meing skin in between the destination point and the inside comb boundary
+            // if we perform normal combing, then a far move inside is likely to be a consequence of sharp pointy segments in the layer part
             max_move_inside_distance2_here = max_move_inside_distance2;
         }
         Point original_dest_point = dest_point;
