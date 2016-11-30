@@ -12,7 +12,7 @@
 namespace cura 
 {
 
-PrimeTower::PrimeTower()
+PrimeTower::PrimeTower(const SliceDataStorage& storage)
 : is_hollow(false)
 , wipe_from_middle(false)
 , current_pre_wipe_location_idx(0)
@@ -20,6 +20,13 @@ PrimeTower::PrimeTower()
     for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
     {
         last_prime_tower_poly_printed[extruder_nr] = -1;
+    }
+    enabled = storage.getSettingBoolean("prime_tower_enable")
+           && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
+           && storage.getSettingInMicrons("prime_tower_size") > 10;
+    if (enabled)
+    {
+        generateGroundpoly(storage);
     }
 }
 
@@ -83,10 +90,7 @@ void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 
 void PrimeTower::generatePaths(const SliceDataStorage& storage)
 {
-    enabled = storage.max_print_height_second_to_last_extruder >= 0
-            && storage.getSettingBoolean("prime_tower_enable")
-            && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
-            && storage.getSettingInMicrons("prime_tower_size") > 10;
+    enabled &= storage.max_print_height_second_to_last_extruder >= 0; //Maybe it turns out that we don't need a prime tower after all because there are no layer switches.
     if (enabled)
     {
         generatePaths_denseInfill(storage);
@@ -99,8 +103,6 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
     int n_patterns = 2; // alternating patterns between layers
     int infill_overlap = 60; // so that it can't be zero; EDIT: wtf?
     int extra_infill_shift = 0;
-
-    generateGroundpoly(storage);
 
     int64_t z = 0; // (TODO) because the prime tower stores the paths for each extruder for once instead of generating each layer, we don't know the z position
 

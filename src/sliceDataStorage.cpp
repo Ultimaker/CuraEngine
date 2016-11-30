@@ -116,7 +116,8 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     raft_surface_config(PrintFeatureType::SupportInterface),
     support_config(PrintFeatureType::Support),
     support_skin_config(PrintFeatureType::SupportInterface),
-    max_print_height_second_to_last_extruder(-1)
+    max_print_height_second_to_last_extruder(-1),
+    primeTower(*this)
 {
 }
 

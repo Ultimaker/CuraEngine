@@ -54,6 +54,14 @@ public:
     std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers
 
     /*!
+     * \brief Creates a prime tower instance that will determine where and how
+     * the prime tower gets printed.
+     *
+     * \param storage A storage where it retrieves the prime tower settings.
+     */
+    PrimeTower(const SliceDataStorage& storage);
+
+    /*!
      * Initialize \ref PrimeTower::config_per_extruder with speed and line width settings.
      * 
      * \param meshgroup Where to retrieve the setttings for each extruder
@@ -84,8 +92,6 @@ public:
      * \param total_layers The total number of layers 
      */
     void generatePaths(const SliceDataStorage& storage);
-
-    PrimeTower(); //!< basic constructor
 
     /*!
      * Add path plans for the prime tower to the \p gcode_layer
