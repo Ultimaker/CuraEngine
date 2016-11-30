@@ -240,6 +240,15 @@ public:
     }
 
     /*!
+     * Check in which part \p location lies, if in any.
+     * 
+     * \param layer_nr The layer for which to check
+     * \param location The location to check
+     * \return The part in which \p location lie, or nullptr, if it's outside all parts.
+     */
+    SliceLayerPart* getPartInside(int layer_nr, Point location);
+
+    /*!
      * Get all outlines within a given layer.
      * 
      * \param layer_nr the index of the layer for which to get the outlines (negative layer numbers indicate the raft)

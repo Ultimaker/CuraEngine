@@ -110,6 +110,29 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
 {
 }
 
+SliceLayerPart* SliceDataStorage::getPartInside(int layer_nr, Point location)
+{
+    if (layer_nr >= 0)
+    {
+        for (SliceMeshStorage& mesh : meshes)
+        {
+            SliceLayer& layer = mesh.layers[layer_nr];
+            for (SliceLayerPart& part : layer.parts)
+            {
+                if (part.outline.inside(location))
+                {
+                    return &part;
+                }
+            }
+        }
+        return nullptr;
+    }
+    else
+    {
+        return nullptr;
+    }
+}
+
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {
     if (layer_nr < 0 && layer_nr < -Raft::getFillerLayerCount(*this))
