@@ -313,7 +313,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_base_line_spacing");
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
-        gcode_layer.setIsInside(true);
 
         if (getSettingAsIndex("adhesion_extruder_nr") > 0)
         {
@@ -348,7 +347,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         int64_t comb_offset = train->getSettingInMicrons("raft_interface_line_spacing");
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
-        gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
         {
@@ -377,7 +375,6 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         z += layer_height;
         const int64_t comb_offset = train->getSettingInMicrons("raft_surface_line_spacing");
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
-        gcode_layer.setIsInside(true);
 
         if (CommandSocket::isInstantiated())
         {

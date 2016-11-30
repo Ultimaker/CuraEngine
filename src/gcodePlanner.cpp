@@ -140,14 +140,7 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
     if (layer_nr < 0)
     { // when a raft is present
-        if (combing_mode == CombingMode::NO_SKIN)
-        {
-            return Polygons();
-        }
-        else
-        {
-            return storage.raftOutline.offset(MM2INT(0.1));
-        }
+        return Polygons();
     }
     else 
     {
