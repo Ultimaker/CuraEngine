@@ -476,6 +476,9 @@ public:
     Polygons() {}
 
     Polygons(const Polygons& other) { paths = other.paths; }
+
+    virtual ~Polygons() {}
+
     Polygons& operator=(const Polygons& other) { paths = other.paths; return *this; }
 
     bool operator==(const Polygons& other) const =delete;
@@ -549,7 +552,7 @@ public:
      * \param border_result What to return when the point is exactly on the border
      * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
      */
-    bool inside(Point p, bool border_result = false) const;
+    virtual bool inside(Point p, bool border_result = false) const;
 
     /*!
      * Check if we are inside the polygon. We do this by tracing from the point towards the positive X direction,
@@ -893,20 +896,20 @@ public:
         Polygons& thiss = *this;
         return thiss[0];
     }
-    
-    bool inside(Point p)
-    {
-        if (size() < 1)
-            return false;
-        if (!(*this)[0].inside(p))
-            return false;
-        for(unsigned int n=1; n<paths.size(); n++)
-        {
-            if ((*this)[n].inside(p))
-                return false;
-        }
-        return true;
-    }
+
+    /*!
+     * Check if we are inside the polygon.
+     * 
+     * We do this by counting the number of polygons inside which this point lies.
+     * An odd number is inside, while an even number is outside.
+     * 
+     * Returns false if outside, true if inside; if the point lies exactly on the border, will return \p border_result.
+     * 
+     * \param p The point for which to check if it is inside this polygon
+     * \param border_result What to return when the point is exactly on the border
+     * \return Whether the point \p p is inside this polygon (or \p border_result when it is on the border)
+     */
+    virtual bool inside(Point p, bool border_result = false) const;
 };
 
 /*!

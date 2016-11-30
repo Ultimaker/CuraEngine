@@ -97,6 +97,27 @@ bool Polygons::inside(Point p, bool border_result) const
     return (poly_count_inside % 2) == 1;
 }
 
+bool PolygonsPart::inside(Point p, bool border_result) const
+{
+    if (size() < 1)
+    {
+        return false;
+    }
+    if (!(*this)[0].inside(p, border_result))
+    {
+        return false;
+    }
+    for (unsigned int n = 1; n < paths.size(); n++)
+    {
+        if ((*this)[n].inside(p, !border_result))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 bool Polygons::insideOld(Point p, bool border_result) const
 {
     const Polygons& thiss = *this;
