@@ -39,7 +39,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
-, max_moveInside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
+, max_move_inside_distance2(offset_from_outlines * 2 * offset_from_outlines * 2)
 , offset_from_outlines_outside(travel_avoid_distance)
 , offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
@@ -235,20 +235,20 @@ bool Comb::moveInside(bool is_inside, Point& dest_point, unsigned int& inside_po
 {
     if (is_inside)
     {
-        coord_t max_moveInside_distance2_here = std::numeric_limits<coord_t>::max(); // the distance which would make the moveInside fail
+        coord_t max_move_inside_distance2_here = std::numeric_limits<coord_t>::max(); // the distance which would make the moveInside fail
         if (storage.getSettingAsCombingMode("retraction_combing") == cura::CombingMode::NO_SKIN)
         {
-            max_moveInside_distance2_here = max_moveInside_distance2;
+            max_move_inside_distance2_here = max_move_inside_distance2;
         }
         Point original_dest_point = dest_point;
-        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_moveInside_distance2_here, &boundary_inside, inside_loc_to_line);
+        ClosestPolygonPoint cpp = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end, max_move_inside_distance2_here, &boundary_inside, inside_loc_to_line);
         if (!cpp.isValid())
         {
             return false;
         }
         else
         {
-            if (vSize2(dest_point - original_dest_point) > max_moveInside_distance2 // only check for collision with outlines for long moves
+            if (vSize2(dest_point - original_dest_point) > max_move_inside_distance2 // only check for collision with outlines for long moves
                 && PolygonUtils::polygonCollidesWithLineSegment(outlines, dest_point, original_dest_point))
             {
                 return false;

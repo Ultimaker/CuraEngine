@@ -105,7 +105,7 @@ private:
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
-    const int64_t max_moveInside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const int64_t max_move_inside_distance2; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
     const int64_t offset_from_outlines_outside; //!< Offset from the boundary of a part to a travel path which avoids it by this distance.
     const int64_t offset_from_inside_to_outside; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const int64_t max_crossing_dist2; //!< The maximal distance by which to cross the in_between area between inside and outside
