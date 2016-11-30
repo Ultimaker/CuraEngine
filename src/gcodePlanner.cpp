@@ -407,13 +407,13 @@ void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig
     }
 }
 
-void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, coord_t wall_0_wipe_dist, bool spiralize)
+void GCodePlanner::addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize)
 {
     if (polygons.size() == 0)
     {
         return;
     }
-    PathOrderOptimizer orderOptimizer(lastPosition, z_seam_type);
+    PathOrderOptimizer orderOptimizer(lastPosition, z_seam_pos, z_seam_type);
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(polygons[poly_idx]);
