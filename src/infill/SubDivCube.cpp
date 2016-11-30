@@ -96,7 +96,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons 
 {
     CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
 
-    int32_t z_diff = abs(z - center.z); //!< the difference between the cube center and the target layer.
+    int32_t z_diff = std::abs(z - center.z); //!< the difference between the cube center and the target layer.
     if (z_diff > cube_properties.height / 2) //!< this cube does not touch the target layer. Early exit.
     {
         return;
@@ -247,14 +247,14 @@ void SubDivCube::addLineAndCombine(Polygons& group, Point from, Point to)
     int epsilon = 10; // the smallest distance of two points which are viewed as coincident (dist > 0 due to rounding errors)
     for (unsigned int idx = 0; idx < group.size(); idx++)
     {
-        if (abs(from.X - group[idx][1].X) < epsilon && abs(from.Y - group[idx][1].Y) < epsilon)
+        if (std::abs(from.X - group[idx][1].X) < epsilon && std::abs(from.Y - group[idx][1].Y) < epsilon)
         {
             from = group[idx][0];
             group.remove(idx);
             idx--;
             continue;
         }
-        if (abs(to.X - group[idx][0].X) < epsilon && abs(to.Y - group[idx][0].Y) < epsilon)
+        if (std::abs(to.X - group[idx][0].X) < epsilon && std::abs(to.Y - group[idx][0].Y) < epsilon)
         {
             to = group[idx][1];
             group.remove(idx);
