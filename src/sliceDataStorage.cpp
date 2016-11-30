@@ -116,6 +116,10 @@ SliceLayerPart* SliceDataStorage::getPartInside(int layer_nr, Point location)
     {
         for (SliceMeshStorage& mesh : meshes)
         {
+            if ((unsigned int)layer_nr >= mesh.layers.size())
+            {
+                continue;
+            }
             SliceLayer& layer = mesh.layers[layer_nr];
             for (SliceLayerPart& part : layer.parts)
             {
