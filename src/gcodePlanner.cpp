@@ -234,11 +234,11 @@ void GCodePlanner::moveInsideCombBoundary(int distance, const SliceLayerPart& pa
         const Polygons* comb_boundary_here;
         if (part.insets.size() > 1)
         {
-            comb_boundary_here = &part.insets[2];
+            comb_boundary_here = &part.insets[1];
         }
         else if (part.insets.size() == 1)
         {
-            comb_boundary_here = &part.insets[1];
+            comb_boundary_here = &part.insets[0];
         }
         else
         {
