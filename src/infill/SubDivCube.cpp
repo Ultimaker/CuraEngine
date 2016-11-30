@@ -6,6 +6,11 @@
 #include "../sliceDataStorage.h"
 #include "../utils/math.h"
 
+#define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 //1 / sqrt(2)
+#define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 //1 / sqrt(3)
+#define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 //1 / sqrt(6)
+#define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 //sqrt(2 / 3)
+
 namespace cura
 {
 
@@ -34,9 +39,6 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 
     coord_t furthest_dist_from_origin = std::sqrt(square(mesh.getSettingInMicrons("machine_height")) + square(mesh.getSettingInMicrons("machine_depth") / 2) + square(mesh.getSettingInMicrons("machine_width") / 2));
     coord_t max_side_length = furthest_dist_from_origin * 2;
-    constexpr double one_over_sqrt_3 = 1.0 / sqrt(3.0);
-    constexpr double one_over_sqrt_6 = 1.0 / sqrt(6.0);
-    constexpr double sqrt_two_third = sqrt(2.0 / 3.0);
 
     int curr_recursion_depth = 0;
     for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
@@ -46,8 +48,8 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
         cube_properties_here.side_length = curr_side_length;
         cube_properties_here.height = sqrt(3) * curr_side_length;
         cube_properties_here.square_height = sqrt(2) * curr_side_length;
-        cube_properties_here.max_draw_z_diff = one_over_sqrt_3 * curr_side_length;
-        cube_properties_here.max_line_offset = one_over_sqrt_6 * curr_side_length;
+        cube_properties_here.max_draw_z_diff = ONE_OVER_SQRT_3 * curr_side_length;
+        cube_properties_here.max_line_offset = ONE_OVER_SQRT_6 * curr_side_length;
         curr_recursion_depth++;
     }
     Point3 center(0, 0, 0);
@@ -64,9 +66,9 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     //             /  .O.  \                           |                        .
     //            /.~'   '~.\                          O---->X                  .
     //          X """"""""""" Y                                                 .
-    tilt.matrix[0] = -one_over_sqrt_2;  tilt.matrix[1] = one_over_sqrt_2; tilt.matrix[2] = 0;
-    tilt.matrix[3] = -one_over_sqrt_6; tilt.matrix[4] = -one_over_sqrt_6; tilt.matrix[5] = sqrt_two_third ;
-    tilt.matrix[6] = one_over_sqrt_3;  tilt.matrix[7] = one_over_sqrt_3;  tilt.matrix[8] = one_over_sqrt_3;
+    tilt.matrix[0] = -ONE_OVER_SQRT_2;  tilt.matrix[1] = ONE_OVER_SQRT_2; tilt.matrix[2] = 0;
+    tilt.matrix[3] = -ONE_OVER_SQRT_6; tilt.matrix[4] = -ONE_OVER_SQRT_6; tilt.matrix[5] = SQRT_TWO_THIRD ;
+    tilt.matrix[6] = ONE_OVER_SQRT_3;  tilt.matrix[7] = ONE_OVER_SQRT_3;  tilt.matrix[8] = ONE_OVER_SQRT_3;
 
     infill_rotation_matrix = PointMatrix(infill_angle);
     Point3Matrix infill_angle_mat(infill_rotation_matrix);
@@ -107,7 +109,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons 
         Point a, b; //!< absolute coordinates of line endpoints
         relative_a.X = (cube_properties.square_height / 2) * (cube_properties.max_draw_z_diff - z_diff) / cube_properties.max_draw_z_diff;
         relative_b.X = -relative_a.X;
-        relative_a.Y = cube_properties.max_line_offset - ((z - (center.z - cube_properties.max_draw_z_diff)) * one_over_sqrt_2);
+        relative_a.Y = cube_properties.max_line_offset - ((z - (center.z - cube_properties.max_draw_z_diff)) * ONE_OVER_SQRT_2);
         relative_b.Y = relative_a.Y;
         rotatePointInitial(relative_a);
         rotatePointInitial(relative_b);
