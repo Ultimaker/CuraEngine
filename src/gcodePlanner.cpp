@@ -109,9 +109,8 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int l
     extruder_plans.reserve(storage.meshgroup->getExtruderCount());
     extruder_plans.emplace_back(current_extruder, start_position, layer_nr, is_initial_layer, layer_thickness, fan_speed_layer_time_settings_per_extruder[current_extruder], storage.retraction_config_per_extruder[current_extruder]);
     comb = nullptr;
-    bool include_helper_parts = false;
-    was_inside = storage.getLayerOutlines(layer_nr, include_helper_parts).inside(start_position); 
-    is_inside = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
+    was_inside = storage.getPartInside(layer_nr, start_position);
+    is_inside = nullptr; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     if (combing_mode != CombingMode::OFF)
     {
         comb = new Comb(storage, layer_nr, comb_boundary_inside, comb_boundary_offset, travel_avoid_other_parts, travel_avoid_distance);
@@ -168,7 +167,7 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
 }
 
-void GCodePlanner::setIsInside(bool _is_inside)
+void GCodePlanner::setIsInside(SliceLayerPart* _is_inside)
 {
     is_inside = _is_inside;
 }
@@ -179,7 +178,7 @@ bool GCodePlanner::setExtruder(int extruder)
     {
         return false;
     }
-    setIsInside(false);
+    setIsInside(nullptr);
     { // handle end position of the prev extruder
         SettingsBaseVirtual* train = getLastPlannedExtruderTrainSettings();
         bool end_pos_absolute = train->getSettingBoolean("machine_extruder_end_pos_abs");
@@ -226,25 +225,24 @@ bool GCodePlanner::setExtruder(int extruder)
     return true;
 }
 
-void GCodePlanner::moveInsideCombBoundary(int distance, SliceLayerPart* part)
+void GCodePlanner::moveInsideCombBoundary(int distance, const SliceLayerPart& part)
 {
     // this function is to be used to move from the boudary of a part to inside the part
     int max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     Point p = lastPosition; // copy, since we are going to move p
-    if (part)
     { // first move inside the last part, so that the chance is higher that we move inside the same part
-        Polygons* comb_boundary_here;
-        if (part->insets.size() > 1)
+        const Polygons* comb_boundary_here;
+        if (part.insets.size() > 1)
         {
-            comb_boundary_here = &part->insets[2];
+            comb_boundary_here = &part.insets[2];
         }
-        else if (part->insets.size() == 1)
+        else if (part.insets.size() == 1)
         {
-            comb_boundary_here = &part->insets[1];
+            comb_boundary_here = &part.insets[1];
         }
         else
         {
-            comb_boundary_here = &part->print_outline;
+            comb_boundary_here = &part.print_outline;
         }
         PolygonUtils::moveInside(*comb_boundary_here, p, distance);
     }
@@ -339,7 +337,7 @@ GCodePath& GCodePlanner::addTravel(Point p)
             if (was_inside) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
             {               // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
                 assert (extr != nullptr);
-                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
+                moveInsideCombBoundary(extr->getSettingInMicrons((extr->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1, *was_inside);
             }
             path = getLatestPathWithConfig(&travel_config, SpaceFillType::None);
             path->retract = true;

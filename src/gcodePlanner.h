@@ -475,8 +475,8 @@ private:
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
     SettingsBaseVirtual* last_planned_extruder_setting_base; //!< The setting base of the last planned extruder.
-    bool was_inside; //!< Whether the last planned (extrusion) move was inside a layer part
-    bool is_inside; //!< Whether the destination of the next planned travel move is inside a layer part
+    SliceLayerPart* was_inside; //!< The layer part the last planned (extrusion) move was inside (if any)
+    SliceLayerPart* is_inside; //!< The layer part the destination of the next planned travel move is inside (if any)
     Polygons comb_boundary_inside; //!< The boundary within which to comb, or to move into when performing a retraction.
     Comb* comb;
 
@@ -565,8 +565,9 @@ public:
     * 
     * Features like infill, walls, skin etc. are considered inside.
     * Features like prime tower and support are considered outside.
+    * \param inside_part The part in which the newly planned position is inside, or nullptr if not inside anything
     */
-    void setIsInside(bool going_to_comb);
+    void setIsInside(SliceLayerPart* inside_part);
     
     bool setExtruder(int extruder);
 
@@ -716,7 +717,7 @@ public:
      * \param distance The distance to the comb boundary after we moved inside it.
      * \param part_outline The part in which we last resided
      */
-    void moveInsideCombBoundary(int distance, SliceLayerPart* part = nullptr);
+    void moveInsideCombBoundary(int distance, const SliceLayerPart& part);
 };
 
 }//namespace cura

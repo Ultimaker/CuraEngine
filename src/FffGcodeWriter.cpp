@@ -741,7 +741,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
         int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
         
-        gcode_layer.setIsInside(true); // going to print inside stuff below
+        gcode_layer.setIsInside(&part); // going to print inside stuff below
         
         if (mesh->getSettingBoolean("infill_before_walls"))
         {
@@ -772,10 +772,10 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
         if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
         {
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1, &part);
+            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1, part);
         }
 
-        gcode_layer.setIsInside(false);
+        gcode_layer.setIsInside(nullptr);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
