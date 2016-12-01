@@ -473,6 +473,12 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }
+    if (include_helper_parts)
+    { // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
+        processOozeShield(storage, gcode_layer, std::max(0, layer_nr));
+
+        processDraftShield(storage, gcode_layer, std::max(0, layer_nr));
+    }
 
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
