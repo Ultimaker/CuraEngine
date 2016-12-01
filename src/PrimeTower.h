@@ -1,3 +1,6 @@
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef PRIME_TOWER_H
 #define PRIME_TOWER_H
 
@@ -30,8 +33,6 @@ private:
         Polygons polygons;
         Polygons lines;
     };
-    bool enabled; //!< Whether the prime tower is enabled
-
     int extruder_count; //!< number of extruders
     std::vector<GCodePathConfig> config_per_extruder; //!< Path config for prime tower for each extruder
 
@@ -49,6 +50,7 @@ private:
     int current_pre_wipe_location_idx; //!< Index into \ref PrimeTower::wipe_locations of where to pre-wipe the nozzle
 
 public:
+    bool enabled; //!< Whether the prime tower is enabled.
     Polygons ground_poly; //!< The outline of the prime tower to be used for each layer
 
     std::vector<std::vector<ExtrusionMoves>> patterns_per_extruder; //!< for each extruder a vector of patterns to alternate between, over the layers

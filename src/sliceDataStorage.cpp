@@ -1,3 +1,6 @@
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "sliceDataStorage.h"
 
 #include "FffProcessor.h" //To create a mesh group with if none is provided.
@@ -173,7 +176,10 @@ Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_pa
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
                 total.add(support.supportLayers[std::max(0, layer_nr)].skin);
             }
-            total.add(primeTower.ground_poly);
+            if (primeTower.enabled)
+            {
+                total.add(primeTower.ground_poly);
+            }
         }
         return total;
     }
@@ -214,7 +220,10 @@ Polygons SliceDataStorage::getLayerSecondOrInnermostWalls(int layer_nr, bool inc
                 total.add(support.supportLayers[std::max(0, layer_nr)].supportAreas);
                 total.add(support.supportLayers[std::max(0, layer_nr)].skin);
             }
-            total.add(primeTower.ground_poly);
+            if (primeTower.enabled)
+            {
+                total.add(primeTower.ground_poly);
+            }
         }
         return total;
     }

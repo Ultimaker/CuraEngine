@@ -48,7 +48,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             first_layer_outline.add(support_layer.supportAreas);
             first_layer_outline.add(support_layer.skin);
         }
-        first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+        if (storage.primeTower.enabled)
+        {
+            first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+        }
     }
     constexpr int join_distance = 20;
     first_layer_outline = first_layer_outline.offset(join_distance).offset(-join_distance); // merge adjacent models into single polygon
