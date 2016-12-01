@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
@@ -284,6 +287,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         {
             Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
+            if (storage.primeTower.enabled)
+            {
+                outlines.add(storage.primeTower.ground_poly);
+            }
 
             if (use_support_xy_distance_overhang)
             {
