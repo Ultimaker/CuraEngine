@@ -295,7 +295,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             }
             else
             {
-                supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(layer_idx, false).offset(supportXYDistance));
+                supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
             }
         }
 
