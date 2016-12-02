@@ -37,7 +37,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , boundary_outside(
         [&storage, layer_nr, travel_avoid_distance]()
         {
-            return storage.getLayerOutlines(layer_nr, false).offset(travel_avoid_distance);
+            return storage.getLayerOutlines(layer_nr, false).unionPolygons().offset(travel_avoid_distance);
         }
     )
 , outside_loc_to_line(
