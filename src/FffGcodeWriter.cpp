@@ -483,7 +483,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
     for (int extruder_nr : extruder_order)
     {
@@ -736,11 +735,20 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
-    
-    for(int order_idx : part_order_optimizer.polyOrder)
+    for (int order_idx : part_order_optimizer.polyOrder)
     {
         SliceLayerPart& part = layer->parts[order_idx];
+        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr);
+    }
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    {
+        addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
+    }
+}
+
+void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
+{
+    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
         EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
         int infill_angle = 45;
@@ -763,7 +771,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
             processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
             processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
         }
-        
+
+    EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
+    Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
         processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
 
         if (!mesh->getSettingBoolean("infill_before_walls"))
@@ -791,13 +801,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         }
 
         gcode_layer.setIsInside(false);
-    }
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-    {
-        addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
-    }
 }
-
 
             
 
