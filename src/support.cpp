@@ -287,10 +287,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         {
             Polygons& basic_overhang = basic_and_full_overhang_above.front().first; // basic overhang on this layer
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
-            if (storage.primeTower.enabled)
-            {
-                outlines.add(storage.primeTower.ground_poly.getOutsidePolygons());
-            }
 
             if (use_support_xy_distance_overhang)
             {
@@ -303,6 +299,10 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             else
             {
                 supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
+            }
+            if (storage.primeTower.enabled) //Don't intersect with prime tower.
+            {
+                supportLayer_this = supportLayer_this.difference(storage.primeTower.ground_poly.getOutsidePolygons());
             }
         }
 
