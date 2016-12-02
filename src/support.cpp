@@ -289,7 +289,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             Polygons outlines = storage.getLayerOutlines(layer_idx, false);
             if (storage.primeTower.enabled)
             {
-                outlines.add(storage.primeTower.ground_poly);
+                outlines.add(storage.primeTower.ground_poly.getOutsidePolygons());
             }
 
             if (use_support_xy_distance_overhang)
