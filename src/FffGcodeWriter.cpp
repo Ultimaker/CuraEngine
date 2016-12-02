@@ -750,57 +750,57 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
-        EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-        int infill_angle = 45;
-        if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
-        {
-            unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
-            if ((layer_nr / combined_infill_layers) & 1)
-            { // switch every [combined_infill_layers] layers
-                infill_angle += 90;
-            }
+    EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
+    int infill_angle = 45;
+    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    {
+        unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
+        if ((layer_nr / combined_infill_layers) & 1)
+        { // switch every [combined_infill_layers] layers
+            infill_angle += 90;
         }
-        
-        int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
-        int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
-        
-        gcode_layer.setIsInside(true); // going to print inside stuff below
-        
-        if (mesh->getSettingBoolean("infill_before_walls"))
-        {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        }
+    }
+    
+    int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
+    int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
+    
+    gcode_layer.setIsInside(true); // going to print inside stuff below
+    
+    if (mesh->getSettingBoolean("infill_before_walls"))
+    {
+        processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
-        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
+    processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
 
-        if (!mesh->getSettingBoolean("infill_before_walls"))
-        {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        }
+    if (!mesh->getSettingBoolean("infill_before_walls"))
+    {
+        processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
 
-        EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
-        int skin_angle = 45;
-        if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
-        {
-            skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
-        }
-        if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
-            skin_angle -= 45;
+    EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
+    int skin_angle = 45;
+    if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
+    {
+        skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
+    }
+    if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
+        skin_angle -= 45;
 
-        int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
+    int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
+    processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
 
-        //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-        if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
-        {
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
-        }
+    //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
+    if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
+    {
+        gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
+    }
 
-        gcode_layer.setIsInside(false);
+    gcode_layer.setIsInside(false);
 }
 
             
