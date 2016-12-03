@@ -641,6 +641,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& s
     }
     std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
     std::vector<unsigned int> ret;
+    ret.reserve(mesh_indices_order.size());
     for (unsigned int mesh_order_idx : mesh_indices_order)
     {
         const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
