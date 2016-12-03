@@ -6,6 +6,7 @@
 #include "FffProcessor.h"
 #include "progress/Progress.h"
 #include "wallOverlap.h"
+#include "utils/orderOptimizer.h"
 
 namespace cura
 {
@@ -618,14 +619,24 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
 
 std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr)
 {
-    std::vector<unsigned int> ret;
+    OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
+
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            ret.push_back(mesh_idx);
+            Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
+            Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
+            mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
+    }
+    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
+    std::vector<unsigned int> ret;
+    for (unsigned int mesh_order_idx : mesh_indices_order)
+    {
+        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
+        ret.push_back(mesh_idx);
     }
     return ret;
 }
@@ -735,9 +746,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    for (int order_idx : part_order_optimizer.polyOrder)
+    for (int part_idx : part_order_optimizer.polyOrder)
     {
-        SliceLayerPart& part = layer->parts[order_idx];
+        SliceLayerPart& part = layer->parts[part_idx];
         addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
