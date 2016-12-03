@@ -65,6 +65,8 @@ private:
      */
     bool skirt_brim_is_processed[MAX_EXTRUDERS];
 
+    std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the cyclic order of the meshes (the first element is not the starting element per se)
+
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
     Point last_position_planned; //!< The position of the head before planning the next layer

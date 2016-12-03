@@ -81,6 +81,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
 
+    { // calculate the mesh order for each extruder
+        int extruder_count = storage.meshgroup->getExtruderCount();
+        mesh_order_per_extruder.reserve(extruder_count);
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
+        }
+    }
+
     for(unsigned int layer_nr=0; layer_nr<total_layers; layer_nr++)
     {
         processLayer(storage, layer_nr, total_layers);
@@ -495,8 +504,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
         if (layer_nr >= 0)
         {
-            std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, extruder_nr);
-            for (unsigned int mesh_idx : mesh_order)
+            for (unsigned int mesh_idx : mesh_order_per_extruder[extruder_nr])
             {
                 SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
