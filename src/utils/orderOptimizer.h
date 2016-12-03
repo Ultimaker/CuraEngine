@@ -21,13 +21,13 @@ template <typename T>
 class OrderOptimizer
 {
 public:
-    std::vector<std::pair<const Point, const T*>> items; //!< the items in arbitrary order
+    std::vector<std::pair<const Point, T>> items; //!< the items in arbitrary order
 
     OrderOptimizer()
     {
     }
 
-    void addItem(const Point location, const T& item);
+    void addItem(const Point location, const T item);
 
     /*!
      * Optimize the order of \ref OrderOptimizer::items
@@ -39,9 +39,9 @@ public:
 };
 
 template <typename T>
-void OrderOptimizer<T>::addItem(const Point location, const T& item)
+void OrderOptimizer<T>::addItem(const Point location, const T item)
 {
-    this->items.emplace_back(location, &item);
+    this->items.emplace_back(location, item);
 }
 
 template <typename T>
