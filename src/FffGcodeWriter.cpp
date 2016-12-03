@@ -504,8 +504,36 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
         if (layer_nr >= 0)
         {
-            for (unsigned int mesh_idx : mesh_order_per_extruder[extruder_nr])
+            std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            unsigned int mesh_order_idx_starting_mesh = 0;
+            { // calculate mesh_order_idx_starting_mesh
+                Point layer_start_position = last_position_planned;
+                if (storage.getSettingBoolean("start_layers_at_same_position"))
+                {
+                    layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
+                }
+                coord_t best_dist2 = std::numeric_limits<coord_t>::max();
+                for (unsigned int mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); mesh_order_idx++)
+                {
+                    unsigned int mesh_idx = mesh_order[mesh_order_idx];
+                    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                    for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+                    {
+                        Point middle = (part.boundaryBox.min + part.boundaryBox.max) / 2;
+                        coord_t dist2 = vSize2(middle - layer_start_position);
+                        if (dist2 < best_dist2)
+                        {
+                            best_dist2 = dist2;
+                            mesh_order_idx_starting_mesh = mesh_order_idx;
+                        }
+                    }
+                }
+            }
+
+            for (unsigned int mesh_iterator_idx = 0; mesh_iterator_idx < mesh_order.size(); mesh_iterator_idx++)
             {
+                unsigned int mesh_order_idx = (mesh_iterator_idx + mesh_order_idx_starting_mesh) % mesh_order.size();
+                unsigned int mesh_idx = mesh_order[mesh_order_idx];
                 SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
