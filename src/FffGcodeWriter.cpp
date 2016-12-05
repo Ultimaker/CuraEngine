@@ -202,6 +202,18 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
     }
 
     int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+    if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::NONE)
+    {
+        std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
+        for (unsigned int extruder_nr = 0; extruder_nr < extruder_is_used.size(); extruder_nr++)
+        {
+            start_extruder_nr = extruder_nr;
+            if (extruder_is_used[extruder_nr])
+            {
+                break;
+            }
+        }
+    }
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);
 
