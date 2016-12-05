@@ -673,7 +673,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         {
             int prev_extruder = extruder;
             extruder = extruder_plan.extruder;
-            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
+
+            const int prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
+            const bool turn_off_extruder = extruder_plan.prev_extruder_standby_temp && prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder]; //Previous extruder is never used any more after this.
+            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], turn_off_extruder);
 
             if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
             {
@@ -689,15 +692,11 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
             gcode.writeRetraction(&retraction_config);
 
-            if (extruder_plan.prev_extruder_standby_temp)
-            { // turn off previous extruder
+            if (turn_off_extruder)
+            { //Turn off previous extruder. Must happen after the extruder switch to prevent accumulation of heat-up times.
                 constexpr bool wait = false;
                 double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                int prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
-                if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
-                {
-                    prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
-                }
+                prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
