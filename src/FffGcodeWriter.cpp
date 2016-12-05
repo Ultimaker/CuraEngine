@@ -315,10 +315,8 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
-        if (getSettingAsIndex("adhesion_extruder_nr") > 0)
-        {
-            gcode_layer.setExtruder(extruder_nr);
-        }
+        gcode_layer.setExtruder(extruder_nr);
+
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
@@ -351,11 +349,13 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_height, last_position_planned, current_extruder_planned, is_inside_mesh_layer_part, fan_speed_layer_time_settings_per_extruder, combing_mode, comb_offset, train->getSettingBoolean("travel_avoid_other_parts"), train->getSettingInMicrons("travel_avoid_distance"));
         gcode_layer.setIsInside(true);
 
+        gcode_layer.setExtruder(extruder_nr); // reset to extruder number, because we might have primed in the last layer
+
         if (CommandSocket::isInstantiated())
         {
             CommandSocket::getInstance()->sendOptimizedLayerInfo(layer_nr, z, layer_height);
         }
-        
+
         Polygons raftLines;
         int offset_from_poly_outline = 0;
         double fill_angle = train->getSettingAsCount("raft_surface_layers") > 0 ? 45 : 90;
