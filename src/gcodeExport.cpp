@@ -746,8 +746,8 @@ void GCodeExport::writePark(const RetractionConfig& config)
     }
 
     //Write a retraction move with G1.
+    current_e_value -= to_retract_e;
     *output_stream << "G1 F" << PrecisionedDouble{1, extruder_attributes.last_retraction_prime_speed * 60} << " " << extruder_attributes.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
-    current_e_value += to_retract_e;
     currentSpeed = extruder_attributes.last_retraction_prime_speed * 60;
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
     extruder_attributes.retraction_e_amount_current = target_retraction_e;
