@@ -105,6 +105,15 @@ public:
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
     void addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder);
+
+    /*!
+     * \brief Subtract the prime tower from the support areas in storage.
+     *
+     * \param storage The storage where to find the support from which to
+     * subtract a prime tower.
+     */
+    void subtractFromSupport(SliceDataStorage& storage);
+
 private:
     /*!
      * Layer number of the last layer in which a prime tower has been printed per extruder train.  

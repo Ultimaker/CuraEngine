@@ -300,10 +300,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             {
                 supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
             }
-            if (storage.primeTower.enabled) //Don't intersect with prime tower.
-            {
-                supportLayer_this = supportLayer_this.difference(storage.primeTower.ground_poly.getOutsidePolygons());
-            }
         }
 
         supportAreas[layer_idx] = supportLayer_this;

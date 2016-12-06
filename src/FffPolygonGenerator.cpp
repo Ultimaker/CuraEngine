@@ -297,6 +297,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.primeTower.generatePaths(storage);
+    storage.primeTower.subtractFromSupport(storage);
     
     logDebug("Processing ooze shield\n");
     processOozeShield(storage);
