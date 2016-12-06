@@ -151,16 +151,15 @@ private:
 
     /*!
      * \see PrimeTower::addToGcode
-     * 
+     *
      * Add path plans for the prime tower to the \p gcode_layer
-     * 
-     * \param storage where to get settings from; where to get the maximum height of the prime tower from
+     *
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
      * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
      * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
      */
-    void addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr, const int prev_extruder, const int new_extruder);
+    void addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int prev_extruder, const int new_extruder);
 
     /*!
      * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.

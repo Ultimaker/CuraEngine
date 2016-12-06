@@ -162,7 +162,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         preWipe(storage, gcodeLayer, new_extruder);
     }
 
-    addToGcode_denseInfill(storage, gcodeLayer, layer_nr, prev_extruder, new_extruder);
+    addToGcode_denseInfill(gcodeLayer, layer_nr, prev_extruder, new_extruder);
 
     // post-wipe:
     if (post_wipe)
@@ -171,7 +171,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     }
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const int layer_nr, const int prev_extruder, const int new_extruder)
+void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int prev_extruder, const int new_extruder)
 {
     ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
