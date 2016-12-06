@@ -146,6 +146,7 @@ void generateInfill(int layerNr, SliceMeshStorage& mesh, const int innermost_wal
     int extra_offset = 0;
     EFillMethod fill_pattern = mesh.getSettingAsFillMethod("infill_pattern");
     if ((fill_pattern == EFillMethod::CONCENTRIC || fill_pattern == EFillMethod::CONCENTRIC_3D)
+        && mesh.getSettingBoolean("alternate_extra_perimeter")
         && layerNr % 2 == 0
         && mesh.getSettingInMicrons("infill_line_distance") > mesh.getSettingInMicrons("infill_line_width") * 2)
     {
