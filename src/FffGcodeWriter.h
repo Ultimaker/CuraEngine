@@ -65,6 +65,11 @@ private:
      */
     bool skirt_brim_is_processed[MAX_EXTRUDERS];
 
+    /*!
+     * For each extruder whether priming has already been planned
+     */
+    bool extruder_prime_is_planned[MAX_EXTRUDERS];
+
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
     Point last_position_planned; //!< The position of the head before planning the next layer
@@ -79,6 +84,10 @@ public:
     , is_inside_mesh_layer_part(false)
     {
         max_object_height = 0;
+        for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
+        {
+            extruder_prime_is_planned[extruder_nr] = false;
+        }
     }
 
     /*!
