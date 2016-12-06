@@ -162,7 +162,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         preWipe(storage, gcodeLayer, new_extruder);
     }
 
-    addToGcode_denseInfill(storage, gcodeLayer, gcode, layer_nr, prev_extruder, new_extruder);
+    addToGcode_denseInfill(gcodeLayer, layer_nr, new_extruder);
 
     // post-wipe:
     if (post_wipe)
@@ -171,16 +171,16 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     }
 }
 
-void PrimeTower::addToGcode_denseInfill(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder)
+void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int extruder)
 {
-    ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+    ExtrusionMoves& pattern = patterns_per_extruder[extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
-    GCodePathConfig& config = config_per_extruder[new_extruder];
+    GCodePathConfig& config = config_per_extruder[extruder];
 
     gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
     gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
 
-    last_prime_tower_poly_printed[new_extruder] = layer_nr;
+    last_prime_tower_poly_printed[extruder] = layer_nr;
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
@@ -295,6 +295,14 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
     }
     float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
     gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
+}
+
+void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
+{
+    for(size_t layer = 0; layer < (size_t)storage.max_print_height_second_to_last_extruder && layer < storage.support.supportLayers.size(); layer++)
+    {
+        storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(ground_poly.getOutsidePolygons());
+    }
 }
 
 

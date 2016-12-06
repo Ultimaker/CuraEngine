@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (c) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
@@ -261,7 +264,17 @@ private:
      */
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
-    void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
+    void writeRetraction(const RetractionConfig* config, bool force = false, bool extruder_switch = false);
+
+    /*!
+     * \brief Retract the filament to parking position.
+     *
+     * This ignores the maximum number of retractions. Parking is meant to be
+     * done the end of the print.
+     *
+     * \param config The configuration from which to get the park distance.
+     */
+    void writePark(const RetractionConfig& config);
 
     /*!
      * Start a z hop with the given \p hop_height
@@ -296,8 +309,10 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param turn_off_extruder Should the old extruder be turned off
+     * completely?
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder = false);
 
     void writeCode(const char* str);
     

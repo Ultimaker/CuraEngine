@@ -667,14 +667,17 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
 
         if (extruder != extruder_plan.extruder)
         {
             int prev_extruder = extruder;
             extruder = extruder_plan.extruder;
-            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
-            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
+            const int prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
+            const bool turn_off_extruder = prev_layer_nr >= storage.max_print_height_per_extruder[prev_extruder]; //Previous extruder is not used any more in this mesh group.
+            gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], turn_off_extruder);
+
             if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
             {
                 gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
@@ -686,22 +689,21 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
 
             // prime extruder if it hadn't been used yet
-            gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
+            gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
             gcode.writeRetraction(&retraction_config);
 
             if (extruder_plan.prev_extruder_standby_temp)
-            { // turn off previous extruder
+            { //Turn off previous extruder. Must happen after the extruder switch because the nozzle needs to be hot for the switch.
                 constexpr bool wait = false;
                 double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                int prev_layer_nr = (extruder_plan_idx == 0)? layer_nr - 1 : layer_nr;
-                if (prev_layer_nr == storage.max_print_height_per_extruder[prev_extruder])
+                if (turn_off_extruder)
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
                 }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0 && layer_nr != 0 && train->getSettingBoolean("retract_at_layer_change"))
         {
             gcode.writeRetraction(&retraction_config);
         }
@@ -712,7 +714,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 return  a.path_idx < b.path_idx; 
             } );
 
-        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
         {
             gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
@@ -984,7 +985,7 @@ void GCodePlanner::processInitialLayersSpeedup()
 
 
 
-bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx)
+bool GCodePlanner::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
 {
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)

@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (c) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
@@ -639,7 +642,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
-void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool extruder_switch)
+void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
 
@@ -719,6 +722,27 @@ void GCodeExport::writeRetraction(RetractionConfig* config, bool force, bool ext
 
 }
 
+void GCodeExport::writePark(const RetractionConfig& config)
+{
+    ExtruderTrainAttributes extruder_attributes = extruder_attr[current_extruder];
+
+    const double old_retraction_e = extruder_attributes.retraction_e_amount_current;
+    const double target_retraction_e = mmToE(config.park_distance);
+    const double to_retract_e = target_retraction_e - old_retraction_e;
+    if (to_retract_e < 0.001) //Already in parking position or beyond.
+    {
+        return;
+    }
+
+    //Write a retraction move with G1.
+    current_e_value -= to_retract_e;
+    *output_stream << "G1 F" << PrecisionedDouble{1, config.speed * 60} << " " << extruder_attributes.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+    currentSpeed = config.speed * 60;
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
+    extruder_attributes.retraction_e_amount_current = target_retraction_e;
+    extruder_attributes.last_retraction_prime_speed = config.primeSpeed;
+}
+
 void GCodeExport::writeZhopStart(int hop_height)
 {
     if (hop_height > 0)
@@ -765,14 +789,21 @@ void GCodeExport::startExtruder(int new_extruder)
     currentPosition.z += 1;
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder)
 {
     if (current_extruder == new_extruder)
         return;
 
-    bool force = true;
-    bool extruder_switch = true;
-    writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+    if (turn_off_extruder)
+    {
+        writePark(retraction_config_old_extruder);
+    }
+    else
+    {
+        bool force = true;
+        bool extruder_switch = true;
+        writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+    }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
