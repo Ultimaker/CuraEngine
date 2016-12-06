@@ -66,7 +66,6 @@ void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 {
     Polygons first_concentric_wall = in_outline.offset(outline_offset - line_distance + infill_line_width / 2); // - infill_line_width / 2 cause generateConcentricInfill expects [outline] to be the outer most polygon instead of the outer outline
 
-    result.add(first_concentric_wall);
     if (perimeter_gaps)
     {
         const Polygons inner = first_concentric_wall.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
@@ -78,6 +77,7 @@ void Infill::generateConcentricInfill(Polygons& result, int inset_value)
 
 void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons& result, int inset_value)
 {
+    result.add(first_concentric_wall);
     Polygons* prev_inset = &first_concentric_wall;
     Polygons next_inset;
     while (prev_inset->size() > 0)
