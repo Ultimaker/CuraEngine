@@ -380,7 +380,10 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
-    basic_overhang = basic_overhang.difference(support_layer.anti_overhang);
+    if (support_layer.anti_overhang.size())
+    {
+        basic_overhang = basic_overhang.difference(support_layer.anti_overhang);
+    }
 
 //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
 //     support_extension = support_extension.intersection(supportLayer_supported);
