@@ -546,9 +546,10 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 void FffGcodeWriter::ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr)
 {
     //Add skirt for all extruders which haven't primed the skirt or brim yet.
+    std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
-        if (gcode.getExtruderIsUsed(extruder_nr) && !skirt_brim_is_processed[extruder_nr])
+        if (extruder_is_used[extruder_nr] && !extruder_prime_is_planned[extruder_nr])
         {
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
         }
