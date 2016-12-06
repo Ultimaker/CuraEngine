@@ -156,10 +156,10 @@ private:
      *
      * \param[in,out] gcode_layer Where to get the current extruder from; where to store the generated layer paths
      * \param layer_nr The layer for which to generate the prime tower paths
-     * \param prev_extruder The previous extruder with which paths were planned; from which extruder a switch was made
-     * \param new_extruder The switched to extruder with which the prime tower paths should be generated.
+     * \param extruder The extruder we just switched to, with which the prime
+     * tower paths should be drawn.
      */
-    void addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int prev_extruder, const int new_extruder);
+    void addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int extruder);
 
     /*!
      * Plan the moves for wiping the current nozzles oozed material before starting to print the prime tower.

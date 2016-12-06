@@ -162,7 +162,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
         preWipe(storage, gcodeLayer, new_extruder);
     }
 
-    addToGcode_denseInfill(gcodeLayer, layer_nr, prev_extruder, new_extruder);
+    addToGcode_denseInfill(gcodeLayer, layer_nr, new_extruder);
 
     // post-wipe:
     if (post_wipe)
@@ -171,16 +171,16 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     }
 }
 
-void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int prev_extruder, const int new_extruder)
+void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int extruder)
 {
-    ExtrusionMoves& pattern = patterns_per_extruder[new_extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+    ExtrusionMoves& pattern = patterns_per_extruder[extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
-    GCodePathConfig& config = config_per_extruder[new_extruder];
+    GCodePathConfig& config = config_per_extruder[extruder];
 
     gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
     gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
 
-    last_prime_tower_poly_printed[new_extruder] = layer_nr;
+    last_prime_tower_poly_printed[extruder] = layer_nr;
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
