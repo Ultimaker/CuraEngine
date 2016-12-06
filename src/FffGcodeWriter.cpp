@@ -238,10 +238,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
                 ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
                 double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
                 double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                if (print_temp_here != 0.0)
-                {
-                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
-                }
+                gcode.writeTemperatureCommand(extruder_nr, print_temp_here);
             }
             if (getSettingBoolean("material_print_temp_wait")) 
             {
@@ -250,10 +247,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
                     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
                     double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
                     double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-                    if (print_temp_here != 0.0)
-                    {
-                        gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
-                    }
+                    gcode.writeTemperatureCommand(extruder_nr, print_temp_here, true);
                 }
             }
         }
@@ -277,10 +271,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
         constexpr bool wait = true;
         double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
         double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-        if (print_temp_here != 0.0)
-        {
-            gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
-        }
+        gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         extruder_prime_is_planned[start_extruder_nr] = true;
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
