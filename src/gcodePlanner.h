@@ -680,13 +680,12 @@ public:
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
      * This function is used to avoid a G10 S1 after a G10.
-     * 
-     * \param gcode The gcode to write the planned paths to
+     *
      * \param extruder_plan_idx The index of the current extruder plan
      * \param path_idx The index of the current retracted path 
      * \return Whether the path should be an extgruder switch retracted path
      */
-    bool makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx);
+    bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
     
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
