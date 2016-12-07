@@ -299,9 +299,10 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
+    const Polygons outside_polygon = ground_poly.getOutsidePolygons();
     for(size_t layer = 0; layer <= (size_t)storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
-        storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(ground_poly.getOutsidePolygons());
+        storage.support.supportLayers[layer].supportAreas = storage.support.supportLayers[layer].supportAreas.difference(outside_polygon);
     }
 }
 
