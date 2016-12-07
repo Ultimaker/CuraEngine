@@ -159,7 +159,7 @@ void Wireframe2gcode::writeGCode()
     
     gcode.setZ(maxObjectHeight);
     
-    gcode.writeRetraction(&standard_retraction_config);
+    gcode.writeRetraction(standard_retraction_config);
     
     
     gcode.updateTotalPrintTime();
@@ -259,7 +259,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
         Point3 lowering = vec * retract_hop_dist / 2 / vec.vSize();
         Point3 lower = to - lowering;
         gcode.writeMove(lower, speedUp, extrusion_mm3_per_mm_connection);
-        gcode.writeRetraction(&retraction_config);
+        gcode.writeRetraction(retraction_config);
         gcode.writeMove(to + lowering, speedUp, 0);
         gcode.writeDelay(top_retract_pause);
         if (after_retract_hop)
@@ -268,7 +268,7 @@ void Wireframe2gcode::strategy_retract(WeaveLayer& layer, WeaveConnectionPart& p
     } else 
     {
         gcode.writeMove(to, speedUp, extrusion_mm3_per_mm_connection);
-        gcode.writeRetraction(&retraction_config);
+        gcode.writeRetraction(retraction_config);
         gcode.writeMove(to + Point3(0, 0, retract_hop_dist), speedFlat, 0);
         gcode.writeDelay(top_retract_pause);
         if (after_retract_hop)    
@@ -467,14 +467,14 @@ void Wireframe2gcode::writeFill(std::vector<WeaveRoofPart>& infill_insets, Polyg
 void Wireframe2gcode::writeMoveWithRetract(Point3 to)
 {
     if ((gcode.getPosition() - to).vSize2() >= nozzle_top_diameter * nozzle_top_diameter * 2 * 2)
-        gcode.writeRetraction(&standard_retraction_config);
+        gcode.writeRetraction(standard_retraction_config);
     gcode.writeMove(to, moveSpeed, 0);
 }
 
 void Wireframe2gcode::writeMoveWithRetract(Point to)
 {
     if (vSize2(gcode.getPositionXY() - to) >= nozzle_top_diameter * nozzle_top_diameter * 2 * 2)
-        gcode.writeRetraction(&standard_retraction_config);
+        gcode.writeRetraction(standard_retraction_config);
     gcode.writeMove(to, moveSpeed, 0);
 }
 
@@ -603,7 +603,7 @@ void Wireframe2gcode::processStartingCode()
         constexpr bool wait = true;
         gcode.writeTemperatureCommand(start_extruder_nr, getSettingInDegreeCelsius("material_print_temperature"), wait);
         gcode.writePrimeTrain(getSettingInMillimetersPerSecond("speed_travel"));
-        gcode.writeRetraction(&standard_retraction_config);
+        gcode.writeRetraction(standard_retraction_config);
     }
 }
 

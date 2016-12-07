@@ -642,7 +642,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), speed);
 }
 
-void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bool extruder_switch)
+void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
 
@@ -659,7 +659,7 @@ void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bo
     }
 
     double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
-    double new_retraction_e_amount = mmToE(config->distance);
+    double new_retraction_e_amount = mmToE(config.distance);
     double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
     if (std::abs(retraction_diff_e_amount) < 0.000001)
     {
@@ -669,32 +669,32 @@ void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bo
     { // handle retraction limitation
         double current_extruded_volume = getCurrentExtrudedVolume();
         std::deque<double>& extruded_volume_at_previous_n_retractions = extr_attr.extruded_volume_at_previous_n_retractions;
-        while (int(extruded_volume_at_previous_n_retractions.size()) > config->retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
+        while (int(extruded_volume_at_previous_n_retractions.size()) > config.retraction_count_max && !extruded_volume_at_previous_n_retractions.empty()) 
         {
             // extruder switch could have introduced data which falls outside the retraction window
             // also the retraction_count_max could have changed between the last retraction and this
             extruded_volume_at_previous_n_retractions.pop_back();
         }
-        if (!force && config->retraction_count_max <= 0)
+        if (!force && config.retraction_count_max <= 0)
         {
             return;
         }
-        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max
-            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config->retraction_extrusion_window * extr_attr.filament_area) 
+        if (!force && int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max
+            && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area) 
         {
             return;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
-        if (int(extruded_volume_at_previous_n_retractions.size()) == config->retraction_count_max + 1) 
+        if (int(extruded_volume_at_previous_n_retractions.size()) == config.retraction_count_max + 1) 
         {
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
 
-    writeMoveFilament(config, config->distance, extruder_switch);
+    writeMoveFilament(config, config.distance, extruder_switch);
 }
 
-void GCodeExport::writeMoveFilament(const RetractionConfig* config, const double new_retraction_distance, const bool extruder_switch)
+void GCodeExport::writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
     const double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
@@ -721,17 +721,17 @@ void GCodeExport::writeMoveFilament(const RetractionConfig* config, const double
     }
     else
     {
-        double speed = ((retraction_diff_e_amount < 0.0)? config->speed : extr_attr.last_retraction_prime_speed) * 60;
+        double speed = ((retraction_diff_e_amount < 0.0)? config.speed : extr_attr.last_retraction_prime_speed) * 60;
         current_e_value += retraction_diff_e_amount;
         *output_stream << "G1 F" << PrecisionedDouble{1, speed} << " "
             << extr_attr.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
         currentSpeed = speed;
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
-        extr_attr.last_retraction_prime_speed = config->primeSpeed;
+        extr_attr.last_retraction_prime_speed = config.primeSpeed;
     }
 
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
-    extr_attr.prime_volume += config->prime_volume;
+    extr_attr.prime_volume += config.prime_volume;
 
 }
 
@@ -739,7 +739,7 @@ void GCodeExport::writePark(const RetractionConfig& config)
 {
     if (flavor == EGCodeFlavor::BFB)
     {
-        writeRetraction(&config);
+        writeRetraction(config);
         return;
     }
 
@@ -821,7 +821,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     {
         bool force = true;
         bool extruder_switch = true;
-        writeRetraction(&const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+        writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
     }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
