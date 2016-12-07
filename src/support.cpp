@@ -277,8 +277,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
             supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
         }
-        
-        
+
+
         supportLayer_last = supportLayer_this;
         
         
@@ -341,6 +341,14 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
     }
 
+    //Enforce top Z distance.
+    if (layerZdistanceTop > 0)
+    {
+        for (size_t layer_idx = 0; layer_idx < storage.support.supportLayers.size() && layer_idx < support_layer_count - layerZdistanceTop; layer_idx++)
+        {
+            supportAreas[layer_idx] = supportAreas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layerZdistanceTop, false));
+        }
+    }
 
     for (unsigned int layer_idx = supportAreas.size() - 1; layer_idx != (unsigned int) std::max(-1, storage.support.layer_nr_max_filled_layer) ; layer_idx--)
     {
