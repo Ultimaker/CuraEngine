@@ -281,16 +281,6 @@ public:
     void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch);
 
     /*!
-     * \brief Retract the filament to parking position.
-     *
-     * This ignores the maximum number of retractions. Parking is meant to be
-     * done the end of the print.
-     *
-     * \param config The configuration from which to get the park distance.
-     */
-    void writePark(const RetractionConfig& config);
-
-    /*!
      * Start a z hop with the given \p hop_height
      * 
      * \param hop_height The height to move above the current layer
