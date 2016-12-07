@@ -691,10 +691,10 @@ void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bo
         }
     }
 
-    writeRetractionMove(config, config->distance, extruder_switch);
+    writeMoveFilament(config, config->distance, extruder_switch);
 }
 
-void GCodeExport::writeRetractionMove(const RetractionConfig* config, const double new_retraction_distance, const bool extruder_switch)
+void GCodeExport::writeMoveFilament(const RetractionConfig* config, const double new_retraction_distance, const bool extruder_switch)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
     const double old_retraction_e_amount = extr_attr.retraction_e_amount_current;

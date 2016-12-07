@@ -278,7 +278,7 @@ public:
      * \param extruder_switch Whether this move is part of the extruder
      * switching procedure, which causes it to select different speeds.
      */
-    void writeRetractionMove(const RetractionConfig* config, const double new_retraction_distance, const bool extruder_switch);
+    void writeMoveFilament(const RetractionConfig* config, const double new_retraction_distance, const bool extruder_switch);
 
     /*!
      * \brief Retract the filament to parking position.
