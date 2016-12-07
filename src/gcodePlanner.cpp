@@ -692,14 +692,18 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
             gcode.writeRetraction(&retraction_config);
 
-            if (extruder_plan.prev_extruder_standby_temp)
-            { //Turn off previous extruder. Must happen after the extruder switch because the nozzle needs to be hot for the switch.
+            double prev_extruder_temp = std::numeric_limits<double>::quiet_NaN();
+            if (turn_off_extruder)
+            {
+                prev_extruder_temp = 0; //Turn previous extruder off entirely. TODO: Should there be a setting for the temperature to turn an extruder off?
+            }
+            else if (extruder_plan.prev_extruder_standby_temp)
+            {
+                prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp; //Not entirely, but just to stand-by temperature.
+            }
+            if (prev_extruder_temp == prev_extruder_temp)
+            {
                 constexpr bool wait = false;
-                double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
-                if (turn_off_extruder)
-                {
-                    prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
-                }
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
