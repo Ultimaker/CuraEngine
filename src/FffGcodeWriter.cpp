@@ -562,7 +562,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    if (include_helper_parts && layer_nr == 0)
+    if (layer_nr == 0)
     {
         ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
     }
