@@ -692,7 +692,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
             gcode.writeRetraction(retraction_config);
 
-            double prev_extruder_temp = std::numeric_limits<double>::quiet_NaN();
+            std::optional<double> prev_extruder_temp = std::optional<double>();
             if (turn_off_extruder)
             {
                 prev_extruder_temp = 0; //Turn previous extruder off entirely. TODO: Should there be a setting for the temperature to turn an extruder off?
@@ -701,10 +701,10 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             {
                 prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp; //Not entirely, but just to stand-by temperature.
             }
-            if (prev_extruder_temp == prev_extruder_temp)
+            if (prev_extruder_temp) //One of the if-statements above went through.
             {
                 constexpr bool wait = false;
-                gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
+                gcode.writeTemperatureCommand(prev_extruder, *prev_extruder_temp, wait);
             }
         }
         else if (extruder_plan_idx == 0 && layer_nr != 0 && train->getSettingBoolean("retract_at_layer_change"))
