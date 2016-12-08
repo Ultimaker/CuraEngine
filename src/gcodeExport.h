@@ -378,6 +378,9 @@ public:
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps
      * This is used primarily during better specification of temperatures in LayerPlanBuffer::insertPreheatCommand
      * 
+     * \warning This function must be called before any of the layers in the meshgroup are written to file!
+     * That's because it sets the current temperature in the gcode!
+     * 
      * \param extruder_nr The extruder number for which to better specify the temp
      * \param temp The temp at which the nozzle should be at startup
      */

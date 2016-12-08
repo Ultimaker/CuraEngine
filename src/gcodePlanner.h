@@ -356,6 +356,11 @@ public:
     GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
 
     /*!
+     * Plan a prime poop at the current location
+     */
+    void planPrime();
+
+    /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
      * 
      * \param p The point to extrude to

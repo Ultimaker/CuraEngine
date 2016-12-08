@@ -339,6 +339,13 @@ GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
     return *path;
 }
 
+void GCodePlanner::planPrime()
+{
+    forceNewPathStart();
+    GCodePath& prime_travel = addTravel_simple(lastPosition + Point(0, 100));
+    prime_travel.retract = false;
+    forceNewPathStart();
+}
 
 void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillType space_fill_type, float flow, bool spiralize)
 {

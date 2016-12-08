@@ -583,12 +583,19 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
 void FffGcodeWriter::ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr)
 {
-    //Add skirt for all extruders which haven't primed the skirt or brim yet.
+    if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
+    {
+        return;
+    }
+
+    
+    // Add prime for all extruders which haven't primed yet.
+
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); extruder_nr++)
     {
         if (extruder_is_used[extruder_nr] && !extruder_prime_is_planned[extruder_nr])
-        {
+        { // prime before the current gcode layer plan is written to gcode
             setExtruder_addPrime(storage, gcode_layer, layer_nr, extruder_nr);
         }
     }
@@ -1314,11 +1321,30 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     
     if (extruder_changed)
     {
+        if (!extruder_prime_is_planned[extruder_nr])
+        {
+            ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
+            assert(train && "extruder train should exist");
+
+            // move to prime position
+            bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
+            Point prime_pos = Point(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"));
+            gcode_layer.addTravel(prime_pos_is_abs? prime_pos : gcode_layer.getLastPosition() + prime_pos);
+
+            gcode_layer.planPrime();
+
+            extruder_prime_is_planned[extruder_nr] = true;
+        }
+
+        assert(extruder_prime_is_planned[extruder_nr] && "extruders should be primed before they are used!");
         if (layer_nr == 0 && !skirt_brim_is_processed[extruder_nr])
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
-        addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
+        if (layer_nr >= -Raft::getFillerLayerCount(storage))
+        {
+            addPrimeTower(storage, gcode_layer, layer_nr, previous_extruder);
+        }
     }
 }
 
