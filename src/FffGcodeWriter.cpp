@@ -8,6 +8,7 @@
 #include "FffProcessor.h"
 #include "progress/Progress.h"
 #include "wallOverlap.h"
+#include "utils/orderOptimizer.h"
 
 namespace cura
 {
@@ -79,6 +80,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         for (int layer_nr = -Raft::getFillerLayerCount(storage); layer_nr < 0; layer_nr++)
         {
             processLayer(storage, layer_nr, total_layers);
+        }
+    }
+
+    { // calculate the mesh order for each extruder
+        int extruder_count = storage.meshgroup->getExtruderCount();
+        mesh_order_per_extruder.reserve(extruder_count);
+        for (int extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+        {
+            mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
         }
     }
 
@@ -500,7 +510,6 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     int support_skin_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    //Figure out in which order to print the meshes, do this by looking at the current extruder and preferer the meshes that use that extruder.
     std::vector<int> extruder_order = calculateExtruderOrder(storage, gcode_layer.getExtruder());
     for (int extruder_nr : extruder_order)
     {
@@ -512,9 +521,36 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
         if (layer_nr >= 0)
         {
-            std::vector<unsigned int> mesh_order = calculateMeshOrder(storage, extruder_nr);
-            for (unsigned int mesh_idx : mesh_order)
+            std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            unsigned int mesh_order_idx_starting_mesh = 0;
+            { // calculate mesh_order_idx_starting_mesh
+                Point layer_start_position = last_position_planned;
+                if (storage.getSettingBoolean("start_layers_at_same_position"))
+                {
+                    layer_start_position = Point(storage.getSettingInMicrons("layer_start_x"), storage.getSettingInMicrons("layer_start_y"));
+                }
+                coord_t best_dist2 = std::numeric_limits<coord_t>::max();
+                for (unsigned int mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); mesh_order_idx++)
+                {
+                    unsigned int mesh_idx = mesh_order[mesh_order_idx];
+                    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                    for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+                    {
+                        Point middle = (part.boundaryBox.min + part.boundaryBox.max) / 2;
+                        coord_t dist2 = vSize2(middle - layer_start_position);
+                        if (dist2 < best_dist2)
+                        {
+                            best_dist2 = dist2;
+                            mesh_order_idx_starting_mesh = mesh_order_idx;
+                        }
+                    }
+                }
+            }
+
+            for (unsigned int mesh_iterator_idx = 0; mesh_iterator_idx < mesh_order.size(); mesh_iterator_idx++)
             {
+                unsigned int mesh_order_idx = (mesh_iterator_idx + mesh_order_idx_starting_mesh) % mesh_order.size();
+                unsigned int mesh_idx = mesh_order[mesh_order_idx];
                 SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
@@ -637,14 +673,25 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
 
 std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr)
 {
-    std::vector<unsigned int> ret;
+    OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
+
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            ret.push_back(mesh_idx);
+            Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
+            Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
+            mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
+    }
+    std::list<unsigned int> mesh_indices_order = mesh_idx_order_optimizer.optimize();
+    std::vector<unsigned int> ret;
+    ret.reserve(mesh_indices_order.size());
+    for (unsigned int mesh_order_idx : mesh_indices_order)
+    {
+        const unsigned int mesh_idx = mesh_idx_order_optimizer.items[mesh_order_idx].second;
+        ret.push_back(mesh_idx);
     }
     return ret;
 }
@@ -754,61 +801,10 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
-    
-    for(int order_idx : part_order_optimizer.polyOrder)
+    for (int part_idx : part_order_optimizer.polyOrder)
     {
-        SliceLayerPart& part = layer->parts[order_idx];
-
-        EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-        int infill_angle = 45;
-        if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
-        {
-            unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
-            if ((layer_nr / combined_infill_layers) & 1)
-            { // switch every [combined_infill_layers] layers
-                infill_angle += 90;
-            }
-        }
-        
-        int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
-        int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
-        
-        gcode_layer.setIsInside(true); // going to print inside stuff below
-        
-        if (mesh->getSettingBoolean("infill_before_walls"))
-        {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        }
-        
-        processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
-
-        if (!mesh->getSettingBoolean("infill_before_walls"))
-        {
-            processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-            processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
-        }
-
-        EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
-        int skin_angle = 45;
-        if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
-        {
-            skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
-        }
-        if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
-            skin_angle -= 45;
-
-        int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
-        processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
-
-        //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-        if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
-        {
-            gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
-        }
-
-        gcode_layer.setIsInside(false);
+        SliceLayerPart& part = layer->parts[part_idx];
+        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
@@ -816,6 +812,62 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
 }
 
+void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
+{
+    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
+
+    EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
+    int infill_angle = 45;
+    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    {
+        unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
+        if ((layer_nr / combined_infill_layers) & 1)
+        { // switch every [combined_infill_layers] layers
+            infill_angle += 90;
+        }
+    }
+    
+    int infill_line_distance = mesh->getSettingInMicrons("infill_line_distance");
+    int infill_overlap = mesh->getSettingInMicrons("infill_overlap_mm");
+    
+    gcode_layer.setIsInside(true); // going to print inside stuff below
+    
+    if (mesh->getSettingBoolean("infill_before_walls"))
+    {
+        processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
+
+    EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
+    Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
+    processInsets(gcode_layer, mesh, part, layer_nr, z_seam_type, z_seam_pos);
+
+    if (!mesh->getSettingBoolean("infill_before_walls"))
+    {
+        processMultiLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+        processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
+    }
+
+    EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
+    int skin_angle = 45;
+    if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
+    {
+        skin_angle += 90; // should coincide with infill_angle (if both skin and infill are lines) so that the first top layer is orthogonal to the last infill layer
+    }
+    if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
+        skin_angle -= 45;
+
+    int64_t skin_overlap = mesh->getSettingInMicrons("skin_overlap_mm");
+    processSkin(gcode_layer, mesh, part, layer_nr, skin_overlap, skin_angle);
+
+    //After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
+    if (!mesh->getSettingBoolean("magic_spiralize") || static_cast<int>(layer_nr) < mesh->getSettingAsCount("bottom_layers"))
+    {
+        gcode_layer.moveInsideCombBoundary(mesh->getSettingInMicrons((mesh->getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0") * 1);
+    }
+
+    gcode_layer.setIsInside(false);
+}
 
             
 

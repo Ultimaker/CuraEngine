@@ -65,6 +65,8 @@ private:
      */
     bool skirt_brim_is_processed[MAX_EXTRUDERS];
 
+    std::vector<std::vector<unsigned int>> mesh_order_per_extruder; //!< For each extruder, the cyclic order of the meshes (the first element is not the starting element per se)
+
     /*!
      * For each extruder whether priming has already been planned
      */
@@ -298,15 +300,27 @@ private:
     void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
-     * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer.
+     * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
      * 
      * \param[in] storage where the slice data is stored.
-     * \param mesh The mesh to add to the layer plan \p gcodeLayer.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
+     * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param gcode_layer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
+    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
+
+    /*!
+     * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
+     * 
+     * \param[in] storage where the slice data is stored.
+     * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param part The part to add
+     * \param gcode_layer The initial planning of the gcode of the layer.
+     * \param layer_nr The index of the layer to write the gcode of.
+     * 
+     */
+    void addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
