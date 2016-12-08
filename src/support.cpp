@@ -344,6 +344,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
     //Enforce top Z distance.
     if (layerZdistanceTop > 0)
     {
+        // this is performed after the main support generation loop above, because it affects the joining of polygons
+        // if this would be performed in the main loop then some support would not have been generated under the overhangs and consequently no support is generated for that,
+        // meaning almost no support would be generated in some cases which definitely need support.
         for (size_t layer_idx = 0; layer_idx < storage.support.supportLayers.size() && layer_idx < support_layer_count - layerZdistanceTop; layer_idx++)
         {
             supportAreas[layer_idx] = supportAreas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layerZdistanceTop, false));
