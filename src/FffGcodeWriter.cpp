@@ -1128,11 +1128,24 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
     { // handle perimeter gaps of normal insets
         Polygons perimeter_gaps;
         int line_width = mesh->inset0_config.getLineWidth();
-        for (unsigned int inset_idx = 1; inset_idx < part.insets.size(); inset_idx++)
+        for (unsigned int inset_idx = 0; inset_idx < part.insets.size(); inset_idx++)
         {
-            const Polygons outer = part.insets[inset_idx - 1].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+            const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
             line_width = mesh->insetX_config.getLineWidth();
-            const Polygons inner = part.insets[inset_idx].offset(line_width / 2 + perimeter_gaps_extra_offset);
+            Polygons inner;
+            if (inset_idx + 1 < part.insets.size())
+            {
+                inner = part.insets[inset_idx + 1].offset(line_width / 2 + perimeter_gaps_extra_offset);
+            }
+            else
+            {
+                inner = part.infill_area;
+                for (SkinPart& skin_part : part.skin_parts)
+                {
+                    inner.add(skin_part.outline);
+                }
+                inner.offset(perimeter_gaps_extra_offset);
+            }
             perimeter_gaps.add(outer.difference(inner));
         }
 
