@@ -6,6 +6,7 @@
 
 #include "gcodeExport.h"
 #include "pathPlanning/Comb.h"
+#include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
 #include "utils/polygon.h"
@@ -28,62 +29,6 @@ class SliceDataStorage;
 class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
 
 
-/*!
- * A class for representing a planned path.
- * 
- * A path consists of several segments of the same type of movement: retracted travel, infill extrusion, etc.
- * 
- * This is a compact premature representation in which are line segments have the same config, i.e. the config of this path.
- * 
- * In the final representation (gcode) each line segment may have different properties, 
- * which are added when the generated GCodePaths are processed.
- */
-class GCodePath
-{
-public:
-    GCodePathConfig* config; //!< The configuration settings of the path.
-    SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
-    float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
-    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
-    bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
-    std::vector<Point> points; //!< The points constituting this path.
-    bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
-
-    bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
-
-    TimeMaterialEstimates estimates; //!< Naive time and material estimates
-
-    /*!
-     * Whether this config is the config of a travel path.
-     * 
-     * \return Whether this config is the config of a travel path.
-     */
-    bool isTravelPath()
-    {
-        return config->isTravelPath();
-    }
-
-    /*!
-     * Get the material flow in mm^3 per mm traversed.
-     * 
-     * \warning Can only be called after the layer height has been set (which is done while writing the gcode!)
-     * 
-     * \return The flow
-     */
-    double getExtrusionMM3perMM()
-    {
-        return flow * config->getExtrusionMM3perMM();
-    }
-    
-    /*!
-     * Get the actual line width (modulated by the flow)
-     * \return the actual line width as shown in layer view
-     */
-    int getLineWidth()
-    {
-        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
-    }
-};
 
 class GCodePlanner; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
