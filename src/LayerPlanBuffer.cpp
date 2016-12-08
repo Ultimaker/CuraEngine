@@ -251,7 +251,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
             time_window += prev_extruder_plan_time;
             heated_pre_travel_time = prev_extruder_plan.heated_pre_travel_time;
 
-            if (prev_extruder_plan.estimates.getTotalUnretractedTime() > 0 && prev_extruder_plan.estimates.getMaterial() > 0)
+            if (prev_extruder_plan.estimates.getTotalUnretractedTime() > 0)
             { // handle temp statistics
                 assert(prev_extruder_plan.printing_temperature != -1 && "Previous extruder plan should already have a temperature planned");
                 weighted_average_print_temp += prev_extruder_plan.printing_temperature * prev_extruder_plan_time;
@@ -349,9 +349,7 @@ void LayerPlanBuffer::insertTempCommands()
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans[extruder_plan_idx];
         int extruder = extruder_plan.extruder;
         double time = extruder_plan.estimates.getTotalUnretractedTime();
-        if (time <= 0.0 
-            || extruder_plan.estimates.getMaterial() == 0.0 // extruder plan only consists of moves (when an extruder switch occurs at the beginning of a layer)
-        )
+        if (time <= 0.0)
         {
             continue;
         }
