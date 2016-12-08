@@ -7,6 +7,8 @@
 namespace cura 
 {
 
+class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
+
 /*!
  * Time and material estimates for a portion of paths, e.g. layer, extruder plan, path.
  */

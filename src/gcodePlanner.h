@@ -24,12 +24,6 @@ namespace cura
 
 class SliceDataStorage;
 
-
-
-class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
-
-
-
 class GCodePlanner; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
 
