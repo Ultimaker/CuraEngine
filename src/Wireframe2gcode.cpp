@@ -562,7 +562,7 @@ void Wireframe2gcode::processStartingCode()
     {
         if (getSettingBoolean("material_bed_temp_prepend"))
         {
-            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") > 0)
+            if (getSettingBoolean("machine_heated_bed") && getSettingInDegreeCelsius("material_bed_temperature") != 0)
             {
                 gcode.writeBedTemperatureCommand(getSettingInDegreeCelsius("material_bed_temperature"), getSettingBoolean("material_bed_temp_wait"));
             }
