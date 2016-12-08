@@ -1,4 +1,4 @@
-/** Copyright (C) 2013 Ultimaker - Released under terms of the AGPLv3 License */
+/** Copyright (C) 2016 Ultimaker - Released under terms of the AGPLv3 License */
 #ifndef PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 #define PATH_PLANNING_NOZZLE_TEMP_INSERT_H
 

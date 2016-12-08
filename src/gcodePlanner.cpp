@@ -9,19 +9,6 @@
 
 namespace cura {
 
-TimeMaterialEstimates TimeMaterialEstimates::operator-(const TimeMaterialEstimates& other)
-{
-    return TimeMaterialEstimates(extrude_time - other.extrude_time,unretracted_travel_time - other.unretracted_travel_time,retracted_travel_time - other.retracted_travel_time,material - other.material);
-}
-
-TimeMaterialEstimates& TimeMaterialEstimates::operator-=(const TimeMaterialEstimates& other)
-{
-    extrude_time -= other.extrude_time;
-    unretracted_travel_time -= other.unretracted_travel_time;
-    retracted_travel_time -= other.retracted_travel_time;
-    material -= other.material;
-    return *this;
-}
 
 ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
