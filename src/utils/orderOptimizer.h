@@ -75,17 +75,17 @@ std::list<unsigned int> OrderOptimizer<T>::optimize()
                                 + vSize(to_insert_item_location - items[order.back()].first)
                                 - vSize(items[*best_item_to_insert_before].first - items[order.back()].first);
         std::list<unsigned int>::iterator prev = order.begin();
-        for (std::list<unsigned int>::iterator near = ++order.begin(); near != order.end(); ++near)
+        for (std::list<unsigned int>::iterator nearby = ++order.begin(); nearby != order.end(); ++nearby)
         {
-            coord_t detour_dist = vSize(items[*near].first - to_insert_item_location)
+            coord_t detour_dist = vSize(items[*nearby].first - to_insert_item_location)
                                 + vSize(to_insert_item_location - items[*prev].first)
-                                - vSize(items[*near].first - items[*prev].first);
+                                - vSize(items[*nearby].first - items[*prev].first);
             if (detour_dist < best_detour_dist)
             {
                 best_detour_dist = detour_dist;
-                best_item_to_insert_before = near;
+                best_item_to_insert_before = nearby;
             }
-            prev = near;
+            prev = nearby;
         }
 
         order.insert(best_item_to_insert_before, item_idx);
