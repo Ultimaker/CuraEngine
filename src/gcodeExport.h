@@ -172,11 +172,8 @@ protected:
      * \param config The configuration from which to get the distance and speed.
      * \param new_retraction_distance The distance from the tip of the nozzle
      * where the filament is supposed to end up.
-     * \param extruder_switch Whether this move is part of the extruder
-     * switching procedure, which results in different retract commands for
-     * machines that retract in firmware.
      */
-    void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch);
+    void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance);
 
 public:
     
