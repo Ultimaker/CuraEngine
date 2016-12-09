@@ -75,7 +75,7 @@ std::list<unsigned int> OrderOptimizer<T>::optimize()
                                 + vSize(to_insert_item_location - items[order.back()].first)
                                 - vSize(items[*best_item_to_insert_before].first - items[order.back()].first);
         std::list<unsigned int>::iterator prev = order.begin();
-        for (std::list<unsigned int>::iterator near = std::next(order.begin()); near != order.end(); ++near)
+        for (std::list<unsigned int>::iterator near = ++order.begin(); near != order.end(); ++near)
         {
             coord_t detour_dist = vSize(items[*near].first - to_insert_item_location)
                                 + vSize(to_insert_item_location - items[*prev].first)
