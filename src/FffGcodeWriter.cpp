@@ -362,14 +362,14 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         infill_comp.generate(raft_polygons, raftLines);
         gcode_layer.addLinesByOptimizer(raftLines, &storage.raft_base_config, SpaceFillType::Lines);
 
-        last_position_planned = gcode_layer.getLastPosition();
-        current_extruder_planned = gcode_layer.getExtruder();
-        is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
-
         if (getExtrudersNeedPrimeDuringFirstLayer())
         {
             ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
         }
+
+        last_position_planned = gcode_layer.getLastPosition();
+        current_extruder_planned = gcode_layer.getExtruder();
+        is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
