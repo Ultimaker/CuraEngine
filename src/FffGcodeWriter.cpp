@@ -57,7 +57,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     {
-        processStartingCode(storage);
+        unsigned int start_extruder_nr = getStartExtruder(storage);
+        processStartingCode(storage, start_extruder_nr);
     }
     else
     {
@@ -205,14 +206,8 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
     storage.primeTower.initConfigs(storage.meshgroup);
 }
 
-void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
+unsigned int FffGcodeWriter::getStartExtruder(SliceDataStorage& storage)
 {
-    if (!CommandSocket::isInstantiated())
-    {
-        std::string prefix = gcode.getFileHeader();
-        gcode.writeCode(prefix.c_str());
-    }
-
     int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::NONE)
     {
@@ -225,6 +220,17 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage)
                 break;
             }
         }
+    }
+    assert(start_extruder_nr >= 0 && start_extruder_nr < storage.meshgroup->getExtruderCount() && "start_extruder_nr must be a valid extruder");
+    return start_extruder_nr;
+}
+
+void FffGcodeWriter::processStartingCode(SliceDataStorage& storage, const unsigned int start_extruder_nr)
+{
+    if (!CommandSocket::isInstantiated())
+    {
+        std::string prefix = gcode.getFileHeader();
+        gcode.writeCode(prefix.c_str());
     }
 
     gcode.writeComment("Generated with Cura_SteamEngine " VERSION);

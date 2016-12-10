@@ -186,15 +186,26 @@ private:
      * \param[out] storage The data storage to which to save the configurations.
      */
     void initConfigs(SliceDataStorage& storage);
-    
+
+    /*!
+     * Get the extruder with which to start the print.
+     * 
+     * Generally this is the adhesion_extruder_nr, but in case the platform adhesion type is none,
+     * the extruder with lowest number which is used on the first layer is used as initial extruder.
+     * 
+     * \param[in] storage where to get settings from.
+     */
+    unsigned int getStartExtruder(SliceDataStorage& storage);
+
     /*!
      * Set temperatures and perform initial priming.
      * 
      * Write a stub header if CuraEngine is in command line tool mode. (Cause writing the header afterwards would entail moving all gcode down.)
      * 
      * \param[in] storage where the slice data is stored.
+     * \param[in] start_extruder_nr The extruder with which to start the print.
      */
-    void processStartingCode(SliceDataStorage& storage);
+    void processStartingCode(SliceDataStorage& storage, const unsigned int start_extruder_nr);
 
     /*!
      * Move up and over the already printed meshgroups to print the next meshgroup.
