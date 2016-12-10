@@ -362,7 +362,9 @@ public:
     GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
 
     /*!
-     * Plan a prime poop at the current location
+     * Plan a prime poop at the current location.
+     * 
+     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
      */
     void planPrime();
 
