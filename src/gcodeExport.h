@@ -368,8 +368,9 @@ public:
      * See FffGcodeWriter::processStartingCode
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
+     * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const MeshGroup& settings);
+    void setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps

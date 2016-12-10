@@ -324,7 +324,13 @@ public:
     * Features like prime tower and support are considered outside.
     */
     void setIsInside(bool going_to_comb);
-    
+
+    /*!
+     * Plan a switch to a new extruder
+     * 
+     * \param extruder The extruder number to which to switch
+     * \return whether the extruder has changed
+     */
     bool setExtruder(int extruder);
 
     /*!

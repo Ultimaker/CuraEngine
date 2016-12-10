@@ -18,8 +18,9 @@ void Wireframe2gcode::writeGCode()
 {
 
     gcode.preSetup(wireFrame.meshgroup);
-    
-    gcode.setInitialTemps(*wireFrame.meshgroup);
+
+    const unsigned int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr"); // TODO: figure out how Wireframe works with dual extrusion
+    gcode.setInitialTemps(*wireFrame.meshgroup, start_extruder_nr);
     
     if (CommandSocket::getInstance())
         CommandSocket::getInstance()->beginGCode();

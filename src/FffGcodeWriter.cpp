@@ -21,13 +21,13 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     { // first meshgroup
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialTemps(*storage.meshgroup);
+        gcode.setInitialTemps(*storage.meshgroup, getStartExtruder(storage));
     }
 
     // set the initial extruder of this meshgroup
     if (FffProcessor::getInstance()->getMeshgroupNr() == 0)
     { // first meshgroup
-        current_extruder_planned = getSettingAsIndex("adhesion_extruder_nr");
+        current_extruder_planned = getStartExtruder(storage);
     }
     else
     {
@@ -497,10 +497,9 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
-        int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
+        int extruder_nr = gcode_layer.getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            gcode_layer.setExtruder(extruder_nr);
             processSkirtBrim(storage, gcode_layer, extruder_nr);
         }
     }

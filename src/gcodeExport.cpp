@@ -112,20 +112,15 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     estimateCalculator.setFirmwareDefaults(meshgroup);
 }
 
-void GCodeExport::setInitialTemps(const MeshGroup& settings)
+void GCodeExport::setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr)
 {
-    int start_extruder_nr = 0;
-    if (settings.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::NONE)
-    {
-        start_extruder_nr = settings.getSettingAsIndex("adhesion_extruder_nr");
-    }
     for (unsigned int extr_nr = 0; extr_nr < extruder_count; extr_nr++)
     {
         const ExtruderTrain& train = *settings.getExtruderTrain(extr_nr);
         
         double print_temp_0 = train.getSettingInDegreeCelsius("material_print_temperature_layer_0");
         double print_temp_here = (print_temp_0 != 0)? print_temp_0 : train.getSettingInDegreeCelsius("material_print_temperature");
-        double temp = ((int)extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
+        double temp = (extr_nr == start_extruder_nr)? print_temp_here : train.getSettingInDegreeCelsius("material_standby_temperature");
         setInitialTemp(extr_nr, temp);
     }
 
