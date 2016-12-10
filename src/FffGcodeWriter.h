@@ -80,16 +80,13 @@ private:
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
+    , max_object_height(0)
     , layer_plan_buffer(this, gcode)
+    , extruder_prime_is_planned {} // initialize all values in array with [false]
     , last_position_planned(no_point)
     , current_extruder_planned(0) // changed somewhere early in FffGcodeWriter::writeGCode
     , is_inside_mesh_layer_part(false)
     {
-        max_object_height = 0;
-        for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
-        {
-            extruder_prime_is_planned[extruder_nr] = false;
-        }
     }
 
     /*!
