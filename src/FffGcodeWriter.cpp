@@ -366,7 +366,10 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
         current_extruder_planned = gcode_layer.getExtruder();
         is_inside_mesh_layer_part = gcode_layer.getIsInsideMesh();
 
-        ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
+        if (getExtrudersNeedPrimeDuringFirstLayer())
+        {
+            ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
+        }
 
         gcode_layer.processFanSpeedAndMinimalLayerTime();
         gcode_layer.overrideFanSpeeds(train->getSettingInPercentage("raft_base_fan_speed"));
@@ -567,7 +570,7 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
         }
     }
 
-    if (layer_nr == 0)
+    if (layer_nr == 0 && getExtrudersNeedPrimeDuringFirstLayer())
     {
         ensureAllExtrudersArePrimed(storage, gcode_layer, layer_nr);
     }
@@ -586,14 +589,19 @@ void FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsig
     gcode_layer.processFanSpeedAndMinimalLayerTime();
 }
 
+bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer()
+{
+    switch(gcode.getFlavor())
+    {
+        case EGCodeFlavor::GRIFFIN:
+            return true;
+        default:
+            return false; // TODO: change this once priming for other firmware types is implemented
+    }
+}
+
 void FffGcodeWriter::ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr)
 {
-    if (gcode.getFlavor() != EGCodeFlavor::GRIFFIN)
-    {
-        return;
-    }
-
-    
     // Add prime for all extruders which haven't primed yet.
 
     std::vector<bool> extruder_is_used = storage.getExtrudersUsed();

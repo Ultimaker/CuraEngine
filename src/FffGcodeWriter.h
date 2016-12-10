@@ -232,6 +232,13 @@ private:
     void processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers);
 
     /*!
+     * Whether the extruders need to be primed separately just before they are used.
+     * 
+     * \return whether the extruders need to be primed separately just before they are used
+     */
+    bool getExtrudersNeedPrimeDuringFirstLayer();
+
+    /*!
      * Plan priming of all used extruders which haven't been primed yet
      * \param[in] storage where the slice data is stored.
      * \param layer_plan The initial planning of the g-code of the layer.
