@@ -82,12 +82,6 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time = extra_heatup_time;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp_start;
-        if (limited_time_window < 0.0)
-        {
-            result.heating_time = 0.0;
-            result.lowest_temperature = temp_start;
-            return result;
-        }
     }
     else
     {
@@ -95,13 +89,14 @@ Preheat::WarmUpResult Preheat::getWarmUpPointAfterCoolDown(double time_window, u
         result.heating_time = 0;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp_end;
-        if (limited_time_window < 0.0)
-        {
-            result.heating_time = 0.0;
-            result.lowest_temperature = temp_end;
-            return result;
-        }
     }
+    if (limited_time_window < 0.0)
+    {
+        result.heating_time = 0.0;
+        result.lowest_temperature = std::min(temp_start, temp_end);
+        return result;
+    }
+
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     double time_to_heat_from_standby_to_print_temp = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);
     double time_needed_to_reach_standby_temp = time_to_heat_from_standby_to_print_temp * (1.0 + time_ratio_cooldown_heatup);
@@ -150,12 +145,6 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.cooling_time = 0;
         limited_time_window = time_window - extra_heatup_time;
         outer_temp = temp_end;
-        if (limited_time_window < 0.0)
-        {
-            result.cooling_time = 0.0;
-            result.highest_temperature = temp_end;
-            return result;
-        }
     }
     else
     {
@@ -163,12 +152,12 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
         result.cooling_time = extra_cooldown_time;
         limited_time_window = time_window - extra_cooldown_time;
         outer_temp = temp_start;
-        if (limited_time_window < 0.0)
-        {
-            result.cooling_time = 0.0;
-            result.highest_temperature = temp_start;
-            return result;
-        }
+    }
+    if (limited_time_window < 0.0)
+    {
+        result.cooling_time = 0.0;
+        result.highest_temperature = std::max(temp_start, temp_end);
+        return result;
     }
     double time_ratio_cooldown_heatup = time_to_cooldown_1_degree / time_to_heatup_1_degree;
     double cool_down_time = getTimeToGoFromTempToTemp(extruder, temp_mid, outer_temp, during_printing);

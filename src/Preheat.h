@@ -117,7 +117,6 @@ public:
     {
         return config_per_extruder[extruder_nr].flow_dependent_temperature;
     }
-public:
     /*!
      * Get the optimal temperature corresponding to a given average flow,
      * or the initial layer temperature.
