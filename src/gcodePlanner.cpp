@@ -64,6 +64,7 @@ GCodePath* GCodePlanner::getLatestPathWithConfig(GCodePathConfig* config, SpaceF
     paths.emplace_back();
     GCodePath* ret = &paths.back();
     ret->retract = false;
+    ret->perform_prime = false;
     ret->perform_z_hop = false;
     ret->config = config;
     ret->done = false;
@@ -344,6 +345,7 @@ void GCodePlanner::planPrime()
     forceNewPathStart();
     GCodePath& prime_travel = addTravel_simple(lastPosition + Point(0, 100));
     prime_travel.retract = false;
+    prime_travel.perform_prime = true;
     forceNewPathStart();
 }
 
@@ -682,10 +684,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(extruder, extruder_plan.initial_printing_temperature, wait);
             }
 
-            // prime extruder if it hadn't been used yet
-            gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
-            gcode.writeRetraction(retraction_config);
-
             std::optional<double> prev_extruder_temp = std::optional<double>();
             if (turn_off_extruder)
             {
@@ -725,6 +723,12 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode);
             
             GCodePath& path = paths[path_idx];
+
+            if (path.perform_prime)
+            {
+                gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
+                gcode.writeRetraction(retraction_config);
+            }
 
             if (acceleration_enabled)
             {
