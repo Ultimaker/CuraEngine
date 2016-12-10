@@ -1350,7 +1350,6 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
         if (!extruder_prime_is_planned[extruder_nr])
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            assert(train && "extruder train should exist");
 
             // move to prime position
             bool prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
