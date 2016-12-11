@@ -1095,13 +1095,13 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 {
                     // add perimeter gaps between the outer skin inset and the innermost wall
                     const Polygons outer = skin_part.outline;
-                    const Polygons inner = skin_part.insets[0].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset * 2);
+                    const Polygons inner = skin_part.insets[0].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
                     perimeter_gaps.add(outer.difference(inner));
 
                     for (unsigned int inset_idx = 1; inset_idx < skin_part.insets.size(); inset_idx++)
                     { // add perimeter gaps between consecutive skin walls
                         const Polygons outer = skin_part.insets[inset_idx - 1].offset(-1 * mesh->insetX_config.getLineWidth() / 2 - perimeter_gaps_extra_offset);
-                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2 + perimeter_gaps_extra_offset);
+                        const Polygons inner = skin_part.insets[inset_idx].offset(mesh->insetX_config.getLineWidth() / 2);
                         perimeter_gaps.add(outer.difference(inner));
                     }
                 }
@@ -1148,7 +1148,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
             Polygons inner;
             if (inset_idx + 1 < part.insets.size())
             {
-                inner = part.insets[inset_idx + 1].offset(line_width / 2 + perimeter_gaps_extra_offset);
+                inner = part.insets[inset_idx + 1].offset(line_width / 2);
             }
             else
             {
@@ -1157,7 +1157,6 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 {
                     inner.add(skin_part.outline);
                 }
-                inner = inner.offset(perimeter_gaps_extra_offset);
             }
             perimeter_gaps.add(outer.difference(inner));
         }

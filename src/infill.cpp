@@ -87,7 +87,7 @@ void Infill::generateConcentricInfill(Polygons& first_concentric_wall, Polygons&
         if (perimeter_gaps)
         {
             const Polygons outer = prev_inset->offset(-infill_line_width / 2 - perimeter_gaps_extra_offset);
-            const Polygons inner = next_inset.offset(infill_line_width / 2 + perimeter_gaps_extra_offset);
+            const Polygons inner = next_inset.offset(infill_line_width / 2);
             const Polygons gaps_here = outer.difference(inner);
             perimeter_gaps->add(gaps_here);
         }
