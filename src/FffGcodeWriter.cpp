@@ -1157,7 +1157,7 @@ void FffGcodeWriter::processSkin(GCodePlanner& gcode_layer, SliceMeshStorage* me
                 {
                     inner.add(skin_part.outline);
                 }
-                inner.offset(perimeter_gaps_extra_offset);
+                inner = inner.offset(perimeter_gaps_extra_offset);
             }
             perimeter_gaps.add(outer.difference(inner));
         }
