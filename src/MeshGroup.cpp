@@ -58,7 +58,7 @@ int MeshGroup::getExtruderCount() const
 
 ExtruderTrain* MeshGroup::createExtruderTrain(unsigned int extruder_nr)
 {
-    assert(extruder_nr >= 0 && extruder_nr < extruder_count && "only valid extruder trains may be requested!");
+    assert((int)extruder_nr >= 0 && (int)extruder_nr < extruder_count && "only valid extruder trains may be requested!");
     if (!extruders[extruder_nr])
     {
         extruders[extruder_nr] = new ExtruderTrain(this, extruder_nr);
