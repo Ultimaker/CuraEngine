@@ -41,10 +41,7 @@ public:
      * 
      * \return Whether this config is the config of a travel path.
      */
-    bool isTravelPath()
-    {
-        return config->isTravelPath();
-    }
+    bool isTravelPath();
 
     /*!
      * Get the material flow in mm^3 per mm traversed.
@@ -53,19 +50,13 @@ public:
      * 
      * \return The flow
      */
-    double getExtrusionMM3perMM()
-    {
-        return flow * config->getExtrusionMM3perMM();
-    }
+    double getExtrusionMM3perMM();
 
     /*!
      * Get the actual line width (modulated by the flow)
      * \return the actual line width as shown in layer view
      */
-    int getLineWidth()
-    {
-        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
-    }
+    int getLineWidth();
 };
 
 }//namespace cura
