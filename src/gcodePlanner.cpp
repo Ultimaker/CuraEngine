@@ -987,7 +987,7 @@ void GCodePlanner::processInitialLayersSpeedup()
 
 
 
-bool GCodePlanner::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
+bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx)
 {
     std::vector<GCodePath>& paths = extruder_plans[extruder_plan_idx].paths;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
