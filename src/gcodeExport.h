@@ -121,6 +121,8 @@ private:
 
     unsigned int layer_nr; //!< for sending travel data
 
+    double layer_height; //!< report basic layer height in RepRap gcode file.
+
     int initial_bed_temp; //!< bed temperature at the beginning of the print.
 protected:
     /*!

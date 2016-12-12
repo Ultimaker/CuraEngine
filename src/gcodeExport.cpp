@@ -90,6 +90,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
     machine_name = meshgroup->getSettingString("machine_name");
 
+    layer_height = meshgroup->getSettingInMillimeters("layer_height");
+
     if (flavor == EGCodeFlavor::BFB)
     {
         new_line = "\r\n";
@@ -185,6 +187,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         else if (flavor == EGCodeFlavor::REPRAP)
         {
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+            prefix << ";Layer height: " << layer_height << new_line;
         }
         return prefix.str();
     }
