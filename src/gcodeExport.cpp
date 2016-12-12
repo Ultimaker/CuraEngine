@@ -689,6 +689,20 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
+
+    writeMoveFilament(config, config.distance, extruder_switch);
+}
+
+void GCodeExport::writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch)
+{
+    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
+    const double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
+    const double new_retraction_e_amount = mmToE(new_retraction_distance);
+    const double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
+    if (std::abs(retraction_diff_e_amount) < 0.000001)
+    {
+        return; //No need to have detailed extrusion moves this small.
+    }
     if (firmware_retract)
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current)
@@ -703,20 +717,6 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << new_line;
         //Assume default UM2 retraction settings.
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)), 25); // TODO: hardcoded values!
-    }
-
-    writeMoveFilament(config, config.distance);
-}
-
-void GCodeExport::writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance)
-{
-    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
-    const double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
-    const double new_retraction_e_amount = mmToE(new_retraction_distance);
-    const double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
-    if (std::abs(retraction_diff_e_amount) < 0.000001)
-    {
-        return; //No need to have detailed extrusion moves this small.
     }
     else
     {
@@ -787,7 +787,8 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
 
     if (turn_off_extruder)
     {
-        writeMoveFilament(retraction_config_old_extruder, extruder_attr[current_extruder].park_distance);
+        constexpr bool extruder_switch = true;
+        writeMoveFilament(retraction_config_old_extruder, extruder_attr[current_extruder].park_distance, extruder_switch);
     }
     else
     {
