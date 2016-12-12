@@ -106,7 +106,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     layer_plan_buffer.flush();
 
     constexpr bool force = true;
-    gcode.writeRetraction(&storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
+    gcode.writeRetraction(storage.retraction_config_per_extruder[gcode.getExtruderNr()], force); // retract after finishing each meshgroup
 }
 
 void FffGcodeWriter::setConfigFanSpeedLayerTime(SliceDataStorage& storage)
@@ -291,7 +291,7 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage, const unsign
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         extruder_prime_is_planned[start_extruder_nr] = true;
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
-        gcode.writeRetraction(&retraction_config);
+        gcode.writeRetraction(retraction_config);
     }
 }
 

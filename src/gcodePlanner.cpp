@@ -686,7 +686,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             // prime extruder if it hadn't been used yet
             gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
-            gcode.writeRetraction(&retraction_config);
+            gcode.writeRetraction(retraction_config);
 
             if (turn_off_extruder)
             { //Turn off previous extruder. Must happen after the extruder switch to prevent accumulation of heat-up times.
@@ -698,7 +698,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         }
         else if (extruder_plan_idx == 0 && layer_nr != 0 && train->getSettingBoolean("retract_at_layer_change"))
         {
-            gcode.writeRetraction(&retraction_config);
+            gcode.writeRetraction(retraction_config);
         }
         gcode.writeFanCommand(extruder_plan.getFanSpeed());
         std::vector<GCodePath>& paths = extruder_plan.paths;
@@ -738,7 +738,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                gcode.writeRetraction(&retraction_config);
+                gcode.writeRetraction(retraction_config);
                 if (path.perform_z_hop)
                 {
                     gcode.writeZhopStart(retraction_config.zHop);
@@ -857,7 +857,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         {
             gcode.writeComment("Small layer, adding delay");
             RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
-            gcode.writeRetraction(&retraction_config);
+            gcode.writeRetraction(retraction_config);
             if (extruder_plan_idx == extruder_plans.size() - 1 || !train->getSettingBoolean("machine_extruder_end_pos_abs"))
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
