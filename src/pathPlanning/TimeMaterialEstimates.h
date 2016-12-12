@@ -29,35 +29,17 @@ public:
      * \param retracted_travel_time Time in seconds occupied by retracted travel (non-extrusion)
      * \param material Material used (in mm^3)
      */
-    TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material)
-    : extrude_time(extrude_time)
-    , unretracted_travel_time(unretracted_travel_time)
-    , retracted_travel_time(retracted_travel_time)
-    , material(material)
-    {
-    }
+    TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material);
 
     /*!
      * Basic constructor initializing all estimates to zero.
      */
-    TimeMaterialEstimates()
-    : extrude_time(0.0)
-    , unretracted_travel_time(0.0)
-    , retracted_travel_time(0.0)
-    , material(0.0)
-    {
-    }
+    TimeMaterialEstimates();
 
     /*!
      * Set all estimates to zero.
      */
-    void reset() 
-    {
-        extrude_time = 0.0;
-        unretracted_travel_time = 0.0;
-        retracted_travel_time = 0.0;
-        material = 0.0;
-    }
+    void reset();
 
     /*!
      * Pointwise addition of estimate stats
@@ -65,10 +47,7 @@ public:
      * \param other The estimates to add to these estimates.
      * \return The resulting estimates
      */
-    TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
-    {
-        return TimeMaterialEstimates(extrude_time+other.extrude_time, unretracted_travel_time+other.unretracted_travel_time, retracted_travel_time+other.retracted_travel_time, material+other.material);
-    }
+    TimeMaterialEstimates operator+(const TimeMaterialEstimates& other);
 
     /*!
      * In place pointwise addition of estimate stats
@@ -76,14 +55,7 @@ public:
      * \param other The estimates to add to these estimates.
      * \return These estimates
      */
-    TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
-    {
-        extrude_time += other.extrude_time;
-        unretracted_travel_time += other.unretracted_travel_time;
-        retracted_travel_time += other.retracted_travel_time;
-        material += other.material;
-        return *this;
-    }
+    TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other);
 
     /*!
      * \brief Subtracts the specified estimates from these estimates and returns
@@ -112,10 +84,7 @@ public:
      * 
      * \return the total of all different time estimate values 
      */
-    double getTotalTime() const
-    {
-        return extrude_time + unretracted_travel_time + retracted_travel_time;
-    }
+    double getTotalTime() const;
 
     /*!
      * Get the total time during which the head is not retracted.
@@ -124,10 +93,7 @@ public:
      * 
      * \return the total time during which the head is not retracted.
      */
-    double getTotalUnretractedTime() const
-    {
-        return extrude_time + unretracted_travel_time;
-    }
+    double getTotalUnretractedTime() const;
 
     /*!
      * Get the total travel time.
@@ -136,30 +102,21 @@ public:
      * 
      * \return the total travel time.
      */
-    double getTravelTime() const
-    {
-        return retracted_travel_time + unretracted_travel_time;
-    }
+    double getTravelTime() const;
 
     /*!
      * Get the extrusion time.
      * 
      * \return extrusion time.
      */
-    double getExtrudeTime() const
-    {
-        return extrude_time;
-    }
+    double getExtrudeTime() const;
 
     /*!
      * Get the amount of material used in mm^3.
      * 
      * \return amount of material
      */
-    double getMaterial() const
-    {
-        return material;
-    }
+    double getMaterial() const;
 };
 
 }//namespace cura
