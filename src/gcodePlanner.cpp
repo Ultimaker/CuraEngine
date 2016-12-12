@@ -671,7 +671,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder = extruder_plan.extruder;
 
             const int prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr - 1 : layer_nr;
-            const bool turn_off_extruder = prev_layer_nr >= storage.max_print_height_per_extruder[prev_extruder]; //Previous extruder is not used any more in this mesh group.
+            const bool turn_off_extruder = prev_layer_nr >= storage.max_print_height_per_extruder[prev_extruder]; //Previous extruder is never used any more after this.
             gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder], turn_off_extruder);
 
             if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
