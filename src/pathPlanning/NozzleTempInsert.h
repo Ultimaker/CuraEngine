@@ -19,24 +19,13 @@ struct NozzleTempInsert
     int extruder; //!< The extruder for which to set the temp
     double temperature; //!< The temperature of the temperature command to insert
     bool wait; //!< Whether to wait for the temperature to be reached
-    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0)
-    : path_idx(path_idx)
-    , time_after_path_start(time_after_path_start)
-    , extruder(extruder)
-    , temperature(temperature)
-    , wait(wait)
-    {
-        assert(temperature != 0 && temperature != -1 && "Temperature command must be set!");
-    }
+    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0);
 
     /*!
      * Write the temperature command at the current position in the gcode.
      * \param gcode The actual gcode writer
      */
-    void write(GCodeExport& gcode)
-    {
-        gcode.writeTemperatureCommand(extruder, temperature, wait);
-    }
+    void write(GCodeExport& gcode);
 };
 }//namespace cura
 

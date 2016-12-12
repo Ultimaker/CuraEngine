@@ -89,6 +89,7 @@ set(engine_SRCS # Except main.cpp.
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp
+    src/pathPlanning/NozzleTempInsert.cpp
     src/pathPlanning/TimeMaterialEstimates.cpp
 
     src/progress/Progress.cpp
