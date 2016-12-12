@@ -161,20 +161,6 @@ protected:
      */
     double mmToE(double mm);
 
-    /*!
-     * \brief Write a move in the E-direction such that the filament is
-     * retracted or unretracted to the specified distance.
-     *
-     * No checks are made for the maximum number of retractions.
-     *
-     * \param config The configuration from which to get the distance and speed.
-     * \param new_retraction_distance The distance from the tip of the nozzle
-     * where the filament is supposed to end up.
-     * \param extruder_switch Whether this move is part of the extruder
-     * switching procedure, which causes it to select different speeds.
-     */
-    void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch);
-
 public:
     
     GCodeExport();
@@ -279,6 +265,20 @@ private:
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
+
+    /*!
+     * \brief Write a move in the E-direction such that the filament is
+     * retracted or unretracted to the specified distance.
+     *
+     * No checks are made for the maximum number of retractions.
+     *
+     * \param config The configuration from which to get the distance and speed.
+     * \param new_retraction_distance The distance from the tip of the nozzle
+     * where the filament is supposed to end up.
+     * \param extruder_switch Whether this move is part of the extruder
+     * switching procedure, which causes it to select different speeds.
+     */
+    void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance, const bool extruder_switch);
 
     /*!
      * Start a z hop with the given \p hop_height
