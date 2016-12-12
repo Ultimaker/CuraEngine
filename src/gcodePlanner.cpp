@@ -689,7 +689,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             gcode.writeRetraction(&retraction_config);
 
             if (extruder_plan.prev_extruder_standby_temp)
-            { //Turn off previous extruder. Must happen after the extruder switch because the nozzle needs to be hot for the switch.
+            { //Turn off previous extruder. Must happen after the extruder switch to prevent accumulation of heat-up times.
                 constexpr bool wait = false;
                 double prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp;
                 if (turn_off_extruder)
