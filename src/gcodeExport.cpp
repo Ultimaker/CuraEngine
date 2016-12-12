@@ -723,12 +723,6 @@ void GCodeExport::writeRetraction(const RetractionConfig* config, bool force, bo
 
 void GCodeExport::writePark(const RetractionConfig& config)
 {
-    if (flavor == EGCodeFlavor::BFB)
-    {
-        writeRetraction(&config);
-        return;
-    }
-
     ExtruderTrainAttributes extruder_attributes = extruder_attr[current_extruder];
 
     const double old_retraction_e = extruder_attributes.retraction_e_amount_current;
