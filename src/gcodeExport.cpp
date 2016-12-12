@@ -194,6 +194,10 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
             prefix << ";NOZZLE_DIAMETER:" << float(INT2MM(getNozzleSize(0))) << new_line;
             // TODO: the second nozzle size isn't always initiated! ";NOZZLE_DIAMETER2:"
         }
+        else if (flavor == EGCodeFlavor::REPRAP)
+        {
+            prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+        }
         return prefix.str();
     }
 }
