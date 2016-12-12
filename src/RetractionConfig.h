@@ -13,6 +13,7 @@ class RetractionConfig
 {
 public:
     double distance; //!< The distance retracted (in mm)
+    double park_distance; //!< The distance from the nozzle at which to park filament after having completed printing with it.
     double speed; //!< The speed with which to retract (in mm/s)
     double primeSpeed; //!< the speed with which to unretract (in mm/s)
     double prime_volume; //!< the amount of material primed after unretracting (in mm^3)

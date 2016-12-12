@@ -62,7 +62,6 @@ private:
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
 
-        double park_distance; //!< The distance from the nozzle at which to park filament after having completed printing with it.
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
@@ -83,7 +82,6 @@ private:
         , initial_temp(0)
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
-        , park_distance(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
         { }

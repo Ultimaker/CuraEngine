@@ -84,7 +84,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-        extruder_attr[extruder_nr].park_distance = train->getSettingInMillimeters("machine_filament_park_distance");
+
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
         extruder_attr[extruder_nr].material_guid = train->getSettingString("material_guid");
@@ -788,7 +788,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
     if (turn_off_extruder)
     {
         constexpr bool extruder_switch = true;
-        writeMoveFilament(retraction_config_old_extruder, extruder_attr[current_extruder].park_distance, extruder_switch);
+        writeMoveFilament(retraction_config_old_extruder, retraction_config_old_extruder.park_distance, extruder_switch);
     }
     else
     {
