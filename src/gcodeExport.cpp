@@ -734,6 +734,33 @@ void GCodeExport::writeMoveFilament(const RetractionConfig& config, const double
 
 }
 
+void GCodeExport::writePark(const RetractionConfig& config)
+{
+    if (flavor == EGCodeFlavor::BFB)
+    {
+        writeRetraction(config);
+        return;
+    }
+
+    ExtruderTrainAttributes extruder_attributes = extruder_attr[current_extruder];
+
+    const double old_retraction_e = extruder_attributes.retraction_e_amount_current;
+    const double target_retraction_e = mmToE(config.park_distance);
+    const double to_retract_e = target_retraction_e - old_retraction_e;
+    if (to_retract_e < 0.001) //Already in parking position or beyond.
+    {
+        return;
+    }
+
+    //Write a retraction move with G1.
+    current_e_value -= to_retract_e;
+    *output_stream << "G1 F" << PrecisionedDouble{1, config.speed * 60} << " " << extruder_attributes.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
+    currentSpeed = config.speed * 60;
+    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
+    extruder_attributes.retraction_e_amount_current = target_retraction_e;
+    extruder_attributes.last_retraction_prime_speed = config.primeSpeed;
+}
+
 void GCodeExport::writeZhopStart(int hop_height)
 {
     if (hop_height > 0)
@@ -787,8 +814,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
 
     if (turn_off_extruder)
     {
-        constexpr bool extruder_switch = true;
-        writeMoveFilament(retraction_config_old_extruder, retraction_config_old_extruder.park_distance, extruder_switch);
+        writePark(retraction_config_old_extruder);
     }
     else
     {
