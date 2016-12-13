@@ -14,6 +14,8 @@
 
 namespace cura {
 
+double layer_height; //!< report basic layer height in RepRap gcode file.
+
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
