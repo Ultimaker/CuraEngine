@@ -723,6 +723,12 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 
 void GCodeExport::writePark(const RetractionConfig& config)
 {
+    if (flavor == EGCodeFlavor::BFB) //BitsFromBytes doesn't allow retracting a manual amount. Do a normal retract instead.
+    {
+        writeRetraction(&config);
+        return;
+    }
+
     ExtruderTrainAttributes extruder_attributes = extruder_attr[current_extruder];
 
     const double old_retraction_e = extruder_attributes.retraction_e_amount_current;
@@ -730,6 +736,11 @@ void GCodeExport::writePark(const RetractionConfig& config)
     const double to_retract_e = target_retraction_e - old_retraction_e;
     if (to_retract_e < 0.001) //Already in parking position or beyond.
     {
+        return;
+    }
+    if (firmware_retract) //Doesn't allow retracting a manual amount either, but we can track the retractions.
+    {
+        writeRetraction(&config);
         return;
     }
 
