@@ -1,5 +1,3 @@
-//Copyright (c) 2016 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include <list>
 
@@ -154,7 +152,6 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
         ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder];
         retraction_config.distance = (train->getSettingBoolean("retraction_enable"))? train->getSettingInMillimeters("retraction_amount") : 0;
-        retraction_config.park_distance = train->getSettingInMillimeters("machine_heat_zone_length") + train->getSettingInMillimeters("machine_cool_zone_length");
         retraction_config.prime_volume = train->getSettingInCubicMillimeters("retraction_extra_prime_amount");
         retraction_config.speed = train->getSettingInMillimetersPerSecond("retraction_retract_speed");
         retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("retraction_prime_speed");
@@ -165,7 +162,6 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
 
         RetractionConfig& switch_retraction_config = storage.extruder_switch_retraction_config_per_extruder[extruder];
         switch_retraction_config.distance = train->getSettingInMillimeters("switch_extruder_retraction_amount"); 
-        switch_retraction_config.park_distance = train->getSettingInMillimeters("machine_heat_zone_length") + train->getSettingInMillimeters("machine_cool_zone_length");
         switch_retraction_config.prime_volume = 0.0;
         switch_retraction_config.speed = train->getSettingInMillimetersPerSecond("switch_extruder_retraction_speed");
         switch_retraction_config.primeSpeed = train->getSettingInMillimetersPerSecond("switch_extruder_prime_speed");
