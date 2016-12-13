@@ -269,8 +269,8 @@ public:
     /*!
      * \brief Retract the filament to parking position.
      *
-     * This ignores the maximum number of retractions. Parking is meant to be
-     * done the end of the print.
+     * This ignores the maximum retraction limit. Parking position is meant to
+     * be at the end of the print.
      *
      * \param config The configuration from which to get the park distance.
      */
