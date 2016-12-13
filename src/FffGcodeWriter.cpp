@@ -1143,24 +1143,26 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
     { // handle perimeter gaps of normal insets
         Polygons perimeter_gaps;
         int line_width = mesh->inset0_config.getLineWidth();
-        for (unsigned int inset_idx = 0; inset_idx < part.insets.size(); inset_idx++)
+        for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
         {
             const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
             line_width = mesh->insetX_config.getLineWidth();
-            Polygons inner;
-            if (inset_idx + 1 < part.insets.size())
+
+            Polygons inner = part.insets[inset_idx + 1].offset(line_width / 2);
+            perimeter_gaps.add(outer.difference(inner));
+        }
+        { // gap between inner wall and skin/infill
+            if (mesh->getSettingInMicrons("infill_line_distance") > 0 && !mesh->getSettingBoolean("infill_hollow"))
             {
-                inner = part.insets[inset_idx + 1].offset(line_width / 2);
-            }
-            else
-            {
-                inner = part.infill_area;
+                const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
+
+                Polygons inner = part.infill_area;
                 for (SkinPart& skin_part : part.skin_parts)
                 {
                     inner.add(skin_part.outline);
                 }
+                perimeter_gaps.add(outer.difference(inner));
             }
-            perimeter_gaps.add(outer.difference(inner));
         }
 
         Polygons skin_polygons; // unused
