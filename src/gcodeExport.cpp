@@ -798,21 +798,14 @@ void GCodeExport::startExtruder(int new_extruder)
     currentPosition.z += 1;
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
         return;
 
-    if (turn_off_extruder)
-    {
-        writePark(retraction_config_old_extruder);
-    }
-    else
-    {
-        bool force = true;
-        bool extruder_switch = true;
-        writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
-    }
+    bool force = true;
+    bool extruder_switch = true;
+    writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
