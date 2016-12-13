@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include <cmath> // sqrt
 #include <utility> // pair
 #include <deque>
@@ -65,14 +68,32 @@ Polygons AreaSupport::join(Polygons& supportLayer_up, Polygons& supportLayer_thi
 
 void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int layer_count)
 {
+    int max_layer_nr_support_mesh_filled;
+    for (max_layer_nr_support_mesh_filled = storage.support.supportLayers.size() - 1; max_layer_nr_support_mesh_filled >= 0; max_layer_nr_support_mesh_filled--)
+    {
+        const SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        if (support_layer.supportAreas.size() > 0)
+        {
+            break;
+        }
+    }
+    storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, max_layer_nr_support_mesh_filled);
+    for (int layer_nr = 0; layer_nr < max_layer_nr_support_mesh_filled; layer_nr++)
+    {
+        SupportLayer& support_layer = storage.support.supportLayers[max_layer_nr_support_mesh_filled];
+        support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
+    }
+
     // initialization of supportAreasPerLayer
-    for (unsigned int layer_idx = 0; layer_idx < layer_count ; layer_idx++)
-        storage.support.supportLayers.emplace_back();
-    
-    for(unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
+    if (layer_count > storage.support.supportLayers.size())
+    { // there might alsready be anti_overhang_area data in the supportLayers
+        storage.support.supportLayers.resize(layer_count);
+    }
+
+    for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-        if (mesh.getSettingBoolean("infill_mesh"))
+        if (mesh.getSettingBoolean("infill_mesh") || mesh.getSettingBoolean("anti_overhang_mesh"))
         {
             continue;
         }
@@ -212,7 +233,6 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         basic_and_full_overhang_above.push_front(computeBasicAndFullOverhang(storage, mesh, layer_idx, max_dist_from_lower_layer));
     }
 
-    bool still_in_upper_empty_layers = true;
     int overhang_points_pos = overhang_points.size() - 1;
     Polygons supportLayer_last;
     std::vector<Polygons> towerRoofs;
@@ -247,8 +267,9 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         { // join with support from layer up                
             supportLayer_this = AreaSupport::join(supportLayer_last, supportLayer_this, join_distance, smoothing_distance, max_smoothing_angle, conical_support, conical_support_offset, conical_smallest_breadth);
         }
-        
-        
+
+        supportLayer_this = supportLayer_this.unionPolygons(storage.support.supportLayers[layer_idx].support_mesh);
+
         // move up from model
         if (layerZdistanceBottom > 0 && layer_idx >= layerZdistanceBottom)
         {
@@ -256,8 +277,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             int bottomLayer = ((layer_idx - layerZdistanceBottom) / stepHeight) * stepHeight;
             supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(bottomLayer, false));
         }
-        
-        
+
+
         supportLayer_last = supportLayer_this;
         
         
@@ -277,18 +298,12 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
             }
             else
             {
-                supportLayer_this = supportLayer_this.difference(storage.getLayerOutlines(layer_idx, false).offset(supportXYDistance));
+                supportLayer_this = supportLayer_this.difference(outlines.offset(supportXYDistance));
             }
         }
 
         supportAreas[layer_idx] = supportLayer_this;
 
-        if (still_in_upper_empty_layers && supportLayer_this.size() > 0)
-        {
-            storage.support.layer_nr_max_filled_layer = std::max(storage.support.layer_nr_max_filled_layer, (int)layer_idx);
-            still_in_upper_empty_layers = false;
-        }
-        
         Progress::messageProgress(Progress::Stage::SUPPORT, storage.meshes.size() * mesh_idx + support_layer_count - layer_idx, support_layer_count * storage.meshes.size());
     }
     
@@ -326,6 +341,28 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage, unsigned int m
         }
     }
 
+    //Enforce top Z distance.
+    if (layerZdistanceTop > 0)
+    {
+        // this is performed after the main support generation loop above, because it affects the joining of polygons
+        // if this would be performed in the main loop then some support would not have been generated under the overhangs and consequently no support is generated for that,
+        // meaning almost no support would be generated in some cases which definitely need support.
+        for (size_t layer_idx = 0; layer_idx < storage.support.supportLayers.size() && layer_idx < support_layer_count - layerZdistanceTop; layer_idx++)
+        {
+            supportAreas[layer_idx] = supportAreas[layer_idx].difference(storage.getLayerOutlines(layer_idx + layerZdistanceTop, false));
+        }
+    }
+
+    for (unsigned int layer_idx = supportAreas.size() - 1; layer_idx != (unsigned int) std::max(-1, storage.support.layer_nr_max_filled_layer) ; layer_idx--)
+    {
+        const Polygons& support_here = supportAreas[layer_idx];
+        if (support_here.size() > 0)
+        {
+            storage.support.layer_nr_max_filled_layer = layer_idx;
+            break;
+        }
+    }
+
     storage.support.generated = true;
 }
 
@@ -348,6 +385,12 @@ std::pair<Polygons, Polygons> AreaSupport::computeBasicAndFullOverhang(const Sli
 
     Polygons supportLayer_supported =  supportLayer_supporter.offset(max_dist_from_lower_layer);
     Polygons basic_overhang = supportLayer_supportee.difference(supportLayer_supported);
+
+    const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
+    if (support_layer.anti_overhang.size())
+    {
+        basic_overhang = basic_overhang.difference(support_layer.anti_overhang);
+    }
 
 //     Polygons support_extension = basic_overhang.offset(max_dist_from_lower_layer);
 //     support_extension = support_extension.intersection(supportLayer_supported);
@@ -388,12 +431,17 @@ void AreaSupport::detectOverhangPoints(
                 
                 if (part_poly.size() > 0)
                 {
+                    Polygons part_poly_recomputed = part_poly.difference(storage.support.supportLayers[layer_idx].anti_overhang);
+                    if (part_poly_recomputed.size() == 0)
+                    {
+                        continue;
+                    }
                     if (overhang_points.size() > 0 && overhang_points.back().first == layer_idx)
-                        overhang_points.back().second.push_back(part_poly);
+                        overhang_points.back().second.push_back(part_poly_recomputed);
                     else 
                     {
                         std::vector<Polygons> small_part_polys;
-                        small_part_polys.push_back(part_poly);
+                        small_part_polys.push_back(part_poly_recomputed);
                         overhang_points.emplace_back<std::pair<int, std::vector<Polygons>>>(std::make_pair(layer_idx, small_part_polys));
                     }
                 }
@@ -444,15 +492,21 @@ void AreaSupport::handleTowers(
     }
     
     // make tower roofs
-    //for (Polygons& tower_roof : towerRoofs)
-    for (unsigned int r = 0; r < towerRoofs.size(); r++)
+    for (unsigned int roof_idx = 0; roof_idx < towerRoofs.size(); roof_idx++)
     {
-        supportLayer_this = supportLayer_this.unionPolygons(towerRoofs[r]);
-        
-        Polygons& tower_roof = towerRoofs[r];
-        if (tower_roof.size() > 0 && tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+        Polygons& tower_roof = towerRoofs[roof_idx];
+        if (tower_roof.size() > 0)
         {
-            towerRoofs[r] = tower_roof.offset(towerRoofExpansionDistance);
+            supportLayer_this = supportLayer_this.unionPolygons(tower_roof);
+
+            if (tower_roof[0].area() < supportTowerDiameter * supportTowerDiameter)
+            {
+                tower_roof = tower_roof.offset(towerRoofExpansionDistance);
+            }
+            else
+            {
+                tower_roof.clear();
+            }
         }
     }
 }

@@ -105,9 +105,11 @@ enum class EFillMethod
     LINES,
     GRID,
     CUBIC,
+    CUBICSUBDIV,
     TETRAHEDRAL,
     TRIANGLES,
     CONCENTRIC,
+    CONCENTRIC_3D,
     ZIG_ZAG,
     NONE
 };
@@ -119,7 +121,8 @@ enum class EPlatformAdhesion
 {
     SKIRT,
     BRIM,
-    RAFT
+    RAFT,
+    NONE
 };
 
 /*!
@@ -144,6 +147,12 @@ enum class ESurfaceMode
     NORMAL,
     SURFACE,
     BOTH
+};
+
+enum class FillPerimeterGapMode
+{
+    NOWHERE,
+    EVERYWHERE
 };
 
 enum class CombingMode
@@ -222,12 +231,13 @@ public:
     double getSettingInAngleDegrees(std::string key) const;
     double getSettingInAngleRadians(std::string key) const;
     double getSettingInMillimeters(std::string key) const;
-    int getSettingInMicrons(std::string key) const;
+    coord_t getSettingInMicrons(std::string key) const;
     bool getSettingBoolean(std::string key) const;
     double getSettingInDegreeCelsius(std::string key) const;
     double getSettingInMillimetersPerSecond(std::string key) const;
     double getSettingInCubicMillimeters(std::string key) const;
     double getSettingInPercentage(std::string key) const;
+    double getSettingAsRatio(std::string key) const; //!< For settings which are provided in percentage
     double getSettingInSeconds(std::string key) const;
 
     FlowTempGraph getSettingAsFlowTempGraph(std::string key) const;
@@ -240,6 +250,7 @@ public:
     ESupportType getSettingAsSupportType(std::string key) const;
     EZSeamType getSettingAsZSeamType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
+    FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key);
     SupportDistPriority getSettingAsSupportDistPriority(std::string key);
 };

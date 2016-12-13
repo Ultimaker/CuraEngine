@@ -4,9 +4,11 @@
 
 #include <memory> // shared_ptr
 
+#include "../utils/optional.h"
 #include "../utils/polygon.h"
 #include "../utils/SparsePointGridInclusive.h"
 #include "../utils/polygonUtils.h"
+#include "../utils/LazyInitialization.h"
 
 #include "LinePolygonsCrossings.h"
 #include "CombPath.h"
@@ -30,7 +32,7 @@ class SliceDataStorage;
  * As an optimization, the combing paths inside are calculated on specifically those PolygonsParts within which to comb, while the coundary_outside isn't split into outside parts, 
  * because generally there is only one outside part; encapsulated holes occur less often.
  */
-class Comb 
+class Comb
 {
     friend class LinePolygonsCrossings;
 private:
@@ -46,7 +48,9 @@ private:
         Point in_or_mid; //!< The point on the inside boundary, or in between the inside and outside boundary if the start/end point isn't inside the inside boudary
         Point out; //!< The point on the outside boundary
         PolygonsPart dest_part; //!< The assembled inside-boundary PolygonsPart in which the dest_point lies. (will only be initialized when Crossing::dest_is_inside holds)
-        PolygonRef dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        std::optional<PolygonRef> dest_crossing_poly; //!< The polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon)
+        const Polygons& boundary_inside; //!< The inside boundary as in \ref Comb::boundary_inside
+        const LocToLineGrid* inside_loc_to_line; //!< The loc to line grid \ref Comb::inside_loc_to_line
 
         /*!
          * Simple constructor
@@ -57,7 +61,7 @@ private:
          * \param dest_part_boundary_crossing_poly_idx The index in \p boundary_inside of the polygon of the part in which dest_point lies, which will be crossed (often will be the outside polygon).
          * \param boundary_inside The boundary within which to comb.
          */
-        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside);
+        Crossing(const Point& dest_point, const bool dest_is_inside, const unsigned int dest_part_idx, const unsigned int dest_part_boundary_crossing_poly_idx, const Polygons& boundary_inside, const LocToLineGrid* inside_loc_to_line);
 
         /*!
          * Find the not-outside location (Combing::in_or_mid) of the crossing between to the outside boundary
@@ -112,19 +116,20 @@ private:
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
     Polygons& boundary_inside; //!< The boundary within which to comb.
-    Polygons* boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>* outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
     PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
+    LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
+    LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
 
-    /*!
-     * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
-     */
-    Polygons& getBoundaryOutside();
-    
     /*!
      * Get the SparsePointGridInclusive mapping locations to line segments of the outside boundary. Calculate it when it hasn't been calculated yet.
      */
-    SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator>& getOutsideLocToLine();
+    LocToLineGrid& getOutsideLocToLine();
+
+     /*!
+      * Get the boundary_outside, which is an offset from the outlines of all meshes in the layer. Calculate it when it hasn't been calculated yet.
+      */
+    Polygons& getBoundaryOutside();
 
     /*!
      * Move the startPoint or endPoint inside when it should be inside
@@ -138,6 +143,9 @@ private:
 public:
     /*!
      * Initializes the combing areas for every mesh in the layer (not support)
+     * 
+     * \warning \ref Comb::calc changes the order of polygons in \p Comb::comb_boundary_inside
+     * 
      * \param storage Where the layer polygon data is stored
      * \param layer_nr The number of the layer for which to generate the combing areas.
      * \param comb_boundary_inside The comb boundary within which to comb within layer parts.
@@ -146,11 +154,13 @@ public:
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
     Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
-    
+
     ~Comb();
 
     /*!
      * Calculate the comb paths (if any) - one for each polygon combed alternated with travel paths
+     * 
+     * \warning Changes the order of polygons in \ref Comb::comb_boundary_inside
      * 
      * \param startPoint Where to start moving from
      * \param endPoint Where to move to
@@ -160,7 +170,7 @@ public:
      * \param via_outside_makes_combing_fail When going through air is inavoidable, stop calculation early and return false.
      * \param fail_on_unavoidable_obstacles When moving over other parts is inavoidable, stop calculation early and return false.
      * \return Whether combing has succeeded; otherwise a retraction is needed.
-     */    
+     */
     bool calc(Point startPoint, Point endPoint, CombPaths& combPaths, bool startInside, bool endInside, int64_t max_comb_distance_ignored, bool via_outside_makes_combing_fail, bool fail_on_unavoidable_obstacles);
 };
 

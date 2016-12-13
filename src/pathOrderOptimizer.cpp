@@ -92,7 +92,7 @@ int PathOrderOptimizer::getPolyStart(Point prev_point, int poly_idx)
 {
     switch (type)
     {
-        case EZSeamType::BACK:      return getFarthestPointInPolygon(poly_idx); 
+        case EZSeamType::BACK:      return getClosestPointInPolygon(z_seam_pos, poly_idx); 
         case EZSeamType::RANDOM:    return getRandomPointInPolygon(poly_idx); 
         case EZSeamType::SHORTEST:  return getClosestPointInPolygon(prev_point, poly_idx);
         default:                    return getClosestPointInPolygon(prev_point, poly_idx);
@@ -128,24 +128,6 @@ int PathOrderOptimizer::getRandomPointInPolygon(int poly_idx)
 {
     return rand() % polygons[poly_idx].size();
 }
-
-
-int PathOrderOptimizer::getFarthestPointInPolygon(int poly_idx)
-{
-    PolygonRef poly = polygons[poly_idx];
-    int best_point_idx = -1;
-    float best_y = std::numeric_limits<float>::min();
-    for(unsigned int point_idx=0 ; point_idx<poly.size() ; point_idx++)
-    {
-        if (poly[point_idx].Y > best_y)
-        {
-            best_point_idx = point_idx;
-            best_y = poly[point_idx].Y;
-        }
-    }
-    return best_point_idx;
-}
-
 
 /**
 *

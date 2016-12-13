@@ -66,6 +66,7 @@ set(engine_SRCS # Except main.cpp.
     src/MeshGroup.cpp
     src/multiVolumes.cpp
     src/pathOrderOptimizer.cpp
+    src/Preheat.cpp
     src/PrimeTower.cpp
     src/raft.cpp
     src/skin.cpp
@@ -84,9 +85,13 @@ set(engine_SRCS # Except main.cpp.
     src/infill/ZigzagConnectorProcessorDisconnectedEndPieces.cpp
     src/infill/ZigzagConnectorProcessorEndPieces.cpp
     src/infill/ZigzagConnectorProcessorNoEndPieces.cpp
+    src/infill/SubDivCube.cpp
 
     src/pathPlanning/Comb.cpp
+    src/pathPlanning/GCodePath.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp
+    src/pathPlanning/NozzleTempInsert.cpp
+    src/pathPlanning/TimeMaterialEstimates.cpp
 
     src/progress/Progress.cpp
     src/progress/ProgressStageEstimator.cpp

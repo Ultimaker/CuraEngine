@@ -109,9 +109,7 @@ protected:
      */
     void addLine(Point from, Point to)
     {
-        PolygonRef line_poly = result.newPoly();
-        line_poly.add(rotation_matrix.unapply(from));
-        line_poly.add(rotation_matrix.unapply(to));
+        result.addLine(rotation_matrix.unapply(from), rotation_matrix.unapply(to));
     }
 
     /*!

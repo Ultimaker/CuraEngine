@@ -42,7 +42,7 @@ std::string toString(EGCodeFlavor flavor)
 }
 
 SettingsBaseVirtual::SettingsBaseVirtual()
-: parent(NULL)
+: parent(nullptr)
 {
 }
 
@@ -52,7 +52,7 @@ SettingsBaseVirtual::SettingsBaseVirtual(SettingsBaseVirtual* parent)
 }
 
 SettingsBase::SettingsBase()
-: SettingsBaseVirtual(NULL)
+: SettingsBaseVirtual(nullptr)
 {
 }
 
@@ -156,7 +156,7 @@ double SettingsBaseVirtual::getSettingInMillimeters(std::string key) const
     return atof(value.c_str());
 }
 
-int SettingsBaseVirtual::getSettingInMicrons(std::string key) const
+coord_t SettingsBaseVirtual::getSettingInMicrons(std::string key) const
 {
     return getSettingInMillimeters(key) * 1000.0;
 }
@@ -208,6 +208,12 @@ double SettingsBaseVirtual::getSettingInPercentage(std::string key) const
 {
     std::string value = getSettingString(key);
     return std::max(0.0, atof(value.c_str()));
+}
+
+double SettingsBaseVirtual::getSettingAsRatio(std::string key) const
+{
+    std::string value = getSettingString(key);
+    return atof(value.c_str()) / 100.0;
 }
 
 double SettingsBaseVirtual::getSettingInSeconds(std::string key) const
@@ -345,12 +351,16 @@ EFillMethod SettingsBaseVirtual::getSettingAsFillMethod(std::string key) const
         return EFillMethod::GRID;
     if (value == "cubic")
         return EFillMethod::CUBIC;
+    if (value == "cubicsubdiv")
+        return EFillMethod::CUBICSUBDIV;
     if (value == "tetrahedral")
         return EFillMethod::TETRAHEDRAL;
     if (value == "triangles")
         return EFillMethod::TRIANGLES;
     if (value == "concentric")
         return EFillMethod::CONCENTRIC;
+    if (value == "concentric_3d")
+        return EFillMethod::CONCENTRIC_3D;
     if (value == "zigzag")
         return EFillMethod::ZIG_ZAG;
     return EFillMethod::NONE;
@@ -363,6 +373,8 @@ EPlatformAdhesion SettingsBaseVirtual::getSettingAsPlatformAdhesion(std::string 
         return EPlatformAdhesion::BRIM;
     if (value == "raft")
         return EPlatformAdhesion::RAFT;
+    if (value == "none")
+        return EPlatformAdhesion::NONE;
     return EPlatformAdhesion::SKIRT;
 }
 
@@ -398,6 +410,20 @@ ESurfaceMode SettingsBaseVirtual::getSettingAsSurfaceMode(std::string key) const
     if (value == "both")
         return ESurfaceMode::BOTH;
     return ESurfaceMode::NORMAL;
+}
+
+FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::string key) const
+{
+    std::string value = getSettingString(key);
+    if (value == "nowhere")
+    {
+        return FillPerimeterGapMode::NOWHERE;
+    }
+    if (value == "everywhere")
+    {
+        return FillPerimeterGapMode::EVERYWHERE;
+    }
+    return FillPerimeterGapMode::NOWHERE;
 }
 
 CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)

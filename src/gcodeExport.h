@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (c) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
@@ -98,6 +101,8 @@ private:
     double current_acceleration; //!< The current acceleration in the XY direction (in mm/s^2)
     double current_jerk; //!< The current jerk in the XY direction (in mm/s^3)
     double current_max_z_feedrate; //!< The current max z speed
+
+    AABB3D total_bounding_box; //!< The bounding box of all g-code.
 
     /*!
      * The z position to be used on the next xy move, if the head wasn't in the correct z position yet.
@@ -261,7 +266,17 @@ private:
      */
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
-    void writeRetraction(RetractionConfig* config, bool force = false, bool extruder_switch = false);
+    void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
+
+    /*!
+     * \brief Retract the filament to parking position.
+     *
+     * This ignores the maximum number of retractions. Parking is meant to be
+     * done the end of the print.
+     *
+     * \param config The configuration from which to get the park distance.
+     */
+    void writePark(const RetractionConfig& config);
 
     /*!
      * Start a z hop with the given \p hop_height
@@ -269,6 +284,12 @@ public:
      * \param hop_height The height to move above the current layer
      */
     void writeZhopStart(int hop_height);
+
+    /*!
+     * End a z hop: go back to the layer height
+     * 
+     */
+    void writeZhopEnd();
 
     /*!
      * Start the new_extruder: 
@@ -290,8 +311,10 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
+     * \param turn_off_extruder Should the old extruder be turned off
+     * completely?
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder = false);
 
     void writeCode(const char* str);
     
@@ -343,12 +366,16 @@ public:
      * See FffGcodeWriter::processStartingCode
      * 
      * \param settings The meshgroup to get the global bed temp from and to get the extruder trains from which to get the nozzle temperatures
+     * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialTemps(const MeshGroup& settings);
+    void setInitialTemps(const MeshGroup& settings, const unsigned int start_extruder_nr);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps
      * This is used primarily during better specification of temperatures in LayerPlanBuffer::insertPreheatCommand
+     * 
+     * \warning This function must be called before any of the layers in the meshgroup are written to file!
+     * That's because it sets the current temperature in the gcode!
      * 
      * \param extruder_nr The extruder number for which to better specify the temp
      * \param temp The temp at which the nozzle should be at startup

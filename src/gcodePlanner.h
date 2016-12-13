@@ -6,6 +6,9 @@
 
 #include "gcodeExport.h"
 #include "pathPlanning/Comb.h"
+#include "pathPlanning/GCodePath.h"
+#include "pathPlanning/NozzleTempInsert.h"
+#include "pathPlanning/TimeMaterialEstimates.h"
 #include "utils/polygon.h"
 #include "utils/logoutput.h"
 #include "wallOverlap.h"
@@ -20,249 +23,6 @@ namespace cura
 {
 
 class SliceDataStorage;
-
-/*!
- * A gcode command to insert before a specific path.
- * 
- * Currently only used for preheat commands
- */
-struct NozzleTempInsert
-{
-    const unsigned int path_idx; //!< The path before which to insert this command
-    double time_after_path_start; //!< The time after the start of the path, before which to insert the command // TODO: use this to insert command in between moves in a path!
-    int extruder; //!< The extruder for which to set the temp
-    double temperature; //!< The temperature of the temperature command to insert
-    bool wait; //!< Whether to wait for the temperature to be reached
-    NozzleTempInsert(unsigned int path_idx, int extruder, double temperature, bool wait, double time_after_path_start = 0.0)
-    : path_idx(path_idx)
-    , time_after_path_start(time_after_path_start)
-    , extruder(extruder)
-    , temperature(temperature)
-    , wait(wait)
-    {}
-    
-    /*!
-     * Write the temperature command at the current position in the gcode.
-     * \param gcode The actual gcode writer
-     */
-    void write(GCodeExport& gcode)
-    {
-        gcode.writeTemperatureCommand(extruder, temperature, wait);
-    }
-};
-
-class ExtruderPlan; // forward declaration so that TimeMaterialEstimates can be a friend
-
-
-/*!
- * Time and material estimates for a portion of paths, e.g. layer, extruder plan, path.
- */
-class TimeMaterialEstimates
-{
-    friend class ExtruderPlan; // cause there the naive estimates are calculated
-private:
-    double extrude_time; //!< Time in seconds occupied by extrusion
-    double unretracted_travel_time; //!< Time in seconds occupied by non-retracted travel (non-extrusion)
-    double retracted_travel_time; //!< Time in seconds occupied by retracted travel (non-extrusion)
-    double material; //!< Material used (in mm^3)
-public:
-    /*!
-     * Basic contructor
-     * 
-     * \param extrude_time Time in seconds occupied by extrusion
-     * \param unretracted_travel_time Time in seconds occupied by non-retracted travel (non-extrusion)
-     * \param retracted_travel_time Time in seconds occupied by retracted travel (non-extrusion)
-     * \param material Material used (in mm^3)
-     */
-    TimeMaterialEstimates(double extrude_time, double unretracted_travel_time, double retracted_travel_time, double material)
-    : extrude_time(extrude_time)
-    , unretracted_travel_time(unretracted_travel_time)
-    , retracted_travel_time(retracted_travel_time)
-    , material(material)
-    {
-    }
-
-    /*!
-     * Basic constructor initializing all estimates to zero.
-     */
-    TimeMaterialEstimates()
-    : extrude_time(0.0)
-    , unretracted_travel_time(0.0)
-    , retracted_travel_time(0.0)
-    , material(0.0)
-    {
-    }
-
-    /*!
-     * Set all estimates to zero.
-     */
-    void reset() 
-    {
-        extrude_time = 0.0;
-        unretracted_travel_time = 0.0;
-        retracted_travel_time = 0.0;
-        material = 0.0;
-    }
-
-    /*!
-     * Pointwise addition of estimate stats
-     * 
-     * \param other The estimates to add to these estimates.
-     * \return The resulting estimates
-     */
-    TimeMaterialEstimates operator+(const TimeMaterialEstimates& other)
-    {
-        return TimeMaterialEstimates(extrude_time+other.extrude_time, unretracted_travel_time+other.unretracted_travel_time, retracted_travel_time+other.retracted_travel_time, material+other.material);
-    }
-
-    /*!
-     * In place pointwise addition of estimate stats
-     * 
-     * \param other The estimates to add to these estimates.
-     * \return These estimates
-     */
-    TimeMaterialEstimates& operator+=(const TimeMaterialEstimates& other)
-    {
-        extrude_time += other.extrude_time;
-        unretracted_travel_time += other.unretracted_travel_time;
-        retracted_travel_time += other.retracted_travel_time;
-        material += other.material;
-        return *this;
-    }
-
-    /*!
-     * \brief Subtracts the specified estimates from these estimates and returns
-     * the result.
-     * 
-     * Each of the estimates in this class are individually subtracted.
-     * 
-     * \param other The estimates to subtract from these estimates.
-     * \return These estimates with the specified estimates subtracted.
-     */
-    TimeMaterialEstimates operator-(const TimeMaterialEstimates& other);
-
-    /*!
-     * \brief Subtracts the specified elements from these estimates.
-     * 
-     * This causes the estimates in this instance to change. Each of the
-     * estimates in this class are individually subtracted.
-     * 
-     * \param other The estimates to subtract from these estimates.
-     * \return A reference to this instance.
-     */
-    TimeMaterialEstimates& operator-=(const TimeMaterialEstimates& other);
-
-    /*!
-     * Get total time estimate. The different time estimate member values added together.
-     * 
-     * \return the total of all different time estimate values 
-     */
-    double getTotalTime() const
-    {
-        return extrude_time + unretracted_travel_time + retracted_travel_time;
-    }
-
-    /*!
-     * Get the total time during which the head is not retracted.
-     * 
-     * This includes extrusion time and non-retracted travel time
-     * 
-     * \return the total time during which the head is not retracted.
-     */
-    double getTotalUnretractedTime() const
-    {
-        return extrude_time + unretracted_travel_time;
-    }
-
-    /*!
-     * Get the total travel time.
-     * 
-     * This includes the retracted travel time as well as the unretracted travel time.
-     * 
-     * \return the total travel time.
-     */
-    double getTravelTime() const
-    {
-        return retracted_travel_time + unretracted_travel_time;
-    }
-
-    /*!
-     * Get the extrusion time.
-     * 
-     * \return extrusion time.
-     */
-    double getExtrudeTime() const
-    {
-        return extrude_time;
-    }
-
-    /*!
-     * Get the amount of material used in mm^3.
-     * 
-     * \return amount of material
-     */
-    double getMaterial() const
-    {
-        return material;
-    }
-};
-
-/*!
- * A class for representing a planned path.
- * 
- * A path consists of several segments of the same type of movement: retracted travel, infill extrusion, etc.
- * 
- * This is a compact premature representation in which are line segments have the same config, i.e. the config of this path.
- * 
- * In the final representation (gcode) each line segment may have different properties, 
- * which are added when the generated GCodePaths are processed.
- */
-class GCodePath
-{
-public:
-    GCodePathConfig* config; //!< The configuration settings of the path.
-    SpaceFillType space_fill_type; //!< The type of space filling of which this path is a part
-    float flow; //!< A type-independent flow configuration (used for wall overlap compensation)
-    bool retract; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path. 
-    bool perform_z_hop; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
-    std::vector<Point> points; //!< The points constituting this path.
-    bool done;//!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
-
-    bool spiralize; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and end in one layer higher.
-
-    TimeMaterialEstimates estimates; //!< Naive time and material estimates
-
-    /*!
-     * Whether this config is the config of a travel path.
-     * 
-     * \return Whether this config is the config of a travel path.
-     */
-    bool isTravelPath()
-    {
-        return config->isTravelPath();
-    }
-
-    /*!
-     * Get the material flow in mm^3 per mm traversed.
-     * 
-     * \warning Can only be called after the layer height has been set (which is done while writing the gcode!)
-     * 
-     * \return The flow
-     */
-    double getExtrusionMM3perMM()
-    {
-        return flow * config->getExtrusionMM3perMM();
-    }
-    
-    /*!
-     * Get the actual line width (modulated by the flow)
-     * \return the actual line width as shown in layer view
-     */
-    int getLineWidth()
-    {
-        return flow * config->getLineWidth() * config->getFlowPercentage() / 100.0;
-    }
-};
 
 class GCodePlanner; // forward declaration so that ExtruderPlan can be a friend
 class LayerPlanBuffer; // forward declaration so that ExtruderPlan can be a friend
@@ -281,7 +41,10 @@ protected:
     std::list<NozzleTempInsert> inserts; //!< The nozzle temperature command inserts, to be inserted in between paths
 
     int extruder; //!< The extruder used for this paths in the current plan.
-    double required_temp; //!< The required temperature at the start of this extruder plan.
+    double heated_pre_travel_time; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
+    double initial_printing_temperature; //!< The required temperature at the start of this extruder plan.
+    double printing_temperature; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate because of the initial and final print temp
+    std::optional<std::list<NozzleTempInsert>::iterator> printing_temperature_command; //!< The command to heat from the printing temperature of this extruder plan to the printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
     TimeMaterialEstimates estimates; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
@@ -294,7 +57,7 @@ public:
      * \param extruder The extruder number for which this object is a plan.
      * \param start_position The position the head is when this extruder plan starts
      */
-    ExtruderPlan(int extruder, Point start_position, int layer_nr, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -398,6 +161,8 @@ protected:
     Point start_position; //!< The position the print head was at at the start of this extruder plan
 
     int layer_nr; //!< The layer number at which we are currently printing.
+    bool is_initial_layer; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
+
     int layer_thickness; //!< The thickness of this layer in Z-direction
 
     FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
@@ -454,6 +219,7 @@ private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
     int layer_nr; //!< The layer number of this layer plan
+    int is_initial_layer; //!< Whether this is the first layer (which might be raft)
     
     int z; 
     
@@ -486,7 +252,8 @@ private:
      * \return A path with the given config which is now the last path in GCodePlanner::paths
      */
     GCodePath* getLatestPathWithConfig(GCodePathConfig* config, SpaceFillType space_fill_type, float flow = 1.0, bool spiralize = false);
-    
+
+public:
     /*!
      * Force GCodePlanner::getLatestPathWithConfig to return a new path.
      * 
@@ -498,7 +265,7 @@ private:
      * - when changing extruder, the same travel config is used, but its extruder field is changed.
      */
     void forceNewPathStart();
-public:
+
     /*!
      * 
      * \param fan_speed_layer_time_settings_per_extruder The fan speed and layer time settings for each extruder.
@@ -507,7 +274,7 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(SliceDataStorage& storage, unsigned int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     void overrideFanSpeeds(double speed);
@@ -557,7 +324,13 @@ public:
     * Features like prime tower and support are considered outside.
     */
     void setIsInside(bool going_to_comb);
-    
+
+    /*!
+     * Plan a switch to a new extruder
+     * 
+     * \param extruder The extruder number to which to switch
+     * \return whether the extruder has changed
+     */
     bool setExtruder(int extruder);
 
     /*!
@@ -576,7 +349,7 @@ public:
      * 
      * \param p The point to travel to
      */
-    void addTravel(Point p);
+    GCodePath& addTravel(Point p);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -586,7 +359,14 @@ public:
      * \param p The point to travel to
      * \param path (optional) The travel path to which to add the point \p p
      */
-    void addTravel_simple(Point p, GCodePath* path = nullptr);
+    GCodePath& addTravel_simple(Point p, GCodePath* path = nullptr);
+
+    /*!
+     * Plan a prime poop at the current location.
+     * 
+     * \warning A nonretracted move is introduced so that the LayerPlanBuffer classifies this move as an extrusion move.
+     */
+    void planPrime();
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
@@ -605,9 +385,10 @@ public:
      * \param startIdx The index of the starting vertex of the \p polygon
      * \param config The config with which to print the polygon lines
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
+     * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      */
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, bool spiralize = false);
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -622,9 +403,11 @@ public:
      * \param config The config with which to print the polygon lines
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param z_seam_type The seam type / poly start optimizer
+     * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
+     * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
      */
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, bool spiralize = false);
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false);
 
     /*!
      * Add lines to the gcode with optimized order.

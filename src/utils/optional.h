@@ -3,6 +3,8 @@
 #define UTILS_OPTIONAL_H
 
 #include <algorithm> // swap
+#include <type_traits> // enable_if  is_same
+#include <cassert> // assert
 
 namespace std
 {
@@ -19,6 +21,7 @@ namespace std
 template<typename T>
 class optional
 {
+protected:
     T* instance;
 public:
     optional() //!< create an optional value which is not instantiated
@@ -42,11 +45,11 @@ public:
         other.instance = nullptr;
     }
     template<class... Args>
-    constexpr explicit optional(bool not_used, Args&&... args ) //!< construct the value in place
+    constexpr explicit optional(bool, Args&&... args ) //!< construct the value in place
     : instance(new T(args...))
     {
     }
-    ~optional() //!< simple destructor
+    virtual ~optional() //!< simple destructor
     {
         if (instance)
         {
@@ -59,7 +62,7 @@ public:
      * \param null_ptr exactly [nullptr]
      * \return this
      */
-    optional& operator=(std::nullptr_t null_ptr)
+    optional& operator=(std::nullptr_t)
     {
         if (instance)
         {
@@ -72,13 +75,13 @@ public:
     {
         if (instance)
         {
-            delete instance;
             if (other.instance)
             {
                 *instance = *other.instance;
             }
             else
             {
+                delete instance;
                 instance = nullptr;
             }
         }
@@ -101,12 +104,14 @@ public:
         other.instance = nullptr;
         return *this;
     }
-    template<class U> 
+    template<class U = T
+        , typename = typename std::enable_if<std::is_assignable<T&, U>::value>::type // type U is T, T& or T&&
+        >
     optional& operator=(U&& value)
     {
         if (instance)
         {
-            *instance = value;
+            *instance = std::forward<U>(value);
         }
         else
         {
@@ -116,10 +121,12 @@ public:
     }
     constexpr T* operator->() const
     {
+        assert(instance && "Instance should be instantiated!");
         return instance;
     }
     constexpr T& operator*() const&
     {
+        assert(instance && "Instance should be instantiated!");
         return *instance;
     }
     constexpr explicit operator bool() const

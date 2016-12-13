@@ -285,6 +285,66 @@ public:
     }
 };
 
+class Point3Matrix
+{
+public:
+    double matrix[9];
+
+    Point3Matrix()
+    {
+        matrix[0] = 1;
+        matrix[1] = 0;
+        matrix[2] = 0;
+        matrix[3] = 0;
+        matrix[4] = 1;
+        matrix[5] = 0;
+        matrix[6] = 0;
+        matrix[7] = 0;
+        matrix[8] = 1;
+    }
+
+    /*!
+     * Initializes the top left corner with the values of \p b
+     * and the rest as if it's a unit matrix
+     */
+    Point3Matrix(const PointMatrix& b)
+    {
+        matrix[0] = b.matrix[0];
+        matrix[1] = b.matrix[1];
+        matrix[2] = 0;
+        matrix[3] = b.matrix[2];
+        matrix[4] = b.matrix[3];
+        matrix[5] = 0;
+        matrix[6] = 0;
+        matrix[7] = 0;
+        matrix[8] = 1;
+    }
+
+    Point3 apply(const Point3 p) const
+    {
+        return Point3(p.x * matrix[0] + p.y * matrix[1] + p.z * matrix[2]
+                    , p.x * matrix[3] + p.y * matrix[4] + p.z * matrix[5]
+                    , p.x * matrix[6] + p.y * matrix[7] + p.z * matrix[8]);
+    }
+
+    Point3Matrix compose(const Point3Matrix& b)
+    {
+        Point3Matrix ret;
+        for (int outx = 0; outx < 3; outx++)
+        {
+            for (int outy = 0; outy < 3; outy++)
+            {
+                ret.matrix[outy * 3 + outx] = 0;
+                for (int in = 0; in < 3; in++)
+                {
+                    ret.matrix[outy * 3 + outx] += matrix[outy * 3 + in] * b.matrix[in * 3 + outx];
+                }
+            }
+        }
+        return ret;
+    }
+};
+
 
 inline Point3 operator+(const Point3& p3, const Point& p2) {
     return Point3(p3.x + p2.X, p3.y + p2.Y, p3.z);

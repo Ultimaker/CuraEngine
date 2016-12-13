@@ -43,7 +43,7 @@ int Raft::getZdiffBetweenRaftAndLayer1(const SliceDataStorage& storage)
     {
         return 0;
     }
-    const int64_t airgap = std::max(0, train.getSettingInMicrons("raft_airgap"));
+    const int64_t airgap = std::max((coord_t)0, train.getSettingInMicrons("raft_airgap"));
     const int64_t layer_0_overlap = storage.getSettingInMicrons("layer_0_z_overlap");
 
     const int64_t layer_height_0 = storage.getSettingInMicrons("layer_height_0");
@@ -75,6 +75,10 @@ int Raft::getFillerLayerHeight(const SliceDataStorage& storage)
 int Raft::getTotalExtraLayers(const SliceDataStorage& storage)
 {
     const ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("adhesion_extruder_nr"));
+    if (train.getSettingAsPlatformAdhesion("adhesion_type") != EPlatformAdhesion::RAFT)
+    {
+        return 0;
+    }
     return 2 + train.getSettingAsCount("raft_surface_layers") + getFillerLayerCount(storage);
 }
 

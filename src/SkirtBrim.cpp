@@ -1,4 +1,7 @@
-/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
+//Copyright (C) 2013 David Braam
+//Copyright (c) 2016 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "SkirtBrim.h"
 #include "support.h"
 
@@ -19,7 +22,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     { // add brim underneath support by removing support where there's brim around the model
         const bool include_helper_parts = false; // include manually below
         first_layer_outline = storage.getLayerOutlines(layer_nr, include_helper_parts, external_only);
-        first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
+        first_layer_outline = first_layer_outline.unionPolygons(); //To guard against overlapping outlines, which would produce holes according to the even-odd rule.
         Polygons first_layer_empty_holes;
         if (outside_only)
         {
@@ -35,7 +38,7 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             //  || ||     ||[]|| > expand to fit an extra brim line
             //  |+-+|     |+--+|
             //  +---+     +----+ 
-            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2)); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
+            Polygons model_brim_covered_area = first_layer_outline.offset(primary_extruder_skirt_brim_line_width * (primary_line_count + primary_line_count % 2), ClipperLib::jtRound); // always leave a gap of an even number of brim lines, so that it fits if it's generating brim from both sides
             if (outside_only)
             { // don't remove support within empty holes where no brim is generated.
                 model_brim_covered_area.add(first_layer_empty_holes);
@@ -44,6 +47,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
             support_layer.supportAreas = support_layer.supportAreas.difference(model_brim_covered_area);
             first_layer_outline.add(support_layer.supportAreas);
             first_layer_outline.add(support_layer.skin);
+        }
+        if (storage.primeTower.enabled)
+        {
+            first_layer_outline.add(storage.primeTower.ground_poly); // don't remove parts of the prime tower, but make a brim for it
         }
     }
     constexpr int join_distance = 20;

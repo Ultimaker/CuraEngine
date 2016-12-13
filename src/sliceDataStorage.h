@@ -125,6 +125,8 @@ class SupportLayer
 public:
     Polygons supportAreas; //!< normal support areas
     Polygons skin; //!< the support areas which are to be printed as denser roofs and/or bottoms. Note that the roof/bottom areas and support areas should be mutually exclusive.
+    Polygons support_mesh; //!< Areas from support meshes
+    Polygons anti_overhang; //!< Areas where no overhang should be detected.
 };
 
 class SupportStorage
@@ -141,6 +143,8 @@ public:
 };
 /******************/
 
+class SubDivCube; // forward declaration to prevent dependency loop
+
 class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
 {
 public:
@@ -153,24 +157,31 @@ public:
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
 
+    SubDivCube* base_subdiv_cube;
+
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
     , layer_nr_max_filled_layer(0)
     , inset0_config(PrintFeatureType::OuterWall)
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
+    , base_subdiv_cube(nullptr)
     {
-        layers.reserve(slice_layer_count);
+        layers.resize(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
         for(int n=0; n<MAX_INFILL_COMBINE; n++)
             infill_config.emplace_back(PrintFeatureType::Infill);
     }
+
+    virtual ~SliceMeshStorage();
 };
 
 class SliceDataStorage : public SettingsMessenger, NoCopy
 {
 public:
     MeshGroup* meshgroup; // needed to pass on the per extruder settings.. (TODO: put this somewhere else? Put the per object settings here directly, or a pointer only to the per object settings.)
+
+    unsigned int print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3 model_size, model_min, model_max;
     std::vector<SliceMeshStorage> meshes;
@@ -195,7 +206,10 @@ public:
     Polygons skirt_brim[MAX_EXTRUDERS]; //!< Skirt and brim polygons per extruder, ordered from inner to outer polygons.
     Polygons raftOutline;               //Storage for the outline of the raft. Will be filled with lines when the GCode is generated.
 
-    int max_object_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
+    int max_print_height_second_to_last_extruder; //!< Used in multi-extrusion: the layer number beyond which all models are printed with the same extruder
+    std::vector<int> max_print_height_per_extruder; //!< For each extruder the highest layer number at which it is used.
+    std::vector<size_t> max_print_height_order; //!< Ordered indices into max_print_height_per_extruder: back() will return the extruder number with the highest print height.
+
     PrimeTower primeTower;
 
     std::vector<Polygons> oozeShield;        //oozeShield per layer
@@ -256,7 +270,15 @@ public:
      * 
      * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
      */
-    std::vector<bool> getExtrudersUsed();
+    std::vector<bool> getExtrudersUsed() const;
+
+    /*!
+     * Get the extruders used on a particular layer.
+     * 
+     * \param layer_nr the layer for which to check
+     * \return a vector of bools indicating whether the extruder with corresponding index is used in this layer.
+     */
+    std::vector<bool> getExtrudersUsed(int layer_nr) const;
 };
 
 }//namespace cura

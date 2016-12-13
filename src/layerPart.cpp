@@ -46,7 +46,6 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer, bool union_layers,
 {
     for(unsigned int layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
     {
-        mesh.layers.push_back(SliceLayer());
         mesh.layers[layer_nr].sliceZ = slicer->layers[layer_nr].z;
         mesh.layers[layer_nr].printZ = slicer->layers[layer_nr].z;
         createLayerWithParts(mesh.layers[layer_nr], &slicer->layers[layer_nr], union_layers, union_all_remove_holes);
