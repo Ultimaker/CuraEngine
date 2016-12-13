@@ -663,7 +663,6 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
         RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
-        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
 
         if (extruder != extruder_plan.extruder)
         {
@@ -671,6 +670,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             extruder = extruder_plan.extruder;
             gcode.switchExtruder(extruder, storage.extruder_switch_retraction_config_per_extruder[prev_extruder]);
 
+            const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
             if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
             {
                 gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
@@ -682,7 +682,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             }
 
             // prime extruder if it hadn't been used yet
-            gcode.writePrimeTrain(train->getSettingInMillimetersPerSecond("speed_travel"));
+            gcode.writePrimeTrain(storage.meshgroup->getExtruderTrain(extruder)->getSettingInMillimetersPerSecond("speed_travel"));
             gcode.writeRetraction(retraction_config);
 
             if (extruder_plan.prev_extruder_standby_temp)
@@ -697,7 +697,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 gcode.writeTemperatureCommand(prev_extruder, prev_extruder_temp, wait);
             }
         }
-        else if (extruder_plan_idx == 0 && layer_nr != 0 && train->getSettingBoolean("retract_at_layer_change"))
+        else if (extruder_plan_idx == 0 && layer_nr != 0 && storage.meshgroup->getExtruderTrain(extruder)->getSettingBoolean("retract_at_layer_change"))
         {
             gcode.writeRetraction(retraction_config);
         }
@@ -708,6 +708,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
                 return  a.path_idx < b.path_idx; 
             } );
 
+        const ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder);
         if (train->getSettingInMillimetersPerSecond("max_feedrate_z_override") > 0)
         {
             gcode.writeMaxZFeedrate(train->getSettingInMillimetersPerSecond("max_feedrate_z_override"));
