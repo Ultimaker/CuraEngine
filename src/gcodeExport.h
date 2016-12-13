@@ -1,7 +1,4 @@
-//Copyright (c) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
@@ -265,16 +262,6 @@ private:
     void writeMoveBFB(int x, int y, int z, double speed, double extrusion_mm3_per_mm);
 public:
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
-
-    /*!
-     * \brief Retract the filament to parking position.
-     *
-     * This ignores the maximum retraction limit. Parking position is meant to
-     * be at the end of the print.
-     *
-     * \param config The configuration from which to get the park distance.
-     */
-    void writePark(const RetractionConfig& config);
 
     /*!
      * Start a z hop with the given \p hop_height

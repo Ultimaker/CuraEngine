@@ -1,7 +1,4 @@
-//Copyright (c) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
@@ -719,37 +716,6 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     extr_attr.retraction_e_amount_current = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume += config.prime_volume;
 
-}
-
-void GCodeExport::writePark(const RetractionConfig& config)
-{
-    if (flavor == EGCodeFlavor::BFB) //BitsFromBytes doesn't allow retracting a manual amount. Do a normal retract instead.
-    {
-        writeRetraction(&config);
-        return;
-    }
-
-    ExtruderTrainAttributes extruder_attributes = extruder_attr[current_extruder];
-
-    const double old_retraction_e = extruder_attributes.retraction_e_amount_current;
-    const double target_retraction_e = mmToE(config.park_distance);
-    const double to_retract_e = target_retraction_e - old_retraction_e;
-    if (to_retract_e < 0.001) //Already in parking position or beyond.
-    {
-        return;
-    }
-    if (firmware_retract) //Doesn't allow retracting a manual amount either, but we can track the retractions.
-    {
-        writeRetraction(&config);
-        return;
-    }
-
-    //Write a retraction move with G1.
-    *output_stream << "G1 F" << PrecisionedDouble{1, config.speed} << " " << extruder_attributes.extruderCharacter << PrecisionedDouble{5, current_e_value} << new_line;
-    current_e_value += to_retract_e;
-    currentSpeed = config.speed;
-    estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value)), currentSpeed);
-    extruder_attributes.retraction_e_amount_current = target_retraction_e;
 }
 
 void GCodeExport::writeZhopStart(int hop_height)
