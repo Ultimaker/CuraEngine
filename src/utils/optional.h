@@ -45,7 +45,7 @@ public:
         other.instance = nullptr;
     }
     template<class... Args>
-    constexpr explicit optional(bool, Args&&... args ) //!< construct the value in place
+    constexpr explicit optional(bool not_used, Args&&... args ) //!< construct the value in place
     : instance(new T(args...))
     {
     }
@@ -62,7 +62,7 @@ public:
      * \param null_ptr exactly [nullptr]
      * \return this
      */
-    optional& operator=(std::nullptr_t)
+    optional& operator=(std::nullptr_t null_ptr)
     {
         if (instance)
         {
