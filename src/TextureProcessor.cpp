@@ -2,6 +2,7 @@
 
 #include <algorithm> // swap
 
+#include "utils/optional.h"
 #include "slicer/SlicerSegment.h"
 
 namespace cura 
@@ -36,14 +37,32 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
         Point* p0 = &poly.back();
         for (Point& p1 : poly)
         { // 'a' is the (next) new point between p0 and p1
-            SlicerSegment segment(*p0, p1);
-            auto it = layer.segment_to_material_segment.find(segment);
-            if (it != layer.segment_to_material_segment.end())
+            if (*p0 == p1)
             {
-                MatSegment& mat = it->second;
+                continue;
+            }
+            SlicerSegment segment(*p0, p1);
+            std::optional<std::pair<SlicerSegment, MatSegment>> best_mat_segment_it;
+            coord_t best_dist_score = std::numeric_limits<coord_t>::max();
+            for (std::unordered_map<SlicerSegment, MatSegment>::iterator it = layer.segment_to_material_segment.begin(); it != layer.segment_to_material_segment.end(); ++it)
+            {
+                const SlicerSegment& sliced_segment = it->first;
+                coord_t dist_score = std::min(
+                        vSize2(sliced_segment.start - segment.start) + vSize2(sliced_segment.end - segment.end)
+                        , vSize2(sliced_segment.end - segment.start) + vSize2(sliced_segment.start - segment.end)
+                    );
+                if (dist_score < best_dist_score)
+                {
+                    best_dist_score = dist_score;
+                    best_mat_segment_it = *it;
+                }
+            }
+            if (best_dist_score < 30 * 30) // TODO: magic value of 0.03mm for total stitching distance > should be something like SlicerLayer.cpp::largest_neglected_gap_second_phase (?)
+            {
+                MatSegment& mat = best_mat_segment_it->second;
                 MatCoord mat_start = mat.start;
                 MatCoord mat_end = mat.end;
-                if (it->first.start != *p0)
+                if (vSize2(best_mat_segment_it->first.start - *p0) > vSize2(best_mat_segment_it->first.start - p1))
                 {
                     std::swap(mat_start, mat_end);
                 }
