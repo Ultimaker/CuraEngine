@@ -2,8 +2,8 @@
 
 #include <algorithm> // swap
 
-#include "utils/optional.h"
-#include "slicer/SlicerSegment.h"
+#include "../utils/optional.h"
+#include "../slicer/SlicerSegment.h"
 
 namespace cura 
 {

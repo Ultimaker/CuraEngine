@@ -3,7 +3,7 @@
 #include "TexturedMesh.h"
 
 #include <cassert>
-#include "utils/logoutput.h"
+#include "../utils/logoutput.h"
 
 namespace cura
 {

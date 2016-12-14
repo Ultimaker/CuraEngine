@@ -1,6 +1,6 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef MATERIAL_BASE_H
-#define MATERIAL_BASE_H
+#ifndef TEXTURE_PROCESSING_MATERIAL_BASE_H
+#define TEXTURE_PROCESSING_MATERIAL_BASE_H
 
 #include <unordered_map>
 #include <string>
@@ -24,4 +24,4 @@ protected:
 
 } // namespace cura
 
-#endif // MATERIAL_BASE_H
+#endif // TEXTURE_PROCESSING_MATERIAL_BASE_H
