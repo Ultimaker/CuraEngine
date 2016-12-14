@@ -85,4 +85,71 @@ unsigned char Material::getColorData(unsigned int x, unsigned int y, unsigned in
 
 
 
+
+void Material::debugOutput(bool dw) const
+{
+    std::cerr << "\nImage size: " << width << " x " << height << " (" << depth << "channels)\n";
+    std::cerr << '+';
+    for (unsigned int i = 0; i < width; i++)
+    {
+        std::cerr << ((dw)? "--" : "-");
+    }
+    std::cerr << "+\n";
+    for (unsigned int y = 0; y < height; y++)
+    {
+        std::cerr << "|";
+        for (unsigned int x = 0; x < width; x++)
+        {
+            int val = (data[(y*width+x)*depth] * 10 / 256);
+
+            switch (val)
+            {
+                case 0:
+                    std::cerr << ((dw)? "  " : " ");
+                    break;
+                case 1:
+                    std::cerr << ((dw)? ".." : ".");
+                    break;
+                case 2:
+                    std::cerr << ((dw)? ",," : ",");
+                    break;
+                case 3:
+                    std::cerr << ((dw)? "::" : ":");
+                    break;
+                case 4:
+                    std::cerr << ((dw)? ";;" : ";");
+                    break;
+                case 5:
+                    std::cerr << ((dw)? "++" : "+");
+                    break;
+                case 6:
+                    std::cerr << ((dw)? "░░" : "░");
+                    break;
+                case 7:
+                    std::cerr << ((dw)? "▒▒" : "▒");
+                    break;
+                case 8:
+                    std::cerr << ((dw)? "▓▓" : "▓");
+                    break;
+                default:
+                    if (val > 8)
+                    {
+                        std::cerr << ((dw)? "██" : "█");
+                    }
+                    else
+                    {
+                        std::cerr << ((dw)? "  " : " ");
+                    }
+            }
+        }
+        std::cerr << "|\n";
+    }
+    std::cerr << '+';
+    for (unsigned int i = 0; i < width; i++)
+    {
+        std::cerr << ((dw)? "--" : "-");
+    }
+    std::cerr << "+\n";
+}
+
 } // namespace cura
