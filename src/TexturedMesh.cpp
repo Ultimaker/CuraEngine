@@ -125,7 +125,7 @@ float TexturedMesh::getColor(MatCoord bitmap_coord) const
     const Material* mat = material_base.getMat(bitmap_coord.mat_id);
     if (mat)
     {
-        return mat->getColor(bitmap_coord.coords.x, bitmap_coord.coords.y);
+        return mat->getGrey(bitmap_coord.coords.x, bitmap_coord.coords.y);
     }
     else
     {
