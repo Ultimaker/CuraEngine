@@ -126,7 +126,14 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
                 result.add(p);
         }
     }
-    layer.polygons = results;
+    // a negative offset on two sides of a corner, may introduce complexities in the model which should be removed:
+    //         ^↘
+    //         ^  ↘
+    // <<<<<<<<^<<<<   should become  <<<<<<<<
+    //         ^                              ^
+    //         ^                              ^
+    //         ^                              ^
+    layer.polygons = results.removeComplexParts();
 }
 
 

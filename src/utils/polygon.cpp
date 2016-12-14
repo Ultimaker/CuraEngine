@@ -190,6 +190,16 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
+Polygons Polygons::removeComplexParts() const
+{
+    Polygons ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    clipper.AddPaths(paths, ClipperLib::ptSubject, true);
+    clipper.Execute(ClipperLib::ctUnion, ret.paths, ClipperLib::pftPositive);
+    return ret;
+}
+
+
 Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     Polygons ret;

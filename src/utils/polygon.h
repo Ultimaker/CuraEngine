@@ -859,6 +859,18 @@ public:
         return ret;
     }
 
+    /*!
+     * Remove holes which are lying outside of parts, and outlines inside of parts
+     * 
+     *         ^↘
+     *         ^  ↘
+     * <<<<<<<<^<<<<   should become  <<<<<<<<
+     *         ^                              ^
+     *         ^                              ^
+     *         ^                              ^
+     */
+    Polygons removeComplexParts() const;
+
     int64_t polygonLength() const
     {
         int64_t length = 0;
