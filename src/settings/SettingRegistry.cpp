@@ -125,15 +125,15 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, std::strin
 
 int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base)
 {
+    if (extruder_train_ids.empty()) //... Tough luck, buddy.
+    {
+        logError("Couldn't find any extruder trains!\n");
+        return -1;
+    }
     if (extruder_nr >= extruder_train_ids.size())
     {
         logWarning("Couldn't load extruder.def.json file for extruder %i. Index out of bounds.\n Loading first extruder definition instead.\n", extruder_nr);
         extruder_nr = 0;
-        if (extruder_train_ids.empty()) //... Tough luck, buddy.
-        {
-            logError("Couldn't find any extruder trains!\n");
-            return -1;
-        }
     }
     std::string definition_file;
     bool found = getDefinitionFile(extruder_train_ids[extruder_nr], definition_file);
