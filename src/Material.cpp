@@ -36,8 +36,8 @@ void Material::setDimensions(unsigned int width, unsigned int height, unsigned i
 
 float Material::getColor(float x, float y, ColourUsage color) const
 {
-    unsigned int w_idx, h_idx;
-    getPixelCoords(x, y, w_idx, h_idx);
+    unsigned int w_idx = std::max(0u, std::min((unsigned int) (x * width), width - 1));
+    unsigned int h_idx = std::max(0u, std::min((unsigned int) (y * height), height - 1));
     switch (color)
     {
         case ColourUsage::RED:
@@ -52,18 +52,12 @@ float Material::getColor(float x, float y, ColourUsage color) const
         case ColourUsage::GREY:
         default:
         {
-            unsigned int r = getColorData(w_idx, h_idx, 0);
-            unsigned int g = getColorData(w_idx, h_idx, 1);
-            unsigned int b = getColorData(w_idx, h_idx, 2);
+            unsigned int r = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::RED);
+            unsigned int g = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::GREEN);
+            unsigned int b = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::BLUE);
             return (float) (r + g + b) / std::numeric_limits<unsigned char>::max() / 3.0;
         }
     }
-}
-
-void Material::getPixelCoords(const float x_in, const float y_in, unsigned int& x_out, unsigned int& y_out) const
-{
-    x_out = std::max(0u, std::min((unsigned int) (x_in * width), width - 1));
-    y_out = std::max(0u, std::min((unsigned int) (y_in * height), height - 1));
 }
 
 
