@@ -41,16 +41,20 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
     coord_t max_side_length = furthest_dist_from_origin * 2;
 
     int curr_recursion_depth = 0;
-    for (int64_t curr_side_length = mesh.getSettingInMicrons("infill_line_distance") * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
+    const int64_t infill_line_distance = mesh.getSettingInMicrons("infill_line_distance");
+    if (infill_line_distance > 0)
     {
-        cube_properties_per_recursion_step.emplace_back();
-        CubeProperties& cube_properties_here = cube_properties_per_recursion_step.back();
-        cube_properties_here.side_length = curr_side_length;
-        cube_properties_here.height = sqrt(3) * curr_side_length;
-        cube_properties_here.square_height = sqrt(2) * curr_side_length;
-        cube_properties_here.max_draw_z_diff = ONE_OVER_SQRT_3 * curr_side_length;
-        cube_properties_here.max_line_offset = ONE_OVER_SQRT_6 * curr_side_length;
-        curr_recursion_depth++;
+        for (int64_t curr_side_length = infill_line_distance * 2; curr_side_length < max_side_length * 2; curr_side_length *= 2)
+        {
+            cube_properties_per_recursion_step.emplace_back();
+            CubeProperties& cube_properties_here = cube_properties_per_recursion_step.back();
+            cube_properties_here.side_length = curr_side_length;
+            cube_properties_here.height = sqrt(3) * curr_side_length;
+            cube_properties_here.square_height = sqrt(2) * curr_side_length;
+            cube_properties_here.max_draw_z_diff = ONE_OVER_SQRT_3 * curr_side_length;
+            cube_properties_here.max_line_offset = ONE_OVER_SQRT_6 * curr_side_length;
+            curr_recursion_depth++;
+        }
     }
     Point3 center(0, 0, 0);
 
@@ -80,6 +84,10 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh)
 
 void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result)
 {
+    if (cube_properties_per_recursion_step.empty()) //Infill is set to 0%.
+    {
+        return;
+    }
     Polygons directional_line_groups[3];
 
     generateSubdivisionLines(z, result, directional_line_groups);
@@ -141,12 +149,12 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
     this->depth = depth;
     this->center = center;
 
-    CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
-
-    if (depth == 0) // lowest layer, no need for subdivision, exit.
+    if (depth == 0 || depth >= cube_properties_per_recursion_step.size()) // lowest layer, no need for subdivision, exit.
     {
         return;
     }
+
+    CubeProperties cube_properties = cube_properties_per_recursion_step[depth];
     Point3 child_center;
     coord_t radius = double(radius_multiplier * double(cube_properties.height)) / 4.0 + radius_addition;
 
