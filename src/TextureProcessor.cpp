@@ -25,6 +25,50 @@ void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
+void TextureProcessor::processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
+{
+
+    MatCoord mat_start = mat.start;
+    MatCoord mat_end = mat.end;
+    if (vSize2(slicer_segment.start - p0) > vSize2(slicer_segment.start - p1))
+    {
+        std::swap(mat_start, mat_end);
+    }
+    Point p0p1 = p1 - p0;
+    int64_t p0p1_size = vSize(p0p1);
+    if (dist_left_over >= p0p1_size)
+    {
+        dist_left_over -= p0p1_size;
+        return;
+    }
+    Point perp_to_p0p1 = turn90CCW(p0p1);
+    int64_t dist_last_point = -1; // p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
+    // TODO: move start point (which was already moved last iteration
+    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += POINT_DIST)
+    {
+        assert(p0pa_dist >= 0);
+        assert(p0pa_dist <= p0p1_size);
+        MatCoord mat_coord_now = mat_start;
+        mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
+        float val = mesh->getColor(mat_coord_now, ColourUsage::GREY);
+        int offset = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
+        Point fuzz = normal(perp_to_p0p1, offset);
+        Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
+        result.add(pa);
+        dist_last_point = p0pa_dist;
+    }
+    // TODO: move end point as well
+    float val = mesh->getColor(mat_end, ColourUsage::GREY);
+    int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
+    Point fuzz = normal(perp_to_p0p1, r);
+    result.emplace_back(p1 - fuzz);
+    assert(dist_last_point >= 0 && "above loop should have run at least once!");
+    assert(p0p1_size > dist_last_point);
+    dist_left_over = p0p1_size - dist_last_point;
+    assert(dist_left_over <= POINT_DIST);
+}
+
+
 void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
 {
     Polygons results;
@@ -33,7 +77,7 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
         
-        int64_t dist_left_over = (POINT_DIST / 2); // the distance to be traversed on the line before making the first new point
+        coord_t dist_left_over = (POINT_DIST / 2); // the distance to be traversed on the line before making the first new point
         Point* p0 = &poly.back();
         for (Point& p1 : poly)
         { // 'a' is the (next) new point between p0 and p1
@@ -59,35 +103,8 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
             }
             if (best_dist_score < 30 * 30) // TODO: magic value of 0.03mm for total stitching distance > should be something like SlicerLayer.cpp::largest_neglected_gap_second_phase (?)
             {
-                MatSegment& mat = best_mat_segment_it->second;
-                MatCoord mat_start = mat.start;
-                MatCoord mat_end = mat.end;
-                if (vSize2(best_mat_segment_it->first.start - *p0) > vSize2(best_mat_segment_it->first.start - p1))
-                {
-                    std::swap(mat_start, mat_end);
-                }
-                Point p0p1 = p1 - *p0;
-                Point perp_to_p0p1 = turn90CCW(p0p1);
-                int64_t p0p1_size = vSize(p0p1);    
-                int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-                // TODO: move start point (which was already moved last iteration
-                for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += POINT_DIST)
-                {
-                    MatCoord mat_coord_now = mat_start;
-                    mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
-                    float val = mesh->getColor(mat_coord_now, ColourUsage::GREY);
-                    int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
-                    Point fuzz = normal(perp_to_p0p1, r);
-                    Point pa = *p0 + normal(p0p1, p0pa_dist) - fuzz;
-                    result.add(pa);
-                    dist_last_point = p0pa_dist;
-                }
-                // TODO: move end point as well
-                float val = mesh->getColor(mat_end, ColourUsage::GREY);
-                int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
-                Point fuzz = normal(perp_to_p0p1, r);
-                result.emplace_back(p1 - fuzz);
-                dist_left_over = p0p1_size - dist_last_point;
+                assert(best_mat_segment_it);
+                processSegmentBumpMap(mesh, best_mat_segment_it->first, best_mat_segment_it->second, *p0, p1, dist_left_over, result);
             }
             else
             {
