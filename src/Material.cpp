@@ -36,8 +36,8 @@ void Material::setDimensions(unsigned int width, unsigned int height, unsigned i
 
 float Material::getColor(float x, float y, ColourUsage color) const
 {
-    unsigned int w_idx = std::max(0u, std::min((unsigned int) (x * width), width - 1));
-    unsigned int h_idx = std::max(0u, std::min((unsigned int) (y * height), height - 1));
+    assert(x >= 0.0f && x <= 1.0f);
+    assert(y >= 0.0f && y <= 1.0f);
     switch (color)
     {
         case ColourUsage::RED:
@@ -46,24 +46,29 @@ float Material::getColor(float x, float y, ColourUsage color) const
         case ColourUsage::ALPHA:
         {
             assert((int)color >= 0 && (unsigned int)color < depth && "Z out of bounds!");
-            unsigned char col = getColorData(w_idx, h_idx, (unsigned int) color);
-            return (float) col / std::numeric_limits<unsigned char>::max();
+            return getColorData(x, y, (unsigned int) color);
         }
         case ColourUsage::GREY:
         default:
         {
-            unsigned int r = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::RED);
-            unsigned int g = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::GREEN);
-            unsigned int b = getColorData(w_idx, h_idx, (unsigned int) ColourUsage::BLUE);
-            return (float) (r + g + b) / std::numeric_limits<unsigned char>::max() / 3.0;
+            float r = getColorData(x, y, (unsigned int) ColourUsage::RED);
+            float g = getColorData(x, y, (unsigned int) ColourUsage::GREEN);
+            float b = getColorData(x, y, (unsigned int) ColourUsage::BLUE);
+            return (r + g + b) / 3.0;
         }
     }
 }
 
 
-unsigned char Material::getColorData(unsigned int x, unsigned int y, unsigned int z) const
+float Material::getColorData(float x, float y, unsigned int z) const
 {
-    return data[(y * width + x) * depth + z];
+    unsigned int x_idx = (unsigned int) (x * (width - 1) + 0.5);
+    assert(x_idx >= 0 && x_idx < width && "requested X is out of bounds!");
+    unsigned int y_idx = (unsigned int) (y * (height - 1) + 0.5);
+    assert(y_idx >= 0 && y_idx < height && "requested Y is out of bounds!");
+
+    unsigned char col = data[(y_idx * width + x_idx) * depth + z];
+    return (float) col / std::numeric_limits<unsigned char>::max();
 }
 
 
