@@ -82,6 +82,12 @@ public:
      * \return a value between zero and one
      */
     float getGrey(float x, float y) const;
+
+    /*!
+     * print out something which looks like the picture through std::cerr
+     * \param double_width Whether to double each character being written, so that the width is visually similar to the height of each pixel.
+     */
+    void debugOutput(bool double_width = true) const;
 protected:
     unsigned char* data; //!< pixel data in rgb-row-first (or bgr-row first ?)
     unsigned int width, height, depth; //!< image dimensions
