@@ -1,8 +1,8 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef MAT_COORD_H
-#define MAT_COORD_H
+#ifndef TEXTURE_PROCESSING_MAT_COORD_H
+#define TEXTURE_PROCESSING_MAT_COORD_H
 
-#include "utils/FPoint.h"
+#include "../utils/FPoint.h"
 
 namespace cura
 {
@@ -24,4 +24,4 @@ struct MatCoord
 
 } // namespace cura
 
-#endif // MAT_COORD_H
+#endif // TEXTURE_PROCESSING_MAT_COORD_H

@@ -3,7 +3,7 @@
 
 #include "../utils/gettime.h"
 #include "../utils/logoutput.h"
-#include "../MatCoord.h"
+#include "../textureProcessing/MatCoord.h"
 
 #include "Slicer.h"
 

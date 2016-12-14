@@ -12,7 +12,7 @@
 #include "GapCloserResult.h"
 #include "ClosePolygonResult.h"
 
-#include "../MatSegment.h"
+#include "../textureProcessing/MatSegment.h"
 
 namespace cura
 {

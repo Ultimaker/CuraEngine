@@ -1,8 +1,8 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef MATERIAL_H
-#define MATERIAL_H
+#ifndef TEXTURE_PROCESSING_MATERIAL_H
+#define TEXTURE_PROCESSING_MATERIAL_H
 
-#include "settings/settings.h" // ColourUsage
+#include "../settings/settings.h" // ColourUsage
 
 namespace cura
 {
@@ -64,4 +64,4 @@ protected:
 
 } // namespace cura
 
-#endif // MATERIAL_H
+#endif // TEXTURE_PROCESSING_MATERIAL_H

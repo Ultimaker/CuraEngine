@@ -1,14 +1,14 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef TEXTURED_MESH_H
-#define TEXTURED_MESH_H
+#ifndef TEXTURE_PROCESSING_TEXTURED_MESH_H
+#define TEXTURE_PROCESSING_TEXTURED_MESH_H
 
 #include <vector>
 #include <string>
 
 #include "MaterialBase.h"
 
-#include "mesh.h"
-#include "utils/intpoint.h"
+#include "../mesh.h"
+#include "../utils/intpoint.h"
 #include "MatSegment.h"
 
 namespace cura
@@ -75,4 +75,4 @@ private:
 
 } // namespace cura
 
-#endif // TEXTURED_MESH_H
+#endif // TEXTURE_PROCESSING_TEXTURED_MESH_H

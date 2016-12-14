@@ -1,11 +1,11 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef TEXTURE_PROCESSOR_H
-#define TEXTURE_PROCESSOR_H
+#ifndef TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H
+#define TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H
 
 #include <vector>
 
-#include "slicer/Slicer.h"
-#include "mesh.h"
+#include "../slicer/Slicer.h"
+#include "../mesh.h"
 
 namespace cura
 {
@@ -22,4 +22,4 @@ protected:
 
 } // namespace cura
 
-#endif // TEXTURE_PROCESSOR_H
+#endif // TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H

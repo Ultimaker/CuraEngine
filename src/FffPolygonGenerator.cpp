@@ -19,7 +19,7 @@
 #include "support.h"
 #include "slicer/MultiVolumes.h"
 #include "slicer/LayerPart.h"
-#include "TextureProcessor.h"
+#include "textureProcessing/TextureProcessor.h"
 #include "Mold.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
