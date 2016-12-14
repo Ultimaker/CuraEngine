@@ -149,7 +149,11 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
     this->depth = depth;
     this->center = center;
 
-    if (depth == 0 || depth >= cube_properties_per_recursion_step.size()) // lowest layer, no need for subdivision, exit.
+    if (depth == 0) // lowest layer, no need for subdivision, exit.
+    {
+        return;
+    }
+    if (depth >= cube_properties_per_recursion_step.size()) //Depth is out of bounds of what we pre-computed.
     {
         return;
     }
