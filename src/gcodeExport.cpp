@@ -11,6 +11,8 @@
 
 namespace cura {
 
+double layer_height; //!< report basic layer height in RepRap gcode file.
+
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
 , currentPosition(0,0,MM2INT(20))
@@ -96,6 +98,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     machine_dimensions.z = meshgroup->getSettingInMicrons("machine_height");
 
     machine_name = meshgroup->getSettingString("machine_name");
+
+    layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -194,6 +198,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         else if (flavor == EGCodeFlavor::REPRAP)
         {
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+            prefix << ";Layer height: " << layer_height << new_line;
         }
         return prefix.str();
     }
