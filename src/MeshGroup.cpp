@@ -324,6 +324,7 @@ void loadMatImage(Material* mat, const char* filename)
     else
     {
         logError("Cannot load image %s.", filename);
+        std::exit(-1);
     }
 }
 
@@ -425,7 +426,11 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
         }
         else if (sscanf(buffer, "vn %f %f %f", &temp, &temp, &temp) == 3)
         {
-            // do nothing
+            // do nothing with vertex normals
+        }
+        else if (sscanf(buffer, "g %s", str_buffer) == 1)
+        {
+            // do nothing with polygon groups
         }
         else if (buffer[0] == '\0')
         {
