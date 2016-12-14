@@ -120,12 +120,12 @@ bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_sha
     return true;
 }
 
-float TexturedMesh::getColor(MatCoord bitmap_coord) const
+float TexturedMesh::getColor(MatCoord bitmap_coord, ColourUsage color) const
 {
     const Material* mat = material_base.getMat(bitmap_coord.mat_id);
     if (mat)
     {
-        return mat->getGrey(bitmap_coord.coords.x, bitmap_coord.coords.y);
+        return mat->getColor(bitmap_coord.coords.x, bitmap_coord.coords.y, color);
     }
     else
     {
