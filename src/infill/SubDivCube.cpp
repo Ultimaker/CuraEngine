@@ -144,7 +144,7 @@ void SubDivCube::generateSubdivisionLines(int64_t z, Polygons& result, Polygons 
     }
 }
 
-SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth)
+SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int depth)
 {
     this->depth = depth;
     this->center = center;
