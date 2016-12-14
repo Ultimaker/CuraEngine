@@ -56,7 +56,7 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
                 {
                     MatCoord mat_coord_now = mat_start;
                     mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
-                    float val = mesh->getColor(mat_coord_now);
+                    float val = mesh->getColor(mat_coord_now, ColourUsage::GREY);
                     int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
                     Point fuzz = normal(perp_to_p0p1, r);
                     Point pa = *p0 + normal(p0p1, p0pa_dist) - fuzz;
@@ -64,7 +64,7 @@ void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
                     dist_last_point = p0pa_dist;
                 }
                 // TODO: move end point as well
-                float val = mesh->getColor(mat_end);
+                float val = mesh->getColor(mat_end, ColourUsage::GREY);
                 int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
                 Point fuzz = normal(perp_to_p0p1, r);
                 result.emplace_back(p1 - fuzz);

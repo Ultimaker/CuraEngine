@@ -34,41 +34,30 @@ void Material::setDimensions(unsigned int width, unsigned int height, unsigned i
     this->depth = depth;
 }
 
-float Material::getRed(float x, float y) const
-{
-    return getColor(x, y, 0);
-}
-float Material::getGreen(float x, float y) const
-{
-    return getColor(x, y, 1);
-}
-float Material::getBlue(float x, float y) const
-{
-    return getColor(x, y, 2);
-}
-float Material::getAlpha(float x, float y) const
-{
-    return getColor(x, y, 3);
-}
-
-float Material::getGrey(float x, float y) const
+float Material::getColor(float x, float y, ColourUsage color) const
 {
     unsigned int w_idx, h_idx;
     getPixelCoords(x, y, w_idx, h_idx);
-    unsigned int r = getColorData(w_idx, h_idx, 0);
-    unsigned int g = getColorData(w_idx, h_idx, 1);
-    unsigned int b = getColorData(w_idx, h_idx, 2);
-    return (float) (r + g + b) / std::numeric_limits<unsigned char>::max() / 3.0;
-}
-
-
-float Material::getColor(float x, float y, unsigned int z) const
-{
-    assert((int)z >= 0 && z < depth && "Z out of bounds!");
-    unsigned int w_idx, h_idx;
-    getPixelCoords(x, y, w_idx, h_idx);
-    unsigned char col = getColorData(w_idx, h_idx, z);
-    return (float) col / std::numeric_limits<unsigned char>::max();
+    switch (color)
+    {
+        case ColourUsage::RED:
+        case ColourUsage::GREEN:
+        case ColourUsage::BLUE:
+        case ColourUsage::ALPHA:
+        {
+            assert((int)color >= 0 && (unsigned int)color < depth && "Z out of bounds!");
+            unsigned char col = getColorData(w_idx, h_idx, (unsigned int) color);
+            return (float) col / std::numeric_limits<unsigned char>::max();
+        }
+        case ColourUsage::GREY:
+        default:
+        {
+            unsigned int r = getColorData(w_idx, h_idx, 0);
+            unsigned int g = getColorData(w_idx, h_idx, 1);
+            unsigned int b = getColorData(w_idx, h_idx, 2);
+            return (float) (r + g + b) / std::numeric_limits<unsigned char>::max() / 3.0;
+        }
+    }
 }
 
 void Material::getPixelCoords(const float x_in, const float y_in, unsigned int& x_out, unsigned int& y_out) const
