@@ -2,6 +2,8 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
+#include "settings/settings.h" // ColourUsage
+
 namespace cura
 {
 
@@ -28,60 +30,14 @@ public:
     void setDimensions(unsigned int width, unsigned int height, unsigned int depth);
 
     /*!
-     * get the red value at a particular place in the image
+     * get the color value at a particular place in the image
      * 
      * \param x place in the horizontal direction left to right (value between zero and one)
      * \param y place in the vertical direction top to bottom (value between zero and one)
+     * \param color The color channel to check
      * \return a value between zero and one
      */
-    float getRed(float x, float y) const;
-    /*!
-     * get the green value at a particular place in the image
-     * 
-     * \param x place in the horizontal direction left to right (value between zero and one)
-     * \param y place in the vertical direction top to bottom (value between zero and one)
-     * \return a value between zero and one
-     */
-    float getGreen(float x, float y) const;
-    /*!
-     * get the blue value at a particular place in the image
-     * 
-     * \param x place in the horizontal direction left to right (value between zero and one)
-     * \param y place in the vertical direction top to bottom (value between zero and one)
-     * \return a value between zero and one
-     */
-    float getBlue(float x, float y) const;
-    /*!
-     * get the alpha value at a particular place in the image
-     * 
-     * \param x place in the horizontal direction left to right (value between zero and one)
-     * \param y place in the vertical direction top to bottom (value between zero and one)
-     * \return a value between zero and one
-     */
-    float getAlpha(float x, float y) const;
-    /*!
-     * get the R/G/B/A value at a particular place in the image
-     * 
-     * for z:
-     * 0=red
-     * 1=green
-     * 2=blue
-     * 3=alpha
-     * 
-     * \param x place in the horizontal direction left to right (value between zero and one)
-     * \param y place in the vertical direction top to bottom (value between zero and one)
-     * \param z The color channel to check
-     * \return a value between zero and one
-     */
-    float getColor(float x, float y, unsigned int z) const;
-    /*!
-     * get the grey value at a particular place in the image
-     * 
-     * \param x place in the horizontal direction left to right (value between zero and one)
-     * \param y place in the vertical direction top to bottom (value between zero and one)
-     * \return a value between zero and one
-     */
-    float getGrey(float x, float y) const;
+    float getColor(float x, float y, ColourUsage color) const;
 
     /*!
      * print out something which looks like the picture through std::cerr

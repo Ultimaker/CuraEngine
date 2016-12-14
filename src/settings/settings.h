@@ -177,6 +177,18 @@ enum class SupportDistPriority
     Z_OVERRIDES_XY
 };
 
+/*!
+ * Which color(s) of a texture to use
+ */
+enum class ColourUsage
+{
+    RED = 0,
+    GREEN = 1,
+    BLUE = 2,
+    ALPHA = 3,
+    GREY // use red, green and blue channels
+};
+
 #define MAX_EXTRUDERS 16
 
 //Maximum number of infill layers that can be combined into a single infill extrusion area.

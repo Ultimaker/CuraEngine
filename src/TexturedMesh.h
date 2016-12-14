@@ -68,7 +68,7 @@ protected:
      */
     bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result) const;
 
-    virtual float getColor(MatCoord bitmap_coord) const;
+    virtual float getColor(MatCoord bitmap_coord, ColourUsage color) const;
 private:
     int current_mat; //!< material currently used in loading the face material info
 };
