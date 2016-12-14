@@ -3,6 +3,9 @@
 #include <strings.h>
 #include <stdio.h>
 
+#define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
+#include "stb/stb_image.h"
+
 #include "MeshGroup.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
@@ -306,46 +309,21 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-void readBMP(Material* mat, const char* filename)
-{
-    FILE* f = fopen(filename, "rb");
-    if (f == nullptr)
-    {
-        logError("ERROR: couldn't load image file %s.\n", filename);
-        return;
-    }
-    unsigned char info[54];
-    fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
-
-    // extract image height and width from header
-    int width = *(int*)&info[18];
-    int height = *(int*)&info[22];
-
-    int size = 3 * width * height;
-    unsigned char* data = new unsigned char[size]; // allocate 3 bytes per pixel
-    fread(data, sizeof(unsigned char), size, f); // read the rest of the data at once
-    fclose(f);
-    
-
-//     for (int i = 0; i < size; i += 3)
-//     {
-//         unsigned char tmp = data[i];
-//         data[i] = data[i+2];
-//         data[i+2] = tmp;
-//     } // BGR ==> RGB
-    mat->setData(data);
-    mat->setWidthHeight(width, height);
-}
 void loadMatImage(Material* mat, const char* filename)
 {
-    const char* ext = strrchr(filename, '.');
-    if (ext && (strcmp(ext, ".bmp") == 0 || strcmp(ext, ".BMP") == 0))
+    int width;
+    int height;
+    int depth;
+    // in RGBA order
+    unsigned char* data = stbi_load(filename, &width, &height, &depth, 0);
+    if (data)
     {
-        readBMP(mat, filename);
+        mat->setData(data);
+        mat->setDimensions(width, height, depth);
     }
     else
     {
-        logError("ERROR: trying to load unsupported image. File %s has %s extension.\n", filename, ext);
+        logError("Cannot load image %s.", filename);
     }
 }
 
