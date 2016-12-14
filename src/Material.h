@@ -9,7 +9,7 @@ class Material
 {
 public:
     void setData(unsigned char* data);
-    void setWidthHeight(int width, int height);
+    void setDimensions(int width, int height, int depth);
     /*!
      * get some value representing the getColor
      * 
@@ -22,7 +22,7 @@ public:
     float getColor(float x, float y) const;
 protected:
     unsigned char* data; //!< pixel data in rgb-row-first (or bgr-row first ?)
-    int width, height; //!< image dimensions
+    int width, height, depth; //!< image dimensions
 };
 
 } // namespace cura

@@ -16,17 +16,18 @@ void Material::setData(unsigned char* data)
     this->data = data;
 }
 
-void Material::setWidthHeight(int width, int height)
+void Material::setDimensions(int width, int height, int depth)
 {
     this->width = width;
     this->height = height;
+    this->depth = depth;
 }
 
 float Material::getColor(float x, float y) const
 {
     int w_idx = std::max(0, std::min(int (x * width), width - 1));
     int h_idx = std::max(0, std::min(int (y * height), height - 1));
-    unsigned char r = data[(h_idx * width + w_idx) * 3];
+    unsigned char r = data[(h_idx * width + w_idx) * depth];
     return (float) r / std::numeric_limits<unsigned char>::max();
 }
 
