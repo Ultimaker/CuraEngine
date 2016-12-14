@@ -7,6 +7,11 @@
 namespace cura
 {
 
+/*!
+ * The material used in a texture.
+ * 
+ * This class just holds the image data and has some nice utility functions.
+ */
 class Material
 {
 public:
@@ -55,16 +60,6 @@ protected:
      * \return the color data (0-256)
      */
     unsigned char getColorData(unsigned int x, unsigned int y, unsigned int z) const;
-
-    /*!
-     * Convert float coordinates to pixel coordinates
-     * 
-     * \param[in] x_in place in the horizontal direction left to right (value between zero and one)
-     * \param[in] y_in place in the vertical direction top to bottom (value between zero and one)
-     * \param[out] x_out The x component of the pixel location
-     * \param[out] y_out The y component of the pixel location
-     */
-    void getPixelCoords(const float x_in, const float y_in, unsigned int& x_out, unsigned int& y_out) const;
 };
 
 } // namespace cura
