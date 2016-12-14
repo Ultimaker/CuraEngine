@@ -2,7 +2,7 @@
 #ifndef MOLD_H
 #define MOLD_H
 
-#include "slicer.h"
+#include "slicer/Slicer.h"
 #include "utils/intpoint.h"
 
 namespace cura

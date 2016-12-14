@@ -931,7 +931,19 @@ public:
     }
 
     coord_t polyLineLength() const;
-    
+
+    /*!
+     * Remove holes which are lying outside of parts, and outlines inside of parts
+     * 
+     *         ^↘
+     *         ^  ↘
+     * <<<<<<<<^<<<<   should become  <<<<<<<<
+     *         ^                              ^
+     *         ^                              ^
+     *         ^                              ^
+     */
+    Polygons removeComplexParts() const;
+
     Point min() const
     {
         Point ret = Point(POINT_MAX, POINT_MAX);
