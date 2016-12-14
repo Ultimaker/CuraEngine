@@ -59,7 +59,7 @@ protected:
      * \param y place in the vertical direction top to bottom (value between zero and one)
      * \return the color data (0-256)
      */
-    unsigned char getColorData(unsigned int x, unsigned int y, unsigned int z) const;
+    float getColorData(float x, float y, unsigned int z) const;
 };
 
 } // namespace cura
