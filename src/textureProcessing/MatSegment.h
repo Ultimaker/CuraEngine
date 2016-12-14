@@ -1,6 +1,6 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef MAT_SEGMENT_H
-#define MAT_SEGMENT_H
+#ifndef TEXTURE_PROCESSING_MAT_SEGMENT_H
+#define TEXTURE_PROCESSING_MAT_SEGMENT_H
 
 #include "MatCoord.h"
 
@@ -24,4 +24,4 @@ struct MatSegment
 
 } // namespace cura
 
-#endif // MAT_SEGMENT_H
+#endif // TEXTURE_PROCESSING_MAT_SEGMENT_H

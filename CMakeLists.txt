@@ -60,8 +60,6 @@ set(engine_SRCS # Except main.cpp.
     src/infill.cpp
     src/WallsComputation.cpp
     src/LayerPlanBuffer.cpp
-    src/Material.cpp
-    src/MaterialBase.cpp
     src/MergeInfillLines.cpp
     src/mesh.cpp
     src/MeshGroup.cpp
@@ -74,8 +72,6 @@ set(engine_SRCS # Except main.cpp.
     src/sliceDataStorage.cpp
     src/support.cpp
     src/timeEstimate.cpp
-    src/TexturedMesh.cpp
-    src/TextureProcessor.cpp
     src/WallsComputation.cpp
     src/wallOverlap.cpp
     src/Weaver.cpp
@@ -92,6 +88,11 @@ set(engine_SRCS # Except main.cpp.
     src/slicer/MultiVolumes.cpp
     src/slicer/SlicerLayer.cpp
     src/slicer/Slicer.cpp
+
+    src/textureProcessing/Material.cpp
+    src/textureProcessing/MaterialBase.cpp
+    src/textureProcessing/TexturedMesh.cpp
+    src/textureProcessing/TextureProcessor.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp

@@ -1,7 +1,7 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 
 #include "SlicerLayer.h"
-#include "../TextureProcessor.h"
+#include "../textureProcessing/TextureProcessor.h"
 #include "../utils/SparsePointGridInclusive.h"
 
 namespace cura

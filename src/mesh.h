@@ -3,7 +3,7 @@
 
 #include "settings/settings.h"
 #include "utils/AABB3D.h"
-#include "MatSegment.h"
+#include "textureProcessing/MatSegment.h"
 
 namespace cura
 {

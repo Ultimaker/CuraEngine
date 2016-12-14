@@ -11,7 +11,7 @@
 #include "ClosePolygonResult.h"
 #include "SlicerLayer.h"
 
-#include "../MatSegment.h"
+#include "../textureProcessing/MatSegment.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
