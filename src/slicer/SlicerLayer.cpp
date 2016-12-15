@@ -11,6 +11,16 @@ int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance between two 
 int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
+
+SlicerLayer::SlicerLayer(bool create_bump_map)
+{
+    if (create_bump_map)
+    {
+        texture_bump_map.emplace();
+    }
+}
+
+
 void SlicerLayer::makeBasicPolygonLoops(const Mesh* mesh, Polygons& open_polylines)
 {
     for(unsigned int start_segment_idx = 0; start_segment_idx < segments.size(); start_segment_idx++)
@@ -732,8 +742,6 @@ ClosePolygonResult SlicerLayer::findPolygonPointClosestTo(Point input)
 void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool extensive_stitching)
 {
     Polygons open_polylines;
-
-    texture_bump_map.emplace(); // TODO: instantiate based on mesh setting value
 
     makeBasicPolygonLoops(mesh, open_polylines);
 
