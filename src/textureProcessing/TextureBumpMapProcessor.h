@@ -27,10 +27,12 @@ public:
         coord_t point_distance;
         coord_t amplitude;
         coord_t offset;
+        bool alternate;
         Settings(SettingsBaseVirtual* settings_base)
         : point_distance(settings_base->getSettingInMicrons("bump_map_point_dist"))
         , amplitude(settings_base->getSettingInMicrons("bump_map_amplitude"))
         , offset(settings_base->getSettingInMicrons("bump_map_offset"))
+        , alternate(settings_base->getSettingBoolean("bump_map_alternate"))
         {
         }
     };
@@ -48,8 +50,9 @@ public:
      * Change the polygons in a layer
      * 
      * \param[in,out] layer_polygons The polygons to be offsetted by texture color values
+     * \param layer_nr The layer nr for which we are processing the bump map
      */
-    void processBumpMap(Polygons& layer_polygons);
+    void processBumpMap(Polygons& layer_polygons, unsigned int layer_nr);
 
     /*!
      * Register that a particular face was sliced to a particular texture segment.
@@ -87,7 +90,12 @@ protected:
      */
     std::optional<TexturedFaceSlice> getTexturedFaceSlice(Point p0, Point p1);
 
-    void processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
+    /*!
+     * 
+     * \param layer_nr The layer number for which we process the bump map
+     * \param slicer_segment The segment closest matching \p p0 - \p p1
+     */
+    void processSegmentBumpMap(unsigned int layer_nr, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
 };
 
 } // namespace cura

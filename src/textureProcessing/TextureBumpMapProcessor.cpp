@@ -51,9 +51,8 @@ std::optional<TextureBumpMapProcessor::TexturedFaceSlice> TextureBumpMapProcesso
 }
 
 
-void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
+void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
 {
-
     MatCoord mat_start = mat.start;
     MatCoord mat_end = mat.end;
     assert(mat_start.mat == mat_end.mat && "texture across face must be from one material!");
@@ -68,6 +67,13 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
         dist_left_over -= p0p1_size;
         return;
     }
+
+    coord_t amplitude = settings.amplitude;
+    if (settings.alternate && layer_nr % 2 == 0)
+    {
+        amplitude *= -1;
+    }
+
     Point perp_to_p0p1 = turn90CCW(p0p1);
     int64_t dist_last_point = -1; // p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
     // TODO: move start point (which was already moved last iteration
@@ -78,7 +84,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
         MatCoord mat_coord_now = mat_start;
         mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
         float val = mat_coord_now.getColor(ColourUsage::GREY);
-        int offset = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
+        int offset = val * (amplitude * 2) - amplitude + settings.offset;
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
         result.add(pa);
@@ -86,7 +92,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
     }
     // TODO: move end point as well
     float val = mat_end.getColor(ColourUsage::GREY);
-    int r = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
+    int r = val * (amplitude * 2) - amplitude + settings.offset;
     Point fuzz = normal(perp_to_p0p1, r);
     result.emplace_back(p1 - fuzz);
     assert(dist_last_point >= 0 && "above loop should have run at least once!");
@@ -96,7 +102,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
 }
 
 
-void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons)
+void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned int layer_nr)
 {
     Polygons results;
     for (PolygonRef poly : layer_polygons)
@@ -115,7 +121,7 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons)
             std::optional<TexturedFaceSlice> textured_face_slice = getTexturedFaceSlice(*p0, p1);
             if (textured_face_slice)
             {
-                processSegmentBumpMap(textured_face_slice->face_segment, textured_face_slice->mat_segment, *p0, p1, dist_left_over, result);
+                processSegmentBumpMap(layer_nr, textured_face_slice->face_segment, textured_face_slice->mat_segment, *p0, p1, dist_left_over, result);
             }
             else
             {

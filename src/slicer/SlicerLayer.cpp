@@ -12,7 +12,8 @@ int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 
-SlicerLayer::SlicerLayer(std::optional<TextureBumpMapProcessor::Settings> bump_map_settings)
+SlicerLayer::SlicerLayer(unsigned int layer_nr, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings)
+: layer_nr(layer_nr)
 {
     if (bump_map_settings)
     {
@@ -781,7 +782,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     if (texture_bump_map)
     {
-        texture_bump_map->processBumpMap(polygons);
+        texture_bump_map->processBumpMap(polygons, layer_nr);
     }
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
