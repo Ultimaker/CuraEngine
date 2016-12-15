@@ -56,6 +56,9 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
 
+    bool bump_map_alternate = mesh->getSettingBoolean("bump_map_alternate");
+    int extruder_nr = mesh->getSettingAsIndex("extruder_nr");
+
     for(unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         const MeshFace& face = mesh->faces[face_idx];
@@ -79,6 +82,10 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
         int32_t z = 0;
         for (int32_t layer_nr = (minZ - initial + thickness - 1) / thickness; layer_nr < layer_max; layer_nr++) //  + thickness - 1 to get the first layer above or at minZ
         {
+            if (bump_map_alternate && layer_nr % 2 == extruder_nr) // TODO only works for the first two extruders!
+            {
+                continue;
+            }
             z = layer_nr * thickness + initial;
             if (z < minZ) continue;
             if (layer_nr < 0) continue;
