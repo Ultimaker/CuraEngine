@@ -107,7 +107,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     return true;
 }
 
-bool TexturedMesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const
+bool TexturedMesh::sliceFaceTexture(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const
 {
     if (!getFaceEdgeMatCoord(face_idx, z, idx_shared, idx_first, result.start))
     {

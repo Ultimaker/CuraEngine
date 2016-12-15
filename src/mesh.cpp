@@ -208,16 +208,5 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
     return bestIdx;
 }
 
-bool Mesh::registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const
-{
-    // do nothing for a non-textured mesh
-    return false;
-}
-
-float Mesh::getColor(MatCoord, ColourUsage) const
-{
-    return 0.0f;
-}
-
 
 }//namespace cura

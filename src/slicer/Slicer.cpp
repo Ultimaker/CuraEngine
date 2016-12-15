@@ -22,18 +22,22 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
     seg.end  .X = interpolate(z, p0.z, p2.z, p0.x, p2.x);
     seg.end  .Y = interpolate(z, p0.z, p2.z, p0.y, p2.y);
-    MatSegment mat_segment;
-    bool got_texture_coords = mesh->registerFaceSlice(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
-    if (got_texture_coords)
+    if (textured_mesh)
     {
-        SlicerLayer& layer = layers[layer_nr];
-        layer.texture_bump_map->segment_to_material_segment.emplace(seg, mat_segment);
+        MatSegment mat_segment;
+        bool got_texture_coords = textured_mesh->sliceFaceTexture(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
+        if (got_texture_coords)
+        {
+            SlicerLayer& layer = layers[layer_nr];
+            layer.texture_bump_map->segment_to_material_segment.emplace(seg, mat_segment);
+        }
     }
     return seg;
 }
 
 Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
+, textured_mesh(dynamic_cast<TexturedMesh*>(mesh))
 {
     assert(slice_layer_count > 0);
 
