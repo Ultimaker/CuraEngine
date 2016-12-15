@@ -105,7 +105,7 @@ set(engine_SRCS # Except main.cpp.
     src/textureProcessing/Material.cpp
     src/textureProcessing/MaterialBase.cpp
     src/textureProcessing/TexturedMesh.cpp
-    src/textureProcessing/TextureProcessor.cpp
+    src/textureProcessing/TextureBumpMapProcessor.cpp
 
     src/pathPlanning/Comb.cpp
     src/pathPlanning/GCodePath.cpp

@@ -1,7 +1,7 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 
 #include "SlicerLayer.h"
-#include "../textureProcessing/TextureProcessor.h"
+#include "../textureProcessing/TextureBumpMapProcessor.h"
 #include "../utils/SparsePointGridInclusive.h"
 
 namespace cura
@@ -769,7 +769,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
 
-    TextureProcessor::processBumpMap(mesh, *this);
+    TextureBumpMapProcessor::processBumpMap(mesh, *this);
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons.simplify();

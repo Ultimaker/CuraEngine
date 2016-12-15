@@ -1,4 +1,4 @@
-#include "TextureProcessor.h"
+#include "TextureBumpMapProcessor.h"
 
 #include <algorithm> // swap
 
@@ -13,7 +13,7 @@ namespace cura
 #define EXTRA_OFFSET 3000
 
 /*
-void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
+void TextureBumpMapProcessor::process(std::vector< Slicer* >& slicer_list)
 {
     for (Slicer* slicer : slicer_list)
     {
@@ -25,7 +25,7 @@ void TextureProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
-void TextureProcessor::processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
+void TextureBumpMapProcessor::processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
 {
 
     MatCoord mat_start = mat.start;
@@ -69,7 +69,7 @@ void TextureProcessor::processSegmentBumpMap(const Mesh* mesh, const SlicerSegme
 }
 
 
-void TextureProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
+void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
 {
     Polygons results;
     for (PolygonRef poly : layer.polygons)
