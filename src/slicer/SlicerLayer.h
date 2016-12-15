@@ -4,6 +4,7 @@
 
 #include <unordered_map>
 
+#include "../utils/optional.h"
 #include "../mesh.h"
 #include "../utils/intpoint.h"
 #include "../utils/polygon.h"
@@ -13,6 +14,7 @@
 #include "ClosePolygonResult.h"
 
 #include "../textureProcessing/MatSegment.h"
+#include "../textureProcessing/TextureBumpMapProcessor.h"
 
 namespace cura
 {
@@ -26,8 +28,8 @@ public:
     int z = -1;
     Polygons polygons;
     Polygons openPolylines;
-    
-    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
+
+    std::optional<TextureBumpMapProcessor> texture_bump_map;
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh
