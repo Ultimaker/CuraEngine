@@ -12,11 +12,11 @@ int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 
-SlicerLayer::SlicerLayer(bool create_bump_map)
+SlicerLayer::SlicerLayer(std::optional<TextureBumpMapProcessor::Settings> bump_map_settings)
 {
-    if (create_bump_map)
+    if (bump_map_settings)
     {
-        texture_bump_map.emplace();
+        texture_bump_map.emplace(*bump_map_settings);
     }
 }
 
