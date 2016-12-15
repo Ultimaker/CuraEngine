@@ -25,6 +25,12 @@ void TextureBumpMapProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
+void TextureBumpMapProcessor::registerTextureFaceSlice(SlicerSegment face_segment, MatSegment texture_segment)
+{
+    segment_to_material_segment.emplace(face_segment, texture_segment);
+}
+
+
 void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
 {
 

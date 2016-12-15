@@ -23,8 +23,15 @@ public:
      */
     void processBumpMap(Polygons& layer_polygons);
 
-    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
+    /*!
+     * Register that a particular face was sliced to a particular texture segment.
+     * \param face_segment The geometrical segment of the face
+     * \param texture_segment The corresponding texture coordinates
+     */
+    void registerTextureFaceSlice(SlicerSegment face_segment, MatSegment texture_segment);
 protected:
+
+    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
 
     void processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
 };
