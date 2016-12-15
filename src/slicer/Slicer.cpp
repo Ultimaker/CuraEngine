@@ -35,11 +35,11 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     return seg;
 }
 
-Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
 : mesh(mesh)
 , textured_mesh(dynamic_cast<TexturedMesh*>(mesh))
 {
-    assert(slice_layer_count > 0);
+    assert((int) slice_layer_count > 0);
 
     TimeKeeper slice_timer;
 
@@ -49,13 +49,13 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
         bump_map_settings.emplace(mesh);
     }
 
-    layers.resize(slice_layer_count, SlicerLayer(bump_map_settings));
-
-
-    for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
+    for (uint32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     {
+        layers.emplace_back(layer_nr, bump_map_settings);
+        assert(&layers.back() == &layers[layer_nr] && "We should just have emplaced the last layer!");
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
+
     for(unsigned int face_idx = 0; face_idx < mesh->faces.size(); face_idx++)
     {
         const MeshFace& face = mesh->faces[face_idx];

@@ -25,12 +25,14 @@ public:
     /*!
      * \param bump_map_settings The settings with which to create a TextureBumpMapProcessor - if provided
      */
-    SlicerLayer(std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
+    SlicerLayer(unsigned int layer_nr, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
 
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
 
     int z = -1;
+    unsigned int layer_nr;
+
     Polygons polygons;
     Polygons openPolylines;
 
