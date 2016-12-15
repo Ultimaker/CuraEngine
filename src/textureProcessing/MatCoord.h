@@ -4,6 +4,8 @@
 
 #include "../utils/FPoint.h"
 
+#include "Material.h"
+
 namespace cura
 {
 
@@ -13,13 +15,28 @@ namespace cura
 struct MatCoord
 {
     FPoint coords;
-    int mat_id; //!< Material id
+    const Material* mat; //!< Material id
     MatCoord() //!< non-initializing constructor
     {}
-    MatCoord(FPoint coords, int mat_id) //!< constructor
+    MatCoord(FPoint coords, const Material& mat) //!< constructor
     : coords(coords)
-    , mat_id(mat_id)
+    , mat(&mat)
     {}
+
+    /*!
+     * Get the color of the material to which this coordinate is pointing
+     */
+    float getColor(ColourUsage color) const
+    {
+        if (mat)
+        {
+            return mat->getColor(coords.x, coords.y, color);
+        }
+        else
+        {
+            return 0.0f;
+        }
+    }
 };
 
 } // namespace cura

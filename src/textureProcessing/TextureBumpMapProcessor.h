@@ -19,15 +19,14 @@ public:
      * Process the texture bump map.
      * Change the polygons in a layer
      * 
-     * \param mesh TODO
      * \param[in,out] layer_polygons The polygons to be offsetted by texture color values
      */
-    void processBumpMap(const TexturedMesh* mesh, Polygons& layer_polygons);
+    void processBumpMap(Polygons& layer_polygons);
 
     std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
 protected:
 
-    void processSegmentBumpMap(const TexturedMesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
+    void processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
 };
 
 } // namespace cura

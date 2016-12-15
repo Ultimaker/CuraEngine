@@ -25,11 +25,12 @@ void TextureBumpMapProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
-void TextureBumpMapProcessor::processSegmentBumpMap(const TexturedMesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
+void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
 {
 
     MatCoord mat_start = mat.start;
     MatCoord mat_end = mat.end;
+    assert(mat_start.mat == mat_end.mat && "texture across face must be from one material!");
     if (vSize2(slicer_segment.start - p0) > vSize2(slicer_segment.start - p1))
     {
         std::swap(mat_start, mat_end);
@@ -50,7 +51,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const TexturedMesh* mesh, co
         assert(p0pa_dist <= p0p1_size);
         MatCoord mat_coord_now = mat_start;
         mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
-        float val = mesh->getColor(mat_coord_now, ColourUsage::GREY);
+        float val = mat_coord_now.getColor(ColourUsage::GREY);
         int offset = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
@@ -58,7 +59,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const TexturedMesh* mesh, co
         dist_last_point = p0pa_dist;
     }
     // TODO: move end point as well
-    float val = mesh->getColor(mat_end, ColourUsage::GREY);
+    float val = mat_end.getColor(ColourUsage::GREY);
     int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
     Point fuzz = normal(perp_to_p0p1, r);
     result.emplace_back(p1 - fuzz);
@@ -69,7 +70,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const TexturedMesh* mesh, co
 }
 
 
-void TextureBumpMapProcessor::processBumpMap(const TexturedMesh* mesh, Polygons& layer_polygons)
+void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons)
 {
     Polygons results;
     for (PolygonRef poly : layer_polygons)
@@ -104,7 +105,7 @@ void TextureBumpMapProcessor::processBumpMap(const TexturedMesh* mesh, Polygons&
             if (best_dist_score < 30 * 30) // TODO: magic value of 0.03mm for total stitching distance > should be something like SlicerLayer.cpp::largest_neglected_gap_second_phase (?)
             {
                 assert(best_mat_segment_it);
-                processSegmentBumpMap(mesh, best_mat_segment_it->first, best_mat_segment_it->second, *p0, p1, dist_left_over, result);
+                processSegmentBumpMap(best_mat_segment_it->first, best_mat_segment_it->second, *p0, p1, dist_left_over, result);
             }
             else
             {

@@ -52,8 +52,6 @@ public:
      */
     bool sliceFaceTexture(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const;
 
-    float getColor(MatCoord bitmap_coord, ColourUsage color) const;
-
 protected:
     std::vector<FPoint> texture_coords; //!< all texture coordinates by all faces
     std::vector<FaceTextureCoordIndices> face_texture_indices; //!< for each face the corresponding texture coordinates in TexturedMesh::texture_coords

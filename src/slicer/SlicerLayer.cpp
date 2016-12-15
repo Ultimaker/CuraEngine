@@ -773,11 +773,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 
     if (texture_bump_map)
     {
-        const TexturedMesh* textured_mesh = dynamic_cast<const TexturedMesh*>(mesh);
-        if (textured_mesh)
-        { // cast succeeded
-            texture_bump_map->processBumpMap(textured_mesh, polygons);
-        }
+        texture_bump_map->processBumpMap(polygons);
     }
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
