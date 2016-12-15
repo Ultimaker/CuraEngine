@@ -22,6 +22,11 @@ namespace cura
 class SlicerLayer
 {
 public:
+    /*!
+     * \param create_bump_map Whether to create a TextureBumpMapProcessor
+     */
+    SlicerLayer(bool create_bump_map);
+
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
 

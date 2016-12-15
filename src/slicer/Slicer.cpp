@@ -43,7 +43,9 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
 
     TimeKeeper slice_timer;
 
-    layers.resize(slice_layer_count);
+    bool create_bump_map = true; // TODO: should be based on setting value
+
+    layers.resize(slice_layer_count, SlicerLayer(create_bump_map));
 
 
     for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
