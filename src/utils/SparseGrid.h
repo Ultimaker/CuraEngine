@@ -14,9 +14,6 @@ namespace cura {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
  * 
- * \note This is an abstract template class which doesn't have any functions to insert elements.
- * \see SparsePointGrid
- *
  * \tparam ElemT The element type to store.
  */
 template<class ElemT>
@@ -95,6 +92,12 @@ public:
 
     coord_t getCellSize() const;
 
+    /*! \brief Inserts elem into the sparse grid.
+     *
+     * \param[in] location The location where to insert the element
+     * \param[in] elem The element to be inserted.
+     */
+    void insert(Point location, const Elem &elem);
 protected:
     using GridPoint = Point;
     using grid_coord_t = coord_t;
@@ -219,6 +222,14 @@ typename cura::coord_t SGI_THIS::toLowerCoord(const grid_coord_t& grid_coord)  c
     // time from this is probably not worth doing a proper floor
     // operation.
     return grid_coord * m_cell_size;
+}
+
+SGI_TEMPLATE
+void SGI_THIS::insert(Point loc, const Elem &elem)
+{
+    GridPoint grid_loc = toGridPoint(loc);
+
+    m_grid.emplace(grid_loc, elem);
 }
 
 SGI_TEMPLATE
