@@ -8,13 +8,11 @@
 namespace cura 
 {
 
-#define POINT_DIST 400
-#define AMPLITUDE 3000
-#define EXTRA_OFFSET 3000
 #define SLICE_SEGMENT_SNAP_GAP 20
 
-TextureBumpMapProcessor::TextureBumpMapProcessor()
-: loc_to_slice(SLICE_SEGMENT_SNAP_GAP)
+TextureBumpMapProcessor::TextureBumpMapProcessor(const TextureBumpMapProcessor::Settings settings)
+: settings(settings)
+, loc_to_slice(SLICE_SEGMENT_SNAP_GAP)
 {
 
 }
@@ -73,14 +71,14 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
     Point perp_to_p0p1 = turn90CCW(p0p1);
     int64_t dist_last_point = -1; // p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
     // TODO: move start point (which was already moved last iteration
-    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += POINT_DIST)
+    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.point_distance)
     {
         assert(p0pa_dist >= 0);
         assert(p0pa_dist <= p0p1_size);
         MatCoord mat_coord_now = mat_start;
         mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
         float val = mat_coord_now.getColor(ColourUsage::GREY);
-        int offset = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
+        int offset = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
         result.add(pa);
@@ -88,13 +86,13 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const SlicerSegment& slicer_
     }
     // TODO: move end point as well
     float val = mat_end.getColor(ColourUsage::GREY);
-    int r = val * (AMPLITUDE * 2) - AMPLITUDE + EXTRA_OFFSET;
+    int r = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
     Point fuzz = normal(perp_to_p0p1, r);
     result.emplace_back(p1 - fuzz);
     assert(dist_last_point >= 0 && "above loop should have run at least once!");
     assert(p0p1_size > dist_last_point);
     dist_left_over = p0p1_size - dist_last_point;
-    assert(dist_left_over <= POINT_DIST);
+    assert(dist_left_over <= settings.point_distance);
 }
 
 
@@ -106,7 +104,7 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons)
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
         
-        coord_t dist_left_over = (POINT_DIST / 2); // the distance to be traversed on the line before making the first new point
+        coord_t dist_left_over = (settings.point_distance / 2); // the distance to be traversed on the line before making the first new point
         Point* p0 = &poly.back();
         for (Point& p1 : poly)
         { // 'a' is the (next) new point between p0 and p1

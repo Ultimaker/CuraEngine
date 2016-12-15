@@ -8,6 +8,8 @@
 #include "../utils/optional.h"
 #include "../utils/SparsePointGrid.h"
 
+#include "../settings/settings.h"
+
 #include "../slicer/SlicerSegment.h"
 #include "TexturedMesh.h"
 
@@ -18,12 +20,28 @@ class TextureBumpMapProcessor
 {
 public:
     /*!
+     * Helper class to retrieve and store texture to bump map settings
+     */
+    struct Settings
+    {
+        coord_t point_distance;
+        coord_t amplitude;
+        coord_t offset;
+        Settings(SettingsBaseVirtual* settings_base)
+        : point_distance(settings_base->getSettingInMicrons("bump_map_point_dist"))
+        , amplitude(settings_base->getSettingInMicrons("bump_map_amplitude"))
+        , offset(settings_base->getSettingInMicrons("bump_map_offset"))
+        {
+        }
+    };
+    /*!
      * default constructor
      * 
      * initializes the \ref SparseGrid::cell_size of \ref TextureBumpMapProcessor::loc_to_slice
      * 
+     * \param settings The settings with which to \ref TextureBumpMapProcessor::processBumpMap
      */
-    TextureBumpMapProcessor();
+    TextureBumpMapProcessor(const Settings settings);
 
     /*!
      * Process the texture bump map.
@@ -40,12 +58,23 @@ public:
      */
     void registerTexturedFaceSlice(SlicerSegment face_segment, MatSegment texture_segment);
 protected:
+    /*!
+     * A sliced segment in combination with the corresponding texture slice.
+     */
     struct TexturedFaceSlice
     {
         SlicerSegment face_segment;
         MatSegment mat_segment;
     };
 
+    /*!
+     * The settings with which to \ref TextureBumpMapProcessor::processBumpMap
+     */
+    Settings settings;
+
+    /*!
+     * A grid to efficiently look op which texture segment best fits the slicer segment.
+     */
     SparseGrid<TexturedFaceSlice> loc_to_slice;
 
     /*!

@@ -43,9 +43,13 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
 
     TimeKeeper slice_timer;
 
-    bool create_bump_map = true; // TODO: should be based on setting value
+    std::optional<TextureBumpMapProcessor::Settings> bump_map_settings;
+    if (mesh->getSettingBoolean("bump_map_enabled"))
+    {
+        bump_map_settings.emplace(mesh);
+    }
 
-    layers.resize(slice_layer_count, SlicerLayer(create_bump_map));
+    layers.resize(slice_layer_count, SlicerLayer(bump_map_settings));
 
 
     for(int32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
