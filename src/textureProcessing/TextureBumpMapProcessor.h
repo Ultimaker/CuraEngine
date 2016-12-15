@@ -1,6 +1,6 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
-#ifndef TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H
-#define TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H
+#ifndef TEXTURE_PROCESSING_TEXTURE_BUMP_MAP_PROCESSOR_H
+#define TEXTURE_PROCESSING_TEXTURE_BUMP_MAP_PROCESSOR_H
 
 #include <vector>
 
@@ -10,7 +10,7 @@
 namespace cura
 {
 
-class TextureProcessor
+class TextureBumpMapProcessor
 {
 public:
 //     static void process(std::vector<Slicer*>& slicer_list);
@@ -22,4 +22,4 @@ protected:
 
 } // namespace cura
 
-#endif // TEXTURE_PROCESSING_TEXTURE_PROCESSOR_H
+#endif // TEXTURE_PROCESSING_TEXTURE_BUMP_MAP_PROCESSOR_H
