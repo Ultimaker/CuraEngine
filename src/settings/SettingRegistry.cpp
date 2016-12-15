@@ -125,7 +125,7 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, std::strin
 
 int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base)
 {
-    if (extruder_train_ids.empty()) //... Tough luck, buddy.
+    if (extruder_train_ids.empty())
     {
         logError("Couldn't find any extruder trains!\n");
         return -1;
