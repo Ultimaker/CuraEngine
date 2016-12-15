@@ -29,7 +29,7 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
         SlicerLayer& layer = layers[layer_nr];
         if (got_texture_coords && layer.texture_bump_map)
         {
-            layer.texture_bump_map->registerTextureFaceSlice(seg, mat_segment);
+            layer.texture_bump_map->registerTexturedFaceSlice(seg, mat_segment);
         }
     }
     return seg;

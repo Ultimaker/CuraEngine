@@ -11,23 +11,45 @@ namespace cura
 #define POINT_DIST 400
 #define AMPLITUDE 3000
 #define EXTRA_OFFSET 3000
+#define SLICE_SEGMENT_SNAP_GAP 20
 
-/*
-void TextureBumpMapProcessor::process(std::vector< Slicer* >& slicer_list)
+TextureBumpMapProcessor::TextureBumpMapProcessor()
+: loc_to_slice(SLICE_SEGMENT_SNAP_GAP)
 {
-    for (Slicer* slicer : slicer_list)
+
+}
+
+
+void TextureBumpMapProcessor::registerTexturedFaceSlice(SlicerSegment face_segment, MatSegment texture_segment)
+{
+    TexturedFaceSlice slice{face_segment, texture_segment};
+    loc_to_slice.insert(face_segment.start, slice);
+    loc_to_slice.insert(face_segment.end, slice);
+}
+
+std::optional<TextureBumpMapProcessor::TexturedFaceSlice> TextureBumpMapProcessor::getTexturedFaceSlice(Point p0, Point p1)
+{
+    std::vector<TexturedFaceSlice> nearby_slices = loc_to_slice.getNearby(p0, SLICE_SEGMENT_SNAP_GAP);
+    std::optional<TexturedFaceSlice> best;
+    coord_t best_dist_score = std::numeric_limits<coord_t>::max();
+
+    for (TexturedFaceSlice& slice : nearby_slices)
     {
-        for (SlicerLayer& layer : slicer->layers)
+        coord_t dist_score = std::min(
+                vSize2(slice.face_segment.start - p0) + vSize2(slice.face_segment.end - p1)
+                , vSize2(slice.face_segment.end - p0) + vSize2(slice.face_segment.start - p1)
+            );
+        if (dist_score < best_dist_score)
         {
-            process(slicer->mesh, layer);
+            best = slice;
+            best_dist_score = dist_score;
         }
     }
-}
-*/
-
-void TextureBumpMapProcessor::registerTextureFaceSlice(SlicerSegment face_segment, MatSegment texture_segment)
-{
-    segment_to_material_segment.emplace(face_segment, texture_segment);
+    if (best_dist_score > SLICE_SEGMENT_SNAP_GAP * SLICE_SEGMENT_SNAP_GAP * 4) // TODO: this condition doesn't follow exactly from using SLICE_SEGMENT_SNAP_GAP and the quadratic dist score
+    {
+        return std::optional<TextureBumpMapProcessor::TexturedFaceSlice>();
+    }
+    return best;
 }
 
 
@@ -92,26 +114,10 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons)
             {
                 continue;
             }
-            SlicerSegment segment(*p0, p1);
-            std::optional<std::pair<SlicerSegment, MatSegment>> best_mat_segment_it;
-            coord_t best_dist_score = std::numeric_limits<coord_t>::max();
-            for (std::unordered_map<SlicerSegment, MatSegment>::iterator it = segment_to_material_segment.begin(); it != segment_to_material_segment.end(); ++it)
+            std::optional<TexturedFaceSlice> textured_face_slice = getTexturedFaceSlice(*p0, p1);
+            if (textured_face_slice)
             {
-                const SlicerSegment& sliced_segment = it->first;
-                coord_t dist_score = std::min(
-                        vSize2(sliced_segment.start - segment.start) + vSize2(sliced_segment.end - segment.end)
-                        , vSize2(sliced_segment.end - segment.start) + vSize2(sliced_segment.start - segment.end)
-                    );
-                if (dist_score < best_dist_score)
-                {
-                    best_dist_score = dist_score;
-                    best_mat_segment_it = *it;
-                }
-            }
-            if (best_dist_score < 30 * 30) // TODO: magic value of 0.03mm for total stitching distance > should be something like SlicerLayer.cpp::largest_neglected_gap_second_phase (?)
-            {
-                assert(best_mat_segment_it);
-                processSegmentBumpMap(best_mat_segment_it->first, best_mat_segment_it->second, *p0, p1, dist_left_over, result);
+                processSegmentBumpMap(textured_face_slice->face_segment, textured_face_slice->mat_segment, *p0, p1, dist_left_over, result);
             }
             else
             {
