@@ -68,12 +68,6 @@ void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const
         return;
     }
 
-    coord_t amplitude = settings.amplitude;
-    if (settings.alternate && layer_nr % 2 == 0)
-    {
-        amplitude *= -1;
-    }
-
     Point perp_to_p0p1 = turn90CCW(p0p1);
     int64_t dist_last_point = -1; // p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
     // TODO: move start point (which was already moved last iteration
@@ -84,7 +78,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const
         MatCoord mat_coord_now = mat_start;
         mat_coord_now.coords = mat_start.coords + (mat_end.coords - mat_start.coords) * p0pa_dist / p0p1_size;
         float val = mat_coord_now.getColor(ColourUsage::GREY);
-        int offset = val * (amplitude * 2) - amplitude + settings.offset;
+        int offset = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
         result.add(pa);
@@ -92,7 +86,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const
     }
     // TODO: move end point as well
     float val = mat_end.getColor(ColourUsage::GREY);
-    int r = val * (amplitude * 2) - amplitude + settings.offset;
+    int r = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
     Point fuzz = normal(perp_to_p0p1, r);
     result.emplace_back(p1 - fuzz);
     assert(dist_last_point >= 0 && "above loop should have run at least once!");
