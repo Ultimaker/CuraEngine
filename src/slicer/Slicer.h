@@ -32,7 +32,7 @@ public:
 
     const TexturedMesh* textured_mesh; //!< Pointer to the textured mesh if \ref Slicer::mesh is a TexturedMesh
 
-    Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
+    Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
 
     
     
