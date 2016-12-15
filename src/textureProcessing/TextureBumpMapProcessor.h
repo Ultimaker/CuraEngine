@@ -4,7 +4,9 @@
 
 #include <vector>
 
-#include "../slicer/Slicer.h"
+#include "../utils/polygon.h"
+
+#include "../slicer/SlicerSegment.h"
 #include "../mesh.h"
 
 namespace cura
@@ -13,11 +15,19 @@ namespace cura
 class TextureBumpMapProcessor
 {
 public:
-//     static void process(std::vector<Slicer*>& slicer_list);
-    static void processBumpMap(const Mesh* mesh, SlicerLayer& layer);
+    /*!
+     * Process the texture bump map.
+     * Change the polygons in a layer
+     * 
+     * \param mesh TODO
+     * \param[in,out] layer_polygons The polygons to be offsetted by texture color values
+     */
+    void processBumpMap(const Mesh* mesh, Polygons& layer_polygons);
+
+    std::unordered_map<SlicerSegment, MatSegment> segment_to_material_segment;
 protected:
 
-    static void processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
+    void processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
 };
 
 } // namespace cura

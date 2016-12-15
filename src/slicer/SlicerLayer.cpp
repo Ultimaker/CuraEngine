@@ -733,6 +733,8 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
 {
     Polygons open_polylines;
 
+    texture_bump_map.emplace(); // TODO: instantiate based on mesh setting value
+
     makeBasicPolygonLoops(mesh, open_polylines);
 
     connectOpenPolylines(open_polylines);
@@ -769,7 +771,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh, bool keep_none_closed, bool ext
     auto it = std::remove_if(polygons.begin(), polygons.end(), [snapDistance](PolygonRef poly) { return poly.shorterThan(snapDistance); });
     polygons.erase(it, polygons.end());
 
-    TextureBumpMapProcessor::processBumpMap(mesh, *this);
+    if (texture_bump_map)
+    {
+        texture_bump_map->processBumpMap(mesh, polygons);
+    }
 
     //Finally optimize all the polygons. Every point removed saves time in the long run.
     polygons.simplify();

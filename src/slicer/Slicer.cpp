@@ -27,7 +27,7 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     if (got_texture_coords)
     {
         SlicerLayer& layer = layers[layer_nr];
-        layer.segment_to_material_segment.emplace(seg, mat_segment);
+        layer.texture_bump_map->segment_to_material_segment.emplace(seg, mat_segment);
     }
     return seg;
 }
