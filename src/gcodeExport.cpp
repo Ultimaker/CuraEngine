@@ -1,7 +1,4 @@
-//Copyright (c) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #include <stdarg.h>
 #include <iomanip>
 #include <cmath>
@@ -13,6 +10,8 @@
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cura {
+
+double layer_height; //!< report basic layer height in RepRap gcode file.
 
 GCodeExport::GCodeExport()
 : output_stream(&std::cout)
@@ -84,7 +83,7 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
 
         extruder_attr[extruder_nr].prime_pos = Point3(train->getSettingInMicrons("extruder_prime_pos_x"), train->getSettingInMicrons("extruder_prime_pos_y"), train->getSettingInMicrons("extruder_prime_pos_z"));
         extruder_attr[extruder_nr].prime_pos_is_abs = train->getSettingBoolean("extruder_prime_pos_abs");
-        extruder_attr[extruder_nr].park_distance = train->getSettingInMillimeters("machine_filament_park_distance");
+
         extruder_attr[extruder_nr].nozzle_size = train->getSettingInMicrons("machine_nozzle_size");
         extruder_attr[extruder_nr].nozzle_offset = Point(train->getSettingInMicrons("machine_nozzle_offset_x"), train->getSettingInMicrons("machine_nozzle_offset_y"));
         extruder_attr[extruder_nr].material_guid = train->getSettingString("material_guid");
@@ -99,6 +98,8 @@ void GCodeExport::preSetup(const MeshGroup* meshgroup)
     machine_dimensions.z = meshgroup->getSettingInMicrons("machine_height");
 
     machine_name = meshgroup->getSettingString("machine_name");
+
+    layer_height = meshgroup->getSettingInMillimeters("layer_height");
 
     if (flavor == EGCodeFlavor::BFB)
     {
@@ -197,6 +198,7 @@ std::string GCodeExport::getFileHeader(const double* print_time, const std::vect
         else if (flavor == EGCodeFlavor::REPRAP)
         {
             prefix << ";Filament used: " << ((filament_used.size() >= 1)? filament_used[0] / (1000 * extruder_attr[0].filament_area) : 0) << "m" << new_line;
+            prefix << ";Layer height: " << layer_height << new_line;
         }
         return prefix.str();
     }
@@ -689,11 +691,12 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             extruded_volume_at_previous_n_retractions.pop_back();
         }
     }
+
     if (firmware_retract)
     {
-        if (extruder_switch && extr_attr.retraction_e_amount_current)
+        if (extruder_switch && extr_attr.retraction_e_amount_current) 
         {
-            return;
+            return; 
         }
         *output_stream << "G10";
         if (extruder_switch)
@@ -703,20 +706,6 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         *output_stream << new_line;
         //Assume default UM2 retraction settings.
         estimateCalculator.plan(TimeEstimateCalculator::Position(INT2MM(currentPosition.x), INT2MM(currentPosition.y), INT2MM(currentPosition.z), eToMm(current_e_value + retraction_diff_e_amount)), 25); // TODO: hardcoded values!
-    }
-
-    writeMoveFilament(config, config.distance);
-}
-
-void GCodeExport::writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance)
-{
-    ExtruderTrainAttributes& extr_attr = extruder_attr[current_extruder];
-    const double old_retraction_e_amount = extr_attr.retraction_e_amount_current;
-    const double new_retraction_e_amount = mmToE(new_retraction_distance);
-    const double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
-    if (std::abs(retraction_diff_e_amount) < 0.000001)
-    {
-        return; //No need to have detailed extrusion moves this small.
     }
     else
     {
@@ -780,21 +769,14 @@ void GCodeExport::startExtruder(int new_extruder)
     currentPosition.z += 1;
 }
 
-void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder)
+void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder)
 {
     if (current_extruder == new_extruder)
         return;
 
-    if (turn_off_extruder)
-    {
-        writeMoveFilament(retraction_config_old_extruder, extruder_attr[current_extruder].park_distance);
-    }
-    else
-    {
-        bool force = true;
-        bool extruder_switch = true;
-        writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
-    }
+    bool force = true;
+    bool extruder_switch = true;
+    writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 

@@ -54,7 +54,7 @@ public:
 
     Point& operator[] (unsigned int index) const
     {
-        POLY_ASSERT(index < size() && index >= 0);
+        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
         return (*path)[index];
     }
 
@@ -87,7 +87,7 @@ public:
 
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size() && index >= 0);
+        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
         path->erase(path->begin() + index);
     }
 
@@ -409,7 +409,7 @@ public:
 
     PolygonRef operator[] (unsigned int index)
     {
-        POLY_ASSERT(index < size() && index >= 0);
+        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
         return PolygonRef(paths[index]);
     }
     const PolygonRef operator[] (unsigned int index) const
@@ -439,7 +439,7 @@ public:
      */
     void remove(unsigned int index)
     {
-        POLY_ASSERT(index < size() && index >= 0);
+        POLY_ASSERT(index < size() && index <= std::numeric_limits<int>::max());
         if (index < paths.size() - 1)
         {
             paths[index] = std::move(paths.back());

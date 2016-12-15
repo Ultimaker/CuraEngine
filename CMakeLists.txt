@@ -95,7 +95,9 @@ set(engine_SRCS # Except main.cpp.
     src/textureProcessing/TextureBumpMapProcessor.cpp
 
     src/pathPlanning/Comb.cpp
+    src/pathPlanning/GCodePath.cpp
     src/pathPlanning/LinePolygonsCrossings.cpp
+    src/pathPlanning/NozzleTempInsert.cpp
     src/pathPlanning/TimeMaterialEstimates.cpp
 
     src/progress/Progress.cpp

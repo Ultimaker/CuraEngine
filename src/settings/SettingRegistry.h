@@ -174,17 +174,16 @@ private:
      * \param settings_base The settings base where to store the default values.
      * \param warn_duplicates whether to warn for duplicate setting definitions
      */
-    void handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates);
+    void handleChildren(const rapidjson::Value& settings_list, SettingsBase* settings_base, bool warn_duplicates);
     
     /*!
      * Handle a json object for a setting.
      * 
      * \param json_setting_it Iterator for the setting which contains the key (setting name) and attributes info
-     * \param path The path of (internal) setting names traversed to get to this object
      * \param settings_base The settings base where to store the default values.
      * \param warn_duplicates whether to warn for duplicate setting definitions
      */
-    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates);
+    void handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, SettingsBase* settings_base, bool warn_duplicates);
 };
 
 }//namespace cura

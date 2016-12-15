@@ -1,7 +1,4 @@
-//Copyright (c) 2013 David Braam
-//Copyright (c) 2016 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
-
+/** Copyright (C) 2013 David Braam - Released under terms of the AGPLv3 License */
 #ifndef GCODEEXPORT_H
 #define GCODEEXPORT_H
 
@@ -62,7 +59,6 @@ private:
         double retraction_e_amount_current; //!< The current retracted amount (in mm or mm^3), or zero(i.e. false) if it is not currently retracted (positive values mean retracted amount, so negative impact on E values)
         double retraction_e_amount_at_e_start; //!< The ExtruderTrainAttributes::retraction_amount_current value at E0, i.e. the offset (in mm or mm^3) from E0 to the situation where the filament is at the tip of the nozzle.
 
-        double park_distance; //!< The distance from the nozzle at which to park filament after having completed printing with it.
         double prime_volume; //!< Amount of material (in mm^3) to be primed after an unretration (due to oozing and/or coasting)
         double last_retraction_prime_speed; //!< The last prime speed (in mm/s) of the to-be-primed amount
 
@@ -83,7 +79,6 @@ private:
         , initial_temp(0)
         , retraction_e_amount_current(0.0)
         , retraction_e_amount_at_e_start(0.0)
-        , park_distance(0.0)
         , prime_volume(0.0)
         , last_retraction_prime_speed(0.0)
         { }
@@ -162,18 +157,6 @@ protected:
      * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
      */
     double mmToE(double mm);
-
-    /*!
-     * \brief Write a move in the E-direction such that the filament is
-     * retracted or unretracted to the specified distance.
-     *
-     * No checks are made for the maximum number of retractions.
-     *
-     * \param config The configuration from which to get the distance and speed.
-     * \param new_retraction_distance The distance from the tip of the nozzle
-     * where the filament is supposed to end up.
-     */
-    void writeMoveFilament(const RetractionConfig& config, const double new_retraction_distance);
 
 public:
     
@@ -313,10 +296,8 @@ public:
      * 
      * \param new_extruder The extruder to switch to
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
-     * \param turn_off_extruder Should the old extruder be turned off
-     * completely?
      */
-    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder, const bool turn_off_extruder = false);
+    void switchExtruder(int new_extruder, const RetractionConfig& retraction_config_old_extruder);
 
     void writeCode(const char* str);
     

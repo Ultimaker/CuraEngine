@@ -17,7 +17,7 @@ public:
      * \param my_center the center of the cube
      * \param depth the recursion depth of the cube (0 is most recursed)
      */
-    SubDivCube(SliceMeshStorage& mesh, Point3& center, int depth);
+    SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int depth);
 
     ~SubDivCube(); //!< destructor (also destroys children
 
@@ -84,7 +84,7 @@ private:
      */
     void addLineAndCombine(Polygons& group, Point from, Point to);
 
-    int depth; //!< the recursion depth of the cube (0 is most recursed)
+    unsigned int depth; //!< the recursion depth of the cube (0 is most recursed)
     Point3 center; //!< center location of the cube in absolute coordinates
     SubDivCube* children[8] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr}; //!< pointers to this cube's eight octree children
     static std::vector<CubeProperties> cube_properties_per_recursion_step; //!< precomputed array of basic properties of cubes based on recursion depth.

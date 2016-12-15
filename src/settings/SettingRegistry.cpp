@@ -125,6 +125,11 @@ bool SettingRegistry::getDefinitionFile(const std::string machine_id, std::strin
 
 int SettingRegistry::loadExtruderJSONsettings(unsigned int extruder_nr, SettingsBase* settings_base)
 {
+    if (extruder_train_ids.empty()) //... Tough luck, buddy.
+    {
+        logError("Couldn't find any extruder trains!\n");
+        return -1;
+    }
     if (extruder_nr >= extruder_train_ids.size())
     {
         logWarning("Couldn't load extruder.def.json file for extruder %i. Index out of bounds.\n Loading first extruder definition instead.\n", extruder_nr);
@@ -220,8 +225,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
 
     if (json_document.HasMember("settings"))
     {
-        std::list<std::string> path;
-        handleChildren(json_document["settings"], path, settings_base, warn_duplicates);
+        handleChildren(json_document["settings"], settings_base, warn_duplicates);
     }
     
     if (json_document.HasMember("overrides"))
@@ -243,7 +247,7 @@ int SettingRegistry::loadJSONsettingsFromDoc(rapidjson::Document& json_document,
     return 0;
 }
 
-void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates)
+void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, SettingsBase* settings_base, bool warn_duplicates)
 {
     if (!settings_list.IsObject())
     {
@@ -252,12 +256,10 @@ void SettingRegistry::handleChildren(const rapidjson::Value& settings_list, std:
     }
     for (rapidjson::Value::ConstMemberIterator setting_iterator = settings_list.MemberBegin(); setting_iterator != settings_list.MemberEnd(); ++setting_iterator)
     {
-        handleSetting(setting_iterator, path, settings_base, warn_duplicates);
+        handleSetting(setting_iterator, settings_base, warn_duplicates);
         if (setting_iterator->value.HasMember("children"))
         {
-            std::list<std::string> path_here = path;
-            path_here.push_back(setting_iterator->name.GetString());
-            handleChildren(setting_iterator->value["children"], path_here, settings_base, warn_duplicates);
+            handleChildren(setting_iterator->value["children"], settings_base, warn_duplicates);
         }
     }
 }
@@ -275,7 +277,7 @@ bool SettingRegistry::settingIsUsedByEngine(const rapidjson::Value& setting)
 }
 
 
-void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, std::list<std::string>& path, SettingsBase* settings_base, bool warn_duplicates)
+void SettingRegistry::handleSetting(const rapidjson::Value::ConstMemberIterator& json_setting_it, SettingsBase* settings_base, bool warn_duplicates)
 {
     const rapidjson::Value& json_setting = json_setting_it->value;
     if (!json_setting.IsObject())
