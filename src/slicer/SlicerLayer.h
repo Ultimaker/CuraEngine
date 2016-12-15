@@ -23,9 +23,9 @@ class SlicerLayer
 {
 public:
     /*!
-     * \param create_bump_map Whether to create a TextureBumpMapProcessor
+     * \param bump_map_settings The settings with which to create a TextureBumpMapProcessor - if provided
      */
-    SlicerLayer(bool create_bump_map);
+    SlicerLayer(std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
 
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology
@@ -34,7 +34,7 @@ public:
     Polygons polygons;
     Polygons openPolylines;
 
-    std::optional<TextureBumpMapProcessor> texture_bump_map;
+    std::optional<TextureBumpMapProcessor> texture_bump_map; //!< the bump map to apply to the outlines - if any
 
     /*!
      * Connect the segments into polygons for this layer of this \p mesh
