@@ -6,6 +6,8 @@
 
 #include "../utils/intpoint.h"
 
+#include "../mesh.h"
+
 namespace cura
 {
 

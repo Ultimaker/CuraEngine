@@ -69,10 +69,10 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const Mesh* mesh, const Slic
 }
 
 
-void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& layer)
+void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, Polygons& layer_polygons)
 {
     Polygons results;
-    for (PolygonRef poly : layer.polygons)
+    for (PolygonRef poly : layer_polygons)
     {
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
@@ -88,7 +88,7 @@ void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& laye
             SlicerSegment segment(*p0, p1);
             std::optional<std::pair<SlicerSegment, MatSegment>> best_mat_segment_it;
             coord_t best_dist_score = std::numeric_limits<coord_t>::max();
-            for (std::unordered_map<SlicerSegment, MatSegment>::iterator it = layer.segment_to_material_segment.begin(); it != layer.segment_to_material_segment.end(); ++it)
+            for (std::unordered_map<SlicerSegment, MatSegment>::iterator it = segment_to_material_segment.begin(); it != segment_to_material_segment.end(); ++it)
             {
                 const SlicerSegment& sliced_segment = it->first;
                 coord_t dist_score = std::min(
@@ -133,7 +133,7 @@ void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, SlicerLayer& laye
     //         ^                              ^
     //         ^                              ^
     //         ^                              ^
-    layer.polygons = results.removeComplexParts();
+    layer_polygons = results.removeComplexParts();
 }
 
 
