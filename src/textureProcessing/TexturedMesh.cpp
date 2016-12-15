@@ -96,7 +96,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
     FPoint t0 = texture_coords[texture_idxs.index[p0_idx]];
     FPoint t1 = texture_coords[texture_idxs.index[p1_idx]];
 
-    result.mat_id = texture_idxs.mat_id;
+    result.mat = material_base.getMat(texture_idxs.mat_id);
     result.coords.x = t0.x + (t1.x - t0.x) * ratio;
     result.coords.y = t0.y + (t1.y - t0.y) * ratio;
 
@@ -118,19 +118,6 @@ bool TexturedMesh::sliceFaceTexture(unsigned int face_idx, unsigned int idx_shar
         return false;
     }
     return true;
-}
-
-float TexturedMesh::getColor(MatCoord bitmap_coord, ColourUsage color) const
-{
-    const Material* mat = material_base.getMat(bitmap_coord.mat_id);
-    if (mat)
-    {
-        return mat->getColor(bitmap_coord.coords.x, bitmap_coord.coords.y, color);
-    }
-    else
-    {
-        return 0.0f;
-    }
 }
 
 
