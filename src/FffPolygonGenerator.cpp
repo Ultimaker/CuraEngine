@@ -12,7 +12,7 @@
 #include "support.h"
 #include "slicer/MultiVolumes.h"
 #include "slicer/LayerPart.h"
-#include "textureProcessing/TextureProcessor.h"
+#include "textureProcessing/TextureBumpMapProcessor.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
 #include "skin.h"
