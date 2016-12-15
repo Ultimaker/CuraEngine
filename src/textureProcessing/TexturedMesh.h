@@ -47,9 +47,12 @@ public:
     bool setMaterial(std::string name); //!< set the material to be used in the comming data to be loaded
     Material* addMaterial(std::string name);
 
-    
+    /*!
+     * \return Whether a texture line segment has been created
+     */
+    bool sliceFaceTexture(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const;
 
-    virtual bool registerFaceSlice(unsigned int face_idx, unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, Point segment_start, Point segment_end, MatSegment& result) const;
+    float getColor(MatCoord bitmap_coord, ColourUsage color) const;
 
 protected:
     std::vector<FPoint> texture_coords; //!< all texture coordinates by all faces
@@ -67,8 +70,6 @@ protected:
      * \return Whether a Material coordinate is defined at the given location
      */
     bool getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigned int p0_idx, unsigned int p1_idx, MatCoord& result) const;
-
-    virtual float getColor(MatCoord bitmap_coord, ColourUsage color) const;
 private:
     int current_mat; //!< material currently used in loading the face material info
 };

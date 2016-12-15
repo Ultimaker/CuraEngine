@@ -25,7 +25,7 @@ void TextureBumpMapProcessor::process(std::vector< Slicer* >& slicer_list)
 }
 */
 
-void TextureBumpMapProcessor::processSegmentBumpMap(const Mesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
+void TextureBumpMapProcessor::processSegmentBumpMap(const TexturedMesh* mesh, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result)
 {
 
     MatCoord mat_start = mat.start;
@@ -69,7 +69,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(const Mesh* mesh, const Slic
 }
 
 
-void TextureBumpMapProcessor::processBumpMap(const Mesh* mesh, Polygons& layer_polygons)
+void TextureBumpMapProcessor::processBumpMap(const TexturedMesh* mesh, Polygons& layer_polygons)
 {
     Polygons results;
     for (PolygonRef poly : layer_polygons)
