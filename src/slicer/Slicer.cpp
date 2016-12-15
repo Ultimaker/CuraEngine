@@ -26,10 +26,10 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
     {
         MatSegment mat_segment;
         bool got_texture_coords = textured_mesh->sliceFaceTexture(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
-        if (got_texture_coords)
+        SlicerLayer& layer = layers[layer_nr];
+        if (got_texture_coords && layer.texture_bump_map)
         {
-            SlicerLayer& layer = layers[layer_nr];
-            layer.texture_bump_map->segment_to_material_segment.emplace(seg, mat_segment);
+            layer.texture_bump_map->registerTextureFaceSlice(seg, mat_segment);
         }
     }
     return seg;
