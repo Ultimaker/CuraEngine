@@ -3,7 +3,6 @@
 #include <strings.h>
 #include <stdio.h>
 
-#define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
 #include "stb/stb_image.h"
 
 #include "MeshGroup.h"
@@ -354,7 +353,12 @@ void loadMatImage(Material* mat, const char* filename)
     }
     else
     {
-        logError("Cannot load image %s.", filename);
+        const char* reason = "[unknown reason]";
+        if (stbi_failure_reason())
+        {
+            reason = stbi_failure_reason();
+        }
+        logError("Cannot load image %s: '%s'.\n", filename, reason);
         std::exit(-1);
     }
 }
