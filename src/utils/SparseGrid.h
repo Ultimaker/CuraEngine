@@ -21,6 +21,11 @@ class SparseGrid
 {
 public:
     using Elem = ElemT;
+protected:
+    using GridPoint = Point;
+    using grid_coord_t = coord_t;
+    using GridMap = std::unordered_multimap<GridPoint, Elem>;
+public:
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -98,10 +103,44 @@ public:
      * \param[in] elem The element to be inserted.
      */
     void insert(Point location, const Elem &elem);
+
+    class iterator
+    {
+        friend class SparseGrid<ElemT>;
+        typename GridMap::iterator it;
+        iterator(typename GridMap::iterator it)
+        :it(it)
+        {}
+    public:
+        iterator operator++() // pre-increment
+        {
+            ++it;
+            return *this;
+        }
+        iterator operator++(int) // post increment
+        {
+            iterator ret(it);
+            ++it;
+            return ret;
+        }
+        Elem operator*()
+        {
+            return it->second;
+        }
+        bool operator==(iterator other)
+        {
+            return it == other.it;
+        }
+        bool operator!=(iterator other)
+        {
+            return it != other.it;
+        }
+        // TODO: fully implement iterator interface
+    };
+    iterator begin();
+    iterator end();
+
 protected:
-    using GridPoint = Point;
-    using grid_coord_t = coord_t;
-    using GridMap = std::unordered_multimap<GridPoint, Elem>;
 
     /*! \brief Process elements from the cell indicated by \p grid_pt.
      *
@@ -230,6 +269,18 @@ void SGI_THIS::insert(Point loc, const Elem &elem)
     GridPoint grid_loc = toGridPoint(loc);
 
     m_grid.emplace(grid_loc, elem);
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::iterator SGI_THIS::begin()
+{
+    return iterator(m_grid.begin());
+}
+
+SGI_TEMPLATE
+typename SGI_THIS::iterator SGI_THIS::end()
+{
+    return iterator(m_grid.end());
 }
 
 SGI_TEMPLATE
