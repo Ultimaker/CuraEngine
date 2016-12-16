@@ -1,0 +1,5 @@
+https://github.com/nothings/stb
+
+Thanks to Sean T. Barrett
+
+license: public domain
