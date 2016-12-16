@@ -3,6 +3,8 @@
 #include "TexturedMesh.h"
 
 #include <cassert>
+#include <math.h>
+
 #include "../utils/logoutput.h"
 
 namespace cura
@@ -16,6 +18,18 @@ TexturedMesh::TexturedMesh(SettingsBaseVirtual* sb)
 
 void TexturedMesh::addTextureCoord(float x, float y)
 {
+    // some textures use wrapping for some unholy reason
+    // unwrap for texture coordinates to fall within 0-1
+    x = fmod(x, 1.0f);
+    if (x < 0.0)
+    {
+        x += 1.0f;
+    }
+    y = fmod(y, 1.0f);
+    if (y < 0.0)
+    {
+        y += 1.0f;
+    }
     texture_coords.emplace_back(x, y);
 }
 
@@ -59,7 +73,7 @@ bool TexturedMesh::setMaterial(std::string name)
     return current_mat >= 0;
 }
 
-Material* TexturedMesh::addMaterial(std::__cxx11::string name)
+Material* TexturedMesh::addMaterial(std::string name)
 {
     return material_base.add(name);
 }
@@ -102,7 +116,7 @@ bool TexturedMesh::getFaceEdgeMatCoord(unsigned int face_idx, int64_t z, unsigne
 
     if (result.coords.x > 1.001 || result.coords.x < -0.001 || result.coords.y > 1.001 || result.coords.y < -0.001)
     {
-        logError("WARNING: wapping material to outside image!");
+        logError("WARNING: wrapping material to outside image!\n");
     }
     return true;
 }
