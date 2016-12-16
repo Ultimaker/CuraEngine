@@ -6,7 +6,10 @@
 #include <iostream>
 #include <cassert>
 
+#include "stb/stb_image.h"
+
 #include "Material.h"
+
 
 
 namespace cura
@@ -20,6 +23,15 @@ Material::Material()
 {
 
 }
+
+Material::~Material()
+{
+    if (data)
+    {
+        stbi_image_free(data);
+    }
+}
+
 
 
 void Material::setData(unsigned char* data)

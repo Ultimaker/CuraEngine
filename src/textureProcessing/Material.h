@@ -21,6 +21,13 @@ public:
     Material();
 
     /*!
+     * Destructor
+     * 
+     * deletes the image data
+     */
+    ~Material();
+
+    /*!
      * Set the pixel data of the image
      * \param data pointer to the array of data in RGBA, left-to-right, top-to-bottom
      */
