@@ -81,6 +81,12 @@ protected:
     SparseGrid<TexturedFaceSlice> loc_to_slice;
 
     /*!
+     * Get how much of a corner to skip generating offsetted indices for inner corners,
+     * because those points would be removed by the offset itseld
+     */
+    coord_t getCornerDisregard(Point p0, Point p1, Point p2, std::optional<TexturedFaceSlice>& textured_face_slice, std::optional<TexturedFaceSlice>& next_textured_face_slice);
+
+    /*!
      * Get the TexturedFaceSlice corresponding to an outline segment
      * 
      * Note that due to snapping in the \ref Slicer::makePolygons function, an outline segment may be a bit different from the originally sliced SlicerSegment
@@ -94,8 +100,9 @@ protected:
      * 
      * \param layer_nr The layer number for which we process the bump map
      * \param slicer_segment The segment closest matching \p p0 - \p p1
+     * \param corner_disregard_p1 The distance at the end of p0p1 in which not to place offsetted points
      */
-    void processSegmentBumpMap(unsigned int layer_nr, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, PolygonRef result);
+    void processSegmentBumpMap(unsigned int layer_nr, const SlicerSegment& slicer_segment, const MatSegment& mat, const Point p0, const Point p1, coord_t& dist_left_over, coord_t corner_disregard_p1, PolygonRef result);
 };
 
 } // namespace cura
