@@ -79,14 +79,14 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
         if (p1.z > maxZ) maxZ = p1.z;
         if (p2.z > maxZ) maxZ = p2.z;
         int32_t layer_max = (maxZ - initial) / thickness;
-        int32_t z = 0;
-        for (int32_t layer_nr = (minZ - initial + thickness - 1) / thickness; layer_nr < layer_max; layer_nr++) //  + thickness - 1 to get the first layer above or at minZ
+        int32_t layer_min = (minZ - initial + thickness - 1) / thickness; //  + thickness - 1 to get the first layer above or at minZ
+        for (int32_t layer_nr = layer_min; layer_nr <= layer_max; layer_nr++)
         {
             if (bump_map_alternate && layer_nr % 2 == extruder_nr) // TODO only works for the first two extruders!
             {
                 continue;
             }
-            z = layer_nr * thickness + initial;
+            int32_t z = layer_nr * thickness + initial;
             if (z < minZ) continue;
             if (layer_nr < 0) continue;
 
