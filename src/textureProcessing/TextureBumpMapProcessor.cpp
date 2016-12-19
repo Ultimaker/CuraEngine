@@ -73,9 +73,10 @@ coord_t TextureBumpMapProcessor::getCornerDisregard(Point p0, Point p1, Point p2
     Point n12 = normal(turn90CCW(v12), -1000);
     Point corner_normal = n01 + n12;
     coord_t corner_normal_size2 = vSize2(corner_normal);
-    coord_t normal_aspect = std::abs(dot(corner_normal, v01) / vSize(v01));
-    coord_t dist_aspect = sqrt(std::max((coord_t)1, corner_normal_size2 - normal_aspect * normal_aspect)); // due to rounding errors 'corner_normal_size2 - normal_aspect^2' may be smaller than zero; because of division on line below should be at least 1
-    coord_t disregard = std::abs(offset) * normal_aspect / dist_aspect;
+    coord_t normal_aspect = dot(corner_normal, v01) / vSize(v01); // The aspect of the corner normal along v01 (might be negative)
+    coord_t dist_aspect = sqrt(std::max((coord_t)1, corner_normal_size2 - normal_aspect * normal_aspect)); // The distance of the end of the normal vector to v01 or v12
+    // ^ due to rounding errors 'corner_normal_size2 - normal_aspect^2' may be smaller than zero; because of division on line below should be at least 1
+    coord_t disregard = std::abs(offset * normal_aspect) / dist_aspect;
     assert(disregard >= 0);
     return disregard;
 }
