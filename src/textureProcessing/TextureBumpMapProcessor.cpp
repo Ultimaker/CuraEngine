@@ -197,7 +197,11 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                 }
             }
 
-            if (corner_disregard_p1 == 0 && (textured_face_slice || next_textured_face_slice))
+            if (corner_disregard_p1 == 0
+                && (textured_face_slice || next_textured_face_slice)
+                && (textured_face_slice || !shorterThen(p1 - *p0, SLICE_SEGMENT_SNAP_GAP)) // don't introduce corner points for gap closer poly segments
+                && (next_textured_face_slice || !shorterThen(p2 - p1, SLICE_SEGMENT_SNAP_GAP)) // don't introduce corner points for gap closer poly segments
+                )
             { // add point for outward corner
                 // TODO: remove code duplication with getCornerDisregard
                 float color0 = (textured_face_slice)? textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
