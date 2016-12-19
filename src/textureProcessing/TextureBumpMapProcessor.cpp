@@ -123,7 +123,20 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
         return;
     }
 
-    Polygons preprocessed = layer_polygons.processEvenOdd();
+    Polygons preprocessed;
+    for (PolygonRef poly : layer_polygons)
+    { // remove duplicate points
+        PolygonRef preprocessed_poly = preprocessed.newPoly();
+        Point p0 = poly.back();
+        for (const Point p1 : poly)
+        {
+            if (p1 == p0)
+                continue;
+            preprocessed_poly.add(p1);
+            p0 = p1;
+        }
+    }
+
     Polygons results;
     for (PolygonRef poly : preprocessed)
     {
