@@ -39,6 +39,14 @@ struct AABB3D
     void include(Point3 p);
 
     /*!
+     * Expand the AABB3D to include a z-coordinate.
+     *
+     * This is for including a point of which the X and Y coordinates are
+     * unknown but known to already be included in the bounding box.
+     */
+    void includeZ(int32_t z);
+
+    /*!
      * Offset the coordinates of the bounding box.
      * \param offset The offset with which to offset the AABB3D.
      */

@@ -37,6 +37,12 @@ void AABB3D::include(Point3 p)
     max.z = std::max(max.z, p.z);   
 }
 
+void AABB3D::includeZ(int32_t z)
+{
+    min.z = std::min(min.z, z);
+    max.z = std::max(max.z, z);
+}
+
 void AABB3D::offset(Point3 offset)
 {
     min += offset;

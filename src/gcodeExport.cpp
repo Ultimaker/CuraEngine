@@ -556,8 +556,6 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     assert((Point3(x,y,z) - currentPosition).vSize() < MM2INT(300)); // no crazy positions (this code should not be compiled for release)
 #endif //ASSERT_INSANE_OUTPUT
 
-    total_bounding_box.include(Point3(x, y, z));
-
     if (extrusion_mm3_per_mm < 0)
         logWarning("Warning! Negative extrusion move!");
 
@@ -570,6 +568,7 @@ void GCodeExport::writeMove(int x, int y, int z, double speed, double extrusion_
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
     Point gcode_pos = getGcodePos(x,y, current_extruder);
+    total_bounding_box.include(Point3(gcode_pos.X, gcode_pos.Y, z));
 
     if (extrusion_mm3_per_mm > 0.000001)
     {
@@ -729,7 +728,7 @@ void GCodeExport::writeZhopStart(int hop_height)
     {
         isZHopped = hop_height;
         *output_stream << "G1 Z" << MMtoStream{currentPosition.z + isZHopped} << new_line;
-        total_bounding_box.include(currentPosition + Point3(0, 0, isZHopped));
+        total_bounding_box.includeZ(currentPosition.z + isZHopped);
     }
 }
 
