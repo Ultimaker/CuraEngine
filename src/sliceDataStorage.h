@@ -12,6 +12,7 @@
 #include "MeshGroup.h"
 #include "PrimeTower.h"
 #include "GCodePathConfig.h"
+#include "textureProcessing/TextureProximityProcessor.h"
 
 namespace cura 
 {
@@ -159,6 +160,8 @@ public:
 
     SubDivCube* base_subdiv_cube;
 
+    TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
+
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
     , layer_nr_max_filled_layer(0)
@@ -166,6 +169,7 @@ public:
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
     , base_subdiv_cube(nullptr)
+    , texture_proximity_processor(nullptr)
     {
         layers.resize(slice_layer_count);
         infill_config.reserve(MAX_INFILL_COMBINE);
@@ -242,9 +246,7 @@ public:
      */
     SliceDataStorage(MeshGroup* meshgroup);
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.

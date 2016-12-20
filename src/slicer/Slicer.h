@@ -12,6 +12,7 @@
 #include "SlicerLayer.h"
 
 #include "../textureProcessing/MatSegment.h"
+#include "../textureProcessing/TextureProximityProcessor.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -32,7 +33,13 @@ public:
 
     const TexturedMesh* textured_mesh; //!< Pointer to the textured mesh if \ref Slicer::mesh is a TexturedMesh
 
-    Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keepNoneClosed, bool extensiveStitching);
+    TextureProximityProcessor* texture_proximity_processor; //!< Containers for each layer for fast lookup of textures being defined in the proximity of the lookup point
+
+    /*!
+     * 
+     * \param texture_proximity_processors (optional) A TextureProximityProcessor for all layers in the mesh
+     */
+    Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keepNoneClosed, bool extensiveStitching, TextureProximityProcessor* texture_proximity_processors);
 
     
     
