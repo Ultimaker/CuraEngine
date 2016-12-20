@@ -174,7 +174,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
     rel_child_centers.emplace_back(-1, -1, 1);
     for (Point3 rel_child_center : rel_child_centers)
     {
-        child_center = center + rotation_matrix.apply(rel_child_center * int32_t(cube_properties.side_length / 4));
+        child_center = center + rotation_matrix.apply(rel_child_center * coord_t(cube_properties.side_length / 4));
         if (isValidSubdivision(mesh, child_center, radius))
         {
             children[child_nr] = new SubDivCube(mesh, child_center, depth - 1);
