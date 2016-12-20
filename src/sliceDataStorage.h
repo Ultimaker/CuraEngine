@@ -11,6 +11,7 @@
 #include "MeshGroup.h"
 #include "PrimeTower.h"
 #include "gcodeExport.h" // CoastingConfig
+#include "textureProcessing/TextureProximityProcessor.h"
 
 namespace cura 
 {
@@ -167,10 +168,13 @@ public:
     std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
     SubDivCube* base_subdiv_cube;
 
+    TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
+
     SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
     : SettingsMessenger(settings)
     , layer_nr_max_filled_layer(0)
     , base_subdiv_cube(nullptr)
+    , texture_proximity_processor(nullptr)
     {
         layers.resize(slice_layer_count);
     }
@@ -222,9 +226,7 @@ public:
      */
     SliceDataStorage(MeshGroup* meshgroup);
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.

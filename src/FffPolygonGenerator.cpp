@@ -17,6 +17,7 @@
 #include "slicer/MultiVolumes.h"
 #include "slicer/LayerPart.h"
 #include "textureProcessing/TextureBumpMapProcessor.h"
+#include "textureProcessing/TextureProximityProcessor.h"
 #include "Mold.h"
 #include "WallsComputation.h"
 #include "SkirtBrim.h"
@@ -92,11 +93,28 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return true; //This is NOT an error state!
     }
 
+    
+    storage.meshes.reserve(meshgroup->meshes.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
+    for(unsigned int meshIdx=0; meshIdx < meshgroup->meshes.size(); meshIdx++)
+    {
+        // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
+        // even make a mesh for a support mesh, which doesn't introduce any parts.
+        storage.meshes.emplace_back(meshgroup->meshes[meshIdx], slice_layer_count); // new mesh in storage had settings from the Mes
+    }
+    // ^ needs to be set already for fuzzy wall texture map processing
+
     std::vector<Slicer*> slicerList;
     for(unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         Mesh& mesh = *meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, mesh.getSettingBoolean("meshfix_keep_open_polygons"), mesh.getSettingBoolean("meshfix_extensive_stitching"));
+        if (mesh.getSettingBoolean("fuzz_map_enabled"))
+        {
+            TextureProximityProcessor::Settings texture_proximity_processor_settings(mesh.getSettingInMicrons("wall_line_width_0"));
+            storage.meshes[mesh_idx].texture_proximity_processor = new TextureProximityProcessor(texture_proximity_processor_settings, slice_layer_count);
+        }
+        bool keep_open_polylines = mesh.getSettingBoolean("meshfix_keep_open_polygons");
+        bool extensive_stitching = mesh.getSettingBoolean("meshfix_extensive_stitching");
+        Slicer* slicer = new Slicer(&mesh, initial_slice_z, layer_thickness, slice_layer_count, keep_open_polylines, extensive_stitching, storage.meshes[mesh_idx].texture_proximity_processor);
         slicerList.push_back(slicer);
         /*
         for(SlicerLayer& layer : slicer->layers)
@@ -147,15 +165,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
     storage.support.supportLayers.resize(storage.print_layer_count);
 
-    storage.meshes.reserve(slicerList.size()); // causes there to be no resize in meshes so that the pointers in sliceMeshStorage._config to retraction_config don't get invalidated.
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
         Mesh& mesh = *storage.meshgroup->meshes[meshIdx];
 
-        // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
-        storage.meshes.emplace_back(meshgroup->meshes[meshIdx], slicer->layers.size()); // new mesh in storage had settings from the Mesh
-        SliceMeshStorage& meshStorage = storage.meshes.back();
+       SliceMeshStorage& meshStorage = storage.meshes[meshIdx];
 
         const bool is_support_modifier = AreaSupport::handleSupportModifierMesh(storage, mesh, slicer);
 
