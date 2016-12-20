@@ -85,6 +85,28 @@ void SliceLayer::getSecondOrInnermostWalls(Polygons& layer_walls) const
     }
 }
 
+SliceMeshStorage::SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
+: SettingsMessenger(mesh)
+, layer_nr_max_filled_layer(0)
+, bounding_box(mesh->getAABB())
+, base_subdiv_cube(nullptr)
+, texture_proximity_processor(nullptr)
+{
+    layers.resize(slice_layer_count);
+}
+
+
+SliceMeshStorage::SliceMeshStorage(SliceMeshStorage&& old)
+: SettingsMessenger(SettingsBaseVirtual::parent)
+, layers(old.layers)
+, layer_nr_max_filled_layer(old.layer_nr_max_filled_layer)
+, base_subdiv_cube(old.base_subdiv_cube)
+, texture_proximity_processor(old.texture_proximity_processor)
+{
+    old.base_subdiv_cube = nullptr;
+    old.texture_proximity_processor = nullptr;
+}
+
 SliceMeshStorage::~SliceMeshStorage()
 {
     if (base_subdiv_cube)
