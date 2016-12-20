@@ -3,18 +3,12 @@
 #include <strings.h>
 #include <stdio.h>
 
-#include "stb/stb_image.h"
-
 #include "MeshGroup.h"
 #include "utils/gettime.h"
 #include "utils/logoutput.h"
 #include "utils/string.h"
 
 #include "settings/SettingRegistry.h" // loadExtruderJSONsettings
-
-#define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
-#define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
-#include "stb/stb_image.h"
 
 namespace cura
 {
@@ -343,30 +337,6 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const FMatrix3x3& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-void loadMatImage(Material* mat, const char* filename)
-{
-    int width;
-    int height;
-    int depth;
-    // in RGBA order
-    unsigned char* data = stbi_load(filename, &width, &height, &depth, 0);
-    if (data)
-    {
-        mat->setData(data);
-        mat->setDimensions(width, height, depth);
-    }
-    else
-    {
-        const char* reason = "[unknown reason]";
-        if (stbi_failure_reason())
-        {
-            reason = stbi_failure_reason();
-        }
-        logError("Cannot load image %s: '%s'.\n", filename, reason);
-        std::exit(-1);
-    }
-}
-
 void loadMaterialBase(TexturedMesh* mesh, const char* filename)
 {
     FILE* f = fopen(filename, "rt");
@@ -397,7 +367,7 @@ void loadMaterialBase(TexturedMesh* mesh, const char* filename)
             std::string mtl_file = parent_dir + "/" + mat_file;
             if (last_mat)
             {
-                loadMatImage(last_mat, mtl_file.c_str());
+                last_mat->loadImage(mtl_file.c_str());
             }
         }
         else if (sscanf(buffer, "newmtl %s", mat_name) == 1)
