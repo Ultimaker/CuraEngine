@@ -43,7 +43,7 @@ public:
      * 
      * \param settings The settings with which to \ref TextureBumpMapProcessor::processBumpMap
      */
-    TextureBumpMapProcessor(const Settings settings);
+    TextureBumpMapProcessor(TexturedMesh* mesh, const Settings settings);
 
     /*!
      * Process the texture bump map.
@@ -69,6 +69,8 @@ protected:
         SlicerSegment face_segment;
         MatSegment mat_segment;
     };
+
+    TexturedMesh* mesh;
 
     /*!
      * The settings with which to \ref TextureBumpMapProcessor::processBumpMap

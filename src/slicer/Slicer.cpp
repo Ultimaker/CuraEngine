@@ -59,7 +59,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
 
     for (uint32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     { // initialize all layers
-        layers.emplace_back(layer_nr, bump_map_settings);
+        layers.emplace_back(layer_nr, mesh, bump_map_settings);
         assert(&layers.back() == &layers[layer_nr] && "We should just have emplaced the last layer!");
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
