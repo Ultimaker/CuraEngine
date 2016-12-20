@@ -91,6 +91,10 @@ SliceMeshStorage::~SliceMeshStorage()
     {
         delete base_subdiv_cube;
     }
+    if (texture_proximity_processor)
+    {
+        delete texture_proximity_processor;
+    }
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(int extruder_nr) const
@@ -266,6 +270,11 @@ SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(mes
     primeTower(*this)
 {
 }
+
+SliceDataStorage::~SliceDataStorage()
+{
+}
+
 
 Polygons SliceDataStorage::getLayerOutlines(int layer_nr, bool include_helper_parts, bool external_polys_only) const
 {

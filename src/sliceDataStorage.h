@@ -16,6 +16,7 @@
 #include "TopSurface.h"
 #include "gcodeExport.h" // CoastingConfig
 #include "SupportInfillPart.h"
+#include "textureProcessing/TextureProximityProcessor.h"
 
 namespace cura 
 {
@@ -244,11 +245,14 @@ public:
     AABB3D bounding_box; //!< the mesh's bounding box
     SubDivCube* base_subdiv_cube;
 
+    TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
+
     SliceMeshStorage(Mesh* mesh, unsigned int slice_layer_count)
     : SettingsMessenger(mesh)
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
+    , texture_proximity_processor(nullptr)
     {
         layers.resize(slice_layer_count);
     }
@@ -318,9 +322,7 @@ public:
      */
     SliceDataStorage(MeshGroup* meshgroup);
 
-    ~SliceDataStorage()
-    {
-    }
+    ~SliceDataStorage();
 
     /*!
      * Get all outlines within a given layer.

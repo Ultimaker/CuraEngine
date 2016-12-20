@@ -27,17 +27,25 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
         MatSegment mat_segment;
         bool got_texture_coords = textured_mesh->sliceFaceTexture(face_idx, idx_shared, idx_first, idx_second, z, seg.start, seg.end, mat_segment);
         SlicerLayer& layer = layers[layer_nr];
-        if (got_texture_coords && layer.texture_bump_map)
+        if (got_texture_coords)
         {
-            layer.texture_bump_map->registerTexturedFaceSlice(seg, mat_segment);
+            if (layer.texture_bump_map)
+            {
+                layer.texture_bump_map->registerTexturedFaceSlice(seg, mat_segment);
+            }
+            if (texture_proximity_processor)
+            {
+                texture_proximity_processor->registerTexturedFaceSlice(seg, mat_segment, layer_nr);
+            }
         }
     }
     return seg;
 }
 
-Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keep_none_closed, bool extensive_stitching)
+Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keep_none_closed, bool extensive_stitching, TextureProximityProcessor* texture_proximity_processor)
 : mesh(mesh)
 , textured_mesh(dynamic_cast<TexturedMesh*>(mesh))
+, texture_proximity_processor(texture_proximity_processor)
 {
     assert((int) slice_layer_count > 0);
 
@@ -50,7 +58,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
     }
 
     for (uint32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
-    {
+    { // initialize all layers
         layers.emplace_back(layer_nr, bump_map_settings);
         assert(&layers.back() == &layers[layer_nr] && "We should just have emplaced the last layer!");
         layers[layer_nr].z = initial + thickness * layer_nr;
