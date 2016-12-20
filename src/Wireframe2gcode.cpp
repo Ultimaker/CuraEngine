@@ -247,7 +247,7 @@ void Wireframe2gcode::strategy_retract(WeaveConnectionPart& part, unsigned int s
     retraction_config.retraction_min_travel_distance = getSettingInMicrons("retraction_min_travel");
 
     double top_retract_pause = 2.0;
-    int retract_hop_dist = 1000;
+    coord_t retract_hop_dist = 1000;
     bool after_retract_hop = false;
     //bool go_horizontal_first = true;
     bool lower_retract_start = true;

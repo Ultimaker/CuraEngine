@@ -46,17 +46,19 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 namespace cura
 {
 
+using coord_t = ClipperLib::cInt;
+
 class Point3
 {
 public:
-    int32_t x,y,z;
+    coord_t x,y,z;
     Point3() {}
-    Point3(const int32_t _x, const int32_t _y, const int32_t _z): x(_x), y(_y), z(_z) {}
+    Point3(const coord_t _x, const coord_t _y, const coord_t _z): x(_x), y(_y), z(_z) {}
 
     Point3 operator+(const Point3& p) const { return Point3(x+p.x, y+p.y, z+p.z); }
     Point3 operator-(const Point3& p) const { return Point3(x-p.x, y-p.y, z-p.z); }
-    Point3 operator/(const int32_t i) const { return Point3(x/i, y/i, z/i); }
-    Point3 operator*(const int32_t i) const { return Point3(x*i, y*i, z*i); }
+    Point3 operator/(const coord_t i) const { return Point3(x/i, y/i, z/i); }
+    Point3 operator*(const coord_t i) const { return Point3(x*i, y*i, z*i); }
     Point3 operator*(const double d) const { return Point3(d*x, d*y, d*z); }
 
     Point3& operator += (const Point3& p) { x += p.x; y += p.y; z += p.z; return *this; }
@@ -75,14 +77,14 @@ public:
     }
 
 
-    int32_t max() const
+    coord_t max() const
     {
         if (x > y && x > z) return x;
         if (y > z) return y;
         return z;
     }
 
-    bool testLength(int32_t len) const
+    bool testLength(coord_t len) const
     {
         if (x > len || x < -len)
             return false;
@@ -93,12 +95,12 @@ public:
         return vSize2() <= len*len;
     }
 
-    int64_t vSize2() const
+    coord_t vSize2() const
     {
-        return int64_t(x)*int64_t(x)+int64_t(y)*int64_t(y)+int64_t(z)*int64_t(z);
+        return x * x + y * y + z * z;
     }
 
-    int32_t vSize() const
+    coord_t vSize() const
     {
         return sqrt(vSize2());
     }
@@ -110,16 +112,15 @@ public:
         double fz = INT2MM(z);
         return sqrt(fx*fx+fy*fy+fz*fz);
     }
-    /*! this function is deprecated because it can cause overflows for vectors which easily fit inside a printer. Use FPoint3.cross(a,b) instead. */
-    DEPRECATED(Point3 cross(const Point3& p))
+    Point3 cross(const Point3& p)
     {
         return Point3(
-            y*p.z-z*p.y, /// dangerous for vectors longer than 4.6 cm !!!!!
-            z*p.x-x*p.z, /// can cause overflows
+            y*p.z-z*p.y,
+            z*p.x-x*p.z,
             x*p.y-y*p.x);
     }
 
-    int64_t dot(const Point3& p) const
+    coord_t dot(const Point3& p) const
     {
         return x*p.x + y*p.y + z*p.z;
     }
@@ -128,15 +129,13 @@ public:
 
 static Point3 no_point3(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
     
-inline Point3 operator*(const int32_t i, const Point3& rhs) {
+inline Point3 operator*(const coord_t i, const Point3& rhs) {
     return rhs * i;
 }
 
 inline Point3 operator*(const double d, const Point3& rhs) {
     return rhs * d;
 }
-
-using coord_t = ClipperLib::cInt;
 
 /* 64bit Points are used mostly troughout the code, these are the 2D points from ClipperLib */
 typedef ClipperLib::IntPoint Point;
@@ -146,8 +145,8 @@ public:
     int X, Y;
     Point p() { return Point(X, Y); }
 };
-#define POINT_MIN std::numeric_limits<ClipperLib::cInt>::min()
-#define POINT_MAX std::numeric_limits<ClipperLib::cInt>::max()
+#define POINT_MIN std::numeric_limits<coord_t>::min()
+#define POINT_MAX std::numeric_limits<coord_t>::max()
 
 static Point no_point(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
 
