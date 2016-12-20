@@ -31,18 +31,11 @@ public:
     ~Material();
 
     /*!
-     * Set the pixel data of the image
-     * \param data pointer to the array of data in RGBA, left-to-right, top-to-bottom
+     * Load an image from file.
+     * 
+     * Crash if this doesn't work. (unsupported file type, IO exception, etc.)
      */
-    void setData(unsigned char* data);
-
-    /*!
-     * Set the dimensions of the image
-     * \param width The horizontal length of the imnage
-     * \param height The vertical length of the imnage
-     * \param depth The number of color channels
-     */
-    void setDimensions(unsigned int width, unsigned int height, unsigned int depth);
+    void loadImage(const char* filename);
 
     /*!
      * get the color value at a particular place in the image
