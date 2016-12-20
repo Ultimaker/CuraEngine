@@ -6,17 +6,27 @@
 #include <iostream>
 #include <cassert>
 
-#include "stb/stb_image.h"
 
 #include "Material.h"
 
+#include "stb/stb_image.h"
 
 
 namespace cura
 {
+/*!
+ * custom destructor for the data to be used by the shared_pointer
+ */
+struct ArrayDeleter
+{
+    void operator ()(unsigned char* p)
+    { 
+        stbi_image_free(p); 
+    }
+};
 
 Material::Material()
-: data(nullptr)
+: data(nullptr, ArrayDeleter())
 , width(0)
 , height(0)
 , depth(0)
@@ -26,17 +36,13 @@ Material::Material()
 
 Material::~Material()
 {
-    if (data)
-    {
-        stbi_image_free(data);
-    }
 }
 
 
 
 void Material::setData(unsigned char* data)
 {
-    this->data = data;
+    this->data = std::shared_ptr<unsigned char>(data);
 }
 
 void Material::setDimensions(unsigned int width, unsigned int height, unsigned int depth)

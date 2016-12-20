@@ -2,7 +2,10 @@
 #ifndef TEXTURE_PROCESSING_MATERIAL_H
 #define TEXTURE_PROCESSING_MATERIAL_H
 
+#include <memory> // shared_ptr
+
 #include "../settings/settings.h" // ColourUsage
+
 
 namespace cura
 {
@@ -57,7 +60,8 @@ public:
      */
     void debugOutput(bool double_width = true) const;
 protected:
-    unsigned char* data; //!< pixel data in rgb-row-first (or bgr-row first ?)
+
+    std::shared_ptr<unsigned char> data; //!< pixel data in rgb-row-first (or bgr-row first ?)
     unsigned int width, height, depth; //!< image dimensions
 
     /*!
