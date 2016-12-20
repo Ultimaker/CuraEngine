@@ -11,8 +11,9 @@ namespace cura
 
 #define SLICE_SEGMENT_SNAP_GAP 20
 
-TextureBumpMapProcessor::TextureBumpMapProcessor(const TextureBumpMapProcessor::Settings settings)
-: settings(settings)
+TextureBumpMapProcessor::TextureBumpMapProcessor(TexturedMesh* mesh, const TextureBumpMapProcessor::Settings settings)
+: mesh(mesh)
+, settings(settings)
 , loc_to_slice(SLICE_SEGMENT_SNAP_GAP)
 {
 
