@@ -9,8 +9,9 @@
 
 #include "Material.h"
 
+#define STBI_FAILURE_USERMSG // enable user friendly bug messages for STB lib
+#define STB_IMAGE_IMPLEMENTATION // needed in order to enable the implementation of libs/std_image.h
 #include "stb/stb_image.h"
-
 
 namespace cura
 {
@@ -39,17 +40,29 @@ Material::~Material()
 }
 
 
-
-void Material::setData(unsigned char* data)
+void Material::loadImage(const char* filename)
 {
-    this->data = std::shared_ptr<unsigned char>(data);
-}
-
-void Material::setDimensions(unsigned int width, unsigned int height, unsigned int depth)
-{
-    this->width = width;
-    this->height = height;
-    this->depth = depth;
+    int w, h, d;
+    // in RGBA order
+    int desired_channel_count = 0; // keep original amount of channels
+    unsigned char* data = stbi_load(filename, &w, &h, &d, desired_channel_count);
+    if (data)
+    {
+        width = w;
+        height = h;
+        depth = d;
+        this->data = std::shared_ptr<unsigned char>(data);
+    }
+    else
+    {
+        const char* reason = "[unknown reason]";
+        if (stbi_failure_reason())
+        {
+            reason = stbi_failure_reason();
+        }
+        logError("Cannot load image %s: '%s'.\n", filename, reason);
+        std::exit(-1);
+    }
 }
 
 float Material::getColor(float x, float y, ColourUsage color) const
