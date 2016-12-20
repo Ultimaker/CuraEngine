@@ -127,7 +127,7 @@ public:
 
 };
 
-static Point3 no_point3(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
+static Point3 no_point3(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     
 inline Point3 operator*(const coord_t i, const Point3& rhs) {
     return rhs * i;
@@ -148,7 +148,7 @@ public:
 #define POINT_MIN std::numeric_limits<coord_t>::min()
 #define POINT_MAX std::numeric_limits<coord_t>::max()
 
-static Point no_point(std::numeric_limits<int32_t>::infinity(), std::numeric_limits<int32_t>::infinity());
+static Point no_point(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
 
 /* Extra operators to make it easier to do math with the 64bit Point objects */
 INLINE Point operator-(const Point& p0) { return Point(-p0.X, -p0.Y); }
