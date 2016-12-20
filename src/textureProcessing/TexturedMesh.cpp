@@ -19,16 +19,22 @@ TexturedMesh::TexturedMesh(SettingsBaseVirtual* sb)
 void TexturedMesh::addTextureCoord(float x, float y)
 {
     // some textures use wrapping for some unholy reason
-    // unwrap for texture coordinates to fall within 0-1
-    x = fmod(x, 1.0f);
-    if (x < 0.0)
-    {
-        x += 1.0f;
+    // unwrap for texture coordinates to fall within [0,1]
+    if (x > 1.0f || x < 0.0f)
+    { // only apply fmod when more than 1.0
+        x = fmod(x, 1.0f);
+        if (x < 0.0)
+        {
+            x += 1.0f;
+        }
     }
-    y = fmod(y, 1.0f);
-    if (y < 0.0)
-    {
-        y += 1.0f;
+    if (y > 1.0f || y < 0.0f)
+    { // only apply fmod when more than 1.0
+        y = fmod(y, 1.0f);
+        if (y < 0.0)
+        {
+            y += 1.0f;
+        }
     }
     texture_coords.emplace_back(x, y);
 }
