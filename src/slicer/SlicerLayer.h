@@ -23,9 +23,10 @@ class SlicerLayer
 {
 public:
     /*!
+     * \param mesh For which mesh this layer is sliced
      * \param bump_map_settings The settings with which to create a TextureBumpMapProcessor - if provided
      */
-    SlicerLayer(unsigned int layer_nr, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
+    SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
 
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology

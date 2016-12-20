@@ -12,12 +12,14 @@ int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two
 int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
 
-SlicerLayer::SlicerLayer(unsigned int layer_nr, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings)
+SlicerLayer::SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings)
 : layer_nr(layer_nr)
 {
     if (bump_map_settings)
     {
-        texture_bump_map.emplace(*bump_map_settings);
+        TexturedMesh* textured_mesh = dynamic_cast<TexturedMesh*>(mesh);
+        assert(textured_mesh && "we should only have bump map settings when there is a texture");
+        texture_bump_map.emplace(textured_mesh, *bump_map_settings);
     }
 }
 
