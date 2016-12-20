@@ -125,6 +125,15 @@ public:
         return x*p.x + y*p.y + z*p.z;
     }
 
+    Point3 normal(coord_t desired_length) const
+    {
+        coord_t current_length = vSize();
+        if (current_length < 1)
+        {
+            return Point3(0, 0, desired_length);
+        }
+        return *this * desired_length / current_length;
+    }
 };
 
 static Point3 no_point3(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
