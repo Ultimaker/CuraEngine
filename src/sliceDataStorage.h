@@ -157,7 +157,13 @@ public:
 
 class SubDivCube; // forward declaration to prevent dependency loop
 
-class SliceMeshStorage : public SettingsMessenger // passes on settings from a Mesh object
+/*!
+ * 
+ * passes on settings from a Mesh object
+ * 
+ * Cannot be copied due to \ref SliceMeshStorage::texture_proximity_processor being governed by this object alone
+ */
+class SliceMeshStorage : public SettingsMessenger, public NoCopy
 {
 public:
     std::vector<SliceLayer> layers;
@@ -170,14 +176,12 @@ public:
 
     TextureProximityProcessor* texture_proximity_processor; //!< TextureProximityProcessor per layer per mesh (if that mesh needs a proximity processor)
 
-    SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count)
-    : SettingsMessenger(settings)
-    , layer_nr_max_filled_layer(0)
-    , base_subdiv_cube(nullptr)
-    , texture_proximity_processor(nullptr)
-    {
-        layers.resize(slice_layer_count);
-    }
+    SliceMeshStorage(SettingsBaseVirtual* settings, unsigned int slice_layer_count);
+
+    /*!
+     * Move constructor
+     */
+    SliceMeshStorage(SliceMeshStorage&& old);
 
     virtual ~SliceMeshStorage();
 };
