@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <functional> // function
 
 #ifdef _OPENMP
     #include <omp.h>
@@ -518,7 +519,7 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
 
     // fuzzy skin
-    if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
+    if (mesh.getSettingBoolean("magic_fuzzy_skin_enabled") || mesh.getSettingBoolean("fuzz_map_enabled"))
     {
         processFuzzyWalls(mesh);
     }
@@ -782,10 +783,29 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     {
         return;
     }
-    int64_t fuzziness = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
-    int64_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
-    int64_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    int64_t range_random_point_dist = avg_dist_between_points / 2;
+    coord_t max_amplitude = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
+    coord_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
+    coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    coord_t range_random_point_dist = avg_dist_between_points / 2;
+    std::function<coord_t (const unsigned int, const Point)> getAmplitude;
+    if (mesh.getSettingBoolean("fuzz_map_enabled"))
+    {
+        assert(mesh.texture_proximity_processor && "texture_proximity_processor should have been initialized");
+        getAmplitude = [&mesh, max_amplitude](const unsigned int layer_nr, const Point p)
+        {
+            TextureProximityProcessor& texture_proximity_processor = *mesh.texture_proximity_processor;
+            float color = texture_proximity_processor.getColor(p, layer_nr, ColourUsage::GREY, 0.0); // TODO change default 0.0
+            coord_t ret = color * max_amplitude;
+            return ret;
+        };
+    }
+    else
+    {
+        getAmplitude = [max_amplitude](const unsigned int layer_nr, const Point p)
+        {
+            return max_amplitude;
+        };
+    }
     for (unsigned int layer_nr = 0; layer_nr < mesh.layers.size(); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
@@ -807,10 +827,16 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                     int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
                     for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                     {
-                        int r = rand() % (fuzziness * 2) - fuzziness;
                         Point perp_to_p0p1 = turn90CCW(p0p1);
+                        Point px = *p0 + normal(p0p1, p0pa_dist);
+                        coord_t fuzziness = getAmplitude(layer_nr, px);
+                        if (fuzziness == 0)
+                        {
+                            fuzziness = 1;
+                        }
+                        int r = rand() % (fuzziness * 2) - fuzziness;
                         Point fuzz = normal(perp_to_p0p1, r);
-                        Point pa = *p0 + normal(p0p1, p0pa_dist) + fuzz;
+                        Point pa = px + fuzz;
                         result.add(pa);
                         dist_last_point = p0pa_dist;
                     }
