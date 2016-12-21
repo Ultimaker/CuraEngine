@@ -740,6 +740,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         assert(mesh.texture_proximity_processor && "texture_proximity_processor should have been initialized");
         getAmplitude = [&mesh, max_amplitude](const unsigned int layer_nr, const Point p)
         {
+            assert(mesh.texture_proximity_processor && "When fuzz_map_enabled there has to be a texture proximity processor!");
             TextureProximityProcessor& texture_proximity_processor = *mesh.texture_proximity_processor;
             float color = texture_proximity_processor.getColor(p, layer_nr, ColourUsage::GREY, 0.0); // TODO change default 0.0
             coord_t ret = color * max_amplitude;
