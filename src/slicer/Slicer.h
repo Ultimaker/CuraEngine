@@ -59,7 +59,13 @@ public:
         return y;
     }
 
-    SlicerSegment project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr);
+    /*!
+     * 
+     * \warning this function requires result.faceIndex to be correctly set already
+     * 
+     * \p result where to store the start and end of the sliced segment
+     */
+    void project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr, SlicerSegment& result);
 
     void dumpSegmentsToHTML(const char* filename);
 };
