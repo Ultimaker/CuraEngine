@@ -10,13 +10,11 @@
 namespace cura {
 
 
-SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr)
+void Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsigned int idx_shared, unsigned int idx_first, unsigned int idx_second, int32_t z, int32_t layer_nr, SlicerSegment& seg)
 {
     const Point3& p0 = p[idx_shared];
     const Point3& p1 = p[idx_first];
     const Point3& p2 = p[idx_second];
-
-    SlicerSegment seg;
 
     seg.start.X = interpolate(z, p0.z, p1.z, p0.x, p1.x);
     seg.start.Y = interpolate(z, p0.z, p1.z, p0.y, p1.y);
@@ -39,7 +37,6 @@ SlicerSegment Slicer::project2D(unsigned int face_idx, const Point3 p[3], unsign
             }
         }
     }
-    return seg;
 }
 
 Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_count, bool keep_none_closed, bool extensive_stitching, TextureProximityProcessor* texture_proximity_processor)
@@ -100,52 +97,54 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
 
             SlicerSegment s;
             s.endVertex = nullptr;
-            int end_edge_idx = -1;
+            s.faceIndex = face_idx;
+            assert(face_idx >= 0);
+            s.addedToPolygon = false;
             if (p0.z < z && p1.z >= z && p2.z >= z)
             {
-                s = project2D(face_idx, p, 0, 2, 1, z, layer_nr);
-                end_edge_idx = 0;
+                s.endOtherFaceIdx = face.connected_face_index[0];
                 if (p1.z == z)
                 {
                     s.endVertex = &v1;
                 }
+                project2D(face_idx, p, 0, 2, 1, z, layer_nr, s);
             }
             else if (p0.z > z && p1.z < z && p2.z < z)
             {
-                s = project2D(face_idx, p, 0, 1, 2, z, layer_nr);
-                end_edge_idx = 2;
+                s.endOtherFaceIdx = face.connected_face_index[2];
+                project2D(face_idx, p, 0, 1, 2, z, layer_nr, s);
 
             }
 
             else if (p1.z < z && p0.z >= z && p2.z >= z)
             {
-                s = project2D(face_idx, p, 1, 0, 2, z, layer_nr);
-                end_edge_idx = 1;
+                s.endOtherFaceIdx = face.connected_face_index[1];
                 if (p2.z == z)
                 {
                     s.endVertex = &v2;
                 }
+                project2D(face_idx, p, 1, 0, 2, z, layer_nr, s);
             }
             else if (p1.z > z && p0.z < z && p2.z < z)
             {
-                s = project2D(face_idx, p, 1, 2, 0, z, layer_nr);
-                end_edge_idx = 0;
+                s.endOtherFaceIdx = face.connected_face_index[0];
+                project2D(face_idx, p, 1, 2, 0, z, layer_nr, s);
 
             }
 
             else if (p2.z < z && p1.z >= z && p0.z >= z)
             {
-                s = project2D(face_idx, p, 2, 1, 0, z, layer_nr);
-                end_edge_idx = 2;
+                s.endOtherFaceIdx = face.connected_face_index[2];
                 if (p0.z == z)
                 {
                     s.endVertex = &v0;
                 }
+                project2D(face_idx, p, 2, 1, 0, z, layer_nr, s);
             }
             else if (p2.z > z && p1.z < z && p0.z < z)
             {
-                s = project2D(face_idx, p, 2, 0, 1, z, layer_nr);
-                end_edge_idx = 1;
+                s.endOtherFaceIdx = face.connected_face_index[1];
+                project2D(face_idx, p, 2, 0, 1, z, layer_nr, s);
             }
             else
             {
@@ -154,9 +153,6 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
                 continue;
             }
             layers[layer_nr].face_idx_to_segment_idx.insert(std::make_pair(face_idx, layers[layer_nr].segments.size()));
-            s.faceIndex = face_idx;
-            s.endOtherFaceIdx = face.connected_face_index[end_edge_idx];
-            s.addedToPolygon = false;
             layers[layer_nr].segments.push_back(s);
         }
     }
