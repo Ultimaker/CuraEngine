@@ -63,9 +63,9 @@ std::optional<TextureBumpMapProcessor::TexturedFaceSlice> TextureBumpMapProcesso
 coord_t TextureBumpMapProcessor::getOffset(const float color, const int face_idx)
 {
     coord_t extra_offset = 0;
-    if (face_normal_storage && face_idx >= 0)
+    if (face_normal_storage)
     {
-        assert(face_idx >= 0);
+        assert(face_idx >= 0 && "we must know for which face we are getting the color");
         float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
         float abs_tan_angle = std::fabs(tan_angle);
         abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
@@ -76,14 +76,29 @@ coord_t TextureBumpMapProcessor::getOffset(const float color, const int face_idx
     return color * (settings.amplitude * 2) - settings.amplitude + settings.offset + extra_offset;
 }
 
+coord_t TextureBumpMapProcessor::getCornerOffset(std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice)
+{
+    coord_t offset0 = 0; // where no texture is present, no offset is applied
+    coord_t offset1 = 0;
+    if (textured_face_slice)
+    {
+        const float color0 = textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY);
+        const int face_0_idx = textured_face_slice->face_segment.faceIndex;
+        offset0 = getOffset(color0, face_0_idx);
+    }
+    if (next_textured_face_slice)
+    {
+        const float color1 = next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY);
+        const int face_1_idx = next_textured_face_slice->face_segment.faceIndex;
+        offset1 = getOffset(color1, face_1_idx);
+    }
+    coord_t offset = (offset0 + offset1) / 2;
+    return offset;
+}
 
 coord_t TextureBumpMapProcessor::getCornerDisregard(Point p0, Point p1, Point p2, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice)
 {
-    float color0 = (textured_face_slice)? textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-    float color1 = (next_textured_face_slice)? next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-    const int face_0_idx = (textured_face_slice)? textured_face_slice->face_segment.faceIndex : -1;
-    const int face_1_idx = (next_textured_face_slice)? next_textured_face_slice->face_segment.faceIndex : -1;
-    coord_t offset = (getOffset(color0, face_0_idx) + getOffset(color1, face_1_idx)) / 2;
+    coord_t offset = getCornerOffset(textured_face_slice, next_textured_face_slice);
     if ((LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) < 0) == (offset > 0))
     {
         return 0;
@@ -227,11 +242,7 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                 )
             { // add point for outward corner
                 // TODO: remove code duplication with getCornerDisregard
-                float color0 = (textured_face_slice)? textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-                float color1 = (next_textured_face_slice)? next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-                const int face_0_idx = (textured_face_slice)? textured_face_slice->face_segment.faceIndex : -1;
-                const int face_1_idx = (next_textured_face_slice)? next_textured_face_slice->face_segment.faceIndex : -1;
-                coord_t offset = (getOffset(color0, face_0_idx) + getOffset(color1, face_1_idx)) / 2;
+                coord_t offset = getCornerOffset(textured_face_slice, next_textured_face_slice);
                 Point v01 = p1 - *p0;
                 Point v12 = p2 - p1;
                 Point n01 = normal(turn90CCW(v01), -1000);

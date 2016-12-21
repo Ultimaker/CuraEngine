@@ -103,6 +103,19 @@ protected:
     coord_t getOffset(const float color, const int face_idx);
 
     /*!
+     * Get the offset to be applied at a given corner
+     * 
+     * Computes the average offset from the end of \p textured_face_slice and start of \p next_textured_face_slice
+     * If either of those is not present, the \ref TextureBumpMapProcessor::Settings::default_color is used for that segment
+     * 
+     * \warning Where no texture is present, no offset is applied to the outer boundary!
+     * 
+     * \param textured_face_slice From which to determine the offset at the end of the line segment - or default to zero
+     * \param next_textured_face_slice From which to determine the offset at the start of the line segment - or default to zero
+     */
+    coord_t getCornerOffset(std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice);
+
+    /*!
      * Get how much of a corner to skip generating offsetted indices for inner corners,
      * because those points would be removed by the offset itseld
      */
