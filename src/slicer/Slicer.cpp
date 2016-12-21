@@ -54,6 +54,7 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
         bump_map_settings.emplace(mesh);
     }
 
+    layers.reserve(slice_layer_count);
     for (uint32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     { // initialize all layers
         layers.emplace_back(layer_nr, mesh, bump_map_settings);
