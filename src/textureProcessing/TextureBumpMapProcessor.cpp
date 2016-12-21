@@ -1,6 +1,7 @@
 #include "TextureBumpMapProcessor.h"
 
 #include <algorithm> // swap
+#include <cmath> // fabs
 
 #include "../utils/optional.h"
 #include "../utils/linearAlg2D.h"
@@ -11,9 +12,10 @@ namespace cura
 
 #define SLICE_SEGMENT_SNAP_GAP 20
 
-TextureBumpMapProcessor::TextureBumpMapProcessor(TexturedMesh* mesh, const TextureBumpMapProcessor::Settings settings)
+TextureBumpMapProcessor::TextureBumpMapProcessor(TexturedMesh* mesh, const TextureBumpMapProcessor::Settings settings, FaceNormalStorage* face_normal_storage)
 : mesh(mesh)
 , settings(settings)
+, face_normal_storage(face_normal_storage)
 , loc_to_slice(SLICE_SEGMENT_SNAP_GAP)
 {
 
@@ -22,6 +24,7 @@ TextureBumpMapProcessor::TextureBumpMapProcessor(TexturedMesh* mesh, const Textu
 
 void TextureBumpMapProcessor::registerTexturedFaceSlice(SlicerSegment face_segment, MatSegment texture_segment)
 {
+    assert(face_segment.faceIndex >= 0);
     TexturedFaceSlice slice{face_segment, texture_segment};
     loc_to_slice.insert(face_segment.start, slice);
     loc_to_slice.insert(face_segment.end, slice);
@@ -53,15 +56,34 @@ std::optional<TextureBumpMapProcessor::TexturedFaceSlice> TextureBumpMapProcesso
     {
         std::swap(best->face_segment.start, best->face_segment.end);
     }
+    assert(best->face_segment.faceIndex >= 0);
     return best;
 }
 
-coord_t TextureBumpMapProcessor::getCornerDisregard(Point p0, Point p1, Point p2, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& textured_face_slice, std::optional< TextureBumpMapProcessor::TexturedFaceSlice >& next_textured_face_slice)
+coord_t TextureBumpMapProcessor::getOffset(const float color, const int face_idx)
+{
+    coord_t extra_offset = 0;
+    if (face_normal_storage && face_idx >= 0)
+    {
+        assert(face_idx >= 0);
+        float tan_angle = face_normal_storage->getFaceTanAngle(face_idx);
+        float abs_tan_angle = std::fabs(tan_angle);
+        abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
+        extra_offset = settings.face_angle_correction * (color - 0.5) * abs_tan_angle * settings.layer_height;
+        // (color - 0.5) so that the color causes either an outset or an inset which is
+        // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer
+    }
+    return color * (settings.amplitude * 2) - settings.amplitude + settings.offset + extra_offset;
+}
+
+
+coord_t TextureBumpMapProcessor::getCornerDisregard(Point p0, Point p1, Point p2, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& textured_face_slice, std::optional<TextureBumpMapProcessor::TexturedFaceSlice>& next_textured_face_slice)
 {
     float color0 = (textured_face_slice)? textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
     float color1 = (next_textured_face_slice)? next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-    float average_color = (color0 + color1) * 0.5f;
-    coord_t offset = average_color * (settings.amplitude * 2) - settings.amplitude + settings.offset;
+    const int face_0_idx = (textured_face_slice)? textured_face_slice->face_segment.faceIndex : -1;
+    const int face_1_idx = (next_textured_face_slice)? next_textured_face_slice->face_segment.faceIndex : -1;
+    coord_t offset = (getOffset(color0, face_0_idx) + getOffset(color1, face_1_idx)) / 2;
     if ((LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) < 0) == (offset > 0))
     {
         return 0;
@@ -104,7 +126,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const
         MatCoord mat_coord_now = mat.start;
         mat_coord_now.coords = mat.start.coords + (mat.end.coords - mat.start.coords) * p0pa_dist / p0p1_size;
         float val = mat_coord_now.getColor(ColourUsage::GREY);
-        int offset = val * (settings.amplitude * 2) - settings.amplitude + settings.offset;
+        int offset = getOffset(val, slicer_segment.faceIndex);
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;
         result.add(pa);
@@ -207,8 +229,9 @@ void TextureBumpMapProcessor::processBumpMap(Polygons& layer_polygons, unsigned 
                 // TODO: remove code duplication with getCornerDisregard
                 float color0 = (textured_face_slice)? textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
                 float color1 = (next_textured_face_slice)? next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY) : 0.0; // TODO default color for non textured should be settable
-                float average_color = (color0 + color1) * 0.5f;
-                coord_t offset = average_color * (settings.amplitude * 2) - settings.amplitude + settings.offset;
+                const int face_0_idx = (textured_face_slice)? textured_face_slice->face_segment.faceIndex : -1;
+                const int face_1_idx = (next_textured_face_slice)? next_textured_face_slice->face_segment.faceIndex : -1;
+                coord_t offset = (getOffset(color0, face_0_idx) + getOffset(color1, face_1_idx)) / 2;
                 Point v01 = p1 - *p0;
                 Point v12 = p2 - p1;
                 Point n01 = normal(turn90CCW(v01), -1000);

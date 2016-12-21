@@ -15,6 +15,7 @@
 
 #include "../textureProcessing/MatSegment.h"
 #include "../textureProcessing/TextureBumpMapProcessor.h"
+#include "../textureProcessing/FaceNormalStorage.h"
 
 namespace cura
 {
@@ -25,8 +26,9 @@ public:
     /*!
      * \param mesh For which mesh this layer is sliced
      * \param bump_map_settings The settings with which to create a TextureBumpMapProcessor - if provided
+     * \param face_normal_storage The face normal statistics to be used in the \p bump_map_settings - if provided
      */
-    SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings);
+    SlicerLayer(unsigned int layer_nr, Mesh* mesh, std::optional<TextureBumpMapProcessor::Settings> bump_map_settings, FaceNormalStorage* face_normal_storage);
 
     std::vector<SlicerSegment> segments;
     std::unordered_map<int, int> face_idx_to_segment_idx; // topology

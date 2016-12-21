@@ -3,6 +3,7 @@
 #define TEXTURE_PROCESSING_TEXTURE_BUMP_MAP_PROCESSOR_H
 
 #include <vector>
+#include <math.h> // tan
 
 #include "../utils/polygon.h"
 #include "../utils/optional.h"
@@ -12,6 +13,7 @@
 
 #include "../slicer/SlicerSegment.h"
 #include "TexturedMesh.h"
+#include "FaceNormalStorage.h"
 
 namespace cura
 {
@@ -24,15 +26,21 @@ public:
      */
     struct Settings
     {
+        coord_t layer_height;
         coord_t point_distance;
         coord_t amplitude;
         coord_t offset;
         bool alternate;
+        float face_angle_correction;
+        float max_tan_correction_angle;
         Settings(SettingsBaseVirtual* settings_base)
-        : point_distance(settings_base->getSettingInMicrons("bump_map_point_dist"))
+        : layer_height(settings_base->getSettingInMicrons("layer_height"))
+        , point_distance(settings_base->getSettingInMicrons("bump_map_point_dist"))
         , amplitude(settings_base->getSettingInMicrons("bump_map_amplitude"))
         , offset(settings_base->getSettingInMicrons("bump_map_offset"))
         , alternate(settings_base->getSettingBoolean("bump_map_alternate"))
+        , face_angle_correction(settings_base->getSettingAsRatio("bump_map_face_angle_correction"))
+        , max_tan_correction_angle(std::tan(0.5 * M_PI - settings_base->getSettingInAngleRadians("bump_map_angle_correction_min")))
         {
         }
     };
@@ -43,7 +51,7 @@ public:
      * 
      * \param settings The settings with which to \ref TextureBumpMapProcessor::processBumpMap
      */
-    TextureBumpMapProcessor(TexturedMesh* mesh, const Settings settings);
+    TextureBumpMapProcessor(TexturedMesh* mesh, const Settings settings, FaceNormalStorage* face_normal_storage);
 
     /*!
      * Process the texture bump map.
@@ -78,9 +86,21 @@ protected:
     Settings settings;
 
     /*!
+     * The face normal statistics to correct offsets for slanted faces - if provided
+     * 
+     * This is stored as a pointer so that the default assignment operator = can be defined automatically.
+     */
+    FaceNormalStorage* face_normal_storage;
+
+    /*!
      * A grid to efficiently look op which texture segment best fits the slicer segment.
      */
     SparseGrid<TexturedFaceSlice> loc_to_slice;
+
+    /*!
+     * Get the offset applied at a given location
+     */
+    coord_t getOffset(const float color, const int face_idx);
 
     /*!
      * Get how much of a corner to skip generating offsetted indices for inner corners,
