@@ -33,7 +33,7 @@ float TextureProximityProcessor::getColor(const Point location, const unsigned i
     std::optional<TexturedFaceSlice> best;
     std::function<bool (const TexturedFaceSlice& in)> process_func = [location, &best_dist2, &best](const TexturedFaceSlice& in)
     {
-        coord_t dist2 = LinearAlg2D::getDist2FromLineSegment(location, in.face_segment.start, in.face_segment.end);
+        coord_t dist2 = LinearAlg2D::getDist2FromLineSegment(in.face_segment.start, location, in.face_segment.end);
         if (dist2 < best_dist2)
         {
             best_dist2 = dist2;
