@@ -160,7 +160,7 @@ public:
         if (ac_size == 0) 
         {
             int64_t ab_dist2 = vSize2(ab); 
-            if (ab_dist2 == 0)
+            if (ab_dist2 == 0 && b_is_beyond_ac)
             {
                 *b_is_beyond_ac = 0; // a is on b is on c
             }
