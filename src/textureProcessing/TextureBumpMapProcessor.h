@@ -57,6 +57,9 @@ public:
      * Process the texture bump map.
      * Change the polygons in a layer
      * 
+     * \warning Where no texture is present, no offset is applied to the outer boundary!
+     * Such segments are copied to the result as is
+     * 
      * \param[in,out] layer_polygons The polygons to be offsetted by texture color values
      * \param layer_nr The layer nr for which we are processing the bump map
      */
@@ -98,7 +101,7 @@ protected:
     SparseGrid<TexturedFaceSlice> loc_to_slice;
 
     /*!
-     * Get the offset applied at a given location
+     * Get the offset to be applied at a given location
      */
     coord_t getOffset(const float color, const int face_idx);
 

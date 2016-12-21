@@ -71,7 +71,14 @@ coord_t TextureBumpMapProcessor::getOffset(const float color, const int face_idx
         abs_tan_angle = std::min(abs_tan_angle, settings.max_tan_correction_angle);
         extra_offset = settings.face_angle_correction * (color - 0.5) * abs_tan_angle * settings.layer_height;
         // (color - 0.5) so that the color causes either an outset or an inset which is
-        // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer
+        // within the range [-0.5, 0.5] so that when at max it will coincide with the min on the previous layer:
+        //
+        //          for a black mesh
+        //  bridged gap = 4              applied offset = 2 and -2
+        //       ^^^^                     ^^
+        //   ____                     ______^^
+        //   :_______                 :_____
+        //   :   :   :  will become   :   :   :
     }
     return color * (settings.amplitude * 2) - settings.amplitude + settings.offset + extra_offset;
 }
