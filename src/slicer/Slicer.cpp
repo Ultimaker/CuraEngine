@@ -4,6 +4,7 @@
 #include "../utils/gettime.h"
 #include "../utils/logoutput.h"
 #include "../textureProcessing/MatCoord.h"
+#include "../textureProcessing/FaceNormalStorage.h"
 
 #include "Slicer.h"
 
@@ -49,15 +50,20 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
     TimeKeeper slice_timer;
 
     std::optional<TextureBumpMapProcessor::Settings> bump_map_settings;
+    FaceNormalStorage* face_normal_storage = nullptr;
     if (mesh->getSettingBoolean("bump_map_enabled"))
     {
         bump_map_settings.emplace(mesh);
+        if (mesh->getSettingAsRatio("bump_map_face_angle_correction") != 0.0)
+        {
+            face_normal_storage = new FaceNormalStorage(mesh);
+        }
     }
 
     layers.reserve(slice_layer_count);
     for (uint32_t layer_nr = 0; layer_nr < slice_layer_count; layer_nr++)
     { // initialize all layers
-        layers.emplace_back(layer_nr, mesh, bump_map_settings);
+        layers.emplace_back(layer_nr, mesh, bump_map_settings, face_normal_storage);
         assert(&layers.back() == &layers[layer_nr] && "We should just have emplaced the last layer!");
         layers[layer_nr].z = initial + thickness * layer_nr;
     }
@@ -168,6 +174,11 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, unsigned int slice_layer_
 
     mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
     log("slice make polygons took %.3f seconds\n",slice_timer.restart());
+
+    if (face_normal_storage)
+    {
+        delete face_normal_storage;
+    }
 }
 
 }//namespace cura
