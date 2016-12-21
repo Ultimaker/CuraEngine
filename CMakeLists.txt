@@ -89,6 +89,7 @@ set(engine_SRCS # Except main.cpp.
     src/slicer/SlicerLayer.cpp
     src/slicer/Slicer.cpp
 
+    src/textureProcessing/FaceNormalStorage.cpp
     src/textureProcessing/Material.cpp
     src/textureProcessing/MaterialBase.cpp
     src/textureProcessing/TexturedMesh.cpp
