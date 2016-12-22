@@ -9,6 +9,7 @@
 #include "FffProcessor.h"
 #include "progress/Progress.h"
 #include "wallOverlap.h"
+#include "FuzzyWalls.h"
 #include "utils/orderOptimizer.h"
 #include "GcodeLayerThreader.h"
 #include "infill/SpaghettiInfillPathGenerator.h"
@@ -988,7 +989,15 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     Polygons polygons;
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
-        polygons.add(layer->parts[partNr].outline);
+        const Polygons* outer_wall = &layer->parts[partNr].outline;
+        Polygons fuzzy_outer_wall;
+        if (mesh.getSettingBoolean("fuzz_map_enabled") || mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
+        {
+            FuzzyWalls fuzzy_wall_processor;
+            fuzzy_outer_wall = fuzzy_wall_processor.makeFuzzy(mesh, gcode_layer.getLayerNr(), *outer_wall);
+            outer_wall = &fuzzy_outer_wall;
+        }
+        polygons.add(*outer_wall);
     }
 
     EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
@@ -1339,16 +1348,24 @@ bool FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                         setExtruder_addPrime(storage, gcode_layer, extruder_nr);
                         gcode_layer.setIsInside(true); // going to print stuff inside print object
                         const EZSeamType z_seam_type = mesh.getSettingAsZSeamType("z_seam_type");
+                        const Polygons* outer_wall = &part.insets[0];
+                        Polygons fuzzy_outer_wall;
+                        if (mesh.getSettingBoolean("fuzz_map_enabled") || mesh.getSettingBoolean("magic_fuzzy_skin_enabled"))
+                        {
+                            FuzzyWalls fuzzy_wall_processor;
+                            fuzzy_outer_wall = fuzzy_wall_processor.makeFuzzy(mesh, gcode_layer.getLayerNr(), *outer_wall);
+                            outer_wall = &fuzzy_outer_wall;
+                        }
                         if (!compensate_overlap_0)
                         {
                             WallOverlapComputation* wall_overlap_computation(nullptr);
-                            gcode_layer.addPolygonsByOptimizer(part.insets[0], mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            gcode_layer.addPolygonsByOptimizer(*outer_wall, mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                         }
                         else
                         {
-                            Polygons outer_wall = part.insets[0];
-                            WallOverlapComputation wall_overlap_computation(outer_wall, mesh_config.inset0_config.getLineWidth());
-                            gcode_layer.addPolygonsByOptimizer(outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
+                            Polygons outer_wall_recomputed = *outer_wall;
+                            WallOverlapComputation wall_overlap_computation(outer_wall_recomputed, mesh.getSettingInMicrons("wall_line_width_0"));
+                            gcode_layer.addPolygonsByOptimizer(*outer_wall, mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh.getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
                         }
                     }
                 }
