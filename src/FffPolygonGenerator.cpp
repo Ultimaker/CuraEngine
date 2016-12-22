@@ -785,17 +785,18 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
     }
     coord_t max_amplitude = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
     coord_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
+    ColourUsage color_usage = mesh.getSettingAsColourUsage("fuzz_map_texture_color");
     coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
     coord_t range_random_point_dist = avg_dist_between_points / 2;
     std::function<coord_t (const unsigned int, const Point)> getAmplitude;
     if (mesh.getSettingBoolean("fuzz_map_enabled"))
     {
         assert(mesh.texture_proximity_processor && "texture_proximity_processor should have been initialized");
-        getAmplitude = [&mesh, max_amplitude](const unsigned int layer_nr, const Point p)
+        getAmplitude = [&mesh, max_amplitude, color_usage](const unsigned int layer_nr, const Point p)
         {
             assert(mesh.texture_proximity_processor && "When fuzz_map_enabled there has to be a texture proximity processor!");
             TextureProximityProcessor& texture_proximity_processor = *mesh.texture_proximity_processor;
-            float color = texture_proximity_processor.getColor(p, layer_nr, ColourUsage::GREY, 0.0); // TODO change default 0.0
+            float color = texture_proximity_processor.getColor(p, layer_nr, color_usage, 0.0); // TODO change default 0.0
             coord_t ret = color * max_amplitude;
             return ret;
         };

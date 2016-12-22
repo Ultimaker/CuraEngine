@@ -49,7 +49,7 @@ struct AABB3D
      * This is for including a point of which the X and Y coordinates are
      * unknown but known to already be included in the bounding box.
      */
-    void includeZ(int32_t z);
+    void includeZ(coord_t z);
 
     /*!
      * Offset the coordinates of the bounding box.
