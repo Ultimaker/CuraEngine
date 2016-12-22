@@ -30,45 +30,25 @@ FuzzyWalls::FuzzyWalls(const SliceMeshStorage& mesh)
 
 Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in) const
 {
+    Polygons results;
     if (in.size() == 0)
     {
-        return Polygons();
+        return results;
     }
 
     //TODO
 //     set the flow for each path relative so that it extgrudes as much as the normal line
     
-    Polygons results;
-    const Polygons& skin = in;
-    for (ConstPolygonRef poly : const_cast<Polygons&>(skin))
+    for (ConstPolygonRef poly : const_cast<Polygons&>(in))
     {
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
 
-        int64_t dist_left_over = rand() % (settings.min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
+        coord_t dist_left_over = rand() % (settings.min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
         const Point* p0 = &poly.back();
         for (const Point& p1 : poly)
         { // 'a' is the (next) new point between p0 and p1
-            Point p0p1 = p1 - *p0;
-            int64_t p0p1_size = vSize(p0p1);    
-            int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-            for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.min_dist_between_points + rand() % settings.range_random_point_dist)
-            {
-                Point perp_to_p0p1 = turn90CCW(p0p1);
-                Point px = *p0 + normal(p0p1, p0pa_dist);
-                coord_t fuzziness = getAmplitude(layer_nr, px);
-                if (fuzziness == 0)
-                {
-                    fuzziness = 1;
-                }
-                int r = rand() % (fuzziness * 2) - fuzziness;
-                Point fuzz = normal(perp_to_p0p1, r);
-                Point pa = px + fuzz;
-                result.add(pa);
-                dist_last_point = p0pa_dist;
-            }
-            dist_left_over = p0p1_size - dist_last_point;
-
+            makeSegmentFuzzy(layer_nr, *p0, p1, result, dist_left_over);
             p0 = &p1;
         }
         while (result.size() < 3 )
@@ -92,6 +72,30 @@ Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int 
     }
     return results;
 }
+
+void FuzzyWalls::makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, coord_t& dist_left_over) const
+{
+    Point p0p1 = p1 - p0;
+    int64_t p0p1_size = vSize(p0p1);    
+    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
+    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.min_dist_between_points + rand() % settings.range_random_point_dist)
+    {
+        Point perp_to_p0p1 = turn90CCW(p0p1);
+        Point px = p0 + normal(p0p1, p0pa_dist);
+        coord_t fuzziness = getAmplitude(layer_nr, px);
+        if (fuzziness == 0)
+        {
+            fuzziness = 1;
+        }
+        int offset = rand() % (fuzziness * 2) - fuzziness;
+        Point fuzz = normal(perp_to_p0p1, offset);
+        Point pa = px + fuzz;
+        result.add(pa);
+        dist_last_point = p0pa_dist;
+    }
+    dist_left_over = p0p1_size - dist_last_point;
+}
+
 
 
 }//namespace cura
