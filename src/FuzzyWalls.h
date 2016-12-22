@@ -30,6 +30,8 @@ public:
 protected:
     Settings settings;
     std::function<coord_t (const unsigned int, const Point)> getAmplitude;
+
+    void makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, coord_t& dist_left_over) const;
 };
 
 }//namespace cura
