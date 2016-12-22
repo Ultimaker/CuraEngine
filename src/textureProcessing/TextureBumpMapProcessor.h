@@ -33,6 +33,7 @@ public:
         bool alternate;
         float face_angle_correction;
         float max_tan_correction_angle;
+        ColourUsage color_usage;
         Settings(SettingsBaseVirtual* settings_base)
         : layer_height(settings_base->getSettingInMicrons("layer_height"))
         , point_distance(settings_base->getSettingInMicrons("bump_map_point_dist"))
@@ -41,6 +42,7 @@ public:
         , alternate(settings_base->getSettingBoolean("bump_map_alternate"))
         , face_angle_correction(settings_base->getSettingAsRatio("bump_map_face_angle_correction"))
         , max_tan_correction_angle(std::tan(0.5 * M_PI - settings_base->getSettingInAngleRadians("bump_map_angle_correction_min")))
+        , color_usage(settings_base->getSettingAsColourUsage("bump_map_texture_color"))
         {
         }
     };
