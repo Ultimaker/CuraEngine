@@ -460,7 +460,7 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
-ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key)
+ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "red")
