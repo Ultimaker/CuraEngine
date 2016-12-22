@@ -263,9 +263,9 @@ public:
     EZSeamType getSettingAsZSeamType(std::string key) const;
     ESurfaceMode getSettingAsSurfaceMode(std::string key) const;
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
-    CombingMode getSettingAsCombingMode(std::string key);
-    SupportDistPriority getSettingAsSupportDistPriority(std::string key);
-    ColourUsage getSettingAsColourUsage(std::string key);
+    CombingMode getSettingAsCombingMode(std::string key) const;
+    SupportDistPriority getSettingAsSupportDistPriority(std::string key) const;
+    ColourUsage getSettingAsColourUsage(std::string key) const;
 };
 
 class SettingRegistry;

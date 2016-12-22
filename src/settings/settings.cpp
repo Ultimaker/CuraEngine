@@ -426,7 +426,7 @@ FillPerimeterGapMode SettingsBaseVirtual::getSettingAsFillPerimeterGapMode(std::
     return FillPerimeterGapMode::NOWHERE;
 }
 
-CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
+CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "off")
@@ -444,7 +444,7 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
     return CombingMode::ALL;
 }
 
-SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key)
+SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "xy_overrides_z")
@@ -458,7 +458,7 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
-ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key)
+ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key) const
 {
     std::string value = getSettingString(key);
     if (value == "red")
