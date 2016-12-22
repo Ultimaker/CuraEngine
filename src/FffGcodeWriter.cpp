@@ -739,7 +739,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
         Polygons fuzzy_outer_wall;
         if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))
         {
-            FuzzyWalls fuzzy_wall_processor;
+            FuzzyWalls fuzzy_wall_processor(*mesh);
             fuzzy_outer_wall = fuzzy_wall_processor.makeFuzzy(*mesh, layer_nr, *outer_wall);
             outer_wall = &fuzzy_outer_wall;
         }
@@ -1023,7 +1023,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
                 Polygons fuzzy_outer_wall;
                 if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))
                 {
-                    FuzzyWalls fuzzy_wall_processor;
+                    FuzzyWalls fuzzy_wall_processor(*mesh);
                     fuzzy_outer_wall = fuzzy_wall_processor.makeFuzzy(*mesh, layer_nr, *outer_wall);
                     outer_wall = &fuzzy_outer_wall;
                 }
