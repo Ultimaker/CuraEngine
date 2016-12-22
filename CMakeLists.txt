@@ -54,6 +54,7 @@ set(engine_SRCS # Except main.cpp.
     src/FffGcodeWriter.cpp
     src/FffPolygonGenerator.cpp
     src/FffProcessor.cpp
+    src/FuzzyWalls.cpp
     src/gcodeExport.cpp
     src/GCodePathConfig.cpp
     src/gcodePlanner.cpp
