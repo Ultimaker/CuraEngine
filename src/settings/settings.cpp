@@ -458,6 +458,32 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
+ColourUsage SettingsBaseVirtual::getSettingAsColourUsage(std::string key)
+{
+    std::string value = getSettingString(key);
+    if (value == "red")
+    {
+        return ColourUsage::RED;
+    }
+    if (value == "green")
+    {
+        return ColourUsage::GREEN;
+    }
+    if (value == "blue")
+    {
+        return ColourUsage::BLUE;
+    }
+    if (value == "alpha")
+    {
+        return ColourUsage::ALPHA;
+    }
+    if (value == "grey")
+    {
+        return ColourUsage::GREY;
+    }
+    return ColourUsage::GREY;
+}
+
 
 }//namespace cura
 

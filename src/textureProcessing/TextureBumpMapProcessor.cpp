@@ -89,13 +89,13 @@ coord_t TextureBumpMapProcessor::getCornerOffset(std::optional<TextureBumpMapPro
     coord_t offset1 = 0;
     if (textured_face_slice)
     {
-        const float color0 = textured_face_slice->mat_segment.end.getColor(ColourUsage::GREY);
+        const float color0 = textured_face_slice->mat_segment.end.getColor(settings.color_usage);
         const int face_0_idx = textured_face_slice->face_segment.faceIndex;
         offset0 = getOffset(color0, face_0_idx);
     }
     if (next_textured_face_slice)
     {
-        const float color1 = next_textured_face_slice->mat_segment.start.getColor(ColourUsage::GREY);
+        const float color1 = next_textured_face_slice->mat_segment.start.getColor(settings.color_usage);
         const int face_1_idx = next_textured_face_slice->face_segment.faceIndex;
         offset1 = getOffset(color1, face_1_idx);
     }
@@ -147,7 +147,7 @@ void TextureBumpMapProcessor::processSegmentBumpMap(unsigned int layer_nr, const
         assert(p0pa_dist <= p0p1_size);
         MatCoord mat_coord_now = mat.start;
         mat_coord_now.coords = mat.start.coords + (mat.end.coords - mat.start.coords) * p0pa_dist / p0p1_size;
-        float val = mat_coord_now.getColor(ColourUsage::GREY);
+        float val = mat_coord_now.getColor(settings.color_usage);
         int offset = getOffset(val, slicer_segment.faceIndex);
         Point fuzz = normal(perp_to_p0p1, offset);
         Point pa = p0 + normal(p0p1, p0pa_dist) - fuzz;

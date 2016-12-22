@@ -265,6 +265,7 @@ public:
     FillPerimeterGapMode getSettingAsFillPerimeterGapMode(std::string key) const;
     CombingMode getSettingAsCombingMode(std::string key);
     SupportDistPriority getSettingAsSupportDistPriority(std::string key);
+    ColourUsage getSettingAsColourUsage(std::string key);
 };
 
 class SettingRegistry;
