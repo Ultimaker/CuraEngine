@@ -1141,6 +1141,10 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
         int line_width = mesh->inset0_config.getLineWidth();
         for (unsigned int inset_idx = 0; inset_idx < part.insets.size() - 1; inset_idx++)
         {
+            if (inset_idx == 0 && (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled")))
+            {
+                continue;
+            }
             const Polygons outer = part.insets[inset_idx].offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
             line_width = mesh->insetX_config.getLineWidth();
 
