@@ -77,7 +77,7 @@ void FuzzyWalls::makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, c
 {
     Point p0p1 = p1 - p0;
     int64_t p0p1_size = vSize(p0p1);    
-    int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
+    int64_t dist_last_point = p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
     for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.min_dist_between_points + rand() % settings.range_random_point_dist)
     {
         Point perp_to_p0p1 = turn90CCW(p0p1);
