@@ -4,39 +4,37 @@
 namespace cura 
 {
 
-Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in)
+FuzzyWalls::FuzzyWalls(const SliceMeshStorage& mesh)
+: settings(&mesh)
 {
-
-    if (in.size() == 0)
-    {
-        return Polygons();
-    }
-    coord_t max_amplitude = mesh.getSettingInMicrons("magic_fuzzy_skin_thickness");
-    coord_t avg_dist_between_points = mesh.getSettingInMicrons("magic_fuzzy_skin_point_dist");
-    ColourUsage color_usage = mesh.getSettingAsColourUsage("fuzz_map_texture_color");
-    coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    coord_t range_random_point_dist = avg_dist_between_points / 2;
-    std::function<coord_t (const unsigned int, const Point)> getAmplitude;
     if (mesh.getSettingBoolean("fuzz_map_enabled"))
     {
         assert(mesh.texture_proximity_processor && "texture_proximity_processor should have been initialized");
-        getAmplitude = [&mesh, max_amplitude, color_usage](const unsigned int layer_nr, const Point p)
+        getAmplitude = [&mesh, this](const unsigned int layer_nr, const Point p)
         {
             assert(mesh.texture_proximity_processor && "When fuzz_map_enabled there has to be a texture proximity processor!");
             TextureProximityProcessor& texture_proximity_processor = *mesh.texture_proximity_processor;
-            float color = texture_proximity_processor.getColor(p, layer_nr, color_usage, 0.0); // TODO change default 0.0
-            coord_t ret = color * max_amplitude;
+            float color = texture_proximity_processor.getColor(p, layer_nr, settings.color_usage, 0.0); // TODO change default 0.0
+            coord_t ret = color * settings.max_amplitude;
             return ret;
         };
     }
     else
     {
-        getAmplitude = [max_amplitude](const unsigned int layer_nr, const Point p)
+        getAmplitude = [this](const unsigned int layer_nr, const Point p)
         {
-            return max_amplitude;
+            return settings.max_amplitude;
         };
     }
-    
+}
+
+Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in) const
+{
+    if (in.size() == 0)
+    {
+        return Polygons();
+    }
+
     //TODO
 //     set the flow for each path relative so that it extgrudes as much as the normal line
     
@@ -47,14 +45,14 @@ Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int 
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
 
-        int64_t dist_left_over = rand() % (min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
+        int64_t dist_left_over = rand() % (settings.min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
         const Point* p0 = &poly.back();
         for (const Point& p1 : poly)
         { // 'a' is the (next) new point between p0 and p1
             Point p0p1 = p1 - *p0;
             int64_t p0p1_size = vSize(p0p1);    
             int64_t dist_last_point = dist_left_over + p0p1_size * 2; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-            for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+            for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.min_dist_between_points + rand() % settings.range_random_point_dist)
             {
                 Point perp_to_p0p1 = turn90CCW(p0p1);
                 Point px = *p0 + normal(p0p1, p0pa_dist);
