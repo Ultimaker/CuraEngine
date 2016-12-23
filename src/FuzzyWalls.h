@@ -3,10 +3,11 @@
 #define FUZZY_WALLS_H
 
 #include "sliceDataStorage.h"
+#include "PolygonFlowAdjuster.h"
 
 namespace cura {
 
-class FuzzyWalls
+class FuzzyWalls : public PolygonFlowAdjuster
 {
 public:
     struct Settings
@@ -26,7 +27,8 @@ public:
         }
     };
     FuzzyWalls(const SliceMeshStorage& mesh);
-    Polygons makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in) const;
+    Polygons makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in);
+    float getFlow(const Polygons& from, unsigned int poly_idx, unsigned int from_point_idx, unsigned int to_point_idx);
 protected:
     struct CarryOver
     {
@@ -39,8 +41,10 @@ protected:
     Settings settings;
     std::function<coord_t (const unsigned int, const Point)> getAmplitude;
 
-    void makeCornerFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result) const;
-    void makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, CarryOver& carry_over) const;
+    std::vector<std::vector<float>> flows; //!< The flow per segment per polygon in the input
+
+    void makeCornerFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result);
+    void makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, CarryOver& carry_over);
 };
 
 }//namespace cura

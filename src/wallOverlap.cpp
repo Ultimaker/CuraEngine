@@ -17,6 +17,15 @@ WallOverlapComputation::WallOverlapComputation(Polygons& polygons, int line_widt
 
 }
 
+float WallOverlapComputation::getFlow(const Polygons& from, unsigned int poly_idx, unsigned int from_point_idx, unsigned int to_point_idx)
+{
+    assert(poly_idx < from.size());
+    ConstPolygonRef poly = from[poly_idx];
+    assert(from_point_idx < poly.size());
+    assert(to_point_idx < poly.size());
+    return getFlow(poly[from_point_idx], poly[to_point_idx]);
+}
+
 
 float WallOverlapComputation::getFlow(const Point& from, const Point& to)
 {
