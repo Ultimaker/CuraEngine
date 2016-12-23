@@ -2,6 +2,7 @@
 #define INSET_ORDER_OPTIMIZER_H
 
 #include "FffGcodeWriter.h"
+#include "wallOverlap.h"
 
 namespace cura 
 {
