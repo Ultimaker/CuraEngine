@@ -17,6 +17,8 @@
 #include "utils/ProximityPointLink.h"
 #include "utils/PolygonProximityLinker.h"
 
+#include "PolygonFlowAdjuster.h"
+
 namespace cura 
 {
 
@@ -44,7 +46,7 @@ namespace cura
  * The main functionality of this class is performed by the constructor, by calling the constructor of PolygonProximityLinker.
  * The adjustment during gcode generation is made with the help of WallOverlapComputation::getFlow
  */
-class WallOverlapComputation
+class WallOverlapComputation : public PolygonFlowAdjuster
 {
     PolygonProximityLinker overlap_linker;
     int64_t line_width;
@@ -61,6 +63,13 @@ public:
      * \return a value between zero and one representing the reduced flow of the line segment
      */
     float getFlow(Point& from, Point& to);
+
+    /*!
+     * \see \ref WallOverlapComputation::getFlow(Point&,Point&)
+     * 
+     * \see \ref PolygonFlowAdjuster::getFlow
+     */
+    float getFlow(const Polygons& from, unsigned int poly_idx, unsigned int from_point_idx, unsigned int to_point_idx);
 
     /*!
      * Computes the neccesary priliminaries in order to efficiently compute the flow when generatign gcode paths.
