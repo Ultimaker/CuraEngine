@@ -8,7 +8,7 @@
 #include "../utils/polygonUtils.h"
 #include "../utils/PolygonsPointIndex.h"
 #include "../sliceDataStorage.h"
-#include "../utils/SVG.h"
+#include "../utils/linearAlg2D.h"
 
 namespace cura {
 
