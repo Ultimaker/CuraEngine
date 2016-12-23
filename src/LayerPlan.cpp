@@ -394,21 +394,25 @@ void LayerPlan::addExtrusionMove(Point p, const GCodePathConfig* config, SpaceFi
     last_planned_position = p;
 }
 
-void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygon(const Polygons& polygons, unsigned int poly_idx, int start_idx, const GCodePathConfig* config, PolygonFlowAdjuster* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
 {
-    Point p0 = polygon[start_idx];
+    ConstPolygonRef polygon = polygons[poly_idx];
+    unsigned int p0_idx = start_idx;
+    Point p0 = polygon[p0_idx];
     addTravel(p0, always_retract);
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
-        Point p1 = polygon[(start_idx + point_idx) % polygon.size()];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        unsigned int p1_idx = (start_idx + point_idx) % polygon.size();
+        Point p1 = polygon[p1_idx];
+        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(polygons, poly_idx, p0_idx, p1_idx) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
         p0 = p1;
+        p0_idx = p1_idx;
     }
     if (polygon.size() > 2)
     {
         const Point& p1 = polygon[start_idx];
-        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(p0, p1) : flow_ratio;
+        float flow = (wall_overlap_computation)? flow_ratio * wall_overlap_computation->getFlow(polygons, poly_idx, p0_idx, start_idx) : flow_ratio;
         addExtrusionMove(p1, config, SpaceFillType::Polygons, flow, spiralize);
 
         if (wall_0_wipe_dist > 0)
@@ -442,7 +446,7 @@ void LayerPlan::addPolygon(ConstPolygonRef polygon, int start_idx, const GCodePa
     }
 }
 
-void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
+void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePathConfig* config, PolygonFlowAdjuster* flow_adjuster, EZSeamType z_seam_type, Point z_seam_pos, coord_t wall_0_wipe_dist, bool spiralize, float flow_ratio, bool always_retract)
 {
     if (polygons.size() == 0)
     {
@@ -456,7 +460,7 @@ void LayerPlan::addPolygonsByOptimizer(const Polygons& polygons, const GCodePath
     orderOptimizer.optimize();
     for (unsigned int poly_idx : orderOptimizer.polyOrder)
     {
-        addPolygon(polygons[poly_idx], orderOptimizer.polyStart[poly_idx], config, wall_overlap_computation, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
+        addPolygon(polygons, poly_idx, orderOptimizer.polyStart[poly_idx], config, flow_adjuster, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
     }
 }
 void LayerPlan::addLinesByOptimizer(const Polygons& polygons, const GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist, float flow_ratio)

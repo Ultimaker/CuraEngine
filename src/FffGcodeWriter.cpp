@@ -911,20 +911,27 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage&
     Polygons polygons;
     for(unsigned int partNr=0; partNr<layer->parts.size(); partNr++)
     {
-        const Polygons* outer_wall = &layer->parts[partNr].outline;
-        Polygons fuzzy_outer_wall;
-        if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))
-        {
-            FuzzyWalls fuzzy_wall_processor(*mesh);
-            fuzzy_outer_wall = fuzzy_wall_processor.makeFuzzy(*mesh, layer_nr, *outer_wall);
-            outer_wall = &fuzzy_outer_wall;
-        }
-        polygons.add(*outer_wall);
+        polygons.add(layer->parts[partNr].outline);
+    }
+
+    PolygonFlowAdjuster* flow_adjuster(nullptr);
+    if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))
+    {
+        FuzzyWalls* fuzzy_processor = new FuzzyWalls(*mesh);
+        flow_adjuster = fuzzy_processor;
+        polygons = fuzzy_processor->makeFuzzy(*mesh, layer_nr, polygons);
+    } else if (mesh->getSettingBoolean("compensate_overlap_0"))
+    {
+        flow_adjuster = new WallOverlapComputation(polygons, mesh->getSettingInMicrons("wall_line_width_0"));
     }
 
     EZSeamType z_seam_type = mesh->getSettingAsZSeamType("z_seam_type");
     Point z_seam_pos(mesh->getSettingInMicrons("z_seam_x"), mesh->getSettingInMicrons("z_seam_y"));
-    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, nullptr, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), getSettingBoolean("magic_spiralize"));
+    gcode_layer.addPolygonsByOptimizer(polygons, &mesh_config.inset0_config, flow_adjuster, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), mesh->getSettingBoolean("magic_spiralize"));
+    if (flow_adjuster)
+    {
+        delete flow_adjuster;
+    }
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer, layer_nr);
 }
@@ -1242,25 +1249,26 @@ void FffGcodeWriter::processInsets(const SliceDataStorage& storage, LayerPlan& g
                 {
                     constexpr bool spiralize = false;
                     constexpr float flow = 1.0;
+                    PolygonFlowAdjuster* flow_adjuster(nullptr);
                     Polygons outer_wall;
                     if (mesh->getSettingBoolean("fuzz_map_enabled") || mesh->getSettingBoolean("magic_fuzzy_skin_enabled"))
                     {
-                        FuzzyWalls fuzzy_wall_processor(*mesh);
-                        outer_wall = fuzzy_wall_processor.makeFuzzy(*mesh, layer_nr, part.insets[0]);
+                        FuzzyWalls* fuzzy_processor = new FuzzyWalls(*mesh);
+                        flow_adjuster = fuzzy_processor;
+                        outer_wall = fuzzy_processor->makeFuzzy(*mesh, layer_nr, part.insets[0]);
                     }
                     else
                     {
-                        outer_wall = part.insets[0]; // do a copy because the part is const
+                        if (compensate_overlap_0)
+                        {
+                            flow_adjuster = new WallOverlapComputation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
+                        }
+                        outer_wall = part.insets[0];
                     }
-                    if (!compensate_overlap_0)
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, flow_adjuster, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                    if (flow_adjuster)
                     {
-                        WallOverlapComputation* wall_overlap_computation(nullptr);
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, flow, retract_before_outer_wall);
-                    }
-                    else
-                    {
-                        WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                        gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh_config.inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize);
+                        delete flow_adjuster;
                     }
                 }
                 else
