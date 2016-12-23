@@ -28,10 +28,19 @@ public:
     FuzzyWalls(const SliceMeshStorage& mesh);
     Polygons makeFuzzy(const SliceMeshStorage& mesh, const unsigned int layer_nr, const Polygons& in) const;
 protected:
+    struct CarryOver
+    {
+        coord_t dist_left_over;
+        float offset_random; // [-1,1]
+        float next_offset_random; // [-1,1]
+        coord_t step_size;
+        Point p0p1_perp;
+    };
     Settings settings;
     std::function<coord_t (const unsigned int, const Point)> getAmplitude;
 
-    void makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, coord_t& dist_left_over) const;
+    void makeCornerFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result) const;
+    void makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, CarryOver& carry_over) const;
 };
 
 }//namespace cura
