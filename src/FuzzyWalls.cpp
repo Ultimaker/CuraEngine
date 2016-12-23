@@ -1,6 +1,8 @@
 /** Copyright (C) 2016 Tim Kuipers - Released under terms of the AGPLv3 License */
 #include "FuzzyWalls.h"
 
+#define NORMAL_LENGTH 10000
+
 namespace cura 
 {
 
@@ -35,21 +37,39 @@ Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int 
     {
         return results;
     }
-
+    
     //TODO
 //     set the flow for each path relative so that it extgrudes as much as the normal line
     
     for (const PolygonRef poly : const_cast<Polygons&>(in))
     {
+        assert(poly.size() >= 3);
         // generate points in between p0 and p1
         PolygonRef result = results.newPoly();
 
-        coord_t dist_left_over = rand() % (settings.min_dist_between_points / 2); // the distance to be traversed on the line before making the first new point
-        const Point* p0 = &poly.back();
-        for (const Point& p1 : poly)
-        { // 'a' is the (next) new point between p0 and p1
-            makeSegmentFuzzy(layer_nr, *p0, p1, result, dist_left_over);
-            p0 = &p1;
+        Point p0 = poly[poly.size() - 2];
+        Point p1 = poly.back();
+        for (int p0_idx = poly.size() - 2; p0_idx >= 0; p0_idx--)
+        { // p0 is the last point before p1 which is different from p1
+            p0 = poly[p0_idx];
+        }
+        CarryOver carry_over;
+        carry_over.dist_left_over = (settings.min_dist_between_points + rand() % settings.range_random_point_dist) / 2;
+        carry_over.step_size = carry_over.dist_left_over;
+        carry_over.offset_random = 0.0; // unused in the first iteration since carry_over.step_size = carry_over.dist_left_over; see makeCornerFuzzy
+        carry_over.next_offset_random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0 - 1.0;
+        carry_over.p0p1_perp = turn90CCW(p1 - p0);
+        // 'x' is the previous location from where a randomly offsetted new point between p-1 and p0 was created
+        for (Point p2 : poly)
+        {
+            if (p2 == p1)
+            {
+                continue;
+            }
+            makeCornerFuzzy(layer_nr, p0, p1, p2, carry_over, result);
+            makeSegmentFuzzy(layer_nr, p1, p2, result, carry_over);
+            p0 = p1;
+            p1 = p2;
         }
         while (result.size() < 3 )
         {
@@ -73,27 +93,84 @@ Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int 
     return results;
 }
 
-void FuzzyWalls::makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, coord_t& dist_left_over) const
+void FuzzyWalls::makeCornerFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, const Point p2, const CarryOver carry_over, PolygonRef result) const
 {
-    Point p0p1 = p1 - p0;
-    int64_t p0p1_size = vSize(p0p1);    
-    int64_t dist_last_point = p0p1_size * 2 - dist_left_over; // so that p0p1_size - dist_last_point evaulates to dist_left_over - p0p1_size
-    for (int64_t p0pa_dist = dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += settings.min_dist_between_points + rand() % settings.range_random_point_dist)
+    const Point p0p1_perp = carry_over.p0p1_perp;
+    const Point p1p2 = p2 - p1;
+    const Point p1p2_perp = turn90CCW(p1p2);
+    const Point corner_normal = normal(p0p1_perp, NORMAL_LENGTH) + normal(p1p2_perp, NORMAL_LENGTH);
+
+    // x is the last point which was offsetted
+    // a is the next point to be offsetted
+    //
+    //             step_size
+    //        ^^^^^^^^^^^^^^^^^^^^
+    //                   p1pa_dist
+    //        pxp1_dist  ^^^^^^^^^
+    //        ^^^^^^^^^^
+    //                  ┬                    > amplitudes
+    //                  |
+    //                  |
+    //        ┬         |
+    //        ┥         |                    > previous random offset within amplitude
+    //        |         ┥pr       ┬          > corner offset computed by weighted average based on pxp0_dist, p0pa_dist and the amplitudes
+    //        |         |         |
+    // -------x---------p1--------a-------
+    //        |         |         ┥          > next random offset within amplitude
+    //        |         |         ┴
+    //        |         |
+    //        ┴         |
+    //                  |
+    //                  |
+    //                  ┴
+    //
+    // assuming all amplitudes are the same and x, p1, a are on a straight line, pr will also be on a straight line between the previous and next offsetted points
+
+    const coord_t corner_amplitude = getAmplitude(layer_nr, p1);
+    // randFloat = offset / amplitude
+    // offset weighted by relative amplitudes and distance to p0
+    assert(carry_over.step_size > 0);
+    const coord_t pxp1_dist = (carry_over.step_size - carry_over.dist_left_over);
+    assert(pxp1_dist >= 0);
+    const coord_t p1pa_dist = carry_over.dist_left_over;
+    const coord_t offset_contribution_0 = corner_amplitude * pxp1_dist * carry_over.offset_random;
+    const coord_t offset_contribution_2 = corner_amplitude * p1pa_dist * carry_over.next_offset_random;
+    const coord_t offset = (offset_contribution_0 + offset_contribution_2) / carry_over.step_size;
+
+    Point fuzz = normal(corner_normal, offset);
+    Point pr = p1 + fuzz;
+    result.add(pr);
+}
+
+void FuzzyWalls::makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, const Point p1, PolygonRef result, CarryOver& carry_over) const
+{
+    // 'a' is the (next) new point between p0 and p1, offsetted from the point
+    // 'x', which is on the line segment p0p1
+    const Point p0p1 = p1 - p0;
+    carry_over.p0p1_perp = turn90CCW(p0p1);
+    const int64_t p0p1_size = vSize(p0p1);
+    int64_t dist_last_point = carry_over.dist_left_over - carry_over.step_size; // so that 'carry_over.step_size - (p0p1_size - dist_last_point)' evaulates to 'dist_left_over - p0p1_size'
+    for (int64_t p0pa_dist = carry_over.dist_left_over; p0pa_dist < p0p1_size; p0pa_dist += carry_over.step_size)
     {
-        Point perp_to_p0p1 = turn90CCW(p0p1);
-        Point px = p0 + normal(p0p1, p0pa_dist);
-        coord_t fuzziness = getAmplitude(layer_nr, px);
-        if (fuzziness == 0)
+        const Point px = p0 + normal(p0p1, p0pa_dist);
+        coord_t amplitude = getAmplitude(layer_nr, px);
+        if (amplitude == 0)
         {
-            fuzziness = 1;
+            amplitude = 1;
         }
-        int offset = rand() % (fuzziness * 2) - fuzziness;
-        Point fuzz = normal(perp_to_p0p1, offset);
+        carry_over.offset_random = carry_over.next_offset_random;
+        carry_over.next_offset_random = static_cast<float>(rand()) / static_cast<float>(RAND_MAX) * 2.0 - 1.0;
+        const coord_t offset = carry_over.offset_random * amplitude;
+        Point fuzz = normal(carry_over.p0p1_perp, offset);
         Point pa = px + fuzz;
         result.add(pa);
+
         dist_last_point = p0pa_dist;
+        carry_over.step_size = settings.min_dist_between_points + rand() % settings.range_random_point_dist;
     }
-    dist_left_over = p0p1_size - dist_last_point;
+    carry_over.dist_left_over = carry_over.step_size - (p0p1_size - dist_last_point);
+    assert(carry_over.dist_left_over >= 0);
+    assert(carry_over.dist_left_over < carry_over.step_size);
 }
 
 
