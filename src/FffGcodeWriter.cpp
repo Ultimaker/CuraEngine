@@ -828,6 +828,25 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
 }
 
+static void parseIntegerList(const char *input, std::vector<int> *output) {
+    for(;;)
+    {
+        char *endp;
+        int val = strtol(input, &endp, 0);
+        if (endp != input)
+        {
+            output->push_back(val);
+            input = endp;
+            while (*input && isspace(*input))
+                ++input;
+            if (*input == ',')
+                ++input;
+        }
+        else
+            break;
+    }
+}
+
 void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
