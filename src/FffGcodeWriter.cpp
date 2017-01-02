@@ -828,25 +828,6 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
 }
 
-static void parseIntegerList(const char *input, std::vector<int> *output) {
-    for(;;)
-    {
-        char *endp;
-        int val = strtol(input, &endp, 0);
-        if (endp != input)
-        {
-            output->push_back(val);
-            input = endp;
-            while (*input && isspace(*input))
-                ++input;
-            if (*input == ',')
-                ++input;
-        }
-        else
-            break;
-    }
-}
-
 void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
@@ -856,11 +837,7 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
     std::vector<int> infill_angles;
     if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
     {
-        std::string infill_angles_string = mesh->getSettingString("infill_angles");
-
-        if (!infill_angles_string.empty())
-            parseIntegerList(infill_angles_string.c_str(), &infill_angles);
-
+        infill_angles = mesh->getSettingAsIntegerList("infill_angles");
         if (infill_angles.size() == 0)
         {
             infill_angles.push_back(45);
