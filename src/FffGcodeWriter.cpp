@@ -845,7 +845,8 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
     int infill_angle = 45;
-    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    // infill_angles.size() will be > 0 when infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG
+    if (infill_angles.size() > 0)
     {
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
         infill_angle = infill_angles.at((layer_nr / combined_infill_layers) % infill_angles.size());
@@ -876,7 +877,7 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
     int skin_angle = 45;
     if (skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG)
     {
-        if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG) && infill_angles.size() > 0)
+        if (infill_angles.size() > 0)
         {
             // skin line angles will follow the same sequence as the infill line angles
             // this should coincide with infill_angle so that the first top layer is orthogonal to the last infill layer
