@@ -458,6 +458,32 @@ SupportDistPriority SettingsBaseVirtual::getSettingAsSupportDistPriority(std::st
     return SupportDistPriority::XY_OVERRIDES_Z;
 }
 
+std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) const
+{
+    std::vector<int> result;
+    std::string value_string = getSettingString(key);
+    if (!value_string.empty()) {
+        std::regex regex("([^,]+,?)");
+        // default constructor = end-of-sequence:
+        std::regex_token_iterator<std::string::iterator> rend;
+
+        int submatches[] = { 1 }; // match number and optional comma
+        std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
+        while (match_iter != rend)
+        {
+            std::string val = *match_iter++;
+            try
+            {
+                result.push_back(std::stoi(val));
+            }
+            catch (const std::invalid_argument& e)
+            {
+                logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", val.c_str(), key.c_str());
+            }
+        }
+    }
+    return result;
+}
 
 }//namespace cura
 
