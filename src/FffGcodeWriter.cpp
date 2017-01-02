@@ -864,7 +864,9 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
         processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
-    EFillMethod skin_pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
+    EFillMethod skin_pattern = (layer_nr == 0)?
+        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+        mesh->getSettingAsFillMethod("top_bottom_pattern");
     int skin_angle = 45;
     if ((skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG) && layer_nr & 1)
     {
@@ -1064,7 +1066,9 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
         Polygons skin_polygons;
         Polygons skin_lines;
         
-        EFillMethod pattern = mesh->getSettingAsFillMethod("top_bottom_pattern");
+        EFillMethod pattern = (layer_nr == 0)?
+            mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
+            mesh->getSettingAsFillMethod("top_bottom_pattern");
         int bridge = -1;
         if (layer_nr > 0)
             bridge = bridgeAngle(skin_part.outline, &mesh->layers[layer_nr-1]);
