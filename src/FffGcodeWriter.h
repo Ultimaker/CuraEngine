@@ -333,9 +333,11 @@ private:
      * \param part The part to add
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
+     * \param infill_pattern The infill pattern to use.
+     * \param infill_angles A vector of possible infill angles.
      * 
      */
-    void addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr);
+    void addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr, EFillMethod infill_pattern, const std::vector<int> &infill_angles);
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.

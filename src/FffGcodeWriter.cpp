@@ -817,25 +817,9 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    for (int part_idx : part_order_optimizer.polyOrder)
-    {
-        SliceLayerPart& part = layer->parts[part_idx];
-        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr);
-    }
-    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
-    {
-        addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
-    }
-}
-
-void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
-{
-    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
-
     EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    int infill_angle = 45;
     std::vector<int> infill_angles;
-    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
     {
         infill_angles = mesh->getSettingAsIntegerList("infill_angles");
         if (infill_angles.size() == 0)
@@ -843,7 +827,26 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
             infill_angles.push_back(45);
             infill_angles.push_back(135);
         }
+    }
 
+    for (int part_idx : part_order_optimizer.polyOrder)
+    {
+        SliceLayerPart& part = layer->parts[part_idx];
+        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr, infill_pattern, infill_angles);
+    }
+    if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
+    {
+        addMeshOpenPolyLinesToGCode(storage, mesh, gcode_layer, layer_nr);
+    }
+}
+
+void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr, EFillMethod infill_pattern, const std::vector<int> &infill_angles)
+{
+    bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
+
+    int infill_angle = 45;
+    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG))
+    {
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
         infill_angle = infill_angles.at((layer_nr / combined_infill_layers) % infill_angles.size());
     }
