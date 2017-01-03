@@ -93,29 +93,33 @@ public:
      * 
      * \param polys The polygons to convert
      * \param result The converted polygons
+     * \param remove_duplicates Whether to skip the conversion of duplicate consecutive points in the input
      */
-    static void convertPolygonsToLists(Polygons& polys, ListPolygons& result);
+    static void convertPolygonsToLists(Polygons& polys, ListPolygons& result, bool remove_duplicates = false);
     /*!
      * Convert Polygons to ListPolygons
      * 
      * \param polys The polygons to convert
      * \param result The converted polygons
+     * \param remove_duplicates Whether to skip the conversion of duplicate consecutive points in the input
      */
-    static void convertPolygonToList(PolygonRef poly, ListPolygon& result);
+    static void convertPolygonToList(PolygonRef poly, ListPolygon& result, bool remove_duplicates = false);
     /*!
      * Convert ListPolygons to Polygons
      * 
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
+     * \param remove_duplicates Whether to skip the conversion of duplicate consecutive points in the input
      */
-    static void convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons);
+    static void convertListPolygonsToPolygons(ListPolygons& list_polygons, Polygons& polygons, bool remove_duplicates = false);
     /*!
      * Convert ListPolygons to Polygons
      * 
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
+     * \param remove_duplicates Whether to skip the conversion of duplicate consecutive points in the input
      */
-    static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon);
+    static void convertListPolygonToPolygon(ListPolygon& list_polygon, PolygonRef polygon, bool remove_duplicates = false);
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
