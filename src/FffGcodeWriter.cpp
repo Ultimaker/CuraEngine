@@ -832,7 +832,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     for (int part_idx : part_order_optimizer.polyOrder)
     {
         SliceLayerPart& part = layer->parts[part_idx];
-        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr, infill_pattern, infill_angles);
+        addMeshPartToGCode(storage, mesh, part, gcode_layer, layer_nr);
     }
     if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
     {
@@ -840,7 +840,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
 }
 
-void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr, EFillMethod infill_pattern, const std::vector<int> &infill_angles)
+void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
