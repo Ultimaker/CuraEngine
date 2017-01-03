@@ -67,6 +67,10 @@ void Material::loadImage(const char* filename)
 
 float Material::getColor(float x, float y, ColourUsage color) const
 {
+    if (!data)
+    {
+        return 0.0;
+    }
     assert(x >= 0.0f && x <= 1.0f);
     assert(y >= 0.0f && y <= 1.0f);
     switch (color)
