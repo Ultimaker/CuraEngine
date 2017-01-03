@@ -151,6 +151,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
                 SlicerLayer& slicer_layer = slicer->layers[layer_nr];
                 support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons(slicer_layer.polygons);
+                meshStorage.layers[layer_nr].printZ =
+                    slicer_layer.z
+                    + getSettingInMicrons("layer_height_0")
+                    - initial_slice_z;
             }
             continue;
         }
@@ -161,6 +165,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
                 SlicerLayer& slicer_layer = slicer->layers[layer_nr];
                 support_layer.support_mesh.add(slicer_layer.polygons);
+                meshStorage.layers[layer_nr].printZ =
+                    slicer_layer.z
+                    + getSettingInMicrons("layer_height_0")
+                    - initial_slice_z;
             }
             continue;
         }
