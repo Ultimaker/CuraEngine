@@ -156,6 +156,7 @@ public:
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
+    std::vector<int> infill_angles;
 
     SubDivCube* base_subdiv_cube;
 
