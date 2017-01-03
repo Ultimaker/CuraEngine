@@ -87,7 +87,8 @@ Polygons FuzzyWalls::makeFuzzy(const SliceMeshStorage& mesh, const unsigned int 
             const Point p0 = result.back();
             const Point p1 = result.back();
             const coord_t length = vSize(p1 - p0);
-            const float flow_here = (length == 0)? 0.0 : (float) (carry_over.step_size - carry_over.dist_left_over) / (float) length;
+            const coord_t pxpa_dist = carry_over.step_size - carry_over.dist_left_over;
+            const float flow_here = (length < 10 || std::abs(length - pxpa_dist) < 5)? 1.0 : std::min(1.0, INT2MM(pxpa_dist) / INT2MM(length));
             flows.back().push_back(flow_here);
         }
         if (result.size() < 3)
@@ -155,7 +156,10 @@ void FuzzyWalls::makeCornerFuzzy(const unsigned int layer_nr, const Point p0, co
     { // compute flow of the newly introduced segment
         const Point last = result.back();
         const coord_t length = vSize(last - pr);
-        const float flow_here = (length == 0)? 0.0 : (float) pxp1_dist / (float) length;
+        const float flow_here = (length < 10 || std::abs(length - pxp1_dist) < 5)? 1.0 : std::min(1.0, INT2MM(pxp1_dist) / INT2MM(length));
+        // limit the flow to 1.0,
+        // internal corners where the offset is negative could result in such a case,
+        // but it is then better to not cause over extrusion there
         flows.back().push_back(flow_here);
     }
     result.add(pr);
@@ -187,7 +191,7 @@ void FuzzyWalls::makeSegmentFuzzy(const unsigned int layer_nr, const Point p0, c
         { // compute flow of the newly introduced segment
             const Point last = result.back();
             const coord_t length = vSize(last - pa);
-            const float flow_here = (length == 0)? 0.0 : (float) dist_to_prev_point / (float) length;
+            const float flow_here = (length < 10 || std::abs(length - dist_to_prev_point) < 5)? 1.0 : std::min(1.0, INT2MM(dist_to_prev_point) / INT2MM(length));
             flows.back().push_back(flow_here);
         }
         result.add(pa);
