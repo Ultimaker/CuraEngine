@@ -386,10 +386,14 @@ bool loadMeshOBJ(TexturedMesh* mesh, const char* filename, const FMatrix3x3& mat
             int n_scanned_1 = sscanf(face_index_buffer_1, "%d/%d/%d", &vertex_indices[0], &texture_indices[0], &normal_vector_index);
             int n_scanned_2 = sscanf(face_index_buffer_2, "%d/%d/%d", &vertex_indices[1], &texture_indices[1], &normal_vector_index);
             int n_scanned_3 = sscanf(face_index_buffer_3, "%d/%d/%d", &vertex_indices[2], &texture_indices[2], &normal_vector_index);
-            if (n_scanned_1 > 0 && n_scanned_2 > 0 && n_scanned_3 > 0)
+            if (n_scanned_1 >= 2 && n_scanned_2 >= 2 && n_scanned_3 >= 2)
             {
                 mesh->addFace(vertex_indices[0] - 1, vertex_indices[1] - 1, vertex_indices[2] - 1, texture_indices[0] - 1, texture_indices[1] - 1, texture_indices[2] - 1);
                 // obj files count vertex indices starting from 1!
+            }
+            else if (n_scanned_1 >= 1 && n_scanned_2 >= 1 && n_scanned_3 >= 1)
+            {
+                mesh->addFace(vertex_indices[0] - 1, vertex_indices[1] - 1, vertex_indices[2] - 1);
             }
         }
         else if (sscanf(buffer, "mtllib %s", str_buffer) == 1)
