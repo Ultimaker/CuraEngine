@@ -885,8 +885,10 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
             // but if combined_infill_layers above is > 1 then the skin angles and the infill angles will be different
             skin_angle = mesh->infill_angles.at(layer_nr % mesh->infill_angles.size());
         }
-        else if(layer_nr & 1)
+        else if (layer_nr & 1)
+        {
             skin_angle += 90;
+        }
     }
     if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
         skin_angle -= 45;
