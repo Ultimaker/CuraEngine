@@ -156,7 +156,7 @@ public:
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
     std::vector<GCodePathConfig> infill_config;
-    std::vector<int> infill_angles;
+    std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
 
     SubDivCube* base_subdiv_cube;
 
