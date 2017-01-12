@@ -1132,6 +1132,17 @@ Polygons Polygons::smooth2(int remove_length, int min_area)
     return ret;
 }
 
+double PolygonsPart::area() const
+{
+    double area = 0;
+    for (unsigned int poly_idx = 0; poly_idx < size(); poly_idx++)
+    {
+        area += operator[](poly_idx).area();
+        // note: holes have negative area
+    }
+    return area;
+}
+
 std::vector<PolygonsPart> Polygons::splitIntoParts(bool unionAll) const
 {
     std::vector<PolygonsPart> ret;

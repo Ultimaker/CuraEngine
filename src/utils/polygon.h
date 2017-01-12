@@ -944,6 +944,8 @@ public:
         }
         return true;
     }
+
+    double area() const;
 };
 
 /*!
