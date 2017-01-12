@@ -190,6 +190,22 @@ unsigned int Polygons::findInside(Point p, bool border_result)
     return ret;
 }
 
+int64_t Polygons::polyLineLength() const
+{
+    int64_t length = 0;
+    for (unsigned int poly_idx = 0; poly_idx < paths.size(); poly_idx++)
+    {
+        Point p0 = paths[poly_idx][0];
+        for (unsigned int point_idx = 1; point_idx < paths[poly_idx].size(); point_idx++)
+        {
+            Point p1 = paths[poly_idx][point_idx];
+            length += vSize(p0 - p1);
+            p0 = p1;
+        }
+    }
+    return length;
+}
+
 Polygons Polygons::offset(int distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     Polygons ret;

@@ -874,6 +874,8 @@ public:
         }
         return length;
     }
+
+    int64_t polyLineLength() const;
     
     Point min() const
     {
