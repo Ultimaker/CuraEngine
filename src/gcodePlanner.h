@@ -387,8 +387,9 @@ public:
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      */
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -406,8 +407,9 @@ public:
      * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
      * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      */
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, float flow_ratio = 1.0);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -415,8 +417,9 @@ public:
      * \param config The config of the lines
      * \param space_fill_type The type of space filling used to generate the line segments (should be either Lines or PolyLines!)
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
      */
-    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0);
+    void addLinesByOptimizer(Polygons& polygons, GCodePathConfig* config, SpaceFillType space_fill_type, int wipe_dist = 0, float flow_ratio = 1.0);
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates (without accounting for MergeInfillLines)
