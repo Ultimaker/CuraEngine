@@ -931,7 +931,7 @@ public:
         return thiss[0];
     }
     
-    bool inside(Point p)
+    bool inside(Point p) const
     {
         if (size() < 1)
             return false;
