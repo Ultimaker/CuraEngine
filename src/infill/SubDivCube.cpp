@@ -185,8 +185,8 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
 
 bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
 {
-    int64_t distance2;
-    long int sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
+    int64_t distance;
+    long int sphere_slice_radius;//!< radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
@@ -197,10 +197,10 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     for (long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
         part_dist = (double)(test_layer * layer_height - center.z) / radius;
-        sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
+        sphere_slice_radius = radius * sqrt(1.0 - (part_dist * part_dist));
         Point loc(center.x, center.y);
 
-        inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance2);
+        inside = distanceFromPointToMesh(mesh, test_layer, loc, &distance);
         if (inside == 1)
         {
             inside_somewhere = true;
@@ -213,7 +213,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
         {
             return true;
         }
-        if ((inside != 2) && distance2 < sphere_slice_radius2)
+        if ((inside != 2) && distance < sphere_slice_radius)
         {
             return true;
         }
@@ -221,7 +221,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     return false;
 }
 
-int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance2)
+int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance)
 {
     if (layer_nr < 0 || (unsigned long int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
@@ -233,7 +233,7 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_n
     bool inside = collide.inside(centerpoint);
     ClosestPolygonPoint border_point = PolygonUtils::moveInside2(collide, centerpoint);
     Point diff = border_point.location - location;
-    *distance2 = vSize2(diff);
+    *distance = vSize(diff);
     if (inside)
     {
         return 1;
