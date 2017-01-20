@@ -1149,7 +1149,10 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
             perimeter_gaps.add(outer.difference(inner));
         }
         { // gap between inner wall and skin/infill
-            if (mesh->getSettingInMicrons("infill_line_distance") > 0 && !mesh->getSettingBoolean("infill_hollow"))
+            if (mesh->getSettingInMicrons("infill_line_distance") > 0
+                && !mesh->getSettingBoolean("infill_hollow")
+                && mesh->getSettingInMicrons("infill_overlap_mm") >= 0
+            )
             {
                 const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
@@ -1158,6 +1161,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
                 {
                     inner.add(skin_part.outline);
                 }
+                inner = inner.unionPolygons();
                 perimeter_gaps.add(outer.difference(inner));
             }
         }
