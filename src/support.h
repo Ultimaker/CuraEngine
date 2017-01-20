@@ -36,10 +36,9 @@ private:
      * 
      * \param storage Output storage: support area + support skin area output
      * \param mesh The mesh to generate support skins for.
-     * \param support_areas The basic support areas for the current mesh
      * \param layer_count The number of layers in this mesh group.
      */
-    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Polygons>& support_areas, const unsigned int layer_count);
+    static void generateSupportInterface(SliceDataStorage& storage, const SliceMeshStorage& mesh, const unsigned int layer_count);
 
     /*!
      * Join current support layer with the support of the layer above, (make support conical) and perform smoothing etc operations.
