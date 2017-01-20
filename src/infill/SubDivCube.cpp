@@ -186,7 +186,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
 bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
 {
     int64_t distance2;
-    long int sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
+    int64_t sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
