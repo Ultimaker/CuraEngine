@@ -524,10 +524,18 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_idx];
-            if (layer.parts.size() > 0 || (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0) )
+            if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.openPolyLines.size() > 0)
             {
                 layer_is_empty = false;
                 break;
+            }
+            for (const SliceLayerPart& part : layer.parts)
+            {
+                if (part.print_outline.size() > 0)
+                {
+                    layer_is_empty = false;
+                    break;
+                }
             }
         }
         
