@@ -194,7 +194,10 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         mesh.inset0_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInPercentage("material_flow"));
         mesh.insetX_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x"), mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingInPercentage("material_flow"));
         mesh.skin_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("skin_line_width"), mesh.getSettingInPercentage("material_flow"));
-    
+        mesh.perimeter_gap_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("wall_line_width_x") / 2, mesh.getSettingInPercentage("material_flow"));
+        //  the perimeter gap config follows the skin config, but has a different line width:
+        // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
+
         for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
         {
             mesh.infill_config[idx].init(mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill"), mesh.getSettingInMicrons("infill_line_width") * (idx + 1), mesh.getSettingInPercentage("material_flow"));
@@ -1046,6 +1049,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
+    const unsigned int perimeter_gaps_line_width = mesh->perimeter_gap_config.getLineWidth();
 
     constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
     bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
@@ -1121,13 +1125,6 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
         Infill infill_comp(pattern, *inner_skin_outline, offset_from_inner_skin_outline, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift, perimeter_gaps_output);
         infill_comp.generate(skin_polygons, skin_lines);
 
-        if (fill_perimeter_gaps)
-        { // handle perimeter_gaps of skin insets
-            int offset = 0;
-            Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-            infill_comp.generate(skin_polygons, skin_lines);
-        }
-
         gcode_layer.addPolygonsByOptimizer(skin_polygons, &mesh->skin_config);
 
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES)
@@ -1137,6 +1134,16 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
         else
         {
             gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, (pattern == EFillMethod::ZIG_ZAG)? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        }
+
+        if (fill_perimeter_gaps)
+        { // handle perimeter_gaps of skin insets
+            Polygons gap_polygons; // will remain empty
+            Polygons gap_lines;
+            int offset = 0;
+            Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+            infill_comp.generate(gap_polygons, gap_lines);
+            gcode_layer.addLinesByOptimizer(gap_lines, &mesh->perimeter_gap_config, SpaceFillType::Lines);
         }
     }
 
@@ -1170,14 +1177,14 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
             }
         }
 
-        Polygons skin_polygons; // unused
-        Polygons skin_lines; // soon to be generated gap filler lines
+        Polygons gap_polygons; // unused
+        Polygons gap_lines; // soon to be generated gap filler lines
         int offset = 0;
         int extra_infill_shift = 0;
-        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, skin_line_width, skin_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
-        infill_comp.generate(skin_polygons, skin_lines);
+        Infill infill_comp(EFillMethod::LINES, perimeter_gaps, offset, perimeter_gaps_line_width, perimeter_gaps_line_width, skin_overlap, skin_angle, z, extra_infill_shift);
+        infill_comp.generate(gap_polygons, gap_lines);
 
-        gcode_layer.addLinesByOptimizer(skin_lines, &mesh->skin_config, SpaceFillType::Lines);
+        gcode_layer.addLinesByOptimizer(gap_lines, &mesh->perimeter_gap_config, SpaceFillType::Lines);
     }
 }
 

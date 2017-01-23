@@ -897,6 +897,7 @@ void GCodePlanner::completeConfigs()
 
         mesh.insetX_config.setLayerHeight(layer_thickness);
         mesh.skin_config.setLayerHeight(layer_thickness);
+        mesh.perimeter_gap_config.setLayerHeight(layer_thickness);
         for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
         {
             mesh.infill_config[idx].setLayerHeight(layer_thickness);
@@ -955,6 +956,7 @@ void GCodePlanner::processInitialLayersSpeedup()
 
             //Skin speed (per mesh).
             mesh.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
+            mesh.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
 
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
@@ -976,6 +978,7 @@ void GCodePlanner::processInitialLayersSpeedup()
             mesh.inset0_config.setSpeedIconic();
             mesh.insetX_config.setSpeedIconic();
             mesh.skin_config.setSpeedIconic();
+            mesh.perimeter_gap_config.setSpeedIconic();
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
             {
                 mesh.infill_config[idx].setSpeedIconic();
