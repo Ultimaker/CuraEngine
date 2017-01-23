@@ -1048,7 +1048,8 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
     const unsigned int skin_line_width = mesh->skin_config.getLineWidth();
 
     constexpr int perimeter_gaps_extra_offset = 15; // extra offset so that the perimeter gaps aren't created everywhere due to rounding errors
-    bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE;
+    bool fill_perimeter_gaps = mesh->getSettingAsFillPerimeterGapMode("fill_perimeter_gaps") != FillPerimeterGapMode::NOWHERE
+                            && !mesh->getSettingBoolean("magic_spiralize");
 
     Point z_seam_pos(0, 0); // not used
     PathOrderOptimizer part_order_optimizer(gcode_layer.getLastPosition(), z_seam_pos, EZSeamType::SHORTEST);
@@ -1152,7 +1153,10 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
             perimeter_gaps.add(outer.difference(inner));
         }
         { // gap between inner wall and skin/infill
-            if (mesh->getSettingInMicrons("infill_line_distance") > 0 && !mesh->getSettingBoolean("infill_hollow"))
+            if (mesh->getSettingInMicrons("infill_line_distance") > 0
+                && !mesh->getSettingBoolean("infill_hollow")
+                && mesh->getSettingInMicrons("infill_overlap_mm") >= 0
+            )
             {
                 const Polygons outer = part.insets.back().offset(-1 * line_width / 2 - perimeter_gaps_extra_offset);
 
@@ -1161,6 +1165,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
                 {
                     inner.add(skin_part.outline);
                 }
+                inner = inner.unionPolygons();
                 perimeter_gaps.add(outer.difference(inner));
             }
         }
