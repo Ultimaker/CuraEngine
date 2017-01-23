@@ -198,7 +198,7 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         // The perimeter gap config follows the skin config, but has a different line width:
         // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
         const int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_x") / 2;
-        const double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
+        double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
         if (mesh.getSettingBoolean("speed_equalize_flow_enabled"))
         {
             perimeter_gaps_speed = perimeter_gaps_speed * mesh.getSettingInMicrons("skin_line_width") / perimeter_gaps_line_width;
