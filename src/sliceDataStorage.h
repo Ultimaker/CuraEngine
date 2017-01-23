@@ -155,6 +155,7 @@ public:
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
+    GCodePathConfig perimeter_gap_config;
     std::vector<GCodePathConfig> infill_config;
 
     SubDivCube* base_subdiv_cube;
@@ -165,6 +166,7 @@ public:
     , inset0_config(PrintFeatureType::OuterWall)
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
+    , perimeter_gap_config(PrintFeatureType::Skin)
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);
