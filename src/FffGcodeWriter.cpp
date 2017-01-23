@@ -194,9 +194,16 @@ void FffGcodeWriter::initConfigs(SliceDataStorage& storage)
         mesh.inset0_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInPercentage("material_flow"));
         mesh.insetX_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x"), mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingInPercentage("material_flow"));
         mesh.skin_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("skin_line_width"), mesh.getSettingInPercentage("material_flow"));
-        mesh.perimeter_gap_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("wall_line_width_x") / 2, mesh.getSettingInPercentage("material_flow"));
-        //  the perimeter gap config follows the skin config, but has a different line width:
+
+        // The perimeter gap config follows the skin config, but has a different line width:
         // wall_line_width_x divided by two because the gaps are between 0 and 1 times the wall line width
+        const int perimeter_gaps_line_width = mesh.getSettingInMicrons("wall_line_width_x") / 2;
+        const double perimeter_gaps_speed = mesh.getSettingInMillimetersPerSecond("speed_topbottom");
+        if (mesh.getSettingBoolean("speed_equalize_flow_enabled"))
+        {
+            perimeter_gaps_speed = perimeter_gaps_speed * mesh.getSettingInMicrons("skin_line_width") / perimeter_gaps_line_width;
+        }
+        mesh.perimeter_gap_config.init(perimeter_gaps_speed, mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), perimeter_gaps_line_width, mesh.getSettingInPercentage("material_flow"));
 
         for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
         {
