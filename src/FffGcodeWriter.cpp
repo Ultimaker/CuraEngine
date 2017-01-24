@@ -851,8 +851,7 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
-    int infill_angle = 45;
-    // mesh->infill_angles.size() will be > 0 when infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG
+    int infill_angle = 45; // original default, this will get updated to an element from mesh->infill_angles
     if (mesh->infill_angles.size() > 0)
     {
         unsigned int combined_infill_layers = std::max(1U, round_divide(mesh->getSettingInMicrons("infill_sparse_thickness"), std::max(getSettingInMicrons("layer_height"), (coord_t)1)));
@@ -880,23 +879,13 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
         processSingleLayerInfill(gcode_layer, mesh, part, layer_nr, infill_line_distance, infill_overlap, infill_angle);
     }
 
-    EFillMethod skin_pattern = (layer_nr == 0)?
-        mesh->getSettingAsFillMethod("top_bottom_pattern_0") :
-        mesh->getSettingAsFillMethod("top_bottom_pattern");
     int skin_angle = 45;
-    if (skin_pattern == EFillMethod::LINES || skin_pattern == EFillMethod::ZIG_ZAG)
+    if (mesh->infill_angles.size() > 0)
     {
-        if (mesh->infill_angles.size() > 0)
-        {
-            // skin line angles will follow the same sequence as the infill line angles
-            // this should coincide with infill_angle so that the first top layer is orthogonal to the last infill layer
-            // but if combined_infill_layers above is > 1 then the skin angles and the infill angles will be different
-            skin_angle = mesh->infill_angles.at(layer_nr % mesh->infill_angles.size());
-        }
-        else if (layer_nr & 1)
-        {
-            skin_angle += 90;
-        }
+        // skin line angles will follow the same sequence as the infill line angles
+        // this should coincide with infill_angle so that the first top layer is orthogonal to the last infill layer
+        // but if combined_infill_layers above is > 1 then the skin angles and the infill angles will be different
+        skin_angle = mesh->infill_angles.at(layer_nr % mesh->infill_angles.size());
     }
     if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
         skin_angle -= 45;
