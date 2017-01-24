@@ -58,6 +58,10 @@ void SkirtBrim::getFirstLayerOutline(SliceDataStorage& storage, const unsigned i
     constexpr int smallest_line_length = 200;
     constexpr int largest_error_of_removed_point = 50;
     first_layer_outline.simplify(smallest_line_length, largest_error_of_removed_point); // simplify for faster processing of the brim lines
+    if (first_layer_outline.size() == 0)
+    {
+        logError("Couldn't generate skirt / brim! No polygons on first layer.");
+    }
 }
 
 int SkirtBrim::generatePrimarySkirtBrimLines(SliceDataStorage& storage, int start_distance, unsigned int primary_line_count, const int primary_extruder_skirt_brim_line_width, const int64_t primary_extruder_minimal_length, const Polygons& first_layer_outline, Polygons& skirt_brim_primary_extruder)

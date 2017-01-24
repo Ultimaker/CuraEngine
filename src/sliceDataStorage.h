@@ -155,6 +155,7 @@ public:
     GCodePathConfig inset0_config;
     GCodePathConfig insetX_config;
     GCodePathConfig skin_config;
+    GCodePathConfig perimeter_gap_config;
     std::vector<GCodePathConfig> infill_config;
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
 
@@ -166,6 +167,7 @@ public:
     , inset0_config(PrintFeatureType::OuterWall)
     , insetX_config(PrintFeatureType::InnerWall)
     , skin_config(PrintFeatureType::Skin)
+    , perimeter_gap_config(PrintFeatureType::Skin)
     , base_subdiv_cube(nullptr)
     {
         layers.resize(slice_layer_count);

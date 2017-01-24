@@ -186,15 +186,15 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3& center, unsigned int dept
 bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int64_t radius)
 {
     int64_t distance2;
-    long int sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
+    coord_t sphere_slice_radius2;//!< squared radius of bounding sphere slice on target layer
     bool inside_somewhere = false;
     bool outside_somewhere = false;
     int inside;
     double part_dist;//what percentage of the radius the target layer is away from the center along the z axis. 0 - 1
-    const long int layer_height = mesh.getSettingInMicrons("layer_height");
-    long int bottom_layer = (center.z - radius) / layer_height;
-    long int top_layer = (center.z + radius) / layer_height;
-    for (long int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
+    const coord_t layer_height = mesh.getSettingInMicrons("layer_height");
+    int bottom_layer = (center.z - radius) / layer_height;
+    int top_layer = (center.z + radius) / layer_height;
+    for (int test_layer = bottom_layer; test_layer <= top_layer; test_layer += 3) // steps of three. Low-hanging speed gain.
     {
         part_dist = (double)(test_layer * layer_height - center.z) / radius;
         sphere_slice_radius2 = radius * radius * (1.0 - (part_dist * part_dist));
@@ -221,9 +221,9 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3& center, int6
     return false;
 }
 
-int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, long int layer_nr, Point& location, int64_t* distance2)
+int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Point& location, int64_t* distance2)
 {
-    if (layer_nr < 0 || (unsigned long int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
+    if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
         return 2;
     }
