@@ -31,7 +31,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
     {
         return;
     }
-    
+    int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
@@ -63,12 +63,22 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         {
             if (static_cast<int>(layer_nr - downSkinCount) >= 0)
             {
-                downskin = downskin.difference(getInsidePolygons(mesh.layers[layer_nr - downSkinCount])); // skin overlaps with the walls
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr - downSkinCount]);
+                if (min_infill_area > 0)
+                {
+                    not_air.removeSmallAreas(min_infill_area);
+                }
+                downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
             
             if (static_cast<int>(layer_nr + upSkinCount) < static_cast<int>(mesh.layers.size()))
             {
-                upskin = upskin.difference(getInsidePolygons(mesh.layers[layer_nr + upSkinCount])); // skin overlaps with the walls
+                Polygons not_air = getInsidePolygons(mesh.layers[layer_nr + upSkinCount]);
+                if (min_infill_area > 0)
+                {
+                    not_air.removeSmallAreas(min_infill_area);
+                }
+                upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
         }
         else 
@@ -80,6 +90,10 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[downskin_layer_nr]));
                 }
+                if (min_infill_area > 0)
+                {
+                    not_air.removeSmallAreas(min_infill_area);
+                }
                 downskin = downskin.difference(not_air); // skin overlaps with the walls
             }
             
@@ -89,6 +103,10 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 for (int upskin_layer_nr = layer_nr + 2; upskin_layer_nr < layer_nr + upSkinCount + 1; upskin_layer_nr++)
                 {
                     not_air = not_air.intersection(getInsidePolygons(mesh.layers[upskin_layer_nr]));
+                }
+                if (min_infill_area > 0)
+                {
+                    not_air.removeSmallAreas(min_infill_area);
                 }
                 upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
