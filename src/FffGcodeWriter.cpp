@@ -820,14 +820,19 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
     part_order_optimizer.optimize();
 
-    EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
-    if ((infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG) && mesh->infill_angles.size() == 0)
+    if (mesh->infill_angles.size() == 0)
     {
         mesh->infill_angles = mesh->getSettingAsIntegerList("infill_angles");
         if (mesh->infill_angles.size() == 0)
         {
-            mesh->infill_angles.push_back(45);
-            mesh->infill_angles.push_back(135);
+            // user has not specified any infill angles so use defaults
+            mesh->infill_angles.push_back(45); // all infill patterns use 45 degrees
+            EFillMethod infill_pattern = mesh->getSettingAsFillMethod("infill_pattern");
+            if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
+            {
+                // lines and zig zag patterns default to also using 135 degrees
+                mesh->infill_angles.push_back(135);
+            }
         }
     }
 
