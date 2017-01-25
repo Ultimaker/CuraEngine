@@ -837,7 +837,6 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
             Point b;
             bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
             // v02 has to be longer than ab!
-            p1_it.remove();
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
@@ -845,6 +844,7 @@ void PolygonRef::smooth_corner_simple(ListPolygon& poly, const Point p0, const P
 #endif // #ifdef ASSERT_INSANE_OUTPUT
                 ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
+            p1_it.remove();
         }
     }
 }
