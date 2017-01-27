@@ -158,6 +158,7 @@ public:
     GCodePathConfig perimeter_gap_config;
     std::vector<GCodePathConfig> infill_config;
     std::vector<int> infill_angles; //!< a list of angle values (in degrees) which is cycled through to determine the infill angle of each layer
+    std::vector<int> skin_angles; //!< a list of angle values (in degrees) which is cycled through to determine the skin angle of each layer
 
     SubDivCube* base_subdiv_cube;
 
