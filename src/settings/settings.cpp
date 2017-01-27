@@ -463,22 +463,30 @@ std::vector<int> SettingsBaseVirtual::getSettingAsIntegerList(std::string key) c
     std::vector<int> result;
     std::string value_string = getSettingString(key);
     if (!value_string.empty()) {
-        std::regex regex("([^,]+,?)");
-        // default constructor = end-of-sequence:
-        std::regex_token_iterator<std::string::iterator> rend;
-
-        int submatches[] = { 1 }; // match number and optional comma
-        std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
-        while (match_iter != rend)
+        // we're looking to match one or more integer values separated by commas and surrounded by square brackets
+        // note that because the QML RegExpValidator only stops unrecognised characters being input
+        // and doesn't actually barf if the trailing ] is missing, we are lenient here and make it optional
+        std::regex list_contents_regex("\\[([^\\]]*)\\]?");
+        std::smatch list_contents_match;
+        if (std::regex_search(value_string, list_contents_match, list_contents_regex) && list_contents_match.size() > 1)
         {
-            std::string val = *match_iter++;
-            try
+            std::string elements = list_contents_match.str(1);
+            std::regex element_regex("([^,]+,?)");
+            // default constructor = end-of-sequence:
+            std::regex_token_iterator<std::string::iterator> rend;
+
+            std::regex_token_iterator<std::string::iterator> match_iter(elements.begin(), elements.end(), element_regex, 0);
+            while (match_iter != rend)
             {
-                result.push_back(std::stoi(val));
-            }
-            catch (const std::invalid_argument& e)
-            {
-                logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", val.c_str(), key.c_str());
+                std::string val = *match_iter++;
+                try
+                {
+                    result.push_back(std::stoi(val));
+                }
+                catch (const std::invalid_argument& e)
+                {
+                    logError("Couldn't read integer value (%s) in setting '%s'. Ignored.\n", val.c_str(), key.c_str());
+                }
             }
         }
     }
