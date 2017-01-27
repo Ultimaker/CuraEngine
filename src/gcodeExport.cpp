@@ -922,7 +922,7 @@ void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
     writeCode(endCode);
-    long print_time = getTotalPrintTime();
+    int64_t print_time = getTotalPrintTime();
     int mat_0 = getTotalFilamentUsed(0);
     log("Print time: %d\n", print_time);
     log("Print time (readable): %dh %dm %ds\n", print_time / 60 / 60, (print_time / 60) % 60, print_time % 60);
