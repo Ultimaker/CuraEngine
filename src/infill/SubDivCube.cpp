@@ -226,6 +226,7 @@ int SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, int layer_nr, Po
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {
         return 2;
+        *distance2 = 0;
     }
     Polygons collide;
     mesh.layers[layer_nr].getSecondOrInnermostWalls(collide);
