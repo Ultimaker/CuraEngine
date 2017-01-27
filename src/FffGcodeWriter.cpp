@@ -836,6 +836,17 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
         }
     }
 
+    if (mesh->skin_angles.size() == 0)
+    {
+        mesh->skin_angles = mesh->getSettingAsIntegerList("skin_angles");
+        if (mesh->skin_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh->skin_angles.push_back(45);
+            mesh->skin_angles.push_back(135);
+        }
+    }
+
     for (int part_idx : part_order_optimizer.polyOrder)
     {
         SliceLayerPart& part = layer->parts[part_idx];
@@ -880,12 +891,9 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
     }
 
     int skin_angle = 45;
-    if (mesh->infill_angles.size() > 0)
+    if (mesh->skin_angles.size() > 0)
     {
-        // skin line angles will follow the same sequence as the infill line angles
-        // this should coincide with infill_angle so that the first top layer is orthogonal to the last infill layer
-        // but if combined_infill_layers above is > 1 then the skin angles and the infill angles will be different
-        skin_angle = mesh->infill_angles.at(layer_nr % mesh->infill_angles.size());
+        skin_angle = mesh->skin_angles.at(layer_nr % mesh->skin_angles.size());
     }
     if (skin_alternate_rotation && ( layer_nr / 2 ) & 1)
         skin_angle -= 45;
