@@ -42,6 +42,11 @@ protected:
         * TODO
         */
         bool isConnected(const PolygonsPart& infill_part);
+
+        /*!
+         * TODO
+         */
+        void addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset);
     };
 private:
     /*!

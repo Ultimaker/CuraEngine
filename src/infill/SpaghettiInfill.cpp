@@ -11,6 +11,8 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     int spaghetti_max_layer_count = std::max(1, static_cast<int>(mesh.getSettingInMicrons("spaghetti_max_height") / layer_height));
     // TODO: account for the initial layer height
 
+    coord_t filling_area_inset = 200; // TODO: mnake setting!
+    
     if (mesh.getSettingInAngleDegrees("spaghetti_max_infill_angle") >= 90)
     {
         return; // infill cannot be combined into pillars
@@ -48,10 +50,7 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
                 || pillar.last_layer_added < static_cast<int>(layer_idx)
             )
             {
-                SliceLayerPart& slice_layer_part = *pillar.top_slice_layer_part;
-                double volume = pillar.total_area_mm2 * layer_height_mm;
-                assert(volume > 0.0);
-                slice_layer_part.spaghetti_infill_volumes.emplace_back(pillar.top_part, volume);
+                pillar.addToTopSliceLayerPart(layer_height_mm, filling_area_inset);
                 auto to_be_erased = it;
                 ++it;
                 pillar_base.erase(to_be_erased);
@@ -65,15 +64,39 @@ void SpaghettiInfill::generateSpaghettiInfill(SliceMeshStorage& mesh)
     // handle unfinished pillars
     for (auto it = pillar_base.begin(); it != pillar_base.end(); ++it)
     {
-        InfillPillar& pillar = *it;
-        SliceLayerPart& slice_layer_part = *pillar.top_slice_layer_part;
-        double volume = pillar.total_area_mm2 * layer_height_mm;
-        assert(volume > 0.0);
-        slice_layer_part.spaghetti_infill_volumes.emplace_back(pillar.top_part, volume);
+        it->addToTopSliceLayerPart(layer_height_mm, filling_area_inset);
     }
 }
 
-// TODO: make settings for the below
+// TODO
+#define NOZZLE_SIZE 400
+
+void SpaghettiInfill::InfillPillar::addToTopSliceLayerPart(double layer_height_mm, coord_t filling_area_inset)
+{
+    SliceLayerPart& slice_layer_part = *top_slice_layer_part;
+    double volume = total_area_mm2 * layer_height_mm;
+    assert(volume > 0.0);
+
+    // get filling area
+    Polygons filling_area = top_part.offset(-filling_area_inset);
+    assert(top_part.size() > 0 && top_part[0].size() > 0 && "the top part must be a non-zero area!");
+    if (filling_area.size() == 0)
+    {
+        AABB aabb(top_part);
+        Point inside = (aabb.min + aabb.max) / 2;
+        if (!top_part.inside(inside))
+        {
+            inside = top_part[0][0];
+        }
+        filling_area = PolygonsPart();
+        PolygonRef poly = filling_area.newPoly();
+        poly.emplace_back(inside + Point(-NOZZLE_SIZE / 2, NOZZLE_SIZE / 2));
+        poly.emplace_back(inside + Point(NOZZLE_SIZE / 2, NOZZLE_SIZE / 2));
+        poly.emplace_back(inside + Point(NOZZLE_SIZE / 2, -NOZZLE_SIZE / 2));
+        poly.emplace_back(inside + Point(-NOZZLE_SIZE / 2, -NOZZLE_SIZE / 2));
+    }
+    slice_layer_part.spaghetti_infill_volumes.emplace_back(top_part, volume);
+}
 
 bool SpaghettiInfill::InfillPillar::isConnected(const PolygonsPart& infill_part)
 {
