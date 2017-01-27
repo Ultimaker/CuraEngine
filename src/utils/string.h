@@ -1,3 +1,6 @@
+//Copyright (c) 2017 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #ifndef UTILS_STRING_H
 #define UTILS_STRING_H
 
@@ -35,7 +38,7 @@ static inline void writeInt2mm(const int64_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%" PRId64, coord); // convert int to string
+    int char_count = sprintf(buffer, "%d", int(coord)); // convert int to string
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
