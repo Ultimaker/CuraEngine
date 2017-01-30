@@ -142,8 +142,8 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
-            const CombingMode combing_mode = mesh.getSettingAsCombingMode("retraction_combing");
-            if (combing_mode == CombingMode::NO_SKIN || combing_mode == CombingMode::NO_WALLS)
+            const CombingMode mesh_combing_mode = mesh.getSettingAsCombingMode("retraction_combing");
+            if (mesh_combing_mode == CombingMode::NO_SKIN || mesh_combing_mode == CombingMode::NO_WALLS)
             {
                 for (SliceLayerPart& part : layer.parts)
                 {
