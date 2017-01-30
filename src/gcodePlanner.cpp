@@ -127,7 +127,7 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     }
     if (layer_nr < 0)
     { // when a raft is present
-        if (combing_mode == CombingMode::NO_SKIN)
+        if (combing_mode == CombingMode::NO_SKIN || combing_mode == CombingMode::NO_WALLS)
         {
             return Polygons();
         }
@@ -142,7 +142,8 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
         for (SliceMeshStorage& mesh : storage.meshes)
         {
             SliceLayer& layer = mesh.layers[layer_nr];
-            if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
+            const CombingMode combing_mode = mesh.getSettingAsCombingMode("retraction_combing");
+            if (combing_mode == CombingMode::NO_SKIN || combing_mode == CombingMode::NO_WALLS)
             {
                 for (SliceLayerPart& part : layer.parts)
                 {
@@ -238,7 +239,7 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
     }
 }
 
-GCodePath& GCodePlanner::addTravel(Point p)
+GCodePath& GCodePlanner::addTravel(Point p, bool no_combing)
 {
     GCodePath* path = nullptr;
     GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
@@ -251,7 +252,7 @@ GCodePath& GCodePlanner::addTravel(Point p)
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
 
     const bool is_first_travel_of_extruder_after_switch = extruder_plans.back().paths.size() == 0 && (extruder_plans.size() > 1 || last_extruder_previous_layer != getExtruder());
-    const bool bypass_combing = is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch");
+    const bool bypass_combing = no_combing || (is_first_travel_of_extruder_after_switch && extr->getSettingBoolean("retraction_hop_after_extruder_switch"));
 
     if (comb != nullptr && !bypass_combing && lastPosition != no_point)
     {
@@ -358,7 +359,7 @@ void GCodePlanner::addExtrusionMove(Point p, GCodePathConfig* config, SpaceFillT
 void GCodePlanner::addPolygon(PolygonRef polygon, int start_idx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation, coord_t wall_0_wipe_dist, bool spiralize)
 {
     Point p0 = polygon[start_idx];
-    addTravel(p0);
+    addTravel(p0, storage.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_WALLS);
     for (unsigned int point_idx = 1; point_idx < polygon.size(); point_idx++)
     {
         Point p1 = polygon[(start_idx + point_idx) % polygon.size()];

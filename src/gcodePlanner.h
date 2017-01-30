@@ -349,7 +349,7 @@ public:
      * 
      * \param p The point to travel to
      */
-    GCodePath& addTravel(Point p);
+    GCodePath& addTravel(Point p, bool no_combing = false);
     
     /*!
      * Add a travel path to a certain point and retract if needed.

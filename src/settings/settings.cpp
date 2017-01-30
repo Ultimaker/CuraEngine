@@ -441,6 +441,10 @@ CombingMode SettingsBaseVirtual::getSettingAsCombingMode(std::string key)
     {
         return CombingMode::NO_SKIN;
     }
+    if (value == "nowalls")
+    {
+        return CombingMode::NO_WALLS;
+    }
     return CombingMode::ALL;
 }
 
