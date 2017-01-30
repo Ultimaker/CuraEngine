@@ -337,8 +337,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order, ProgressStageEstimator& inset_skin_progress_estimate)
 {
-    TimeKeeper time_keeper_parallel_test;
-
     unsigned int mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = storage.meshes[mesh_idx];
     size_t mesh_layer_count = mesh.layers.size();
@@ -359,17 +357,25 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     
     // walls
-    time_keeper_parallel_test.restart();
-#pragma omp parallel for default(none) shared(total_layers, mesh)
+    int processed_layer_count = 0;
+#pragma omp parallel for default(none) shared(mesh_layer_count, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
     for(unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
-        //TODO: Fix progress update
-        //double progress = inset_skin_progress_estimate.progress(layer_number);
-        //Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+#ifdef _OPENMP
+        if (omp_get_thread_num() == 0)
+#endif
+        { // progress estimation is done only in one thread so that no two threads message progress at the same time
+            int _processed_layer_count;
+#pragma omp atomic read
+                _processed_layer_count = processed_layer_count;
+            double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
+            Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+        }
+#pragma omp atomic
+        processed_layer_count++;
     }
-    log("processInsets time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
@@ -400,8 +406,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
         mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
 
-    time_keeper_parallel_test.restart();
-#pragma omp parallel default(none) shared(total_layers, mesh, mesh_max_bottom_layer_count, process_infill)
+    processed_layer_count = 0;
+#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count)
     {
 
 #pragma omp for schedule(dynamic)
@@ -412,12 +418,20 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
-            //TODO: Fix progress update
-            //        double progress = inset_skin_progress_estimate.progress(layer_number);
-            //        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+#ifdef _OPENMP
+            if (omp_get_thread_num() == 0)
+#endif
+            { // progress estimation is done only in one thread so that no two threads message progress at the same time
+                int _processed_layer_count;
+#pragma omp atomic read
+                    _processed_layer_count = processed_layer_count;
+                double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
+                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+            }
+#pragma omp atomic
+                processed_layer_count++;
         }
-    }
-    log("processSkinsAndInfill time elapsed %5.3fs.\n", time_keeper_parallel_test.restart());
+        }
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned int mesh_order_idx, std::vector<unsigned int>& mesh_order)
