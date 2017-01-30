@@ -8,6 +8,7 @@
 namespace cura
 {
 
+// TODO: remove
 extern bool abort_execution;
 
 #ifdef _OPENMP
@@ -117,6 +118,7 @@ private:
 };
 #endif
 
+// TODO: remove
 inline bool checkMultithreadAbort()
 {
     bool tmp_abort_execution;
@@ -125,18 +127,21 @@ inline bool checkMultithreadAbort()
     return tmp_abort_execution;
 }
 
+// TODO: remove
 inline void setMultithreadAbort()
 {
 #pragma omp atomic write
     abort_execution = true;
 }
 
+// TODO: remove
 #ifdef _OPENMP
 void handleMultithreadAbort();
 #else
 inline void handleMultithreadAbort(){}
 #endif
 
+// TODO: remove old code below
 #ifdef _OPENMP
 #define MULTITHREAD_FOR_CATCH_EXCEPTION(code) \
     if (checkMultithreadAbort()) \
