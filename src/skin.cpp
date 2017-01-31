@@ -32,6 +32,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         return;
     }
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
+    int grow_skin_by = mesh.getSettingBoolean("anchor_skin_in_infill") ? static_cast<int>(mesh.getSettingInMicrons("infill_line_distance") * 1.4f) : 0;
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
@@ -42,6 +43,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
 
         Polygons upskin = part.insets.back().offset(-innermost_wall_line_width / 2);
+        Polygons virgin_upskin = Polygons(upskin);
         Polygons downskin = (downSkinCount == 0) ? Polygons() : upskin;
         if (upSkinCount == 0) upskin = Polygons();
 
@@ -113,6 +115,9 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         }
         
         Polygons skin = upskin.unionPolygons(downskin);
+
+        if(grow_skin_by > 0)
+            skin = skin.offset(grow_skin_by).intersection(virgin_upskin);
         
         skin.removeSmallAreas(MIN_AREA_SIZE);
         
