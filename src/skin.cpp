@@ -32,8 +32,6 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
         return;
     }
     int min_infill_area = mesh.getSettingInMillimeters("min_infill_area");
-    int grow_upper_skin_by = mesh.getSettingBoolean("anchor_upper_skin_in_infill") ? static_cast<int>(mesh.getSettingInMicrons("infill_line_distance") * 1.4f) : 0;
-    int grow_lower_skin_by = mesh.getSettingBoolean("anchor_lower_skin_in_infill") ? static_cast<int>(mesh.getSettingInMicrons("infill_line_distance") * 1.4f) : 0;
     for(unsigned int partNr = 0; partNr < layer.parts.size(); partNr++)
     {
         SliceLayerPart& part = layer.parts[partNr];
@@ -114,15 +112,17 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
                 upskin = upskin.difference(not_air); // skin overlaps with the walls
             }
         }
+
+        int anchor_skin_distance = mesh.getSettingInMicrons("anchor_skin_distance");
         
-        if (grow_upper_skin_by > 0)
+        if (anchor_skin_distance > 0 && mesh.getSettingBoolean("anchor_upper_skin_in_infill"))
         {
-            upskin = upskin.offset(-innermost_wall_line_width/2).offset(grow_upper_skin_by).intersection(virgin_upskin);
+            upskin = upskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
         }
 
-        if (grow_lower_skin_by > 0)
+        if (anchor_skin_distance && mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
         {
-            downskin = downskin.offset(-innermost_wall_line_width/2).offset(grow_lower_skin_by).intersection(virgin_upskin);
+            downskin = downskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
         }
 
         Polygons skin = upskin.unionPolygons(downskin);
