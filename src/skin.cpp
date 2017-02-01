@@ -120,7 +120,7 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             upskin = upskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
         }
 
-        if (anchor_skin_distance && mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
+        if (anchor_skin_distance > 0 && mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
         {
             downskin = downskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
         }
