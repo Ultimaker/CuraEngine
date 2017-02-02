@@ -996,7 +996,6 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
-    bool retract_before_outer_wall = mesh->getSettingBoolean("combing_retract_before_outer_wall");
     if (mesh->getSettingAsCount("wall_line_count") > 0)
     {
         bool spiralize = false;
@@ -1026,13 +1025,13 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
                 if (!compensate_overlap_0)
                 {
                     WallOverlapComputation* wall_overlap_computation(nullptr);
-                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(part.insets[0], &mesh->inset0_config, wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, true);
                 }
                 else
                 {
                     Polygons& outer_wall = part.insets[0];
                     WallOverlapComputation wall_overlap_computation(outer_wall, mesh->getSettingInMicrons("wall_line_width_0"));
-                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, retract_before_outer_wall);
+                    gcode_layer.addPolygonsByOptimizer(outer_wall, &mesh->inset0_config, &wall_overlap_computation, z_seam_type, z_seam_pos, mesh->getSettingInMicrons("wall_0_wipe_dist"), spiralize, true);
                 }
             }
             else
