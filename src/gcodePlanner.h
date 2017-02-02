@@ -348,8 +348,9 @@ public:
      * avoiding obstacles and comb along the boundary of parts.
      * 
      * \param p The point to travel to
+     * \param always_retract Whether to force a retraction to occur when travelling to this point.
      */
-    GCodePath& addTravel(Point p);
+    GCodePath& addTravel(Point p, bool always_retract = false);
     
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -387,8 +388,9 @@ public:
      * \param wall_overlap_computation The wall overlap compensation calculator for each given segment (optionally nullptr)
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
+     * \param retract_when_combing Whether to force the combing logic to use a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygon(PolygonRef polygon, int startIdx, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool retract_when_combing = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -406,8 +408,9 @@ public:
      * \param z_seam_pos The location near where to start each part in case \p z_seam_type is 'back'
      * \param wall_0_wipe_dist The distance to travel along each polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over each polygon printed
+     * \param retract_when_combing Whether to force the combing logic to use a retraction when moving to the start of the polygon (used for outer walls)
      */
-    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false);
+    void addPolygonsByOptimizer(Polygons& polygons, GCodePathConfig* config, WallOverlapComputation* wall_overlap_computation = nullptr, EZSeamType z_seam_type = EZSeamType::SHORTEST, Point z_seam_pos = Point(0, 0), coord_t wall_0_wipe_dist = 0, bool spiralize = false, bool retract_when_combing = false);
 
     /*!
      * Add lines to the gcode with optimized order.
