@@ -213,7 +213,7 @@ Comb::Crossing::Crossing(const Point& dest_point, const bool dest_is_inside, con
 {
     if (dest_is_inside)
     {
-        dest_crossing_poly = boundary_inside[dest_part_boundary_crossing_poly_idx]; // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
+        dest_crossing_poly.emplace(boundary_inside[dest_part_boundary_crossing_poly_idx]); // initialize with most obvious poly, cause mostly a combing move will move outside the part, rather than inside a hole in the part
     }
 }
 
@@ -332,7 +332,7 @@ bool Comb::Crossing::findOutside(const Polygons& outside, const Point close_to, 
 }
 
 
-std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(const Polygons& outside, const PolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber)
+std::shared_ptr<std::pair<ClosestPolygonPoint, ClosestPolygonPoint>> Comb::Crossing::findBestCrossing(const Polygons& outside, ConstPolygonRef from, const Point estimated_start, const Point estimated_end, Comb& comber)
 {
     ClosestPolygonPoint* best_in = nullptr;
     ClosestPolygonPoint* best_out = nullptr;

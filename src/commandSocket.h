@@ -64,7 +64,7 @@ public:
     /*! 
      * Send a polygon to the front-end. This is used for the layerview in the GUI
      */
-    static void sendPolygon(cura::PrintFeatureType type, Polygon& polygon, int line_width);
+    static void sendPolygon(cura::PrintFeatureType type, ConstPolygonRef polygon, int line_width);
 
     /*!
      * Send a line to the front-end. This is used for the layerview in the GUI

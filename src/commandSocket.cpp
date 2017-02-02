@@ -215,7 +215,7 @@ public:
     /*!
      * Adds closed polygon to the current path
      */
-    void sendPolygon(PrintFeatureType print_feature_type, Polygon poly, int width);
+    void sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef poly, int width);
 private:
     /*!
      * Convert and add a point to the points buffer, each point being represented as two consecutive floats. All members adding a 2D point to the data should use this function.
@@ -522,7 +522,7 @@ void CommandSocket::sendPolygons(PrintFeatureType type, const Polygons& polygons
 #endif
 }
 
-void CommandSocket::sendPolygon(PrintFeatureType type, Polygon& polygon, int line_width)
+void CommandSocket::sendPolygon(PrintFeatureType type, ConstPolygonRef polygon, int line_width)
 {
 #ifdef ARCUS
     if (CommandSocket::isInstantiated())
@@ -799,7 +799,7 @@ void CommandSocket::PathCompiler::sendLineTo(PrintFeatureType print_feature_type
     }
 }
 
-void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, Polygon polygon, int width)
+void CommandSocket::PathCompiler::sendPolygon(PrintFeatureType print_feature_type, ConstPolygonRef polygon, int width)
 {
     if (polygon.size() < 2)
     {
