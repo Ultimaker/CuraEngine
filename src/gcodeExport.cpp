@@ -889,15 +889,23 @@ void GCodeExport::writeJerk(double jerk)
 {
     if (current_jerk != jerk)
     {
-        if (getFlavor() == EGCodeFlavor::REPETIER)
+        if (getFlavor() == EGCodeFlavor::REPRAP)
         {
-            *output_stream << "M207 X";
+            const double jerkPerMin = jerk * 60;
+            *output_stream << "M566 X" << PrecisionedDouble{2, jerkPerMin} << " Y" << PrecisionedDouble{2, jerkPerMin} << new_line;
         }
         else
         {
-            *output_stream << "M205 X";
+            if (getFlavor() == EGCodeFlavor::REPETIER)
+            {
+                *output_stream << "M207 X";
+            }
+            else
+            {
+                *output_stream << "M205 X";
+            }
+            *output_stream << PrecisionedDouble{2, jerk} << new_line;
         }
-        *output_stream << PrecisionedDouble{2, jerk} << new_line;
         current_jerk = jerk;
         estimateCalculator.setMaxXyJerk(jerk);
     }
