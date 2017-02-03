@@ -5,7 +5,7 @@
 
 namespace cura {
 
-int bridgeAngle(Polygons outline, SliceLayer* prevLayer)
+int bridgeAngle(Polygons outline, const SliceLayer* prevLayer)
 {
     AABB boundaryBox(outline);
     //To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
@@ -29,9 +29,9 @@ int bridgeAngle(Polygons outline, SliceLayer* prevLayer)
     for(unsigned int n=0; n<islands.size(); n++)
     {
         //Skip internal holes
-        if (!islands[n].orientation())
+        if (!PolygonRef{islands[n]}.orientation())
             continue;
-        double area = fabs(islands[n].area());
+        double area = fabs(PolygonRef{islands[n]}.area());
         if (area > area1)
         {
             if (area1 > area2)
@@ -51,8 +51,8 @@ int bridgeAngle(Polygons outline, SliceLayer* prevLayer)
     if (idx1 < 0 || idx2 < 0)
         return -1;
     
-    Point center1 = islands[idx1].centerOfMass();
-    Point center2 = islands[idx2].centerOfMass();
+    Point center1 = PolygonRef{islands[idx1]}.centerOfMass();
+    Point center2 = PolygonRef{islands[idx2]}.centerOfMass();
 
     return angle(center2 - center1);
 }

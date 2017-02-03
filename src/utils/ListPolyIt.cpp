@@ -19,12 +19,12 @@ void ListPolyIt::convertPolygonsToLists(Polygons& polys, ListPolygons& result)
     }
 }
 
-void ListPolyIt::convertPolygonToList(PolygonRef poly, ListPolygon& result)
+void ListPolyIt::convertPolygonToList(const PolygonRef& poly, ListPolygon& result)
 {
 #ifdef DEBUG
     Point last = poly.back();
 #endif // DEBUG
-    for (Point& p : poly) 
+    for (const Point& p : poly)
     {
         result.push_back(p);
 #ifdef DEBUG

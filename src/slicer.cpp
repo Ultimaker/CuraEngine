@@ -8,6 +8,7 @@
 #include "utils/SparsePointGridInclusive.h"
 
 #include "slicer.h"
+#include "multithreadOpenMP.h"
 
 
 namespace cura {
@@ -216,7 +217,7 @@ SlicerLayer::findPossibleStitches(
     //   insert the starts of the polylines).
     for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
-        const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+        ConstPolygonRef polyline_0 = open_polylines[polyline_0_idx];
 
         if (polyline_0.size() < 1) continue;
 
@@ -231,7 +232,7 @@ SlicerLayer::findPossibleStitches(
     {
         for(unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
         {
-            const PolygonRef polyline_0 = open_polylines[polyline_0_idx];
+            ConstPolygonRef polyline_0 = open_polylines[polyline_0_idx];
 
             if (polyline_0.size() < 1) continue;
 
@@ -245,7 +246,7 @@ SlicerLayer::findPossibleStitches(
     // search for nearby end points
     for(unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
     {
-        const PolygonRef polyline_1 = open_polylines[polyline_1_idx];
+        ConstPolygonRef polyline_1 = open_polylines[polyline_1_idx];
 
         if (polyline_1.size() < 1) continue;
 
@@ -589,7 +590,7 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
             {
                 if (best_result.pointIdxA == best_result.pointIdxB)
                 {
-                    polygons.add(open_polylines[best_polyline_1_idx]);
+                    polygons.add(PolygonRef{open_polylines[best_polyline_1_idx]});
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result.AtoB)
@@ -604,9 +605,9 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                 else
                 {
                     unsigned int n = polygons.size();
-                    polygons.add(open_polylines[best_polyline_1_idx]);
+                    polygons.add(PolygonRef{open_polylines[best_polyline_1_idx]});
                     for(unsigned int j = best_result.pointIdxB; j != best_result.pointIdxA; j = (j + 1) % polygons[best_result.polygonIdx].size())
-                        polygons[n].add(polygons[best_result.polygonIdx][j]);
+                        PolygonRef{polygons[n]}.add(polygons[best_result.polygonIdx][j]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
             }
@@ -615,7 +616,7 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                 if (best_result.pointIdxA == best_result.pointIdxB)
                 {
                     for(unsigned int n=0; n<open_polylines[best_polyline_1_idx].size(); n++)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result.AtoB)
@@ -624,17 +625,17 @@ void SlicerLayer::stitch_extensive(Polygons& open_polylines)
                     for(unsigned int n = best_result.pointIdxA; n != best_result.pointIdxB; n = (n + 1) % polygons[best_result.polygonIdx].size())
                         poly.add(polygons[best_result.polygonIdx][n]);
                     for(unsigned int n=poly.size()-1;int(n) >= 0; n--)
-                        open_polylines[best_polyline_2_idx].add(poly[n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(poly[n]);
                     for(unsigned int n=0; n<open_polylines[best_polyline_1_idx].size(); n++)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else
                 {
                     for(unsigned int n = best_result.pointIdxB; n != best_result.pointIdxA; n = (n + 1) % polygons[best_result.polygonIdx].size())
-                        open_polylines[best_polyline_2_idx].add(polygons[best_result.polygonIdx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(polygons[best_result.polygonIdx][n]);
                     for(unsigned int n = open_polylines[best_polyline_1_idx].size() - 1; int(n) >= 0; n--)
-                        open_polylines[best_polyline_2_idx].add(open_polylines[best_polyline_1_idx][n]);
+                        PolygonRef{open_polylines[best_polyline_2_idx]}.add(open_polylines[best_polyline_1_idx][n]);
                     open_polylines[best_polyline_1_idx].clear();
                 }
             }
@@ -887,10 +888,15 @@ Slicer::Slicer(Mesh* mesh, int initial, int thickness, int slice_layer_count, bo
         }
     }
     log("slice of mesh took %.3f seconds\n",slice_timer.restart());
-    for(unsigned int layer_nr=0; layer_nr<layers.size(); layer_nr++)
-    {
-        layers[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
-    }
+
+    auto& layers_ref = layers;
+#pragma omp parallel for default(none) shared(mesh,layers_ref) firstprivate(keep_none_closed, extensive_stitching)
+    for(unsigned int layer_nr=0; layer_nr<layers_ref.size(); layer_nr++)
+    { MULTITHREAD_FOR_CATCH_EXCEPTION(
+        layers_ref[layer_nr].makePolygons(mesh, keep_none_closed, extensive_stitching);
+    )}
+    handleMultithreadAbort();
+
     mesh->expandXY(mesh->getSettingInMicrons("xy_offset"));
     log("slice make polygons took %.3f seconds\n",slice_timer.restart());
 }

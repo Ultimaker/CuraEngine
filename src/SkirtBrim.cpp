@@ -77,7 +77,7 @@ int SkirtBrim::generatePrimarySkirtBrimLines(SliceDataStorage& storage, int star
         //Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then 100x extrusion "area"
         for (unsigned int n = 0; n < outer_skirt_brim_line.size(); n++)
         {
-            double area = outer_skirt_brim_line[n].area();
+            double area = PolygonRef{outer_skirt_brim_line[n]}.area();
             if (area < 0 && area > -primary_extruder_skirt_brim_line_width * primary_extruder_skirt_brim_line_width * 100)
             {
                 outer_skirt_brim_line.remove(n--);

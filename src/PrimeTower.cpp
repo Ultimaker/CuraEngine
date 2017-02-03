@@ -179,7 +179,6 @@ void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int laye
 
     gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
     gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
-
     last_prime_tower_poly_printed[extruder] = layer_nr;
 }
 

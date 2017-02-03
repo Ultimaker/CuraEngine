@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <omp.h>
 
 #include "utils/math.h"
 #include "utils/algorithm.h"
@@ -23,7 +24,7 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressStageEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
-
+#include "multithreadOpenMP.h"
 
 namespace cura
 {
@@ -31,6 +32,17 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
+#pragma omp parallel
+    {
+#pragma omp master
+        {
+#ifdef _OPENMP
+            log("OpenMP enabled, number of threads used: %u\n", omp_get_num_threads());
+#else
+            log("OpenMP disabled\n");
+#endif
+        }
+    }
     if (!sliceModel(meshgroup, timeKeeper, storage)) 
     {
         return false;
@@ -345,12 +357,24 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     
     
     // walls
-    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
+    int processed_layer_count = 0;
+#pragma omp parallel for default(none) shared(mesh_layer_count, mesh, inset_skin_progress_estimate, processed_layer_count) schedule(dynamic)
+    for(unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
     {
         logDebug("Processing insets for layer %i of %i\n", layer_number, mesh_layer_count);
         processInsets(mesh, layer_number);
-        double progress = inset_skin_progress_estimate.progress(layer_number);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+#ifdef _OPENMP
+        if (omp_get_thread_num() == 0)
+#endif
+        { // progress estimation is done only in one thread so that no two threads message progress at the same time
+            int _processed_layer_count;
+#pragma omp atomic read
+                _processed_layer_count = processed_layer_count;
+            double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
+            Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+        }
+#pragma omp atomic
+        processed_layer_count++;
     }
 
     ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
@@ -381,15 +405,32 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(SliceDataStorage& storage,
     {
         mesh_max_bottom_layer_count = std::max(mesh_max_bottom_layer_count, mesh.getSettingAsCount("bottom_layers"));
     }
-    for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
+
+    processed_layer_count = 0;
+#pragma omp parallel default(none) shared(mesh_layer_count, mesh, mesh_max_bottom_layer_count, process_infill, inset_skin_progress_estimate, processed_layer_count)
     {
-        logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
-        if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+
+#pragma omp for schedule(dynamic)
+        for (unsigned int layer_number = 0; layer_number < mesh.layers.size(); layer_number++)
         {
-            processSkinsAndInfill(mesh, layer_number, process_infill);
+            logDebug("Processing skins and infill layer %i of %i\n", layer_number, mesh_layer_count);
+            if (!mesh.getSettingBoolean("magic_spiralize") || static_cast<int>(layer_number) < mesh_max_bottom_layer_count)    //Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            {
+                processSkinsAndInfill(mesh, layer_number, process_infill);
+            }
+#ifdef _OPENMP
+            if (omp_get_thread_num() == 0)
+#endif
+            { // progress estimation is done only in one thread so that no two threads message progress at the same time
+                int _processed_layer_count;
+#pragma omp atomic read
+                    _processed_layer_count = processed_layer_count;
+                double progress = inset_skin_progress_estimate.progress(_processed_layer_count);
+                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
+            }
+#pragma omp atomic
+                processed_layer_count++;
         }
-        double progress = inset_skin_progress_estimate.progress(layer_number);
-        Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
     }
 }
 
@@ -429,7 +470,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, unsigned 
                     if (new_outline.size() == 1)
                     { // we don't have to call splitIntoParts, because a single polygon can only be a single part
                         PolygonsPart outline_part_here;
-                        outline_part_here.add(new_outline[0]);
+                        outline_part_here.add(PolygonRef{new_outline[0]});
                         new_parts.push_back(outline_part_here);
                     }
                     else if (new_outline.size() > 1)
@@ -486,6 +527,14 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     }
 }
 
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateInsets only reads and writes data for the current layer
+ *
+ * processInsets only reads and writes data for the current layer
+ */
 void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr) 
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
@@ -567,8 +616,18 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, cons
         support_layers.erase(support_layers.begin(), support_layers.begin() + n_empty_first_layers);
     }
 }
-  
-void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill) 
+
+/*
+ * This function is executed in a parallel region based on layer_nr.
+ * When modifying make sure any changes does not introduce data races.
+ *
+ * generateSkins read (depend on) data from mesh.layers[*].parts[*].insets and write mesh.layers[n].parts[*].skin_parts
+ * generateInfill read mesh.layers[n].parts[*].{insets,skin_parts,boundingBox} and write mesh.layers[n].parts[*].infill_area
+ *
+ * processSkinsAndInfill read (depend on) mesh.layers[*].parts[*].{insets,boundingBox}.
+ *                       write mesh.layers[n].parts[*].{skin_parts,infill_area}.
+ */
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, unsigned int layer_nr, bool process_infill)
 {
     if (mesh.getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE) 
     { 

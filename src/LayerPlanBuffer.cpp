@@ -7,6 +7,31 @@
 
 namespace cura {
 
+void issueWriteGCode_impl(
+    GCodeExport* p_gcode,
+    GCodePlanner* p_front_buffer
+){
+#pragma omp task default(none) firstprivate(p_gcode, p_front_buffer)
+    { MULTITHREAD_TASK_CATCH_EXCEPTION(
+        GCodeExport& gcode_ref = *p_gcode;
+#ifdef _OPENMP
+        omp_lock_guard_t<omp_nest_lock_type> gcode_output_lock_guard(gcode_ref.getOutputStreamLock());
+#endif
+        p_front_buffer->writeGCode(gcode_ref);
+        if (CommandSocket::isInstantiated())
+        {
+            CommandSocket::getInstance()->flushGcode();
+        }
+    )}
+}
+
+void LayerPlanBuffer::issueWriteGCode()
+{
+    assert(!(buffer.front().isGCodeWritten()) && "GCode shouldn't be written more than once");
+    GCodeExport* p_gcode = &gcode;
+    GCodePlanner* p_front_buffer = &buffer.front();
+    issueWriteGCode_impl(p_gcode, p_front_buffer);
+}
 
 
 void LayerPlanBuffer::flush()
@@ -15,6 +40,10 @@ void LayerPlanBuffer::flush()
     {
         insertTempCommands(); // insert preheat commands of the very last layer
     }
+
+#ifdef _OPENMP
+    omp_lock_guard_t<omp_nest_lock_type> gcode_output_lock_guard(gcode.getOutputStreamLock());
+#endif
     while (!buffer.empty())
     {
         buffer.front().writeGCode(gcode);
@@ -30,9 +59,10 @@ void LayerPlanBuffer::flush()
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, double time_after_extruder_plan_start, int extruder, double temp)
 {
     double acc_time = 0.0;
-    for (unsigned int path_idx = extruder_plan_before.paths.size() - 1; int(path_idx) != -1 ; path_idx--)
+    std::vector<GCodePath>& extruder_plan_before_paths = extruder_plan_before.getPaths();
+    for (unsigned int path_idx = extruder_plan_before_paths.size() - 1; int(path_idx) != -1 ; path_idx--)
     {
-        GCodePath& path = extruder_plan_before.paths[path_idx];
+        GCodePath& path = extruder_plan_before_paths[path_idx];
         const double time_this_path = path.estimates.getTotalTime();
         acc_time += time_this_path;
         if (acc_time > time_after_extruder_plan_start)
@@ -195,9 +225,9 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
     if (preheat_config.getInitialPrintTemp(extruder) != 0)
     { // handle heating from initial_print_temperature to printing_tempreature
         unsigned int path_idx;
-        for (path_idx = 0; path_idx < extruder_plan.paths.size(); path_idx++)
+        for (path_idx = 0; path_idx < extruder_plan.getPaths().size(); path_idx++)
         {
-            GCodePath& path = extruder_plan.paths[path_idx];
+            GCodePath& path = extruder_plan.getPaths()[path_idx];
             heated_pre_travel_time += path.estimates.getTotalTime();
             if (!path.isTravelPath())
             {
@@ -224,9 +254,9 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     double heated_post_travel_time = 0; // The time after the last extrude move toward the end of the extruder plan during which the nozzle is stable at the final print temperature
     { // compute heated_post_travel_time
         unsigned int path_idx;
-        for (path_idx = last_extruder_plan.paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        for (path_idx = last_extruder_plan.getPaths().size() - 1; int(path_idx) >= 0; path_idx--)
         {
-            GCodePath& path = last_extruder_plan.paths[path_idx];
+            GCodePath& path = last_extruder_plan.getPaths()[path_idx];
             if (!path.isTravelPath())
             {
                 break;
@@ -306,9 +336,9 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     { // insert temp command in precool_extruder_plan
         double extrusion_time_seen = 0;
         unsigned int path_idx;
-        for (path_idx = precool_extruder_plan->paths.size() - 1; int(path_idx) >= 0; path_idx--)
+        for (path_idx = precool_extruder_plan->getPaths().size() - 1; int(path_idx) >= 0; path_idx--)
         {
-            GCodePath& path = precool_extruder_plan->paths[path_idx];
+            GCodePath& path = precool_extruder_plan->getPaths()[path_idx];
             extrusion_time_seen += path.estimates.getTotalTime();
             if (extrusion_time_seen >= cool_down_time)
             {
@@ -324,11 +354,16 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].paths.size() == 0))
+    if (buffer.back().extruder_plans.size() == 0 || (buffer.back().extruder_plans.size() == 1 && buffer.back().extruder_plans[0].getPathsList().empty()))
     { // disregard empty layer
         buffer.pop_back();
         return;
     }
+    for (ExtruderPlan& plan: buffer.back().extruder_plans)
+    {
+        plan.convertListToVector();
+    }
+
 
     std::vector<ExtruderPlan*> extruder_plans;
     extruder_plans.reserve(buffer.size() * 2);

@@ -775,7 +775,7 @@ void GCodeExport::switchExtruder(int new_extruder, const RetractionConfig& retra
 
     bool force = true;
     bool extruder_switch = true;
-    writeRetraction(const_cast<RetractionConfig&>(retraction_config_old_extruder), force, extruder_switch);
+    writeRetraction(retraction_config_old_extruder, force, extruder_switch);
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
 
