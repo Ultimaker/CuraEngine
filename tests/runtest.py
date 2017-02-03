@@ -236,10 +236,13 @@ class Setting:
             compiled = compile(code, self._key, "eval")
         except (SyntaxError, TypeError) as e:
             print("Parse error in function (" + str(code) + ") for setting", self._key + ":", str(e))
+            return None
         except IllegalMethodError as e:
             print("Use of illegal method", str(e), "in function (" + code + ") for setting", self._key)
+            return None
         except Exception as e:
             print("Exception in function (" + code + ") for setting", self._key + ":", str(e))
+            return None
 
         return eval(compiled, globals(), locals)
 
