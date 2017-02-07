@@ -216,6 +216,18 @@ class GCodePlanner : public NoCopy
 {
     friend class LayerPlanBuffer;
     friend class GCodePlannerTest;
+public:
+    /*!
+     * The state which is passed along between layer plans.
+     * This is what a \ref GCodePlanner delivers to further computation in \ref FffGcodeWriter
+     * This is the state which is currently planned, not which is written to gcode.
+     */
+    struct PlanningState
+    {
+        Point last_position; //!< The position of the head before planning the next layer
+        int current_extruder; //!< The extruder train in use before planning the next layer
+        bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
+    };
 private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
@@ -281,7 +293,7 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_height, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     void overrideFanSpeeds(double speed);
@@ -302,6 +314,15 @@ public:
     int getLayerNr()
     {
         return layer_nr;
+    }
+
+    PlanningState getPlanningState()
+    {
+        PlanningState ret;
+        ret.last_position = lastPosition;
+        ret.current_extruder = getExtruder();
+        ret.is_inside_mesh_layer_part = was_inside;
+        return ret;
     }
     
     Point getLastPosition()

@@ -74,18 +74,19 @@ private:
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time and fan speeds. Configured for each extruder.
 
-    Point last_position_planned; //!< The position of the head before planning the next layer
-    int current_extruder_planned; //!< The extruder train in use before planning the next layer
-    bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
+
+    GCodePlanner::PlanningState planner_state;
+
 public:
     FffGcodeWriter(SettingsBase* settings_)
     : SettingsMessenger(settings_)
     , max_object_height(0)
     , layer_plan_buffer(this, gcode)
     , extruder_prime_is_planned {} // initialize all values in array with [false]
-    , last_position_planned(no_point)
-    , current_extruder_planned(0) // changed somewhere early in FffGcodeWriter::writeGCode
-    , is_inside_mesh_layer_part(false)
+    , planner_state{ no_point
+                    , 0 // changed somewhere early in FffGcodeWriter::writeGCode
+                    , false
+                    }
     {
     }
 
@@ -218,7 +219,7 @@ private:
      * \param layer_nr The index of the layer to write the gcode of.
      * \param total_layers The total number of layers.
      */
-    void processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers);
+    GCodePlanner::PlanningState processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers);
 
     /*!
      * Whether the extruders need to be primed separately just before they are used.
