@@ -270,7 +270,7 @@ void GCodeExport::setFlavor(EGCodeFlavor flavor)
     }
 }
 
-EGCodeFlavor GCodeExport::getFlavor()
+EGCodeFlavor GCodeExport::getFlavor() const
 {
     return this->flavor;
 }

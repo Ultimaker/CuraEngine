@@ -169,7 +169,7 @@ void FffGcodeWriter::setConfigRetraction(SliceDataStorage& storage)
     }
 }
 
-unsigned int FffGcodeWriter::getStartExtruder(SliceDataStorage& storage)
+unsigned int FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage)
 {
     int start_extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     if (getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::NONE)
@@ -188,7 +188,7 @@ unsigned int FffGcodeWriter::getStartExtruder(SliceDataStorage& storage)
     return start_extruder_nr;
 }
 
-void FffGcodeWriter::processStartingCode(SliceDataStorage& storage, const unsigned int start_extruder_nr)
+void FffGcodeWriter::processStartingCode(const SliceDataStorage& storage, const unsigned int start_extruder_nr)
 {
     if (!CommandSocket::isInstantiated())
     {
@@ -251,12 +251,12 @@ void FffGcodeWriter::processStartingCode(SliceDataStorage& storage, const unsign
         gcode.writeTemperatureCommand(start_extruder_nr, print_temp_here, wait);
         gcode.writePrimeTrain(train.getSettingInMillimetersPerSecond("speed_travel"));
         extruder_prime_is_planned[start_extruder_nr] = true;
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
+        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[start_extruder_nr];
         gcode.writeRetraction(retraction_config);
     }
 }
 
-void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
+void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
     gcode.writeFanCommand(0);
 
@@ -272,7 +272,7 @@ void FffGcodeWriter::processNextMeshGroupCode(SliceDataStorage& storage)
     gcode.writeMove(planner_state.last_position, storage.meshgroup->getExtruderTrain(gcode.getExtruderNr())->getSettingInMillimetersPerSecond("speed_travel"), 0);
 }
     
-void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_layers)
+void FffGcodeWriter::processRaft(const SliceDataStorage& storage, unsigned int total_layers)
 {
     int extruder_nr = getSettingAsIndex("adhesion_extruder_nr");
     ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
@@ -384,7 +384,7 @@ void FffGcodeWriter::processRaft(SliceDataStorage& storage, unsigned int total_l
     }
 }
 
-GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& storage, int layer_nr, unsigned int total_layers)
+GCodePlanner::PlanningState FffGcodeWriter::processLayer(const SliceDataStorage& storage, int layer_nr, unsigned int total_layers) const
 {
     Progress::messageProgress(Progress::Stage::EXPORT, std::max(0, layer_nr) + 1, total_layers);
     logDebug("GcodeWriter processing layer %i of %i\n", layer_nr, total_layers);
@@ -436,14 +436,15 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& stora
     }
 
     coord_t max_inner_wall_width = 0;
-    for (SettingsBaseVirtual& mesh_settings : storage.meshes)
+    for (const SettingsBaseVirtual& mesh_settings : storage.meshes)
     {
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_settings.getSettingInMicrons((mesh_settings.getSettingAsCount("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0")); 
     }
     int64_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
 
-    GCodePlanner& gcode_layer = layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, planner_state, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
+    LayerPlanBuffer& _layer_plan_buffer = *const_cast<LayerPlanBuffer*>(&layer_plan_buffer); // TODO: resolve const_cast!
+    GCodePlanner& gcode_layer = _layer_plan_buffer.emplace_back(storage, layer_nr, z, layer_thickness, planner_state, fan_speed_layer_time_settings_per_extruder, getSettingAsCombingMode("retraction_combing"), comb_offset_from_outlines, avoid_other_parts, avoid_distance);
 
     if (include_helper_parts && layer_nr == 0)
     { // process the skirt or the brim of the starting extruder.
@@ -474,7 +475,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& stora
 
         if (layer_nr >= 0)
         {
-            std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
+            const std::vector<unsigned int>& mesh_order = mesh_order_per_extruder[extruder_nr];
             unsigned int mesh_order_idx_starting_mesh = 0;
             { // calculate mesh_order_idx_starting_mesh
                 Point layer_start_position = planner_state.last_position;
@@ -485,12 +486,12 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& stora
                 coord_t best_dist2 = std::numeric_limits<coord_t>::max();
                 for (unsigned int mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); mesh_order_idx++)
                 {
-                    unsigned int mesh_idx = mesh_order[mesh_order_idx];
-                    SliceMeshStorage& mesh = storage.meshes[mesh_idx];
-                    for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+                    const unsigned int mesh_idx = mesh_order[mesh_order_idx];
+                    const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+                    for (const SliceLayerPart& part : mesh.layers[layer_nr].parts)
                     {
-                        Point middle = (part.boundaryBox.min + part.boundaryBox.max) / 2;
-                        coord_t dist2 = vSize2(middle - layer_start_position);
+                        const Point middle = (part.boundaryBox.min + part.boundaryBox.max) / 2;
+                        const coord_t dist2 = vSize2(middle - layer_start_position);
                         if (dist2 < best_dist2)
                         {
                             best_dist2 = dist2;
@@ -504,7 +505,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& stora
             {
                 unsigned int mesh_order_idx = (mesh_iterator_idx + mesh_order_idx_starting_mesh) % mesh_order.size();
                 unsigned int mesh_idx = mesh_order[mesh_order_idx];
-                SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
+                const SliceMeshStorage* mesh = &storage.meshes[mesh_idx];
                 const PathConfigs::MeshPathConfigs& mesh_config = gcode_layer.configs_storage.mesh_configs[mesh_idx];
                 if (mesh->getSettingAsSurfaceMode("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
                 {
@@ -540,7 +541,7 @@ GCodePlanner::PlanningState FffGcodeWriter::processLayer(SliceDataStorage& stora
     return planner_state;
 }
 
-bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer()
+bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer() const
 {
     switch(gcode.getFlavor())
     {
@@ -551,7 +552,7 @@ bool FffGcodeWriter::getExtrudersNeedPrimeDuringFirstLayer()
     }
 }
 
-void FffGcodeWriter::ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr)
+void FffGcodeWriter::ensureAllExtrudersArePrimed(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr) const
 {
     // Add prime for all extruders which haven't primed yet.
 
@@ -565,14 +566,14 @@ void FffGcodeWriter::ensureAllExtrudersArePrimed(SliceDataStorage& storage, GCod
     }
 }
 
-void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr)
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int extruder_nr) const
 {
     if (skirt_brim_is_processed[extruder_nr])
     {
         return;
     }
-    Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
-    skirt_brim_is_processed[extruder_nr] = true;
+    const Polygons& skirt_brim = storage.skirt_brim[extruder_nr];
+    const_cast<bool&>(skirt_brim_is_processed[extruder_nr]) = true; // TODO: resolve const cast!
     if (skirt_brim.size() == 0)
     {
         return;
@@ -581,7 +582,7 @@ void FffGcodeWriter::processSkirtBrim(SliceDataStorage& storage, GCodePlanner& g
     gcode_layer.addPolygonsByOptimizer(skirt_brim, &gcode_layer.configs_storage.skirt_brim_config[extruder_nr]);
 }
 
-void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
+void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr) const
 {
     if (layer_nr == 0 && storage.getSettingAsPlatformAdhesion("adhesion_type") == EPlatformAdhesion::BRIM)
     {
@@ -593,7 +594,7 @@ void FffGcodeWriter::processOozeShield(SliceDataStorage& storage, GCodePlanner& 
     }
 }
 
-void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr)
+void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, GCodePlanner& gcode_layer, unsigned int layer_nr) const
 {
     if (storage.draft_protection_shield.size() == 0)
     {
@@ -623,7 +624,7 @@ void FffGcodeWriter::processDraftShield(SliceDataStorage& storage, GCodePlanner&
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, &gcode_layer.configs_storage.skirt_brim_config[0]); //TODO: Skirt and brim configuration index should correspond to draft shield extruder number.
 }
 
-std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storage, int current_extruder)
+std::vector<int> FffGcodeWriter::calculateExtruderOrder(const SliceDataStorage& storage, int current_extruder) const
 {
     int extruder_count = storage.getSettingAsCount("machine_extruder_count");
     std::vector<int> ret;
@@ -640,17 +641,17 @@ std::vector<int> FffGcodeWriter::calculateExtruderOrder(SliceDataStorage& storag
     return ret;
 }
 
-std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& storage, int extruder_nr)
+std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, int extruder_nr) const
 {
     OrderOptimizer<unsigned int> mesh_idx_order_optimizer;
 
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = storage.meshes[mesh_idx];
+        const SliceMeshStorage& mesh = storage.meshes[mesh_idx];
         if (mesh.getSettingAsIndex("extruder_nr") == extruder_nr)
         {
-            Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
-            Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
+            const Mesh& mesh_data = storage.meshgroup->meshes[mesh_idx];
+            const Point3 middle = (mesh_data.getAABB().min + mesh_data.getAABB().max) / 2;
             mesh_idx_order_optimizer.addItem(Point(middle.x, middle.y), mesh_idx);
         }
     }
@@ -665,7 +666,7 @@ std::vector<unsigned int> FffGcodeWriter::calculateMeshOrder(SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -697,7 +698,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& stora
     addMeshOpenPolyLinesToGCode(storage, mesh, mesh_config, gcode_layer, layer_nr);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     const SliceLayer* layer = &mesh->layers[layer_nr];
     
@@ -716,7 +717,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, Slic
     
 }
 
-void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addMeshLayerToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr) const
 {
     if (layer_nr > mesh->layer_nr_max_filled_layer)
     {
@@ -781,7 +782,7 @@ void FffGcodeWriter::addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshSto
     }
 }
 
-void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr)
+void FffGcodeWriter::addMeshPartToGCode(const SliceDataStorage& storage, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr) const
 {
     bool skin_alternate_rotation = mesh->getSettingBoolean("skin_alternate_rotation") && ( mesh->getSettingAsCount("top_layers") >= 4 || mesh->getSettingAsCount("bottom_layers") >= 4 );
 
@@ -843,7 +844,7 @@ void FffGcodeWriter::addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStor
             
 
 
-void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     if (infill_line_distance > 0)
@@ -874,7 +875,7 @@ void FffGcodeWriter::processMultiLayerInfill(GCodePlanner& gcode_layer, SliceMes
     }
 }
 
-void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle)
+void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int infill_angle) const
 {
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].size() == 0)
     {
@@ -935,7 +936,7 @@ void FffGcodeWriter::processSingleLayerInfill(GCodePlanner& gcode_layer, SliceMe
     }
 }
 
-void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos)
+void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos) const
 {
     bool compensate_overlap_0 = mesh->getSettingBoolean("travel_compensate_overlapping_walls_0_enabled");
     bool compensate_overlap_x = mesh->getSettingBoolean("travel_compensate_overlapping_walls_x_enabled");
@@ -995,7 +996,7 @@ void FffGcodeWriter::processInsets(GCodePlanner& gcode_layer, SliceMeshStorage* 
 }
 
 
-void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle)
+void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, const SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int skin_angle) const
 {
     int64_t z = layer_nr * getSettingInMicrons("layer_height");
     const unsigned int skin_line_width = mesh_config.skin_config.getLineWidth();
@@ -1138,7 +1139,7 @@ void FffGcodeWriter::processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, Slic
     }
 }
 
-bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
+bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr) const
 {
     bool support_added = false;
     if (!storage.support.generated || layer_nr > storage.support.layer_nr_max_filled_layer)
@@ -1149,7 +1150,7 @@ bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     int support_interface_extruder_nr = getSettingAsIndex("support_interface_extruder_nr");
     int support_infill_extruder_nr = (layer_nr <= 0)? getSettingAsIndex("support_extruder_nr_layer_0") : getSettingAsIndex("support_infill_extruder_nr");
 
-    SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
+    const SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
     if (support_layer.skin.size() == 0 && support_layer.supportAreas.size() == 0)
     {
         return support_added;
@@ -1167,7 +1168,7 @@ bool FffGcodeWriter::addSupportToGCode(SliceDataStorage& storage, GCodePlanner& 
     return support_added;
 }
 
-bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportInfillToGCode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)]; // account for negative layer numbers for raft filler layers
 
@@ -1239,7 +1240,7 @@ bool FffGcodeWriter::addSupportInfillToGCode(SliceDataStorage& storage, GCodePla
     return added;
 }
 
-bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr)
+bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(0, layer_nr)];
 
@@ -1261,7 +1262,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     
     
     bool all_roofs_are_low = true;
-    for (SliceMeshStorage& mesh : storage.meshes)
+    for (const SliceMeshStorage& mesh : storage.meshes)
     {
         if (mesh.getSettingInMicrons("support_roof_height") >= 2 * getSettingInMicrons("layer_height"))
         {
@@ -1305,7 +1306,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(SliceDataStorage& storage, GCodePlan
     return added;
 }
 
-void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr)
+void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int extruder_nr) const
 {
     if (extruder_nr == -1) // an object with extruder_nr==-1 means it will be printed with any current nozzle
         return;
@@ -1316,7 +1317,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     
     if (extruder_changed)
     {
-        if (!extruder_prime_is_planned[extruder_nr])
+        if (!const_cast<bool&>(extruder_prime_is_planned[extruder_nr])) // TODO: const cast!
         {
             ExtruderTrain* train = storage.meshgroup->getExtruderTrain(extruder_nr);
 
@@ -1327,7 +1328,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
 
             gcode_layer.planPrime();
 
-            extruder_prime_is_planned[extruder_nr] = true;
+            const_cast<bool&>(extruder_prime_is_planned[extruder_nr]) = true; // TODO: const cast!
         }
 
         assert(extruder_prime_is_planned[extruder_nr] && "extruders should be primed before they are used!");
@@ -1342,7 +1343,7 @@ void FffGcodeWriter::setExtruder_addPrime(SliceDataStorage& storage, GCodePlanne
     }
 }
 
-void FffGcodeWriter::addPrimeTower(SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int prev_extruder)
+void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, GCodePlanner& gcode_layer, int layer_nr, int prev_extruder) const
 {
     if (!getSettingBoolean("prime_tower_enable"))
     {

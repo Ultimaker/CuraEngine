@@ -188,7 +188,7 @@ public:
     Point getGcodePos(const int64_t x, const int64_t y, const int extruder_train) const;
     
     void setFlavor(EGCodeFlavor flavor);
-    EGCodeFlavor getFlavor();
+    EGCodeFlavor getFlavor() const;
     
     void setZ(int z);
     

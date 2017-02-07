@@ -58,7 +58,7 @@ public:
      * \param extruder The extruder number for which this object is a plan.
      * \param start_position The position the head is when this extruder plan starts
      */
-    ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
+    ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config);
 
     /*!
      * Add a new Insert, constructed with the given arguments
@@ -166,7 +166,7 @@ protected:
 
     int layer_thickness; //!< The thickness of this layer in Z-direction
 
-    FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
+    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings; //!< The fan speed and layer time settings used to limit this extruder plan
 
     const RetractionConfig& retraction_config; //!< The retraction settings for the extruder of this plan
 
@@ -229,7 +229,7 @@ public:
         bool is_inside_mesh_layer_part; //!< Whether the last position was inside a layer part (used in combing)
     };
 private:
-    SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
+    const SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
 public:
     const PathConfigs configs_storage; //!< The line configs for this layer for each feature type
@@ -257,7 +257,7 @@ private:
     Comb* comb;
 
 
-    std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder;
+    const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder;
     
 private:
     /*!
@@ -293,7 +293,7 @@ public:
      * \param last_position The position of the head at the start of this gcode layer
      * \param combing_mode Whether combing is enabled and full or within infill only.
      */
-    GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    GCodePlanner(const SliceDataStorage& storage, int layer_nr, int z, int layer_height, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
     ~GCodePlanner();
 
     void overrideFanSpeeds(double speed);
@@ -311,12 +311,12 @@ private:
     Polygons computeCombBoundaryInside(CombingMode combing_mode);
 
 public:
-    int getLayerNr()
+    int getLayerNr() const
     {
         return layer_nr;
     }
 
-    PlanningState getPlanningState()
+    PlanningState getPlanningState() const
     {
         PlanningState ret;
         ret.last_position = lastPosition;
@@ -324,8 +324,8 @@ public:
         ret.is_inside_mesh_layer_part = was_inside;
         return ret;
     }
-    
-    Point getLastPosition()
+
+    Point getLastPosition() const
     {
         return lastPosition;
     }
@@ -333,7 +333,7 @@ public:
     /*!
      * return whether the last position planned was inside the mesh (used in combing)
      */
-    bool getIsInsideMesh()
+    bool getIsInsideMesh() const
     {
         return was_inside;
     }
@@ -351,7 +351,7 @@ public:
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
-    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width)
+    void sendLineTo(PrintFeatureType print_feature_type, Point to, int line_width) const
     {
         CommandSocket::sendLineTo(print_feature_type, to, line_width);
     }
@@ -375,7 +375,7 @@ public:
     /*!
      * Get the last planned extruder.
      */
-    int getExtruder()
+    int getExtruder() const
     {
         return extruder_plans.back().extruder;
     }

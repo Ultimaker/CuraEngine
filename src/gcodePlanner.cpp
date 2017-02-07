@@ -10,7 +10,7 @@
 namespace cura {
 
 
-ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
+ExtruderPlan::ExtruderPlan(int extruder, Point start_position, int layer_nr, bool is_initial_layer, int layer_thickness, const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings, const RetractionConfig& retraction_config)
 : extruder(extruder)
 , heated_pre_travel_time(0)
 , initial_printing_temperature(-1)
@@ -81,7 +81,7 @@ void GCodePlanner::forceNewPathStart()
         paths[paths.size()-1].done = true;
 }
 
-GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+GCodePlanner::GCodePlanner(const SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, PlanningState last_planned_state, const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , configs_storage(storage, layer_nr, layer_thickness)
 , layer_nr(layer_nr)
@@ -142,12 +142,12 @@ Polygons GCodePlanner::computeCombBoundaryInside(CombingMode combing_mode)
     else 
     {
         Polygons comb_boundary;
-        for (SliceMeshStorage& mesh : storage.meshes)
+        for (const SliceMeshStorage& mesh : storage.meshes)
         {
-            SliceLayer& layer = mesh.layers[layer_nr];
+            const SliceLayer& layer = mesh.layers[layer_nr];
             if (mesh.getSettingAsCombingMode("retraction_combing") == CombingMode::NO_SKIN)
             {
-                for (SliceLayerPart& part : layer.parts)
+                for (const SliceLayerPart& part : layer.parts)
                 {
                     comb_boundary.add(part.infill_area);
                 }
@@ -249,7 +249,7 @@ GCodePath& GCodePlanner::addTravel(Point p)
     
     bool combed = false;
 
-    SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
+    const SettingsBaseVirtual* extr = getLastPlannedExtruderTrainSettings();
 
     const bool perform_z_hops = extr->getSettingBoolean("retraction_hop_enabled");
 
@@ -556,7 +556,7 @@ TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates()
 
 void ExtruderPlan::processFanSpeedAndMinimalLayerTime(bool force_minimal_layer_time)
 {
-    FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
+    const FanSpeedLayerTimeSettings& fsml = fan_speed_layer_time_settings;
     TimeMaterialEstimates estimates = computeNaiveTimeEstimates();
     totalPrintTime = estimates.getTotalTime();
     if (force_minimal_layer_time)
@@ -663,7 +663,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
     for(unsigned int extruder_plan_idx = 0; extruder_plan_idx < extruder_plans.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans[extruder_plan_idx];
-        RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
+        const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[extruder_plan.extruder];
 
         if (extruder != extruder_plan.extruder)
         {
@@ -788,7 +788,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             bool spiralize = path.spiralize;
             if (!spiralize) // normal (extrusion) move (with coasting
             {
-                CoastingConfig& coasting_config = storage.coasting_config[extruder];
+                const CoastingConfig& coasting_config = storage.coasting_config[extruder];
                 bool coasting = coasting_config.coasting_enable; 
                 if (coasting)
                 {
@@ -859,7 +859,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
         if (train->getSettingBoolean("cool_lift_head") && extruder_plan.extraTime > 0.0)
         {
             gcode.writeComment("Small layer, adding delay");
-            RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
+            const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(retraction_config);
             if (extruder_plan_idx == extruder_plans.size() - 1 || !train->getSettingBoolean("machine_extruder_end_pos_abs"))
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
