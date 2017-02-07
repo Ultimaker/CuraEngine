@@ -101,7 +101,7 @@ private:
     };
 
 
-    SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
+    const SliceDataStorage& storage; //!< The storage from which to compute the outside boundary, when needed.
     const int layer_nr; //!< The layer number for the layer for which to compute the outside boundary, when needed.
     
     const int64_t offset_from_outlines; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
@@ -115,8 +115,8 @@ private:
 
     const bool avoid_other_parts; //!< Whether to perform inverse combing a.k.a. avoid parts.
     
-    Polygons& boundary_inside; //!< The boundary within which to comb.
-    PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
+    Polygons boundary_inside; //!< The boundary within which to comb. (Will be reordered by the partsView_inside)
+    const PartsView partsView_inside; //!< Structured indices onto boundary_inside which shows which polygons belong to which part. 
     LocToLineGrid* inside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the inner boundary.
     LazyInitialization<Polygons> boundary_outside; //!< The boundary outside of which to stay to avoid collision with other layer parts. This is a pointer cause we only compute it when we move outside the boundary (so not when there is only a single part in the layer)
     LazyInitialization<LocToLineGrid, Comb*, const int64_t> outside_loc_to_line; //!< The SparsePointGridInclusive mapping locations to line segments of the outside boundary.
@@ -153,7 +153,7 @@ public:
      * \param travel_avoid_other_parts Whether to avoid other layer parts when traveling through air.
      * \param travel_avoid_distance The distance by which to avoid other layer parts when traveling through air.
      */
-    Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
+    Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside, int64_t offset_from_outlines, bool travel_avoid_other_parts, int64_t travel_avoid_distance);
 
     ~Comb();
 

@@ -22,7 +22,7 @@ Polygons& Comb::getBoundaryOutside()
     return *boundary_outside;
 }
   
-Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
+Comb::Comb(const SliceDataStorage& storage, int layer_nr, const Polygons& comb_boundary_inside, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
 , layer_nr(layer_nr)
 , offset_from_outlines(comb_boundary_offset) // between second wall and infill / other walls
@@ -31,7 +31,7 @@ Comb::Comb(SliceDataStorage& storage, int layer_nr, Polygons& comb_boundary_insi
 , offset_from_inside_to_outside(offset_from_outlines + offset_from_outlines_outside)
 , max_crossing_dist2(offset_from_inside_to_outside * offset_from_inside_to_outside * 2) // so max_crossing_dist = offset_from_inside_to_outside * sqrt(2) =approx 1.5 to allow for slightly diagonal crossings and slightly inaccurate crossing computation
 , avoid_other_parts(travel_avoid_other_parts)
-, boundary_inside( comb_boundary_inside )
+, boundary_inside( comb_boundary_inside ) // copy the boundary, because the partsView_inside will reorder the polygons
 , partsView_inside( boundary_inside.splitIntoPartsView() ) // WARNING !! changes the order of boundary_inside !!
 , inside_loc_to_line(PolygonUtils::createLocToLineGrid(boundary_inside, comb_boundary_offset))
 , boundary_outside(
