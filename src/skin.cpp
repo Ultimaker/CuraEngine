@@ -113,16 +113,27 @@ void generateSkinAreas(int layer_nr, SliceMeshStorage& mesh, const int innermost
             }
         }
 
-        int anchor_skin_distance = mesh.getSettingInMicrons("anchor_skin_distance");
+        int anchor_skin_expand_distance = mesh.getSettingInMicrons("anchor_skin_expand_distance");
         
-        if (anchor_skin_distance > 0 && mesh.getSettingBoolean("anchor_upper_skin_in_infill"))
+        if (anchor_skin_expand_distance > 0)
         {
-            upskin = upskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
-        }
+            int anchor_skin_shrink_distance = mesh.getSettingInMicrons("anchor_skin_shrink_distance");
 
-        if (anchor_skin_distance > 0 && mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
-        {
-            downskin = downskin.offset(-innermost_wall_line_width/2).offset(anchor_skin_distance).intersection(virgin_upskin);
+            // skin areas are to be enlarged by anchor_skin_distance but before they are expanded
+            // the skin areas are shrunk by shrink_distance so that very narrow regions of skin
+            // (often caused by the model's surface having a steep incline) are removed first
+
+            anchor_skin_expand_distance += anchor_skin_shrink_distance; // increase the expansion distance to compensate for the shrinkage
+
+            if (mesh.getSettingBoolean("anchor_upper_skin_in_infill"))
+            {
+                upskin = upskin.offset(-anchor_skin_shrink_distance).offset(anchor_skin_expand_distance).intersection(virgin_upskin);
+            }
+
+            if (mesh.getSettingBoolean("anchor_lower_skin_in_infill"))
+            {
+                downskin = downskin.offset(-anchor_skin_shrink_distance).offset(anchor_skin_expand_distance).intersection(virgin_upskin);
+            }
         }
 
         Polygons skin = upskin.unionPolygons(downskin);
