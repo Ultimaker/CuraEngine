@@ -89,6 +89,7 @@ GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int l
 , layer_thickness(layer_thickness)
 , start_position(last_position)
 , lastPosition(last_position)
+, has_prime_tower_planned(false)
 , last_extruder_previous_layer(current_extruder)
 , last_planned_extruder_setting_base(storage.meshgroup->getExtruderTrain(current_extruder))
 , comb_boundary_inside(computeCombBoundaryInside(combing_mode))

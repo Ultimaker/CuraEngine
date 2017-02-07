@@ -15,12 +15,7 @@ namespace cura
 PrimeTower::PrimeTower(const SliceDataStorage& storage)
 : is_hollow(false)
 , wipe_from_middle(false)
-, current_pre_wipe_location_idx(0)
 {
-    for (int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
-    {
-        last_prime_tower_poly_printed[extruder_nr] = -1;
-    }
     enabled = storage.getSettingBoolean("prime_tower_enable")
            && storage.getSettingInMicrons("prime_tower_wall_thickness") > 10
            && storage.getSettingInMicrons("prime_tower_size") > 10;
@@ -127,18 +122,13 @@ void PrimeTower::generatePaths_denseInfill(const SliceDataStorage& storage)
 }
 
 
-void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder)
+void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcodeLayer, const GCodeExport& gcode, const int layer_nr, const int prev_extruder, const int new_extruder) const
 {
     if (!enabled)
     {
         return;
     }
-    bool prime_tower_added = false;
-    for (int extruder = 0; extruder <  storage.meshgroup->getExtruderCount() && !prime_tower_added; extruder++)
-    {
-        prime_tower_added = last_prime_tower_poly_printed[extruder] == int(layer_nr);
-    }
-    if (prime_tower_added)
+    if (gcodeLayer.getPrimeTowerIsPlanned())
     { // don't print the prime tower if it has been printed already
         return;
     }
@@ -159,7 +149,7 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     // pre-wipe:
     if (pre_wipe)
     {
-        preWipe(storage, gcodeLayer, new_extruder);
+        preWipe(storage, gcodeLayer, layer_nr, new_extruder);
     }
 
     addToGcode_denseInfill(gcodeLayer, layer_nr, new_extruder);
@@ -169,21 +159,21 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     { //Make sure we wipe the old extruder on the prime tower.
         gcodeLayer.addTravel(post_wipe_point - gcode.getExtruderOffset(prev_extruder) + gcode.getExtruderOffset(new_extruder));
     }
+
+    gcodeLayer.setPrimeTowerIsPlanned();
 }
 
-void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int extruder)
+void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int extruder) const
 {
-    ExtrusionMoves& pattern = patterns_per_extruder[extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+    const ExtrusionMoves& pattern = patterns_per_extruder[extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
-    GCodePathConfig& config = config_per_extruder[extruder];
+    const GCodePathConfig& config = config_per_extruder[extruder];
 
     gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
     gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
-
-    last_prime_tower_poly_printed[extruder] = layer_nr;
 }
 
-Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage)
+Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
 {
     Point ret(0, 0);
     int absolute_starting_points = 0;
@@ -263,10 +253,10 @@ void PrimeTower::generateWipeLocations(const SliceDataStorage& storage)
     PolygonUtils::spreadDots(segment_start, segment_end, number_of_pre_wipe_locations, pre_wipe_locations);
 }
 
-void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int extruder_nr)
+void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
+    int current_pre_wipe_location_idx = (pre_wipe_location_skip * layer_nr) % number_of_pre_wipe_locations;
     const ClosestPolygonPoint wipe_location = pre_wipe_locations[current_pre_wipe_location_idx];
-    current_pre_wipe_location_idx = (current_pre_wipe_location_idx + pre_wipe_location_skip) % number_of_pre_wipe_locations;
 
     ExtruderTrain& train = *storage.meshgroup->getExtruderTrain(extruder_nr);
     const int inward_dist = train.getSettingInMicrons("machine_nozzle_size") * 3 / 2 ;

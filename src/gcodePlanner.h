@@ -227,7 +227,9 @@ private:
     
     Point start_position;
     Point lastPosition;
-    
+
+    bool has_prime_tower_planned;
+
     std::vector<ExtruderPlan> extruder_plans; //!< should always contain at least one ExtruderPlan
 
     int last_extruder_previous_layer; //!< The last id of the extruder with which was printed in the previous layer
@@ -309,6 +311,17 @@ public:
     {
         return was_inside;
     }
+
+    bool getPrimeTowerIsPlanned() const
+    {
+        return has_prime_tower_planned;
+    }
+
+    void setPrimeTowerIsPlanned()
+    {
+        has_prime_tower_planned = true;
+    }
+
     /*!
      * send a line segment through the command socket from the previous point to the given point \p to
      */
