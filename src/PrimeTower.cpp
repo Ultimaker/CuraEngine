@@ -25,34 +25,6 @@ PrimeTower::PrimeTower(const SliceDataStorage& storage)
     }
 }
 
-
-
-void PrimeTower::initConfigs(const MeshGroup* meshgroup)
-{
-    extruder_count = meshgroup->getExtruderCount();
-
-    for (int extr = 0; extr < extruder_count; extr++)
-    {
-        config_per_extruder.emplace_back(PrintFeatureType::Support);// so that visualization in the old Cura still works (TODO)
-    }
-    for (int extr = 0; extr < extruder_count; extr++)
-    {
-        const ExtruderTrain* train = meshgroup->getExtruderTrain(extr);
-        config_per_extruder[extr].init(train->getSettingInMillimetersPerSecond("speed_prime_tower"), train->getSettingInMillimetersPerSecond("acceleration_prime_tower"), train->getSettingInMillimetersPerSecond("jerk_prime_tower"), train->getSettingInMicrons("prime_tower_line_width"), train->getSettingInPercentage("prime_tower_flow"));
-    }
-}
-
-void PrimeTower::setConfigs(const MeshGroup* meshgroup, const int layer_thickness)
-{
-    extruder_count = meshgroup->getExtruderCount();
-
-    for (int extr = 0; extr < extruder_count; extr++)
-    {
-        GCodePathConfig& conf = config_per_extruder[extr];
-        conf.setLayerHeight(layer_thickness);
-    }
-}
-
 void PrimeTower::generateGroundpoly(const SliceDataStorage& storage)
 {
     extruder_count = storage.meshgroup->getExtruderCount();
@@ -163,14 +135,14 @@ void PrimeTower::addToGcode(const SliceDataStorage& storage, GCodePlanner& gcode
     gcodeLayer.setPrimeTowerIsPlanned();
 }
 
-void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcodeLayer, const int layer_nr, const int extruder) const
+void PrimeTower::addToGcode_denseInfill(GCodePlanner& gcode_layer, const int layer_nr, const int extruder_nr) const
 {
-    const ExtrusionMoves& pattern = patterns_per_extruder[extruder][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
+    const ExtrusionMoves& pattern = patterns_per_extruder[extruder_nr][((layer_nr % 2) + 2) % 2]; // +2) %2 to handle negative layer numbers
 
-    const GCodePathConfig& config = config_per_extruder[extruder];
+    const GCodePathConfig& config = gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr];
 
-    gcodeLayer.addPolygonsByOptimizer(pattern.polygons, &config);
-    gcodeLayer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
+    gcode_layer.addPolygonsByOptimizer(pattern.polygons, &config);
+    gcode_layer.addLinesByOptimizer(pattern.lines, &config, SpaceFillType::Lines);
 }
 
 Point PrimeTower::getLocationBeforePrimeTower(const SliceDataStorage& storage) const
@@ -284,7 +256,7 @@ void PrimeTower::preWipe(const SliceDataStorage& storage, GCodePlanner& gcode_la
         gcode_layer.addTravel(start);
     }
     float flow = 0.0001; // force this path being interpreted as an extrusion path, so that no Z hop will occur (TODO: really separately handle travel and extrusion moves)
-    gcode_layer.addExtrusionMove(end, &config_per_extruder[extruder_nr], SpaceFillType::None, flow);
+    gcode_layer.addExtrusionMove(end, &gcode_layer.configs_storage.prime_tower_config_per_extruder[extruder_nr], SpaceFillType::None, flow);
 }
 
 void PrimeTower::subtractFromSupport(SliceDataStorage& storage)

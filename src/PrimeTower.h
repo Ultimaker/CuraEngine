@@ -34,7 +34,6 @@ private:
         Polygons lines;
     };
     int extruder_count; //!< number of extruders
-    std::vector<GCodePathConfig> config_per_extruder; //!< Path config for prime tower for each extruder
 
     bool is_hollow; //!< Whether the prime tower is hollow
 
@@ -61,21 +60,6 @@ public:
      * \param storage A storage where it retrieves the prime tower settings.
      */
     PrimeTower(const SliceDataStorage& storage);
-
-    /*!
-     * Initialize \ref PrimeTower::config_per_extruder with speed and line width settings.
-     * 
-     * \param meshgroup Where to retrieve the setttings for each extruder
-     */
-    void initConfigs(const MeshGroup* meshgroup);
-
-    /*!
-     * Complete the \ref PrimeTower::config_per_extruder by settings the layer height.
-     * 
-     * \param meshgroup Where to retrieve the setttings for each extruder
-     * \param layer_thickness The current layer thickness
-     */
-    void setConfigs(const MeshGroup* meshgroup, const int layer_thickness);
 
     /*!
      * Generate the prime tower area to be used on each layer

@@ -83,6 +83,7 @@ void GCodePlanner::forceNewPathStart()
 
 GCodePlanner::GCodePlanner(SliceDataStorage& storage, int layer_nr, int z, int layer_thickness, Point last_position, int current_extruder, bool is_inside_mesh, std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder, CombingMode combing_mode, int64_t comb_boundary_offset, bool travel_avoid_other_parts, int64_t travel_avoid_distance)
 : storage(storage)
+, configs_storage(storage, layer_nr, layer_thickness)
 , layer_nr(layer_nr)
 , is_initial_layer(layer_nr == 0 - Raft::getTotalExtraLayers(storage))
 , z(z)
@@ -242,8 +243,8 @@ void GCodePlanner::moveInsideCombBoundary(int distance)
 GCodePath& GCodePlanner::addTravel(Point p)
 {
     GCodePath* path = nullptr;
-    GCodePathConfig& travel_config = storage.travel_config_per_extruder[getExtruder()];
-    RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
+    const GCodePathConfig& travel_config = configs_storage.travel_config_per_extruder[getExtruder()];
+    const RetractionConfig& retraction_config = storage.retraction_config_per_extruder[getExtruder()];
     
     bool combed = false;
 
@@ -334,7 +335,7 @@ GCodePath& GCodePlanner::addTravel_simple(Point p, GCodePath* path)
 {
     if (path == nullptr)
     {
-        path = getLatestPathWithConfig(&storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
+        path = getLatestPathWithConfig(&configs_storage.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
     }
     path->points.push_back(p);
     lastPosition = p;
@@ -637,8 +638,6 @@ void GCodePlanner::processFanSpeedAndMinimalLayerTime()
 
 void GCodePlanner::writeGCode(GCodeExport& gcode)
 {
-    completeConfigs();
-    
     CommandSocket::setLayerForSend(layer_nr);
     CommandSocket::setSendCurrentPosition( gcode.getPositionXY() );
     gcode.setLayerNr(layer_nr);
@@ -765,7 +764,7 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             else
                 speed *= extruder_plan.getExtrudeSpeedFactor();
 
-            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
+            if (MergeInfillLines(gcode, layer_nr, paths, extruder_plan, configs_storage.travel_config_per_extruder[extruder], nozzle_size, speed_equalize_flow_enabled, speed_equalize_flow_max).mergeInfillLines(path_idx)) // !! has effect on path_idx !!
             { // !! has effect on path_idx !!
                 // works when path_idx is the index of the travel move BEFORE the infill lines to be merged
                 continue;
@@ -865,9 +864,9 @@ void GCodePlanner::writeGCode(GCodeExport& gcode)
             { // only move the head if it's the last extruder plan; otherwise it's already at the switching bay area 
                 // or do it anyway when we switch extruder in-place
                 gcode.setZ(gcode.getPositionZ() + MM2INT(3.0));
-                gcode.writeMove(gcode.getPositionXY(), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+                gcode.writeMove(gcode.getPositionXY(), configs_storage.travel_config_per_extruder[extruder].getSpeed(), 0);
                 // TODO: is this safe?! wouldn't the head move into the sides then?!
-                gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), storage.travel_config_per_extruder[extruder].getSpeed(), 0);
+                gcode.writeMove(gcode.getPositionXY() - Point(-MM2INT(20.0), 0), configs_storage.travel_config_per_extruder[extruder].getSpeed(), 0);
             }
             gcode.writeDelay(extruder_plan.extraTime);
         }
@@ -885,109 +884,6 @@ void GCodePlanner::overrideFanSpeeds(double speed)
         extruder_plan.setFanSpeed(speed);
     }
 }
-
-
-void GCodePlanner::completeConfigs()
-{
-    storage.support_config.setLayerHeight(layer_thickness);
-    storage.support_skin_config.setLayerHeight(layer_thickness);
-    
-    for (SliceMeshStorage& mesh : storage.meshes)
-    {
-        mesh.inset0_config.setLayerHeight(layer_thickness);
-
-        mesh.insetX_config.setLayerHeight(layer_thickness);
-        mesh.skin_config.setLayerHeight(layer_thickness);
-        mesh.perimeter_gap_config.setLayerHeight(layer_thickness);
-        for(unsigned int idx=0; idx<MAX_INFILL_COMBINE; idx++)
-        {
-            mesh.infill_config[idx].setLayerHeight(layer_thickness);
-        }
-    }
-    
-    storage.primeTower.setConfigs(storage.meshgroup, layer_thickness);
-    
-    processInitialLayersSpeedup();
-}
-
-
-void GCodePlanner::processInitialLayersSpeedup()
-{
-    int initial_speedup_layers = storage.getSettingAsCount("speed_slowdown_layers");
-    if (layer_nr >= 0 && layer_nr < initial_speedup_layers)
-    {
-        GCodePathConfig::BasicConfig initial_layer_speed_config;
-        int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr == 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("speed_print_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_infill)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
-
-        //Support (global).
-        storage.support_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-
-        //Support roof (global).
-        int extruder_nr_support_skin = storage.getSettingAsIndex("support_interface_extruder_nr");
-        initial_layer_speed_config.speed = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("speed_print_layer_0");
-        initial_layer_speed_config.acceleration = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("acceleration_print_layer_0");
-        initial_layer_speed_config.jerk = storage.meshgroup->getExtruderTrain(extruder_nr_support_skin)->getSettingInMillimetersPerSecond("jerk_print_layer_0");
-        storage.support_skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-
-        for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
-        {
-            const ExtruderTrain* extruder_train = storage.meshgroup->getExtruderTrain(extruder_nr);
-            initial_layer_speed_config.speed = extruder_train->getSettingInMillimetersPerSecond("speed_travel_layer_0");
-            initial_layer_speed_config.acceleration = extruder_train->getSettingInMillimetersPerSecond("acceleration_travel_layer_0");
-            initial_layer_speed_config.jerk = extruder_train->getSettingInMillimetersPerSecond("jerk_travel_layer_0");
-
-            //Travel speed (per extruder).
-            storage.travel_config_per_extruder[extruder_nr].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-        }
-
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            initial_layer_speed_config.speed = mesh.getSettingInMillimetersPerSecond("speed_print_layer_0");
-            initial_layer_speed_config.acceleration = mesh.getSettingInMillimetersPerSecond("acceleration_print_layer_0");
-            initial_layer_speed_config.jerk = mesh.getSettingInMillimetersPerSecond("jerk_print_layer_0");
-
-            //Outer wall speed (per mesh).
-            mesh.inset0_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-
-            //Inner wall speed (per mesh).
-            mesh.insetX_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-
-            //Skin speed (per mesh).
-            mesh.skin_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-            mesh.perimeter_gap_config.smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-
-            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
-            {
-                //Infill speed (per combine part per mesh).
-                mesh.infill_config[idx].smoothSpeed(initial_layer_speed_config, layer_nr, initial_speedup_layers);
-            }
-        }
-    }
-    else if (layer_nr == initial_speedup_layers) //At the topmost layer of the gradient, reset all speeds to the typical speeds.
-    {
-        storage.support_config.setSpeedIconic();
-        storage.support_skin_config.setSpeedIconic();
-        for (int extruder_nr = 0; extruder_nr < storage.meshgroup->getExtruderCount(); ++extruder_nr)
-        {
-            storage.travel_config_per_extruder[extruder_nr].setSpeedIconic();
-        }
-        for (SliceMeshStorage& mesh : storage.meshes)
-        {
-            mesh.inset0_config.setSpeedIconic();
-            mesh.insetX_config.setSpeedIconic();
-            mesh.skin_config.setSpeedIconic();
-            mesh.perimeter_gap_config.setSpeedIconic();
-            for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)
-            {
-                mesh.infill_config[idx].setSpeedIconic();
-            }
-        }
-    }
-}
-
 
 
 bool GCodePlanner::makeRetractSwitchRetract(GCodeExport& gcode, unsigned int extruder_plan_idx, unsigned int path_idx)

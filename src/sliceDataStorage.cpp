@@ -87,38 +87,11 @@ std::vector<RetractionConfig> SliceDataStorage::initializeRetractionConfigs()
     return ret;
 }
 
-std::vector<GCodePathConfig> SliceDataStorage::initializeTravelConfigs()
-{
-    std::vector<GCodePathConfig> ret;
-    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-    {
-        travel_config_per_extruder.emplace_back(PrintFeatureType::MoveCombing);
-    }
-    return ret;
-}
-
-std::vector<GCodePathConfig> SliceDataStorage::initializeSkirtBrimConfigs()
-{
-    std::vector<GCodePathConfig> ret;
-    for (int extruder = 0; extruder < meshgroup->getExtruderCount(); extruder++)
-    {
-        skirt_brim_config.emplace_back(PrintFeatureType::SkirtBrim);
-    }
-    return ret;
-}
-
 SliceDataStorage::SliceDataStorage(MeshGroup* meshgroup) : SettingsMessenger(meshgroup),
     meshgroup(meshgroup != nullptr ? meshgroup : new MeshGroup(FffProcessor::getInstance())), //If no mesh group is provided, we roll our own.
     print_layer_count(0),
     retraction_config_per_extruder(initializeRetractionConfigs()),
     extruder_switch_retraction_config_per_extruder(initializeRetractionConfigs()),
-    travel_config_per_extruder(initializeTravelConfigs()),
-    skirt_brim_config(initializeSkirtBrimConfigs()),
-    raft_base_config(PrintFeatureType::SupportInterface),
-    raft_interface_config(PrintFeatureType::Support),
-    raft_surface_config(PrintFeatureType::SupportInterface),
-    support_config(PrintFeatureType::Support),
-    support_skin_config(PrintFeatureType::SupportInterface),
     max_print_height_second_to_last_extruder(-1),
     primeTower(*this)
 {

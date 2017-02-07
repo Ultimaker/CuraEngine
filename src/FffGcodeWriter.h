@@ -172,17 +172,6 @@ private:
      * \param[out] storage The data storage to which to save the configurations
      */
     void setConfigRetraction(SliceDataStorage& storage);
-    
-    /*!
-     * Initialize the GcodePathConfig config parameters which don't change over
-     * all layers, for each feature.
-     * 
-     * The features are: skirt or brim, support and for each mesh: outer wall,
-     * inner walls, skin, infill (and combined infill).
-     * 
-     * \param[out] storage The data storage to which to save the configurations.
-     */
-    void initConfigs(SliceDataStorage& storage);
 
     /*!
      * Get the extruder with which to start the print.
@@ -297,81 +286,88 @@ private:
      * 
      * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcodeLayer, int layer_nr);
+    void addMeshLayerToGCode_meshSurfaceMode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcodeLayer, int layer_nr);
     
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
      * 
      * \param[in] storage where the slice data is stored.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
+    void addMeshOpenPolyLinesToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcode_layer.
      * 
      * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshLayerToGCode(SliceDataStorage& storage, const SliceMeshStorage* mesh, GCodePlanner& gcode_layer, int layer_nr);
+    void addMeshLayerToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, GCodePlanner& gcode_layer, int layer_nr);
 
     /*!
      * Add a single part from a given layer of a mesh-volume to the layer plan \p gcode_layer.
      * 
      * \param[in] storage where the slice data is stored.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param mesh_config the line config with which to print a print feature
      * \param part The part to add
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param layer_nr The index of the layer to write the gcode of.
      * 
      */
-    void addMeshPartToGCode(SliceDataStorage& storage, const SliceMeshStorage* mesh, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr);
+    void addMeshPartToGCode(SliceDataStorage& storage, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, GCodePlanner& gcode_layer, int layer_nr);
     
     /*!
      * Add thicker (multiple layers) sparse infill for a given part in a layer plan.
      * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processMultiLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
+    void processMultiLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Add normal sparse infill for a given part in a layer.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param infill_line_distance The distance between the infill lines
      * \param infill_overlap The distance by which the infill overlaps with the wall insets.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSingleLayerInfill(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
+    void processSingleLayerInfill(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int infill_line_distance, int infill_overlap, int fillAngle);
     
     /*!
      * Generate the insets for the walls of a given layer part.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param z_seam_type dir3ective for where to start the outer paerimeter of a part
      * \param z_seam_pos The location near where to start the outer inset in case \p z_seam_type is 'back'
      */
-    void processInsets(GCodePlanner& gcodeLayer, const SliceMeshStorage* mesh, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos);
+    void processInsets(GCodePlanner& gcodeLayer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, EZSeamType z_seam_type, Point z_seam_pos);
     
     
     /*!
@@ -382,12 +378,13 @@ private:
      * 
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
      * \param layer_nr The current layer number.
      * \param skin_overlap The distance by which the skin overlaps with the wall insets and the distance by which the perimeter gaps overlap with adjacent print features.
      * \param fillAngle The angle in the XY plane at which the infill is generated.
      */
-    void processSkinAndPerimeterGaps(cura::GCodePlanner& gcode_layer, const cura::SliceMeshStorage* mesh, const cura::SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
+    void processSkinAndPerimeterGaps(GCodePlanner& gcode_layer, SliceMeshStorage* mesh, const PathConfigs::MeshPathConfigs& mesh_config, const SliceLayerPart& part, unsigned int layer_nr, int skin_overlap, int infill_angle);
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.

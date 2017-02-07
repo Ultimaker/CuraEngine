@@ -16,6 +16,7 @@
 #include "FanSpeedLayerTime.h"
 #include "SpaceFillType.h"
 #include "GCodePathConfig.h"
+#include "settings/PathConfigs.h"
 
 #include "utils/optional.h"
 
@@ -218,6 +219,10 @@ class GCodePlanner : public NoCopy
 private:
     SliceDataStorage& storage; //!< The polygon data obtained from FffPolygonProcessor
 
+public:
+    const PathConfigs configs_storage; //!< The line configs for this layer for each feature type
+
+private:
     int layer_nr; //!< The layer number of this layer plan
     int is_initial_layer; //!< Whether this is the first layer (which might be raft)
     
@@ -447,20 +452,7 @@ public:
      * \param gcode The gcode to write the planned paths to
      */
     void writeGCode(GCodeExport& gcode);
-    
-    /*!
-     * Complete all GcodePathConfigs by
-     * - altering speeds to conform to speed_print_layer_0 and
-     *   speed_travel_layer_0
-     * - setting the layer_height (and thereby computing the extrusionMM3perMM)
-     */
-    void completeConfigs();
-    
-    /*!
-     * Interpolate between the initial layer speeds and the eventual speeds.
-     */
-    void processInitialLayersSpeedup();
-    
+
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
      * This function is used to avoid a G10 S1 after a G10.

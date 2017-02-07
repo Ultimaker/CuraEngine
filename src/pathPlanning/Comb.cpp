@@ -6,6 +6,7 @@
 #include <unordered_set>
 
 #include "../utils/polygonUtils.h"
+#include "../utils/linearAlg2D.h"
 #include "../utils/PolygonsPointIndex.h"
 #include "../sliceDataStorage.h"
 #include "../utils/SVG.h"
