@@ -11,11 +11,18 @@ namespace cura
 {
 
 class SliceDataStorage; // forward decl for SliceDataStorage
+class SliceMeshStorage; // forward decl for SliceDataStorage
+class ExtruderTrain; // forward decl for SliceDataStorage
+
 /*!
  * A class to represent all configurations for all features types of printed lines in a meshgroup.
  */
 class PathConfigStorage
 {
+private:
+    const ExtruderTrain* adhesion_extruder_train;
+    const ExtruderTrain* support_infill_train;
+    const ExtruderTrain* support_interface_train;
 public:
     class MeshPathConfigs
     {
@@ -26,7 +33,7 @@ public:
         GCodePathConfig perimeter_gap_config;
         std::vector<GCodePathConfig> infill_config;
 
-        MeshPathConfigs();
+        MeshPathConfigs(const SliceMeshStorage& mesh, int layer_thickness);
     };
     
     GCodePathConfig raft_base_config;
@@ -45,7 +52,10 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, int layer_nr, coord_t layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, int layer_nr, int layer_thickness);
+
+private:
+    void handleInitialLayerSpeedup(const SliceDataStorage& storage, int layer_nr, int initial_speedup_layer_count);
 };
 
 }; // namespace cura
