@@ -531,8 +531,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
  *
- * generateInsets only reads and writes data for the current layer
- *
  * processInsets only reads and writes data for the current layer
  */
 void FffPolygonGenerator::processInsets(SliceMeshStorage& mesh, unsigned int layer_nr) 
