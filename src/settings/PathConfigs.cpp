@@ -63,12 +63,12 @@ PathConfigs::PathConfigs(const SliceDataStorage& storage, int layer_nr, coord_t 
 
     { // support
         SettingsBase* infill_train = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_infill_extruder_nr"));
-        support_infill_config.setLayerHeight(layer_thickness);
         support_infill_config.init(infill_train->getSettingInMillimetersPerSecond("speed_support_infill"), infill_train->getSettingInMillimetersPerSecond("acceleration_support_infill"), infill_train->getSettingInMillimetersPerSecond("jerk_support_infill"), infill_train->getSettingInMicrons("support_line_width"), infill_train->getSettingInPercentage("material_flow"));
+        support_infill_config.setLayerHeight(layer_thickness);
 
         SettingsBase* interface_train = storage.meshgroup->getExtruderTrain(storage.getSettingAsIndex("support_interface_extruder_nr"));
-        support_interface_config.setLayerHeight(layer_thickness);
         support_interface_config.init(interface_train->getSettingInMillimetersPerSecond("speed_support_interface"), interface_train->getSettingInMillimetersPerSecond("acceleration_support_interface"), interface_train->getSettingInMillimetersPerSecond("jerk_support_interface"), interface_train->getSettingInMicrons("support_interface_line_width"), interface_train->getSettingInPercentage("material_flow"));
+        support_interface_config.setLayerHeight(layer_thickness);
         if (layer_nr < initial_speedup_layer_count)
         {
             int extruder_nr_support_infill = storage.getSettingAsIndex((layer_nr <= 0)? "support_extruder_nr_layer_0" : "support_infill_extruder_nr");
@@ -153,18 +153,18 @@ PathConfigs::PathConfigs(const SliceDataStorage& storage, int layer_nr, coord_t 
                 );
 
             MeshPathConfigs& mesh_config = mesh_configs[mesh_idx];
-            mesh_config.inset0_config.setLayerHeight(layer_thickness);
             mesh_config.inset0_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_0"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_0"), mesh.getSettingInMillimetersPerSecond("jerk_wall_0"), mesh.getSettingInMicrons("wall_line_width_0"), mesh.getSettingInPercentage("material_flow"));
-            mesh_config.insetX_config.setLayerHeight(layer_thickness);
+            mesh_config.inset0_config.setLayerHeight(layer_thickness);
             mesh_config.insetX_config.init(mesh.getSettingInMillimetersPerSecond("speed_wall_x"), mesh.getSettingInMillimetersPerSecond("acceleration_wall_x"), mesh.getSettingInMillimetersPerSecond("jerk_wall_x"), mesh.getSettingInMicrons("wall_line_width_x"), mesh.getSettingInPercentage("material_flow"));
-            mesh_config.skin_config.setLayerHeight(layer_thickness);
+            mesh_config.insetX_config.setLayerHeight(layer_thickness);
             mesh_config.skin_config.init(mesh.getSettingInMillimetersPerSecond("speed_topbottom"), mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), mesh.getSettingInMicrons("skin_line_width"), mesh.getSettingInPercentage("material_flow"));
-            mesh_config.perimeter_gap_config.setLayerHeight(layer_thickness);
+            mesh_config.skin_config.setLayerHeight(layer_thickness);
             mesh_config.perimeter_gap_config.init(perimeter_gaps_speed, mesh.getSettingInMillimetersPerSecond("acceleration_topbottom"), mesh.getSettingInMillimetersPerSecond("jerk_topbottom"), perimeter_gaps_line_width, mesh.getSettingInPercentage("material_flow"));
+            mesh_config.perimeter_gap_config.setLayerHeight(layer_thickness);
             for (unsigned int combine_idx = 0; combine_idx < MAX_INFILL_COMBINE; combine_idx++)
             {
-                mesh_config.infill_config[combine_idx].setLayerHeight(layer_thickness);
                 mesh_config.infill_config[combine_idx].init(mesh.getSettingInMillimetersPerSecond("speed_infill"), mesh.getSettingInMillimetersPerSecond("acceleration_infill"), mesh.getSettingInMillimetersPerSecond("jerk_infill"), mesh.getSettingInMicrons("infill_line_width") * (combine_idx + 1), mesh.getSettingInPercentage("material_flow"));
+                mesh_config.infill_config[combine_idx].setLayerHeight(layer_thickness);
             }
             
             if (layer_nr < initial_speedup_layer_count)
